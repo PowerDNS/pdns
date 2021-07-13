@@ -387,6 +387,15 @@ URL Endpoints
           ]
       }
 
+.. http:get:: /api/v1/servers/localhost/pool?name=pool-name
+
+  .. versionadded:: 1.6.0
+
+  Get a quick overview of the pool named "pool-name".
+
+  :>json list: A list of metrics related to that pool
+  :>json list servers: A list of :json:object:`Server` objects present in that pool
+
 JSON Objects
 ~~~~~~~~~~~~
 
@@ -464,9 +473,6 @@ JSON Objects
 .. json:object:: Server
 
   This object represents a backend server.
-
-  .. versionchanged:: 1.3.1
-    The ``dropRate`` property was added
 
   :property string address: The remote IP and port
   :property integer id: Internal identifier

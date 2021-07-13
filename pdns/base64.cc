@@ -28,7 +28,7 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
-int B64Decode(const std::string& src, std::string& dst)
+template<typename Container> int B64Decode(const std::string& src, Container& dst)
 {
   if (src.empty() ) {
     dst.clear();
@@ -36,25 +36,27 @@ int B64Decode(const std::string& src, std::string& dst)
   }
   int dlen = ( src.length() * 6 + 7 ) / 8 ;
   ssize_t olen = 0;
-  boost::scoped_array<unsigned char> d( new unsigned char[dlen] );
+  dst.resize(dlen);
   BIO *bio, *b64;
   bio = BIO_new(BIO_s_mem());
   BIO_write(bio, src.c_str(), src.length());
   b64 = BIO_new(BIO_f_base64());
   bio = BIO_push(b64, bio);
   BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-  olen = BIO_read(b64, d.get(), dlen);
+  olen = BIO_read(b64, &dst.at(0), dlen);
   if ((olen == 0 || olen == -1) && BIO_should_retry(bio)) {
     BIO_free_all(bio);
     throw std::runtime_error("BIO_read failed to read all data from memory buffer");
   }
   BIO_free_all(bio);
   if (olen > 0) {
-    dst = std::string( reinterpret_cast<const char*>(d.get()), olen );
+    dst.resize(olen);
     return 0;
   }
   return -1;
 }
+
+template int B64Decode<std::string>(const std::string& strInput, std::string& strOutput);
 
 std::string Base64Encode(const std::string& src)
 {

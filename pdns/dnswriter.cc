@@ -41,7 +41,7 @@
 */
 
 
-DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
+template <typename Container> GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
@@ -68,13 +68,13 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   d_rollbackmarker = 0;
 }
 
-dnsheader* DNSPacketWriter::getHeader()
+template <typename Container> dnsheader* GenericDNSPacketWriter<Container>::getHeader()
 {
   return reinterpret_cast<dnsheader*>(&*d_content.begin());
 }
 
 
-void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
+template <typename Container> void GenericDNSPacketWriter<Container>::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
   d_compress = compress;
   commit();
@@ -95,7 +95,7 @@ void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t 
   d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
-void DNSPacketWriter::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
+template <typename Container> void GenericDNSPacketWriter<Container>::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
 {
   uint32_t ttl=0;
 
@@ -129,7 +129,7 @@ void DNSPacketWriter::addOpt(const uint16_t udpsize, const uint16_t extRCode, co
   }
 }
 
-void DNSPacketWriter::xfr48BitInt(uint64_t val)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfr48BitInt(uint64_t val)
 {
   unsigned char bytes[6];
   uint16_t theLeft = htons((val >> 32)&0xffffU);
@@ -140,22 +140,26 @@ void DNSPacketWriter::xfr48BitInt(uint64_t val)
   d_content.insert(d_content.end(), bytes, bytes + sizeof(bytes));
 }
 
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrNodeOrLocatorID(const NodeOrLocatorID& val)
+{
+  d_content.insert(d_content.end(), val.content, val.content + sizeof(val.content));
+}
 
-void DNSPacketWriter::xfr32BitInt(uint32_t val)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfr32BitInt(uint32_t val)
 {
   uint32_t rval=htonl(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_content.insert(d_content.end(), ptr, ptr+4);
 }
 
-void DNSPacketWriter::xfr16BitInt(uint16_t val)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfr16BitInt(uint16_t val)
 {
   uint16_t rval=htons(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_content.insert(d_content.end(), ptr, ptr+2);
 }
 
-void DNSPacketWriter::xfr8BitInt(uint8_t val)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfr8BitInt(uint8_t val)
 {
   d_content.push_back(val);
 }
@@ -174,7 +178,7 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
   "blah" -> blah
   "blah\"blah" -> blah"blah
   */
-void DNSPacketWriter::xfrText(const string& text, bool, bool lenField)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrText(const string& text, bool, bool lenField)
 {
   if(text.empty()) {
     d_content.push_back(0);
@@ -188,7 +192,7 @@ void DNSPacketWriter::xfrText(const string& text, bool, bool lenField)
   }
 }
 
-void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquotedText(const string& text, bool lenField)
 {
   if(text.empty()) {
     d_content.push_back(0);
@@ -202,7 +206,7 @@ void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
 
 static constexpr bool l_verbose=false;
 static constexpr uint16_t maxCompressionOffset=16384;
-uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
+template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookupName(const DNSName& name, uint16_t* matchLen)
 {
   // iterate over the written labels, see if we find a match
   const auto& raw = name.getStorage();
@@ -315,7 +319,7 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
   return bestpos;
 }
 // this is the absolute hottest function in the pdns recursor
-void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrName(const DNSName& name, bool compress, bool)
 {
   if(l_verbose)
     cout<<"Wants to write "<<name<<", compress="<<compress<<", canonic="<<d_canonic<<", LC="<<d_lowerCase<<endl;
@@ -372,23 +376,23 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
   }
 }
 
-void DNSPacketWriter::xfrBlob(const string& blob, int  )
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlob(const string& blob, int  )
 {
   const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
   d_content.insert(d_content.end(), ptr, ptr+blob.size());
 }
 
-void DNSPacketWriter::xfrBlobNoSpaces(const string& blob, int  )
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlobNoSpaces(const string& blob, int  )
 {
   xfrBlob(blob);
 }
 
-void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrHexBlob(const string& blob, bool keepReading)
 {
   xfrBlob(blob);
 }
 
-void DNSPacketWriter::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
 {
   for (auto const &param : kvs) {
     // Key first!
@@ -433,9 +437,9 @@ void DNSPacketWriter::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
         xfrCAWithoutPort(param.getKey(), a);
       }
       break;
-    case SvcParam::echconfig:
-      xfr16BitInt(param.getEchConfig().size()); // size
-      xfrBlobNoSpaces(param.getEchConfig());
+    case SvcParam::ech:
+      xfr16BitInt(param.getECH().size()); // size
+      xfrBlobNoSpaces(param.getECH());
       break;
     default:
       xfr16BitInt(param.getValue().size());
@@ -446,30 +450,30 @@ void DNSPacketWriter::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
 }
 
 // call __before commit__
-void DNSPacketWriter::getRecordPayload(string& records)
+template <typename Container> void GenericDNSPacketWriter<Container>::getRecordPayload(string& records)
 {
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
-uint32_t DNSPacketWriter::size()
+template <typename Container> uint32_t GenericDNSPacketWriter<Container>::size() const
 {
   return d_content.size();
 }
 
-void DNSPacketWriter::rollback()
+template <typename Container> void GenericDNSPacketWriter<Container>::rollback()
 {
   d_content.resize(d_rollbackmarker);
   d_sor = 0;
 }
 
-void DNSPacketWriter::truncate()
+template <typename Container> void GenericDNSPacketWriter<Container>::truncate()
 {
   d_content.resize(d_truncatemarker);
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
   dh->ancount = dh->nscount = dh->arcount = 0;
 }
 
-void DNSPacketWriter::commit()
+template <typename Container> void GenericDNSPacketWriter<Container>::commit()
 {
   if(!d_sor)
     return;
@@ -494,3 +498,19 @@ void DNSPacketWriter::commit()
   }
 
 }
+
+template <typename Container> size_t GenericDNSPacketWriter<Container>::getSizeWithOpts(const optvect_t& options) const
+{
+  size_t result = size() + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + DNS_TTL_SIZE + DNS_RDLENGTH_SIZE;
+
+  for(auto const &option : options) {
+    result += 4;
+    result += option.second.size();
+  }
+
+  return result;
+}
+
+template class GenericDNSPacketWriter<std::vector<uint8_t>>;
+#include "noinitvector.hh"
+template class GenericDNSPacketWriter<PacketBuffer>;

@@ -353,7 +353,7 @@ union ComboAddress {
 
       uint32_t ls_addr = ntohl(sin4.sin_addr.s_addr);
 
-      return ((ls_addr & (1<<index)) != 0x00000000);
+      return ((ls_addr & (1U<<index)) != 0x00000000);
     }
     if(isIPv6()) {
       if (index >= 128)
@@ -368,7 +368,7 @@ union ComboAddress {
       uint8_t byte_idx = index / 8;
       uint8_t bit_idx = index % 8;
 
-      return ((ls_addr[15-byte_idx] & (1 << bit_idx)) != 0x00);
+      return ((ls_addr[15-byte_idx] & (1U << bit_idx)) != 0x00);
     }
     return false;
   }
@@ -775,26 +775,32 @@ private:
       TreeNode* branch_node = new TreeNode(node.first.getSuper(bits));
       branch_node->d_bits = bits;
 
+      // the current node will now be a child of the new branch node
+      // (hereafter new_child1 points to "this")
+      unique_ptr<TreeNode> new_child1 = std::move(parent_ref);
       // attach the branch node under our former parent
-      unique_ptr<TreeNode> new_child1(branch_node);
-      std::swap(parent_ref, new_child1); // hereafter new_child1 points to "this"
+      parent_ref = std::unique_ptr<TreeNode>(branch_node);
       branch_node->parent = parent;
 
       // create second new leaf node for the new key
-      TreeNode* new_node = new TreeNode(key);
-      unique_ptr<TreeNode> new_child2(new_node);
+      unique_ptr<TreeNode> new_child2 = make_unique<TreeNode>(key);
+      TreeNode* new_node = new_child2.get();
 
       // attach the new child nodes below the branch node
       // (left or right depending on bit)
       new_child1->parent = branch_node;
       new_child2->parent = branch_node;
       if (new_child1->node.first.getBit(-1-bits)) {
-        std::swap(branch_node->right, new_child1);
-        std::swap(branch_node->left, new_child2);
+        branch_node->right = std::move(new_child1);
+        branch_node->left = std::move(new_child2);
       } else {
-        std::swap(branch_node->right, new_child2);
-        std::swap(branch_node->left, new_child1);
+        branch_node->right = std::move(new_child2);
+        branch_node->left = std::move(new_child1);
       }
+      // now we have attached the new unique pointers to the tree:
+      // - branch_node is below its parent
+      // - new_child1 (ourselves) is below branch_node
+      // - new_child2, the new leaf node, is below branch_node as well
 
       return new_node;
     }
@@ -1270,8 +1276,8 @@ private:
   size_type d_size;
 };
 
-/** This class represents a group of supplemental Netmask classes. An IP address matchs
-    if it is matched by zero or more of the Netmask classes within.
+/** This class represents a group of supplemental Netmask classes. An IP address matches
+    if it is matched by one or more of the Netmask objects within.
 */
 class NetmaskGroup
 {
@@ -1324,6 +1330,13 @@ public:
   void addMask(const Netmask& nm, bool positive=true)
   {
     tree.insert(nm).second=positive;
+  }
+
+  void addMasks(const NetmaskGroup& group, boost::optional<bool> positive)
+  {
+    for (const auto& entry : group.tree) {
+      addMask(entry.first, positive ? *positive : entry.second);
+    }
   }
 
   //! Delete this Netmask from the list of possible matches
@@ -1415,12 +1428,12 @@ int SConnect(int sockfd, const ComboAddress& remote);
    sockfd should be set to non-blocking beforehand.
    returns 0 on success (the socket is writable), throw a
    runtime_error otherwise */
-int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout);
+int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout);
 int SBind(int sockfd, const ComboAddress& local);
 int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
-void setSocketIgnorePMTU(int sockfd);
+void setSocketIgnorePMTU(int sockfd, int family);
 bool setReusePort(int sockfd);
 
 #if defined(IP_PKTINFO)
@@ -1434,7 +1447,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fd, const struct msghdr *msgh);
-ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
+ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
 size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
 
 /* requires a non-blocking, connected TCP socket */

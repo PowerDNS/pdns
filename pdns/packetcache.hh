@@ -23,7 +23,6 @@
 #include "ednsoptions.hh"
 #include "misc.hh"
 #include "iputils.hh"
-#include "views.hh"
 
 class PacketCache : public boost::noncopyable
 {

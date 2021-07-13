@@ -10,6 +10,7 @@ Generic PostgreSQL backend
 * DNSSEC: Yes (set ``gpgsql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Zone caching: Yes
 * Module name: gpgsql
 * Launch name: ``gpgsql``
 
@@ -105,7 +106,8 @@ Default: yes.
 Default schema
 --------------
 
-This is the 4.3 schema. Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ and the `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ on GitHub.
+This is the 4.3 schema.
+The `4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ and the `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ is available on GitHub.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
    :language: SQL
@@ -135,20 +137,20 @@ Given the normal pgsql schema, change the following:
   CREATE SEQUENCE key_id MAXVALUE 2147483648;
   CREATE SEQUENCE tsig_id MAXVALUE 2147483648;
 
-2. Change all SERIAL / BIGSERIAL columns to use the SEQUENCEs. For instance:
+2. Change all SERIAL / BIGSERIAL columns to use the SEQUENCEs. For instance, change
 
 .. code-block:: SQL
 
-  -- Before
   CREATE TABLE domains (
     id SERIAL PRIMARY KEY,
-    --
-  }
+  )
 
-  -- After
+to
+
+.. code-block:: SQL
+
   CREATE TABLE domains (
     id INT DEFAULT nextval('domain_id') PRIMARY KEY,
-    --
   );
 
 

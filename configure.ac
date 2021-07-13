@@ -1,11 +1,19 @@
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 
 AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
-
+AC_CONFIG_AUX_DIR([build-aux])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
+AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
+
+AC_USE_SYSTEM_EXTENSIONS
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_AUX_DIR([build-aux])
+
+AC_CANONICAL_HOST
+# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
+CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CFLAGS"
+CXXFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
@@ -13,42 +21,27 @@ AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
   [pdns configure arguments]
 )
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
-AM_SILENT_RULES([yes])
-
-AC_CANONICAL_HOST
-# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
-CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CFLAGS"
-CXXFLAGS="-std=c++11 -g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
-
 AC_PROG_CC
-AM_PROG_CC_C_O
-PDNS_CHECK_BISON
-PDNS_CHECK_FLEX
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-
+# AM_PROG_CC_C_O
 AC_PROG_CXX
-AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
-  [AC_MSG_ERROR([no C++ compiler found])]
-)
-
 AC_LANG([C++])
 
-AC_DEFINE([_GNU_SOURCE], [1],
-  [Define _GNU_SOURCE so that we get all necessary prototypes]
-)
+PDNS_CHECK_TIME_T
+PDNS_CHECK_BISON
+PDNS_CHECK_FLEX
 
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
+
+AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
+LT_PREREQ([2.2.2])
+LT_INIT([disable-static dlopen])
 
 PDNS_CHECK_OS
 PTHREAD_SET_NAME
 
 PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
-
-AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
@@ -69,9 +62,6 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 PDNS_ENABLE_KISS
 
 PDNS_CHECK_NETWORK_LIBS
-
-LT_PREREQ([2.2.2])
-LT_INIT([disable-static dlopen])
 
 
 MC_TM_GMTOFF
@@ -103,6 +93,18 @@ PDNS_CHECK_LIBCRYPTO([
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
 PDNS_CHECK_LIBCRYPTO_EDDSA
+
+AM_CONDITIONAL([HAVE_GNUTLS], [false])
+AM_CONDITIONAL([HAVE_LIBSSL], [false])
+
+PDNS_ENABLE_DNS_OVER_TLS
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  PDNS_WITH_LIBSSL
+  PDNS_WITH_GNUTLS
+  AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
+  ])
+])
 
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
@@ -234,8 +236,6 @@ PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 PDNS_ENABLE_TOOLS
 PDNS_ENABLE_IXFRDIST
 
-PDNS_WITH_PROTOBUF
-
 PDNS_WITH_LUA_RECORDS
 
 AM_CONDITIONAL([LDAP], [test "x$needldap" = "xyes"])
@@ -318,6 +318,7 @@ AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
 AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
+CFLAGS="$SANITIZER_FLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])

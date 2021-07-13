@@ -143,7 +143,7 @@ negquery-cache-ttl=60
         for expectedAnswer in expected:
             pos = 0
             for rec in expectedAnswer:
-                self.assertEquals(rec.ttl, answers[answerPos][pos].ttl)
+                self.assertEqual(rec.ttl, answers[answerPos][pos].ttl)
                 pos = pos + 1
             answerPos = answerPos + 1
 
@@ -198,11 +198,11 @@ newrecord.example.        8484    A       192.0.2.42
 
         response = self.sendUDPQuery(query)
 
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)
         # check the TTLs
         pos = 0
         for rec in expected.answer:
-            self.assertEquals(rec.ttl, response.answer[pos].ttl)
+            self.assertEqual(rec.ttl, response.answer[pos].ttl)
             pos = pos + 1
 
     def test_b_UDP_SOA_not_loaded(self):
@@ -211,7 +211,7 @@ newrecord.example.        8484    A       192.0.2.42
         expected.set_rcode(dns.rcode.REFUSED)
 
         response = self.sendUDPQuery(query)
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)
 
     def test_b_UDP_SOA_not_configured(self):
         query = dns.message.make_query('example3.', 'SOA')
@@ -219,7 +219,7 @@ newrecord.example.        8484    A       192.0.2.42
         expected.set_rcode(dns.rcode.REFUSED)
 
         response = self.sendUDPQuery(query)
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)
 
     def test_d_XFR(self):
         self.waitUntilCorrectSerialIsLoaded(8)

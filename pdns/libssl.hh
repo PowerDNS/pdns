@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -31,6 +32,11 @@ public:
 
   bool d_preferServerCiphers{true};
   bool d_enableTickets{true};
+  /* whether OpenSSL will release I/O buffers when the connection
+     becomes idle, saving memory */
+  bool d_releaseBuffers{true};
+  /* whether so-called secure renegotiation should be allowed for TLS < 1.3 */
+  bool d_enableRenegotiation{false};
 };
 
 struct TLSErrorCounters
@@ -120,4 +126,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
                                                                        std::map<int, std::string>& ocspResponses);
 
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
+
+std::string libssl_get_error_string();
+
 #endif /* HAVE_LIBSSL */

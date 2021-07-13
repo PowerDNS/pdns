@@ -85,7 +85,7 @@ DNSProxy::DNSProxy(const string &remote)
 
 void DNSProxy::go()
 {
-  std::thread t(std::bind(&DNSProxy::mainloop, this));
+  std::thread t([this](){mainloop();});
   t.detach();
 }
 
@@ -123,7 +123,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     uint16_t len=htons(r->getString().length());
     string buffer((const char*)&len, 2);
     buffer.append(r->getString());
-    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), ::arg().asNum("tcp-idle-timeout"));
+    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum("tcp-idle-timeout"),0});
 
     return true;
   }
@@ -138,7 +138,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     ce.id       = r->d.id;
     ce.remote =   r->d_remote;
     ce.outsock  = r->getSocket();
-    ce.created  = time( NULL );
+    ce.created  = time( nullptr );
     ce.qtype = r->qtype.getCode();
     ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
@@ -171,7 +171,7 @@ int DNSProxy::getID_locked()
     if(i==d_conntrack.end()) {
       return n;
     }
-    else if(i->second.created<time(0)-60) {
+    else if(i->second.created<time(nullptr)-60) {
       if(i->second.created) {
         g_log<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
@@ -184,7 +184,7 @@ int DNSProxy::getID_locked()
   }
 }
 
-void DNSProxy::mainloop(void)
+void DNSProxy::mainloop()
 {
   setThreadName("pdns/dnsproxy");
   try {
@@ -253,24 +253,24 @@ void DNSProxy::mainloop(void)
         MOADNSParser mdp(false, p.getString());
         //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
         if (mdp.d_header.rcode == RCode::NoError) {
-          for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
+          for(const auto & answer : mdp.d_answers) {        
             //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-            if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
+            if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
-              if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
+              if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
                 dzr.dr.d_name=i->second.aname;
-                dzr.dr.d_type = j->first.d_type;
-                dzr.dr.d_ttl=j->first.d_ttl;
-                dzr.dr.d_place= j->first.d_place;
-                dzr.dr.d_content=j->first.d_content;
+                dzr.dr.d_type = answer.first.d_type;
+                dzr.dr.d_ttl=answer.first.d_ttl;
+                dzr.dr.d_place= answer.first.d_place;
+                dzr.dr.d_content=answer.first.d_content;
                 i->second.complete->addRecord(std::move(dzr));
               }
             }
           }
           i->second.complete->setRcode(mdp.d_header.rcode);
         } else {
-          g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).getName()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
+          g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).toString()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
           i->second.complete->clearRecords();
           i->second.complete->setRcode(RCode::ServFail);
         }
@@ -282,7 +282,7 @@ void DNSProxy::mainloop(void)
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
         msgh.msg_namelen = i->second.remote.getSocklen();
-        msgh.msg_control=NULL;
+        msgh.msg_control=nullptr;
 
         if(i->second.anyLocal) {
           addCMsgSrcAddr(&msgh, &cbuf, i->second.anyLocal.get_ptr(), 0);

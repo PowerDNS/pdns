@@ -16,7 +16,7 @@ There are 3 ways of getting the source.
 
 If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``autoreconf -vi`` in the ``pdns/recursordist`` directory of the clone.
 
-You can also download snapshot tarballs `here <https://downloads.powerdns.com/autobuilt_browser/#/recursor>`__.
+You can also download `snapshot tarballs <https://downloads.powerdns.com/autobuilt_browser/#/recursor>`__.
 
 You can also download releases on the `website <https://downloads.powerdns.com/releases/>`__.
 These releases are PGP-signed with one of these key-ids:
@@ -64,10 +64,8 @@ Protobuf to emit DNS logs
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The PowerDNS Recursor can log DNS query information over :doc:`Protocol Buffers <../lua-config/protobuf>`.
-To enable this functionality, install the  `protobuf <https://developers.google.com/protocol-buffers/>`_ library and compiler.
-The configure script will automatically detect this and bump the Boost version dependency to 1.42.
 
-To disable building this functionality, use ``--without-protobuf``.
+This functionality from 4.5.0 and upwards, without needing any external library. Before 4.5.0, installing the  `protobuf <https://developers.google.com/protocol-buffers/>`_ library and compiler is required to enable this functionality. The configure script will automatically detect this and bump the Boost version dependency to 1.42. To disable building this functionality before 4.5.0, use ``--without-protobuf``.
 
 systemd notify support
 ^^^^^^^^^^^^^^^^^^^^^^

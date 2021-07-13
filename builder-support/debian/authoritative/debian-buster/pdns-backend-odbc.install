@@ -1,1 +1,2 @@
 usr/lib/*/pdns/libgodbcbackend.so*
+usr/share/doc/pdns/*.mssql.sql usr/share/pdns-backend-odbc/schema

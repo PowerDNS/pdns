@@ -5,7 +5,8 @@ do
 	drill -p $port axfr $zone @$nameserver | ldns-read-zone -z -u CDS -u CDNSKEY > $TFILE
 	for validator in "ldns-verify-zone -V2" validns jdnssec-verifyzone named-checkzone
 	do
-		if [ "$validator" = "validns" ] && [ "$zone" = "." ]
+		if [[ ( "$validator" = "validns" && "$zone" = "." ) || \
+			( "$validator" = "named-checkzone" && "$zone" = "delegated.dnssec-parent.com" ) ]];
 		then
 			continue
 		fi

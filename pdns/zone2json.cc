@@ -144,10 +144,10 @@ try
     
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
-      for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
-        if(stat(i->filename.c_str(), &st) == 0) {
-          i->d_dev = st.st_dev;
-          i->d_ino = st.st_ino;
+      for(auto & domain : domains) {
+        if(stat(domain.filename.c_str(), &st) == 0) {
+          domain.d_dev = st.st_dev;
+          domain.d_ino = st.st_ino;
         }
       }
       
@@ -175,7 +175,7 @@ try
             obj["name"] = i->name.toString();
 
             while(zpt.get(rr)) 
-              recs.push_back(emitRecord(i->name.toString(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
+              recs.push_back(emitRecord(i->name.toString(), rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
             obj["records"] = recs;
             Json tmp = obj;
             cout<<tmp.dump();
@@ -211,7 +211,7 @@ try
       obj["name"] = ::arg()["zone-name"];
 
       while(zpt.get(rr)) 
-        records.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
+        records.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
       obj["records"] = records;
 
       Json tmp = obj;

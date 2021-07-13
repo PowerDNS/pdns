@@ -170,7 +170,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 
   g_log<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
   for(int i=0;i<n;i++) {
-    std::thread t(std::bind(&MultiThreadDistributor<Answer,Question,Backend>::distribute, this, i));
+    std::thread t([=](){distribute(i);});
     t.detach();
     Utility::usleep(50000); // we've overloaded mysql in the past :-)
   }

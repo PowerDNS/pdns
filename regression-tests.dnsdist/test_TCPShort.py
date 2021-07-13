@@ -80,8 +80,8 @@ class TestTCPShort(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
 
     def testTCPTLSShortRead(self):
         """
@@ -121,8 +121,8 @@ class TestTCPShort(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
 
     def testTCPShortWrite(self):
         """
@@ -210,8 +210,8 @@ class TestTCPShort(DNSDistTest):
         # and check that everything is good
         self.assertTrue(receivedQuery)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponses, responses)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponses, responses)
 
     def testTCPTLSShortWrite(self):
         """
@@ -292,6 +292,6 @@ class TestTCPShort(DNSDistTest):
 
         self.assertTrue(receivedQuery)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(len(receivedResponses), len(responses))
-        self.assertEquals(receivedResponses, responses)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(len(receivedResponses), len(responses))
+        self.assertEqual(receivedResponses, responses)

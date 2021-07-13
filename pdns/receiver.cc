@@ -101,7 +101,7 @@ const char *funnytext=
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
 
-static void daemonize(void)
+static void daemonize()
 {
   if(fork())
     exit(0); // bye bye
@@ -129,7 +129,7 @@ static void takedown(int i)
   }
 }
 
-static void writePid(void)
+static void writePid()
 {
   if(!::arg().mustDo("write-pid"))
     return;
@@ -231,7 +231,7 @@ static int guardian(int argc, char **argv)
       g_log<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
       exit(1);
     }
-    setbuf(g_fp,0); // no buffering please, confuses select
+    setbuf(g_fp,nullptr); // no buffering please, confuses select
 
     if(!(pid=fork())) { // child
       signal(SIGTERM, SIG_DFL);
@@ -252,7 +252,7 @@ static int guardian(int argc, char **argv)
       for(n=1;n<argc;n++) {
         newargv[n]=argv[n];
       }
-      newargv[n]=0;
+      newargv[n]=nullptr;
       
       g_log<<Logger::Error<<"Guardian is launching an instance"<<endl;
       close(g_fd1[1]);
@@ -317,7 +317,7 @@ static int guardian(int argc, char **argv)
       g_guardian_lock.lock();
       close(g_fd1[1]);
       fclose(g_fp);
-      g_fp=0;
+      g_fp=nullptr;
 
       if(WIFEXITED(status)) {
         int ret=WEXITSTATUS(status);
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
   reportAllTypes(); // init MOADNSParser
 
   s_programname="pdns";
-  s_starttime=time(0);
+  s_starttime=time(nullptr);
 
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
   signal(SIGSEGV,tbhandler);
@@ -426,6 +426,22 @@ int main(int argc, char **argv)
       else
         g_log<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
     }
+
+    if (::arg().mustDo("master")) ::arg().set("primary")="yes";
+    if (::arg().mustDo("slave")) ::arg().set("secondary")="yes";
+    if (::arg().mustDo("slave-renotify")) ::arg().set("secondary-do-renotify")="yes";
+    if (::arg().mustDo("superslave")) ::arg().set("autosecondary")="yes";
+    if (::arg().mustDo("allow-unsigned-supermaster")) ::arg().set("allow-unsigned-autoprimary")="yes";
+    if (!::arg().isEmpty("domain-metadata-cache-ttl"))
+      ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
+
+    // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
+    if (::arg().mustDo("primary")) ::arg().set("master")="yes";
+    if (::arg().mustDo("secondary")) ::arg().set("slave")="yes";
+    if (::arg().mustDo("secondary-do-renotify")) ::arg().set("slave-renotify")="yes";
+    if (::arg().mustDo("autosecondary")) ::arg().set("superslave")="yes";
+    if (::arg().mustDo("allow-unsigned-autoprimary")) ::arg().set("allow-unsigned-supermaster")="yes";
+    ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -575,8 +591,8 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RPING",&DLPingHandler, "ping instance");
     DynListener::registerFunc("QUIT",&DLRQuitHandler, "quit daemon");
     DynListener::registerFunc("UPTIME",&DLUptimeHandler, "get instance uptime");
-    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler, "notify host for specific domain", "<domain> <host>");
-    DynListener::registerFunc("NOTIFY",&DLNotifyHandler, "queue a notification", "<domain>");
+    DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
+    DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
     DynListener::registerFunc("RELOAD",&DLReloadHandler, "reload all zones");
     DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler, "discover any new zones");
     DynListener::registerFunc("VERSION",&DLVersionHandler, "get instance version");
@@ -586,9 +602,9 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
     DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
     DynListener::registerFunc("SET",&DLSettingsHandler, "set config variables", "<var> <value>");
-    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain> [<ip>]");
+    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
-    DynListener::registerFunc("LIST-ZONES",&DLListZones, "show list of zones", "[master|slave|native]");
+    DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native]");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
@@ -612,6 +628,13 @@ int main(int argc, char **argv)
     }
 
     UeberBackend::go();
+
+    g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
+    {
+      UeberBackend B;
+      B.updateZoneCache();
+    }
+
     N=std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
     g_udpReceivers.push_back(N);
 

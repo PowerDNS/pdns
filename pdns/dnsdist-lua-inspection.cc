@@ -75,7 +75,14 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
     else
       ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
   }
-  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
+
+  if (total > 0) {
+    ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  }
+  else {
+    ret.insert({count, {"Rest", rest, 100.0 }});
+  }
+
   return ret;
 }
 
@@ -302,7 +309,14 @@ void setupLuaInspection(LuaContext& luaCtx)
 	else
 	  ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
       }
-      ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
+
+      if (total > 0) {
+        ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+      }
+      else {
+        ret.insert({count, {"Rest", rest, 100.0}});
+      }
+
       return ret;
 
     });
@@ -462,7 +476,7 @@ void setupLuaInspection(LuaContext& luaCtx)
             if (c.dh.opcode != 0) {
               extra = " (" + Opcode::to_s(c.dh.opcode) + ")";
             }
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % ("Question" + extra)).str() )) ;
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.toString()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % ("Question" + extra)).str() )) ;
 
             if(limit && *limit==++num)
               break;
@@ -500,10 +514,10 @@ void setupLuaInspection(LuaContext& luaCtx)
           }
 
           if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.toString()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
           }
           else {
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.toString()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
           }
 
           if (limit && *limit == ++num) {
@@ -580,31 +594,31 @@ void setupLuaInspection(LuaContext& luaCtx)
       ostringstream ret;
       boost::format fmt("%-12d %-12d %-12d %-12d");
       ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
-      ret << (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
+      ret << (fmt % g_tcpclientthreads->getThreadsCount() % (g_maxTCPClientThreads ? *g_maxTCPClientThreads : 0) % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
       ret << endl;
 
       ret << "Query distribution mode is: " << std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") << endl;
       ret << endl;
 
       ret << "Frontends:" << endl;
-      fmt = boost::format("%-3d %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-20d %-20d %-25d %-25d %-15d %-15d %-15d %-15d %-15d");
-      ret << (fmt % "#" % "Address" % "Connections" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
+      fmt = boost::format("%-3d %-20.20s %-20d %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-20d %-20d %-25d %-25d %-15d %-15d %-15d %-15d %-15d");
+      ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
       size_t counter = 0;
       for(const auto& f : g_frontends) {
-        ret << (fmt % counter % f->local.toStringWithPort() % f->tcpCurrentConnections % f->tcpDiedReadingQuery % f->tcpDiedSendingResponse % f->tcpGaveUp % f->tcpClientTimeouts % f->tcpDownstreamTimeouts % f->tcpAvgQueriesPerConnection % f->tcpAvgConnectionDuration % f->tlsNewSessions % f->tlsResumptions % f->tlsUnknownTicketKey % f->tlsInactiveTicketKey % f->tls10queries % f->tls11queries % f->tls12queries % f->tls13queries % f->tlsUnknownqueries) << endl;
+        ret << (fmt % counter % f->local.toStringWithPort() % f->tcpCurrentConnections % f->tcpMaxConcurrentConnections % f->tcpDiedReadingQuery % f->tcpDiedSendingResponse % f->tcpGaveUp % f->tcpClientTimeouts % f->tcpDownstreamTimeouts % f->tcpAvgQueriesPerConnection % f->tcpAvgConnectionDuration % f->tlsNewSessions % f->tlsResumptions % f->tlsUnknownTicketKey % f->tlsInactiveTicketKey % f->tls10queries % f->tls11queries % f->tls12queries % f->tls13queries % f->tlsUnknownqueries) << endl;
         ++counter;
       }
       ret << endl;
 
       ret << "Backends:" << endl;
-      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f");
-      ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Avg queries/conn" % "Avg duration") << endl;
+      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
+      ret << (fmt % "#" % "Name" % "Address" % "Connections" % " Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Total connections" % "Reused connections" % "Avg queries/conn" % "Avg duration") << endl;
 
       auto states = g_dstates.getLocal();
       counter = 0;
       for(const auto& s : *states) {
-        ret << (fmt % counter % s->getName() % s->remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
+        ret << (fmt % counter % s->getName() % s->remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpMaxConcurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpConnectTimeouts % s->tcpNewConnections % s->tcpReusedConnections % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
         ++counter;
       }
 
@@ -642,6 +656,12 @@ void setupLuaInspection(LuaContext& luaCtx)
       g_outputBuffer=ret.str();
     });
 
+  luaCtx.writeFunction("requestTCPStatesDump", [] {
+    setLuaNoSideEffect();
+    extern std::atomic<uint64_t> g_tcpStatesDumpRequested;
+    g_tcpStatesDumpRequested += g_tcpclientthreads->getThreadsCount();
+  });
+
   luaCtx.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;
@@ -656,7 +676,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       boost::format flt("    %9.1f");
       for(const auto& e : entries) {
 	string second;
-	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
 	  second=std::to_string((*val)->load());
 	else if (const auto& dval = boost::get<double*>(&e.second))
 	  second=(flt % (**dval)).str();
@@ -772,21 +792,27 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->setQTypeRate(qtype, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->excludeRange(Netmask(range.second));
         }
       }
+      else if (ranges.type() == typeid(NetmaskGroup)) {
+        group->excludeRange(*boost::get<NetmaskGroup>(&ranges));
+      }
       else {
         group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->includeRange(Netmask(range.second));
         }
+      }
+      else if (ranges.type() == typeid(NetmaskGroup)) {
+        group->includeRange(*boost::get<NetmaskGroup>(&ranges));
       }
       else {
         group->includeRange(Netmask(*boost::get<std::string>(&ranges)));

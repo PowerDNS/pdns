@@ -1,0 +1,83 @@
+#!/bin/bash
+exec 2>&1
+set -ex
+
+service mysql stop || true
+trap 'kill -TERM $DB_SERVER_PID' EXIT TERM INT
+/usr/bin/mysqld_safe &
+DB_SERVER_PID=$!
+
+while ! mysqladmin ping ; do
+  sleep 0.5
+done
+
+DBNAME=pdnssp
+DBUSER=pdnssp
+ZONE=mysql-sp.example.org
+
+cat <<EOF | mysql --user=root mysql
+DROP DATABASE IF EXISTS $DBNAME;
+CREATE DATABASE $DBNAME;
+CREATE USER '$DBUSER'@'127.0.0.1' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER'@'127.0.0.1';
+EOF
+mysql -uroot $DBNAME < /usr/share/pdns-backend-mysql/schema/schema.mysql.sql
+
+# cleanup possible leftovers from other tests
+find /etc/powerdns/pdns.d/ -type f -delete
+
+# This is what the pdns-backend-mysql.README.Debian advises users to do.
+cat /usr/share/doc/pdns-backend-mysql/examples/gmysql.conf | \
+sed -e '
+    s/_DBSERVER_/127.0.0.1/;
+    s/_DBPORT_/3306/;
+    s/_DBNAME_/'$DBNAME'/;
+    s/_DBUSER_/'$DBUSER'/;
+    s/_DBPASS_/password/;
+' > /etc/powerdns/pdns.d/gmysql.conf
+chmod 0640 /etc/powerdns/pdns.d/gmysql.conf
+chgrp pdns /etc/powerdns/pdns.d/gmysql.conf
+
+cat <<EOF | mysql -uroot $DBNAME
+DELIMITER //
+CREATE PROCEDURE basic_query(incoming_type varchar(10), incoming_name varchar(255))
+BEGIN
+SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=incoming_type and name=incoming_name;
+END//
+EOF
+cat <<EOF >>/etc/powerdns/pdns.d/gmysql.conf
+gmysql-basic-query=CALL basic_query(?, ?)
+EOF
+
+#####################################################################
+cat  /etc/powerdns/pdns.d/gmysql.conf
+
+cat <<EOF >/etc/powerdns/$ZONE
+$ZONE.           172800  IN      SOA     ns1.example.org. dns.example.org. 1 10800 3600 604800 3600
+$ZONE.           172800  IN      NS      ns1.example.org.
+smoke.$ZONE.     172800  IN      A       127.0.0.222
+EOF
+
+zone2sql --gmysql --zone-name=$ZONE --zone=/etc/powerdns/$ZONE | \
+    mysql -uroot $DBNAME
+
+service pdns restart
+journalctl _SYSTEMD_UNIT=pdns.service -n 10 --no-pager || true
+
+TMPFILE=$(mktemp)
+cleanup() {
+  rm -f "$TMPFILE"
+  journalctl _SYSTEMD_UNIT=pdns.service -n 100 --no-pager || true
+  service pdns stop
+}
+trap cleanup EXIT
+
+dig @127.0.0.1 smoke.$ZONE 2>&1 | tee "$TMPFILE"
+
+if grep -c '127\.0\.0\.222' "$TMPFILE"; then
+    echo success
+else
+    echo smoke.$ZONE could not be resolved
+    exit 1
+fi
+

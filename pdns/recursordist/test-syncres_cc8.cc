@@ -421,7 +421,182 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   pair.signatures = signatureContents;
   denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, false, false);
+  dState denialState = getDenial(denialMap, DNSName("a.powerdns.com."), QType::A, false, false);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /* proves that a.example.com does exist, and has been generated from a wildcard (see the RRSIG below) */
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300, false, boost::none, DNSName("example.org."));
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
+
+  /* This is an expanded wildcard proof, meaning that it does prove that the exact name
+     does not exist so the wildcard can apply */
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType(0).getCode(), false, false, false, /* normally retrieved from the RRSIG's d_labels */ 2);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /* proves that b.example.com does not exist */
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
+
+  /* add a NSEC proving that a wildcard exists, without a CNAME type */
+  recordContents.clear();
+  signatureContents.clear();
+  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(DNSName("*.example.org."), QType::NSEC)] = pair;
+
+  /* A does exist at the wildcard, AAAA does not */
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::AAAA, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
+
+  /* now we replace the wildcard by one with a CNAME */
+  recordContents.clear();
+  signatureContents.clear();
+  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::CNAME, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(DNSName("*.example.org."), QType::NSEC)] = pair;
+
+  /* A and AAAA do not exist but we have a CNAME so at the wildcard */
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::AAAA, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_wildcard_with_cname)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /* proves that b.example.com does not exist */
+  addNSEC3NarrowRecordToLW(DNSName("b.example.org"), DNSName("example.org."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* Add NSEC3 for the closest encloser */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("example.org."), DNSName("example.org."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* add wildcard, without a CNAME type */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("*.example.org."), DNSName("example.org"), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* A does exist at the wildcard, AAAA does not */
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::AAAA, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
+
+  /* now we replace the wildcard by one with a CNAME */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("*.example.org."), DNSName("example.org"), "whatever", {QType::CNAME, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* A and AAAA do not exist but we have a CNAME so at the wildcard */
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+
+  denialState = getDenial(denialMap, DNSName("b.example.org."), QType::AAAA, false, true);
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
@@ -522,7 +697,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   */
 
   dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, true);
-  /* no data means the qname/qtype is not denied, because an ancestor
+  /* no denial means the qname/qtype is not denied, because an ancestor
      delegation NSEC3 can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
@@ -630,6 +805,60 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
      denies the DS, it can't prove an insecure delegation */
   dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_ent_opt_out)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 7129 section 5.1:
+   * A recently discovered corner case (see RFC Errata ID 3441 [Err3441])
+   * shows that not only those delegations remain insecure but also the
+   * empty non-terminal space that is derived from those delegations.
+  */
+  /*
+    We have a NSEC3 proving that was.here does exist, and a second
+    one proving that ent.was.here. does not,
+    There NSEC3 are opt-out, so the result should be insecure (and we don't need
+    a wildcard proof).
+  */
+  addNSEC3UnhashedRecordToLW(DNSName("was.here."), DNSName("."), "whatever", {}, 600, records, 10, true /* opt out */);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* it can not be used to deny any RRs below that owner name either */
+  /* Add NSEC3 for the next closer */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("ent.was.here."), DNSName("."), {QType::RRSIG, QType::NSEC3}, 600, records, 10, true /* opt-out */);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* Insecure because the opt-out bit is set */
+  dState denialState = getDenial(denialMap, DNSName("ent.was.here."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::OPTOUT);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
@@ -822,7 +1051,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
   const ComboAddress who;
   vector<DNSRecord> cached;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  BOOST_REQUIRE_EQUAL(g_recCache->get(tnow, target, QType(QType::A), true, &cached, who, boost::none, &signatures), 1);
+  BOOST_REQUIRE_EQUAL(g_recCache->get(tnow, target, QType(QType::A), true, &cached, who, 0, boost::none, &signatures), 1);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(signatures.size(), 1U);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - tnow), 1);
@@ -900,7 +1129,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
@@ -1138,7 +1367,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   ret.clear();
   /* last one also requires validation */
@@ -1150,7 +1379,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

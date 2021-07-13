@@ -10,6 +10,7 @@ Random Backend
 - DNSSEC: Yes, no key storage
 - Disabled data: No
 - Comments: No
+- Zone caching: No
 - Module name: built in
 - Launch: ``random``
 

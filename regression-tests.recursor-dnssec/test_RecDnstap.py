@@ -26,7 +26,7 @@ except NameError:
     pass
 
 
-def checkDnstapBase(testinstance, dnstap, protocol, initiator):
+def checkDnstapBase(testinstance, dnstap, protocol, initiator, responder):
     testinstance.assertTrue(dnstap)
     testinstance.assertTrue(dnstap.HasField('identity'))
     #testinstance.assertEqual(dnstap.identity, b'a.server')
@@ -38,21 +38,22 @@ def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertTrue(dnstap.message.HasField('socket_protocol'))
     testinstance.assertEqual(dnstap.message.socket_protocol, protocol)
     testinstance.assertTrue(dnstap.message.HasField('socket_family'))
-    testinstance.assertEquals(dnstap.message.socket_family, dnstap_pb2.INET)
+    testinstance.assertEqual(dnstap.message.socket_family, dnstap_pb2.INET)
     #
-    # We cannot check the query address and port since we only log outgoing queries via dnstap
+    # The query address and port are from the the recursor, we don't know the port
     #
-    #testinstance.assertTrue(dnstap.message.HasField('query_address'))
-    #testinstance.assertEquals(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
+    testinstance.assertTrue(dnstap.message.HasField('query_address'))
+    testinstance.assertEqual(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
+    testinstance.assertTrue(dnstap.message.HasField('query_port'))
     testinstance.assertTrue(dnstap.message.HasField('response_address'))
-    testinstance.assertEquals(socket.inet_ntop(socket.AF_INET, dnstap.message.response_address), initiator)
+    testinstance.assertEqual(socket.inet_ntop(socket.AF_INET, dnstap.message.response_address), responder)
     testinstance.assertTrue(dnstap.message.HasField('response_port'))
-    testinstance.assertEquals(dnstap.message.response_port, 53)
+    testinstance.assertEqual(dnstap.message.response_port, 53)
 
 
-def checkDnstapQuery(testinstance, dnstap, protocol, initiator='127.0.0.1'):
-    testinstance.assertEquals(dnstap.message.type, dnstap_pb2.Message.RESOLVER_QUERY)
-    checkDnstapBase(testinstance, dnstap, protocol, initiator)
+def checkDnstapQuery(testinstance, dnstap, protocol, initiator, responder):
+    testinstance.assertEqual(dnstap.message.type, dnstap_pb2.Message.RESOLVER_QUERY)
+    checkDnstapBase(testinstance, dnstap, protocol, initiator, responder)
 
     testinstance.assertTrue(dnstap.message.HasField('query_time_sec'))
     testinstance.assertTrue(dnstap.message.HasField('query_time_nsec'))
@@ -75,9 +76,9 @@ def checkDnstapNoExtra(testinstance, dnstap):
     testinstance.assertFalse(dnstap.HasField('extra'))
 
 
-def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator='127.0.0.1'):
-    testinstance.assertEquals(dnstap.message.type, dnstap_pb2.Message.RESOLVER_RESPONSE)
-    checkDnstapBase(testinstance, dnstap, protocol, initiator)
+def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator, responder):
+    testinstance.assertEqual(dnstap.message.type, dnstap_pb2.Message.RESOLVER_RESPONSE)
+    checkDnstapBase(testinstance, dnstap, protocol, initiator, responder)
 
     testinstance.assertTrue(dnstap.message.HasField('query_time_sec'))
     testinstance.assertTrue(dnstap.message.HasField('query_time_nsec'))
@@ -280,12 +281,12 @@ dnstapFrameStreamServer({"%s"})
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
-        self.assertNotEquals(res, None)
+        self.assertNotEqual(res, None)
         
         # check the dnstap message corresponding to the UDP query
         dnstap = self.getFirstDnstap()
 
-        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, '127.0.0.8')
+        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, '127.0.0.1', '127.0.0.8')
         # We don't expect a response
         checkDnstapNoExtra(self, dnstap)
 
@@ -308,7 +309,7 @@ dnstapFrameStreamServer({"%s"}, {logQueries=false})
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
-        self.assertNotEquals(res, None)
+        self.assertNotEqual(res, None)
 
         # We don't expect anything
         self.assertTrue(DNSTapServerParameters.queue.empty())

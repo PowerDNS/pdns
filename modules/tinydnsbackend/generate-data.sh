@@ -21,7 +21,7 @@ do
 done
 
 
-# CD to regression testt because named.conf has relative paths.
+# CD to regression test because named.conf has relative paths.
 cd ../../regression-tests
 ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ \
   --no-shuffle --launch=bind --bind-config=../regression-tests/named.conf \

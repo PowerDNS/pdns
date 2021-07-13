@@ -65,8 +65,8 @@ string UnknownRecordContent::getZoneRepresentation(bool noDot) const
   ostringstream str;
   str<<"\\# "<<(unsigned int)d_record.size()<<" ";
   char hex[4];
-  for (size_t n=0; n<d_record.size(); ++n) {
-    snprintf(hex, sizeof(hex), "%02x", d_record.at(n));
+  for (unsigned char n : d_record) {
+    snprintf(hex, sizeof(hex), "%02x", n);
     str << hex;
   }
   return str.str();
@@ -111,6 +111,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   if (serialized.size() > 0) {
     memcpy(&packet[pos], serialized.c_str(), serialized.size());
     pos += (uint16_t) serialized.size();
+    (void) pos;
   }
 
   MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
@@ -159,7 +160,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
   return i->second(dr, pr);
 }
 
-string DNSRecordContent::upgradeContent(const DNSName& qname, const QType qtype, const string& content) {
+string DNSRecordContent::upgradeContent(const DNSName& qname, const QType& qtype, const string& content) {
   // seamless upgrade for previously unsupported but now implemented types.
   UnknownRecordContent unknown_content(content);
   shared_ptr<DNSRecordContent> rc = DNSRecordContent::deserialize(qname, qtype.getCode(), unknown_content.serialize(qname));
@@ -212,7 +213,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   return rr;
 }
 
-void MOADNSParser::init(bool query, const std::string& packet)
+void MOADNSParser::init(bool query, const pdns_string_view& packet)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -380,6 +381,15 @@ void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
   d_pos+=len;
 }
 
+void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
+{
+  if (d_pos + sizeof(ret) > d_content.size()) {
+    throw std::out_of_range("Attempt to read 64 bit value outside of packet");
+  }
+  memcpy(&ret.content, &d_content.at(d_pos), sizeof(ret.content));
+  d_pos += sizeof(ret);
+}
+
 void PacketReader::xfr48BitInt(uint64_t& ret)
 {
   ret=0;
@@ -430,7 +440,7 @@ DNSName PacketReader::getName()
 {
   unsigned int consumed;
   try {
-    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed, sizeof(dnsheader));
+    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader));
     
     d_pos+=consumed;
     return dn;
@@ -449,17 +459,17 @@ static string txtEscape(const string &name)
   string ret;
   char ebuf[5];
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if((unsigned char) *i >= 127 || (unsigned char) *i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)*i);
+  for(char i : name) {
+    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
       ret += ebuf;
     }
-    else if(*i=='"' || *i=='\\'){
+    else if(i=='"' || i=='\\'){
       ret += '\\';
-      ret += *i;
+      ret += i;
     }
     else
-      ret += *i;
+      ret += i;
   }
   return ret;
 }
@@ -516,23 +526,24 @@ string PacketReader::getUnquotedText(bool lenField)
 }
 
 void PacketReader::xfrBlob(string& blob)
-try
 {
-  if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen))) {
-    if (d_pos > (d_startrecordpos + d_recordlen)) {
-      throw std::out_of_range("xfrBlob out of record range");
+  try {
+    if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen))) {
+      if (d_pos > (d_startrecordpos + d_recordlen)) {
+        throw std::out_of_range("xfrBlob out of record range");
+      }
+      blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
     }
-    blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
-  }
-  else {
-    blob.clear();
-  }
+    else {
+      blob.clear();
+    }
 
-  d_pos = d_startrecordpos + d_recordlen;
-}
-catch(...)
-{
-  throw std::out_of_range("xfrBlob out of range");
+    d_pos = d_startrecordpos + d_recordlen;
+  }
+  catch(...)
+  {
+    throw std::out_of_range("xfrBlob out of range");
+  }
 }
 
 void PacketReader::xfrBlobNoSpaces(string& blob, int length) {
@@ -638,7 +649,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(addresses)));
       break;
     }
-    case SvcParam::echconfig: {
+    case SvcParam::ech: {
       std::string blob;
       blob.reserve(len);
       xfrBlobNoSpaces(blob, len);
@@ -677,21 +688,21 @@ string simpleCompress(const string& elabel, const string& root)
   vstringtok(parts, label, ".");
   string ret;
   ret.reserve(label.size()+4);
-  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, 1 + label.length() - i->first)) { // also match trailing 0, hence '1 +'
+  for(const auto & part : parts) {
+    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + part.first, 1 + label.length() - part.first)) { // also match trailing 0, hence '1 +'
       const unsigned char rootptr[2]={0xc0,0x11};
       ret.append((const char *) rootptr, 2);
       return ret;
     }
-    ret.append(1, (char)(i->second - i->first));
-    ret.append(label.c_str() + i->first, i->second - i->first);
+    ret.append(1, (char)(part.second - part.first));
+    ret.append(label.c_str() + part.first, part.second - part.first);
   }
   ret.append(1, (char)0);
   return ret;
 }
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)> visitor)
+void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor)
 {
   if(length < sizeof(dnsheader))
     return;

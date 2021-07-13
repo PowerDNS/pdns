@@ -7,4 +7,4 @@ class DiscoveryTest(ApiTestCase):
         r = self.session.get(self.url("/api"))
         self.assert_success_json(r)
         lst = r.json()
-        self.assertEquals(lst, [{'version': 1, 'url': '/api/v1'}])
+        self.assertEqual(lst, [{'version': 1, 'url': '/api/v1'}])

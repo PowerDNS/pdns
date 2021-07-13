@@ -147,7 +147,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
     else
       trc.d_algoName = tsigalgorithm;
-    trc.d_time = time(0);
+    trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;
@@ -354,7 +354,7 @@ void Resolver::getSoaSerial(const ComboAddress& ipport, const DNSName &domain, u
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no answers");
 
   if(res[0].qtype.getCode() != QType::SOA) 
-    throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.getName()+" record");
+    throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.toString()+" record");
 
   vector<string>parts;
   stringtok(parts, res[0].content);

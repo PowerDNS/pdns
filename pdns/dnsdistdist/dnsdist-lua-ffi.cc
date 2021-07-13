@@ -86,32 +86,43 @@ size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* d
 
 int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh->rcode;
+  return dq->dq->getHeader()->rcode;
 }
 
 void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh;
+  return dq->dq->getHeader();
 }
 
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->len;
+  return dq->dq->getData().size();
 }
 
 size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->size;
+  return dq->dq->getData().size();
+}
+
+bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dq, size_t newSize)
+{
+  try {
+    dq->dq->getMutableData().resize(newSize);
+    return true;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
 }
 
 uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh->opcode;
+  return dq->dq->getHeader()->opcode;
 }
 
 bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->tcp;
+  return dq->dq->overTCP();
 }
 
 bool dnsdist_ffi_dnsquestion_get_skip_cache(const dnsdist_ffi_dnsquestion_t* dq)
@@ -256,6 +267,10 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
 {
   if (dq->dq->ednsOptions == nullptr) {
     parseEDNSOptions(*(dq->dq));
+
+    if (dq->dq->ednsOptions == nullptr) {
+      return 0;
+    }
   }
 
   size_t totalCount = 0;
@@ -338,27 +353,28 @@ void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const cha
   dq->result = std::string(str, strSize);
 }
 
-void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType)
+void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, size_t bodyLen, const char* contentType)
 {
   if (dq->dq->du == nullptr) {
     return;
   }
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  dq->dq->du->setHTTPResponse(statusCode, body, contentType);
-  dq->dq->dh->qr = true;
+  PacketBuffer bodyVect(body, body + bodyLen);
+  dq->dq->du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
+  dq->dq->getHeader()->qr = true;
 #endif
 }
 
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode)
 {
-  dq->dq->dh->rcode = rcode;
-  dq->dq->dh->qr = true;
+  dq->dq->getHeader()->rcode = rcode;
+  dq->dq->getHeader()->qr = true;
 }
 
 void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dq, uint16_t len)
 {
-  dq->dq->len = len;
+  dq->dq->getMutableData().resize(len);
 }
 
 void dnsdist_ffi_dnsquestion_set_skip_cache(dnsdist_ffi_dnsquestion_t* dq, bool skipCache)
@@ -420,6 +436,49 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
   if (g_snmpAgent && g_snmpTrapsEnabled) {
     g_snmpAgent->sendDNSTrap(*dq->dq, std::string(reason, reasonLen));
   }
+}
+
+void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
+{
+  std::vector<std::string> data;
+  data.reserve(valuesCount);
+
+  for (size_t idx = 0; idx < valuesCount; idx++) {
+    data.emplace_back(values[idx].value, values[idx].size);
+  }
+
+  std::string result;
+  SpoofAction sa(data);
+  sa(dq->dq, &result);
+}
+
+void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
+{
+  std::vector<ComboAddress> data;
+  data.reserve(valuesCount);
+
+  for (size_t idx = 0; idx < valuesCount; idx++) {
+    if (values[idx].size == 4) {
+      sockaddr_in sin;
+      sin.sin_family = AF_INET;
+      sin.sin_port = 0;
+      memcpy(&sin.sin_addr.s_addr, values[idx].value, sizeof(sin.sin_addr.s_addr));
+      data.emplace_back(&sin);
+    }
+    else if (values[idx].size == 16) {
+      sockaddr_in6 sin6;
+      sin6.sin6_family = AF_INET6;
+      sin6.sin6_port = 0;
+      sin6.sin6_scope_id = 0;
+      sin6.sin6_flowinfo = 0;
+      memcpy(&sin6.sin6_addr.s6_addr, values[idx].value, sizeof(sin6.sin6_addr.s6_addr));
+      data.emplace_back(&sin6);
+    }
+  }
+
+  std::string result;
+  SpoofAction sa(data);
+  sa(dq->dq, &result);
 }
 
 size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)

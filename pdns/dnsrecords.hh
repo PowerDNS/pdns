@@ -96,7 +96,7 @@ private:
 class MXRecordContent : public DNSRecordContent
 {
 public:
-  MXRecordContent(uint16_t preference, const DNSName& mxname);
+  MXRecordContent(uint16_t preference, DNSName  mxname);
 
   includeboilerplate(MX)
 
@@ -153,7 +153,7 @@ private:
 class SRVRecordContent : public DNSRecordContent
 {
 public:
-  SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target);
+  SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target);
 
   includeboilerplate(SRV)
 
@@ -497,30 +497,43 @@ private:
   string d_keyring;
 };
 
-class SVCBRecordContent : public DNSRecordContent
+class SVCBBaseRecordContent : public DNSRecordContent
+{
+  public:
+    const DNSName& getTarget() const {return d_target;}
+    uint16_t getPriority() const {return d_priority;}
+    // Returns true if a value for |key| was set to 'auto'
+    bool autoHint(const SvcParam::SvcParamKey &key) const;
+    // Sets the |addresses| to the existing hints for |key|
+    void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
+    // Removes the parameter for |key| from d_params
+    void removeParam(const SvcParam::SvcParamKey &key);
+    // Whether or not there are any parameter
+    bool hasParams() const;
+    // Whether or not the param of |key| exists
+    bool hasParam(const SvcParam::SvcParamKey &key) const;
+    // Get the parameter with |key|, will throw out_of_range if param isn't there
+    SvcParam getParam(const SvcParam::SvcParamKey &key) const;
+
+  protected:
+    uint16_t d_priority;
+    DNSName d_target;
+    set<SvcParam> d_params;
+
+    // Get the iterator to parameter with |key|, return value can be d_params::end
+    set<SvcParam>::const_iterator getParamIt(const SvcParam::SvcParamKey &key) const;
+};
+
+class SVCBRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(SVCB)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
-class HTTPSRecordContent : public DNSRecordContent
+class HTTPSRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(HTTPS)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
 class RRSIGRecordContent : public DNSRecordContent
@@ -562,7 +575,7 @@ class SOARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SOA)
-  SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st);
+  SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st);
 
   DNSName d_mname;
   DNSName d_rname;
@@ -726,11 +739,43 @@ public:
   {
     return d_bitmap.count();
   }
+  bool isOptOut() const
+  {
+    return d_flags & 1;
+  }
 
 private:
   NSECBitmap d_bitmap;
 };
 
+class CSYNCRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void);
+  CSYNCRecordContent()
+  {}
+  CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
+
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
+  string getZoneRepresentation(bool noDot=false) const override;
+  void toPacket(DNSPacketWriter& pw) override;
+
+  uint16_t getType() const override
+  {
+    return QType::CSYNC;
+  }
+
+  void set(uint16_t type)
+  {
+    d_bitmap.set(type);
+  }
+
+private:
+  uint32_t d_serial{0};
+  uint16_t d_flags{0};
+  NSECBitmap d_bitmap;
+};
 
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {
@@ -778,6 +823,47 @@ public:
   }
 
 private:
+};
+
+
+class NIDRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(NID);
+
+private:
+  uint16_t d_preference;
+  NodeOrLocatorID d_node_id;
+};
+
+class L32RecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(L32);
+
+private:
+  uint16_t d_preference;
+  uint32_t d_locator;
+};
+
+class L64RecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(L64);
+
+private:
+  uint16_t d_preference;
+  NodeOrLocatorID d_locator;
+};
+
+class LPRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(LP);
+
+private:
+  uint16_t d_preference;
+  DNSName d_fqdn;
 };
 
 class EUI48RecordContent : public DNSRecordContent 
@@ -870,7 +956,7 @@ class CAARecordContent : public DNSRecordContent {
     string d_tag, d_value;
 };
 
-#define boilerplate(RNAME, RTYPE)                                                                         \
+#define boilerplate(RNAME)                                                                         \
 std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \
   return std::make_shared<RNAME##RecordContent>(dr, pr);                                           \
@@ -894,13 +980,13 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
                                                                                                    \
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
-  regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
-  regist(254, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
+  regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
+  regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
 }                                                                                                  \
 void RNAME##RecordContent::unreport(void)                                                          \
 {                                                                                                  \
-  unregist(1, RTYPE);                                                                              \
-  unregist(254, RTYPE);                                                                            \
+  unregist(1, QType::RNAME);                                                                              \
+  unregist(254, QType::RNAME);                                                                            \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
@@ -923,8 +1009,8 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
 }                                                                                                  
                                                                                            
 
-#define boilerplate_conv(RNAME, TYPE, CONV)                       \
-boilerplate(RNAME, TYPE)                                          \
+#define boilerplate_conv(RNAME, CONV)                             \
+boilerplate(RNAME)                                                \
 template<class Convertor>                                         \
 void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
 {                                                                 \

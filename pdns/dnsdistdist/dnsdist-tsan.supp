@@ -1,0 +1,12 @@
+# Part of that code has a race indeed, where we read the value then update it
+# We don't really care for these metrics
+race:doLatencyStats
+race:handleStats
+race:ClientState::updateTCPMetrics
+race:DownstreamState::updateTCPMetrics
+# There is a race when we update the status of a backend,
+# but eventual consistency is fine there
+race:DownstreamState::setDown
+race:DownstreamState::setUp
+race:DownstreamState::setAuto
+race:updateHealthCheckResult

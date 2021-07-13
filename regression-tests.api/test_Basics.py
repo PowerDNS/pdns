@@ -8,11 +8,11 @@ class TestBasics(ApiTestCase):
 
     def test_unauth(self):
         r = requests.get(self.url("/api/v1/servers/localhost"))
-        self.assertEquals(r.status_code, requests.codes.unauthorized)
+        self.assertEqual(r.status_code, requests.codes.unauthorized)
 
     def test_index_html(self):
         r = requests.get(self.url("/"), auth=('admin', self.server_web_password))
-        self.assertEquals(r.status_code, requests.codes.ok)
+        self.assertEqual(r.status_code, requests.codes.ok)
 
     def test_split_request(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,9 +40,9 @@ class TestBasics(ApiTestCase):
         r = self.session.options(self.url("/api/v1/servers/localhost"))
         # look for CORS headers
 
-        self.assertEquals(r.status_code, requests.codes.ok)
-        self.assertEquals(r.headers['access-control-allow-origin'], "*")
-        self.assertEquals(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
-        self.assertEquals(r.headers['access-control-allow-methods'], 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        self.assertEqual(r.status_code, requests.codes.ok)
+        self.assertEqual(r.headers['access-control-allow-origin'], "*")
+        self.assertEqual(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
+        self.assertEqual(r.headers['access-control-allow-methods'], 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
 
         print("response", repr(r.headers))

@@ -27,6 +27,7 @@
 #include "namespaces.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "misc.hh"
 #include "svc-records.hh"
 
 class RecordTextException : public runtime_error
@@ -39,7 +40,8 @@ public:
 class RecordTextReader
 {
 public:
-  RecordTextReader(const string& str, const DNSName& zone=DNSName(""));
+  RecordTextReader(string  str, DNSName  zone=DNSName(""));
+  void xfrNodeOrLocatorID(NodeOrLocatorID& val);
   void xfr64BitInt(uint64_t& val);
   void xfr48BitInt(uint64_t& val);
   void xfr32BitInt(uint32_t& val);
@@ -64,6 +66,7 @@ public:
 
   void xfrSvcParamKeyVals(set<SvcParam>& val);
   void xfrRFC1035CharString(string &val);
+  void xfrSVCBValueList(vector<string> &val);
 
   const string getRemaining() const {
     return d_string.substr(d_pos);
@@ -83,6 +86,7 @@ class RecordTextWriter
 {
 public:
   RecordTextWriter(string& str, bool noDot=false);
+  void xfrNodeOrLocatorID(const NodeOrLocatorID& val);
   void xfr48BitInt(const uint64_t& val);
   void xfr32BitInt(const uint32_t& val);
   void xfr16BitInt(const uint16_t& val);
@@ -103,6 +107,8 @@ public:
   void xfrHexBlob(const string& val, bool keepReading=false);
   void xfrSvcParamKeyVals(const set<SvcParam>& val);
   bool eof() { return true; };
+
+  void xfrSVCBValueList(const vector<string> &val);
 
   const string getRemaining() const {
      return "";

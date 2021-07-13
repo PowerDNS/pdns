@@ -3,7 +3,7 @@ Upstream-Name: dnsdist
 Source: https://dnsdist.org
 
 Files: *
-Copyright: 2002-2019 PowerDNS.COM BV and contributors
+Copyright: 2002-2021 PowerDNS.COM BV and contributors
 License: GPL-2 with OpenSSL Exception
 
 Files: debian/*
@@ -11,10 +11,6 @@ Copyright: 2002-2016 PowerDNS.COM BV and contributors
  2016 Chris Hofstaedtler <zeha@debian.org>
 License: GPL-2 with OpenSSL Exception
 Comment: Debian packaging is under same license as upstream code
-
-Files: ext/incbin/*
-Copyright: 2015, Dale Weiler
-License: Unlicense
 
 Files: ext/json11/*
 Copyright: 2013 Dropbox, Inc.

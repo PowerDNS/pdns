@@ -246,6 +246,7 @@ private:
   bool getFromMetaNoCache(const DNSName& name, const std::string& kind, std::string& value);
 
   int64_t d_metaCacheCleanAction{0};
+  bool d_metaUpdate{false};
 
   struct KeyCacheEntry
   {

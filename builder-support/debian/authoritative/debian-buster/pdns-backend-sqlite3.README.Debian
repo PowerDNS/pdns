@@ -1,0 +1,23 @@
+Instructions on setting up SQLite3 as a backend for PowerDNS
+------------------------------------------------------------
+
+You should create a database yourself and install the schema into
+it. On upgrades you should also upgrade the schema.
+You can find the upstream recommended schema here:
+
+   /usr/share/pdns-backend-sqlite3/schema
+
+Just create a database, for example in
+/var/lib/powerdns/pdns.sqlite3 and feed these SQL commands to
+get the default schema:
+
+   sqlite3 /var/lib/powerdns/pdns.sqlite3 < \
+     /usr/share/pdns-backend-sqlite3/schema/schema.sqlite3.sql
+
+Then add your data to the database. An example configuration for
+PowerDNS is provided in /usr/share/doc/pdns-backend-sqlite3/examples/.
+
+Note: in previous versions, the Debian packages used
+dbconfig-common, and you can continue to use dbconfig
+created databases, but you will have to upgrade the schema
+manually.

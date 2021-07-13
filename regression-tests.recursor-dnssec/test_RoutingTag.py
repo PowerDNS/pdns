@@ -168,7 +168,7 @@ end
         return # remove this line to peek at cache
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
-                          'dump-cache x']
+                          'dump-cache', 'x']
         try:
             expected = b'dumped 7 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)

@@ -11,14 +11,14 @@
 
 BOOST_AUTO_TEST_SUITE(recursorcache_cc)
 
-BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
+static void simple(time_t now)
 {
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  time_t now = time(nullptr);
+  const DNSName authZone(".");
 
   time_t ttd = now + 30;
   DNSName power("powerdns.com.");
@@ -28,13 +28,13 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
   dr0.d_type = QType::AAAA;
   dr0.d_class = QClass::IN;
   dr0.d_content = std::make_shared<AAAARecordContent>(dr0Content);
-  dr0.d_ttl = static_cast<uint32_t>(ttd);
+  dr0.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   dr0.d_place = DNSResourceRecord::ANSWER;
 
   records.push_back(dr0);
 
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
-  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none);
+  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_GT(MRC.bytes(), 1U);
   BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1U);
@@ -47,10 +47,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none);
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
       if (!MRC.doWipeCache(a, false))
         BOOST_FAIL("Could not remove entry we just added to the cache!");
-      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none);
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), counter);
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     int64_t expected = counter - delcounter;
 
     for (; delcounter < counter; ++delcounter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, false) > 0) {
         matches++;
         BOOST_REQUIRE_EQUAL(retrieved.size(), records.size());
         BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     dr1.d_type = QType::AAAA;
     dr1.d_class = QClass::IN;
     dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
-    dr1.d_ttl = static_cast<uint32_t>(ttd);
+    dr1.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
     dr1.d_place = DNSResourceRecord::ANSWER;
 
     DNSRecord dr2;
@@ -95,14 +95,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     dr2.d_type = QType::A;
     dr2.d_class = QClass::IN;
     dr2.d_content = std::make_shared<ARecordContent>(dr2Content);
-    dr2.d_ttl = static_cast<uint32_t>(ttd);
+    dr2.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
     // the place should not matter to the cache
     dr2.d_place = DNSResourceRecord::AUTHORITY;
 
     // insert a subnet specific entry
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.1/25"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // subnet specific should be returned for a matching subnet
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     // insert a NON-subnet specific entry
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // NON-subnet specific should always be returned
@@ -132,14 +132,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     // insert a subnet specific entry for the same name but a different QType
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.1/25"));
     // we should not have replaced the existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // insert a TXT one, we will use that later
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::TXT), records, signatures, authRecords, true, boost::none);
+    MRC.replace(now, power, QType(QType::TXT), records, signatures, authRecords, true, authZone, boost::none);
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 3U);
 
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
 
     // insert auth record
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1")), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1U);
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     dr3.d_type = QType::A;
     dr3.d_class = QClass::IN;
     dr3.d_content = std::make_shared<ARecordContent>(dr3Content);
-    dr3.d_ttl = static_cast<uint32_t>(ttd + 100);
+    dr3.d_ttl = static_cast<uint32_t>(ttd + 100); // XXX truncation
     // the place should not matter to the cache
     dr3.d_place = DNSResourceRecord::AUTHORITY;
 
@@ -245,26 +245,26 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     records.push_back(dr3);
 
     // non-auth should not replace valid auth
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // but non-auth _should_ replace expired auth
-    MRC.replace(ttd + 1, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
+    MRC.replace(ttd + 1, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     BOOST_CHECK_EQUAL(MRC.get(ttd + 1, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1")), (dr3.d_ttl - (ttd + 1)));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
-    // auth should replace non-auth
+    // non-auth should replace non-auth
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     // let's first check that non-auth is not returned when we need authoritative data
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("127.0.0.1")), -now);
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("127.0.0.1")), -1);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
@@ -276,20 +276,20 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
 
     // insert Secure record
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none, vState::Secure);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Secure);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     vState retrievedState = vState::Indeterminate;
     bool wasAuth = false;
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), false, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
     BOOST_CHECK_EQUAL(wasAuth, true);
     // try to replace that with a Bogus record
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none, vState::BogusNoRRSIG);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none, boost::none, vState::BogusNoRRSIG);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     retrievedState = vState::Indeterminate;
     wasAuth = false;
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), false, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
     BOOST_CHECK_EQUAL(wasAuth, true);
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     // insert an entry for 192.0.0.1/8
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.0.1/8"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.0.1/8"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     /* same as dr2 except for the actual IP */
@@ -314,20 +314,20 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     dr4.d_type = QType::A;
     dr4.d_class = QClass::IN;
     dr4.d_content = std::make_shared<ARecordContent>(dr4Content);
-    dr4.d_ttl = static_cast<uint32_t>(ttd);
+    dr4.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
     dr4.d_place = DNSResourceRecord::AUTHORITY;
 
     // insert another entry but for 192.168.0.1/31
     records.clear();
     records.push_back(dr4);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.168.0.1/31"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.168.0.1/31"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // insert the same than the first one but for 192.168.0.2/32
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.168.0.2/32"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.168.0.2/32"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 3U);
 
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     // insert an entry for 192.0.0.1/8, non auth
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::optional<Netmask>("192.0.0.1/8"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::optional<Netmask>("192.0.0.1/8"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // we should not get it when we need authoritative data
@@ -361,6 +361,29 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     throw;
   }
 }
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
+{
+  simple(time(nullptr));
+}
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple2038)
+{
+  simple(INT_MAX - 15);
+}
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple2038bis)
+{
+  simple(time_t(INT_MAX) + 10000);
+}
+
+#if 0
+BOOST_AUTO_TEST_CASE(test_RecursorCacheSimpleDistantFuture)
+{
+  // Fails due to using 32-bit ttl values in records for absolute time, see handleHit()
+  simple(2 * time_t(INT_MAX));
+}
+#endif
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
 {
@@ -382,21 +405,21 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
   ns1.d_type = QType::NS;
   ns1.d_class = QClass::IN;
   ns1.d_content = std::make_shared<NSRecordContent>(ns1Content);
-  ns1.d_ttl = static_cast<uint32_t>(ttd);
+  ns1.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   ns1.d_place = DNSResourceRecord::ANSWER;
   records.push_back(ns1);
-  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, DNSName("powerdns.com."), boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* try to raise the TTL, simulating the delegated authoritative server
      raising the TTL so the zone stays alive */
   records.clear();
-  ns1.d_ttl = static_cast<uint32_t>(ttd + 3600);
+  ns1.d_ttl = static_cast<uint32_t>(ttd + 3600); // XXX truncation
   records.push_back(ns1);
-  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, DNSName("ghost.powerdns.com."), boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
-  /* the TTL should not have been raisd */
+  /* the TTL should not have been raised */
   std::vector<DNSRecord> retrieved;
   BOOST_CHECK_EQUAL(MRC.get(now, ghost, QType(QType::NS), false, &retrieved, ComboAddress("192.0.2.2")), (ttd - now));
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
@@ -410,6 +433,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
   DNSName power1("powerdns.com.");
@@ -425,7 +449,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   dr1.d_type = QType::AAAA;
   dr1.d_class = QClass::IN;
   dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
-  dr1.d_ttl = static_cast<uint32_t>(ttd);
+  dr1.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   dr1.d_place = DNSResourceRecord::ANSWER;
 
   /* entry for power1, which expired 30 ago too */
@@ -435,15 +459,15 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   dr2.d_type = QType::AAAA;
   dr2.d_class = QClass::IN;
   dr2.d_content = std::make_shared<AAAARecordContent>(dr2Content);
-  dr2.d_ttl = static_cast<uint32_t>(ttd);
+  dr2.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   dr2.d_place = DNSResourceRecord::ANSWER;
 
   /* insert both entries */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
@@ -455,11 +479,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* the remaining entry should be power2, but to get it
      we need to go back in the past a bit */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), 1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), 1);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
   /* check that power1 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -468,15 +492,15 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* insert both entries back */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* trigger a miss (expired) for power2 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* power2 should have been moved to the front of the expunge
      queue, and should this time be removed first */
@@ -486,11 +510,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* the remaining entry should be power1, but to get it
      we need to go back in the past a bit */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), 1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), 1);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 }
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
@@ -500,6 +524,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
   DNSName power1("powerdns.com.");
@@ -530,10 +555,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   /* insert both entries */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
@@ -544,11 +569,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power2 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
   /* check that power1 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -557,16 +582,16 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   /* insert both entries back */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* replace the entry for power1 */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
@@ -578,11 +603,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -591,15 +616,15 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   /* insert both entries back */
   records.push_back(dr1);
-  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, authZone, boost::none);
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* get a hit for power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
@@ -610,11 +635,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   MRC.doPrune(0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
@@ -633,7 +658,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
     r1.d_place = DNSResourceRecord::ANSWER;
     records.push_back(r1);
 
-    MRC.replace(now, power1, QType(QType::A), records, signatures, authRecs, true, Netmask(r1Content, 32));
+    MRC.replace(now, power1, QType(QType::A), records, signatures, authRecs, true, authZone, Netmask(r1Content, 32));
   }
 
   BOOST_CHECK_EQUAL(MRC.size(), 256U);
@@ -650,7 +675,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   for (size_t i = 0; i <= 255; i++) {
     ComboAddress whoLoop("192.0.2." + std::to_string(i));
 
-    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop);
+    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop, 0);
     if (ret > 0) {
       BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
       BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), whoLoop.toString());
@@ -675,6 +700,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   MemRecursorCache MRC(1);
 
   const DNSName power("powerdns.com.");
+  const DNSName authZone(".");
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
@@ -710,7 +736,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
 
   /* insert a non-specific entry */
   records.push_back(dr1);
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
 
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
@@ -726,7 +752,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 
   /* insert a specific entry */
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
@@ -751,7 +777,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
 
   /* add back the entry while it still exists in the cache but has been removed from the ECS index.
      It should be added back to the ECS index, and we should be able to retrieve it */
-  MRC.replace(now + ttl + 1, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now + ttl + 1, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
   BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.1")), ttd - now);
@@ -764,7 +790,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 
   /* insert a specific entry */
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/24"));
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/24"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
@@ -772,7 +798,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   /* insert a slightly more specific one, but expiring sooner */
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/26"));
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/26"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
@@ -801,7 +827,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   /* insert a non-specific entry */
   records.clear();
   records.push_back(dr1);
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::none);
 
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
@@ -809,7 +835,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   /* insert a subnet-specific entry */
   records.clear();
   records.push_back(dr2);
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.42/32"));
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.42/32"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
@@ -833,6 +859,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   MemRecursorCache MRC;
 
   const DNSName power("powerdns.com.");
+  const DNSName authZone(".");
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
@@ -859,7 +886,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
 
   /* insert a specific entry */
   records.push_back(dr1);
-  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
@@ -869,7 +896,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   dr1.d_name = sub1;
   records.clear();
   records.push_back(dr1);
-  MRC.replace(now, sub1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, sub1, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2U);
@@ -878,7 +905,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   dr1.d_name = sub2;
   records.clear();
   records.push_back(dr1);
-  MRC.replace(now, sub2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, sub2, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 3U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 3U);
@@ -888,7 +915,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   dr1.d_name = other1;
   records.clear();
   records.push_back(dr1);
-  MRC.replace(now, other1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, other1, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 4U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 4U);
@@ -897,7 +924,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   dr1.d_name = other2;
   records.clear();
   records.push_back(dr1);
-  MRC.replace(now, other2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  MRC.replace(now, other2, QType(QType::A), records, signatures, authRecords, true, authZone, Netmask("192.0.2.0/31"));
 
   BOOST_CHECK_EQUAL(MRC.size(), 5U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 5U);
@@ -921,6 +948,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 {
   MemRecursorCache MRC;
 
+  const DNSName authZone(".");
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
@@ -951,8 +979,8 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   // An entry without edns subnet gets stored without tag as well
-  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, boost::none, boost::none);
-  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytag"));
+  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none);
+  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, string("mytag"));
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1U);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
@@ -967,8 +995,8 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytagA"));
-      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytagB"));
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, string("mytagA"));
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, string("mytagB"));
       // After this, we have untagged entries, since no address was specified for both replace calls
     }
 
@@ -979,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     int64_t expected = counter;
 
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, boost::none) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -989,7 +1017,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; ++counter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagB")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, 0, string("mytagB")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -999,7 +1027,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagX")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, 0, string("mytagX")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1010,13 +1038,13 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     // Now insert some tagged entries
     for (counter = 0; counter < 50; ++counter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
-      MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, boost::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
+      MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, authZone, boost::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
     }
     BOOST_CHECK_EQUAL(MRC.size(), 150U);
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, boost::none) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1026,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; ++counter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagA")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, string("mytagA")) > 0) {
         matches++;
         if (counter < 50) {
           BOOST_CHECK_EQUAL(retrieved.size(), rset0tagged.size());
@@ -1042,7 +1070,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagX")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, string("mytagX")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1087,55 +1115,55 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     rset3.push_back(dr3);
 
     // insert a tagged entry
-    MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.0/24"), string("mytag"));
+    MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.0/24"), string("mytag"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // tag specific should not be returned for a different tag
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("othertag")), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("othertag")), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // insert a new  entry without tag
-    MRC.replace(now, power, QType(QType::A), rset2, signatures, authRecords, true, boost::optional<Netmask>("192.0.3.0/24"), boost::none);
+    MRC.replace(now, power, QType(QType::A), rset2, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.3.0/24"), boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // if no tag given nothing should be retrieved if address doesn't match
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), 0, boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
     // if no tag given and no-non-tagged entries matches nothing should be returned
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
     // Insert untagged entry with no netmask
-    MRC.replace(now, power, QType(QType::A), rset3, signatures, authRecords, true, boost::none, boost::none);
+    MRC.replace(now, power, QType(QType::A), rset3, signatures, authRecords, true, authZone, boost::none, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 3U);
 
     // Retrieval with no address and no tag should get that one
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress(), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress(), 0, boost::none), (ttd - now));
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
     // If no tag given match non-tagged entry
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, boost::none), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
     // If no tag given we should be able to retrieve the netmask specific record
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.3.1"), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.3.1"), 0, boost::none), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // tagged specific should still be returned for a matching tag, address is not used
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 

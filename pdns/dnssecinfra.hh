@@ -69,15 +69,15 @@ class DNSCryptoKeyEngine
     {
       return true;
     }
-    static shared_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
-    static shared_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
-    static shared_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
-    static shared_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
-    static shared_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
+    static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
     
-    typedef shared_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
+    typedef std::unique_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static void testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
@@ -109,23 +109,30 @@ struct DNSSECPrivateKey
     return getDNSKEY().getTag();
   }
   
-  const shared_ptr<DNSCryptoKeyEngine> getKey() const
+  const std::shared_ptr<DNSCryptoKeyEngine>& getKey() const
   {
     return d_key;
   }
   
-  void setKey(const shared_ptr<DNSCryptoKeyEngine> key)
+  void setKey(std::shared_ptr<DNSCryptoKeyEngine>& key)
   {
     d_key = key;
-    d_algorithm = key->getAlgorithm();
+    d_algorithm = d_key->getAlgorithm();
   }
+
+  void setKey(std::unique_ptr<DNSCryptoKeyEngine>&& key)
+  {
+    d_key = std::move(key);
+    d_algorithm = d_key->getAlgorithm();
+  }
+
   DNSKEYRecordContent getDNSKEY() const;
 
   uint16_t d_flags;
   uint8_t d_algorithm;
 
 private:
-  shared_ptr<DNSCryptoKeyEngine> d_key;
+  std::shared_ptr<DNSCryptoKeyEngine> d_key;
 };
 
 

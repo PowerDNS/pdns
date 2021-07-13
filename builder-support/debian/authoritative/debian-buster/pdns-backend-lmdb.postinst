@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+case "$1" in
+    configure)
+        # default path for database files.
+        chown pdns:pdns /var/lib/powerdns || :
+    ;;
+esac
+
 dpkg-trigger pdns-server
 
 #DEBHELPER#

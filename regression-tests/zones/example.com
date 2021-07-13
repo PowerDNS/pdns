@@ -20215,8 +20215,11 @@ foo1.svcb IN SVCB 1 . alpn=h2,h3
 foo.svcb IN A 192.0.2.1 ; Should not show up in additional
 foo1.svcb IN A 192.0.2.2 ; Should show up in additional
 
+
 bar.svcb IN SVCB 1 . alpn=h2
 bar.svcb IN SVCB 3 . alpn=h3 port=1500
 bar.svcb IN AAAA 2001:db8::3:1
 bar.svcb IN AAAA 2001:db8::3:4
 bar.svcb IN A 192.0.2.1
+
+baz.svcb IN SVCB 0 foo1.svcb.example.net. ; AliasMode - should not trigger additional processing, the target is in another zone

@@ -69,7 +69,7 @@ int Utility::timed_connect( Utility::sock_t sock,
       return ret;
   }
 
-  ret = select(sock + 1, NULL, &set, NULL, &timeout);
+  ret = select(sock + 1, nullptr, &set, nullptr, &timeout);
   setBlocking(sock);
 
   return ret;
@@ -119,7 +119,7 @@ void Utility::usleep(unsigned long usec)
   ts.tv_sec = usec / 1000000;
   ts.tv_nsec = (usec % 1000000) * 1000;
   // POSIX.1 recommends using nanosleep instead of usleep
-  ::nanosleep(&ts, NULL); 
+  ::nanosleep(&ts, nullptr); 
 }
 
 
@@ -137,7 +137,7 @@ void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
     struct passwd *pw=getpwuid(uid);
     if(!pw) {
       g_log<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
-      if (setgroups(0, NULL)<0) {
+      if (setgroups(0, nullptr)<0) {
         g_log<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
         exit(1);
       }
@@ -166,7 +166,7 @@ void Utility::dropUserPrivs( uid_t uid )
 
 
 // Returns the current process id.
-Utility::pid_t Utility::getpid( void )
+Utility::pid_t Utility::getpid( )
 {
   return ::getpid();
 }
@@ -175,14 +175,14 @@ Utility::pid_t Utility::getpid( void )
 // Returns the current time.
 int Utility::gettimeofday( struct timeval *tv, void *tz )
 {
-  return ::gettimeofday(tv,0);
+  return ::gettimeofday(tv,nullptr);
 }
 
 // Sets the random seed.
-void Utility::srandom(void)
+void Utility::srandom()
 {
   struct timeval tv;
-  gettimeofday(&tv, 0);
+  gettimeofday(&tv, nullptr);
   ::srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
 }
 

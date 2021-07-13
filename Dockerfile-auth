@@ -1,13 +1,15 @@
 # our chosen base image
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x arm64"
+
 # TODO: make sure /source looks roughly the same from git or tar
 
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git python3-venv && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts dpkg-dev equivs git python3-venv && apt-get clean
 
 # import everything - this could be pdns.git OR an auth tarball!
 COPY builder-support /source/builder-support
@@ -37,19 +39,21 @@ ARG DOCKER_FAKE_RELEASE=NO
 ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
-      BUILDER_VERSION="$(BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')" set-configure-ac-version.sh;\
+      BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
     fi && \
     BUILDER_MODULES=authoritative autoreconf -vfi
 
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
-      --with-lua=luajit \
+      --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
       --enable-tools \
-      --enable-ixfrdist && \
+      --enable-ixfrdist \
+      --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
     make clean && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
@@ -67,8 +71,9 @@ FROM debian:10-slim
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management)
-RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin && apt-get clean
+# Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management),
+#   and vim (for pdnsutil edit-zone) 
+RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /

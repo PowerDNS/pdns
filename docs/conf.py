@@ -22,6 +22,7 @@ import glob
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import guzzle_sphinx_theme
+import datetime
 
 # -- General configuration ------------------------------------------------
 
@@ -51,7 +52,7 @@ master_doc = 'indexTOC'
 
 # General information about the project.
 project = 'PowerDNS Authoritative Server'
-copyright = '2001-2019, PowerDNS.COM BV'
+copyright = '2001-' + str(datetime.date.today().year) + ', PowerDNS.COM BV'
 author = 'PowerDNS.COM BV'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -80,6 +81,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
                     'common/api/*']
 
 # The name of the Pygments (syntax highlighting) style to use.
+highlight_language = 'none'
 pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
@@ -185,7 +187,7 @@ descriptions = {
     'nsec3dig': 'Show and validate NSEC3 proofs',
     'pdns_control': 'Control the PowerDNS nameserver',
     'pdns_notify': 'A simple DNS NOTIFY sender',
-    'pdns_server': 'The PowerDNS Authoritative Namserver',
+    'pdns_server': 'The PowerDNS Authoritative Nameserver',
     'pdnsutil': 'PowerDNS record and DNSSEC command and control',
     'saxfr': 'Perform AXFRs and show information about it',
     'sdig': 'Perform a DNS query and show the results',

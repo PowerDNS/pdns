@@ -681,7 +681,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(!a(DNSName("www.powerdns.net"), g_rootdnsname));
 
   vector<DNSName> vec;
-  for(const std::string& b : {"bert.com.", "alpha.nl.", "articles.xxx.",
+  for(const char* b : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
 	"test.powerdns.com.", "\\128.com"}) {
     vec.push_back(DNSName(b));

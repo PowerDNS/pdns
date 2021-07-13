@@ -17,6 +17,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
+        product: ['auth', 'rec', 'dnsdist']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -27,11 +28,6 @@ jobs:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
-
-    # If this run was triggered by a pull request event, then checkout
-    # the head of the pull request instead of the merge commit.
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
 
     # Python is required for building the Authoritative server
     - uses: actions/setup-python@v2
@@ -88,7 +84,6 @@ jobs:
                 libmaxminddb-dev \
                 libp11-kit-dev \
                 libpq-dev \
-                libprotobuf-dev \
                 libre2-dev \
                 libsnmp-dev \
                 libsodium-dev \
@@ -97,35 +92,36 @@ jobs:
                 libsystemd-dev \
                 libwslay-dev \
                 libyaml-cpp-dev \
-                protobuf-compiler \
                 ragel \
                 unixodbc-dev
 
     - name: Build auth
+      if: matrix.product == 'auth'
       run: |
         autoreconf -vfi
-        ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --with-protobuf --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
+        ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
         make -j8 -C modules
         make -j8 -C pdns
 
     - name: Build dnsdist
+      if: matrix.product == 'dnsdist'
       run: |
         cd pdns/dnsdistdist
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
-        make dnsmessage.pb.cc dnstap.pb.cc
         make -j4 dnsdist
 
     - name: Build recursor
+      if: matrix.product == 'rec'
       run: |
         cd pdns/recursordist
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
-        make dnsmessage.pb.cc dnstap.pb.cc htmlfiles.h
+        make htmlfiles.h
         make -j8 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis

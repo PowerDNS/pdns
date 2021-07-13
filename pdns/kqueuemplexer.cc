@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include "misc.hh"
 #include <sys/types.h>
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/event.h>
 #endif
 #include <sys/time.h>
@@ -71,7 +71,7 @@ static struct KqueueRegisterOurselves
   KqueueRegisterOurselves() {
     FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
   }
-} kQueuedoIt;
+} kQueueDoIt;
 
 KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
 {

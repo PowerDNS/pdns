@@ -1,0 +1,28 @@
+Instructions on setting up PostgreSQL as a backend for PowerDNS
+---------------------------------------------------------------
+
+You should create a database yourself and install the schema into
+it. On upgrades you should also upgrade the schema.
+You can find the upstream recommended schema here:
+
+   /usr/share/pdns-backend-pgsql/schema
+
+Just create a database (for example, named pdns) and then feed these
+SQL commands to PostgreSQL to get the default schema:
+
+   psql -h <host> -U <user> <database> -f \
+     /usr/share/pdns-backend-pgsql/schema/schema.pgsql.sql
+
+Then add your data to the database. An example configuration for
+PowerDNS is provided in /usr/share/doc/pdns-backend-pgsql/examples/.
+
+It is probably a good idea to protect your configuration file, as
+it will contain your database password:
+
+   chmod 0640 /etc/powerdns/pdns.d/gpgsql.conf
+   chgrp pdns /etc/powerdns/pdns.d/gpgsql.conf
+
+Note: in previous versions, the Debian packages used
+dbconfig-common, and you can continue to use dbconfig
+created databases, but you will have to upgrade the schema
+manually.

@@ -195,13 +195,13 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
   BOOST_CHECK(c == vector<uint8_t>({0,4,0,8,192,0,2,1,192,0,2,2}));
 }
 
-BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ech) {
   DNSName name("powerdns.com.");
   vector<uint8_t> packet;
   DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
   pwR.getHeader()->qr = 1;
 
-  set<SvcParam> params({SvcParam(SvcParam::echconfig, "a very bogus echconfig value")});
+  set<SvcParam> params({SvcParam(SvcParam::ech, "a very bogus echconfig value")});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();
@@ -296,6 +296,31 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
   0,6,0,32,                                    // ipv6
   32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,1,
   32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,2}));
+}
+
+BOOST_AUTO_TEST_CASE(test_NodeOrLocatorID) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+
+  NodeOrLocatorID in = {0, 0, 0, 0, 0, 0, 0, 1};
+
+  DNSPacketWriter writer(packet, name, QType::NID, QClass::IN, 0);
+  writer.getHeader()->qr = 1;
+
+  writer.startRecord(name, QType::NID);
+  writer.commit();
+  auto start = writer.getContent().size();
+
+  writer.xfrNodeOrLocatorID(in);
+  writer.commit();
+  auto cit = writer.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, writer.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({
+    0, 0, 0, 0,
+    0, 0, 0, 1}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

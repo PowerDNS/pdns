@@ -26,7 +26,6 @@
 #include "dynlistener.hh"
 #include "ws-auth.hh"
 #include "json.hh"
-#include "webserver.hh"
 #include "logger.hh"
 #include "statbag.hh"
 #include "misc.hh"
@@ -45,6 +44,7 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 #include "auth-caches.hh"
+#include "auth-zonecache.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
 
@@ -66,7 +66,7 @@ AuthWebServer::AuthWebServer() :
   d_min1(0)
 {
   if(arg().mustDo("webserver") || arg().mustDo("api")) {
-    d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
+    d_ws = unique_ptr<WebServer>(new WebServer(arg()["webserver-address"], arg().asNum("webserver-port")));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
     d_ws->setLogLevel(arg()["webserver-loglevel"]);
@@ -84,9 +84,9 @@ AuthWebServer::AuthWebServer() :
 void AuthWebServer::go()
 {
   S.doRings();
-  std::thread webT(std::bind(&AuthWebServer::webThread, this));
+  std::thread webT([this](){webThread();});
   webT.detach();
-  std::thread statT(std::bind(&AuthWebServer::statThread, this));
+  std::thread statT([this](){statThread();});
   statT.detach();
 }
 
@@ -111,8 +111,8 @@ void AuthWebServer::statThread()
 
 static string htmlescape(const string &s) {
   string result;
-  for(string::const_iterator it=s.begin(); it!=s.end(); ++it) {
-    switch (*it) {
+  for(char it : s) {
+    switch (it) {
     case '&':
       result += "&amp;";
       break;
@@ -126,7 +126,7 @@ static string htmlescape(const string &s) {
       result += "&quot;";
       break;
     default:
-      result += *it;
+      result += it;
     }
   }
   return result;
@@ -138,8 +138,8 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
   int entries=0;
   vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
-  for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {
-    tot+=i->second;
+  for(const auto & i : ring) {
+    tot+=i.second;
     entries++;
   }
 
@@ -178,8 +178,8 @@ void AuthWebServer::printvars(ostringstream &ret)
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
   vector<string>entries=S.getEntries();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<S.read(*i)<<"</td><td>"<<S.getDescrip(*i)<<"</td>"<<endl;
+  for(const auto & entry : entries) {
+    ret<<"<tr><td>"<<entry<<"</td><td>"<<S.read(entry)<<"</td><td>"<<S.getDescrip(entry)<<"</td>"<<endl;
   }
 
   ret<<"</table></div>"<<endl;
@@ -187,11 +187,11 @@ void AuthWebServer::printvars(ostringstream &ret)
 
 void AuthWebServer::printargs(ostringstream &ret)
 {
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
+  ret<<R"(<table border=1><tr><td colspan=3 bgcolor="#0000ff"><font color="#ffffff">Arguments</font></td>)"<<endl;
 
   vector<string>entries=arg().list();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<arg()[*i]<<"</td><td>"<<arg().getHelp(*i)<<"</td>"<<endl;
+  for(const auto & entry : entries) {
+    ret<<"<tr><td>"<<entry<<"</td><td>"<<arg()[entry]<<"</td><td>"<<arg().getHelp(entry)<<"</td>"<<endl;
   }
 }
 
@@ -223,20 +223,20 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<!DOCTYPE html>"<<endl;
   ret<<"<html><head>"<<endl;
   ret<<"<title>PowerDNS Authoritative Server Monitor</title>"<<endl;
-  ret<<"<link rel=\"stylesheet\" href=\"style.css\"/>"<<endl;
+  ret<<R"(<link rel="stylesheet" href="style.css"/>)"<<endl;
   ret<<"</head><body>"<<endl;
 
   ret<<"<div class=\"row\">"<<endl;
   ret<<"<div class=\"headl columns\">";
-  ret<<"<a href=\"/\" id=\"appname\">PowerDNS "<<htmlescape(VERSION);
+  ret<<R"(<a href="/" id="appname">PowerDNS )"<<htmlescape(VERSION);
   if(!arg()["config-name"].empty()) {
     ret<<" ["<<htmlescape(arg()["config-name"])<<"]";
   }
   ret<<"</a></div>"<<endl;
-  ret<<"<div class=\"headr columns\"></div></div>";
-  ret<<"<div class=\"row\"><div class=\"all columns\">";
+  ret<<"<div class=\"header columns\"></div></div>";
+  ret<<R"(<div class="row"><div class="all columns">)";
 
-  time_t passed=time(0)-s_starttime;
+  time_t passed=time(nullptr)-s_starttime;
 
   ret<<"<p>Uptime: "<<
     humanDuration(passed)<<
@@ -283,7 +283,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2019 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2021 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -473,7 +473,7 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
       }
 
       rrset["name"] = current_qname.toString();
-      rrset["type"] = current_qtype.getName();
+      rrset["type"] = current_qtype.toString();
       rrset["records"] = rrset_records;
       rrset["comments"] = rrset_comments;
       rrset["ttl"] = (double)ttl;
@@ -497,7 +497,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(0) - s_starttime);
+  out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
 boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
@@ -513,15 +513,15 @@ boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 
 static void validateGatheredRRType(const DNSResourceRecord& rr) {
   if (rr.qtype.getCode() == QType::OPT || rr.qtype.getCode() == QType::TSIG) {
-    throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": invalid type given");
+    throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": invalid type given");
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
-  rr.auth = 1;
+  rr.auth = true;
   rr.ttl = ttl;
 
   validateGatheredRRType(rr);
@@ -550,20 +550,20 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json c
     }
     catch(std::exception& e)
     {
-      throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+content+"': "+e.what());
+      throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.toString()+" '"+content+"': "+e.what());
     }
 
     new_records.push_back(rr);
   }
 }
 
-static void gatherComments(const Json container, const DNSName& qname, const QType qtype, vector<Comment>& new_comments) {
+static void gatherComments(const Json& container, const DNSName& qname, const QType& qtype, vector<Comment>& new_comments) {
   Comment c;
   c.qname = qname;
   c.qtype = qtype;
 
-  time_t now = time(0);
-  for (auto comment : container["comments"].array_items()) {
+  time_t now = time(nullptr);
+  for (const auto& comment : container["comments"].array_items()) {
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
@@ -599,7 +599,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 
-static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
@@ -608,7 +608,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
 
   if (document["masters"].is_array()) {
     masters = vector<ComboAddress>();
-    for(auto value : document["masters"].array_items()) {
+    for(const auto& value : document["masters"].array_items()) {
       string master = value.string_value();
       if (master.empty())
         throw ApiException("Master can not be an empty string");
@@ -629,7 +629,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
   }
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<string> account;
@@ -796,7 +796,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["master_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["master_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -812,7 +812,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["slave_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["slave_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -917,7 +917,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
     for (const auto& i : md) {
       Json::array entries;
-      for (string j : i.second)
+      for (const string& j : i.second)
         entries.push_back(j);
 
       Json::object key {
@@ -967,6 +967,8 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" +
         zonename.toString() + "'");
+
+    DNSSECKeeper::clearMetaCache(zonename);
 
     Json::array respMetadata;
     for (const string& s : vecMetadata)
@@ -1033,6 +1035,8 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
 
+    DNSSECKeeper::clearMetaCache(zonename);
+
     Json::object key {
       { "type", "Metadata" },
       { "kind", kind },
@@ -1047,12 +1051,14 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     vector<string> md;  // an empty vector will do it
     if (!B.setDomainMetadata(zonename, kind, md))
       throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+
+    DNSSECKeeper::clearMetaCache(zonename);
   } else
     throw HttpMethodNotAllowedException();
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
-static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, DNSSECKeeper *dk) {
+static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquireKeyId, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
   bool found = false;
   for(const auto& value : keyset) {
@@ -1066,7 +1072,7 @@ static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, 
   }
 }
 
-static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
 
   bool inquireSingleKey = inquireKeyId >= 0;
@@ -1096,13 +1102,34 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
         { "bits", value.first.getKey()->getBits() }
     };
 
+    string publishCDS;
+    dk->getPublishCDS(zonename, publishCDS);
+
+    vector<string> digestAlgos;
+    stringtok(digestAlgos, publishCDS, ", ");
+
+    std::set<unsigned int> CDSalgos;
+    for(auto const &digestAlgo : digestAlgos) {
+      CDSalgos.insert(pdns_stou(digestAlgo));
+    }
+
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
+      Json::array cdses;
       Json::array dses;
       for(const uint8_t keyid : { DNSSECKeeper::DIGEST_SHA1, DNSSECKeeper::DIGEST_SHA256, DNSSECKeeper::DIGEST_GOST, DNSSECKeeper::DIGEST_SHA384 })
         try {
-          dses.push_back(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation());
+          string ds = makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation();
+
+          dses.push_back(ds);
+
+          if (CDSalgos.count(keyid)) { cdses.push_back(ds); }
         } catch (...) {}
+
       key["ds"] = dses;
+
+      if (cdses.size()) {
+        key["cds"] = cdses;
+      }
     }
 
     if (inquireSingleKey) {
@@ -1132,7 +1159,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * Case 3: the key or zone does not exist.
  *      The server returns 404 Not Found
  * */
-static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysDELETE(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   if (dk->removeKey(zonename, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
@@ -1177,7 +1204,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *    The server returns 201 Created and all public data about the added cryptokey
  */
 
-static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   auto document = req->json();
   string privatekey_fieldname = "privatekey";
   auto privatekey = document["privatekey"];
@@ -1278,7 +1305,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
  * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
-static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   //throws an exception if the Body is empty
   auto document = req->json();
   //throws an exception if the key does not exist or is not a bool
@@ -1351,7 +1378,7 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   }
 }
 
-static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, DNSName zonename) {
+static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const DNSName& zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
   stringtok(zonedata, zonestring, "\r\n");
@@ -1400,13 +1427,13 @@ static void checkNewRecords(vector<DNSResourceRecord>& records) {
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName()+" has more than one record");
+          throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString()+" has more than one record");
         }
         if (previous.content == rec.content) {
-          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.getName() + " with content \"" + rec.content + "\"");
+          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " with content \"" + rec.content + "\"");
         }
       } else if (exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-        throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName()+": Conflicts with another RRset");
+        throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString()+": Conflicts with another RRset");
       }
     }
 
@@ -1414,7 +1441,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records) {
     try {
       checkHostnameCorrectness(rec);
     } catch (const std::exception& e) {
-      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName() + " " + e.what());
+      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + " " + e.what());
     }
 
     previous = rec;
@@ -1626,7 +1653,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     for(auto& rr : new_records) {
       rr.qname.makeUsLowerCase();
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
-        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
+        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
       apiCheckQNameAllowedCharacters(rr.qname.toString());
 
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
@@ -1641,7 +1668,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // synthesize RRs as needed
     DNSResourceRecord autorr;
     autorr.qname = zonename;
-    autorr.auth = 1;
+    autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
@@ -1658,8 +1685,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // create NS records if nameservers are given
-    for (auto value : nameservers.array_items()) {
-      string nameserver = value.string_value();
+    for (const auto& value : nameservers.array_items()) {
+      const string& nameserver = value.string_value();
       if (nameserver.empty())
         throw ApiException("Nameservers must be non-empty strings");
       if (!isCanonical(nameserver))
@@ -1722,6 +1749,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     updateDomainSettingsFromDocument(B, di, zonename, document, false);
 
     di.backend->commitTransaction();
+
+    g_zoneCache.add(zonename, di.id); // make new zone visible
 
     fillZone(B, zonename, resp, shouldDoRRSets(req));
     resp->status = 201;
@@ -1793,8 +1822,17 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
   else if(req->method == "DELETE") {
     // delete domain
-    if(!di.backend->deleteDomain(zonename))
-      throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+
+    di.backend->startTransaction(zonename, -1);
+    try {
+      if(!di.backend->deleteDomain(zonename))
+        throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+
+      di.backend->commitTransaction();
+    } catch (...) {
+      di.backend->abortTransaction();
+      throw;
+    }
 
     // clear caches
     DNSSECKeeper::clearCaches(zonename);
@@ -1839,7 +1877,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
       rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
       "IN" << "\t" <<
-      rr.qtype.getName() << "\t" <<
+      rr.qtype.toString() << "\t" <<
       makeApiRecordContent(rr.qtype, rr.content) <<
       endl;
   }
@@ -1868,7 +1906,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  Communicator.addSuckRequest(zonename, di.masters.front());
+  Communicator.addSuckRequest(zonename, di.masters.front(), SuckRequest::Api);
   resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toLogString());
 }
 
@@ -1957,7 +1995,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
       if(seen.count({qname, qtype, changetype}))
       {
-        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.getName()+" with changetype: "+changetype);
+        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.toString()+" with changetype: "+changetype);
       }
       seen.insert({qname, qtype, changetype});
 
@@ -1970,13 +2008,13 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
       else if (changetype == "REPLACE") {
         // we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
         if (!qname.isPartOf(zonename) && qname != zonename)
-          throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
+          throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Name is out of zone");
 
         bool replace_records = rrset["records"].is_array();
         bool replace_comments = rrset["comments"].is_array();
 
         if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.getName());
+          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.toString());
         }
 
         new_records.clear();
@@ -2029,12 +2067,12 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
               while (di.backend->get(rr))
                 ;
 
-              throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Conflicts with pre-existing RRset");
+              throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Conflicts with pre-existing RRset");
             }
           }
 
           if (dname_seen && ns_seen && qname != zonename) {
-            throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Cannot have both NS and DNAME except in zone apex");
+            throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Cannot have both NS and DNAME except in zone apex");
           }
           if (!new_records.empty() && ent_present) {
             QType qt_ent{0};
@@ -2177,7 +2215,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       auto object = Json::object {
         { "object_type", "record" },
         { "name", rr.qname.toString() },
-        { "type", rr.qtype.getName() },
+        { "type", rr.qtype.toString() },
         { "ttl", (double)rr.ttl },
         { "disabled", rr.disabled },
         { "content", makeApiRecordContent(rr.qtype, rr.content) }
@@ -2197,6 +2235,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       auto object = Json::object {
         { "object_type", "comment" },
         { "name", c.qname.toString() },
+        { "type", c.qtype.toString() },
         { "content", c.content }
       };
       if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {
@@ -2272,7 +2311,7 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
   ret<<".columns { position: relative; min-height: 1px; float: left; }"<<endl;
   ret<<".all { width: 100%; }"<<endl;
   ret<<".headl { width: 60%; }"<<endl;
-  ret<<".headr { width: 39.5%; float: right; background-repeat: no-repeat; margin-top: 7px; ";
+  ret<<".header { width: 39.5%; float: right; background-repeat: no-repeat; margin-top: 7px; ";
   ret<<"background-image: url(data:image/png;base64,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);";
   ret<<" width: 154px; height: 20px; }"<<endl;
   ret<<"a#appname { margin: 0; font-size: 27px; color: #666; text-decoration: none; font-weight: bold; display: block; }"<<endl;
@@ -2319,8 +2358,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api", &apiDiscovery);
     }
     if (::arg().mustDo("webserver")) {
-      d_ws->registerWebHandler("/style.css", std::bind(&AuthWebServer::cssfunction, this, std::placeholders::_1, std::placeholders::_2));
-      d_ws->registerWebHandler("/", std::bind(&AuthWebServer::indexfunction, this, std::placeholders::_1, std::placeholders::_2));
+      d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);});
+      d_ws->registerWebHandler("/", [this](HttpRequest *req, HttpResponse *resp){indexfunction(req, resp);});
       d_ws->registerWebHandler("/metrics", prometheusMetrics);
     }
     d_ws->go();

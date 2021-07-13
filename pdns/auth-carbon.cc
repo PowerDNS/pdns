@@ -62,7 +62,7 @@ try
     string msg;
     vector<string> entries = S.getEntries();
     ostringstream str;
-    time_t now=time(0);
+    time_t now=time(nullptr);
     for(const string& entry : entries) {
       str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
     }
@@ -76,7 +76,7 @@ try
         s.setNonBlocking();
         s.connect(remote, 2);
 
-        writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), 2);
+        writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), timeval{2,0});
       } catch (runtime_error &e){
         g_log<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl;
         continue;

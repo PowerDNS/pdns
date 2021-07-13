@@ -20,6 +20,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import datetime
 
 # -- General configuration ------------------------------------------------
 
@@ -48,7 +49,7 @@ master_doc = 'index_TOC'
 
 # General information about the project.
 project = 'dnsdist'
-copyright = '2015-2019, PowerDNS.COM BV and its contributors'
+copyright = '2015-' + str(datetime.date.today().year) + ', PowerDNS.COM BV and its contributors'
 author = 'PowerDNS.COM BV and its contributors'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -70,7 +71,13 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv',
+                    'http-api/override.rst',
+                    'common/zonemetadata.rst',
+                    'common/endpoint-servers-config.rst',
+                    'common/secpoll.rst',
+                    'common/api/*.rst',
+                    'common/tarball-pgp-keys.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

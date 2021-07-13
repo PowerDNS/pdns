@@ -2,13 +2,14 @@ LDAP backend
 ============
 
 * Native: Yes
-* Master: No
+* Master: Yes
 * Slave: No
 * Superslave: No
 * Autoserial: No
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Zone caching: No
 * Module name: ldap
 * Launch name: ``ldap``
 
@@ -108,9 +109,9 @@ complete.
 (default: "5") : The number of attempts to make to re-establish a lost
 connection to the LDAP server.
 
-.. _setting-ldap-authmethod:
+.. _setting-ldap-bindmethod:
 
-``ldap-authmethod``
+``ldap-bindmethod``
 ^^^^^^^^^^^^^^^^^^^
 
 (default: "simple") : How to authenticate to the LDAP server. Actually
@@ -124,7 +125,7 @@ password, or "gssapi", which requires a Kerberos keytab.
 
 (default "") : Path to the object to authenticate against. Should only
 be used, if the LDAP server doesn't support anonymous binds and with the
-"simple" authmethod.
+"simple" bindmethod.
 
 .. _setting-ldap-secret:
 
@@ -132,7 +133,7 @@ be used, if the LDAP server doesn't support anonymous binds and with the
 ^^^^^^^^^^^^^^^
 
 (default "") : Password for authentication against the object specified
-by ldap-binddn. Only used when "authmethod" is "simple".
+by ldap-binddn. Only used when "bindmethod" is "simple".
 
 .. _setting-ldap-krb5-keytab:
 
@@ -140,7 +141,7 @@ by ldap-binddn. Only used when "authmethod" is "simple".
 ^^^^^^^^^^^^^^^^^^^^
 
 (default: "") : Full path to the keytab file to use to authenticate.
-This is only used when "authmethod" is set to "gssapi". The keytab must,
+This is only used when "bindmethod" is set to "gssapi". The keytab must,
 ideally, contain only one principal (or to put it otherwise, only the
 first principal found in the keytab will be used).
 
@@ -499,9 +500,8 @@ If "binddn" is given, the script will prompt for a password, otherwise
 an anonymous bind is executed. The updates in LDIF format are written to
 stdout and can be redirected to a file.
 
-The script requires Perl and the Perl Net::LDAP module and can be
-downloaded
-`here <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__.
+The `script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
+requires Perl and the Perl Net::LDAP module.
 
 Updating the entries in the LDAP tree requires to make the dnsdomain2
 schema known to the LDAP server. Unfortunately, both schemas (dnsdomain2
@@ -551,7 +551,7 @@ performance improvement:
 
 ::
 
-    indexassociatedDomain pres,eq,sub
+    index associatedDomain pres,eq,sub
 
 Furthermore, if ``ldap-method=strict`` is set, it uses the aRecord and
 aAAARecord attribute for reverse mapping of IP addresses to names. To
@@ -560,8 +560,8 @@ performance of the LDAP server:
 
 ::
 
-    indexaAAARecord pres,eq
-    indexaRecord pres,eq
+    index aAAARecord pres,eq
+    index aRecord pres,eq
 
 All other attributes than associatedDomain, aRecord or aAAARecord are
 only read if the object matches the specified criteria. Thus,

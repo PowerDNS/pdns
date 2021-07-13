@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2020121801 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2021070600 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -70,12 +70,18 @@ auth-4.3.0-rc1.security-status                          60 IN TXT "2 Unsupported
 auth-4.3.0-rc2.security-status                          60 IN TXT "2 Unsupported pre-release (known vulnerabilities)"
 auth-4.3.0.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2020-05.html"
 auth-4.3.1.security-status                              60 IN TXT "1 OK"
+auth-4.3.2.security-status                              60 IN TXT "1 OK"
 auth-4.4.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 auth-4.4.0-alpha2.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 auth-4.4.0-alpha3.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 auth-4.4.0-beta1.security-status                        60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 auth-4.4.0-rc1.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 auth-4.4.0.security-status                              60 IN TXT "1 OK"
+auth-4.4.1.security-status                              60 IN TXT "1 OK"
+auth-4.5.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+auth-4.5.0-beta1.security-status                        60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+auth-4.5.0-rc1.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+auth-4.5.0-rc2.security-status                          60 IN TXT "1 OK"
 
 ; Auth Debian
 auth-3.4.1-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -240,6 +246,7 @@ recursor-4.3.3.security-status                          60 IN TXT "3 Upgrade now
 recursor-4.3.4.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-07.html"
 recursor-4.3.5.security-status                          60 IN TXT "1 OK"
 recursor-4.3.6.security-status                          60 IN TXT "1 OK"
+recursor-4.3.7.security-status                          60 IN TXT "1 OK"
 recursor-4.4.0-alpha1.security-status                   60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 recursor-4.4.0-alpha2.security-status                   60 IN TXT "3 Unsupported pre-release"
 recursor-4.4.0-beta1.security-status                    60 IN TXT "3 Unsupported pre-release"
@@ -248,6 +255,19 @@ recursor-4.4.0-rc2.security-status                      60 IN TXT "3 Unsupported
 recursor-4.4.0.security-status                          60 IN TXT "1 OK"
 recursor-4.4.1.security-status                          60 IN TXT "1 OK"
 recursor-4.4.2.security-status                          60 IN TXT "1 OK"
+recursor-4.4.3.security-status                          60 IN TXT "1 OK"
+recursor-4.4.4.security-status                          60 IN TXT "1 OK"
+recursor-4.5.0-alpha1.security-status                   60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-alpha2.security-status                   60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-alpha3.security-status                   60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-beta1.security-status                    60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-beta2.security-status                    60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-rc1.security-status                      60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0.security-status                          60 IN TXT "2 Unsupported pre-release"
+recursor-4.5.1.security-status                          60 IN TXT "1 OK"
+recursor-4.5.2.security-status                          60 IN TXT "1 OK"
+recursor-4.5.3.security-status                          60 IN TXT "2 Unsupported pre-release"
+recursor-4.5.4.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
@@ -382,3 +402,10 @@ dnsdist-1.5.0-rc3.security-status                          60 IN TXT "2 Unsuppor
 dnsdist-1.5.0-rc4.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 dnsdist-1.5.0.security-status                              60 IN TXT "1 OK"
 dnsdist-1.5.1.security-status                              60 IN TXT "1 OK"
+dnsdist-1.5.2.security-status                              60 IN TXT "1 OK"
+dnsdist-1.6.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release (no known vulnerabilities)"
+dnsdist-1.6.0-alpha2.security-status                       60 IN TXT "3 Unsupported pre-release (no known vulnerabilities)"
+dnsdist-1.6.0-alpha3.security-status                       60 IN TXT "3 Unsupported pre-release (no known vulnerabilities)"
+dnsdist-1.6.0-rc1.security-status                          60 IN TXT "3 Unsupported pre-release"
+dnsdist-1.6.0-rc2.security-status                          60 IN TXT "3 Unsupported pre-release"
+dnsdist-1.6.0.security-status                              60 IN TXT "1 OK"

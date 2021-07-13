@@ -8,6 +8,11 @@ from recursortests import RecursorTest
 
 class PacketCacheRecursorTest(RecursorTest):
 
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']}
+    }
+
     _confdir = 'PacketCache'
     _wsPort = 8042
     _wsTimeout = 2
@@ -37,29 +42,12 @@ e 3600 IN A 192.0.2.42
 """.format(soa=cls._SOA))
         super(PacketCacheRecursorTest, cls).generateRecursorConfig(confdir)
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
         foundHits = False
@@ -67,10 +55,10 @@ e 3600 IN A 192.0.2.42
         for entry in content:
             if entry['name'] == 'packetcache-hits':
                 foundHits = True
-                self.assertEquals(int(entry['value']), expectedHits)
+                self.assertEqual(int(entry['value']), expectedHits)
             elif entry['name'] == 'packetcache-misses':
                 foundMisses = True
-                self.assertEquals(int(entry['value']), expectedMisses)
+                self.assertEqual(int(entry['value']), expectedMisses)
 
         self.assertTrue(foundHits)
         self.assertTrue(foundMisses)
@@ -87,13 +75,19 @@ e 3600 IN A 192.0.2.42
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
 
-        self.checkPacketCacheMetrics(0, 1)
+        self.checkPacketCacheMetrics(0, 2)
 
         # we should get a hit over UDP this time
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(1, 1)
+        self.checkPacketCacheMetrics(1, 2)
+
+        # we should get a hit over TCP this time
+        res = self.sendTCPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+        self.checkPacketCacheMetrics(2, 2)
 
         eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
@@ -105,35 +99,35 @@ e 3600 IN A 192.0.2.42
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(1, 2)
+        self.checkPacketCacheMetrics(2, 3)
 
         # same cookie, should match
         query = dns.message.make_query(qname, 'A', want_dnssec=True, options=[eco1])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(2, 2)
+        self.checkPacketCacheMetrics(3, 3)
 
         # different cookie, should still match
         query = dns.message.make_query(qname, 'A', want_dnssec=True, options=[eco2])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(3, 2)
+        self.checkPacketCacheMetrics(4, 3)
 
         # first cookie but with an ECS option, should not match
         query = dns.message.make_query(qname, 'A', want_dnssec=True, options=[eco1, ecso1])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(3, 3)
+        self.checkPacketCacheMetrics(4, 4)
 
         # different cookie but same ECS option, should match
         query = dns.message.make_query(qname, 'A', want_dnssec=True, options=[eco2, ecso1])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(4, 3)
+        self.checkPacketCacheMetrics(5, 4)
 
         # first cookie but different ECS option, should still match (we ignore EDNS Client Subnet
         # in the recursor's packet cache, but ECS-specific responses are not cached
@@ -141,4 +135,4 @@ e 3600 IN A 192.0.2.42
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkPacketCacheMetrics(5, 3)
+        self.checkPacketCacheMetrics(6, 4)

@@ -12,12 +12,14 @@ struct TCPQuery
   {
   }
 
-  TCPQuery(std::vector<uint8_t>&& buffer, IDState&& state): d_idstate(std::move(state)), d_buffer(std::move(buffer))
+  TCPQuery(PacketBuffer&& buffer, IDState&& state): d_idstate(std::move(state)), d_buffer(std::move(buffer))
   {
   }
 
   IDState d_idstate;
-  std::vector<uint8_t> d_buffer;
+  PacketBuffer d_buffer;
+  std::string d_proxyProtocolPayload;
+  bool d_proxyProtocolPayloadAdded{false};
 };
 
 class TCPConnectionToBackend;
@@ -30,7 +32,7 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(std::vector<uint8_t>&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
+  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
@@ -45,14 +47,14 @@ class IncomingTCPConnectionState;
 class TCPConnectionToBackend
 {
 public:
-  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, const struct timeval& now): d_responseBuffer(s_maxPacketCacheEntrySize), d_ds(ds), d_connectionStartTime(now), d_enableFastOpen(ds->tcpFastOpen)
+  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, const struct timeval& now): d_responseBuffer(s_maxPacketCacheEntrySize), d_ds(ds), d_connectionStartTime(now), d_lastDataReceivedTime(now), d_enableFastOpen(ds->tcpFastOpen)
   {
     reconnect();
   }
 
   ~TCPConnectionToBackend()
   {
-    if (d_ds && d_socket) {
+    if (d_ds && d_handler) {
       --d_ds->tcpCurrentConnections;
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -66,11 +68,11 @@ public:
 
   int getHandle() const
   {
-    if (!d_socket) {
+    if (!d_handler) {
       throw std::runtime_error("Attempt to get the socket handle from a non-established TCP connection");
     }
 
-    return d_socket->getHandle();
+    return d_handler->getDescriptor();
   }
 
   const std::shared_ptr<DownstreamState>& getDS() const
@@ -151,6 +153,8 @@ public:
     return true;
   }
 
+  bool matchesTLVs(const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs) const;
+
   bool matches(const std::shared_ptr<DownstreamState>& ds) const
   {
     if (!ds || !d_ds) {
@@ -163,8 +167,19 @@ public:
   void handleTimeout(const struct timeval& now, bool write);
   void release();
 
-  void setProxyProtocolPayload(std::string&& payload);
-  void setProxyProtocolPayloadAdded(bool added);
+  void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
+
+  struct timeval getLastDataReceivedTime() const
+  {
+    return d_lastDataReceivedTime;
+  }
+
+  std::string toString() const
+  {
+    ostringstream o;
+    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_clientConn ? " a client" : "no client");
+    return o.str();
+  }
 
 private:
   /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
@@ -176,11 +191,16 @@ private:
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static IOState queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
   static IOState sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
+  static bool isXFRFinished(const TCPResponse& response, const shared_ptr<IncomingTCPConnectionState>& clientConn);
 
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   uint16_t getQueryIdFromResponse();
   bool reconnect();
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
+  bool needProxyProtocolPayload() const
+  {
+    return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
+  }
 
   boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
@@ -200,7 +220,7 @@ private:
   boost::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
-      throw std::runtime_error("getBackendReadTTD() called without any backend selected");
+      throw std::runtime_error("getBackendWriteTTD() called without any backend selected");
     }
     if (d_ds->tcpSendTimeout == 0) {
       return boost::none;
@@ -212,18 +232,34 @@ private:
     return res;
   }
 
+  boost::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
+  {
+    if (d_ds == nullptr) {
+      throw std::runtime_error("getBackendConnectTTD() called without any backend selected");
+    }
+    if (d_ds->tcpConnectTimeout == 0) {
+      return boost::none;
+    }
+
+    struct timeval res = now;
+    res.tv_sec += d_ds->tcpConnectTimeout;
+
+    return res;
+  }
+
   static const uint16_t s_xfrID;
 
-  std::vector<uint8_t> d_responseBuffer;
+  PacketBuffer d_responseBuffer;
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
-  std::unique_ptr<Socket> d_socket{nullptr};
+  std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
+  std::unique_ptr<TCPIOHandler> d_handler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;
-  std::string d_proxyProtocolPayload;
   TCPQuery d_currentQuery;
   struct timeval d_connectionStartTime;
+  struct timeval d_lastDataReceivedTime;
   size_t d_currentPos{0};
   uint64_t d_queries{0};
   uint64_t d_downstreamFailures{0};
@@ -233,5 +269,5 @@ private:
   bool d_enableFastOpen{false};
   bool d_connectionDied{false};
   bool d_usedForXFR{false};
-  bool d_proxyProtocolPayloadAdded{false};
+  bool d_proxyProtocolPayloadSent{false};
 };

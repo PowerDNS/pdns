@@ -4,7 +4,7 @@ import time
 import unittest
 from copy import deepcopy
 from pprint import pprint
-from test_helper import ApiTestCase, unique_tsigkey_name, is_auth, is_recursor, get_db_tsigkeys
+from test_helper import ApiTestCase, unique_tsigkey_name, is_auth, is_auth_lmdb, is_recursor, get_db_tsigkeys
 
 class AuthTSIGHelperMixin(object):
     def create_tsig_key(self, name=None, algorithm='hmac-md5', key=None):
@@ -22,7 +22,7 @@ class AuthTSIGHelperMixin(object):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
-        self.assertEquals(r.status_code, 201)
+        self.assertEqual(r.status_code, 201)
         reply = r.json()
         print("reply", reply)
         return name, payload, reply
@@ -38,7 +38,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         for k in ('id', 'name', 'algorithm', 'key', 'type'):
             self.assertIn(k, data)
             if k in payload:
-                self.assertEquals(data[k], payload[k])
+                self.assertEqual(data[k], payload[k])
 
     def test_create_key_with_key_data(self):
         """
@@ -76,8 +76,10 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         name, payload, data = self.create_tsig_key()
         r = self.session.delete(self.url("/api/v1/servers/localhost/tsigkeys/" + data['id']))
         self.assertEqual(r.status_code, 204)
-        keys_from_db = get_db_tsigkeys(name)
-        self.assertListEqual(keys_from_db, [])
+
+        if not is_auth_lmdb():
+            keys_from_db = get_db_tsigkeys(name)
+            self.assertListEqual(keys_from_db, [])
 
     def test_put_key_change_name(self):
         """

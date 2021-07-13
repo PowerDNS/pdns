@@ -32,13 +32,18 @@ struct SodiumNonce
   void init(){};
   void merge(const SodiumNonce& lower, const SodiumNonce& higher) {};
   void increment(){};
-  unsigned char value[1];
+  unsigned char value[1]{0};
 };
 #else
 #include <sodium.h>
 
 struct SodiumNonce
 {
+  SodiumNonce()
+  {
+    memset(&value, 0, sizeof(value));
+  }
+
   void init()
   {
     randombytes_buf(value, sizeof value);

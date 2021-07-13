@@ -9,6 +9,8 @@
 #include "iputils.hh"
 #include <fstream>
 #include "uuid-utils.hh"
+#include "dnssecinfra.hh"
+#include "lock.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -20,7 +22,7 @@ volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
 volatile bool g_stop;
 
-void alarmHandler(int)
+static void alarmHandler(int)
 {
   g_stop=true;
 }
@@ -221,7 +223,7 @@ struct MakeARecordTest
   }
 };
 
-vector<uint8_t> makeBigReferral()
+static vector<uint8_t> makeBigReferral()
 {
 
   vector<uint8_t> packet;
@@ -256,7 +258,7 @@ vector<uint8_t> makeBigReferral()
   return  packet;
 }
 
-vector<uint8_t> makeBigDNSPacketReferral()
+static vector<uint8_t> makeBigDNSPacketReferral()
 {
   vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
@@ -446,14 +448,14 @@ struct SOARecordTest
   int d_records;
 };
 
-vector<uint8_t> makeEmptyQuery()
+static vector<uint8_t> makeEmptyQuery()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::SOA);
   return  packet;
 }
 
-vector<uint8_t> makeTypicalReferral()
+static vector<uint8_t> makeTypicalReferral()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
@@ -799,7 +801,7 @@ struct StatRingDNSNameQTypeToStringTest
   string getName() const { return "StatRing test with DNSName and QType to string"; }
 
   void operator()() const {
-    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.getName());
+    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.toString());
   };
 
   DNSName d_name;
@@ -843,6 +845,114 @@ struct UUIDGenTest
   }
 };
 
+struct NSEC3HashTest
+{
+  explicit NSEC3HashTest(int iterations, string salt) : d_iterations(iterations), d_salt(salt) {}
+
+  string getName() const
+  {
+    return (boost::format("%d NSEC3 iterations, salt length %d") % d_iterations % d_salt.length()).str();
+  }
+
+  void operator()() const
+  {
+    hashQNameWithSalt(d_salt, d_iterations, d_name);
+  }
+  int d_iterations;
+  string d_salt;
+  DNSName d_name = DNSName("www.example.com");
+};
+
+struct ReadWriteLockSharedTest
+{
+  explicit ReadWriteLockSharedTest(ReadWriteLock& lock): d_lock(lock)
+  {
+  }
+
+  string getName() const { return "RW lock shared"; }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; idx++) {
+      ReadLock wl(d_lock);
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+};
+
+struct ReadWriteLockExclusiveTest
+{
+  explicit ReadWriteLockExclusiveTest(ReadWriteLock& lock): d_lock(lock)
+  {
+  }
+
+  string getName() const { return "RW lock exclusive"; }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; idx++) {
+      WriteLock wl(d_lock);
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+};
+
+struct ReadWriteLockExclusiveTryTest
+{
+  explicit ReadWriteLockExclusiveTryTest(ReadWriteLock& lock, bool contended): d_lock(lock), d_contended(contended)
+  {
+  }
+
+  string getName() const { return "RW lock try exclusive - " + std::string(d_contended ? "contended" : "non-contended"); }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; idx++) {
+      TryWriteLock wl(d_lock);
+      if (!wl.gotIt() && !d_contended) {
+        cerr<<"Error getting the lock"<<endl;
+        _exit(0);
+      }
+      else if (wl.gotIt() && d_contended) {
+        cerr<<"Got a contended lock"<<endl;
+        _exit(0);
+      }
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+  bool d_contended;
+};
+
+struct ReadWriteLockSharedTryTest
+{
+  explicit ReadWriteLockSharedTryTest(ReadWriteLock& lock, bool contended): d_lock(lock), d_contended(contended)
+  {
+  }
+
+  string getName() const { return "RW lock try shared - " + std::string(d_contended ? "contended" : "non-contended"); }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; idx++) {
+      TryReadLock wl(d_lock);
+      if (!wl.gotIt() && !d_contended) {
+        cerr<<"Error getting the lock"<<endl;
+        _exit(0);
+      }
+      else if (wl.gotIt() && d_contended) {
+        cerr<<"Got a contended lock"<<endl;
+        _exit(0);
+      }
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+  bool d_contended;
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -880,6 +990,22 @@ try
   doRun(GetTimeTest());
   
   doRun(GetLockUncontendedTest());
+  {
+    ReadWriteLock rwlock;
+    doRun(ReadWriteLockSharedTest(rwlock));
+    doRun(ReadWriteLockExclusiveTest(rwlock));
+    doRun(ReadWriteLockExclusiveTryTest(rwlock, false));
+    {
+      ReadLock rl(rwlock);
+      doRun(ReadWriteLockExclusiveTryTest(rwlock, true));
+      doRun(ReadWriteLockSharedTryTest(rwlock, false));
+    }
+    {
+      WriteLock wl(rwlock);
+      doRun(ReadWriteLockSharedTryTest(rwlock, true));
+    }
+  }
+
   doRun(StaticMemberTest());
   
   doRun(ARecordTest(1));
@@ -911,8 +1037,6 @@ try
   doRun(GenericRecordTest(4, QType::NS, "powerdnssec1.ds9a.nl"));
   doRun(GenericRecordTest(64, QType::NS, "powerdnssec1.ds9a.nl"));
 
-  
-
   doRun(SOARecordTest(1));
   doRun(SOARecordTest(2));
   doRun(SOARecordTest(4));
@@ -929,6 +1053,18 @@ try
   doRun(NetmaskTreeTest());
 
   doRun(UUIDGenTest());
+
+  doRun(NSEC3HashTest(1, "ABCD"));
+  doRun(NSEC3HashTest(10, "ABCD"));
+  doRun(NSEC3HashTest(50, "ABCD"));
+  doRun(NSEC3HashTest(150, "ABCD"));
+  doRun(NSEC3HashTest(500, "ABCD"));
+
+  doRun(NSEC3HashTest(1, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(10, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
 
 #ifndef RECURSOR
   S.doRings();

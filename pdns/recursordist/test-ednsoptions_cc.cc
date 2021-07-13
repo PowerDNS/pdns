@@ -58,13 +58,13 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOption)
   BOOST_REQUIRE_EQUAL(query.at(pos), 0);
   BOOST_REQUIRE(query.at(pos + 2) == QType::OPT);
 
-  char* ecsStart = nullptr;
+  size_t ecsStartPosition = 0;
   size_t ecsLen = 0;
-  int res = getEDNSOption(reinterpret_cast<char*>(query.data()) + pos + 9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+  int res = getEDNSOption(reinterpret_cast<const char*>(&query.at(pos + 9)), questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStartPosition, &ecsLen);
   BOOST_CHECK_EQUAL(res, 0);
 
   EDNSSubnetOpts eso;
-  BOOST_REQUIRE(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso));
+  BOOST_REQUIRE(getEDNSSubnetOptsFromString(reinterpret_cast<const char*>(&query.at(pos + 9 + ecsStartPosition + 4)), ecsLen - 4, &eso));
 
   BOOST_CHECK(eso.source == ecs);
 }

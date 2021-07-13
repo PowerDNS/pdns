@@ -1,3 +1,0 @@
-# Site		Directory		Pattern			Version	Script
-version=3
-opts="pgpsigurlmangle=s/$/.asc/,versionmangle=s/-(alpha|beta|rc)/~$1/" https://downloads.powerdns.com/releases/	pdns-recursor-(.*)\.tar\.bz2	debian	uupdate

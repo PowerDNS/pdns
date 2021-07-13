@@ -153,7 +153,7 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
-void LOCRecordContent::report(void)
+void LOCRecordContent::report()
 {
   regist(1, QType::LOC, &make, &make, "LOC");
   regist(254, QType::LOC, &make, &make, "LOC");

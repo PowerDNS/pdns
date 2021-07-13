@@ -74,7 +74,7 @@ protected:
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
       d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
-      d_UpdateLastCheckofZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckofZoneQuery, 2);
+      d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
       d_InfoOfAllMasterDomainsQuery_stmt = d_db->prepare(d_InfoOfAllMasterDomainsQuery, 0);
       d_DeleteDomainQuery_stmt = d_db->prepare(d_DeleteDomainQuery, 1);
       d_DeleteZoneQuery_stmt = d_db->prepare(d_DeleteZoneQuery, 1);
@@ -138,7 +138,7 @@ protected:
     d_UpdateKindOfZoneQuery_stmt.reset();
     d_UpdateAccountOfZoneQuery_stmt.reset();
     d_UpdateSerialOfZoneQuery_stmt.reset();
-    d_UpdateLastCheckofZoneQuery_stmt.reset();
+    d_UpdateLastCheckOfZoneQuery_stmt.reset();
     d_InfoOfAllMasterDomainsQuery_stmt.reset();
     d_DeleteDomainQuery_stmt.reset();
     d_DeleteZoneQuery_stmt.reset();
@@ -193,11 +193,12 @@ public:
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account) override;
-  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const DNSName &domain) override;
   bool superMasterAdd(const string &ip, const string &nameserver, const string &account) override; 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+  void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains) override;
@@ -244,6 +245,7 @@ protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
+  void setLastCheck(uint32_t domain_id, time_t lastcheck);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();
@@ -259,11 +261,12 @@ protected:
     reconnect();
   }
   virtual void reconnect() { }
-  virtual bool inTransaction()
+  virtual bool inTransaction() override
   {
     return d_inTransaction;
   }
 
+  bool d_list{false};
   string d_query_name;
   DNSName d_qname;
   SSqlStatement::result_t d_result;
@@ -294,7 +297,7 @@ private:
   string d_UpdateKindOfZoneQuery;
   string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
-  string d_UpdateLastCheckofZoneQuery;
+  string d_UpdateLastCheckOfZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteDomainQuery;
   string d_DeleteZoneQuery;
@@ -365,7 +368,7 @@ private:
   unique_ptr<SSqlStatement> d_UpdateKindOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateAccountOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateSerialOfZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_UpdateLastCheckofZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_UpdateLastCheckOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfAllMasterDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteDomainQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteZoneQuery_stmt;

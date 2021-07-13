@@ -42,6 +42,9 @@ These constants represent the different `RCODEs <https://www.iana.org/assignment
 .. versionchanged:: 1.4.0
   The prefix is changed from ``dnsdist`` to ``DNSRCode``.
 
+.. versionchanged:: 1.7.0
+  The lookup fallback from ``dnsdist`` to ``DNSRCode`` was removed.
+
 - ``DNSRCode.NOERROR``
 - ``DNSRCode.FORMERR``
 - ``DNSRCode.SERVFAIL``
@@ -118,7 +121,7 @@ These constants represent an Action that can be returned from :func:`LuaAction` 
  * ``DNSAction.Refused``: return a response with a Refused rcode
  * ``DNSAction.ServFail``: return a response with a ServFail rcode
  * ``DNSAction.Spoof``: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value. TTL will be 60 seconds.
- * ``DNSAction.SpoofRaw``: spoof the response using the supplied raw value as record data
+ * ``DNSAction.SpoofRaw``: spoof the response using the supplied raw value as record data (see also :meth:`DNSQuestion:spoof` and :func:`dnsdist_ffi_dnsquestion_spoof_raw` to spoof multiple values)
  * ``DNSAction.Truncate``: truncate the response
  * ``DNSAction.NoRecurse``: set rd=0 on the query
 
@@ -129,6 +132,9 @@ DNSQType
 
 .. versionchanged:: 1.4.0
   The prefix is changed from ``dnsdist.`` to ``DNSQType``.
+
+.. versionchanged:: 1.7.0
+  The lookup fallback from ``dnsdist`` to ``DNSQType`` was removed.
 
 All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4>`__ are available as constants, prefixed with ``DNSQType.``, e.g.:
 

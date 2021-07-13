@@ -235,9 +235,9 @@ namespace YaHTTP {
            }
 
            if ('0' <= a && a <= '9') a = a - '0';
-           if ('a' <= a && a <= 'f') a = a - 'a' + 0x0a;
+           else if ('a' <= a && a <= 'f') a = a - 'a' + 0x0a;
            if ('0' <= b && b <= '9') b = b - '0';
-           if ('a' <= b && b <= 'f') b = b - 'a' + 0x0a;
+           else if ('a' <= b && b <= 'f') b = b - 'a' + 0x0a;
 
            c = (a<<4)+b;
            result = result.replace(pos1,3,1,c);

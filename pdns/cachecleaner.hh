@@ -22,6 +22,9 @@
 #pragma once
 
 #include <mutex>
+#include <boost/multi_index_container.hpp>
+
+#include "dnsname.hh"
 #include "lock.hh"
 
 // this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
@@ -96,7 +99,7 @@ template <typename S, typename T> void moveCacheItemToBack(T& collection, typena
   moveCacheItemToFrontOrBack<S>(collection, iter, false);
 }
 
-template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps)
+template <typename S, typename T> uint64_t pruneLockedCollectionsVector(std::vector<T>& maps)
 {
   uint64_t totErased = 0;
   time_t now = time(nullptr);
@@ -122,7 +125,7 @@ template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T
   return totErased;
 }
 
-template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVector(C& container, vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
 {
   time_t now = time(nullptr);
   uint64_t totErased = 0;
@@ -197,7 +200,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   return totErased;
 }
 
-template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
+template <typename T> uint64_t purgeLockedCollectionsVector(std::vector<T>& maps)
 {
   uint64_t delcount=0;
 
@@ -210,10 +213,10 @@ template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
   return delcount;
 }
 
-template <typename N, typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
+template <typename N, typename T> uint64_t purgeLockedCollectionsVector(std::vector<T>& maps, const std::string& match)
 {
   uint64_t delcount=0;
-  string prefix(match);
+  std::string prefix(match);
   prefix.resize(prefix.size()-1);
   DNSName dprefix(prefix);
   for(auto& mc : maps) {

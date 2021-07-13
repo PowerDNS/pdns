@@ -55,20 +55,20 @@ int SConnect(int sockfd, const ComboAddress& remote)
   return ret;
 }
 
-int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
+int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
   if(ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
-      if (timeout <= 0) {
+      if (timeout <= timeval{0,0}) {
         return savederrno;
       }
 
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
-      int res = waitForRWData(sockfd, false, timeout, 0, &error, &disconnected);
+      int res = waitForRWData(sockfd, false, timeout.tv_sec, timeout.tv_usec, &error, &disconnected);
       if (res == 1) {
         if (error) {
           savederrno = 0;
@@ -136,27 +136,50 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
   return ret;
 }
 
-void setSocketIgnorePMTU(int sockfd)
+void setSocketIgnorePMTU(int sockfd, int family)
 {
+  if (family == AF_INET) {
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 #ifdef IP_PMTUDISC_OMIT
   /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
      poisoning, but still allows fragmentation if the packet size exceeds the
      outgoing interface MTU, which is good.
   */
-  try {
-    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
-    return;
-  }
-  catch(const std::exception& e) {
-    /* failed, let's try IP_PMTUDISC_DONT instead */
-  }
+    try {
+      SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
+      return;
+    }
+    catch(const std::exception& e) {
+      /* failed, let's try IP_PMTUDISC_DONT instead */
+    }
 #endif /* IP_PMTUDISC_OMIT */
 
   /* IP_PMTUDISC_DONT disables Path MTU discovery */
-  SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
+    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
 #endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
+  }
+  else {
+    #if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT)
+#ifdef IPV6_PMTUDISC_OMIT
+  /* Linux 3.15+ has IPV6_PMTUDISC_OMIT, which discards PMTU information to prevent
+     poisoning, but still allows fragmentation if the packet size exceeds the
+     outgoing interface MTU, which is good.
+  */
+    try {
+      SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_OMIT);
+      return;
+    }
+    catch(const std::exception& e) {
+      /* failed, let's try IP_PMTUDISC_DONT instead */
+    }
+#endif /* IPV6_PMTUDISC_OMIT */
+
+  /* IPV6_PMTUDISC_DONT disables Path MTU discovery */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_DONT);
+#endif /* defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT) */
+  }
 }
+
 
 bool setReusePort(int sockfd)
 {
@@ -184,7 +207,7 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 {
 #ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
     if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
 	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
@@ -202,7 +225,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #else
   const struct cmsghdr* cmsg;
 #endif
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
         struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
@@ -261,7 +284,7 @@ int sendOnNBSocket(int fd, const struct msghdr *msgh)
   return sendErr;
 }
 
-ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
+ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;
   struct iovec iov;
@@ -269,7 +292,7 @@ ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const Comb
 
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
-  iov.iov_base = (void*)data;
+  iov.iov_base = const_cast<void*>(data);
   iov.iov_len = len;
   msgh.msg_iov = &iov;
   msgh.msg_iovlen = 1;
@@ -280,7 +303,7 @@ ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const Comb
     addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
   }
   else {
-    msgh.msg_control=NULL;
+    msgh.msg_control=nullptr;
   }
   return sendmsg(sock, &msgh, flags);
 }
@@ -390,7 +413,6 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       firstTry = false;
       iov.iov_len -= written;
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
-      written = 0;
     }
     else if (res == 0) {
       return res;

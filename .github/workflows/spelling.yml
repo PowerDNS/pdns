@@ -5,29 +5,26 @@ on:
       - "**"
     tags-ignore:
       - "**"
-    paths:
-      - "docs/**"
-      - "**/docs/**"
-  pull_request:
+  pull_request_target:
     branches:
       - "**"
     tags-ignore:
       - "**"
-    paths:
-      - "docs/**"
-      - "**/docs/**"
     types: ['opened', 'reopened', 'synchronize']
 
 jobs:
-  build:
+  spelling:
     name: Spell checking
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.0.0
+    - name: checkout-merge
+      if: false
+      uses: actions/checkout@v2.0.0
       with:
-        fetch-depth: 5
-    - uses: check-spelling/check-spelling@0.0.16-alpha
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        bucket: .github/actions
-        project: spell-check
+        ref: refs/pull/${{github.event.pull_request.number}}/merge
+    - name: checkout
+      if: false
+      uses: actions/checkout@v2.0.0
+    - uses: check-spelling/check-spelling@v0.0.18
+      with:
+        config: .github/actions/spell-check

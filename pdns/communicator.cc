@@ -40,7 +40,7 @@
 #include "threadname.hh"
 
 // there can be MANY OF THESE
-void CommunicatorClass::retrievalLoopThread(void)
+void CommunicatorClass::retrievalLoopThread()
 {
   setThreadName("pdns/comm-retre");
   for(;;) {
@@ -50,9 +50,14 @@ void CommunicatorClass::retrievalLoopThread(void)
       std::lock_guard<std::mutex> l(d_lock);
       if(d_suckdomains.empty()) 
         continue;
+
+      auto firstItem = d_suckdomains.begin();
         
-      sr=d_suckdomains.front();
-      d_suckdomains.pop_front();
+      sr=*firstItem;
+      d_suckdomains.erase(firstItem);
+      if (d_suckdomains.empty()) {
+        d_sorthelper = 0;
+      }
     }
     suck(sr.domain, sr.master, sr.force);
   }
@@ -62,9 +67,9 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+  for (const auto & part : parts) {
     try {
-      ComboAddress caIp(*iter, 53);
+      ComboAddress caIp(part, 53);
       listset.insert(caIp.toStringWithPort());
     }
     catch(PDNSException &e) {
@@ -84,11 +89,11 @@ void CommunicatorClass::go()
     _exit(1);
   }
 
-  std::thread mainT(std::bind(&CommunicatorClass::mainloop, this));
+  std::thread mainT([this](){mainloop();});
   mainT.detach();
 
   for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
-    std::thread retrieve(std::bind(&CommunicatorClass::retrievalLoopThread, this));
+    std::thread retrieve([this](){retrievalLoopThread();});
     retrieve.detach();
   }
 
@@ -107,14 +112,14 @@ void CommunicatorClass::go()
   loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
-void CommunicatorClass::mainloop(void)
+void CommunicatorClass::mainloop()
 {
   try {
     setThreadName("pdns/comm-main");
     signal(SIGPIPE,SIG_IGN);
-    g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
+    g_log<<Logger::Error<<"Primary/secondary communicator launching"<<endl;
     PacketHandler P;
-    d_tickinterval=::arg().asNum("slave-cycle-interval");
+    d_tickinterval=min(::arg().asNum("slave-cycle-interval"), ::arg().asNum("xfr-cycle-interval"));
     makeNotifySockets();
 
     int rc;
@@ -127,9 +132,9 @@ void CommunicatorClass::mainloop(void)
       
       tick = min (tick, d_tickinterval); 
       
-      next=time(0)+tick;
+      next=time(nullptr)+tick;
 
-      while(time(0) < next) {
+      while(time(nullptr) < next) {
         rc=d_any_sem.tryWait();
 
         if(rc) {

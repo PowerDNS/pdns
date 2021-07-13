@@ -30,7 +30,7 @@ class DNSDistSNMPAgent;
 class DNSDistSNMPAgent: public SNMPAgent
 {
 public:
-  DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket);
+  DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket);
   bool sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState>&);
   bool sendCustomTrap(const std::string& reason);
   bool sendDNSTrap(const DNSQuestion&, const std::string& reason="");

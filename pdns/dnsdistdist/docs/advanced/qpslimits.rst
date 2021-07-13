@@ -13,7 +13,7 @@ As another example:
 
 .. code-block:: lua
 
-  addAction(MaxQPSIPRule(5), NoRecurseAction())
+  addAction(MaxQPSIPRule(5), SetNoRecurseAction())
 
 This strips the Recursion Desired (RD) bit from any traffic per IPv4 or IPv6 /64 that exceeds 5 qps. This means any those traffic bins is allowed to make a recursor do 'work' for only 5 qps.
 

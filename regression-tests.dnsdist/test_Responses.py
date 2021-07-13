@@ -29,8 +29,8 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) > timedelta(0, 1))
 
         # NoError over UDP
@@ -39,8 +39,8 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1))
 
         # NX over TCP
@@ -49,8 +49,8 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1))
 
 class TestResponseRuleERCode(DNSDistTest):
@@ -80,8 +80,8 @@ class TestResponseRuleERCode(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) > timedelta(0, 1))
 
         # BADKEY (17, an ERCode) over UDP
@@ -90,8 +90,8 @@ class TestResponseRuleERCode(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1))
 
         # NoError (non-ERcode, basic RCode bits match BADVERS) over UDP
@@ -100,8 +100,8 @@ class TestResponseRuleERCode(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1))
 
 class TestResponseRuleQNameDropped(DNSDistTest):
@@ -126,8 +126,8 @@ class TestResponseRuleQNameDropped(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, None)
 
     def testNotDropped(self):
         """
@@ -144,8 +144,8 @@ class TestResponseRuleQNameDropped(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
 class TestResponseRuleQNameAllowed(DNSDistTest):
 
@@ -170,8 +170,8 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testNotAllowed(self):
         """
@@ -188,8 +188,8 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, None)
 
 class TestResponseRuleEditTTL(DNSDistTest):
 
@@ -228,10 +228,10 @@ class TestResponseRuleEditTTL(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
-            self.assertNotEquals(response.answer[0].ttl, receivedResponse.answer[0].ttl)
-            self.assertEquals(receivedResponse.answer[0].ttl, self._ttl)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._ttl)
 
 class TestResponseLuaActionReturnSyntax(DNSDistTest):
 
@@ -265,8 +265,8 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) > timedelta(0, 1))
 
     def testDropped(self):
@@ -284,5 +284,5 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, None)

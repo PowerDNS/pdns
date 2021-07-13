@@ -14,6 +14,8 @@ The current targets cover:
 - MOADNSParser (fuzz_target_moadnsparser) ;
 - the Proxy Protocol parser (fuzz_target_proxyprotocol) ;
 - ZoneParserTNG (fuzz_target_zoneparsertng).
+- Parts of the ragel-generated parser (parseRFC1035CharString in
+  fuzz_target_dnslabeltext)
 
 By default the targets are linked against a standalone target,
 pdns/standalone_fuzz_target_runner.cc, which does no fuzzing but makes it easy
@@ -51,3 +53,38 @@ The 'corpus' directory contains three sub-directories:
 When run in the OSS-Fuzz environment, the zone files from the
 regression-tests/zones/ directory are added to the ones present
 in the fuzzing/corpus/zones/ directory.
+
+Quickly getting started (using clang 11)
+----------------------------------------
+First, confgure:
+
+```
+LIB_FUZZING_ENGINE="/usr/lib/clang/11.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a" \
+  CC=clang \
+  CXX=clang++ \
+  CFLAGS='-fsanitize=fuzzer-no-link' \
+  CXXFLAGS='-fsanitize=fuzzer-no-link' \
+  ./configure --without-dynmodules --with-modules= --disable-lua-records --disable-ixfrdist --enable-fuzz-targets --disable-dependency-tracking --disable-silent-rules --enable-asan --enable-ubsan
+```
+
+Then build:
+
+```
+LIB_FUZZING_ENGINE="/usr/lib/clang/11.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a" \
+  make -C pdns -j2 fuzz_targets
+```
+
+Now you're ready to run one of the fuzzing targets.
+First, copy the starting corpus:
+
+```
+mkdir new-corpus
+./pdns/fuzz_target_XXXXXXX -merge=1 new-corpus fuzzing/corpus/YYYYY
+```
+
+Then run the thing:
+```
+./pdns_fuzz_target_XXXXXXX new-corpus
+```
+
+The [LLVM docs](https://llvm.org/docs/LibFuzzer.html) have more info.

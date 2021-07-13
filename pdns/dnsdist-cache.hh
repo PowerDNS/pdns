@@ -26,6 +26,8 @@
 
 #include "iputils.hh"
 #include "lock.hh"
+#include "noinitvector.hh"
+#include "stat_t.hh"
 
 struct DNSQuestion;
 
@@ -35,9 +37,9 @@ public:
   DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
   ~DNSDistPacketCache();
 
-  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnetOut, bool dnssecOK, uint32_t allowExpired=0, bool skipAging=false);
-  size_t purgeExpired(size_t upTo=0);
+  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
+  bool get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false);
+  size_t purgeExpired(size_t upTo, const time_t now);
   size_t expunge(size_t upTo=0);
   size_t expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
   bool isFull();
@@ -76,10 +78,10 @@ public:
     d_parseECS = enabled;
   }
 
-  uint32_t getKey(const DNSName::string_t& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
+  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP);
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static bool getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet);
+  static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
 
 private:
 
@@ -95,17 +97,17 @@ private:
     time_t added{0};
     time_t validity{0};
     uint16_t len{0};
-    bool tcp{false};
+    bool receivedOverUDP{false};
     bool dnssecOK{false};
   };
 
   class CacheShard
   {
   public:
-    CacheShard(): d_entriesCount(0)
+    CacheShard()
     {
     }
-    CacheShard(const CacheShard& old): d_entriesCount(0)
+    CacheShard(const CacheShard& old)
     {
     }
 
@@ -116,25 +118,24 @@ private:
 
     std::unordered_map<uint32_t,CacheValue> d_map;
     ReadWriteLock d_lock;
-    std::atomic<uint64_t> d_entriesCount;
+    std::atomic<uint64_t> d_entriesCount{0};
   };
 
-  bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
+  bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
   uint32_t getShardIndex(uint32_t key) const;
   void insertLocked(CacheShard& shard, uint32_t key, CacheValue& newValue);
 
   std::vector<CacheShard> d_shards;
 
-  std::atomic<uint64_t> d_deferredLookups{0};
-  std::atomic<uint64_t> d_deferredInserts{0};
-  std::atomic<uint64_t> d_hits{0};
-  std::atomic<uint64_t> d_misses{0};
-  std::atomic<uint64_t> d_insertCollisions{0};
-  std::atomic<uint64_t> d_lookupCollisions{0};
-  std::atomic<uint64_t> d_ttlTooShorts{0};
+  pdns::stat_t d_deferredLookups{0};
+  pdns::stat_t d_deferredInserts{0};
+  pdns::stat_t d_hits{0};
+  pdns::stat_t d_misses{0};
+  pdns::stat_t d_insertCollisions{0};
+  pdns::stat_t d_lookupCollisions{0};
+  pdns::stat_t d_ttlTooShorts{0};
 
   size_t d_maxEntries;
-  uint32_t d_expungeIndex{0};
   uint32_t d_shardCount;
   uint32_t d_maxTTL;
   uint32_t d_tempFailureTTL;

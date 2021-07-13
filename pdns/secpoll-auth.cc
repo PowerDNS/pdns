@@ -35,7 +35,7 @@ void doSecPoll(bool first)
     return;
 
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   string pkgv(PACKAGEVERSION);
 
   string version = "auth-" + pkgv;

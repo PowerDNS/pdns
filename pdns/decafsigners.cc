@@ -29,9 +29,9 @@ public:
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
   {}
 
-  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
-    return std::make_shared<DecafED25519DNSCryptoKeyEngine>(algorithm);
+    return make_unique<DecafED25519DNSCryptoKeyEngine>(algorithm);
   }
 
 private:
@@ -165,9 +165,9 @@ public:
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
   {}
 
-  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
-    return std::make_shared<DecafED448DNSCryptoKeyEngine>(algorithm);
+    return make_unique<DecafED448DNSCryptoKeyEngine>(algorithm);
   }
 
 private:

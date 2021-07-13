@@ -5,6 +5,11 @@ from recursortests import RecursorTest
 
 class DNS64RecursorTest(RecursorTest):
 
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']}
+    }
+
     _confdir = 'DNS64'
     _config_template = """
     auth-zones=example.dns64=configs/%s/example.dns64.zone
@@ -13,23 +18,6 @@ class DNS64RecursorTest(RecursorTest):
 
     dns64-prefix=64:ff9b::/96
     """ % (_confdir, _confdir, _confdir)
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -81,7 +69,7 @@ cname2 3600 IN CNAME www.example.dns64.
             sender = getattr(self, method)
             res = sender(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertEquals(len(res.answer), 0)
+            self.assertEqual(len(res.answer), 0)
 
     # this type (AAAA) does not exist for this name but there is an A record, we should get a DNS64-wrapped AAAA
     def testNonExistingAAAA(self):

@@ -3,8 +3,8 @@ Migrating to PowerDNS
 
 Before migrating to PowerDNS a few things should be considered.
 
-PowerDNS does not operate as a :ref:`slave-operation` or
-:ref:`master-operation` server with all backends. The :doc:`Generic SQL <backends/generic-sql>` and
+PowerDNS does not operate as a :ref:`secondary <secondary-operation>` or
+:ref:`primary <primary-operation>` server with all backends. The :doc:`Generic SQL <backends/generic-sql>` and
 :doc:`BIND <backends/bind>` backends have the ability to act as master or
 slave. See the :doc:`table of backends <backends/index>`
 which other backends support these modes.

@@ -11,16 +11,20 @@
 Rings g_rings;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -46,7 +50,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
       g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      /* we do not care about the response during that test, but we want to make sure
+         these do not interfere with the computation */
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries);
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
@@ -57,13 +65,14 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   {
     /* insert just above 50 qps from a given client in the last 10s
        this should trigger the rule this time */
-    size_t numberOfQueries = 50 * numberOfSeconds + 1;
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
     g_rings.clear();
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
       g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -80,6 +89,125 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
+  {
+    /* clear the rings and dynamic blocks */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* Insert 100 qps from a given client in the last 10s
+       this should trigger the rule */
+    size_t numberOfQueries = 100;
+
+    for (size_t timeIdx = 0; timeIdx < numberOfSeconds; timeIdx++) {
+      for (size_t idx = 0; idx < numberOfQueries; idx++) {
+        struct timespec when = now;
+        when.tv_sec -= (9 - timeIdx);
+        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh);
+        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend);
+      }
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * numberOfSeconds);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    /* now we clean up the dynamic blocks, simulating an admin removing the block */
+    g_dynblockNMG.setState(emptyNMG);
+    /* we apply the rules again, but as if we were 20s in the future.
+       Since we have a time windows of 10s nothing should be added,
+       regardless of the number of queries
+    */
+    struct timespec later = now;
+    later.tv_sec += 20;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+
+    /* just in case */
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* we apply the rules again, this tile as if we were 5s in the future.
+       Since we have a time windows of 10s, and 100 qps over 5s then 0 qps over 5s
+       is more than 50qps over 10s, the block should be added
+    */
+    later = now;
+    later.tv_sec += 5;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    /* clean up */
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* we apply the rules again, this tile as if we were 6s in the future.
+       Since we have a time windows of 10s, and 100 qps over 4s then 0 qps over 6s
+       is LESS than 50qps over 10s, the block should NOT be added
+    */
+    later = now;
+    later.tv_sec += 6;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
+  /* check that the responses are not accounted as queries when a
+     rcode rate rule is defined (sounds very specific but actually happened) */
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1");
+  ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  unsigned int responseTime = 0;
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock> emptyNMG;
+
+  /* 100k entries, one shard */
+  g_rings.setCapacity(1000000, 1);
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+
+  /* 100k entries, one shard */
+  g_rings.setCapacity(1000000, 1);
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+
+  /* block above 50 qps for numberOfSeconds seconds, no warning */
+  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+  dbrg.setRCodeRate(RCode::ServFail, 50, 40, 5, "Exceeded ServFail rate", 60, DNSAction::Action::Drop);
+
+  {
+    /* insert 45 qps (including responses) from a given client for the last 100s
+       this should not trigger the rule */
+    size_t numberOfQueries = 45;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t timeIdx = 0; timeIdx < 100; timeIdx++) {
+      struct timespec when = now;
+      when.tv_sec -= (99 - timeIdx);
+      for (size_t idx = 0; idx < numberOfQueries; idx++) {
+        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh);
+        /* we do not care about the response during that test, but we want to make sure
+           these do not interfere with the computation */
+        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend);
+      }
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries * 100);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * 100);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
@@ -342,7 +470,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
     dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
-    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
+    BOOST_REQUIRE(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
@@ -540,7 +668,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
       BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
-      /* this hsould have been preserved */
+      /* this should have been preserved */
       BOOST_CHECK_EQUAL(block.blocks, 1U);
       BOOST_CHECK_EQUAL(block.warning, false);
       block.blocks++;
@@ -570,7 +698,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
       BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
-      /* this hsould have been preserved */
+      /* this should have been preserved */
       BOOST_CHECK_EQUAL(block.blocks, 2U);
       BOOST_CHECK_EQUAL(block.warning, false);
     }

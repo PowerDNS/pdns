@@ -543,43 +543,43 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return response
 
     def compareOptions(self, a, b):
-        self.assertEquals(len(a), len(b))
+        self.assertEqual(len(a), len(b))
         for idx in range(len(a)):
-            self.assertEquals(a[idx], b[idx])
+            self.assertEqual(a[idx], b[idx])
 
     def checkMessageNoEDNS(self, expected, received):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, -1)
-        self.assertEquals(len(received.options), 0)
+        self.assertEqual(expected, received)
+        self.assertEqual(received.edns, -1)
+        self.assertEqual(len(received.options), 0)
 
     def checkMessageEDNSWithoutOptions(self, expected, received):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, 0)
-        self.assertEquals(expected.payload, received.payload)
+        self.assertEqual(expected, received)
+        self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.payload, received.payload)
 
     def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, 0)
-        self.assertEquals(expected.payload, received.payload)
-        self.assertEquals(len(received.options), withCookies)
+        self.assertEqual(expected, received)
+        self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.payload, received.payload)
+        self.assertEqual(len(received.options), withCookies)
         if withCookies:
             for option in received.options:
-                self.assertEquals(option.otype, 10)
+                self.assertEqual(option.otype, 10)
         else:
             for option in received.options:
-                self.assertNotEquals(option.otype, 10)
+                self.assertNotEqual(option.otype, 10)
 
     def checkMessageEDNSWithECS(self, expected, received, additionalOptions=0):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, 0)
-        self.assertEquals(expected.payload, received.payload)
-        self.assertEquals(len(received.options), 1 + additionalOptions)
+        self.assertEqual(expected, received)
+        self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.payload, received.payload)
+        self.assertEqual(len(received.options), 1 + additionalOptions)
         hasECS = False
         for option in received.options:
             if option.otype == clientsubnetoption.ASSIGNED_OPTION_CODE:
                 hasECS = True
             else:
-                self.assertNotEquals(additionalOptions, 0)
+                self.assertNotEqual(additionalOptions, 0)
 
         self.compareOptions(expected.options, received.options)
         self.assertTrue(hasECS)
@@ -602,3 +602,24 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def checkResponseNoEDNS(self, expected, received):
         self.checkMessageNoEDNS(expected, received)
 
+    def generateNewCertificateAndKey(self):
+        # generate and sign a new cert
+        cmd = ['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key', '-out', 'server.csr', '-config', 'configServer.conf']
+        output = None
+        try:
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input='')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('openssl req failed (%d): %s' % (exc.returncode, exc.output))
+        cmd = ['openssl', 'x509', '-req', '-days', '1', '-CA', 'ca.pem', '-CAkey', 'ca.key', '-CAcreateserial', '-in', 'server.csr', '-out', 'server.pem', '-extfile', 'configServer.conf', '-extensions', 'v3_req']
+        output = None
+        try:
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input='')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('openssl x509 failed (%d): %s' % (exc.returncode, exc.output))
+
+        with open('server.chain', 'w') as outFile:
+            for inFileName in ['server.pem', 'ca.pem']:
+                with open(inFileName) as inFile:
+                    outFile.write(inFile.read())

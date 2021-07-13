@@ -46,6 +46,12 @@ Various other options may also need to be set before opening the handle, e.g. md
     mdb_env_close(d_env);
     throw std::runtime_error("Unable to open database file "+std::string(fname)+": " + MDBError(rc));
   }
+
+  if ((flags & MDB_RDONLY) == 0) {
+    // Check for stale readers to prevent unbridled database growth.
+    // Only do this when in RW mode since it affects the file.
+    mdb_reader_check(d_env, nullptr);
+  }
 }
 
 void MDBEnv::incROTX()

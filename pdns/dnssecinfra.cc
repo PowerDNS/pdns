@@ -48,7 +48,7 @@
 
 using namespace boost::assign;
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
@@ -61,7 +61,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordC
   }
   fp.reset();
 
-  shared_ptr<DNSCryptoKeyEngine> dke = makeFromISCString(drc, isc);
+  auto dke = makeFromISCString(drc, isc);
   vector<string> checkKeyErrors;
 
   if(!dke->checkKey(&checkKeyErrors)) {
@@ -74,58 +74,95 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordC
   return dke;
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
-  bool pkcs11=false;
-  int algorithm = 0;
+  enum class KeyTypes : uint8_t { str, numeric, base64 };
+  const std::map<std::string, KeyTypes> knownKeys = {
+    { "algorithm", KeyTypes::numeric },
+    { "modulus", KeyTypes::base64 },
+    { "publicexponent", KeyTypes::base64 },
+    { "privateexponent", KeyTypes::base64 },
+    { "prime1", KeyTypes::base64 },
+    { "prime2", KeyTypes::base64 },
+    { "exponent1", KeyTypes::base64 },
+    { "exponent2", KeyTypes::base64 },
+    { "coefficient", KeyTypes::base64 },
+    { "privatekey", KeyTypes::base64 },
+    { "engine", KeyTypes::str },
+    { "slot", KeyTypes::str },
+    { "pin", KeyTypes::str },
+    { "label", KeyTypes::str },
+    { "publabel", KeyTypes::str },
+    { "private-key-format", KeyTypes::str },
+    { "flags", KeyTypes::numeric }
+  };
+  unsigned int algorithm = 0;
   string sline, key, value, raw;
   std::istringstream str(content);
   map<string, string> stormap;
 
-  while(std::getline(str, sline)) {
-    tie(key,value)=splitField(sline, ':');
+  while (std::getline(str, sline)) {
+    tie(key,value) = splitField(sline, ':');
     boost::trim(value);
-    if(pdns_iequals(key,"algorithm")) {
-      algorithm = pdns_stou(value);
-      stormap["algorithm"]=std::to_string(algorithm);
-      continue;
-    } else if (pdns_iequals(key,"pin")) {
-      stormap["pin"]=value;
-      continue;
-    } else if (pdns_iequals(key,"engine")) {
-      stormap["engine"]=value;
-      pkcs11=true;
-      continue;
-    } else if (pdns_iequals(key,"slot")) {
-      stormap["slot"]=value;
-      continue;
-    }  else if (pdns_iequals(key,"label")) {
-      stormap["label"]=value;
-      continue;
-    } else if (pdns_iequals(key,"publabel")) {
-      stormap["publabel"]=value;
-      continue;
-    }
-    else if(pdns_iequals(key, "Private-key-format"))
-      continue;
-    raw.clear();
-    B64Decode(value, raw);
-    stormap[toLower(key)]=raw;
-  }
-  shared_ptr<DNSCryptoKeyEngine> dpk;
 
-  if (pkcs11) {
+    toLowerInPlace(key);
+    const auto it = knownKeys.find(key);
+    if (it != knownKeys.cend()) {
+      if (it->second == KeyTypes::str) {
+        stormap[key] = value;
+      }
+      else if (it->second == KeyTypes::base64) {
+        try {
+          raw.clear();
+          B64Decode(value, raw);
+          stormap[key] = raw;
+        }
+        catch (const std::exception& e) {
+          throw std::runtime_error("Error while trying to base64 decode the value of the '" + key + "' key from the ISC map: " + e.what());
+        }
+      }
+      else if (it->second == KeyTypes::numeric) {
+        try {
+          unsigned int num = pdns_stou(value);
+          stormap[key] = std::to_string(num);
+          if (key == "algorithm") {
+            algorithm = num;
+          }
+        }
+        catch (const std::exception& e) {
+          throw std::runtime_error("Error while trying to parse the numeric value of the '" + key + "' key from the ISC map: " + e.what());
+        }
+      }
+    }
+    else {
+      try {
+        raw.clear();
+        B64Decode(value, raw);
+        stormap[key] = raw;
+      }
+      catch (const std::exception& e) {
+        stormap[key] = value;
+      }
+    }
+  }
+
+  std::unique_ptr<DNSCryptoKeyEngine> dpk;
+
+  if (stormap.count("engine")) {
 #ifdef HAVE_P11KIT1
-    if (stormap.find("slot") == stormap.end())
+    if (stormap.count("slot") == 0) {
       throw PDNSException("Cannot load PKCS#11 key, no Slot specified");
+    }
     // we need PIN to be at least empty
-    if (stormap.find("pin") == stormap.end()) stormap["pin"] = "";
+    if (stormap.count("pin") == 0) {
+      stormap["pin"] = "";
+    }
     dpk = PKCS11DNSCryptoKeyEngine::maker(algorithm); 
 #else
     throw PDNSException("Cannot load PKCS#11 key without support for it");
 #endif
   } else {
-    dpk=make(algorithm);
+    dpk = make(algorithm);
   }
   dpk->fromISCMap(drc, stormap);
   return dpk;
@@ -147,11 +184,11 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   return ret.str();
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
   makers_t::const_iterator iter = makers.find(algo);
-  if(iter != makers.cend())
+  if (iter != makers.cend())
     return (iter->second)(algo);
   else {
     throw runtime_error("Request to create key object for unknown algorithm number "+std::to_string(algo));
@@ -167,7 +204,7 @@ vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
 {
   vector<pair<uint8_t, string>> ret;
   for (auto const& value : getMakers()) {
-    shared_ptr<DNSCryptoKeyEngine> dcke(value.second(value.first));
+    auto dcke = value.second(value.first);
     ret.push_back(make_pair(value.first, dcke->getName()));
   }
   return ret;
@@ -235,9 +272,9 @@ bool DNSCryptoKeyEngine::testOne(int algo)
 
 void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
-  shared_ptr<DNSCryptoKeyEngine> dckeCreate(creator(algo));
-  shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));
-  shared_ptr<DNSCryptoKeyEngine> dckeVerify(verifier(algo));
+  auto dckeCreate = creator(algo);
+  auto dckeSign = signer(algo);
+  auto dckeVerify = verifier(algo);
 
   cerr<<"Testing algorithm "<<algo<<": '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
@@ -324,20 +361,20 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   }
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
 {
-  shared_ptr<DNSCryptoKeyEngine> dpk=make(algorithm);
+  auto dpk = make(algorithm);
   dpk->fromPublicKeyString(content);
   return dpk;
 }
 
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
   
-  for(const makers_t::value_type& val : getMakers())
+  for (const makers_t::value_type& val : getMakers())
   {
-    shared_ptr<DNSCryptoKeyEngine> ret=nullptr;
+    std::unique_ptr<DNSCryptoKeyEngine> ret=nullptr;
     try {
       ret = val.second(val.first);
       ret->fromPEMString(drc, raw);
@@ -347,7 +384,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecor
     {
     }
   }
-  return 0;
+  return nullptr;
 }
 
 /**
@@ -449,7 +486,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
   DSRecordContent dsrc;
   try {
     unsigned int algo = digestToAlgorithmNumber(digest);
-    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algo));
+    auto dpk = DNSCryptoKeyEngine::make(algo);
     dsrc.d_digest = dpk->hash(toHash);
   }
   catch(const std::exception& e) {
@@ -479,7 +516,7 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
 
 uint32_t getStartOfWeek()
 {
-  uint32_t now = time(0);
+  uint32_t now = time(nullptr);
   now -= (now % (7*86400));
   return now;
 }
@@ -491,17 +528,36 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname)
 {
+  // rfc5155 section 5
   unsigned int times = iterations;
-  unsigned char hash[20];
-  string toHash(qname.toDNSStringLC());
+  unsigned char hash[SHA_DIGEST_LENGTH];
+  string toHash(qname.toDNSStringLC() + salt);
 
-  for(;;) {
-    toHash.append(salt);
-    SHA1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    toHash.assign((char*)hash, sizeof(hash));
-    if(!times--)
+  for (;;) {
+    /* so the first time we hash the (lowercased) qname plus the salt,
+       then the result of the last iteration plus the salt */
+    SHA1(reinterpret_cast<const unsigned char*>(toHash.c_str()), toHash.length(), hash);
+    if (!times--) {
+      /* we are done, just copy the result and return it */
+      toHash.assign(reinterpret_cast<char*>(hash), sizeof(hash));
       break;
+    }
+    if (times == (iterations-1)) {
+      /* first time, we need to replace the qname + salt with
+         the hash plus salt, since the qname will not likely
+         match the size of the hash */
+      if (toHash.capacity() < (sizeof(hash) + salt.size())) {
+        toHash.reserve(sizeof(hash) + salt.size());
+      }
+      toHash.assign(reinterpret_cast<char*>(hash), sizeof(hash));
+      toHash.append(salt);
+    }
+    else {
+      /* starting with the second iteration, the hash size does not change, so we don't need to copy the salt again */
+      std::copy(reinterpret_cast<char*>(hash), reinterpret_cast<char*>(hash) + sizeof(hash), toHash.begin());
+    }
   }
+
   return toHash;
 }
 
@@ -569,7 +625,7 @@ static string calculateHMAC(const std::string& key, const std::string& text, TSI
   }
 
   unsigned char* out = HMAC(md_type, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, &outlen);
-  if (out == NULL || outlen == 0) {
+  if (out == nullptr || outlen == 0) {
     throw PDNSException("HMAC computation failed");
   }
 

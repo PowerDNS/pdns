@@ -37,6 +37,9 @@ if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
       LAST_TAG="$(echo ${GIT_VERSION} | cut -d- -f1-2)"
       COMMITS_SINCE_TAG="$(echo ${GIT_VERSION} | cut -d- -f3)"
       GIT_HASH="$(echo ${GIT_VERSION} | cut -d- -f4)"
+    elif [ $(echo ${GIT_VERSION} | awk -F"-" '{print NF-1}') = '1' ]; then
+      # Exactly on a pre-release
+      LAST_TAG="$(echo ${GIT_VERSION} | cut -d- -f1-2)"
     else
       LAST_TAG="$(echo ${GIT_VERSION} | cut -d- -f1)"
       COMMITS_SINCE_TAG="$(echo ${GIT_VERSION} | cut -d- -f2)"

@@ -85,6 +85,15 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
         self.assertRcodeEqual(resPTR, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(resPTR, expectedPTR)
 
+    def testLocalhostSubdomain(self):
+        queryA = dns.message.make_query('foo.localhost', 'A', want_dnssec=True)
+        expectedA = dns.rrset.from_text('foo.localhost.', 0, 'IN', 'A', '127.0.0.1')
+
+        resA = self.sendUDPQuery(queryA)
+
+        self.assertRcodeEqual(resA, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(resA, expectedA)
+
     def testIslandOfSecurity(self):
         query = dns.message.make_query('cname-to-islandofsecurity.secure.example.', 'A', want_dnssec=True)
 

@@ -28,6 +28,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <utility>
 #include "arguments.hh"
 #include "lock.hh"
 #include "iputils.hh"
@@ -43,7 +44,7 @@ StatBag::StatBag()
 
 void StatBag::exists(const string &key)
 {
-  if(!d_keyDescrips.count(key))
+  if(!d_keyDescriptions.count(key))
     {
       throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
@@ -98,7 +99,7 @@ vector<string>StatBag::getEntries()
 string StatBag::getDescrip(const string &item)
 {
   exists(item);
-  return d_keyDescrips[item];
+  return d_keyDescriptions[item];
 }
 
 StatType StatBag::getStatType(const string &item)
@@ -121,7 +122,7 @@ void StatBag::declare(const string &key, const string &descrip, StatType statTyp
 
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
-  d_keyDescrips[key]=descrip;
+  d_keyDescriptions[key]=descrip;
   d_statTypes[key]=statType;
 }
 
@@ -131,8 +132,8 @@ void StatBag::declare(const string &key, const string &descrip, StatBag::func_t 
     throw PDNSException("Attempt to re-declare func statbag '"+key+"'");
   }
 
-  d_funcstats[key]=func;
-  d_keyDescrips[key]=descrip;
+  d_funcstats[key]=std::move(func);
+  d_keyDescriptions[key]=descrip;
   d_statTypes[key]=statType;
 }
 
@@ -156,7 +157,7 @@ unsigned long StatBag::readZero(const string &key)
 {
   exists(key);
   unsigned long tmp=*d_stats[key];
-  d_stats[key]=0;
+  d_stats[key]=nullptr;
   return tmp;
 }
 
@@ -303,7 +304,7 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
   } else if(d_dnsnameqtyperings.count(name)) {
     auto raw = d_dnsnameqtyperings[name].get();
     for (auto const &e : raw) {
-      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).getName(), e.second));
+      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second));
     }
   }
   return ret;
@@ -373,10 +374,10 @@ string StatBag::getRingTitle(const string &name)
 vector<string>StatBag::listRings()
 {
   vector<string> ret;
-  for(auto i=d_rings.begin();i!=d_rings.end();++i)
-    ret.push_back(i->first);
-  for(auto i=d_comboRings.begin();i!=d_comboRings.end();++i)
-    ret.push_back(i->first);
+  for(auto & d_ring : d_rings)
+    ret.push_back(d_ring.first);
+  for(auto & d_comboRing : d_comboRings)
+    ret.push_back(d_comboRing.first);
   for(const auto &i : d_dnsnameqtyperings)
     ret.push_back(i.first);
 

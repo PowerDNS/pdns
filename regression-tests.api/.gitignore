@@ -2,6 +2,7 @@
 /*.xml
 /*.pid
 /pdns.sqlite3
+/pdns.lmdb*
 /*.controlsocket
 /named.conf
 /pdns.conf

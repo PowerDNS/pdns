@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include "misc.hh"
 #include "namespaces.hh"
+#include "webserver.hh"
 
 class Ewma
 {
@@ -67,10 +68,6 @@ private:
   double d_10, d_5, d_1, d_max;
 };
 
-class WebServer;
-class HttpRequest;
-class HttpResponse;
-
 class AuthWebServer
 {
 public:
@@ -92,7 +89,7 @@ private:
   double d_min10, d_min5, d_min1;
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
-  WebServer *d_ws{nullptr};
+  unique_ptr<WebServer> d_ws{nullptr};
 };
 
 void apiDocs(HttpRequest* req, HttpResponse* resp);

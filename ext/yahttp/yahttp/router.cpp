@@ -53,7 +53,6 @@ namespace YaHTTP {
             pname = pname.substr(1);
             // this matches whatever comes after it, basically end of string
             pos2 = req->url.path.size();
-            matched = true;
             if (pname != "") 
               params[pname] = funcptr::tie(pos1,pos2);
             k1 = url.size();

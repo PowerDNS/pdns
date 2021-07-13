@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 33
+# serial 36
 ], [#
 ], [])])
 
@@ -1549,10 +1549,11 @@ AC_CACHE_CHECK([for the flags needed to use pthreads], [boost_cv_pthread_flag],
                            -pthreads -mthreads -lpthread --thread-safe -mt";;
   esac
   # Generate the test file.
-  AC_LANG_CONFTEST([AC_LANG_PROGRAM([#include <pthread.h>],
-    [pthread_t th; pthread_join(th, 0);
-    pthread_attr_init(0); pthread_cleanup_push(0, 0);
-    pthread_create(0,0,0,0); pthread_cleanup_pop(0);])])
+  AC_LANG_CONFTEST([AC_LANG_PROGRAM([#include <pthread.h>
+    void *f(void*){ return 0; }],
+    [pthread_t th; pthread_create(&th,0,f,0); pthread_join(th,0);
+    pthread_attr_t attr; pthread_attr_init(&attr); pthread_cleanup_push(0, 0);
+    pthread_cleanup_pop(0);])])
   for boost_pthread_flag in '' $boost_pthread_flags; do
     boost_pthread_ok=false
 dnl Re-use the test file already generated.
@@ -1615,6 +1616,7 @@ if test x$boost_cv_inc_path != xno; then
   # the same defines as GCC's).
   for i in \
     "defined __clang__ && __clang_major__ == 12 && __clang_minor__ == 0 @ clang120" \
+    "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 1 @ clang111" \
     "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 0 @ clang110" \
     "defined __clang__ && __clang_major__ == 10 && __clang_minor__ == 0 @ clang100" \
     "defined __clang__ && __clang_major__ == 9 && __clang_minor__ == 0 @ clang90" \
@@ -1626,6 +1628,10 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(11, 1) \
+    _BOOST_gcc_test(11, 1) \
+    _BOOST_mingw_test(10, 3) \
+    _BOOST_gcc_test(10, 3) \
     _BOOST_mingw_test(10, 2) \
     _BOOST_gcc_test(10, 2) \
     _BOOST_mingw_test(10, 1) \
@@ -1638,6 +1644,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(9, 1) \
     _BOOST_mingw_test(9, 0) \
     _BOOST_gcc_test(9, 0) \
+    _BOOST_mingw_test(8, 5) \
+    _BOOST_gcc_test(8, 5) \
     _BOOST_mingw_test(8, 4) \
     _BOOST_gcc_test(8, 4) \
     _BOOST_mingw_test(8, 3) \

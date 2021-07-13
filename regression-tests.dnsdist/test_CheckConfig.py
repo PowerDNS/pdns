@@ -22,7 +22,7 @@ class TestCheckConfig(unittest.TestCase):
             self.assertNotEqual(dnsdist.poll(), None)
 
         if shouldBeSuccessful:
-            self.assertEquals(dnsdist.returncode, 0)
+            self.assertEqual(dnsdist.returncode, 0)
         else:
             self.assertNotEqual(dnsdist.returncode, 0)
 

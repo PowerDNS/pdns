@@ -1,20 +1,18 @@
 #!/usr/bin/env python
+import base64
 import dns
+import socket
+import ssl
+import subprocess
+import time
+import unittest
 from dnsdisttests import DNSDistTest
 
-class TestTLS(DNSDistTest):
+class TLSTests(object):
 
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s")
-    addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
-    """
-    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    def getServerCertificate(self):
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+        return conn.getpeercert()
 
     def testTLSSimple(self):
         """
@@ -37,8 +35,54 @@ class TestTLS(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # check the certificate
+        cert = self.getServerCertificate()
+        self.assertIn('subject', cert)
+        self.assertIn('serialNumber', cert)
+        self.assertIn('subjectAltName', cert)
+        subject = cert['subject']
+        altNames = cert['subjectAltName']
+        self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        names = []
+        for entry in altNames:
+            names.append(entry[1])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        serialNumber = cert['serialNumber']
+
+        self.generateNewCertificateAndKey()
+        self.sendConsoleCommand("reloadAllCertificates()")
+
+        # open a new connection
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # check that the certificate is OK
+        cert = self.getServerCertificate()
+        self.assertIn('subject', cert)
+        self.assertIn('serialNumber', cert)
+        self.assertIn('subjectAltName', cert)
+        subject = cert['subject']
+        altNames = cert['subjectAltName']
+        self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        names = []
+        for entry in altNames:
+            names.append(entry[1])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+
+        # and that the serial is different
+        self.assertNotEqual(serialNumber, cert['serialNumber'])
 
     def testTLKA(self):
         """
@@ -62,8 +106,8 @@ class TestTLS(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testTLSPipelining(self):
         """
@@ -89,8 +133,8 @@ class TestTLS(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testTLSSNIRouting(self):
         """
@@ -120,7 +164,7 @@ class TestTLS(DNSDistTest):
         self.sendTCPQueryOverConnection(conn, query, response=None)
         receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse, receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
 
         # this one should not
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
@@ -130,11 +174,121 @@ class TestTLS(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+    def testTLSSNIRoutingAfterResumption(self):
+        # we have more complicated tests about session resumption itself,
+        # but here we want to make sure the SNI is still present after resumption
+        """
+        TLS: SNI Routing after resumption
+        """
+        name = 'sni-resumed.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.4')
+        expectedResponse.answer.append(rrset)
+
+        # this SNI should match so we should get a spoofed answer
+        sslctx = ssl.SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
+        sslctx.check_hostname = True
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(self._caCert)
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.settimeout(2.0)
+        sslsock = sslctx.wrap_socket(sock, server_hostname='powerdns.com')
+        sslsock.connect(("127.0.0.1", self._tlsServerPort))
+
+        self.sendTCPQueryOverConnection(sslsock, query, response=None)
+        receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
+        self.assertFalse(sslsock.session_reused)
+        session = sslsock.session
+
+        # this one should not (different SNI)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.settimeout(2.0)
+        sslsock = sslctx.wrap_socket(sock, server_hostname=self._serverName)
+        sslsock.connect(("127.0.0.1", self._tlsServerPort))
+
+        self.sendTCPQueryOverConnection(sslsock, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(sslsock, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        self.assertFalse(sslsock.session_reused)
+
+        # and now we should be able to resume the session
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.settimeout(2.0)
+        sslsock = sslctx.wrap_socket(sock, server_hostname='powerdns.com')
+        sslsock.session = session
+        sslsock.connect(("127.0.0.1", self._tlsServerPort))
+
+        self.sendTCPQueryOverConnection(sslsock, query, response=None)
+        receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
+        self.assertTrue(sslsock.session_reused)
+
+class TestOpenSSL(DNSDistTest, TLSTests):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
+    """
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+class TestGnuTLS(DNSDistTest, TLSTests):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls" })
+    addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
+    """
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
 class TestDOTWithCache(DNSDistTest):
-
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -176,7 +330,7 @@ class TestDOTWithCache(DNSDistTest):
                                     dns.rdatatype.TXT,
                                     content)
         response.answer.append(rrset)
-        self.assertEquals(len(response.to_wire()), 4096)
+        self.assertEqual(len(response.to_wire()), 4096)
 
         # first query to fill the cache
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
@@ -186,12 +340,115 @@ class TestDOTWithCache(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEqual(expectedQuery, receivedQuery)
         self.checkQueryNoEDNS(expectedQuery, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
             self.sendTCPQueryOverConnection(conn, query, response=None)
             receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedResponse, response)
+
+class TestTLSFrontendLimits(DNSDistTest):
+
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = 5395
+    _answerUnexpected = True
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+
+    _skipListeningOnCL = True
+    _tcpIdleTimeout = 2
+    _maxTCPConnsPerTLSFrontend = 5
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
+    """
+    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerTLSFrontend']
+
+    def testTCPConnsPerTLSFrontend(self):
+        """
+        TLS Frontend Limits: Maximum number of conns per TLS frontend
+        """
+        name = 'maxconnspertlsfrontend.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        conns = []
+
+        for idx in range(self._maxTCPConnsPerTLSFrontend + 1):
+            try:
+                conns.append(self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert))
+            except:
+                conns.append(None)
+
+        count = 0
+        failed = 0
+        for conn in conns:
+            if not conn:
+                failed = failed + 1
+                continue
+
+            try:
+                self.sendTCPQueryOverConnection(conn, query)
+                response = self.recvTCPResponseOverConnection(conn)
+                if response:
+                    count = count + 1
+                else:
+                    failed = failed + 1
+            except:
+                failed = failed + 1
+
+        for conn in conns:
+            if conn:
+                conn.close()
+
+        # wait a bit to be sure that dnsdist closed the connections
+        # and decremented the counters on its side, otherwise subsequent
+        # connections will be dropped
+        time.sleep(1)
+
+        self.assertEqual(count, self._maxTCPConnsPerTLSFrontend)
+        self.assertEqual(failed, 1)
+
+class TestProtocols(DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+
+    _config_template = """
+    function checkDOT(dq)
+      if dq:getProtocol() ~= "DNS over TLS" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    addAction("protocols.tls.tests.powerdns.com.", LuaAction(checkDOT))
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    """
+    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    def testProtocolDOT(self):
+        """
+        DoT: Test DNSQuestion.Protocol
+        """
+        name = 'protocols.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)

@@ -33,8 +33,7 @@
 
 #include <boost/version.hpp>
 
-// it crashes on OSX and doesn't compile on OpenBSD
-#if BOOST_VERSION >= 105300 && ! defined( __APPLE__ ) && ! defined(__OpenBSD__)
+#if BOOST_VERSION >= 105300
 #include <boost/container/string.hpp>
 #endif
 
@@ -158,7 +157,7 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
 
-#if BOOST_VERSION >= 105300 && ! defined( __APPLE__ ) && ! defined(__OpenBSD__)
+#if BOOST_VERSION >= 105300
   typedef boost::container::string string_t;
 #else
   typedef std::string string_t;
@@ -327,19 +326,22 @@ struct SuffixMatchTree
     }
   }
 
-  void remove(const DNSName &name) const
+  void remove(const DNSName &name, bool subtree=false) const
   {
     auto labels = name.getRawLabels();
-    remove(labels);
+    remove(labels, subtree);
   }
 
   /* Removes the node at `labels`, also make sure that no empty
    * children will be left behind in memory
    */
-  void remove(std::vector<std::string>& labels) const
+  void remove(std::vector<std::string>& labels, bool subtree = false) const
   {
     if (labels.empty()) { // this allows removal of the root
       endNode = false;
+      if (subtree) {
+        children.clear();
+      }
       return;
     }
 
@@ -355,6 +357,10 @@ struct SuffixMatchTree
     if (labels.empty()) {
       // The child is no longer an endnode
       child->endNode = false;
+
+      if (subtree) {
+        child->children.clear();
+      }
 
       // If the child has no further children, just remove it from the set.
       if (child->children.empty()) {

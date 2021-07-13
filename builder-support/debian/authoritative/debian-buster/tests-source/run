@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# tests that are to be run from a built source tree.
+
+exec 2>&1
+set -e
+
+cd debian/tests-source
+chmod a+rx launch-pdns
+
+for testscript in smoke-bind smoke-lmdb; do
+  chmod a+rx "$testscript"
+  echo
+  echo "tests-source: running $testscript"
+  echo
+  ./$testscript
+  echo
+done
+

@@ -11,17 +11,23 @@ The DNSQuestion object contains at least the following fields:
   An object that contains everything about the current query.
   This object has the following attributes:
 
+  .. attribute:: DNSQuestion.addPaddingToResponse
+
+      .. versionadded:: 4.5.0
+
+      Whether the response will get EDNS Padding. See :ref:`setting-edns-padding-from` and :ref:`setting-edns-padding-mode`.
+
   .. attribute:: DNSQuestion.extendedErrorCode
 
       .. versionadded:: 4.5.0
 
-      The current extended error code, if any. See :ref:`extended-errors`.
+      The current extended error code, if any. See :ref:`setting-extended-resolution-errors`.
 
   .. attribute:: DNSQuestion.extendedErrorExtra
 
       .. versionadded:: 4.5.0
 
-      The current extended error extra text, as a string, if any. See :ref:`extended-errors`.
+      The current extended error extra text, as a string, if any. See :ref:`setting-extended-resolution-errors`.
 
   .. attribute:: DNSQuestion.qname
 
@@ -75,13 +81,13 @@ The DNSQuestion object contains at least the following fields:
     .. attribute:: DNSQuestion.appliedPolicy.policyName
 
       A string with the name of the policy.
-      Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzMaster` configuration items.
+      Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzPrimary` configuration items.
       It is advised to overwrite this when modifying the :attr:`DNSQuestion.appliedPolicy.policyKind`
 
     .. attribute:: DNSQuestion.appliedPolicy.policyType
 
-        The type of match for the policy.
- 
+      The type of match for the policy.
+
       -  ``pdns.policytypes.None``  the empty policy type
       -  ``pdns.policytypes.QName`` a match on qname
       -  ``pdns.policytypes.ClientIP`` a match on client IP

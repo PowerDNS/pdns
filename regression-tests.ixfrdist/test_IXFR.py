@@ -111,7 +111,7 @@ class IXFRDistBasicTest(IXFRDistTest):
         for expectedAnswer in expected:
             pos = 0
             for rec in expectedAnswer:
-                self.assertEquals(rec.ttl, answers[answerPos][pos].ttl)
+                self.assertEqual(rec.ttl, answers[answerPos][pos].ttl)
                 pos = pos + 1
             answerPos = answerPos + 1
 
@@ -131,11 +131,11 @@ class IXFRDistBasicTest(IXFRDistTest):
         expected.answer.append(xfrServer._getSOAForSerial(2))
 
         response = self.sendUDPQuery(query)
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)
         # check the TTLs
         pos = 0
         for rec in expected.answer:
-            self.assertEquals(rec.ttl, response.answer[pos].ttl)
+            self.assertEqual(rec.ttl, response.answer[pos].ttl)
             pos = pos + 1
 
     def test_b_UDP_SOA_not_loaded(self):
@@ -144,7 +144,7 @@ class IXFRDistBasicTest(IXFRDistTest):
         expected.set_rcode(dns.rcode.REFUSED)
 
         response = self.sendUDPQuery(query)
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)
 
     def test_b_UDP_SOA_not_configured(self):
         query = dns.message.make_query('example3.', 'SOA')
@@ -152,4 +152,4 @@ class IXFRDistBasicTest(IXFRDistTest):
         expected.set_rcode(dns.rcode.REFUSED)
 
         response = self.sendUDPQuery(query)
-        self.assertEquals(expected, response)
+        self.assertEqual(expected, response)

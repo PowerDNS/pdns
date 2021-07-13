@@ -18,7 +18,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_error = 0;
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
-  tkey_out->d_inception = time((time_t*)NULL);
+  tkey_out->d_inception = time((time_t*)nullptr);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
   if (tkey_in.d_mode == 3) { // establish context

@@ -81,13 +81,13 @@ struct SendReceive
               boost::accumulators::tag::mean(immediate)
               >
     > acc_t;
-  acc_t* d_acc;
+  unique_ptr<acc_t> d_acc;
   
   boost::array<double, 11> d_probs;
   
   SendReceive(const std::string& remoteAddr, uint16_t port) : d_probs({{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}})
   {
-    d_acc = new acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs);
+    d_acc = make_unique<acc_t>(acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs));
     // 
     //d_acc = acc_t
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -97,7 +97,7 @@ struct SendReceive
     ComboAddress remote(remoteAddr, port);
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
     d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
-    d_receiveds = d_receiveerrors = d_senderrors = 0;
+    d_received = d_receiveerrors = d_senderrors = 0;
     for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
@@ -144,7 +144,7 @@ struct SendReceive
         return 0;
       }
       else {
-        d_receiveds++;
+        d_received++;
       }
       // parse packet, set 'id', fill out 'ip' 
       
@@ -212,7 +212,7 @@ struct SendReceive
     }
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
-  unsigned int d_receiveds, d_receiveerrors, d_senderrors;
+  unsigned int d_received, d_receiveerrors, d_senderrors;
 };
 
 static void usage(po::options_description &desc) {
@@ -333,11 +333,11 @@ try
   }
 
   cerr<< datafmt % "Sending" % "" % "Receiving" % "";
-  cerr<< datafmt % "  Queued " % domains.size() % "  Received" % sr.d_receiveds;
+  cerr<< datafmt % "  Queued " % domains.size() % "  Received" % sr.d_received;
   cerr<< datafmt % "  Error -/-" % sr.d_senderrors %  "  Timeouts" % inflighter.getTimeouts();
   cerr<< datafmt % " " % "" %  "  Unexpected" % inflighter.getUnexpecteds();
   
-  cerr<< datafmt % " Sent" % (domains.size() - sr.d_senderrors) %  " Total" % (sr.d_receiveds + inflighter.getTimeouts() + inflighter.getUnexpecteds());
+  cerr<< datafmt % " Sent" % (domains.size() - sr.d_senderrors) %  " Total" % (sr.d_received + inflighter.getTimeouts() + inflighter.getUnexpecteds());
   
   cerr<<endl;  
   cerr<< datafmt % "DNS Status" % ""       % "" % "";
@@ -362,7 +362,7 @@ try
   if(g_envoutput) {
     cout<<"DBT_QUEUED="<<domains.size()<<endl;
     cout<<"DBT_SENDERRORS="<<sr.d_senderrors<<endl;
-    cout<<"DBT_RECEIVED="<<sr.d_receiveds<<endl;
+    cout<<"DBT_RECEIVED="<<sr.d_received<<endl;
     cout<<"DBT_NXDOMAINS="<<sr.d_nxdomains<<endl;
     cout<<"DBT_NODATAS="<<sr.d_nodatas<<endl;
     cout<<"DBT_UNKNOWNS="<<sr.d_unknowns<<endl;

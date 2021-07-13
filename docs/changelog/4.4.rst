@@ -2,6 +2,73 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.1
+  :released: 8th of February 2021
+
+  This is version 4.4.1 of the Authoritative Server.
+  This releases fixes several small issues discovered since the release of 4.4.0.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10008
+
+    fix TCP answer counters
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9965
+
+    debian packaging update
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10039
+
+    run deleteDomain() inside a transaction
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9985
+
+    lmdb: do not reuse backend that has seen corrupted data
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9953
+
+    dockerfiles: do not claim equivs-dummy is built from the pdns source package
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9952
+
+    Fix missing #include for gcc-11
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9949
+
+    lmdb: serialise LMDBBackend construction to ensure only a single schema upgrade is attempted
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9946
+
+    lmdb: Do a mdb_readers_check to clean up stale readers on database load
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9923
+
+    backport some asan/ubsan fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9912
+
+    pdnsutil edit-zone: do not exit on ZoneParser exception
+
+.. changelog::
   :version: 4.4.0
   :released: 18th of December 2020
 
@@ -24,31 +91,31 @@ Changelogs for 4.4.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9884
+    :pullreq: 9884
 
     clear the LMDB set state when performing a new lookup or list to prevent corruption cases (Robin Geuze)
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9878
+    :pullreq: 9878
 
     SVCB: Correctly parse and print unknown params
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9873
+    :pullreq: 9873
 
     fix direct-dnskey in AXFR-out (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
-    :pullreq: #9866
+    :pullreq: 9866
 
     don't log trusted-notification-proxy notify at error level (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
-    :pullreq: #9853
+    :pullreq: 9853
 
     Stop using incbin and use od & sed to generate constant string data.
 

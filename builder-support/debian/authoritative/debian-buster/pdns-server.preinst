@@ -1,31 +1,10 @@
 #!/bin/sh
 set -e
 
-ucf_delete_unchanged() {
-  # pdns-server no longer Depends: ucf, so only do this if ucf is installed.
-  if which ucf >/dev/null; then
-    if ucfq --with-colons "$1" | grep -q ':pdns-server:Yes:No'; then
-      # file exists, not changed; delete it
-      echo "Removing unchanged configuration file $1"
-      rm -f "$1"
-    fi
-    ucf --purge "$1"
-    ucfr --purge pdns-server "$1"
-  else
-    echo "E: ucf not installed, can not remove unchanged configuration file $1."
-  fi
-}
-
-purge_ucf_registry() {
-  pkgname="$1"
-  # Remove files previously registered with ucf (but keep the files).
-  # Newer versions no longer use ucf to manage conffiles.
-  # We stopped depending on ucf, so avoid calling ucf when it is not present.
-  if command -v ucfq >/dev/null; then
-    for file in $(ucfq --with-colons "$pkgname" | cut --delimiter=: --fields=1); do
-      ucf --purge ${file}
-      ucfr --purge $pkgname ${file}
-    done
+delete_unchanged() {
+  if [ -e "$1" ] && echo "$2 $1" | md5sum --check --status; then
+    echo "Removing unchanged configuration file $1"
+    rm -f "$1"
   fi
 }
 
@@ -38,30 +17,17 @@ backup_conffile() {
 
 case "$1" in
   install|upgrade)
-    # for upgrades from before 4.0.0-2, drop empty file created by previous postinst.
-    if [ -e /etc/powerdns/bindbackend.conf ] && echo "d41d8cd98f00b204e9800998ecf8427e /etc/powerdns/bindbackend.conf" | md5sum --check --status; then
-      rm -f /etc/powerdns/bindbackend.conf
-    fi
-
-    # 4.0.0-2 moved pdns-server' configuration files back under dpkg conffile control (from ucf),
-    # and bindbackend was split into its own package.
-    # the upgrade code in 4.0.0-2 did not delete unchanged files.
-    if [ ! -z "$2" ] && dpkg --compare-versions "$2" le "4.0.0-3~"; then
-      # we want to preserve the following if they were changed.
-      ucf_delete_unchanged "/etc/default/pdns"
-      ucf_delete_unchanged "/etc/powerdns/pdns.conf"
-      ucf_delete_unchanged "/etc/powerdns/pdns.d/pdns.local.conf"
-      # pdns.simplebind.conf is no longer useful with just pdns-server,
-      # pdns-backend-bind will install bind.conf instead.
-      ucf_delete_unchanged "/etc/powerdns/pdns.d/pdns.simplebind.conf"
-      backup_conffile "/etc/powerdns/pdns.d/pdns.simplebind.conf"
-    fi
-
-    # Remove files no longer in the package (and unused)
-    rm -f /etc/resolvconf/update.d/pdns
-    rm -f /etc/insserv.d/pdns-server
-
-    purge_ucf_registry "pdns-server"
+    # clean up files we no longer ship
+    delete_unchanged "/etc/resolvconf/update.d/pdns" aeacd4ba822e5ad334c1794e8239d9c1
+    backup_conffile "/etc/resolvconf/update.d/pdns"
+    delete_unchanged "/etc/insserv.d/pdns-server" af60f140f00b9520efbcd3a18052905d
+    backup_conffile "/etc/insserv.d/pdns-server"
+    delete_unchanged "/etc/default/pdns" ddd96d47c8c1d5898f45e81fae15e7ac
+    delete_unchanged "/etc/default/pdns" 99d5d626abd59cc568dadec22403f638
+    backup_conffile "/etc/default/pdns"
+    delete_unchanged "/etc/init.d/pdns" 06f3b374bccaf3b71638e759f8053bda
+    delete_unchanged "/etc/init.d/pdns" 470533b8de800da2f356c04a58f4aa6b
+    backup_conffile "/etc/init.d/pdns"
   ;;
 esac
 

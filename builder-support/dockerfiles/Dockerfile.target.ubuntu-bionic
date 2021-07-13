@@ -1,7 +1,15 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
+@IF [ ${BUILDER_TARGET} = ubuntu-bionic ]
 FROM ubuntu:bionic as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = ubuntu-bionic-amd64 ]
+FROM amd64/ubuntu:bionic as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = ubuntu-bionic-arm64 ]
+FROM arm64v8/ubuntu:bionic as dist-base
+@ENDIF
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL
 RUN apt-get update && apt-get -y dist-upgrade

@@ -5,18 +5,15 @@ Standards-Version: 4.1.2
 Maintainer: PowerDNS.COM BV <powerdns.support@powerdns.com>
 Build-Depends: debhelper (>= 10),
                dh-autoreconf,
-               dh-systemd [linux-any],
                libboost-all-dev,
                libcap-dev,
-               libluajit-5.1-dev [!arm64],
-               liblua5.3-dev [arm64],
-               libprotobuf-dev,
+               libluajit-5.1-dev [!arm64 !s390x],
+               liblua5.3-dev [arm64 s390x],
                libfstrm-dev,
                libsodium-dev,
                libssl-dev,
                libsystemd-dev [linux-any],
                pkg-config,
-               protobuf-compiler,
                ragel,
                systemd [linux-any]
 Vcs-Git: https://anonscm.debian.org/git/pkg-dns/pdns-recursor.git

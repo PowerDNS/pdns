@@ -110,13 +110,13 @@ size_t readn2(int fd, void* buffer, size_t len)
   return len;
 }
 
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout)
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout)
 {
   size_t pos = 0;
-  time_t start = 0;
-  int remainingTime = totalTimeout;
-  if (totalTimeout) {
-    start = time(NULL);
+  struct timeval start{0,0};
+  struct timeval remainingTime = totalTimeout;
+  if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+    gettimeofday(&start, nullptr);
   }
 
   do {
@@ -129,7 +129,8 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
     }
     else {
       if (errno == EAGAIN) {
-        int res = waitForData(fd, (totalTimeout == 0 || idleTimeout <= remainingTime) ? idleTimeout : remainingTime);
+        struct timeval w = ((totalTimeout.tv_sec == 0 && totalTimeout.tv_usec == 0) || idleTimeout <= remainingTime) ? idleTimeout : remainingTime;
+        int res = waitForData(fd, w.tv_sec, w.tv_usec);
         if (res > 0) {
           /* there is data available */
         }
@@ -144,14 +145,15 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
       }
     }
 
-    if (totalTimeout) {
-      time_t now = time(NULL);
-      int elapsed = now - start;
-      if (elapsed >= remainingTime) {
+    if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+      struct timeval elapsed = now - start;
+      if (remainingTime < elapsed) {
         throw runtime_error("Timeout while reading data");
       }
       start = now;
-      remainingTime -= elapsed;
+      remainingTime = remainingTime - elapsed;
     }
   }
   while (pos < len);
@@ -159,7 +161,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
   return len;
 }
 
-size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
+size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct timeval& timeout)
 {
   size_t pos = 0;
   do {
@@ -172,7 +174,7 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
       throw runtime_error("EOF while writing message");
     else {
       if (errno == EAGAIN) {
-        int res = waitForRWData(fd, false, timeout, 0);
+        int res = waitForRWData(fd, false, timeout.tv_sec, timeout.tv_usec);
         if (res > 0) {
           /* there is room available */
         }
@@ -466,9 +468,9 @@ void stripLine(string &line)
 string urlEncode(const string &text)
 {
   string ret;
-  for(string::const_iterator i=text.begin();i!=text.end();++i)
-    if(*i==' ')ret.append("%20");
-    else ret.append(1,*i);
+  for(char i : text)
+    if(i==' ')ret.append("%20");
+    else ret.append(1,i);
   return ret;
 }
 
@@ -565,8 +567,8 @@ string makeHexDump(const string& str)
   string ret;
   ret.reserve((int)(str.size()*2.2));
 
-  for(string::size_type n=0;n<str.size();++n) {
-    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
+  for(char n : str) {
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)n);
     ret+=tmp;
   }
   return ret;
@@ -688,7 +690,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     hints.ai_flags = AI_NUMERICHOST;
 
     // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
-    if (getaddrinfo(ourAddr.c_str(), 0, &hints, &res) != 0) {
+    if (getaddrinfo(ourAddr.c_str(), nullptr, &hints, &res) != 0) {
       return -1;
     }
 
@@ -793,7 +795,7 @@ Regex::Regex(const string &expr)
 // Note that cmsgbuf should be aligned the same as a struct cmsghdr
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
-  struct cmsghdr *cmsg = NULL;
+  struct cmsghdr *cmsg = nullptr;
 
   if(source->sin4.sin_family == AF_INET6) {
     struct in6_pktinfo *pkt;
@@ -1109,8 +1111,8 @@ string getMACAddress(const ComboAddress& ca)
       if (sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5) != 6) {
         return ret;
       }
-      for(int i = 0 ; i< 6 ; ++i)
-        ret.append(1, (char)tmp[i]);
+      for(unsigned int i : tmp)
+        ret.append(1, (char)i);
       return ret;
     }
   }
@@ -1141,6 +1143,31 @@ uint64_t udpErrorStats(const std::string& str)
 	return std::stoull(parts[3]);
       else
 	return 0;
+    }
+  }
+#endif
+  return 0;
+}
+
+uint64_t tcpErrorStats(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/net/netstat");
+  if (!ifs) {
+    return 0;
+  }
+
+  string line;
+  vector<string> parts;
+  while (getline(ifs,line)) {
+    if (line.size() > 9 && boost::starts_with(line, "TcpExt: ") && isdigit(line.at(8))) {
+      stringtok(parts, line, " \n\t\r");
+
+      if (parts.size() < 21) {
+        break;
+      }
+
+      return std::stoull(parts.at(20));
     }
   }
 #endif
@@ -1270,7 +1297,9 @@ uint64_t getRealMemoryUsage(const std::string&)
   uint64_t size, resident, shared, text, lib, data;
   ifs >> size >> resident >> shared >> text >> lib >> data;
 
-  return data * getpagesize();
+  // We used to use "data" here, but it proves unreliable and even is marked "broken"
+  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html 
+  return resident * getpagesize();
 #else
   struct rusage ru;
   if (getrusage(RUSAGE_SELF, &ru) != 0)
@@ -1344,7 +1373,7 @@ uid_t strToUID(const string &str)
   const char * cstr = str.c_str();
   struct passwd * pwd = getpwnam(cstr);
 
-  if (pwd == NULL) {
+  if (pwd == nullptr) {
     long long val;
 
     try {
@@ -1373,7 +1402,7 @@ gid_t strToGID(const string &str)
   const char * cstr = str.c_str();
   struct group * grp = getgrnam(cstr);
 
-  if (grp == NULL) {
+  if (grp == nullptr) {
     long long val;
 
     try {
@@ -1583,3 +1612,33 @@ std::string getCarbonHostName()
 
   return hostname;
 }
+
+std::string makeLuaString(const std::string& in)
+{
+  ostringstream str;
+
+  str<<'"';
+
+  char item[5];
+  for (unsigned char n : in) {
+    if (islower(n) || isupper(n)) {
+      item[0] = n;
+      item[1] = 0;
+    }
+    else {
+      snprintf(item, sizeof(item), "\\%03d", n);
+    }
+    str << item;
+  }
+
+  str<<'"';
+
+  return str.str();
+}
+
+size_t parseSVCBValueList(const std::string &in, vector<std::string> &val) {
+  std::string parsed;
+  auto ret = parseRFC1035CharString(in, parsed);
+  parseSVCBValueListFromParsedRFC1035CharString(parsed, val);
+  return ret;
+};

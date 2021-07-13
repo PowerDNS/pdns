@@ -13,7 +13,7 @@ class AuthLua4 : public BaseLua4
 {
 public:
   AuthLua4();
-  bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet);
+  bool updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
   LuaContext* getLua();
 

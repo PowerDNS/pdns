@@ -62,7 +62,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override { throw "Unimplemented"; };
     void fromPublicKeyString(const std::string& content) override { throw "Unimplemented"; };
 
-    static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);
 };
 
 bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);

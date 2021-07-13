@@ -37,8 +37,24 @@ recurse
     Set the RD bit in the question.
 showflags
     Show the NSEC3 flags in the response (they are hidden by default).
+dumpluaraw
+    Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
 tcp
     Use TCP instead of UDP to send the query.
+dot
+    use DoT instead of UDP to send a query. Implies tcp.
+insecure
+    when using DoT, do not validate the server certificate.
+fastOpen
+    when using TCP or, DoT, enable TCP Fast Open
+subjectName *name*
+    when using DoT, verify the server certificate is issued for *name*. The `openssl` provider will accept an empty name and still
+    make sure the certificate is issued by a trusted CA, `gnutls` will only do the validation if a name is given.
+    Default is the empty name. Also, note that older provide libraries might not validate at all.
+caStore *file*
+    when using DoT, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
+tlsProvider *name*
+    when using DoT, use TLS provider *name*. Currently supported (if compiled in): `openssl` and `gnutls`. Default is `openssl` if available.
 xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*
 	Send an *XPF* additional with these parameters.
 

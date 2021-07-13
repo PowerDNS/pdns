@@ -6,20 +6,17 @@ if [ -n "$PDNSDEBUG" ]; then
   set -x
 fi
 
-purge_ucf_registry() {
-  pkgname="$1"
-  # Remove files previously registered with ucf (but keep the files).
-  # Newer versions no longer use ucf to manage conffiles.
-  # We stopped depending on ucf, so avoid calling ucf when it is not present.
-  if command -v ucfq >/dev/null; then
-    for file in $(ucfq --with-colons "$pkgname" | cut --delimiter=: --fields=1); do
-      ucf --purge ${file}
-      ucfr --purge $pkgname ${file}
-    done
-  fi
-}
+PKGNAME="pdns-backend-pgsql"
 
-purge_ucf_registry "pdns-backend-pgsql"
+# Remove files previously registered with ucf (but keep the files).
+# 4.1.3-4 and newer no longer install a (ucf) conffile.
+# We stopped depending on ucf, so avoid calling ucf when it is not present.
+if command -v ucfq >/dev/null; then
+  for file in $(ucfq --with-colons "$PKGNAME" | cut --delimiter=: --fields=1); do
+    ucf --purge ${file}
+    ucfr --purge $PKGNAME ${file}
+  done
+fi
 
 dpkg-trigger pdns-server
 

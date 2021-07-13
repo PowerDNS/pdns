@@ -10,6 +10,7 @@ Generic MySQL backend
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Zone caching: Yes
 * Module name: gmysql
 * Launch name: ``gmysql``
 
@@ -52,6 +53,13 @@ differences in data between replicated servers. See `"Setting
 The Binary Log
 Format" <http://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html>`__
 for more information.
+
+Otherwise, you will probably see:
+
+::
+
+  Cannot execute statement: impossible to write to binary log since BINLOG_FORMAT = STATEMENT and at least one table uses a storage engine limited to row-based logging.
+  InnoDB is limited to row-logging when transaction isolation level is READ COMMITTED or READ UNCOMMITTED.
 
 Settings
 --------
@@ -151,6 +159,7 @@ Only enable this if you are certain you need to. For more discussion, see https:
 Default Schema
 --------------
 
-This is the 4.3 schema. Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gmysqlbackend/schema.mysql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_ on GitHub.
+This is the 4.3 schema.
+The `4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gmysqlbackend/schema.mysql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_ are available on GitHub.
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql

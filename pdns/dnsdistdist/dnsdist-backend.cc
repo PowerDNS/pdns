@@ -26,8 +26,8 @@
 bool DownstreamState::reconnect()
 {
   std::unique_lock<std::mutex> tl(connectLock, std::try_to_lock);
-  if (!tl.owns_lock()) {
-    /* we are already reconnecting */
+  if (!tl.owns_lock() || isStopped()) {
+    /* we are already reconnecting or stopped anyway */
     return false;
   }
 
@@ -101,14 +101,17 @@ bool DownstreamState::reconnect()
 
 void DownstreamState::stop()
 {
-  std::unique_lock<std::mutex> tl(connectLock);
-  std::lock_guard<std::mutex> slock(socketsLock);
   d_stopped = true;
 
-  for (auto& fd : sockets) {
-    if (fd != -1) {
-      /* shutdown() is needed to wake up recv() in the responderThread */
-      shutdown(fd, SHUT_RDWR);
+  {
+    std::lock_guard<std::mutex> tl(connectLock);
+    std::lock_guard<std::mutex> slock(socketsLock);
+
+    for (auto& fd : sockets) {
+      if (fd != -1) {
+        /* shutdown() is needed to wake up recv() in the responderThread */
+        shutdown(fd, SHUT_RDWR);
+      }
     }
   }
 }
@@ -150,7 +153,7 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), idStates(g_maxOutstanding), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect): sourceItfName(sourceItfName_), remote(remote_), idStates(connect ? g_maxOutstanding : 0), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
 {
   id = getUniqueID();
   threadStarted.clear();
@@ -181,5 +184,13 @@ DownstreamState::~DownstreamState()
   // is destroyed
   if (threadStarted.test_and_set()) {
     tid.detach();
+  }
+}
+
+void DownstreamState::incCurrentConnectionsCount()
+{
+  auto currentConnectionsCount = ++tcpCurrentConnections;
+  if (currentConnectionsCount > tcpMaxConcurrentConnections) {
+    tcpMaxConcurrentConnections.store(currentConnectionsCount);
   }
 }

@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <fcntl.h>
@@ -127,6 +128,18 @@ public:
     }
   }
 
+  void setFastOpenConnect()
+  {
+#ifdef TCP_FASTOPEN_CONNECT
+    int on = 1;
+    if (setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &on, sizeof(on)) < 0) {
+      throw NetworkError("While setting TCP_FASTOPEN_CONNECT: " + stringerror());
+    }
+#else
+   throw NetworkError("While setting TCP_FASTOPEN_CONNECT: not compiled in");
+#endif
+  }
+
   //! Bind the socket to a specified endpoint
   void bind(const ComboAddress &local, bool reuseaddr=true)
   {
@@ -141,7 +154,7 @@ public:
   //! Connect the socket to a specified endpoint
   void connect(const ComboAddress &ep, int timeout=0)
   {
-    SConnectWithTimeout(d_socket, ep, timeout);
+    SConnectWithTimeout(d_socket, ep, timeval{timeout,0});
   }
 
 
@@ -266,7 +279,7 @@ public:
     while(bytes) {
       ret=::write(d_socket, ptr, bytes);
       if(ret < 0) {
-        if(errno==EAGAIN) {
+        if(errno == EAGAIN) {
           ret=waitForRWData(d_socket, false, timeout, 0);
           if(ret < 0)
             throw NetworkError("Waiting for data write");
@@ -351,7 +364,14 @@ public:
   {
     return d_socket;
   }
-  
+
+  int releaseHandle()
+  {
+    int ret = d_socket;
+    d_socket = -1;
+    return ret;
+  }
+
 private:
   static const size_t s_buflen{4096};
   std::string d_buffer;

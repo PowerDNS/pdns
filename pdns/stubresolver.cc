@@ -126,7 +126,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
 
-  string queryNameType = qname.toString() + "|" + QType(qtype).getName();
+  string queryNameType = qname.toString() + "|" + QType(qtype).toString();
   string msg ="Doing stub resolving for '" + queryNameType + "', using resolvers: ";
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
@@ -159,10 +159,10 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     if(mdp.d_header.rcode == RCode::ServFail)
       continue;
 
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-      if(i->first.d_place == 1 && i->first.d_type==qtype) {
+    for(const auto & answer : mdp.d_answers) {
+      if(answer.first.d_place == 1 && answer.first.d_type==qtype) {
         DNSZoneRecord zrr;
-        zrr.dr = i->first;
+        zrr.dr = answer.first;
         zrr.auth=true;
         ret.push_back(zrr);
       }

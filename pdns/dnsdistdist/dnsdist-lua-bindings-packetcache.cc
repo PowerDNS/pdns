@@ -24,13 +24,14 @@
 #include <sys/types.h>
 
 #include "config.h"
+#include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 
-void setupLuaBindingsPacketCache(LuaContext& luaCtx)
+void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
 
       bool keepStaleData = false;
       size_t maxTTL = 86400;
@@ -38,7 +39,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
       size_t tempFailTTL = 60;
       size_t maxNegativeTTL = 3600;
       size_t staleTTL = 60;
-      size_t numberOfShards = 1;
+      size_t numberOfShards = 20;
       bool dontAge = false;
       bool deferrableInsertLock = true;
       bool ecsParsing = false;
@@ -91,6 +92,17 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
         }
       }
 
+      if (maxEntries < numberOfShards) {
+        warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
+        g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(numberOfShards) + "), decreasing the number of shards to " + std::to_string(maxEntries);
+        numberOfShards = maxEntries;
+      }
+
+      if (client) {
+        maxEntries = 1;
+        numberOfShards = 1;
+      }
+
       auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
@@ -112,7 +124,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
     });
   luaCtx.registerFunction<size_t(std::shared_ptr<DNSDistPacketCache>::*)(size_t)>("purgeExpired", [](std::shared_ptr<DNSDistPacketCache>& cache, size_t upTo) {
       if (cache) {
-        return cache->purgeExpired(upTo);
+        const time_t now = time(nullptr);
+
+        return cache->purgeExpired(upTo, now);
       }
       return static_cast<size_t>(0);
     });

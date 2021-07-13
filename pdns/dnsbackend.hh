@@ -46,7 +46,7 @@ class DNSPacket;
 class DNSBackend;  
 struct DomainInfo
 {
-  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
   time_t last_check;
@@ -56,6 +56,8 @@ struct DomainInfo
 
   uint32_t id;
   uint32_t notified_serial;
+
+  bool receivedNotify;
 
   uint32_t serial;
   enum DomainKind : uint8_t { Master, Slave, Native } kind;
@@ -78,9 +80,9 @@ struct DomainInfo
 
   static DomainKind stringToKind(const string& kind)
   {
-    if(pdns_iequals(kind,"SLAVE"))
+    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
       return DomainInfo::Slave;
-    else if(pdns_iequals(kind,"MASTER"))
+    else if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
       return DomainInfo::Master;
     else
       return DomainInfo::Native;
@@ -171,8 +173,7 @@ public:
     return setDomainMetadata(name, kind, meta);
   }
 
-
-  virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
+  virtual void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false);
 
   /** Determines if we are authoritative for a zone, and at what level */
   virtual bool getAuth(const DNSName &target, SOAData *sd);
@@ -257,8 +258,13 @@ public:
     return false;
   }
 
-  //! aborts the transaction started by strartTransaction, should leave state unaltered
+  //! aborts the transaction started by startTransaction, should leave state unaltered
   virtual bool abortTransaction()
+  {
+    return false;
+  }
+
+  virtual bool inTransaction()
   {
     return false;
   }
@@ -304,12 +310,17 @@ public:
   virtual void getUpdatedMasters(vector<DomainInfo>* domains)
   {
   }
-  
+
+  //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness
+  virtual void setStale(uint32_t domain_id)
+  {
+  }
+
   //! Called by PowerDNS to inform a backend that a domain has been checked for freshness
   virtual void setFresh(uint32_t domain_id)
   {
-
   }
+
   //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to slaves
   virtual void setNotified(uint32_t id, uint32_t serial)
   {
@@ -349,13 +360,13 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
+  virtual bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
   {
     return false;
   }
 
   //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account)
+  virtual bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
   {
     return false;
   }

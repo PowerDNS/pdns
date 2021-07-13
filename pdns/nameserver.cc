@@ -89,10 +89,6 @@ vector<ComboAddress> g_localaddresses; // not static, our unit tests need to pok
 void UDPNameserver::bindAddresses()
 {
   vector<string>locals;
-  stringtok(locals,::arg()["local-ipv6"]," ,");
-  if (!locals.empty()) {
-    g_log<<Logger::Error<<"NOTE: Deprecated local-ipv6 setting used. Please move those addresses to the local-address setting."<<endl;
-  }
   stringtok(locals,::arg()["local-address"]," ,");
 
   int one = 1;
@@ -132,13 +128,11 @@ void UDPNameserver::bindAddresses()
     if (!setSocketTimestamps(s))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
 
-    if (locala.isIPv4()) {
-      try {
-        setSocketIgnorePMTU(s);
-      }
-      catch(const std::exception& e) {
-        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
-      }
+    try {
+      setSocketIgnorePMTU(s, locala.sin4.sin_family);
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
     }
 
     if (d_can_reuseport) {
@@ -229,13 +223,13 @@ void UDPNameserver::send(DNSPacket& p)
 
   fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p.d_remote);
 
-  msgh.msg_control=NULL;
+  msgh.msg_control=nullptr;
   if(p.d_anyLocal) {
     addCMsgSrcAddr(&msgh, &cbuf, p.d_anyLocal.get_ptr(), 0);
   }
   DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p.getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p.getMaxReplyLen()) {
-    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p.getMaxReplyLen()<<". Question was for "<<p.qdomain<<"|"<<p.qtype.getName()<<endl;
+    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p.getMaxReplyLen()<<". Question was for "<<p.qdomain<<"|"<<p.qtype.toString()<<endl;
   }
   if(sendmsg(p.getSocket(), &msgh, 0) < 0)
     g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror()<<endl;
@@ -278,7 +272,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
         if(errno != EAGAIN)
           g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<stringerror()<<endl;
-        return 0;
+        return false;
       }
       break;
     }
@@ -291,7 +285,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
 
   if(remote.sin4.sin_port == 0) // would generate error on responding. sin4 also works for ipv6
-    return 0;
+    return false;
   
   packet.setSocket(sock);
   packet.setRemote(&remote);

@@ -1,0 +1,511 @@
+Changelogs for 4.5.X
+====================
+
+.. changelog::
+  :version: 4.5.4
+  :released: 2nd of July 2021, 4.5.3 was never released publicly.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10519
+
+    Make sure that we pass the SOA along the NSEC(3) proof for DS queries.
+
+.. changelog::
+  :version: 4.5.2
+  :released: 9th of June 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10477
+    :tickets: 10440
+
+    Change nsec3-max-iterations default to 150.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10476
+    :tickets: 10460
+
+    Don't follow referral from the parent to the child for DS queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10475
+    :tickets: 10426
+
+    When refreshing, do not consider root almost expired.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10474
+    :tickets: 10396
+
+    Take into account q_quiet when determining loglevel and change a few loglevels.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10473
+    :tickets: 10350
+
+    Only add the NSEC and RRSIG records once in wildcard NODATA answers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10422
+    :tickets: 10420
+
+    For the NOD lookup case, we don't want QName Minimization.
+
+.. changelog::
+  :version: 4.5.1
+  :released: 11th of May 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10377
+
+    Prevent a race in the aggressive NSEC cache.
+
+.. changelog::
+  :version: 4.5.0
+  :released: Never released publicly.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10353
+
+    Apply dns64 on RPZ hits generated after a gettag_ffi hit.
+
+.. changelog::
+  :version: 4.5.0-rc1
+  :released: 28th of April 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10335
+    :tickets: 10329
+
+    Boost 1.76 containers: use standard exceptions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10334
+    :tickets: 10318
+
+    Fix wording in edns-padding-tag help.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 10333
+    :tickets: 10312
+
+    Improve packet cache size computation now that TCP answers are also cached.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10320
+    :tickets: 10317
+
+    Do not put results of DS query for auth or forward domains in negcache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10319
+    :tickets: 10303
+
+    Use the correct ECS address when proxy-protocol is enabled.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10307
+    :tickets: 10298
+
+    Print the covering NSEC in tracing log.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10306
+    :tickets: 10291
+
+    Exception loading the RPZ seed file is not fatal.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10305
+    :tickets: 10286
+
+    RPZ dumper: stop generating double zz labels on networks that start with zeroes.
+
+.. changelog::
+  :version: 4.5.0-beta2
+  :released: 14th of April 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10280
+    :tickets: 10268
+
+    Log local IP in dnstap messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10279
+    :tickets: 10264
+
+    Also disable PMTU for IPv6.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10278
+    :tickets: 10232
+
+    Clear "from" in record cache if we don't know where the update came from.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10277
+    :tickets: 10223
+
+    Better handling of stranded DNSKeys.
+
+
+.. changelog::
+  :version: 4.5.0-beta1
+  :released: 26th of March 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9995
+    :tickets: 7982
+
+    Support TCP FastOpen connect on outgoing connections.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8918
+
+    Implement EDNS0 padding (rfc7830) for outgoing responses.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10057
+
+    Get rid of early zone cut computation when doing DNSSEC validation.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10182
+    :tickets: 10177
+
+    Insert hints as non-auth into cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10185
+
+    Make sure we take the right minimum for the packet cache TTL data.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10178
+    :tickets: 10125
+
+    Don't pick up random root NS records from AUTHORITY sections.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10161
+    :tickets: 7591
+
+    Using DATA to report memory usage is unreliable, start using RES instead, as it seems reliable and relevant.
+
+.. changelog::
+  :version: 4.5.0-alpha3
+  :released: 9th of March 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10010
+
+    Check sizeof(time_t) to be at least 8.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10118
+
+    Change dnssec default to `process`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10047
+
+    Implement rfc 8198 - Aggressive Use of DNSSEC-Validated Cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10112
+
+    Be less verbose telling we are looking up CNAMEs or DNAMEs while tracing.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10111
+    :tickets: 10080
+
+    Handle policy (if needed) after postresolve and document the hooks better.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10113
+    :tickets: 8587
+
+    Add validation state to protobuf message.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10109
+    :tickets: 9654, 9653
+
+    Add Policy Kind / RPZ action to Protobuf messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10089
+    :tickets: 10058
+
+    Count DNSSEC stats for given names in a different set of counters.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10096
+
+    Remember non-resolving nameservers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9468
+
+    Pass an fd to dump to from rec_control to the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10075
+
+    Introduce settings to never cache EDNS Client (v4/v6) Subnet carrying replies.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10077
+    :tickets: 9845
+
+    Change spoof-nearmiss-max default to 1.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10022
+    :tickets: 10021
+
+    Add missing entries to Prometheus metrics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10064
+    :tickets: 9547
+
+    Return current rcode instead of 0 if there are no CNAME records to follow.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9990
+
+    Also use packetcache for tcp queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10020
+    :tickets: 10009
+
+    Document taskqueue metrics and add them to SNMP MIB.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9996
+
+    Treat the .localhost domain as special.
+
+.. changelog::
+  :version: 4.5.0-alpha2
+  :released: This release was never made public.
+
+.. changelog::
+  :version: 4.5.0-alpha1
+  :released: 15th of January 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9699
+    :tickets: 440
+
+    Introduce "Refresh almost expired" a mechanism to keep the record cache warm.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9630, 9843
+    :tickets: 9780, 9781
+
+    Use protozero for Protocol Buffer operations in dnsdist, and dnstap/outgoing for the recursor.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9883
+    :tickets: 9621
+
+    Lookup DS entries before CNAME entries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9856
+
+    Use a short-lived NSEC3 hashes cache for denial validation.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9670
+
+    Introduce synonyms for offensive language in settings and docs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9812
+    :tickets: 9808
+
+    Handle failure to start the web server more gracefully.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9720
+
+    Switch default TTL override to 1.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9806 9828
+
+    Log the exact Bogus state when 'dnssec-log-bogus' is enabled.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9793
+
+    Fix the gathering of denial proof for wildcard-expanded answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9789
+
+    Actually discard invalid RRSIGs with too high labels count.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9744
+
+    Switch to TCP in case of spoofing (near-miss) attempts.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9673
+
+    Add support for rfc8914: Extended DNS Errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9633
+
+    Two OpenBSD improvements for UDP sockets: port randomization and EAGAIN errors.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9686
+    :tickets: 9638
+
+    x-our-latency is a gauge.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9594
+
+    Cleanup of RPZ refresh handling.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9629
+
+    Refactor the percentage computation and use rounding.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9571
+
+    Throttle servers sending invalid data and rcodes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9572
+
+    Terminate TCP connections instead of 'ignoring' errors.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9432
+    :tickets: 7743
+
+    Make parse ip:port a bit smarter.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 9569
+
+    Don't parse any config with `--version`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9562
+
+    Expose typed cache flush via Web API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9554
+
+    Remove query-local-address6.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9515
+
+    Fix wipe-cache-typed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8942
+
+    Lua: add backtraces to errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9493
+
+    Log the line received from rec_control.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9492
+
+    Detach snmp thread to avoid trouble when trying to quit nicely.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9475
+
+    Shared and sharded neg cache.

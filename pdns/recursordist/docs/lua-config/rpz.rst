@@ -1,7 +1,7 @@
 .. _rpz:
 
 Response Policy Zones (RPZ)
-===========================
+---------------------------
 
 Response Policy Zone is an open standard developed by Paul Vixie (ISC and Farsight) and Vernon Schryver (Rhyolite), to modify DNS responses based on a policy loaded via a zonefile.
 
@@ -124,13 +124,13 @@ extendedErrorCode
 ^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
-An extended error code (:rfc:`8914`) to set on RPZ hits. See :ref:`extended-errors`.
+An extended error code (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-extended-resolution-errors`.
 
 extendedErrorExtra
 ^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
-An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`extended-errors`.
+An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-extended-resolution-errors`.
 
 maxTTL
 ^^^^^^

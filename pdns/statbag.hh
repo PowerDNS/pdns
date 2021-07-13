@@ -71,7 +71,7 @@ enum class StatType : uint8_t {
 class StatBag
 {
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
-  map<string, string> d_keyDescrips;
+  map<string, string> d_keyDescriptions;
   map<string, StatType> d_statTypes;
   map<string,StatRing<string, CIStringCompare> >d_rings;
   map<string,StatRing<SComboAddress> >d_comboRings;

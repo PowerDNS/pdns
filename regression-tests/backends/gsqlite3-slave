@@ -8,6 +8,8 @@ launch=gsqlite3
 gsqlite3-database=pdns.sqlite32
 gsqlite3-pragma-synchronous=0
 consistent-backends
+zone-cache-refresh-interval=5
+direct-dnskey
 __EOF__
 
 	if [[ $context != *nodnssec* ]]
@@ -33,8 +35,8 @@ __EOF__
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=gsqlite32 --socket-dir=./ --no-shuffle \
-		--slave --retrieval-threads=4 \
-		--slave-cycle-interval=300 --dname-processing &
+		--secondary --retrieval-threads=4 \
+		--xfr-cycle-interval=300 --dname-processing &
 
 	echo 'waiting for zones to be slaved'
 	set +e

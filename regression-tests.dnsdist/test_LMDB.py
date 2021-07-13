@@ -99,7 +99,7 @@ class TestLMDB(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLMDBQNamePlusTagLookup(self):
         """
@@ -122,7 +122,7 @@ class TestLMDB(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLMDBSuffixLookup(self):
         """
@@ -145,7 +145,7 @@ class TestLMDB(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLMDBQNamePlainText(self):
         """
@@ -168,7 +168,7 @@ class TestLMDB(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLMDBKeyValueStoreLookupRule(self):
         """
@@ -191,4 +191,4 @@ class TestLMDB(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)

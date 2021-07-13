@@ -4,8 +4,84 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.3.x to 4.4.0 or master
+4.5.x to 4.6.0 or master
 ------------------------
+
+4.5.1 to 4.5.2
+--------------
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The :ref:`setting-nsec3-max-iterations` default value has been changed from 2500 to 150.
+
+4.4.x to 4.5.1
+--------------
+
+Offensive language
+^^^^^^^^^^^^^^^^^^
+Synonyms for various settings names containing ``master``, ``slave``,
+``whitelist`` and ``blacklist`` have been introduced.
+
+- For :ref:`setting-stats-api-blacklist` use :ref:`setting-stats-api-disabled-list`.
+- For :ref:`setting-stats-carbon-blacklist` use :ref:`setting-stats-carbon-disabled-list`.
+- For :ref:`setting-stats-rec-control-blacklist` use :ref:`setting-stats-rec-control-disabled-list`.
+- For :ref:`setting-stats-snmp-blacklist` use :ref:`setting-stats-snmp-disabled-list`.
+- For :ref:`setting-edns-subnet-whitelist` use :ref:`setting-edns-subnet-allow-list`.
+- For :ref:`setting-new-domain-whitelist` use  :ref:`setting-new-domain-ignore-list`.
+- For :ref:`setting-snmp-master-socket` use :ref:`setting-snmp-daemon-socket`.
+- For the LUA config function :func:`rpzMaster` use :func:`rpzPrimary`.
+
+Currently, the older setting names are also accepted and used.
+The next release will start deprecating them.
+Users are advised to start using the new names to avoid future
+trouble.
+
+Special domains
+^^^^^^^^^^^^^^^
+Queries for all names in the ``.localhost`` domain will answer in accordance with :rfc:`6761` section 6.3 point 4.
+That means that they will be answered with ``127.0.0.1``, ``::1`` or a negative response.
+
+:program:`rec_control` command writing to a file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For the commands that write to a file, the file to be dumped to is now opened by the :program:`rec_control` command itself using the credentials and the current working directory of the user running :program:`rec_control`.
+A single minus *-* can be used as a filename to write the data to the standard output stream.
+Additionally, a single minus *-* can be used as a filename to write the data to the standard output stream.
+Previously the file was opened by the recursor, possibly in its chroot environment.
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-extended-resolution-errors` setting has been added, enabling adding EDNS Extended Errors to responses.
+- The :ref:`setting-refresh-on-ttl-perc` setting has been added, enabling an automatic cache-refresh mechanism.
+- The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to cache EDNS responses carrying subnet information.
+- The :ref:`setting-aggressive-nsec-cache-size` setting has been added, enabling the functionality described in :rfc:`8198`.
+- The :ref:`setting-x-dnssec-names` setting has been added, allowing DNSSEC metrics to be recorded in a different set of counter for given domains.
+- The :ref:`setting-non-resolving-ns-max-fails` and :ref:`setting-non-resolving-ns-throttle-time` settings have been added, allowing the control of the cache of nameservers failing to resolve.
+- The :ref:`setting-edns-padding-from` and :ref:`setting-edns-padding-mode` and :ref:`setting-edns-padding-tag` settings have been added, to control how padding is applied to answers sent to clients.
+- The :ref:`setting-tcp-fast-open-connect` setting has been added, it enables TCP Fast Connect for outgoing connections. Please read :ref:`tcp-fast-open-support` before enabling this feature.
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.
+- The :ref:`setting-spoof-nearmiss-max` default has been changed from 20 to 1.
+- The :ref:`setting-dnssec` default has changed from ``process-no-validate`` to ``process``.
+- The meaning of the :ref:`setting-max-packetcache-entries` has changed: previously there was one packet cache instance per worker thread.
+  Since queries incoming over TCP are now also using the packet cache, there is now also one packet cache instance per distributor thread.
+  Each cache instance has a size of :ref:`setting-max-packetcache-entries` divided by (:ref:`setting-threads` + :ref:`setting-distributor-threads`).
+
+Removed settings
+^^^^^^^^^^^^^^^^
+- The :ref:`setting-query-local-address6` has been removed. It already was deprecated.
+
+4.3.x to 4.4.0
+--------------
+
+Response Policy Zones (RPZ)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To conform better to the standard, RPZ processing has been modified.
+This has consequences for the points in the resolving process where matches are checked and callbacks are called.
+See :ref:`rpz` for details. Additionally a new type of callback has been introduced: :func:`policyEventFilter`.
+
 
 Parsing of unknown record types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -62,7 +138,7 @@ New settings
 - The :ref:`setting-max-generate-steps` setting has been added. This sets the maximum number of steps that will be performed when loading a BIND zone with the ``$GENERATE`` directive. The default is 0, which is unlimited.
 - The :ref:`setting-nothing-below-nxdomain` setting has been added. This setting controls the way cached NXDOMAIN replies imply non-existence of a whole subtree. The default is `dnssec` which means that only DNSSEC validated NXDOMAINS results are used.
 - The :ref:`setting-qname-minimization` setting has been added. This options controls if QName Minimization is used. The default is `yes`.
-  
+ 
 4.1.x to 4.2.0
 --------------
 

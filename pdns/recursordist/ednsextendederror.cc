@@ -20,7 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "ednsextendederror.hh"
-#include "views.hh"
 
 static bool getEDNSExtendedErrorOptFromStringView(const pdns_string_view& option, EDNSExtendedError& eee)
 {

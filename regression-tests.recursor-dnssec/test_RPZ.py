@@ -221,6 +221,12 @@ class RPZRecursorTest(RecursorTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _confdir = 'RPZ'
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']},
+        '10': {'threads': 1,
+               'zones': ['example']},
+    }
     _lua_dns_script_file = """
 
     function prerpz(dq)
@@ -241,22 +247,6 @@ webserver-password=%s
 api-key=%s
 log-rpz-changes=yes
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     def checkBlocked(self, name, shouldBeBlocked=True, adQuery=False, singleCheck=False):
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -338,7 +328,7 @@ log-rpz-changes=yes
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/rpzstatistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
         self.assertIn('zone.rpz.', content)
@@ -346,10 +336,10 @@ log-rpz-changes=yes
         for key in ['last_update', 'records', 'serial', 'transfers_failed', 'transfers_full', 'transfers_success']:
             self.assertIn(key, zone)
 
-        self.assertEquals(zone['serial'], serial)
-        self.assertEquals(zone['records'], recordsCount)
-        self.assertEquals(zone['transfers_full'], fullXFRCount)
-        self.assertEquals(zone['transfers_success'], totalXFRCount)
+        self.assertEqual(zone['serial'], serial)
+        self.assertEqual(zone['records'], recordsCount)
+        self.assertEqual(zone['transfers_full'], fullXFRCount)
+        self.assertEqual(zone['transfers_success'], totalXFRCount)
 
 rpzServerPort = 4250
 rpzServer = RPZServer(rpzServerPort)
@@ -939,27 +929,6 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
     _config_template = ""
 
     @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateAllAuthConfig(confdir)
-        cls.startAuth(os.path.join(confdir, "auth-8"), cls._PREFIX + '.8')
-        cls.startAuth(os.path.join(confdir, "auth-10"), cls._PREFIX + '.10')
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownAuth()
-        cls.tearDownRecursor()
-
-    @classmethod
     def generateRecursorConfig(cls, confdir):
         rpzFilePath = os.path.join(confdir, 'zone.rpz')
         with open(rpzFilePath, 'w') as rpzZone:
@@ -984,7 +953,7 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
                 sender = getattr(self, method)
                 res = sender(query)
                 self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
-                self.assertEquals(len(res.answer), 0)
+                self.assertEqual(len(res.answer), 0)
 
     def testRPZChainNODATA(self):
         # we should match the A at the end of the CNAME chain and
@@ -998,7 +967,7 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
                 sender = getattr(self, method)
                 res = sender(query)
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
-                self.assertEquals(len(res.answer), 0)
+                self.assertEqual(len(res.answer), 0)
 
     def testRPZChainCustom(self):
         # we should match the A at the end of the CNAME chain and
@@ -1013,6 +982,6 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
                 res = sender(query)
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
                 # the original CNAME record is signed
-                self.assertEquals(len(res.answer), 3)
+                self.assertEqual(len(res.answer), 3)
                 self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname-custom-a-target.example.'))
                 self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a-target.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.103'))

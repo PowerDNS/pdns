@@ -30,28 +30,29 @@
 #include "circular_buffer.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "stat_t.hh"
 
 
 struct Rings {
   struct Query
   {
-    struct timespec when;
     ComboAddress requestor;
     DNSName name;
+    struct timespec when;
+    struct dnsheader dh;
     uint16_t size;
     uint16_t qtype;
-    struct dnsheader dh;
   };
   struct Response
   {
-    struct timespec when;
     ComboAddress requestor;
+    ComboAddress ds; // who handled it
     DNSName name;
-    uint16_t qtype;
+    struct timespec when;
+    struct dnsheader dh;
     unsigned int usec;
     unsigned int size;
-    struct dnsheader dh;
-    ComboAddress ds; // who handled it
+    uint16_t qtype;
   };
 
   struct Shard
@@ -62,20 +63,18 @@ struct Rings {
     std::mutex respLock;
   };
 
-  Rings(size_t capacity=10000, size_t numberOfShards=1, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
+  Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
   {
     setCapacity(capacity, numberOfShards);
-    if (numberOfShards <= 1) {
-      d_nbLockTries = 0;
-    }
   }
+
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
   /* This function should only be called at configuration time before any query or response has been inserted */
   void setCapacity(size_t newCapacity, size_t numberOfShards)
   {
-    if (numberOfShards < d_numberOfShards) {
-      throw std::runtime_error("Decreasing the number of shards in the query and response rings is not supported");
+    if (numberOfShards <= 1) {
+      d_nbLockTries = 0;
     }
 
     d_shards.resize(numberOfShards);
@@ -191,11 +190,15 @@ struct Rings {
     d_deferredResponseInserts.store(0);
   }
 
+  /* load the content of the ring buffer from a file in the format emitted by grepq(),
+     only useful for debugging purposes */
+  size_t loadFromFile(const std::string& filepath, const struct timespec& now);
+
   std::vector<std::unique_ptr<Shard> > d_shards;
-  std::atomic<uint64_t> d_blockingQueryInserts;
-  std::atomic<uint64_t> d_blockingResponseInserts;
-  std::atomic<uint64_t> d_deferredQueryInserts;
-  std::atomic<uint64_t> d_deferredResponseInserts;
+  pdns::stat_t d_blockingQueryInserts;
+  pdns::stat_t d_blockingResponseInserts;
+  pdns::stat_t d_deferredQueryInserts;
+  pdns::stat_t d_deferredResponseInserts;
 
 private:
   size_t getShardId()
@@ -213,7 +216,7 @@ private:
     if (!shard->queryRing.full()) {
       d_nbQueryEntries++;
     }
-    shard->queryRing.push_back({when, requestor, name, size, qtype, dh});
+    shard->queryRing.push_back({requestor, name, when, dh, size, qtype});
   }
 
   void insertResponseLocked(std::unique_ptr<Shard>& shard, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
@@ -221,7 +224,7 @@ private:
     if (!shard->respRing.full()) {
       d_nbResponseEntries++;
     }
-    shard->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
+    shard->respRing.push_back({requestor, backend, name, when, dh, usec, size, qtype});
   }
 
   std::atomic<size_t> d_nbQueryEntries;

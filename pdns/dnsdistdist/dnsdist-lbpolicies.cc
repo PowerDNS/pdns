@@ -59,8 +59,9 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
 shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
   for(auto& d : servers) {
-    if(d.second->isUp() && d.second->qps.check())
+    if (d.second->isUp() && d.second->qps.checkOnly()) {
       return d.second;
+    }
   }
   return leastOutstanding(servers, dq);
 }
@@ -105,7 +106,7 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   }
 
   // Catch poss & sum are empty to avoid SIGFPE
-  if (poss.empty()) {
+  if (poss.empty() || sum == 0) {
     return shared_ptr<DownstreamState>();
   }
 

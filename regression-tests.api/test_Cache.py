@@ -17,7 +17,7 @@ class Servers(ApiTestCase):
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('count', data)
-        self.assertEquals(1, data['count'])
+        self.assertEqual(1, data['count'])
 
     @unittest.skipIf(not is_recursor(), "Not applicable")
     def test_flush_subtree(self):
@@ -27,12 +27,12 @@ class Servers(ApiTestCase):
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('count', data)
-        self.assertEquals(1, data['count'])
+        self.assertEqual(1, data['count'])
         r = self.session.put(self.url("/api/v1/servers/localhost/cache/flush?domain=example.com.&subtree=true"))
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('count', data)
-        self.assertEquals(2, data['count'])
+        self.assertEqual(2, data['count'])
 
     def test_flush_root(self):
         r = self.session.put(self.url("/api/v1/servers/localhost/cache/flush?domain=."))
@@ -44,9 +44,9 @@ class Servers(ApiTestCase):
     def test_flush_no_domain(self):
         r = self.session.put(
             self.url("/api/v1/servers/localhost/cache/flush"))
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
 
     def test_flush_unqualified(self):
         r = self.session.put(
             self.url("/api/v1/servers/localhost/cache/flush?domain=bar"))
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)

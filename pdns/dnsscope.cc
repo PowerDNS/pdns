@@ -173,7 +173,7 @@ try
   }
 
   if(files.empty() || g_vm.count("help")) {
-    cerr<<"Syntax: dnsscope filename.pcap [filenam2.pcap...]"<<endl;
+    cerr<<"Syntax: dnsscope filename.pcap [filename2.pcap...]"<<endl;
     cout << desc << endl;
     exit(0);
   }

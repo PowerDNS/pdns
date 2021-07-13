@@ -2,6 +2,20 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.2
+  :released: 12th of March 2021
+
+  This is version 4.3.2 of the Authoritative Server.
+  This release fixes latency calculations to match the approach used in 4.4.0, to make comparisons between 4.3 and 4.4 more useful.
+  It also contains a few build-related improvements.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9786
+
+    fix rounding inaccuracy in latency statistics (Kees Monshouwer)
+
+.. changelog::
   :version: 4.3.1
   :released: 22nd of September 2020
 

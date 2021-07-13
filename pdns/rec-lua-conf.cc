@@ -109,7 +109,6 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
   }
 }
 
-#if HAVE_PROTOBUF
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > protobufOptions_t;
 
 static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
@@ -168,7 +167,6 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
     }
   }
 }
-#endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > frameStreamOptions_t;
@@ -207,7 +205,7 @@ static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, 
 }
 #endif /* HAVE_FSTRM */
 
-static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThreads, const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, boost::optional<rpzOptions_t> options)
+static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThreads, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options)
 {
   boost::optional<DNSFilterEngine::Policy> defpol;
   bool defpolOverrideLocal = true;
@@ -218,13 +216,13 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
   uint16_t axfrTimeout = 20;
   uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
   ComboAddress localAddress;
-  std::vector<ComboAddress> masters;
-  if (masters_.type() == typeid(string)) {
-    masters.push_back(ComboAddress(boost::get<std::string>(masters_), 53));
+  std::vector<ComboAddress> primaries;
+  if (primaries_.type() == typeid(string)) {
+    primaries.push_back(ComboAddress(boost::get<std::string>(primaries_), 53));
   }
   else {
-    for (const auto& master : boost::get<std::vector<std::pair<int, std::string>>>(masters_)) {
-      masters.push_back(ComboAddress(master.second, 53));
+    for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries_)) {
+      primaries.push_back(ComboAddress(primary.second, 53));
     }
   }
 
@@ -276,10 +274,10 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     }
 
     if (localAddress != ComboAddress()) {
-      // We were passed a localAddress, check if its AF matches the masters'
-      for (const auto& master : masters) {
-        if (localAddress.sin4.sin_family != master.sin4.sin_family) {
-          throw PDNSException("Primary address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
+      // We were passed a localAddress, check if its AF matches the primaries'
+      for (const auto& primary : primaries) {
+        if (localAddress.sin4.sin_family != primary.sin4.sin_family) {
+          throw PDNSException("Primary address("+primary.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
         }
       }
     }
@@ -302,8 +300,13 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
           throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
         }
       }
+      catch(const PDNSException& e) {
+        g_log<<Logger::Warning<<"Unable to pre-load RPZ zone "<<zoneName<<" from seed file '"<<seedFile<<"': "<<e.reason<<endl;
+        zone->clear();
+      }
       catch(const std::exception& e) {
         g_log<<Logger::Warning<<"Unable to pre-load RPZ zone "<<zoneName<<" from seed file '"<<seedFile<<"': "<<e.what()<<endl;
+        zone->clear();
       }
     }
   }
@@ -316,7 +319,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     exit(1);  // FIXME proper exit code?
   }
 
-  delayedThreads.rpzMasterThreads.push_back(std::make_tuple(masters, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile));
+  delayedThreads.rpzPrimaryThreads.push_back(std::make_tuple(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile));
 }
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
@@ -387,11 +390,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, boost::optional<rpzOptions_t> options) {
-    rpzPrimary(lci, delayedThreads, masters_, zoneName, options);
+  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+    g_log<<Logger::Warning<<"'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead"<< endl;
+    rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
-  Lua.writeFunction("rpzPrimary", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, boost::optional<rpzOptions_t> options) {
-    rpzPrimary(lci, delayedThreads, masters_, zoneName, options);
+  Lua.writeFunction("rpzPrimary", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+    rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
@@ -487,7 +491,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors);
     });
 
-#if HAVE_PROTOBUF
   Lua.writeFunction("setProtobufMasks", [&lci](const uint8_t maskV4, uint8_t maskV6) {
       lci.protobufMaskV4 = maskV4;
       lci.protobufMaskV6 = maskV6;
@@ -556,7 +559,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         g_log<<Logger::Error<<"Only one outgoingProtobufServer() directive can be configured, we already have "<<lci.outgoingProtobufExportConfig.servers.at(0).toString()<<endl;
       }
     });
-#endif
 
 #ifdef HAVE_FSTRM
   Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
@@ -622,9 +624,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
 void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation)
 {
-  for (const auto& rpzMaster : delayedThreads.rpzMasterThreads) {
+  for (const auto& rpzPrimary : delayedThreads.rpzPrimaryThreads) {
     try {
-      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster), std::get<6>(rpzMaster) * 1024 * 1024, std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), std::get<10>(rpzMaster), std::get<11>(rpzMaster), generation);
+      std::thread t(RPZIXFRTracker, std::get<0>(rpzPrimary), std::get<1>(rpzPrimary), std::get<2>(rpzPrimary), std::get<3>(rpzPrimary), std::get<4>(rpzPrimary), std::get<5>(rpzPrimary), std::get<6>(rpzPrimary) * 1024 * 1024, std::get<7>(rpzPrimary), std::get<8>(rpzPrimary), std::get<9>(rpzPrimary), std::get<10>(rpzPrimary), std::get<11>(rpzPrimary), generation);
       t.detach();
     }
     catch(const std::exception& e) {

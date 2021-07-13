@@ -91,7 +91,7 @@ static std::string getFirstTXTAnswer(const std::string& answer)
 static std::string getSecPollStatus(const std::string& queriedName, int timeout=2)
 {
   const DNSName& sentName = DNSName(queriedName);
-  vector<uint8_t> packet;
+  std::vector<uint8_t> packet;
   DNSPacketWriter pw(packet, sentName, QType::TXT);
   pw.getHeader()->id = getRandomDNSID();
   pw.getHeader()->rd = 1;
@@ -170,7 +170,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
 
     if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
       if (g_verbose) {
-        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%d / %d) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).getName(), QType(QType::TXT).getName(), receivedClass, QClass::IN, dest.toString());
+        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).toString(), QType(QType::TXT).toString(), QClass(receivedClass).toString(), QClass::IN.toString(), dest.toString());
       }
       continue;
     }

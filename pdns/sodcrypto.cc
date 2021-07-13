@@ -21,6 +21,7 @@
  */
 #include <iostream>
 #include "namespaces.hh"
+#include "noinitvector.hh"
 #include "misc.hh"
 #include "base64.hh"
 #include "sodcrypto.hh"
@@ -204,7 +205,7 @@ static inline char B64Encode1(unsigned char uc)
 }
 using namespace anonpdns;
 
-int B64Decode(const std::string& strInput, std::string& strOutput)
+template<typename Container> int B64Decode(const std::string& strInput, Container& strOutput)
 {
   // Set up a decoding buffer
   long cBuf = 0;
@@ -276,20 +277,24 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     // may have been padding, so those padded bytes
     // are actually ignored.
 #if BYTE_ORDER == BIG_ENDIAN
-    strOutput += pBuf[sizeof(long)-3];
-    strOutput += pBuf[sizeof(long)-2];
-    strOutput += pBuf[sizeof(long)-1];
+    strOutput.push_back(pBuf[sizeof(long)-3]);
+    strOutput.push_back(pBuf[sizeof(long)-2]);
+    strOutput.push_back(pBuf[sizeof(long)-1]);
 #else
-    strOutput += pBuf[2];
-    strOutput += pBuf[1];
-    strOutput += pBuf[0];
+    strOutput.push_back(pBuf[2]);
+    strOutput.push_back(pBuf[1]);
+    strOutput.push_back(pBuf[0]);
 #endif
   } // while
   if(pad)
-    strOutput.resize(strOutput.length()-pad);
+    strOutput.resize(strOutput.size()-pad);
 
   return 1;
 }
+
+template int B64Decode<std::vector<uint8_t>>(const std::string& strInput, std::vector<uint8_t>& strOutput);
+template int B64Decode<PacketBuffer>(const std::string& strInput, PacketBuffer& strOutput);
+template int B64Decode<std::string>(const std::string& strInput, std::string& strOutput);
 
 /*
 www.kbcafe.com

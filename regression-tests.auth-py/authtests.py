@@ -182,6 +182,7 @@ options {
         authcmd.append('--loglevel=9')
         authcmd.append('--enable-lua-records')
         authcmd.append('--lua-health-checks-interval=1')
+        authcmd.append('--zone-cache-refresh-interval=0')
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
@@ -420,6 +421,30 @@ options {
         if not found :
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
+    def assertRRsetInAdditional(self, msg, rrset):
+        """Asserts the rrset (without comparing TTL) exists in the
+        additional section of msg
+
+        @param msg: the dns.message.Message to check
+        @param rrset: a dns.rrset.RRset object"""
+
+        ret = ''
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message")
+
+        if not isinstance(rrset, dns.rrset.RRset):
+            raise TypeError("rrset is not a dns.rrset.RRset")
+
+        found = False
+        for ans in msg.additional:
+            ret += "%s\n" % ans.to_text()
+            if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
+                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                found = True
+
+        if not found :
+            raise AssertionError("RRset not found in answer\n\n%s" % ret)
+
     def sortRRsets(self, rrsets):
         """Sorts RRsets in a more useful way than dnspython's default behaviour
 
@@ -522,8 +547,8 @@ options {
                 raise TypeError("rcode is neither a str nor int")
 
         if msg.rcode() != rcode:
-            msgRcode = dns.rcode._by_value[msg.rcode()]
-            wantedRcode = dns.rcode._by_value[rcode]
+            msgRcode = dns.rcode.to_text(msg.rcode())
+            wantedRcode = dns.rcode.to_text(rcode)
 
             raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
 

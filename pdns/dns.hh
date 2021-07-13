@@ -76,9 +76,6 @@ public:
   static std::string to_s(uint8_t opcode);
 };
 
-// enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
-namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
-
 //! This class represents a resource record
 class DNSResourceRecord
 {
@@ -93,6 +90,7 @@ public:
 
   // data
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
+  DNSName ordername;
   DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
 

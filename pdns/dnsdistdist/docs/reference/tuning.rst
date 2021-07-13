@@ -1,9 +1,22 @@
 Tuning related functions
 ========================
 
+.. function:: setMaxCachedTCPConnectionsPerDownstream(max)
+
+  .. versionadded:: 1.6.0
+
+  Set the maximum number of inactive TCP connections to a backend cached by each TCP worker thread. These connections can be reused when a new query comes in, instead of having to establish a new connection. dnsdist regularly checks whether the other end has closed any cached connection, closing them in that case.
+
+  :param int max: The maximum number of inactive connections to keep. Default is 10, so 10 connections per backend and per TCP worker thread.
+
 .. function:: setMaxTCPClientThreads(num)
 
+  .. versionchanged:: 1.6.0
+    Before 1.6.0 the default value was 10.
+
   Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
+  Since 1.6.0, the default value is at least 10 TCP workers, but might be more if there is more than 10 TCP listeners (added via :func:`addDNSCryptBind`, :func:`addLocal`, or :func:`addTLSLocal`). In that last case there will be as many TCP workers as TCP listeners.
+  Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
 
   :param int num:
 
@@ -27,7 +40,10 @@ Tuning related functions
 
 .. function:: setMaxTCPQueuedConnections(num)
 
-  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
+  .. versionchanged:: 1.6.0
+    Before 1.6.0 the default value was 1000 on all systems.
+
+  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000 (10000 on Linux since 1.6.0). 0 means unlimited
 
   :param int num:
 
@@ -42,7 +58,7 @@ Tuning related functions
 
 .. function:: setCacheCleaningDelay(num)
 
-  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries. Default is every 60s
 
   :param int num:
 
@@ -58,9 +74,19 @@ Tuning related functions
 
   :param int num:
 
+.. function:: setTCPInternalPipeBufferSize(size)
+
+  .. versionadded:: 1.6.0
+
+  Set the size in bytes of the internal buffer of the pipes used internally to distribute connections to TCP (and DoT) workers threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
+
+  :param int size: The size in bytes.
+
 .. function:: setTCPUseSinglePipe(val)
 
-  Whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false
+  .. deprecated:: 1.6.0
+
+  Whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false. That option was useful before 1.4.0 when a single TCP connection could block a TCP worker thread, but should not be used in recent versions where the per-thread queues model avoids waking up all idle workers when a new connection arrives.
 
   :param bool val:
 
@@ -77,8 +103,6 @@ Tuning related functions
   :param int num:
 
 .. function:: setUDPMultipleMessagesVectorSize(num)
-
-  .. versionadded:: 1.3.0
 
   Set the maximum number of UDP queries messages to accept in a single ``recvmmsg()`` call. Only available if the underlying OS
   support ``recvmmsg()`` with the ``MSG_WAITFORONE`` option. Defaults to 1, which means only query at a time is accepted, using

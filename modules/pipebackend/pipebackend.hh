@@ -27,16 +27,16 @@
 #include "pdns/namespaces.hh"
 #include "pdns/misc.hh"
 
-
 /** The CoWrapper class wraps around a coprocess and restarts it if needed.
     It may also send out pings and expect banners */
 class CoWrapper
 {
 public:
-  CoWrapper(const string &command, int timeout, int abiVersion);
+  CoWrapper(const string& command, int timeout, int abiVersion);
   ~CoWrapper();
-  void send(const string &line);
-  void receive(string &line);
+  void send(const string& line);
+  void receive(string& line);
+
 private:
   std::unique_ptr<CoRemote> d_cp;
   string d_command;
@@ -48,14 +48,14 @@ private:
 class PipeBackend : public DNSBackend
 {
 public:
-  PipeBackend(const string &suffix="");
+  PipeBackend(const string& suffix = "");
   ~PipeBackend();
-  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket *p=nullptr) override;
-  bool list(const DNSName& target, int domain_id, bool include_disabled=false) override;
-  bool get(DNSResourceRecord &r) override;
-  string directBackendCmd(const string &query) override;
-  static DNSBackend *maker();
-  
+  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
+  bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
+  bool get(DNSResourceRecord& r) override;
+  string directBackendCmd(const string& query) override;
+  static DNSBackend* maker();
+
 private:
   void launch();
   void cleanup();

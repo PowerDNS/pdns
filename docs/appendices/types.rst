@@ -100,6 +100,15 @@ The CNAME record specifies the canonical name of a record. It is stored
 plainly. Like all other records, it is not terminated by a dot. A sample
 might be 'webserver-01.yourcompany.com'.
 
+.. _types-csync:
+
+CSYNC
+-----
+
+The CSYNC record is used for 'Child-to-Parent Synchronization in DNS', as described in :rfc:`7477`.
+Right now it is only supported as zone content; no special processing is implemented.
+Note that SOA-EDIT is not applied to serial numbers in CSYNC content.
+
 .. _types-dnskey:
 
 DNSKEY
@@ -369,3 +378,17 @@ The following, rarely used or obsolete record types, are also supported:
 -  RKEY (`draft-reid-dnsext-rkey-00.txt <https://tools.ietf.org/html/draft-reid-dnsext-rkey-00>`__)
 -  SIG (:rfc:`2535`, obsolete)
 -  WKS (:rfc:`1035`)
+
+.. _types-unknown:
+
+Unknown DNS Resource Record (RR) Types
+--------------------------------------
+
+PowerDNS supports (:rfc:`3597`) syntax for serving unknown record types. For example
+
+::
+
+   e.example.   IN          TYPE1               \# 4 0A000001
+
+Beware that PowerDNS will attempt to parse known record types even if written in this syntax.
+This bug will be fixed in future release.

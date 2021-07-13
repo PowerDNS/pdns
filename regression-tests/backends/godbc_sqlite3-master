@@ -50,7 +50,7 @@ godbc-insert-record-query=insert into records (content,ttl,prio,type,domain_id,d
 godbc-insert-zone-query=insert into domains (type,name,master,account,last_check,notified_serial) values(?, ?, ?, ?, null, null)
 godbc-list-comments-query=SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?
 godbc-list-domain-keys-query=select cryptokeys.id, flags, active, published, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
-godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
+godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
 godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
 godbc-nullify-ordername-and-update-auth-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0
 godbc-nullify-ordername-and-update-auth-type-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0

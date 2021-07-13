@@ -24,7 +24,8 @@
 #endif
 #include "lua2backend.hh"
 
-Lua2BackendAPIv2::~Lua2BackendAPIv2() {
+Lua2BackendAPIv2::~Lua2BackendAPIv2()
+{
   if (f_deinit)
     f_deinit();
 }

@@ -5,6 +5,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 
@@ -59,7 +60,7 @@ std::string DOHUnit::getHTTPQueryString() const
   return "";
 }
 
-void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& body_, const std::string& contentType_)
+void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const std::string& contentType_)
 {
 }
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -83,6 +84,11 @@ void setLuaNoSideEffect()
 {
 }
 
+DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+{
+  return DNSAction::Action::None;
+}
+
 string g_outputBuffer;
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
@@ -91,17 +97,14 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
   static const ComboAddress lc("127.0.0.1:53");
   static const ComboAddress rem("192.0.2.1:42");
   static struct timespec queryRealTime;
-  static struct dnsheader dh;
+  static PacketBuffer packet(sizeof(dnsheader));
 
-  memset(&dh, 0, sizeof(dh));
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  size_t bufferSize = 0;
-  size_t queryLen = 0;
-  bool isTcp = false;
+  auto proto = DNSQuestion::Protocol::DoUDP;
   gettime(&queryRealTime, true);
 
-  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
   return dq;
 }
 
@@ -180,6 +183,43 @@ BOOST_AUTO_TEST_CASE(test_firstAvailable) {
   BOOST_CHECK(server == servers.at(1).second);
 
   benchPolicy(pol);
+}
+
+BOOST_AUTO_TEST_CASE(test_firstAvailableWithOrderAndQPS) {
+  auto dq = getDQ();
+  size_t qpsLimit = 10;
+
+  ServerPolicy pol{"firstAvailable", firstAvailable, false};
+  ServerPolicy::NumberedServerVector servers;
+  servers.push_back({ 1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")) });
+  servers.push_back({ 2, std::make_shared<DownstreamState>(ComboAddress("192.0.2.2:53")) });
+  /* Second server has a higher order, so most queries should be routed to the first (remember that
+     we need to keep them ordered!).
+     However the first server has a QPS limit at 10 qps, so any query above that should be routed 
+     to the second server. */
+  servers.at(0).second->order = 1;
+  servers.at(1).second->order = 2;
+  servers.at(0).second->qps = QPSLimiter(qpsLimit, qpsLimit);
+  /* mark the servers as 'up' */
+  servers.at(0).second->setUp();
+  servers.at(1).second->setUp();
+
+  /* the first queries under the QPS limit should be
+     sent to the first server */
+  for (size_t idx = 0; idx < qpsLimit; idx++) {
+    auto server = pol.getSelectedBackend(servers, dq);
+    BOOST_REQUIRE(server != nullptr);
+    BOOST_CHECK(server == servers.at(0).second);
+    server->incQueriesCount();
+  }
+
+  /* then to the second server */
+  for (size_t idx = 0; idx < 100; idx++) {
+    auto server = pol.getSelectedBackend(servers, dq);
+    BOOST_REQUIRE(server != nullptr);
+    BOOST_CHECK(server == servers.at(1).second);
+    server->incQueriesCount();
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_roundRobin) {

@@ -8,6 +8,7 @@ Guides and How Tos
   recursion
   virtual-instances
   alias
+  svcb
   kskroll
   kskrollcdnskey
   zskroll

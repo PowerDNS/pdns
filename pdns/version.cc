@@ -67,7 +67,7 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2020 "
+  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2021 "
     "PowerDNS.COM BV" << endl;
   g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built using " << compilerVersion()
@@ -122,9 +122,7 @@ void showBuildConfiguration()
 #ifdef HAVE_P11KIT1
     "PKCS#11 " <<
 #endif
-#ifdef HAVE_PROTOBUF
 "protobuf " <<
-#endif
 #ifdef HAVE_FSTRM
 "dnstap-framestream " <<
 #endif

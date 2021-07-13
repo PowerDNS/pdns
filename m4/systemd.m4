@@ -177,6 +177,9 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
               if test $_systemd_version -ge 239; then
                  systemd_private_mounts=y
               fi
+              if test $_systemd_version -ge 240; then
+                 systemd_with_runtime_dir_env=y
+              fi
               if test $_systemd_version -ge 242; then
                  systemd_protect_hostname=y
                  systemd_restrict_suidsgid=y
@@ -212,5 +215,5 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
         AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_SUIDSGID], [ test x"$systemd_restrict_suidsgid" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES], [ test x"$systemd_system_call_architectures" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_FILTER], [ test x"$systemd_system_call_filter" = "xy" ])
-        AM_CONDITIONAL([HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV], [ test $_systemd_version -ge 240 ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV], [ test x"$systemd_with_runtime_dir_env" = "xy" ])
 ])

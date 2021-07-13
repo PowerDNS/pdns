@@ -24,7 +24,10 @@ class TestTrailingDataToBackend(DNSDistTest):
     addAction("added.trailing.tests.powerdns.com.", LuaAction(replaceTrailingData))
 
     function fillBuffer(dq)
-        local available = dq.size - dq.len
+        local available = 4096 - dq.len
+        if dq.tcp then
+            available = 65535 - dq.len
+        end
         local tail = string.rep("A", available)
         local success = dq:setTrailingData(tail)
         if not success then
@@ -35,7 +38,10 @@ class TestTrailingDataToBackend(DNSDistTest):
     addAction("max.trailing.tests.powerdns.com.", LuaAction(fillBuffer))
 
     function exceedBuffer(dq)
-        local available = dq.size - dq.len
+        local available = 4096 - dq.len
+        if dq.tcp then
+            available = 65535 - dq.len
+        end
         local tail = string.rep("A", available + 1)
         local success = dq:setTrailingData(tail)
         if not success then
@@ -85,8 +91,8 @@ class TestTrailingDataToBackend(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingCapacity(self):
         """
@@ -111,8 +117,8 @@ class TestTrailingDataToBackend(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingLimited(self):
         """
@@ -135,7 +141,7 @@ class TestTrailingDataToBackend(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingAdded(self):
         """
@@ -160,8 +166,8 @@ class TestTrailingDataToBackend(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, expectedResponse)
 
 class TestTrailingDataToDnsdist(DNSDistTest):
     _verboseMode = True
@@ -242,12 +248,12 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
             # Verify that queries with trailing data don't make it through.
             (_, receivedResponse) = sender(raw, response, rawQuery=True, useQueue=False)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(receivedResponse, None)
 
     def testTrailingRemoved(self):
         """
@@ -273,8 +279,8 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testTrailingRead(self):
         """
@@ -301,7 +307,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             (_, receivedResponse) = sender(raw, response=None, rawQuery=True, useQueue=False)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingReplaced(self):
         """
@@ -328,7 +334,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             (_, receivedResponse) = sender(raw, response=None, rawQuery=True, useQueue=False)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingReadUnsafe(self):
         """
@@ -355,7 +361,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             (_, receivedResponse) = sender(raw, response=None, rawQuery=True, useQueue=False)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testTrailingReplacedUnsafe(self):
         """
@@ -382,4 +388,4 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             (_, receivedResponse) = sender(raw, response=None, rawQuery=True, useQueue=False)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)

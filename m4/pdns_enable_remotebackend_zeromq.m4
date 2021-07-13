@@ -38,7 +38,7 @@ AC_DEFUN([PDNS_ENABLE_REMOTEBACKEND_ZEROMQ],[
           CXXFLAGS="$old_CXXFLAGS"
           LDFLAGS="$old_LDFLAGS"
         ],
-        [AC_MSG_ERROR([remotebackend \"zeromq\" selected but the \"remote\" backend itself is not selected. Please add \"remote\" to your modules or dynmodules list and re-run configure!])]
+        [AC_MSG_ERROR([remotebackend "zeromq" selected but the "remote" backend itself is not selected. Please add "remote" to your modules or dynmodules list and re-run configure!])]
       )
     ]
   )

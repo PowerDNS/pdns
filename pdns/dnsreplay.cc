@@ -627,7 +627,7 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
       uint16_t dlen = pr.d_len;
 
       if (stamp >= 0) {
-        static_assert(sizeof(pr.d_buffer) >= 1500, "The size of the underlying buffer should be at least 1500 bytes");
+        static_assert(sizeof(pr.d_readbuffer) >= 1500, "The size of the underlying buffer should be at least 1500 bytes");
         if (dlen > 1500) {
           /* the existing packet is larger than the maximum size we are willing to send, and it won't get better by adding ECS */
           return false;

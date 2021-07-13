@@ -78,12 +78,13 @@ class TestCarbon(DNSDistTest):
         # wait for the carbon data to be sent
         time.sleep(self._carbonInterval + 1)
 
+        # check if the servers have received our data
+        # we will block for a short while if the data is not already there,
+        # and an exception will be raised after the timeout
         # first server
-        self.assertFalse(self._carbonQueue1.empty())
-        data1 = self._carbonQueue1.get(False)
+        data1 = self._carbonQueue1.get(block=True, timeout=2.0)
         # second server
-        self.assertFalse(self._carbonQueue2.empty())
-        data2 = self._carbonQueue2.get(False)
+        data2 = self._carbonQueue2.get(block=True, timeout=2.0)
         after = time.time()
 
         self.assertTrue(data1)
@@ -92,7 +93,7 @@ class TestCarbon(DNSDistTest):
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
-            self.assertEquals(len(parts), 3)
+            self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
@@ -103,7 +104,7 @@ class TestCarbon(DNSDistTest):
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
-            self.assertEquals(len(parts), 3)
+            self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
@@ -120,12 +121,13 @@ class TestCarbon(DNSDistTest):
         # wait for the carbon data to be sent
         time.sleep(self._carbonInterval + 1)
 
+        # check if the servers have received our data
+        # we will block for a short while if the data is not already there,
+        # and an exception will be raised after the timeout
         # first server
-        self.assertFalse(self._carbonQueue1.empty())
-        data1 = self._carbonQueue1.get(False)
+        data1 = self._carbonQueue1.get(block=True, timeout=2.0)
         # second server
-        self.assertFalse(self._carbonQueue2.empty())
-        data2 = self._carbonQueue2.get(False)
+        data2 = self._carbonQueue2.get(block=True, timeout=2.0)
         after = time.time()
 
         # check the first carbon server got both servers and
@@ -138,15 +140,15 @@ class TestCarbon(DNSDistTest):
             if expectedStart in line:
                 parts = line.split(b' ')
                 if b'servers-up' in line:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 2)
+                    self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 3)
+                    self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
 
@@ -161,14 +163,14 @@ class TestCarbon(DNSDistTest):
             if expectedStart in line:
                 parts = line.split(b' ')
                 if b'servers-up' in line:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 2)
+                    self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 3)
+                    self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))

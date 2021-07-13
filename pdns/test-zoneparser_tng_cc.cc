@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
     // see if these agree
     BOOST_CHECK_EQUAL(rr.qname.toString(), host);
     BOOST_CHECK_EQUAL(rr.ttl, ttl);
-    BOOST_CHECK_EQUAL(rr.qtype.getName(), type);
+    BOOST_CHECK_EQUAL(rr.qtype.toString(), type);
     if (rr.qtype == QType::SOA)
       continue; // FIXME400 remove trailing dots from data
     if (*(rr.content.rbegin()) != '.' && *(data.rbegin()) == '.') 
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
       BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
       BOOST_CHECK_EQUAL(rr.ttl, 86400U);
       BOOST_CHECK_EQUAL(rr.qclass, 1U);
-      BOOST_CHECK_EQUAL(rr.qtype.getName(), "A");
+      BOOST_CHECK_EQUAL(rr.qtype.toString(), "A");
       BOOST_CHECK_EQUAL(rr.content, "1.2.3.4");
     }
   }
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
       BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
       BOOST_CHECK_EQUAL(rr.ttl, 86400U);
       BOOST_CHECK_EQUAL(rr.qclass, 1U);
-      BOOST_CHECK_EQUAL(rr.qtype.getName(), "A");
+      BOOST_CHECK_EQUAL(rr.qtype.toString(), "A");
       BOOST_CHECK_EQUAL(rr.content, "1.2.3.4");
     }
   }
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(test_tng_upgrade) {
   DNSResourceRecord rr;
   zp.get(rr);
 
-  BOOST_CHECK_EQUAL(rr.qtype.getName(), QType(QType::A).getName());
+  BOOST_CHECK_EQUAL(rr.qtype.toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(rr.content, std::string("192.0.3.4"));
 }
 

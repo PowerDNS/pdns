@@ -15,6 +15,8 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
+static bool receivedOverUDP = true;
+
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
@@ -26,17 +28,18 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   size_t skipped=0;
   ComboAddress remote;
   bool dnssecOK = false;
+  const time_t now = time(nullptr);
   try {
-    for(counter = 0; counter < 100000; ++counter) {
+    for (counter = 0; counter < 100000; ++counter) {
       DNSName a=DNSName(std::to_string(counter))+DNSName(" hello");
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
-      vector<uint8_t> response;
-      DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
       pwR.getHeader()->rd = 1;
       pwR.getHeader()->ra = 1;
       pwR.getHeader()->qr = 1;
@@ -44,24 +47,20 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       pwR.startRecord(a, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
       pwR.xfr32BitInt(0x01020304);
       pwR.commit();
-      uint16_t responseLen = response.size();
 
-      char responseBuf[4096];
-      uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      auto dh = reinterpret_cast<dnsheader*>(query.data());
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
 
-      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
-      found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
       if (found == true) {
-        BOOST_CHECK_EQUAL(responseBufSize, responseLen);
-        int match = memcmp(responseBuf, response.data(), responseLen);
+        BOOST_CHECK_EQUAL(dq.getData().size(), response.size());
+        int match = memcmp(dq.getData().data(), response.data(), dq.getData().size());
         BOOST_CHECK_EQUAL(match, 0);
         BOOST_CHECK(!subnet);
       }
@@ -75,17 +74,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
     size_t deleted=0;
     size_t delcounter=0;
-    for(delcounter=0; delcounter < counter/1000; ++delcounter) {
+    for (delcounter=0; delcounter < counter/1000; ++delcounter) {
       DNSName a=DNSName(std::to_string(delcounter))+DNSName(" hello");
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
-      char responseBuf[4096];
-      uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
-      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (found == true) {
         auto removed = PC.expungeByName(a);
         BOOST_CHECK_EQUAL(removed, 1U);
@@ -95,32 +92,196 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
 
     size_t matches=0;
-    vector<DNSResourceRecord> entry;
     size_t expected=counter-skipped-deleted;
-    for(; delcounter < counter; ++delcounter) {
+    for (; delcounter < counter; ++delcounter) {
       DNSName a(DNSName(std::to_string(delcounter))+DNSName(" hello"));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
-      uint16_t len = query.size();
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      char response[4096];
-      uint16_t responseSize = sizeof(response);
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false, &queryTime);
-      if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key, subnet, dnssecOK)) {
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
         matches++;
       }
     }
 
     /* in the unlikely event that the test took so long that the entries did expire.. */
-    auto expired = PC.purgeExpired();
+    auto expired = PC.purgeExpired(0, now);
     BOOST_CHECK_EQUAL(matches + expired, expected);
 
     auto remaining = PC.getSize();
     auto removed = PC.expungeByName(DNSName(" hello"), QType::ANY, true);
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
     BOOST_CHECK_EQUAL(removed, remaining);
+
+    /* nothing to remove */
+    BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
+  }
+  catch (const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
+  const size_t maxEntries = 150000;
+  const size_t numberOfShards = 10;
+  DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, numberOfShards);
+  BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  size_t counter = 0;
+  size_t skipped = 0;
+  ComboAddress remote;
+  bool dnssecOK = false;
+  const time_t now = time(nullptr);
+
+  try {
+    for (counter = 0; counter < 100000; ++counter) {
+      DNSName a(std::to_string(counter) + ".powerdns.com.");
+
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+      pwQ.getHeader()->rd = 1;
+
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::AAAA, QClass::IN, 0);
+      pwR.getHeader()->rd = 1;
+      pwR.getHeader()->ra = 1;
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = pwQ.getHeader()->id;
+      pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      ComboAddress v6("2001:db8::1");
+      pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::AAAA, QClass::IN, response, receivedOverUDP, 0, boost::none);
+
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      if (found == true) {
+        BOOST_CHECK_EQUAL(dq.getData().size(), response.size());
+        int match = memcmp(dq.getData().data(), response.data(), dq.getData().size());
+        BOOST_CHECK_EQUAL(match, 0);
+        BOOST_CHECK(!subnet);
+      }
+      else {
+        skipped++;
+      }
+    }
+
+    BOOST_CHECK_EQUAL(skipped, PC.getInsertCollisions());
+    BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped);
+
+    size_t matches = 0;
+    for (counter = 0; counter < 100000; ++counter) {
+      DNSName a(std::to_string(counter) + ".powerdns.com.");
+
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+      pwQ.getHeader()->rd = 1;
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
+        matches++;
+      }
+    }
+
+    BOOST_CHECK_EQUAL(matches, counter - skipped);
+
+    auto remaining = PC.getSize();
+
+    /* no entry should have expired */
+    auto expired = PC.purgeExpired(0, now);
+    BOOST_CHECK_EQUAL(expired, 0U);
+
+    /* but after the TTL .. let's ask for at most 1k entries */
+    auto removed = PC.purgeExpired(1000, now + 7200 + 3600);
+    BOOST_CHECK_EQUAL(removed, remaining - 1000U);
+    BOOST_CHECK_EQUAL(PC.getSize(), 1000U);
+
+    /* now remove everything */
+    removed = PC.purgeExpired(0, now + 7200 + 3600);
+    BOOST_CHECK_EQUAL(removed, 1000U);
+    BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+
+    /* nothing to remove */
+    BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
+  }
+  catch (const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, 86400, 1);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  bool dnssecOK = false;
+  try {
+    DNSName a = DNSName("tcp");
+    BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::AAAA, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    ComboAddress v6("2001:db8::1");
+    pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
+    pwR.xfr32BitInt(0x01020304);
+    pwR.commit();
+
+    {
+      /* UDP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
+
+    {
+      /* same but over TCP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoTCP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
@@ -140,39 +301,35 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     DNSName a = DNSName("servfail");
     BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
     pwR.getHeader()->rcode = RCode::ServFail;
     pwR.getHeader()->id = pwQ.getHeader()->id;
     pwR.commit();
-    uint16_t responseLen = response.size();
 
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL of 0 (-> should not enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
-    found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, boost::optional<uint32_t>(0));
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL non-zero (-> should enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
-    found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, boost::optional<uint32_t>(300));
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
   }
@@ -193,12 +350,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
   bool dnssecOK = false;
   try {
     DNSName name("nodata");
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
@@ -210,26 +367,21 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     pwR.addOpt(4096, 0, 0);
     pwR.commit();
 
-    uint16_t responseLen = response.size();
-
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&name, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NoError, boost::none);
-    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, name, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
 
     sleep(2);
     /* it should have expired by now */
-    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
@@ -250,12 +402,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
   bool dnssecOK = false;
   try {
     DNSName name("nxdomain");
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
@@ -267,26 +419,21 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     pwR.addOpt(4096, 0, 0);
     pwR.commit();
 
-    uint16_t responseLen = response.size();
-
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&name, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NXDomain, boost::none);
-    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, name, QType::A, QClass::IN, response, receivedOverUDP, RCode::NXDomain, boost::none);
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
 
     sleep(2);
     /* it should have expired by now */
-    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
@@ -307,12 +454,12 @@ static void threadMangler(unsigned int offset)
     bool dnssecOK = false;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
-      vector<uint8_t> response;
-      DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
       pwR.getHeader()->rd = 1;
       pwR.getHeader()->ra = 1;
       pwR.getHeader()->qr = 1;
@@ -320,17 +467,13 @@ static void threadMangler(unsigned int offset)
       pwR.startRecord(a, QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
       pwR.xfr32BitInt(0x01020304);
       pwR.commit();
-      uint16_t responseLen = response.size();
 
-      char responseBuf[4096];
-      uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      auto dh = reinterpret_cast<dnsheader*>(query.data());
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-      g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
 
-      g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
     }
   }
   catch(PDNSException& e) {
@@ -348,20 +491,17 @@ static void threadReader(unsigned int offset)
   gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try
   {
-    vector<DNSResourceRecord> entry;
     ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
-      char responseBuf[4096];
-      uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
-      bool found = g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (!found) {
 	g_missing++;
       }
@@ -422,30 +562,28 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* lookup for a query with a first ECS value,
      insert a corresponding response */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.59.220/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     ComboAddress remote("192.0.2.1");
     struct timespec queryTime;
     gettime(&queryTime);
-    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, 0, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, dnssecOK);
+    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_REQUIRE(subnetOut);
     BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, qname, qtype, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, qtype, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->id = qid;
     pwR.startRecord(qname, qtype, 100, QClass::IN, DNSResourceRecord::ANSWER);
@@ -455,10 +593,10 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     pwR.addOpt(512, 0, 0, ednsOptions);
     pwR.commit();
 
-    PC.insert(key, subnetOut, *(getFlagsFromDNSHeader(pwR.getHeader())), dnssecOK, qname, qtype, QClass::IN, reinterpret_cast<const char*>(response.data()), response.size(), false, RCode::NoError, boost::none);
+    PC.insert(key, subnetOut, *(getFlagsFromDNSHeader(pwR.getHeader())), dnssecOK, qname, qtype, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
     BOOST_CHECK_EQUAL(PC.getSize(), 1U);
 
-    found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, dnssecOK);
+    found = PC.get(dq, 0, &key, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_REQUIRE(subnetOut);
     BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
@@ -467,24 +605,22 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* now lookup for the same query with a different ECS value,
      we should get the same key (collision) but no match */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.167.48/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     ComboAddress remote("192.0.2.1");
     struct timespec queryTime;
     gettime(&queryTime);
-    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, 0, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &secondKey, subnetOut, dnssecOK);
+    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &secondKey, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK_EQUAL(secondKey, key);
     BOOST_REQUIRE(subnetOut);
@@ -496,7 +632,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* to be able to compute a new collision if the packet cache hashing code is updated */
   {
     DNSDistPacketCache pc(10000);
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     std::map<uint32_t, Netmask> colMap;
     size_t collisions = 0;
@@ -506,8 +642,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     for (size_t idxA = 0; idxA < 256; idxA++) {
       for (size_t idxB = 0; idxB < 256; idxB++) {
         for (size_t idxC = 0; idxC < 256; idxC++) {
-          vector<uint8_t> secondQuery;
-          DNSPacketWriter pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          PacketBuffer secondQuery;
+          GenericDNSPacketWriter<PacketBuffer> pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
           pwFQ.getHeader()->rd = 1;
           pwFQ.getHeader()->qr = false;
           pwFQ.getHeader()->id = 0x42;
@@ -516,7 +652,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
           ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
           pwFQ.addOpt(512, 0, 0, ednsOptions);
           pwFQ.commit();
-          secondKey = pc.getKey(qname.toDNSString(), qname.wirelength(), secondQuery.data(), secondQuery.size(), false);
+          secondKey = pc.getKey(qname.toDNSString(), qname.wirelength(), secondQuery, false);
           auto pair = colMap.insert(std::make_pair(secondKey, opt.source));
           total++;
           if (!pair.second) {
@@ -549,24 +685,22 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
      insert a corresponding response with DO set,
      check that it doesn't match without DO, but does with it */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
     pwQ.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
     pwQ.commit();
 
-    char responseBuf[4096];
-    uint16_t responseBufSize = sizeof(responseBuf);
     ComboAddress remote("192.0.2.1");
     struct timespec queryTime;
     gettime(&queryTime);
-    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, 0, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
-    bool found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, true);
+    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnetOut, true, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, qname, qtype, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, qtype, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->id = qid;
     pwR.startRecord(qname, qtype, 100, QClass::IN, DNSResourceRecord::ANSWER);
@@ -576,13 +710,13 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     pwR.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
     pwR.commit();
 
-    PC.insert(key, subnetOut, *(getFlagsFromDNSHeader(pwR.getHeader())), /* DNSSEC OK is set */ true, qname, qtype, QClass::IN, reinterpret_cast<const char*>(response.data()), response.size(), false, RCode::NoError, boost::none);
+    PC.insert(key, subnetOut, *(getFlagsFromDNSHeader(pwR.getHeader())), /* DNSSEC OK is set */ true, qname, qtype, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
     BOOST_CHECK_EQUAL(PC.getSize(), 1U);
 
-    found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, false);
+    found = PC.get(dq, 0, &key, subnetOut, false, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
 
-    found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, true);
+    found = PC.get(dq, 0, &key, subnetOut, true, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, true);
   }
 

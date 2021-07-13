@@ -204,7 +204,7 @@ public:
     class WrongTypeException : public std::runtime_error
     {
     public:
-        WrongTypeException(std::string luaType_, const std::type_info& destination_) :
+        WrongTypeException(const std::string& luaType_, const std::type_info& destination_) :
             std::runtime_error("Trying to cast a lua variable from \"" + luaType_ + "\" to \"" + destination_.name() + "\""),
             luaType(luaType_),
             destination(destination_)
@@ -2681,11 +2681,21 @@ struct LuaContext::Reader<std::string>
     static auto read(lua_State* state, int index)
         -> boost::optional<std::string>
     {
+        std::string result;
+
+        // lua_tolstring might convert the variable that would confuse lua_next, so we
+        //   make a copy of the variable.
+        lua_pushvalue(state, index);
+
         size_t len;
-        const auto val = lua_tolstring(state, index, &len);
-        if (val == 0)
-            return boost::none;
-        return std::string(val, len);
+        const auto val = lua_tolstring(state, -1, &len);
+
+        if (val != nullptr)
+          result.assign(val, len);
+
+        lua_pop(state, 1);
+
+        return val != nullptr ? boost::optional<std::string>{ std::move(result) } : boost::none;
     }
 };
 

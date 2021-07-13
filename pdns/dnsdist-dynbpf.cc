@@ -21,8 +21,6 @@
  */
 #include "dnsdist-dynbpf.hh"
 
-#ifdef HAVE_EBPF
-
 bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 {
   bool inserted = false;
@@ -84,4 +82,3 @@ std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::
   return result;
 }
 
-#endif /* HAVE_EBPF */

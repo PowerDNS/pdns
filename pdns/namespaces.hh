@@ -43,6 +43,7 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::make_pair;
+using std::make_unique;
 using std::map;
 using std::max;
 using std::min;
@@ -56,3 +57,5 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+
+using pdns_string_view = std::string_view;

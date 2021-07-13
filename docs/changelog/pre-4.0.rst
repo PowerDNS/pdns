@@ -870,7 +870,7 @@ Bugfixes
    don't addSuckRequest after supermaster zone creation to avoid one
    cause of simultaneous AXFR for the same zone
 -  `commit 719f902 <https://github.com/PowerDNS/pdns/commit/719f902>`__:
-   fix dual-stack superslave when multiple namservers share a ip
+   fix dual-stack superslave when multiple nameservers share an ip
 -  `commit 33966bf <https://github.com/PowerDNS/pdns/commit/33966bf>`__:
    avoid address truncation in doNotifications
 -  `commit eac85b1 <https://github.com/PowerDNS/pdns/commit/eac85b1>`__:
@@ -2576,7 +2576,7 @@ Improvements
    2383 <http://wiki.powerdns.com/projects/trac/changeset/2383>`__.
 -  As suggested in `ticket
    416 <https://github.com/PowerDNS/pdns/issues/416>`__, we now log the
-   SOA serial number after committing an AXFRed zone to the backend.
+   SOA serial number after committing an AXFR'd zone to the backend.
    Code in `commit
    2385 <http://wiki.powerdns.com/projects/trac/changeset/2385>`__.
 -  Pick up location of sqlite3 libraries using pkg-config. Implemented

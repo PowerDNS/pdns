@@ -469,14 +469,14 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
 static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
 
-  g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort()<<endl;
+  g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort()<<endl;
 
   if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR})");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR})");
   }
 
   if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR})");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR,AXFR})");
   }
 
   {
@@ -492,7 +492,7 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
   }
 
   if (!info_msg.empty()) {
-    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
+    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort();
     g_log<<Logger::Warning<<": ";
     bool first = true;
     for (const auto& s : info_msg) {
@@ -814,7 +814,7 @@ static void handleUDPRequest(int fd, boost::any&) {
 
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
     auto savedErrno = errno;
-    g_log<<Logger::Warning<<"Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
+    g_log<<Logger::Warning<<"Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
   }
   return;
 }
@@ -878,7 +878,7 @@ static void tcpWorker(int tid) {
       uint16_t toRead;
       readn2(cfd, &toRead, sizeof(toRead));
       toRead = std::min(ntohs(toRead), static_cast<uint16_t>(sizeof(buf)));
-      res = readn2WithTimeout(cfd, &buf, toRead, 2);
+      res = readn2WithTimeout(cfd, &buf, toRead, timeval{2,0});
       g_log<<Logger::Debug<<prefix<<"Had message of "<<std::to_string(toRead)<<" bytes from "<<saddr.toStringWithPort()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not read message from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;

@@ -27,6 +27,7 @@
 #include "misc.hh"
 #include <thread>
 #include "threadname.hh"
+#include <utility>
 #include <vector>
 #include "logger.hh"
 #include <stdio.h>
@@ -121,13 +122,13 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
   this->status = status_;
 }
 
-static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
+static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
   handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
 }
 
-void WebServer::registerBareHandler(const string& url, HandlerFunction handler)
+void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler)
 {
   YaHTTP::THandlerFunction f = [=](YaHTTP::Request* req, YaHTTP::Response* resp){return bareHandlerWrapper(handler, req, resp);};
   YaHTTP::Router::Any(url, f);
@@ -147,7 +148,7 @@ static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
   return false;
 }
 
-void WebServer::apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword) {
+void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword) {
   if (optionsHandler(req, resp)) return;
 
   resp->headers["access-control-allow-origin"] = "*";
@@ -198,12 +199,12 @@ void WebServer::apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req,
   }
 }
 
-void WebServer::registerApiHandler(const string& url, HandlerFunction handler, bool allowPassword) {
-  HandlerFunction f = std::bind(&WebServer::apiWrapper, this, handler, std::placeholders::_1, std::placeholders::_2, allowPassword);
+void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, bool allowPassword) {
+  auto f = [=](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
   registerBareHandler(url, f);
 }
 
-void WebServer::webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp) {
   if (!d_webserverPassword.empty()) {
     bool auth_ok = req->compareAuthorization(d_webserverPassword);
     if (!auth_ok) {
@@ -215,8 +216,8 @@ void WebServer::webWrapper(WebServer::HandlerFunction handler, HttpRequest* req,
   handler(req, resp);
 }
 
-void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = std::bind(&WebServer::webWrapper, this, handler, std::placeholders::_1, std::placeholders::_2);
+void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler) {
+  auto f = [=](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
   registerBareHandler(url, f);
 }
 
@@ -382,7 +383,7 @@ void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& remote
   }
 }
 
-void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
+void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   const string logprefix = d_logprefix + to_string(getUniqueID()) + " ";
 
   HttpRequest req(logprefix);
@@ -436,7 +437,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     g_log<<Logger::Error<<logprefix<<"HTTP Exception: "<<e.reason<<endl;
   }
   catch(std::exception &e) {
-    if(strstr(e.what(), "timeout")==0)
+    if(strstr(e.what(), "timeout")==nullptr)
       g_log<<Logger::Error<<logprefix<<"HTTP STL Exception: "<<e.what()<<endl;
   }
   catch(...) {
@@ -448,8 +449,8 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
   }
 }
 
-WebServer::WebServer(const string &listenaddress, int port) :
-  d_listenaddress(listenaddress),
+WebServer::WebServer(string listenaddress, int port) :
+  d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),
   d_maxbodysize(2*1024*1024)

@@ -1,9 +1,9 @@
 
 #include "dnsdist.hh"
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP)
+DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data)
 {
-  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, ids.qname.wirelength(), &ids.origDest, &ids.origRemote, dh, bufferSize, responseLen, isTCP, &ids.sentTime.d_start);
+  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, ids.protocol, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;
@@ -17,12 +17,14 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_
   dr.tempFailureTTL = ids.tempFailureTTL;
   dr.qTag = std::move(ids.qTag);
   dr.subnet = std::move(ids.subnet);
-#ifdef HAVE_PROTOBUF
   dr.uniqueId = std::move(ids.uniqueId);
-#endif
+
   if (ids.dnsCryptQuery) {
     dr.dnsCryptQuery = std::move(ids.dnsCryptQuery);
   }
+
+  dr.hopRemote = &ids.hopRemote;
+  dr.hopLocal = &ids.hopLocal;
 
   return dr;
 }
@@ -35,6 +37,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.qname = std::move(qname);
   ids.qtype = dq.qtype;
   ids.qclass = dq.qclass;
+  ids.protocol = dq.protocol;
   ids.delayMsec = dq.delayMsec;
   ids.tempFailureTTL = dq.tempFailureTTL;
   ids.origFlags = dq.origFlags;
@@ -48,10 +51,21 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.useZeroScope = dq.useZeroScope;
   ids.qTag = dq.qTag;
   ids.dnssecOK = dq.dnssecOK;
+  ids.uniqueId = std::move(dq.uniqueId);
+
+  if (dq.hopRemote) {
+    ids.hopRemote = *dq.hopRemote;
+  }
+  else {
+    ids.hopRemote.sin4.sin_family = 0;
+  }
+
+  if (dq.hopLocal) {
+    ids.hopLocal = *dq.hopLocal;
+  }
+  else {
+    ids.hopLocal.sin4.sin_family = 0;
+  }
 
   ids.dnsCryptQuery = std::move(dq.dnsCryptQuery);
-
-#ifdef HAVE_PROTOBUF
-  ids.uniqueId = std::move(dq.uniqueId);
-#endif
 }

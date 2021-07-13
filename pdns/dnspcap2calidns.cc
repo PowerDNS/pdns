@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
         const ComboAddress requestor = pr.getSource();
 
-        fp << qname << " " << QType(qtype).getName() << " " << requestor.toString() << endl;
+        fp << qname << " " << QType(qtype).toString() << " " << requestor.toString() << endl;
       }
     }
     catch (const std::exception& e) {

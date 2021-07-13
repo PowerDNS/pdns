@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/algorithm/string.hpp>
+#include <boost/scoped_array.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
 #include "threadname.hh"
@@ -88,7 +89,7 @@ void TCPNameserver::go()
     g_log<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
 
-  std::thread th(std::bind(&TCPNameserver::thread, this));
+  std::thread th([this](){thread();});
   th.detach();
 }
 
@@ -101,7 +102,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
   time_t start = 0;
   unsigned int remainingTotal = totalTimeout;
   if (totalTimeout) {
-    start = time(NULL);
+    start = time(nullptr);
   }
   while(bytes) {
     ret=read(fd, ptr, bytes);
@@ -127,7 +128,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     ptr += ret;
     bytes -= ret;
     if (totalTimeout) {
-      time_t now = time(NULL);
+      time_t now = time(nullptr);
       unsigned int elapsed = now - start;
       if (elapsed >= remainingTotal) {
         throw NetworkError("Timeout while reading data");
@@ -168,9 +169,9 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
   }
 }
 
-void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock)
+void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last)
 {
-  g_rs.submitResponse(*p, false);
+  g_rs.submitResponse(*p, false, last);
 
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
@@ -188,19 +189,10 @@ catch(NetworkError& ae) {
   throw NetworkError("Error reading DNS data from TCP client "+remote.toString()+": "+ae.what());
 }
 
-static void incTCPAnswerCount(const ComboAddress& remote)
-{
-  S.inc("tcp-answers");
-  if(remote.sin4.sin_family == AF_INET6)
-    S.inc("tcp6-answers");
-  else
-    S.inc("tcp4-answers");
-}
-
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
 {
   if (maxConnectionDuration) {
-    time_t elapsed = time(NULL) - start;
+    time_t elapsed = time(nullptr) - start;
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
@@ -229,7 +221,7 @@ void TCPNameserver::doConnection(int fd)
   size_t transactions = 0;
   time_t start = 0;
   if (d_maxConnectionDuration) {
-    start = time(NULL);
+    start = time(nullptr);
   }
 
   if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
@@ -301,14 +293,12 @@ void TCPNameserver::doConnection(int fd)
         break;
       
       if(packet->qtype.getCode()==QType::AXFR) {
-        if(doAXFR(packet->qdomain, packet, fd))
-          incTCPAnswerCount(remote);
+        doAXFR(packet->qdomain, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
-        if(doIXFR(packet, fd))
-          incTCPAnswerCount(remote);
+        doIXFR(packet, fd);
         continue;
       }
 
@@ -320,7 +310,7 @@ void TCPNameserver::doConnection(int fd)
           remote_text = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
         else
           remote_text = packet->getRemote().toString();
-        g_log << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() <<
+        g_log << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.toString() <<
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen();
       }
 
@@ -430,9 +420,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
     // cerr<<"got backend and SOA"<<endl;
     vector<string> acl;
     s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
-    for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
+    for (const auto & i : acl) {
       // cerr<<"matching against "<<*i<<endl;
-      if(pdns_iequals(*i, "AUTO-NS")) {
+      if(pdns_iequals(i, "AUTO-NS")) {
         // cerr<<"AUTO-NS magic please!"<<endl;
 
         DNSResourceRecord rr;
@@ -444,9 +434,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
         }
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, s_P->getBackend());
-          for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          for(const auto & nsip : nsips) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
-            if(*k == q->getRemote().toString())
+            if(nsip == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
               g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in NSset"<<endl;
@@ -457,7 +447,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
       }
       else
       {
-        Netmask nm = Netmask(*i);
+        Netmask nm = Netmask(i);
         if(nm.match( (ComboAddress *) &q->d_remote ))
         {
           g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in per-zone ACL"<<endl;
@@ -597,34 +587,31 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
   
-  sendPacket(outpacket, outsock);
+  sendPacket(outpacket, outsock, false);
   
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
+
   
-  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
-  
-  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
-  nsecxrepo_t nsecxrepo;
-  vector<DNSZoneRecord> cds, cdnskey;
   DNSZoneRecord zrr;
+  vector<DNSZoneRecord> zrrs;
 
-  if(securedZone && !presignedZone) {
-    // this is where the DNSKEYs go  in
-    DNSSECKeeper::keyset_t keys = dk.getKeys(target);
+  zrr.dr.d_name = target;
+  zrr.dr.d_ttl = sd.minimum;
 
-    zrr.dr.d_name = target;
-    zrr.dr.d_ttl = sd.minimum;
-    zrr.auth = 1; // please sign!
-
+  if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
+    bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
     dk.getPublishCDNSKEY(q->qdomain, publishCDNSKEY);
     dk.getPublishCDS(q->qdomain, publishCDS);
-    DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(q->qdomain);
-    set<uint32_t> entryPointIds;
-    for (auto const& value : entryPoints)
-      entryPointIds.insert(value.second.id);
 
+    set<uint32_t> entryPointIds;
+    DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(target);
+    for (auto const& value : entryPoints) {
+      entryPointIds.insert(value.second.id);
+    }
+
+    DNSSECKeeper::keyset_t keys = dk.getKeys(target);
     for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
       if (!value.second.published) {
         continue;
@@ -632,71 +619,50 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrr.dr.d_type = QType::DNSKEY;
       zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
       DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
-      NSECXEntry& ne = nsecxrepo[keyname];
-
-      ne.d_set.set(zrr.dr.d_type);
-      ne.d_ttl = sd.getNegativeTTL();
-      csp.submit(zrr);
+      zrrs.push_back(zrr);
 
       // generate CDS and CDNSKEY records
-      if(entryPointIds.count(value.second.id) > 0){
+      if(doCDNSKEY && entryPointIds.count(value.second.id) > 0){
         if(!publishCDNSKEY.empty()) {
           zrr.dr.d_type=QType::CDNSKEY;
           if (publishCDNSKEY == "0") {
-            if (cdnskey.empty()) {
-              zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
-              cdnskey.push_back(zrr);
-            }
+            doCDNSKEY = false;
+            zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
+            zrrs.push_back(zrr);
           } else {
             zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-            cdnskey.push_back(zrr);
+            zrrs.push_back(zrr);
           }
         }
 
-        if(!publishCDS.empty()){
+        if(doCDS && !publishCDS.empty()){
+          doCDS = false;
           zrr.dr.d_type=QType::CDS;
           vector<string> digestAlgos;
           stringtok(digestAlgos, publishCDS, ", ");
           if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
-            if(cds.empty()) {
-              zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
-              cds.push_back(zrr);
-            }
+            zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
+            zrrs.push_back(zrr);
           } else {
             for(auto const &digestAlgo : digestAlgos) {
               zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
-              cds.push_back(zrr);
+              zrrs.push_back(zrr);
             }
           }
         }
       }
     }
 
-    if(::arg().mustDo("direct-dnskey")) {
-      sd.db->lookup(QType(QType::DNSKEY), target, sd.domain_id);
-      while(sd.db->get(zrr)) {
-        zrr.dr.d_ttl = sd.minimum;
-        csp.submit(zrr);
-      }
-    }
   }
 
-  uint8_t flags;
-
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
-    zrr.dr.d_name = target;
-    zrr.dr.d_ttl = sd.minimum;
-    zrr.auth = 1;
-    flags = ns3pr.d_flags;
+    uint8_t flags = ns3pr.d_flags;
     zrr.dr.d_type = QType::NSEC3PARAM;
     ns3pr.d_flags = 0;
     zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
     ns3pr.d_flags = flags;
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
-    NSECXEntry& ne = nsecxrepo[keyname];
-    
-    ne.d_set.set(zrr.dr.d_type);
-    csp.submit(zrr);
+    zrrs.push_back(zrr);
   }
   
   // now start list zone
@@ -710,16 +676,20 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<DNSName> qnames, nsset, terms;
-  vector<DNSZoneRecord> zrrs;
-
-  // Add the CDNSKEY and CDS records we created earlier
-  for (auto const &synth_zrr : cds)
-    zrrs.push_back(synth_zrr);
-
-  for (auto const &synth_zrr : cdnskey)
-    zrrs.push_back(synth_zrr);
 
   while(sd.db->get(zrr)) {
+    if (!presignedZone) {
+      if (zrr.dr.d_type == QType::RRSIG) {
+        continue;
+      }
+      if (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS) {
+        if(!::arg().mustDo("direct-dnskey")) {
+          continue;
+        } else {
+          zrr.dr.d_ttl = sd.minimum;
+        }
+      }
+    }
     zrr.dr.d_name.makeUsLowerCase();
     if(zrr.dr.d_name.isPartOf(target)) {
       if (zrr.dr.d_type == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
@@ -754,6 +724,47 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     } else {
       if (zrr.dr.d_type)
         g_log<<Logger::Warning<<logPrefix<<"zone contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl;
+    }
+  }
+
+  for (auto loopRR : zrrs) {
+    if ((loopRR.dr.d_type == QType::SVCB || loopRR.dr.d_type == QType::HTTPS)) {
+      // Process auto hints
+      // TODO this is an almost copy of the code in the packethandler
+      auto rrc = getRR<SVCBBaseRecordContent>(loopRR.dr);
+      if (rrc == nullptr) {
+        continue;
+      }
+      DNSName svcTarget = rrc->getTarget().isRoot() ? loopRR.dr.d_name : rrc->getTarget();
+      if (rrc->autoHint(SvcParam::ipv4hint)) {
+        sd.db->lookup(QType::A, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<ARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv4hint);
+        } else {
+          rrc->setHints(SvcParam::ipv4hint, hints);
+        }
+      }
+
+      if (rrc->autoHint(SvcParam::ipv6hint)) {
+        sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<AAAARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv6hint);
+        } else {
+          rrc->setHints(SvcParam::ipv6hint, hints);
+        }
+      }
     }
   }
 
@@ -834,21 +845,18 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
 
   /* now write all other records */
-  
+
+  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
+  nsecxrepo_t nsecxrepo;
+
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
+
   DNSName keyname;
   unsigned int udiff;
   DTime dt;
   dt.set();
   int records=0;
   for(DNSZoneRecord &loopZRR :  zrrs) {
-    if (!presignedZone && loopZRR.dr.d_type == QType::RRSIG)
-      continue;
-
-    // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
-    // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && (loopZRR.dr.d_type == QType::DNSKEY || loopZRR.dr.d_type == QType::CDNSKEY || loopZRR.dr.d_type == QType::CDS))
-      continue;
-
     records++;
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
@@ -878,7 +886,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         if(!outpacket->getRRS().empty()) {
           if(haveTSIGDetails && !tsigkeyname.empty())
             outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
-          sendPacket(outpacket, outsock);
+          sendPacket(outpacket, outsock, false);
           trc.d_mac=outpacket->d_trc.d_mac;
           outpacket=getFreshAXFRPacket(q);
         }
@@ -931,7 +939,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
               if(!outpacket->getRRS().empty()) {
                 if(haveTSIGDetails && !tsigkeyname.empty())
                   outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
-                sendPacket(outpacket, outsock);
+                sendPacket(outpacket, outsock, false);
                 trc.d_mac=outpacket->d_trc.d_mac;
                 outpacket=getFreshAXFRPacket(q);
               }
@@ -965,7 +973,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           if(!outpacket->getRRS().empty()) {
             if(haveTSIGDetails && !tsigkeyname.empty())
               outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
-            sendPacket(outpacket, outsock);
+            sendPacket(outpacket, outsock, false);
             trc.d_mac=outpacket->d_trc.d_mac;
             outpacket=getFreshAXFRPacket(q);
           }
@@ -986,7 +994,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     if(!outpacket->getRRS().empty()) {
       if(haveTSIGDetails && !tsigkeyname.empty())
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
-      sendPacket(outpacket, outsock);
+      sendPacket(outpacket, outsock, false);
       trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
@@ -1023,8 +1031,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());
@@ -1045,7 +1053,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
         return 0;
       }
     } else if (rr->d_type != QType::TSIG && rr->d_type != QType::OPT) {
-      g_log<<Logger::Warning<<logPrefix<<"additional records in IXFR query, type: "<<QType(rr->d_type).getName()<<endl;
+      g_log<<Logger::Warning<<logPrefix<<"additional records in IXFR query, type: "<<QType(rr->d_type).toString()<<endl;
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
       return 0;
@@ -1156,7 +1164,6 @@ TCPNameserver::TCPNameserver()
   d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
 
   vector<string>locals;
-  stringtok(locals,::arg()["local-ipv6"]," ,");
   stringtok(locals,::arg()["local-address"]," ,");
   if(locals.empty())
     throw PDNSException("No local addresses specified");

@@ -1,0 +1,7 @@
+Name: pdns
+Repository: https://github.com/PowerDNS/pdns.git
+Repository-Browse: https://github.com/powerdns/pdns
+Homepage: https://www.powerdns.com/
+Bug-Database: https://github.com/powerdns/pdns/issues
+Contact: https://mailman.powerdns.com/mailman/listinfo/pdns-users
+Security-Contact: https://doc.powerdns.com/authoritative/security.html

@@ -1,23 +1,16 @@
 /*
- * This file is part of PowerDNS or dnsdist.
- * Copyright -- PowerDNS.COM B.V. and its contributors
+ * This file describes the message format used by the protobuf logging feature in PowerDNS and dnsdist.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
+ * Written by PowerDNS.COM B.V. and its contributors.
+ * 
+ * To the extent possible under law, the author(s) have dedicated all
+ * copyright and related and neighboring rights to this file to the public
+ * domain worldwide. This file is distributed without any warranty.
  *
- * In addition, for the avoidance of any doubt, permission is granted to
- * link this program with OpenSSL and to (re)distribute the binaries
- * produced as the result of such linking.
+ * You should have received a copy of the CC0 Public Domain Dedication along
+ * with this file. If not, see:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 syntax = "proto2";
 
@@ -43,6 +36,34 @@ message PBDNSMessage {
     RESPONSEIP = 4;                             // Policy matched on one of the IPs contained in the answer
     NSDNAME = 5;                                // Policy matched on the name of one nameserver involved
     NSIP = 6;                                   // Policy matched on the IP of one nameserver involved
+  }
+  enum PolicyKind {
+    NoAction = 1;                               // No action taken
+    Drop = 2;                                   // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.4
+    NXDOMAIN = 3;                               // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.1
+    NODATA = 4;                                 // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.2
+    Truncate= 5;                                // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.5
+    Custom = 6;                                 // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.6
+  }
+  enum VState {
+    Indeterminate = 1;
+    Insecure = 2;
+    Secure = 3;
+    BogusNoValidDNSKEY = 4;
+    BogusInvalidDenial = 5;
+    BogusUnableToGetDSs = 6;
+    BogusUnableToGetDNSKEYs = 7;
+    BogusSelfSignedDS = 8;
+    BogusNoRRSIG = 9;
+    BogusNoValidRRSIG = 10;
+    BogusMissingNegativeIndication = 11;
+    BogusSignatureNotYetValid = 12;
+    BogusSignatureExpired = 13;
+    BogusUnsupportedDNSKEYAlgo = 14;
+    BogusUnsupportedDSDigestType = 15;
+    BogusNoZoneKeyBitSet = 16;
+    BogusRevokedDNSKEY = 17;
+    BogusInvalidDNSKEYProtocol = 18;
   }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
@@ -81,15 +102,32 @@ message PBDNSMessage {
     optional PolicyType appliedPolicyType = 7;  // Type of the filtering policy (RPZ or Lua) applied
     optional string appliedPolicyTrigger = 8;   // The RPZ trigger
     optional string appliedPolicyHit = 9;       // The value (qname or IP) that caused the hit
+    optional PolicyKind appliedPolicyKind = 10; // The Kind (RPZ action) applied by the hit
+    optional VState validationState = 11;      // The DNSSEC Validation State
   }
 
   optional DNSResponse response = 13;
   optional bytes originalRequestorSubnet = 14;  // EDNS Client Subnet value
   optional string requestorId = 15;             // Username of the requestor
   optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
-  optional bytes deviceId = 17;     		// Device ID of the requestor (could be mac address IP address or e.g. IMEI)
+  optional bytes deviceId = 17;                 // Device ID of the requestor (could be mac address IP address or e.g. IMEI)
   optional bool  newlyObservedDomain = 18;      // True if the domain has not been seen before
   optional string deviceName = 19;              // Device name of the requestor
   optional uint32 fromPort = 20;                // Source port of the DNS query (client)
   optional uint32 toPort = 21;                  // Destination port of the DNS query (server)
+
+  message MetaValue {
+    repeated string stringVal = 1;
+    repeated int64 intVal = 2;
+  }
+
+  message Meta {
+    required string key = 1;                    // MUST be unique, so if you have multiple values they must be aggregated into on Meta
+    required MetaValue value = 2;
+  }
+  repeated Meta meta = 22;                      // Arbitrary meta-data - to be used in future rather than adding new fields all the time
+}
+
+message PBDNSMessageList {
+  repeated PBDNSMessage msg = 1;
 }

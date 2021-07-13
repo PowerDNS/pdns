@@ -16,13 +16,16 @@
 BaseLua4::BaseLua4() {
 }
 
-void BaseLua4::loadFile(const std::string &fname) {
+int BaseLua4::loadFile(const std::string &fname) {
+  int ret = 0;
   std::ifstream ifs(fname);
-  if(!ifs) {
+  if (!ifs) {
+    ret = errno;
     g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror()<<endl;
-    return;
+    return ret;
   }
   loadStream(ifs);
+  return 0;
 };
 
 void BaseLua4::loadString(const std::string &script) {
@@ -122,6 +125,29 @@ void BaseLua4::prepareContext() {
     } );
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+  d_lw->writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
+                                        if (raw.size() == 4) {
+                                          struct sockaddr_in sin4;
+                                          memset(&sin4, 0, sizeof(sin4));
+                                          sin4.sin_family = AF_INET;
+                                          memcpy(&sin4.sin_addr.s_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin4.sin_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin4);
+                                        }
+                                        else if (raw.size() == 16) {
+                                          struct sockaddr_in6 sin6;
+                                          memset(&sin6, 0, sizeof(sin6));
+                                          sin6.sin6_family = AF_INET6;
+                                          memcpy(&sin6.sin6_addr.s6_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin6.sin6_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin6);
+                                        }
+                                        return ComboAddress();
+                                      });
   typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
 
@@ -148,9 +174,9 @@ void BaseLua4::prepareContext() {
   // QType
   d_lw->writeFunction("newQType", [](const string& s) { QType q; q = s; return q; });
   d_lw->registerFunction("getCode", &QType::getCode);
-  d_lw->registerFunction("getName", &QType::getName);
+  d_lw->registerFunction("getName", &QType::toString);
   d_lw->registerEqFunction<bool(QType::*)(const QType&)>([](const QType& a, const QType& b){ return a == b;}); // operator overloading confuses LuaContext
-  d_lw->registerToStringFunction(&QType::getName);
+  d_lw->registerToStringFunction(&QType::toString);
 
   // Netmask
   d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
@@ -168,7 +194,18 @@ void BaseLua4::prepareContext() {
   d_lw->registerToStringFunction(&Netmask::toString);
 
   // NetmaskGroup
-  d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
+  d_lw->writeFunction("newNMG", [](boost::optional<vector<pair<unsigned int, std::string>>> masks) {
+    auto nmg = NetmaskGroup();
+
+    if (masks) {
+      for(const auto& mask: *masks) {
+        nmg.addMask(mask.second);
+      }
+    }
+
+    return nmg;
+  });
+  // d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask) { nmg.addMask(mask); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>("addMasks", [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks) { for(const auto& mask: masks) { nmg.addMask(mask.second); } });
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
@@ -196,9 +233,6 @@ void BaseLua4::prepareContext() {
   d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
 
   // certain constants
-  d_pd.push_back({"PASS", (int)PolicyDecision::PASS});
-  d_pd.push_back({"DROP", (int)PolicyDecision::DROP});
-  d_pd.push_back({"TRUNCATE", (int)PolicyDecision::TRUNCATE});
 
   vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
                                        {"FORMERR",  RCode::FormErr  },

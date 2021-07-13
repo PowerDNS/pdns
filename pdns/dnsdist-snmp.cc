@@ -53,6 +53,7 @@ static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
 static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
 static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
 static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
+static const oid ruleTruncatedOID[] = { DNSDIST_STATS_OID, 40 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -79,14 +80,14 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = boost::get<DNSDistStats::stat_t*>(&it->second)) {
+  if (const auto& val = boost::get<pdns::stat_t*>(&it->second)) {
     return DNSDistSNMPAgent::setCounter64Value(requests, (*val)->load());
   }
 
   return SNMP_ERR_GENERR;
 }
 
-static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength, std::atomic<uint64_t>* ptr)
+static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength, pdns::stat_t* ptr)
 {
   if (statOIDLength != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Counter64 statistic %s", name);
@@ -310,14 +311,14 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDOUTSTANDING:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->outstanding);
+                                            server->outstanding.load());
         break;
       case COLUMN_BACKENDQPSLIMIT:
         DNSDistSNMPAgent::setCounter64Value(request,
                                             server->qps.getRate());
         break;
       case COLUMN_BACKENDREUSED:
-        DNSDistSNMPAgent::setCounter64Value(request, server->reuseds);
+        DNSDistSNMPAgent::setCounter64Value(request, server->reuseds.load());
         break;
       case COLUMN_BACKENDSTATE:
       {
@@ -352,10 +353,10 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       }
       case COLUMN_BACKENDQPS:
-        DNSDistSNMPAgent::setCounter64Value(request, server->queryLoad);
+        DNSDistSNMPAgent::setCounter64Value(request, server->queryLoad.load());
         break;
       case COLUMN_BACKENDQUERIES:
-        DNSDistSNMPAgent::setCounter64Value(request, server->queries);
+        DNSDistSNMPAgent::setCounter64Value(request, server->queries.load());
         break;
       case COLUMN_BACKENDORDER:
         DNSDistSNMPAgent::setCounter64Value(request, server->order);
@@ -447,10 +448,10 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
   std::string remote = dq.remote->toString();
   std::string qname = dq.qname->toStringNoDot();
   const uint32_t socketFamily = dq.remote->isIPv4() ? 1 : 2;
-  const uint32_t socketProtocol = dq.tcp ? 2 : 1;
-  const uint32_t queryType = dq.dh->qr ? 2 : 1;
-  const uint32_t querySize = (uint32_t) dq.len;
-  const uint32_t queryID = (uint32_t) ntohs(dq.dh->id);
+  const uint32_t socketProtocol = dq.overTCP() ? 2 : 1;
+  const uint32_t queryType = dq.getHeader()->qr ? 2 : 1;
+  const uint32_t querySize = (uint32_t) dq.getData().size();
+  const uint32_t queryID = (uint32_t) ntohs(dq.getHeader()->id);
   const uint32_t qType = (uint32_t) dq.qtype;
   const uint32_t qClass = (uint32_t) dq.qclass;
 
@@ -546,7 +547,7 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
 #endif /* HAVE_NET_SNMP */
 }
 
-DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
+DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket): SNMPAgent(name, daemonSocket)
 {
 #ifdef HAVE_NET_SNMP
 
@@ -558,6 +559,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &g_stats.ruleNXDomain);
   registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &g_stats.ruleRefused);
   registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &g_stats.ruleServFail);
+  registerCounter64Stat("ruleTruncated", ruleTruncatedOID, OID_LENGTH(ruleTruncatedOID), &g_stats.ruleTruncated);
   registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &g_stats.selfAnswered);
   registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &g_stats.downstreamTimeouts);
   registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &g_stats.downstreamSendErrors);

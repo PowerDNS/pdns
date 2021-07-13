@@ -8,18 +8,18 @@ PowerDNS Recursor
     index
     getting-started
     running
-    performance
-    metrics
     dnssec
+    settings
     lua-config/index
     lua-scripting/index
-    http-api/index
     dns64
-    security
-    settings
+    metrics
+    performance
     manpages/index
+    http-api/index
+    security
     security-advisories/index
     upgrade
     changelog/index
     appendices/*
-
+    common/license

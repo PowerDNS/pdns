@@ -5,32 +5,32 @@ This document lists categorized answers and questions with links to the relevant
 
 Replication
 -----------
-Please note that not all PowerDNS Server backends support master or slave support, see the :doc:`table of backends <../backends/index>`.
+Please note that not all PowerDNS Server backends support primary or secondary operation, see the :doc:`table of backends <../backends/index>`.
 
 My PowerDNS Authoritative Server does not send NOTIFY messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Don't forget to enable master-support by setting :ref:`setting-master` to ``yes`` in your configuration.
-In :ref:`master mode<master-operation>` PowerDNS Authoritative Server will send NOTIFYs to all nameservers that are listed as NS records in the zone by default.
+Don't forget to enable primary support by setting :ref:`setting-primary` to ``yes`` in your configuration.
+In :ref:`primary mode<primary-operation>` PowerDNS Authoritative Server will send NOTIFYs to all nameservers that are listed as NS records in the zone by default.
 
 My PowerDNS Authoritative Server does not start AXFRs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Don't forget to enable slave-support by setting :ref:`setting-slave` to ``yes`` in your configuration.
-In :ref:`slave mode<slave-operation>` PowerDNS Authoritative Server listens for NOTIFYs from the master IP for zones that are configured as slave zones.
-And will also periodically check for SOA serial number changes at the master.
+Don't forget to enable secondary-support by setting :ref:`setting-secondary` to ``yes`` in your configuration.
+In :ref:`secondary mode<secondary-operation>` PowerDNS Authoritative Server listens for NOTIFYs from the primary IP for zones that are configured as secondary zones,
+and will also periodically check for SOA serial number changes at the primary.
 
-Can PowerDNS Server act as Slave and Master at the same time?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Yes totally, enable both by saying ``yes`` to :ref:`setting-master` and :ref:`setting-slave` in your configuration.
+Can PowerDNS Server act as Secondary and Primary at the same time?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Yes totally, enable both by saying ``yes`` to :ref:`setting-primary` and :ref:`setting-secondary` in your configuration.
 
 How can I limit Zone Transfers (AXFR) per Domain?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 With the ALLOW-AXFR-FROM metadata, See :ref:`the documentation <metadata-allow-axfr-from>`.
 
-I have a working Supermaster/Superslave setup but when I remove Domains from the Master they still remain on the Slave. Am I doing something wrong?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+I have a working Autoprimary/Autosecondary setup but when I remove Zones from the Primary they still remain on the Secondary. Am I doing something wrong?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You're not doing anything wrong.
 This is the perfectly normal and expected behavior because the AXFR (DNS Zonetransfer) Protocol does not provide for zone deletion.
-You need to remove the zones from the slave manually or via a custom script.
+You need to remove the zones from the secondary manually or via a custom script.
 
 Operational
 -----------
@@ -50,14 +50,14 @@ Verily, many misguided country code domain operators have fallen into this trap 
 Invite such operators to look at :rfc:`section 6.2.1 of RFC 1034 <1034#section-6.2.1>`, which shows a correct authoritative answer without authority records.
 In fact, none of the non-deprecated authoritative answers shown have authority records!
 
-Master or Slave support is not working, PowerDNS is not picking up changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The Master/Slave apparatus is off by default.
-Turn it on by adding a :ref:`setting-slave` and/or :ref:`setting-master` statement to the configuration file.
-Also, check that the configured backend is master or slave capable and you entered exactly the same string to the Domains tables without the ending dot.
+Primary or Secondary support is not working, PowerDNS is not picking up changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Primary/Secondary apparatus is off by default.
+Turn it on by adding a :ref:`setting-secondary` and/or :ref:`setting-primary` statement to the configuration file.
+Also, check that the configured backend is primary or secondary capable and you entered exactly the same string to the Domains tables without the ending dot.
 
-My masters won't allow PowerDNS to access zones as it is using the wrong local IP address
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+My primaries won't allow PowerDNS to access zones as it is using the wrong local IP address
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default, PowerDNS lets the kernel pick the source address.
 To set an explicit source address, use the :ref:`setting-query-local-address` setting.
 
@@ -71,6 +71,15 @@ Linux Netfilter says your conntrack table is full?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Thats a common problem with Netfilter Conntracking and DNS Servers, just tune your kernel variable (``/etc/sysctl.conf``) ``net.ipv4.netfilter.ip_conntrack_max`` up accordingly.
 Try setting it for a million if you don't mind spending some MB of RAM on it for example.
+
+I get an error about writing to /etc
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This may look something like "unable to open temporary zonefile '/etc/powerdns/zones/example.com.<random number>'".
+PowerDNS systemd units enable ``ProtectSystem=full`` by default, which disallows writes to ``/etc`` and ``/usr``, among other places.
+Either move your zone files to a safer place (``/var/lib/powerdns`` is a popular choice) or change the systemd protection settings.
+
+For more background on this, please see the systemd documentation on `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ and `ReadWritePaths <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ReadWritePaths=>`_.
 
 Backends
 --------

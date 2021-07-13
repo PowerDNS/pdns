@@ -57,14 +57,14 @@
 
 */
 
-class DNSPacketWriter : public boost::noncopyable
+template <typename Container> class GenericDNSPacketWriter : public boost::noncopyable
 {
 
 public:
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
-  DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
+  GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
 
-  /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
+  /** Start a new DNS record within this packet for name, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
       ANSWER, AUTHORITY, ADDITIONAL */
   void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, bool compress=true);
 
@@ -77,7 +77,7 @@ public:
    */
   void commit();
 
-  uint32_t size(); // needs to be 32 bit because otherwise we don't see the wrap coming when it happened!
+  uint32_t size() const; // needs to be 32 bit because otherwise we don't see the wrap coming when it happened!
 
   /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
   void rollback();
@@ -86,6 +86,7 @@ public:
   void truncate();
 
   void xfr48BitInt(uint64_t val);
+  void xfrNodeOrLocatorID(const NodeOrLocatorID& val);
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
   void xfrType(uint16_t val)
@@ -146,7 +147,7 @@ public:
   {
     d_lowerCase=val;
   }
-  vector <uint8_t>& getContent()
+  Container& getContent()
   {
     return d_content;
   }
@@ -155,6 +156,9 @@ public:
   const string getRemaining() const {
     return "";
   }
+
+  size_t getSizeWithOpts(const optvect_t& options) const;
+
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;
@@ -162,13 +166,15 @@ private:
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
-  vector <uint8_t>& d_content;
+  Container& d_content;
   DNSName d_qname;
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;
   bool d_canonic, d_lowerCase, d_compress{false};
 };
+
+using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
 // bool labeltokUnescape(labelparts_t& parts, const DNSName& label);

@@ -24,6 +24,7 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   }
 
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -163,7 +164,7 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
 #endif
 }
 
-static void ringWriterThread(Rings& rings, size_t numberOfEntries, const Rings::Query query, const Rings::Response response)
+static void ringWriterThread(Rings& rings, size_t numberOfEntries, const Rings::Query& query, const Rings::Response& response)
 {
   for (size_t idx = 0; idx < numberOfEntries; idx++) {
     rings.insertQuery(query.when, query.requestor, query.name, query.qtype, query.size, query.dh);
@@ -181,6 +182,7 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   struct timespec now;
   gettime(&now);
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   dh.id = htons(4242);
   dh.qr = 0;
   dh.tc = 0;
@@ -195,8 +197,8 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   uint16_t size = 42;
 
   Rings rings(numberOfEntries, numberOfShards, lockAttempts, true);
-  Rings::Query query({now, requestor, qname, size, qtype, dh});
-  Rings::Response response({now, requestor, qname, qtype, latency, size, dh, server});
+  Rings::Query query({requestor, qname, now, dh, size, qtype});
+  Rings::Response response({requestor, server, qname, now, dh, latency, size, qtype});
 
   std::atomic<bool> done(false);
   std::vector<std::thread> writerThreads;

@@ -117,7 +117,7 @@ struct SendReceive
         return 0;
       }
       else {
-        d_receiveds++;
+        d_received++;
       }
       // parse packet, set 'id', fill out 'ip' 
       
@@ -174,7 +174,7 @@ struct SendReceive
 
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
-  unsigned int d_receiveds, d_receiveerrors, d_senderrors;
+  unsigned int d_received, d_receiveerrors, d_senderrors;
   map<ComboAddress, namecount, ComboAddress::addressOnlyLessThan>& d_res;
 };
 
@@ -248,7 +248,7 @@ struct SendReceiveRes
         return 0;
       }
       else {
-        d_receiveds++;
+        d_received++;
       }
       // parse packet, set 'id', fill out 'ip' 
       
@@ -295,7 +295,7 @@ struct SendReceiveRes
     cout<<'\n';
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
-  unsigned int d_receiveds, d_receiveerrors, d_senderrors;
+  unsigned int d_received, d_receiveerrors, d_senderrors;
 };
 
 

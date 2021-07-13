@@ -23,6 +23,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <boost/filesystem.hpp>
 #include "dnsname.hh"
 #include "stable-bloom.hh"
 
@@ -59,6 +60,8 @@ namespace nod {
       return d_sbf.testAndAdd(data); 
     }
   private:
+    void remove_tmp_files(const boost::filesystem::path&, std::lock_guard<std::mutex>&);
+
     bool d_init{false};
     bf::stableBF d_sbf; // Stable Bloom Filter
     std::string d_cachedir;

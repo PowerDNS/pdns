@@ -24,137 +24,119 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
-
-void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
+void LdapBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 {
   string filter;
   PowerLDAP::SearchResult::Ptr search;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "associatedDomain",
-    NULL
-  };
+    NULL};
 
-  try
-  {
+  try {
     // First get all domains on which we are master.
-    filter = strbind( ":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg( "filter-axfr" ) );
-    search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    filter = strbind(":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg("filter-axfr"));
+    search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attronly);
   }
-  catch( LDAPTimeout &lt )
-  {
+  catch (LDAPTimeout& lt) {
     g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
-    throw DBException( "LDAP server timeout" );
+    throw DBException("LDAP server timeout");
   }
-  catch( LDAPNoConnection &lnc )
-  {
+  catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if ( reconnect() )
-      this->getUpdatedMasters( domains );
+    if (reconnect())
+      this->getUpdatedMasters(domains);
     else
-      throw PDNSException( "Failed to reconnect to LDAP server" );
+      throw PDNSException("Failed to reconnect to LDAP server");
   }
-  catch( LDAPException &le )
-  {
+  catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+    throw PDNSException("LDAP server unreachable"); // try to reconnect to another server
   }
-  catch( std::exception &e )
-  {
-    throw DBException( "STL exception" );
+  catch (std::exception& e) {
+    throw DBException("STL exception");
   }
 
-  while( search->getNext( result ) ) {
-    if( !result.count( "associatedDomain" ) || result["associatedDomain"].empty() )
+  while (search->getNext(result)) {
+    if (!result.count("associatedDomain") || result["associatedDomain"].empty())
       continue;
 
     DomainInfo di;
-    if ( !getDomainInfo( DNSName( result["associatedDomain"][0] ), di ) )
+    if (!getDomainInfo(DNSName(result["associatedDomain"][0]), di))
       continue;
 
-    if( di.notified_serial < di.serial )
-      domains->push_back( di );
+    if (di.notified_serial < di.serial)
+      domains->push_back(di);
   }
 }
 
-
-
-void LdapBackend::setNotified( uint32_t id, uint32_t serial )
+void LdapBackend::setNotified(uint32_t id, uint32_t serial)
 {
   string filter;
   PowerLDAP::SearchResult::Ptr search;
   PowerLDAP::sresult_t results;
   PowerLDAP::sentry_t entry;
-  const char* attronly[] = { "associatedDomain", NULL };
+  const char* attronly[] = {"associatedDomain", NULL};
 
-  try
-  {
+  try {
     // Try to find the notified domain
-    filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
-    search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    search->getAll( results, true );
+    filter = strbind(":target:", "PdnsDomainId=" + std::to_string(id), getArg("filter-axfr"));
+    search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attronly);
+    search->getAll(results, true);
   }
-  catch( LDAPTimeout &lt )
-  {
+  catch (LDAPTimeout& lt) {
     g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
-    throw DBException( "LDAP server timeout" );
+    throw DBException("LDAP server timeout");
   }
-  catch( LDAPNoConnection &lnc )
-  {
+  catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if ( reconnect() )
-      this->setNotified( id, serial );
+    if (reconnect())
+      this->setNotified(id, serial);
     else
-      throw PDNSException( "Failed to reconnect to LDAP server" );
+      throw PDNSException("Failed to reconnect to LDAP server");
   }
-  catch( LDAPException &le )
-  {
+  catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+    throw PDNSException("LDAP server unreachable"); // try to reconnect to another server
   }
-  catch( std::exception &e )
-  {
-    throw DBException( "STL exception" );
+  catch (std::exception& e) {
+    throw DBException("STL exception");
   }
 
-  if ( results.empty() )
-    throw PDNSException( "No results found when trying to update domain notified_serial for ID " + std::to_string( id ) );
+  if (results.empty())
+    throw PDNSException("No results found when trying to update domain notified_serial for ID " + std::to_string(id));
 
   entry = results.front();
   string dn = entry["dn"][0];
-  string serialStr = std::to_string( serial );
-  LDAPMod *mods[2];
+  string serialStr = std::to_string(serial);
+  LDAPMod* mods[2];
   LDAPMod mod;
-  char *vals[2];
+  char* vals[2];
 
   mod.mod_op = LDAP_MOD_REPLACE;
   mod.mod_type = (char*)"PdnsDomainNotifiedSerial";
-  vals[0] = const_cast<char*>( serialStr.c_str() );
+  vals[0] = const_cast<char*>(serialStr.c_str());
   vals[1] = NULL;
   mod.mod_values = vals;
 
   mods[0] = &mod;
   mods[1] = NULL;
 
-  try
-  {
-    d_pldap->modify( dn, mods );
+  try {
+    d_pldap->modify(dn, mods);
   }
-  catch( LDAPNoConnection &lnc )
-  {
+  catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if ( reconnect() )
-      this->setNotified( id, serial );
+    if (reconnect())
+      this->setNotified(id, serial);
     else
-      throw PDNSException( "Failed to reconnect to LDAP server" );
+      throw PDNSException("Failed to reconnect to LDAP server");
   }
-  catch( LDAPException &le )
-  {
+  catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+    throw PDNSException("LDAP server unreachable"); // try to reconnect to another server
   }
-  catch( std::exception &e )
-  {
-    throw DBException( "STL exception" );
+  catch (std::exception& e) {
+    throw DBException("STL exception");
   }
 }

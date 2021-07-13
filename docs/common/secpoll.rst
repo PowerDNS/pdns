@@ -8,7 +8,7 @@ By default, security polling happens on the domain 'secpoll.powerdns.com', but t
 If this setting is made empty, no polling will take place.
 Organizations wanting to host their own security zones can do so by changing this setting to a domain name under their control.
 
-To make this easier, the zone used to host secpoll.powerdns.com is available `here <https://github.com/PowerDNS/pdns/blob/master/docs/secpoll.zone>`_.
+To make this easier, the zone used to host secpoll.powerdns.com is `available <https://github.com/PowerDNS/pdns/blob/master/docs/secpoll.zone>`_.
 
 To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION compilation-time macro can be used to set a distributor suffix.
 

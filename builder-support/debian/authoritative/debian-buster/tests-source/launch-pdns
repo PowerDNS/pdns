@@ -1,0 +1,16 @@
+#!/bin/bash
+LOGFILE=$(mktemp)
+cleanup() {
+  rm -f "$LOGFILE"
+}
+trap cleanup EXIT
+
+(../../pdns/pdns_server --config-dir=. --socket-dir=. \
+  --write-pid=yes \
+  --local-address=127.0.0.1 --local-port=5301 \
+  2>&1 | tee "$LOGFILE") &
+
+echo "Waiting for pdns_server to start..."
+while grep "About to" "$LOGFILE"; do
+  sleep 2
+done

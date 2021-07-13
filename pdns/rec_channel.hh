@@ -51,11 +51,26 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
-  std::string recv(std::string* remote=0, unsigned int timeout=5);
+  struct Answer
+  {
+    Answer& operator+=(const Answer& rhs)
+    {
+      if (d_ret == 0 && rhs.d_ret != 0) {
+        d_ret = rhs.d_ret;
+      }
+      d_str += rhs.d_str;
+      return *this;
+    }
+    int d_ret{0};
+    std::string d_str;
+  };
+
+  void send(const Answer&, const std::string* remote = nullptr, unsigned int timeout = 5, int fd = -1);
+  RecursorControlChannel::Answer recv(std::string* remote = nullptr, unsigned int timeout = 5);
 
   int d_fd;
-  static volatile sig_atomic_t stop;
+  static std::atomic<bool> stop;
+
 private:
   struct sockaddr_un d_local;
 };
@@ -68,8 +83,10 @@ public:
   }
   static void nop(void){}
   typedef void func_t(void);
-  std::string getAnswer(const std::string& question, func_t** func);
+
+  RecursorControlChannel::Answer getAnswer(int s, const std::string& question, func_t** func);
 };
+
 
 enum class StatComponent { API, Carbon, RecControl, SNMP };
 
@@ -77,7 +94,17 @@ struct StatsMapEntry {
   std::string d_prometheusName;
   std::string d_value;
 };
-typedef std::map<std::string, StatsMapEntry> StatsMap;
+
+class PrefixDashNumberCompare
+{
+private:
+  static std::pair<std::string, std::string> prefixAndTrailingNum(const std::string& a);
+public:
+  bool operator()(const std::string& a, const std::string& b) const;
+};
+
+typedef std::map<std::string, StatsMapEntry, PrefixDashNumberCompare> StatsMap;
+
 StatsMap getAllStatsMap(StatComponent component);
 
 extern std::mutex g_carbon_config_lock;
@@ -92,12 +119,13 @@ std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName);
 boost::optional<uint64_t> getStatByName(const std::string& name);
-bool isStatBlacklisted(StatComponent component, const std::string& name);
-void blacklistStat(StatComponent component, const string& name);
-void blacklistStats(StatComponent component, const string& stats);
+bool isStatDisabled(StatComponent component, const std::string& name);
+void disableStat(StatComponent component, const string& name);
+void disableStats(StatComponent component, const string& stats);
 
 void registerAllStats();
 
 void doExitGeneric(bool nicely);
 void doExit();
 void doExitNicely();
+RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);

@@ -3,3 +3,6 @@ cleandig google-alias.example.com A hidettl
 cleandig google-alias.example.com AAAA hidettl
 cleandig google-alias.example.com A hidettl tcp
 cleandig google-alias.example.com AAAA hidettl tcp
+
+# Test if the NSEC bitmap is correct
+cleandig google-alias1.example.com A hidettl hidesoadetails dnssec

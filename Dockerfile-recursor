@@ -7,6 +7,8 @@
 # Builder
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x arm64"
+
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
@@ -18,7 +20,6 @@ COPY builder-support /source/builder-support
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
     apt-get clean
-# RUN apt-get -y install protobuf-compiler && apt-get clean
 
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
@@ -43,13 +44,14 @@ ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
 RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
-      BUILDER_VERSION="$(BUILDER_MODULES=recursor ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')" set-configure-ac-version.sh;\
+      BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=recursor ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
     fi && \
     BUILDER_MODULES=recursor autoreconf -vfi
 
 RUN mkdir /build && \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
-      --with-lua=luajit \
+      --with-lua=${LUAVER} \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal && \

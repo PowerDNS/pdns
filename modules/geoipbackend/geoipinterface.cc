@@ -25,7 +25,8 @@
 #include "geoipbackend.hh"
 #include "geoipinterface.hh"
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr) {
+unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr)
+{
   /* parse dbStr */
   map<string, string> opts;
   vector<string> parts1, parts2;
@@ -39,29 +40,32 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr) {
     filename = parts2[0];
     size_t pos = filename.find_last_of(".");
     if (pos != string::npos)
-      driver = filename.substr(pos+1);
+      driver = filename.substr(pos + 1);
     else
       driver = "unknown";
-  } else {
+  }
+  else {
     driver = parts1[0];
     stringtok(parts2, parts1[1], ";");
     filename = parts2[0];
   }
 
   if (parts2.size() > 1) {
-     parts2.erase(parts2.begin(), parts2.begin()+1);
-     for(const auto &opt: parts2) {
-       vector<string> kv;
-       stringtok(kv, opt, "=");
-       opts[kv[0]] = kv[1];
-     }
+    parts2.erase(parts2.begin(), parts2.begin() + 1);
+    for (const auto& opt : parts2) {
+      vector<string> kv;
+      stringtok(kv, opt, "=");
+      opts[kv[0]] = kv[1];
+    }
   }
 
   if (driver == "dat") {
-     return makeDATInterface(filename, opts);
-  } else if (driver == "mmdb") {
-     return makeMMDBInterface(filename, opts);
-  } else {
-     throw PDNSException(string("Unsupported file type '") + driver + string("' (use type: prefix to force type)"));
+    return makeDATInterface(filename, opts);
+  }
+  else if (driver == "mmdb") {
+    return makeMMDBInterface(filename, opts);
+  }
+  else {
+    throw PDNSException(string("Unsupported file type '") + driver + string("' (use type: prefix to force type)"));
   }
 }

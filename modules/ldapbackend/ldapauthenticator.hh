@@ -27,9 +27,8 @@
 
 class LdapAuthenticator
 {
-  public:
-    virtual ~LdapAuthenticator() {}
-    virtual bool authenticate( LDAP *connection ) = 0;
-    virtual std::string getError() const = 0;
+public:
+  virtual ~LdapAuthenticator() {}
+  virtual bool authenticate(LDAP* connection) = 0;
+  virtual std::string getError() const = 0;
 };
-

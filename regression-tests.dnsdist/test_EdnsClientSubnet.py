@@ -663,7 +663,7 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 class TestECSDisabledByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet
-    option, but we disable it via DisableECSAction()
+    option, but we disable it via SetDisableECSAction()
     or Lua.
     """
 
@@ -672,7 +672,7 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(16)
     setECSSourcePrefixV6(16)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("disabled.ecsrules.tests.powerdns.com."), DisableECSAction())
+    addAction(makeRule("disabled.ecsrules.tests.powerdns.com."), SetDisableECSAction())
     function disableECSViaLua(dq)
         dq.useECS = false
         return DNSAction.None, ""
@@ -757,7 +757,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to set the EDNS0 Client Subnet
     option without overriding an existing one, but we
-    force the overriding via ECSOverrideAction() or Lua.
+    force the overriding via SetECSOverrideAction() or Lua.
     """
 
     _config_template = """
@@ -765,7 +765,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("overridden.ecsrules.tests.powerdns.com."), ECSOverrideAction(true))
+    addAction(makeRule("overridden.ecsrules.tests.powerdns.com."), SetECSOverrideAction(true))
     function overrideECSViaLua(dq)
         dq.ecsOverride = true
         return DNSAction.None, ""
@@ -856,7 +856,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to set the EDNS0 Client Subnet
     option with a prefix length of 24 for IPv4 and 56 for IPv6,
-    but we override that to 32 and 128 via ECSPrefixLengthAction() or Lua.
+    but we override that to 32 and 128 via SetECSPrefixLengthAction() or Lua.
     """
 
     _config_template = """
@@ -864,7 +864,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("overriddenprefixlength.ecsrules.tests.powerdns.com."), ECSPrefixLengthAction(32, 128))
+    addAction(makeRule("overriddenprefixlength.ecsrules.tests.powerdns.com."), SetECSPrefixLengthAction(32, 128))
     function overrideECSPrefixLengthViaLua(dq)
         dq.ecsPrefixLength = 32
         return DNSAction.None, ""

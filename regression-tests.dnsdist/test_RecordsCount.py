@@ -27,7 +27,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testRecordsCountAllowOneAR(self):
         """
@@ -51,8 +51,8 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testRecordsCountRefuseTwoAR(self):
         """
@@ -81,7 +81,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
 class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
 
@@ -107,7 +107,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testRecordsCountAllowTwoAN(self):
         """
@@ -133,8 +133,8 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testRecordsCountRefuseFourAN(self):
         """
@@ -160,7 +160,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
 class TestRecordsCountNothingInNS(DNSDistTest):
 
@@ -193,7 +193,7 @@ class TestRecordsCountNothingInNS(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
 
     def testRecordsCountAllowEmptyNS(self):
@@ -218,8 +218,8 @@ class TestRecordsCountNothingInNS(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
 class TestRecordsCountNoOPTInAR(DNSDistTest):
 
@@ -244,7 +244,7 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testRecordsCountAllowNoOPTInAR(self):
         """
@@ -268,8 +268,8 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testRecordsCountAllowTwoARButNoOPT(self):
         """
@@ -304,5 +304,5 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)

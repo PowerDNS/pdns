@@ -28,7 +28,7 @@ class TestTCPKeepAlive(DNSDistTest):
     setMaxTCPConnectionDuration(%s)
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-    addAction("largernumberofconnections.tcpka.tests.powerdns.com.", SkipCacheAction())
+    addAction("largernumberofconnections.tcpka.tests.powerdns.com.", SetSkipCacheAction())
     addAction("refused.tcpka.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("dropped.tcpka.tests.powerdns.com.", DropAction())
     addResponseAction("dropped-response.tcpka.tests.powerdns.com.", DropResponseAction())
@@ -58,7 +58,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 if response is None:
                     break
-                self.assertEquals(expectedResponse, response)
+                self.assertEqual(expectedResponse, response)
                 count = count + 1
             except:
                 pass
@@ -85,8 +85,8 @@ class TestTCPKeepAlive(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
 
         conn = self.openTCPConnection()
 
@@ -97,7 +97,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 if response is None:
                     break
-                self.assertEquals(expectedResponse, response)
+                self.assertEqual(expectedResponse, response)
                 count = count + 1
             except:
                 pass
@@ -127,7 +127,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 if response is None:
                     break
-                self.assertEquals(expectedResponse, response)
+                self.assertEqual(expectedResponse, response)
                 count = count + 1
             except:
                 pass
@@ -239,7 +239,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 if response is None:
                     break
-                self.assertEquals(expectedResponse, response)
+                self.assertEqual(expectedResponse, response)
                 count = count + 1
             except:
                 pass

@@ -7,7 +7,8 @@ fi
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A
 $PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com ${PWD}/zones/addzone.com >/dev/null 2>&1
-$PDNSCONTROL --config-name=bind --socket-dir=. --no-config purge addzone.com
+# output of purge changes if zone-cache-refresh-interval is set
+$PDNSCONTROL --config-name=bind --socket-dir=. --no-config purge addzone.com >/dev/null
 sleep 1
 $PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com ${PWD}/zones/addzone.com
 sleep 1

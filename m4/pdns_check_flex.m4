@@ -1,5 +1,5 @@
 AC_DEFUN([PDNS_CHECK_FLEX], [
-  AC_REQUIRE([AC_PROG_LEX])
+  AC_PROG_LEX(noyywrap)
   AC_REQUIRE([AC_PROG_EGREP])
 
   AC_CACHE_CHECK([if the lexer is flex],[pdns_cv_prog_flex],[

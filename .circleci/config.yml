@@ -43,6 +43,16 @@ commands:
           name: include $BASH_ENV for both interactive and non-interactive shells
           command: echo '. $BASH_ENV' >> $HOME/.bashrc
 
+  install-clang-8:
+    description: install clang-8 from backports
+    steps:
+      - run:
+          name: add backports and install clang-8
+          command: |
+            echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+            apt-get update
+            apt-get -qq -t buster-backports --no-install-recommends install clang-8 llvm-8
+
   install-coverity-tools:
     description: Install the coverity tools to /usr/local
     steps:
@@ -65,10 +75,12 @@ commands:
     steps:
       - get-workspace
       - install-auth-deps
+      - install-clang-8 # for the symbolizer
       - run:
           name: Install test dependencies
           command: |
             apt-get -y -qq install \
+              authbind \
               bc \
               bind9utils \
               build-essential libsqlite3-dev libzmq3-dev \
@@ -76,6 +88,7 @@ commands:
               default-jre-headless \
               dnsutils \
               gawk \
+              git \
               ldnsutils \
               libnet-dns-perl \
               pdns-recursor \
@@ -99,6 +112,11 @@ commands:
           name: Start PowerDNS Recursor in the background
           command: pdns_recursor
           background: true
+      - run:
+          name: Set up authbind
+          command: |
+            touch /etc/authbind/byport/53
+            chmod 755 /etc/authbind/byport/53
 
   auth-regress:
     description: Run one auth regression context
@@ -175,14 +193,14 @@ commands:
       - run:
           command: |
             apt-get install -qq -y \
-              libluajit-5.1 \
+              libluajit-5.1-2 \
               libboost-all-dev \
               libcap2 \
               libssl1.1 \
               libsystemd0 \
               libsodium23 \
               libfstrm0 \
-              libprotobuf17
+              libsnmp30
 
   install-auth-deps:
     description: Install all libraries needed to run the auth
@@ -215,7 +233,7 @@ commands:
       - run:
           command: |
             apt-get install -qq -y \
-              libluajit-5.1 \
+              libluajit-5.1-2 \
               libboost-all-dev \
               libcap2 \
               libcdb1 \
@@ -223,7 +241,6 @@ commands:
               libfstrm0 \
               libh2o-evloop0.13 \
               liblmdb0 \
-              libprotobuf17 \
               libre2-5 \
               libssl-dev \
               libsystemd0 \
@@ -406,6 +423,7 @@ commands:
           name: configure
           command: |
             ./configure \
+            --enable-option-checking=fatal \
             --disable-lua-records \
             --disable-unit-tests \
             --without-dynmodules \
@@ -441,8 +459,8 @@ commands:
           name: configure
           command: |
             ./configure \
-              --disable-unit-tests \
-              --disable-protobuf
+              --enable-option-checking=fatal \
+              --disable-unit-tests
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build docs
@@ -477,8 +495,8 @@ commands:
           name: configure
           command: |
             ./configure \
-              --disable-unit-tests \
-              --disable-protobuf
+              --enable-option-checking=fatal \
+              --disable-unit-tests
           working_directory: ~/project/pdns/dnsdistdist
       - run:
           name: build docs
@@ -520,7 +538,7 @@ jobs:
 
   check-formatting:
     docker:
-      - image: debian:buster
+      - image: debian:bullseye
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -528,14 +546,13 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
             apt-get update && apt-get -qq --no-install-recommends install git
-            apt-get -qq -t buster-backports --no-install-recommends install clang-format-8
+            apt-get -qq --no-install-recommends install clang-format-11
       - get-workspace
       - run:
           name: Check formatting
           command: |
-            ./build-scripts/format-code pdns/recursordist/*.[ch][ch]
+            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
             git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
@@ -557,10 +574,13 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
-
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - get-workspace
       - install-auth-dev-deps
+      - install-clang-8
       - restore-cache-ccache:
           product: auth
       - run:
@@ -569,9 +589,12 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+              --enable-option-checking=fatal \
               --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
               --enable-systemd \
               --enable-tools \
@@ -583,7 +606,9 @@ jobs:
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
-              --enable-ixfrdist
+              --enable-ixfrdist \
+              --enable-asan \
+              --enable-ubsan
       - run:
           name: build
           command: make -j3 -k
@@ -611,6 +636,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
@@ -644,6 +672,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
@@ -708,6 +739,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -729,7 +763,12 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
-      - image: circleci/mysql:5      # for the hybrid test
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: mysql:5      # for the hybrid test
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -760,7 +799,7 @@ jobs:
       - run:
           name: Set up mysql client lib to force TCP
           command: echo 'export GMYSQLHOST=127.0.0.1' > ./vars
-          workdir: ~/project/regression-tests            
+          workdir: ~/project/regression-tests
       - auth-regress:
           context: bind-hybrid-nsec3
 
@@ -772,7 +811,12 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
-      - image: circleci/mysql:5
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: mysql:5
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -812,7 +856,10 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
-      - image: circleci/postgres:9
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: postgres:9
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -841,6 +888,8 @@ jobs:
           context: gpgsql-nsec3-optout-both
       - auth-regress:
           context: gpgsql-nsec3-narrow
+      - auth-regress:
+          context: gpgsql_sp-both
 
   test-auth-regress-ldap:
     resource_class: small
@@ -852,6 +901,8 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           LDAPHOST: ldap://ldapserver/
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: powerdns/ldap-regress:1.2.4-1 # OpenLDAP 2.4.47
         auth:
           username: powerdnsreadonly
@@ -881,6 +932,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -895,6 +949,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -916,6 +973,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install ruby ruby-bundler ruby2.5-dev
@@ -956,6 +1016,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
@@ -977,6 +1040,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run: apt-get install -y -qq jq
@@ -999,13 +1065,16 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
           name: Test all algorithms
           command: /opt/pdns-auth/bin/pdnsutil test-algorithms
 
-  test-auth-api:
+  test-auth-api-gmysql:
     resource_class: small
 
     docker:
@@ -1013,18 +1082,137 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: mysql:5
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev default-mysql-client
       - run:
-          name: Run API tests
+          name: Set up mysql client lib to force TCP
+          command: |
+            cat >> ~/.my.cnf \<<- __EOF__
+            [client]
+            protocol=TCP
+            default-character-set=latin1
+            __EOF__
+      - run:
+          name: Run API tests gmysql
+          workdir: ~/project/regression-tests.api
+          command: |
+            MYSQL_HOST="127.0.0.1" \
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative gmysql
+
+  test-auth-api-gpgsql:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: postgres:9
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_HOST_AUTH_METHOD: trust
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev postgresql-client
+      - run:
+          name: Run API tests gpgsql
+          workdir: ~/project/regression-tests.api
+          command: |
+            PGHOST="127.0.0.1" \
+            PGPORT="5432" \
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative gpgsql
+
+  test-auth-api-gsqlite3:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev
+      - run:
+          name: Run API tests gsqlite3
           workdir: ~/project/regression-tests.api
           command: |
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative gsqlite3
+
+  test-auth-api-lmdb:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev
+      - run:
+          name: Run API tests LMDB
+          workdir: ~/project/regression-tests.api
+          command: |
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative lmdb
+
+  test-auth-py:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv
+      - run:
+          name: Run auth-py tests
+          workdir: ~/project/regression-tests.auth-py
+          command: |
+            PDNS="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
             ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
-            ./runtests authoritative
+            ./runtests
 
   build-recursor:
     docker:
@@ -1032,9 +1220,10 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
-      - restore-cache-ccache:
-          product: recursor
       - run:
           name: Install dependencies
           command: |
@@ -1051,17 +1240,19 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
-            libprotobuf-dev \
+            libsnmp-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             systemd \
             python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: recursor
       - get-workspace
       - run:
           name: autoconf
@@ -1070,9 +1261,12 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+            --enable-option-checking=fatal \
             --enable-unit-tests \
             --enable-nod \
             --enable-systemd \
@@ -1080,8 +1274,10 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
-            --without-net-snmp
+            --with-net-snmp \
+            --enable-dns-over-tls \
+            --enable-asan \
+            --enable-ubsan
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
@@ -1110,6 +1306,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
@@ -1121,11 +1320,18 @@ jobs:
             chmod 755 /etc/authbind/byport/53
       - get-workspace
       - run:
+          name: setup snmp
+          command: |
+            apt-get -qq --no-install-recommends install snmpd
+            sed "s/agentxperms 0700 0755 recursor/agentxperms 0700 0755/g" regression-tests.recursor-dnssec/snmpd.conf > /etc/snmp/snmpd.conf
+            /etc/init.d/snmpd start
+      - run:
           name: Run regression tests
           workdir: ~/project
           command: |
             PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
             RECCONTROL=/opt/pdns-recursor/bin/rec_control \
+            SKIP_IPV6_TESTS=y \
             ./build-scripts/test-recursor
 
   test-recursor-bulk:
@@ -1136,6 +1342,9 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
@@ -1279,7 +1488,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 16
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest M
+          name: Run bulktest N
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1289,7 +1498,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 32
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest N
+          name: Run bulktest O
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1299,7 +1508,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 64
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest O
+          name: Run bulktest P
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1309,7 +1518,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 128
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest P
+          name: Run bulktest Q
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1319,7 +1528,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 256
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest Q
+          name: Run bulktest R
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1329,7 +1538,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 512
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest R
+          name: Run bulktest S
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1347,9 +1556,12 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y python3-venv pdns-tools
+      - run: apt-get --no-install-recommends install -qq -y python3-venv python3-dev default-libmysqlclient-dev libpq-dev pdns-tools
       - install-recursor-deps
       - get-workspace
       - run:
@@ -1363,7 +1575,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1376,7 +1588,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1391,7 +1603,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1404,7 +1616,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1419,7 +1631,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1432,7 +1644,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1464,6 +1676,7 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+              --enable-option-checking=fatal \
               --disable-systemd \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
               --enable-tools \
@@ -1516,7 +1729,6 @@ jobs:
             libfstrm-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
-            libprotobuf-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1525,7 +1737,6 @@ jobs:
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             python3-venv
       - install-coverity-tools
@@ -1540,6 +1751,7 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+            --enable-option-checking=fatal \
             --disable-systemd \
             --disable-unit-tests \
             --enable-dnstap \
@@ -1549,7 +1761,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --with-re2
           working_directory: /opt/project/pdns/dnsdistdist
       - run:
@@ -1595,14 +1806,13 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
-            libprotobuf-dev \
+            libsnmp-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             python3-venv
       - install-coverity-tools
@@ -1617,14 +1827,14 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+            --enable-option-checking=fatal \
             --disable-systemd \
             --disable-unit-tests \
             --prefix=/opt/pdns-recursor \
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
-            --without-net-snmp
+            --with-net-snmp
           working_directory: /opt/project/pdns/recursordist
       - run:
           name: build
@@ -1653,9 +1863,8 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
-      - restore-cache-ccache:
-          product: dnsdist
       - run:
           name: Install dependencies
           command: |
@@ -1672,7 +1881,6 @@ jobs:
             libh2o-evloop-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
-            libprotobuf-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1681,10 +1889,12 @@ jobs:
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             systemd \
             python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: dnsdist
       - get-workspace
       - run:
           name: autoconf
@@ -1693,9 +1903,12 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
+            --enable-option-checking=fatal \
             --enable-unit-tests \
             --enable-dnstap \
             --enable-dnscrypt \
@@ -1706,7 +1919,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --with-re2 \
             --enable-asan \
             --enable-ubsan
@@ -1730,6 +1942,91 @@ jobs:
           paths:
             - dnsdist
 
+  build-dnsdist-with-tsan:
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          TSAN_OPTIONS: 'halt_on_error=1:suppressions=/opt/project/pdns/dnsdistdist/dnsdist-tsan.supp'
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libcdb-dev \
+            libedit-dev \
+            libfstrm-dev \
+            libh2o-evloop-dev \
+            liblmdb-dev \
+            libluajit-5.1-dev \
+            libre2-dev \
+            libsnmp-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            make \
+            pkg-config \
+            ragel \
+            systemd \
+            python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: dnsdist-with-tsan
+      - get-workspace
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: configure
+          command: |
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
+            ./configure \
+            --enable-option-checking=fatal \
+            --enable-unit-tests \
+            --enable-dnstap \
+            --enable-dnscrypt \
+            --enable-dns-over-tls \
+            --enable-dns-over-https \
+            --enable-systemd \
+            --prefix=/opt/dnsdist-with-tsan \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-re2 \
+            --enable-tsan
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: build
+          command: make -j1 -k
+          working_directory: ~/project/pdns/dnsdistdist
+      - save-ccache-cache:
+          product: dnsdist-with-tsan
+      - run:
+          name: Run unit tests
+          command: make check || (cat test-suite.log; false)
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: Install resulting binaries
+          command: make install
+          working_directory: ~/project/pdns/dnsdistdist
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - dnsdist-with-tsan
+
   test-dnsdist-regression:
     resource_class: small
 
@@ -1740,8 +2037,10 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - install-dnsdist-deps
+      - install-clang-8 # for the symbolizer
       - get-workspace
       - run:
           name: setup snmp
@@ -1760,6 +2059,37 @@ jobs:
             DNSDISTBIN="/opt/dnsdist/bin/dnsdist" \
             ./runtests
 
+  test-dnsdist-regression-with-tsan:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          TSAN_OPTIONS: 'halt_on_error=1:suppressions=/opt/project/pdns/dnsdistdist/dnsdist-tsan.supp'
+    steps:
+      - install-dnsdist-deps
+      - install-clang-8 # for the symbolizer
+      - get-workspace
+      - run:
+          name: setup snmp
+          command: |
+            apt-get -qq --no-install-recommends install snmpd
+            sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
+            /etc/init.d/snmpd start
+      - run:
+          name: install prometheus tools
+          command: |
+            apt-get -qq --no-install-recommends install prometheus
+      - run:
+          name: Run dnsdist tests
+          workdir: ~/project/regression-tests.dnsdist
+          command: |
+            DNSDISTBIN="/opt/dnsdist-with-tsan/bin/dnsdist" \
+            ./runtests
+
   test-ixfrdist-regression:
     resource_class: small
 
@@ -1770,6 +2100,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - install-ixfrdist-deps
       - get-workspace
@@ -1803,7 +2134,16 @@ workflows:
       - build-auth:
           requires:
             - checkout
-      - test-auth-api:
+      - test-auth-api-gmysql:
+          requires:
+            - build-auth
+      - test-auth-api-gpgsql:
+          requires:
+            - build-auth
+      - test-auth-api-gsqlite3:
+          requires:
+            - build-auth
+      - test-auth-api-lmdb:
           requires:
             - build-auth
       - test-auth-algorithms:
@@ -1845,6 +2185,9 @@ workflows:
       - test-auth-regress-tinydns:
           requires:
             - build-auth
+      - test-auth-py:
+          requires:
+            - build-auth
       - check-formatting:
           requires:
             - checkout
@@ -1863,9 +2206,15 @@ workflows:
       - build-dnsdist:
           requires:
             - checkout
+      - build-dnsdist-with-tsan:
+          requires:
+            - checkout
       - test-dnsdist-regression:
           requires:
             - build-dnsdist
+      - test-dnsdist-regression-with-tsan:
+          requires:
+            - build-dnsdist-with-tsan
       - test-ixfrdist-regression:
           requires:
             - build-auth

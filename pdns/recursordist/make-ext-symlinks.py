@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import os
 import shutil
@@ -20,5 +20,7 @@ for extdir in ['yahttp', 'json11', 'probds']:
         os.mkdir(stripped_root)
         num_dirs = len(root.split('/')) - root.split('/').count('..')
         for dirfile in files:
-            os.symlink(os.path.join(num_dirs * '../', root, dirfile),
-                       os.path.join(stripped_root, dirfile))
+            if dirfile == '.gitignore':
+                shutil.copyfile(os.path.join(num_dirs * '../', stripped_root, dirfile), os.path.join(stripped_root, dirfile))
+            else:
+                os.symlink(os.path.join(num_dirs * '../', root, dirfile), os.path.join(stripped_root, dirfile))

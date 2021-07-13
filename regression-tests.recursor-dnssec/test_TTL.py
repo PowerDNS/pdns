@@ -25,6 +25,6 @@ max-cache-bogus-ttl=5"""
         res = self.sendUDPQuery(query)
         self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEquals(len(res.answer), 2)
+        self.assertEqual(len(res.answer), 2)
         for ans in res.answer:
             self.assertLessEqual(ans.ttl, 5)

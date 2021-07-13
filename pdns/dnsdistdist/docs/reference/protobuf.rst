@@ -16,8 +16,6 @@ Protobuf Logging Reference
 
   .. method:: DNSDistProtoBufMessage:addResponseRR(name, type, class, ttl, blob)
 
-    .. versionadded:: 1.2.0
-
     Add a response RR to the protobuf message.
 
     :param string name: The RR name.
@@ -54,8 +52,6 @@ Protobuf Logging Reference
     :param int qclass: The qclass of the question
 
   .. method:: DNSDistProtoBufMessage:setProtobufResponseType(sec, usec)
-
-    .. versionadded:: 1.2.0
 
     Change the protobuf response type from a query to a response, and optionally set the query time.
 
@@ -110,23 +106,17 @@ Protobuf Logging Reference
 
   .. method:: DNSDistProtoBufMessage:setServerIdentity(id)
 
-    .. versionadded:: 1.3.3
-
     Set the server identify field.
 
     :param string id: The server ID
 
   .. method:: DNSDistProtoBufMessage:setTag(value)
 
-    .. versionadded:: 1.2.0
-
     Add a tag to the list of tags.
 
     :param string value: The tag value
 
   .. method:: DNSDistProtoBufMessage:setTagArray(valueList)
-
-    .. versionadded:: 1.2.0
 
     Add a list of tags.
 

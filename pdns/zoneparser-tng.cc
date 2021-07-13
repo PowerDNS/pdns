@@ -39,16 +39,16 @@
 
 static string g_INstr("IN");
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir, bool upgradeContent):
-  d_reldir(reldir), d_zonename(zname), d_defaultttl(3600), 
+ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir, bool upgradeContent):
+  d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600), 
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
 {
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname, bool upgradeContent):
-  d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
+ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, bool upgradeContent):
+  d_zonename(std::move(zname)), d_zonedata(zonedata), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
 {
@@ -473,7 +473,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         try {
           recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
+          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
         }
       }
       rr.content=recparts[0]+" "+recparts[1];
@@ -496,7 +496,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         try {
           recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
+          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
         }
       }
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
@@ -511,7 +511,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     try {
       rr.content = toCanonic(d_zonename, rr.content).toStringRootDot();
     } catch (std::exception &e) {
-      throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
+      throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
     }
     break;
   case QType::AFSDB:
@@ -520,7 +520,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       try {
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
+        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
       }
     } else {
       throw PDNSException("AFSDB record for "+rr.qname.toLogString()+" invalid");
@@ -542,7 +542,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
+        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
       }
     }
     rr.content.clear();

@@ -6,8 +6,8 @@ Statistics endpoint
   Query PowerDNS internal statistics.
   Returns a list of :json:object:`StatisticItem` elements.
 
-  The names and meaning of these items are described :ref:`here <metricnames>`.
-
+  The :ref:`metricnames <metricnames>` page describes the names and meanings of these items.
+ 
   :param server_id: The name of the server
 
   :query statistic: If set to the name of a specific statistic, only this value is returned. If no statistic with that name exists, the response has a 422 status and an error message

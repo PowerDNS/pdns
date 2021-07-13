@@ -32,15 +32,13 @@
 class SODBC : public SSql
 {
 private:
+  bool m_log; //!< Should we log?
+  bool m_busy; //!< Are we busy executing a query?
 
+  SQLHDBC m_connection; //!< Database connection handle.
+  SQLHENV m_environment; //!< Database environment handle
 
-  bool m_log;               //!< Should we log?
-  bool m_busy;              //!< Are we busy executing a query?
-
-  SQLHDBC   m_connection;   //!< Database connection handle.
-  SQLHENV   m_environment;  //!< Database environment handle
-
-  void testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message);
+  void testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string& message);
 
 public:
   //! Default constructor.
@@ -52,16 +50,15 @@ public:
   \param password Password to use.
   */
   SODBC(
-    const std::string & dsn,
-    const std::string & username,
-    const std::string & password
-    );
+    const std::string& dsn,
+    const std::string& username,
+    const std::string& password);
 
   //! Destructor.
-  virtual ~SODBC( void );
+  virtual ~SODBC(void);
 
   //! Sets the logging state.
-  void setLog( bool state ) override;
+  void setLog(bool state) override;
 
   std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query) override;
@@ -70,6 +67,5 @@ public:
   void commit() override;
 
   //! Returns an exception.
-  SSqlException sPerrorException( const std::string & reason ) override;
-
+  SSqlException sPerrorException(const std::string& reason) override;
 };

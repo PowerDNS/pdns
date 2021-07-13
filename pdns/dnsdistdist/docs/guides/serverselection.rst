@@ -58,8 +58,6 @@ For example, if we have two servers, with respective weights of 1 and 4, we expe
 ``chashed``
 ~~~~~~~~~~~
 
-.. versionadded: 1.3.3
-
 ``chashed`` is a consistent hashing distribution policy. Identical questions with identical hashes will be distributed to the same servers. But unlike the ``whashed`` policy, this distribution will keep consistent over time. Adding or removing servers will only remap a small part of the queries.
 
 Increasing the weight of servers to a value larger than the default is required to get a good distribution of queries. Small values like 100 or 1000 should be enough to get a correct distribution.

@@ -10,4 +10,5 @@ DIST_SUBDIRS = \
 
 EXTRA_DIST = \
 	luawrapper/include/LuaContext.hpp \
-	incbin/incbin.h
+	protozero/* protozero/include/protozero/*
+
