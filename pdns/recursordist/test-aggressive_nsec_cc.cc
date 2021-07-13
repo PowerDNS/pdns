@@ -1340,4 +1340,539 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   BOOST_CHECK_EQUAL(cache->getDenial(now, other, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
 }
 
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
+{
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, boost::none, boost::none, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC matching the exact name (apex) */
+    DNSName name("sub.powerdns.com");
+    DNSRecord rec;
+    rec.d_name = name;
+    rec.d_type = QType::NSEC;
+    rec.d_ttl = now + 10;
+
+    NSECRecordContent nrc;
+    nrc.d_next = DNSName("sub1.powerdns.com");
+    for (const auto& type : {QType::A}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 sub.powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny other types (except the DS) */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* but not any type that lives in the child zone */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(results.size(), 0U);
+  }
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC matching the exact name, but it is an ancestor NSEC (delegation) */
+    DNSName name("sub.powerdns.com");
+    DNSRecord rec;
+    rec.d_name = name;
+    rec.d_type = QType::NSEC;
+    rec.d_ttl = now + 10;
+
+    NSECRecordContent nrc;
+    nrc.d_next = DNSName("sub1.powerdns.com");
+    for (const auto& type : {QType::NS}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny the DS */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* but not any type that lives in the child zone */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+  }
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC matching the exact name inside a zone (neither apex nor delegation point) */
+    DNSName name("sub.powerdns.com");
+    DNSRecord rec;
+    rec.d_name = name;
+    rec.d_type = QType::NSEC;
+    rec.d_ttl = now + 10;
+
+    NSECRecordContent nrc;
+    nrc.d_next = DNSName("sub1.powerdns.com");
+    for (const auto& type : {QType::A}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny other types */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* including the DS */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+  }
+
+  {
+    /* nxd inside a zone (neither apex nor delegation point) */
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert NSEC proving that the name does not exist */
+    DNSName name("sub.powerdns.com.");
+    DNSName wc("*.powerdns.com.");
+
+    {
+      DNSRecord rec;
+      rec.d_name = DNSName("sua.powerdns.com");
+      rec.d_type = QType::NSEC;
+      rec.d_ttl = now + 10;
+
+      NSECRecordContent nrc;
+      nrc.d_next = DNSName("suc.powerdns.com");
+      for (const auto& type : {QType::A, QType::SOA, QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+    }
+    {
+      /* wildcard */
+      DNSRecord rec;
+      rec.d_name = DNSName(").powerdns.com.");
+      rec.d_type = QType::NSEC;
+      rec.d_ttl = now + 10;
+
+      NSECRecordContent nrc;
+      nrc.d_next = DNSName("+.powerdns.com.");
+      for (const auto& type : {QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
+    }
+
+    /* the cache should now be able to deny any type for the name  */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(results.size(), 5U);
+
+    /* including the DS, since we are not at the apex */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(results.size(), 5U);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
+{
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, boost::none, boost::none, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  const std::string salt("ab");
+  const unsigned int iterationsCount = 1;
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC3 matching the exact name (apex) */
+    DNSName name("sub.powerdns.com");
+    std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+    DNSRecord rec;
+    rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+    rec.d_type = QType::NSEC3;
+    rec.d_ttl = now + 10;
+
+    NSEC3RecordContent nrc;
+    nrc.d_algorithm = 1;
+    nrc.d_flags = 0;
+    nrc.d_iterations = iterationsCount;
+    nrc.d_salt = salt;
+    nrc.d_nexthash = hashed;
+    incrementHash(nrc.d_nexthash);
+    for (const auto& type : {QType::A}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 sub.powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny other types (except the DS) */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* but not any type that lives in the child zone */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(results.size(), 0U);
+  }
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC3 matching the exact name, but it is an ancestor NSEC3 (delegation) */
+    DNSName name("sub.powerdns.com");
+    std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+    DNSRecord rec;
+    rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+    rec.d_type = QType::NSEC3;
+    rec.d_ttl = now + 10;
+
+    NSEC3RecordContent nrc;
+    nrc.d_algorithm = 1;
+    nrc.d_flags = 0;
+    nrc.d_iterations = iterationsCount;
+    nrc.d_salt = salt;
+    nrc.d_nexthash = hashed;
+    incrementHash(nrc.d_nexthash);
+    for (const auto& type : {QType::NS}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny the DS */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* but not any type that lives in the child zone */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+  }
+
+  {
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert a NSEC3 matching the exact name inside a zone (neither apex nor delegation point) */
+    DNSName name("sub.powerdns.com");
+    std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+    DNSRecord rec;
+    rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+    rec.d_type = QType::NSEC3;
+    rec.d_ttl = now + 10;
+
+    NSEC3RecordContent nrc;
+    nrc.d_algorithm = 1;
+    nrc.d_flags = 0;
+    nrc.d_iterations = iterationsCount;
+    nrc.d_salt = salt;
+    nrc.d_nexthash = hashed;
+    incrementHash(nrc.d_nexthash);
+    for (const auto& type : {QType::A}) {
+      nrc.set(type);
+    }
+
+    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+    cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+    /* the cache should now be able to deny other types */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+    /* including the DS */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(results.size(), 3U);
+  }
+
+  {
+    /* nxd inside a zone (neither apex nor delegation point) */
+    cache = make_unique<AggressiveNSECCache>(10000);
+    /* insert NSEC3s proving that the name does not exist */
+    DNSName name("sub.powerdns.com.");
+    DNSName closestEncloser("powerdns.com.");
+    DNSName nextCloser("sub.powerdns.com.");
+    DNSName wc("*.powerdns.com.");
+
+    {
+      /* closest encloser */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, closestEncloser);
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A, QType::SOA, QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+    }
+    {
+      /* next closer */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, nextCloser);
+      decrementHash(hashed);
+
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
+    }
+    {
+      /* wildcard */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, wc);
+      decrementHash(hashed);
+
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
+    }
+
+
+    /* the cache should now be able to deny any type for the name  */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(results.size(), 7U);
+
+    /* including the DS, since we are not at the apex */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(results.size(), 7U);
+  }
+  {
+    /* we insert NSEC3s coming from the parent zone that could look like a valid denial but are not */
+    cache = make_unique<AggressiveNSECCache>(10000);
+
+    DNSName name("www.sub.powerdns.com.");
+    DNSName closestEncloser("powerdns.com.");
+    DNSName nextCloser("sub.powerdns.com.");
+    DNSName wc("*.powerdns.com.");
+
+    {
+      /* closest encloser */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, closestEncloser);
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      /* delegation ! */
+      for (const auto& type : {QType::NS}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+    }
+    {
+      /* next closer */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, nextCloser);
+      decrementHash(hashed);
+
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
+    }
+    {
+      /* wildcard */
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, wc);
+      decrementHash(hashed);
+
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A}) {
+        nrc.set(type);
+      }
+
+      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+      BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
+    }
+
+    /* the cache should NOT be able to deny the name  */
+    int res;
+    std::vector<DNSRecord> results;
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(results.size(), 0U);
+
+    /* and the same for the DS */
+    results.clear();
+    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(results.size(), 0U);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

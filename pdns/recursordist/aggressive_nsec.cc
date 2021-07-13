@@ -558,6 +558,11 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
+    if (type == QType::DS && signer == name) {
+      LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
+      return false;
+    }
+
     LOG(": done!" << endl);
     ++d_nsec3Hits;
     res = RCode::NoError;
@@ -594,6 +599,11 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
         */
         LOG(" but this is an ancestor delegation NSEC3" << endl);
         break;
+      }
+
+      if (type == QType::DS && signer == name) {
+        LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
+        return false;
       }
 
       found = true;
@@ -634,6 +644,12 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     return false;
   }
 
+  const DNSName nextCloserSigner = getSigner(nextCloserEntry.d_signatures);
+  if (type == QType::DS && nextCloserSigner == name) {
+    LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
+    return false;
+  }
+
   /* An ancestor NSEC3 would be fine here, since it does prove that there is no delegation at the next closer
      name (we don't insert opt-out NSEC3s into the cache). */
   DNSName wildcard(g_wildcarddnsname + closestEncloser);
@@ -669,6 +685,11 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
+    if (type == QType::DS && wcSigner == name) {
+      LOG(" but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
+      return false;
+    }
+
     if (!isTypeDenied(nsec3, type)) {
       LOG(" but the requested type (" << type.toString() << ") does exist" << endl);
       return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard);
@@ -689,6 +710,12 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
+    const DNSName wcSigner = getSigner(wcEntry.d_signatures);
+    if (type == QType::DS && wcSigner == name) {
+      LOG(" but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
+      return false;
+    }
+
     /* We have a NSEC3 proving that the wildcard does not exist. An ancestor NSEC3 would be fine here, since it does prove
        that there is no delegation at the wildcard name (we don't insert opt-out NSEC3s into the cache). */
     res = RCode::NXDomain;
@@ -706,7 +733,16 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
 
 bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC)
 {
-  auto zoneEntry = getBestZone(name);
+  std::shared_ptr<ZoneEntry> zoneEntry;
+  if (type == QType::DS) {
+    DNSName parent(name);
+    parent.chopOff();
+    zoneEntry = getBestZone(parent);
+  }
+  else {
+    zoneEntry = getBestZone(name);
+  }
+
   if (!zoneEntry || zoneEntry->d_entries.empty()) {
     return false;
   }
