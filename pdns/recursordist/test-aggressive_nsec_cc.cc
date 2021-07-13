@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor)
   /* now we query other2.sub.powerdns.com, we should NOT be able to use the NSEC3s we have
      to prove that the name does not exist */
   ret.clear();
-  res = sr->beginResolve(DNSName("4.sub.powerdns.com"), QType(QType::A), QClass::IN, ret);
+  res = sr->beginResolve(DNSName("4.sub.powerdns.com"), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
@@ -918,7 +918,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor)
   /* now we query other2.sub.powerdns.com, we should NOT be able to use the NSEC3s we have
      to prove that the name does not exist */
   ret.clear();
-  res = sr->beginResolve(DNSName("4.sub.powerdns.com"), QType(QType::A), QClass::IN, ret);
+  res = sr->beginResolve(DNSName("4.sub.powerdns.com"), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);

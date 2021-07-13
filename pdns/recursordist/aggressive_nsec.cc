@@ -545,6 +545,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     const DNSName signer = getSigner(exactNSEC3.d_signatures);
+    /* here we need to allow an ancestor NSEC3 proving that a DS does not exist as it is an
+       exact match for the name */
     if (type != QType::DS && isNSEC3AncestorDelegation(signer, exactNSEC3.d_owner, nsec3)) {
       /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
          Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
@@ -581,7 +583,9 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       }
 
       const DNSName signer = getSigner(closestNSEC3.d_signatures);
-      if (type != QType::DS && isNSEC3AncestorDelegation(signer, closestNSEC3.d_owner, nsec3)) {
+      /* This time we do not allow any ancestor NSEC3, as if the closest encloser is a delegation
+         NS we know nothing about the names in the child zone. */
+      if (isNSEC3AncestorDelegation(signer, closestNSEC3.d_owner, nsec3)) {
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -630,6 +634,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     return false;
   }
 
+  /* An ancestor NSEC3 would be fine here, since it does prove that there is no delegation at the next closer
+     name (we don't insert opt-out NSEC3s into the cache). */
   DNSName wildcard(g_wildcarddnsname + closestEncloser);
   auto wcHash = toBase32Hex(hashQNameWithSalt(salt, iterations, wildcard));
   LOG("Looking for a NSEC3 covering the wildcard " << wildcard << " (" << wcHash << ")" << endl);
@@ -650,6 +656,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     const DNSName wcSigner = getSigner(wcEntry.d_signatures);
+    /* It's an exact match for the wildcard, so it does exist. If we are looking for a DS
+       an ancestor NSEC3 is fine, otherwise it does not prove anything. */
     if (type != QType::DS && isNSEC3AncestorDelegation(wcSigner, wcEntry.d_owner, nsec3)) {
       /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
          Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
@@ -681,6 +689,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
+    /* We have a NSEC3 proving that the wildcard does not exist. An ancestor NSEC3 would be fine here, since it does prove
+       that there is no delegation at the wildcard name (we don't insert opt-out NSEC3s into the cache). */
     res = RCode::NXDomain;
   }
 
@@ -731,6 +741,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   }
 
   LOG(": found a possible NSEC at " << entry.d_owner << " ");
+  // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
   auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
     LOG(" but it does no cover us" << endl);
