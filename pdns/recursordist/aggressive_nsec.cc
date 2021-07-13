@@ -570,6 +570,18 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
         break;
       }
 
+      const DNSName signer = getSigner(closestNSEC3.d_signatures);
+      if (type != QType::DS && isNSEC3AncestorDelegation(signer, closestNSEC3.d_owner, nsec3)) {
+        /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+           Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+           nonexistence of any RRs below that zone cut, which include all RRs at
+           that (original) owner name other than DS RRs, and all RRs below that
+           owner name regardless of type.
+        */
+        LOG(" but this is an ancestor delegation NSEC3" << endl);
+        break;
+      }
+
       found = true;
       break;
     }
@@ -624,6 +636,18 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(wcEntry.d_record);
     if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
       LOG(" but the content is not valid, or has a different salt or iterations count" << endl);
+      return false;
+    }
+
+    const DNSName wcSigner = getSigner(wcEntry.d_signatures);
+    if (type != QType::DS && isNSEC3AncestorDelegation(wcSigner, wcEntry.d_owner, nsec3)) {
+      /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+         Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+         nonexistence of any RRs below that zone cut, which include all RRs at
+         that (original) owner name other than DS RRs, and all RRs below that
+         owner name regardless of type.
+      */
+      LOG(" but the NSEC3 covering the wildcard is an ancestor delegation NSEC3, bailing out" << endl);
       return false;
     }
 
