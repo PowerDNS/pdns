@@ -110,7 +110,7 @@ class TestAPIBasics(DNSDistTest):
                         'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
                         'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
-                        'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
+                        'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
                         'tcpAvgConnectionDuration']:
                 self.assertIn(key, server)
 

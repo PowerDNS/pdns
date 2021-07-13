@@ -107,6 +107,7 @@ void carbonDumpThread()
             str<<base<<"tcpmaxconcurrentconnections" << ' '<< state->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpnewconnections" << ' '<< state->tcpNewConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpreusedconnections" << ' '<< state->tcpReusedConnections.load() << " " << now << "\r\n";
+            str<<base<<"tlsresumptions" << ' '<< state->tlsResumptions.load() << " " << now << "\r\n";
             str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
             str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
           }

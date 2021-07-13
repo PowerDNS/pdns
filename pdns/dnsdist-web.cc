@@ -489,6 +489,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tcpavgqueriesperconn "        << "gauge"                                                             << "\n";
   output << "# HELP " << statesbase << "tcpavgconnduration "          << "The average duration of a TCP connection (ms)"                     << "\n";
   output << "# TYPE " << statesbase << "tcpavgconnduration "          << "gauge"                                                             << "\n";
+  output << "# HELP " << statesbase << "tlsresumptions "              << "The number of times a TLS session has been resumed"                << "\n";
+  output << "# TYPE " << statesbase << "tlsersumptions "              << "counter"                                                           << "\n";
 
   for (const auto& state : *states) {
     string serverName;
@@ -525,6 +527,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "tcpreusedconnections"         << label << " " << state->tcpReusedConnections        << "\n";
     output << statesbase << "tcpavgqueriesperconn"         << label << " " << state->tcpAvgQueriesPerConnection  << "\n";
     output << statesbase << "tcpavgconnduration"           << label << " " << state->tcpAvgConnectionDuration    << "\n";
+    output << statesbase << "tlsresumptions"               << label << " " << state->tlsResumptions              << "\n";
   }
 
   const string frontsbase = "dnsdist_frontend_";
@@ -918,6 +921,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"tcpReusedConnections", (double)a->tcpReusedConnections},
     {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
     {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
+    {"tlsResumptions", (double)a->tlsResumptions},
     {"dropRate", (double)a->dropRate}
   };
 
