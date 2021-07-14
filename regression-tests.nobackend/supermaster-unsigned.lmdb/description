@@ -1,0 +1,1 @@
+Tests that supermaster backend works and assigns TSIG keyname to zone on provision

@@ -81,6 +81,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
+  d_tsupermasters = std::make_shared<tsupermastersdb_t>(d_tdomains->getEnv(), "supermasters");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
 
   auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
@@ -206,6 +207,18 @@ namespace serialization
     else {
       g.published = true;
     }
+  }
+
+  template <class Archive>
+  void serialize(Archive& ar, LMDBBackend::SuperMastersDB& s, const unsigned int version)
+  {
+    ar& s.ip& s.nameserver& s.account;
+  }
+
+  template <class Archive>
+  void load(Archive& ar, LMDBBackend::SuperMastersDB& s, const unsigned int version)
+  {
+    ar& s.ip& s.nameserver& s.account;
   }
 
   template <class Archive>
@@ -982,6 +995,28 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
+bool LMDBBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+{
+  string name;
+  vector<ComboAddress> masters({ComboAddress(ip, 53)});
+  if (nameserver.empty())
+    return false;
+  else {
+    auto txn = d_tsupermasters->getROTransaction();
+    vector<ComboAddress> tmp;
+    // figure out all IP addresses for the master
+    for (auto range = txn.equal_range<0>(nameserver); range.first != range.second; ++range.first) {
+      if (range.first->account == account)
+        tmp.emplace_back(range.first->ip, 53);
+    }
+    if (tmp.size() > 0) {
+      // set them as domain's masters, comma separated
+      masters = tmp;
+    }
+  }
+  return createDomain(domain, DomainInfo::Slave, masters, account);
+}
+
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
 {
   domains->clear();
@@ -1677,6 +1712,43 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   }
   if (needCommit)
     txn->txn->commit();
+  return false;
+}
+
+bool LMDBBackend::superMasterAdd(const string& ip, const string& nameserver, const string& account)
+{
+  auto txn = d_tsupermasters->getRWTransaction();
+  /* check if it exists first */
+  for (auto range = txn.equal_range<0>(ip); range.first != range.second; ++range.first)
+    if (range.first->nameserver == nameserver)
+      range.first.del();
+
+  SuperMastersDB tsm;
+  tsm.ip = ip;
+  tsm.nameserver = nameserver;
+  tsm.account = account;
+
+  txn.put(tsm);
+  txn.commit();
+
+  return true;
+}
+
+bool LMDBBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+{
+  auto txn = d_tsupermasters->getROTransaction();
+  SuperMastersDB tsm;
+
+  for (const auto& ns : nsset) {
+    DNSName server(ns.content);
+    if (txn.get<0>(ip, tsm) && DNSName(tsm.nameserver) == server) {
+      *nameserver = tsm.nameserver;
+      *account = tsm.account;
+      *ddb = this;
+      return true;
+    }
+  }
+
   return false;
 }
 

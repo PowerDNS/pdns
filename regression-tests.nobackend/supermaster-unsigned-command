@@ -1,81 +1,37 @@
-#!/usr/bin/env bash
-set -e
-set -x
-
+ALGORITHM=${ALGORITHM:="hmac-md5"}
+KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 if [ "$RUNWRAPPER" = "" ]; then
   RUNWRAPPER="authbind"
 fi
+
+export ALGORITHM
+export KEY
 
 port=$1
 [ -z "$port" ] && port=53
 
 trap "kill_process 2" EXIT INT TERM
 
-tosql ()
-{
-        $ZONE2SQL --transactions --$1 --named-conf=./named.conf
-}
-
 prepare()
 {
-        rm -f named.conf
-        cat > named.conf<<EOF
-options {
-        directory "zones/";
-        recursion no;
-        listen-on port 5300 {
-                127.0.0.1;
-        };
-        version "Meow!Meow!";
-        minimal-responses yes;
-};
-zone "example.com"{
-        type master;
-        file "example.com";
-};
+	local_prepare
 
-zone "test.com"{
-        type master;
-        file "test.com";
-};
-EOF
-        cat > pdns-gsqlite3-master.conf<<EOF
-module-dir=../regression-tests/modules
-launch=gsqlite3
-gsqlite3-dnssec=yes
-gsqlite3-database=master.db
-EOF
-        cat > pdns-gsqlite3-slave.conf<<EOF
-module-dir=../regression-tests/modules
-launch=gsqlite3
-gsqlite3-dnssec=yes
-gsqlite3-database=slave.db
-zone-cache-refresh-interval=900
-EOF
-	rm -f master.db slave.db
-	sqlite3 master.db < ../modules/gsqlite3backend/schema.sqlite3.sql
-	sqlite3 slave.db < ../modules/gsqlite3backend/schema.sqlite3.sql
-	# import zones
-	tosql gsqlite | sqlite3 master.db
-	# change them to master
-	sqlite3 master.db <<EOF
-UPDATE domains SET type = 'MASTER', notified_serial = NULL;
-EOF
-	$ZONE2SQL --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
-	# setup supermaster
-	sqlite3 slave.db <<EOF
-UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
-EOF
+	# load all zones
+	for zone in example.com test.com; do
+		$PDNSUTIL --config-name=${MODULE}-master --config-dir=. load-zone $zone zones/$zone
+	done
+	# create secondary
+	$PDNSUTIL --config-name=${MODULE}-slave --config-dir=. create-secondary-zone example.com 127.0.0.1
+	$PDNSUTIL --config-name=${MODULE}-slave --config-dir=. load-zone example.com zones/example.com
 	# setup metadata on master
-        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
-        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
-	# i suppose we are done here...
+        $PDNSUTIL --config-name=${MODULE}-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
+	$PDNSUTIL --config-name=${MODULE}-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
 }
 
 start_master()
 {
         $RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. --module-dir=../regression-tests/modules \
-                --config-name=gsqlite3-master --socket-dir=./ --no-shuffle \
+                --config-name=${MODULE}-master --socket-dir=./ --no-shuffle \
                 --master=yes --local-address=127.0.0.1 \
                 --query-local-address=127.0.0.1 --cache-ttl=$cachettl --dname-processing --allow-axfr-ips= &
 }
@@ -85,9 +41,9 @@ start_slave()
         slaveport=53
 
         $RUNWRAPPER $PDNS --daemon=no --local-port=$slaveport --config-dir=. --module-dir=../regression-tests/modules \
-                --config-name=gsqlite3-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 \
-                --slave --retrieval-threads=4 --slave=yes --superslave=yes --query-local-address=127.0.0.2 \
-                --slave-cycle-interval=300 --dname-processing &
+                --config-name=${MODULE}-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 \
+                --slave --retrieval-threads=4 --slave=yes --autosecondary=yes --query-local-address=127.0.0.2 \
+                --slave-cycle-interval=300 --allow-unsigned-notify=yes --allow-unsigned-supermaster=no &
 }
 
 check_process ()
@@ -152,7 +108,7 @@ kill_process ()
         exit $1
 }
 
-sqlite3wait()
+notify_wait()
 {
    # make sure domains are transferred and created
    domcount=0
@@ -161,8 +117,8 @@ sqlite3wait()
    domains=2
 
    while [ $retries -ge 0 ]; do
-     domcount=`sqlite3 slave.db "select count(*) from domains"`
-     # at the moment we want three domains
+     domcount=$($PDNSUTIL --config-dir=. --config-name=${MODULE}-master list-all-zones | wc -l)
+     # at the moment we want two domains
      if [ $domcount -eq $domains ]; then
        break
      fi
@@ -186,30 +142,32 @@ sleep 2
 
 # then we check that test.com has not been transferred yet.
 for domain in test.com; do
-  reccount=`sqlite3 slave.db "select count(*) from records join domains on records.domain_id = domains.id where domains.name='$domain'"`
+  reccount=$($PDNSUTIL --config-name=${MODULE}-slave --config-dir=. list-zone $domain | wc -l)
   if [ $reccount -ne 0 ]; then
     echo "Transfer of '$domain' has unexpectedly succeeded"
   fi
 done
 
-# create supermaster
-sqlite3 slave.db <<EOF
-INSERT INTO supermasters (ip,nameserver,account) VALUES('127.0.0.1','ns1.example.com','');
-EOF
+# setup autosecondary
+$PDNSUTIL --config-name=${MODULE}-slave --config-dir=. add-autoprimary 127.0.0.1 ns1.example.com
 
 # send notifications
-$PDNSCONTROL --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
+$PDNSCONTROL --config-dir=. --config-name=${MODULE}-master --socket-dir=. notify test.com
 sleep 2
 
 # hopefully notifications have gone thru
-sqlite3wait
+notify_wait
 
 # then we check that we got records in database for both domains
-for domain in test.com; do
-  reccount=`sqlite3 slave.db "select count(*) from records join domains on records.domain_id = domains.id where domains.name='$domain'"`
-  if [ $reccount -lt 2 ]; then
+for domain in example.com test.com; do
+  reccount=$($PDNSUTIL --config-name=${MODULE}-slave --config-dir=. list-zone $domain | wc -l)
+  exp_reccount=$($PDNSUTIL --config-name=${MODULE}-master --config-dir=. list-zone $domain | wc -l)
+  if [ $reccount -lt $exp_reccount ]; then
     echo "Transfer of '$domain' did not succeed"
   fi
 done
+
+# ensure unsigned notifications are refused
+$NOTIFY 127.0.0.2:53 test.com 2>&1
 
 kill_process 0

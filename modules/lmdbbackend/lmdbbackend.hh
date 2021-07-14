@@ -60,6 +60,7 @@ public:
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
 
   bool startTransaction(const DNSName& domain, int domain_id = -1) override;
   bool commitTransaction() override;
@@ -110,6 +111,9 @@ public:
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
   bool publishDomainKey(const DNSName& name, unsigned int id) override;
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
+
+  bool superMasterAdd(const string& ip, const string& nameserver, const string& account) override;
+  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
 
   // TSIG
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
@@ -217,6 +221,12 @@ public:
     bool active;
     bool published;
   };
+  struct SuperMastersDB
+  {
+    std::string ip;
+    std::string nameserver;
+    std::string account;
+  };
   class LMDBResourceRecord : public DNSResourceRecord
   {
   public:
@@ -243,6 +253,11 @@ private:
   typedef TypedDBI<TSIGKey,
                    index_on<TSIGKey, DNSName, &TSIGKey::name>>
     ttsig_t;
+
+  typedef TypedDBI<SuperMastersDB,
+                   index_on<SuperMastersDB, std::string, &SuperMastersDB::ip>,
+                   index_on<SuperMastersDB, std::string, &SuperMastersDB::nameserver>>
+    tsupermastersdb_t;
 
   int d_asyncFlag;
 
@@ -278,6 +293,7 @@ private:
   shared_ptr<tmeta_t> d_tmeta;
   shared_ptr<tkdb_t> d_tkdb;
   shared_ptr<ttsig_t> d_ttsig;
+  shared_ptr<tsupermastersdb_t> d_tsupermasters;
 
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
