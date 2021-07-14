@@ -82,6 +82,7 @@ PDNS_CHECK_LIBCRYPTO([
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
 PDNS_CHECK_LIBCRYPTO_EDDSA
+PDNS_CHECK_LIBCRYPTO_FALCON
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_LIBDECAF
 PDNS_WITH_LIBCAP
@@ -219,7 +220,10 @@ AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
 )
-
+AS_IF([test "x$libcrypto_falcon" = "xyes"],
+  [AC_MSG_NOTICE([falcon: yes])],
+  [AC_MSG_NOTICE([falcon: no])]
+)
 AC_MSG_NOTICE([Protobuf: yes])
 
 AS_IF([test "x$NET_SNMP_LIBS" != "x"],

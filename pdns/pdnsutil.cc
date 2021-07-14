@@ -2301,6 +2301,9 @@ try
 #if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
     cout<<"|ed448";
 #endif
+#if defined(HAVE_LIBCRYPTO_FALCON)
+    cout<<"|falcon";
+#endif
     cout<<"]"<<endl;
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cout<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
@@ -2696,6 +2699,9 @@ try
 #endif
 #if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
       cerr << "|ed448";
+#endif
+#if defined(HAVE_LIBCRYPTO_FALCON)
+      cerr << "|falcon";
 #endif
       cerr << "]"<<endl;
       cerr << endl;
@@ -3245,6 +3251,9 @@ try
 #if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
       cerr << "|ed448";
 #endif
+#if defined(HAVE_LIBCRYPTO_FALCON)
+      cerr << "|falcon";
+#endif
       cerr << "] [bits]"<<endl;
       return 0;
     }
@@ -3284,6 +3293,8 @@ try
           bits = 384;
         else if(algorithm == DNSSECKeeper::ED448)
           bits = 456;
+        else if(algorithm == DNSSECKeeper::FALCON)
+          bits = 5520;
         else {
           throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
         }

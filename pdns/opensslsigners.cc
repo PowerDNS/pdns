@@ -39,6 +39,11 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 
+/* Import Open Quantum Safe OpenSSL Fork to support Falcon */
+#if defined(HAVE_LIBCRYPTO_FALCON)
+#include <oqs/oqs.h>
+#endif
+
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 
@@ -837,6 +842,153 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
 }
 #endif
 
+#ifdef HAVE_LIBCRYPTO_FALCON
+class OpenSSLFALCONDNSCryptoKeyEngine : public DNSCryptoKeyEngine
+{
+private:
+// TODO Change to store algorithm specific data
+unsigned int d_len;
+
+OQS_SIG *falcon_sig = NULL;
+uint8_t *falcon_public_key = NULL;
+uint8_t *falcon_secret_key = NULL;
+
+public:
+  explicit OpenSSLFALCONDNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
+  {
+
+    int ret = RAND_status();
+    if (ret != 1) {
+      throw runtime_error(getName()+" insufficient entropy");
+    }
+
+    d_len = OQS_SIG_falcon_512_length_public_key;
+  }
+
+  ~OpenSSLFALCONDNSCryptoKeyEngine()
+  {
+  }
+
+  string getName() const override { return "OpenSSL Falcon"; }
+  int getBits() const override { return d_len; }
+
+  void create(unsigned int bits) override;
+  storvector_t convertToISCVector() const override;
+  std::string sign(const std::string& hash) const override;
+  bool verify(const std::string& hash, const std::string& signature) const override;
+  std::string getPubKeyHash() const override;
+  std::string getPublicKeyString() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
+  bool checkKey(vector<string> *errorMessages) const override;
+
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  {
+    return make_unique<OpenSSLFALCONDNSCryptoKeyEngine>(algorithm);
+  }
+};
+
+bool OpenSSLFALCONDNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
+{
+  return ((falcon_public_key != NULL) || (falcon_secret_key != NULL));
+}
+
+void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
+{
+
+  OQS_STATUS rc;
+  if (bits >> 3 != d_len) {
+    throw runtime_error(getName()+" unknown key length of "+std::to_string(bits)+" bits requested");
+  }
+  falcon_sig = OQS_SIG_new(OQS_SIG_alg_falcon_512);
+  falcon_public_key = (uint8_t *) malloc(falcon_sig->length_public_key);
+  falcon_secret_key = (uint8_t *) malloc(falcon_sig->length_secret_key);
+  rc = OQS_SIG_keypair(falcon_sig, falcon_public_key, falcon_secret_key);
+  if (rc != OQS_SUCCESS) {
+    throw runtime_error("Failed to generate keypair Object");
+  }
+}
+
+DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVector() const
+{
+  storvector_t storvect;
+  string algorithm;
+
+  algorithm = "17 (Falcon512)";
+
+  storvect.push_back(make_pair("Algorithm", algorithm));
+
+  if (falcon_secret_key == NULL) {
+    throw runtime_error(getName() + " Could not get private key");
+  }
+  std::string private_key(falcon_secret_key, falcon_secret_key+falcon_sig->length_secret_key); 
+  storvect.push_back(make_pair("PrivateKey", private_key));
+  return storvect;
+}
+
+std::string OpenSSLFALCONDNSCryptoKeyEngine::sign(const std::string& msg) const
+{
+  uint8_t *falcon_signature;
+  size_t sign_length = falcon_sig->length_signature;
+  OQS_STATUS rc = OQS_SIG_falcon_512_sign(falcon_signature, &sign_length, reinterpret_cast<const uint8_t*>(msg.c_str()), msg.length(), falcon_secret_key);
+	if (rc != OQS_SUCCESS) {
+		throw runtime_error("Failed to sign using Falcon");
+	}
+  std::string signature(falcon_signature, falcon_signature+sign_length);
+  return signature;
+}
+
+bool OpenSSLFALCONDNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
+{
+  OQS_STATUS rc = OQS_SIG_falcon_512_verify(reinterpret_cast<const uint8_t*>(msg.c_str()), msg.length(), reinterpret_cast<const uint8_t*>(signature.c_str()), signature.length(), falcon_public_key);
+	if (rc != OQS_SUCCESS) {
+		throw runtime_error("Failed to verify signature using Falcon");
+	} else {
+    return true;
+  }
+}
+
+std::string OpenSSLFALCONDNSCryptoKeyEngine::getPubKeyHash() const
+{
+  return this->getPublicKeyString();
+}
+
+std::string OpenSSLFALCONDNSCryptoKeyEngine::getPublicKeyString() const
+{
+  if (falcon_public_key == NULL) {
+    throw std::runtime_error(getName() + " unable to get public key");
+  }
+  std::string public_key(falcon_public_key, falcon_public_key+falcon_sig->length_public_key);
+  return public_key;
+}
+
+void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) {
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  if (drc.d_algorithm != d_algorithm) {
+    throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
+  }
+
+  falcon_secret_key = (uint8_t*) malloc(stormap["privatekey"].length());
+  falcon_secret_key = reinterpret_cast<uint8_t*>(&stormap["privatekey"].at(0));
+  if (falcon_secret_key == NULL) {
+    throw std::runtime_error(getName() + " could not create key structure from private key");
+  }
+}
+
+void OpenSSLFALCONDNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
+{
+  if (content.length() != d_len) {
+    throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
+  }
+
+  falcon_public_key = (uint8_t*) malloc(content.length());
+  falcon_public_key = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(content.c_str()));
+  if (falcon_public_key == NULL) {
+    throw runtime_error(getName()+" allocation of public key structure failed");
+  }
+}
+#endif
+
 #ifdef HAVE_LIBCRYPTO_EDDSA
 class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
@@ -1056,6 +1208,9 @@ namespace {
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
       DNSCryptoKeyEngine::report(16, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+#endif
+#ifdef HAVE_LIBCRYPTO_FALCON
+      DNSCryptoKeyEngine::report(17, &OpenSSLFALCONDNSCryptoKeyEngine::maker);
 #endif
     }
   } loaderOpenSSL;
