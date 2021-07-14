@@ -289,11 +289,6 @@ pdns_server_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(SYSTEMD_LIBS)
 
-if HAVE_LUA_RECORDS
-pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
-pdns_server_LDADD += $(LIBCURL)
-endif
-
 if LIBSODIUM
 pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
@@ -371,6 +366,7 @@ pdnsutil_SOURCES = \
 	tsigutils.hh tsigutils.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
+	version.cc \
 	zoneparser-tng.cc
 
 pdnsutil_LDFLAGS = \
@@ -389,6 +385,13 @@ pdnsutil_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(IPCRYPT_LIBS)
+
+if HAVE_LUA_RECORDS
+pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
+pdns_server_LDADD += $(LIBCURL)
+pdnsutil_SOURCES += lua-record.cc minicurl.cc minicurl.hh
+pdnsutil_LDADD += $(LIBCURL)
+endif
 
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
