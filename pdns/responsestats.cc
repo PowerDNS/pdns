@@ -27,11 +27,11 @@ static auto sizeBounds()
 ResponseStats::ResponseStats() :
   d_sizecounters("SizeCounters", sizeBounds())
 {
-  for (unsigned int n = 0; n < 65535; ++n) {
-    d_qtypecounters[n].value = 0;
+  for (auto& entry : d_qtypecounters) {
+    entry.value = 0;
   }
-  for (unsigned int n = 0; n < 256; ++n) {
-    d_rcodecounters[n].value = 0;
+  for (auto& entry : d_rcodecounters) {
+    entry.value = 0;
   }
 }
 
@@ -53,7 +53,7 @@ map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts() const
 {
   map<uint16_t, uint64_t> ret;
   uint64_t count;
-  for (unsigned int i = 0; i < 65535; ++i) {
+  for (unsigned int i = 0; i < d_qtypecounters.size(); ++i) {
     count = d_qtypecounters.at(i).value;
     if (count) {
       ret[i] = count;
@@ -77,7 +77,7 @@ map<uint8_t, uint64_t> ResponseStats::getRCodeResponseCounts() const
 {
   map<uint8_t, uint64_t> ret;
   uint64_t count;
-  for (unsigned int i = 0; i < 256; ++i) {
+  for (unsigned int i = 0; i < d_rcodecounters.size(); ++i) {
     count = d_rcodecounters.at(i).value;
     if (count) {
       ret[i] = count;
