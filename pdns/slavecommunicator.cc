@@ -87,8 +87,7 @@ struct ZoneStatus
 };
 
 
-void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl,
-                                 ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl, ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   string logPrefix="IXFR-in zone '"+domain.toLogString()+"', primary '"+remote.toString()+"', ";
 
@@ -124,22 +123,20 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
       const auto& remove = d.first;
       const auto& add = d.second;
       //      cout<<"Delta sizes: "<<remove.size()<<", "<<add.size()<<endl;
-      
+
       if(remove.empty()) { // we got passed an AXFR!
         *axfr = add;
         return;
       }
-        
 
       // our hammer is 'replaceRRSet(domain_id, qname, qt, vector<DNSResourceRecord>& rrset)
       // which thinks in terms of RRSETs
       // however, IXFR does not, and removes and adds *records* (bummer)
       // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
       // the add/remove updates, and replaceRRSet the whole thing. 
-      
-      
+
       map<pair<DNSName,uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord> > > grouped;
-      
+
       for(const auto& x: remove)
         grouped[{x.d_name, x.d_type}].first.push_back(x);
       for(const auto& x: add)
@@ -178,7 +175,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
             auto sr = getRR<SOARecordContent>(dr);
             zs.soa_serial=sr->d_st.serial;
           }
-          
+
           replacement.push_back(rr);
         }
 
@@ -301,15 +298,14 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
     }
   }
   return rrs;
-}   
-
+}
 
 void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, bool force)
 {
   {
     std::lock_guard<std::mutex> l(d_lock);
     if(d_inprogress.count(domain)) {
-      return; 
+      return;
     }
     d_inprogress.insert(domain);
   }
@@ -350,7 +346,6 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         return;
       }
     }
-
 
     unique_ptr<AuthLua4> pdl{nullptr};
     vector<string> scripts;
@@ -401,7 +396,6 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     bool hadNSEC3 = false;
     NSEC3PARAMRecordContent hadNs3pr;
     bool hadNarrow=false;
-
 
     vector<DNSResourceRecord> rrs;
     if(dk.isSecuredZone(domain)) {
@@ -478,7 +472,6 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         g_log<<Logger::Debug<<logPrefix<<"zone is narrow, only setting 'auth' fields"<<endl;
     }
 
-
     transaction=di.backend->startTransaction(domain, zs.domain_id);
     g_log<<Logger::Info<<logPrefix<<"storage transaction started"<<endl;
 
@@ -523,7 +516,6 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     DNSName shorter, ordername;
     set<DNSName> rrterm;
     map<DNSName,bool> nonterm;
-
 
     for(DNSResourceRecord& rr :  rrs) {
       if(!zs.isPresigned) {
@@ -625,6 +617,34 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       notifyDomain(domain, &B);
     }
 
+    // Execute LUA-AXFR-END-SCRIPT script
+    unique_ptr<AuthLua4> laes{nullptr};
+    vector<string> axfr_end_scripts;
+    string axfr_end_script=::arg()["lua-axfr-end-script"];
+    if(B.getDomainMetadata(domain, "LUA-AXFR-END-SCRIPT", axfr_end_scripts) && !axfr_end_scripts.empty()) {
+      if (pdns_iequals(axfr_end_scripts[0], "NONE")) {
+        axfr_end_script.clear();
+      } else {
+        axfr_end_script=axfr_end_scripts[0];
+      }
+    }
+    if(!axfr_end_script.empty()){
+      try {
+        laes = make_unique<AuthLua4>();
+        laes->loadFile(axfr_end_script);
+        g_log<<Logger::Debug<<logPrefix<<"loaded Lua script '"<<axfr_end_script<<"'"<<endl;
+      }
+      catch(std::exception& e) {
+        g_log<<Logger::Error<<logPrefix<<"failed to load Lua script '"<<axfr_end_script<<"': "<<e.what()<<endl;
+        return;
+      }
+    }
+
+    if (laes) {
+      g_log<<Logger::Debug << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      laes->axfr_end(domain);
+      g_log<<Logger::Debug << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+    }
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<logPrefix<<"unable to feed record: "<<re.reason<<endl;
