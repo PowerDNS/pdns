@@ -1756,7 +1756,6 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
       BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
     }
 
-
     /* the cache should now be able to deny any type for the name  */
     int res;
     std::vector<DNSRecord> results;
