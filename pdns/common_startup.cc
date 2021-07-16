@@ -414,11 +414,16 @@ static void sendout(std::unique_ptr<DNSPacket>& a)
 {
   if(!a)
     return;
-  
-  N->send(*a);
 
-  int diff=a->d_dt.udiff();
-  avg_latency=0.999*avg_latency+0.001*diff;
+  try {
+    N->send(*a);
+
+    int diff=a->d_dt.udiff();
+    avg_latency=0.999*avg_latency+0.001*diff;
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Error<<"Caught unhandled exception while sending a response: "<<e.what()<<endl;
+  }
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
@@ -458,81 +463,86 @@ try
   }
 
   for(;;) {
-    if (g_proxyProtocolACL.empty()) {
-      buffer.resize(DNSPacket::s_udpTruncationThreshold);
-    }
-    else {
-      buffer.resize(DNSPacket::s_udpTruncationThreshold + g_proxyProtocolMaximumSize);
-    }
+    try {
+      if (g_proxyProtocolACL.empty()) {
+        buffer.resize(DNSPacket::s_udpTruncationThreshold);
+      }
+      else {
+        buffer.resize(DNSPacket::s_udpTruncationThreshold + g_proxyProtocolMaximumSize);
+      }
 
-    if(!NS->receive(question, buffer)) { // receive a packet         inline
-      continue;                    // packet was broken, try again
-    }
+      if(!NS->receive(question, buffer)) { // receive a packet         inline
+        continue;                    // packet was broken, try again
+      }
 
-    numreceived++;
+      numreceived++;
 
-    if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
-      numreceived4++;
-    else
-      numreceived6++;
+      if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
+        numreceived4++;
+      else
+        numreceived6++;
 
-    if(question.d_dnssecOk)
-      numreceiveddo++;
+      if(question.d_dnssecOk)
+        numreceiveddo++;
 
-    if(question.hasEDNSCookie())
-      numreceivedcookie++;
+      if(question.hasEDNSCookie())
+        numreceivedcookie++;
 
-     if(question.d.qr)
-       continue;
+      if(question.d.qr)
+        continue;
 
-    S.ringAccount("queries", question.qdomain, question.qtype);
-    S.ringAccount("remotes", question.d_remote);
-    if(logDNSQueries) {
-      g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype <<
-        "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
-      if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
-        g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
-    }
+      S.ringAccount("queries", question.qdomain, question.qtype);
+      S.ringAccount("remotes", question.d_remote);
+      if(logDNSQueries) {
+        g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype <<
+          "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
+        if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
+          g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
+      }
 
-    if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
-      bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
-      if (haveSomething) {
+      if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
+        bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
+        if (haveSomething) {
+          if(logDNSQueries)
+            g_log<<": packetcache HIT"<<endl;
+          cached.setRemote(&question.d_remote);  // inlined
+          cached.setSocket(question.getSocket());                               // inlined
+          cached.d_anyLocal = question.d_anyLocal;
+          cached.setMaxReplyLen(question.getMaxReplyLen());
+          cached.d.rd=question.d.rd; // copy in recursion desired bit
+          cached.d.id=question.d.id;
+          cached.commitD(); // commit d to the packet                        inlined
+          NS->send(cached); // answer it then                              inlined
+          diff=question.d_dt.udiff();
+          avg_latency=0.999*avg_latency+0.001*diff; // 'EWMA'
+          continue;
+        }
+      }
+
+      if(distributor->isOverloaded()) {
         if(logDNSQueries)
-          g_log<<": packetcache HIT"<<endl;
-        cached.setRemote(&question.d_remote);  // inlined
-        cached.setSocket(question.getSocket());                               // inlined
-        cached.d_anyLocal = question.d_anyLocal;
-        cached.setMaxReplyLen(question.getMaxReplyLen());
-        cached.d.rd=question.d.rd; // copy in recursion desired bit
-        cached.d.id=question.d.id;
-        cached.commitD(); // commit d to the packet                        inlined
-        NS->send(cached); // answer it then                              inlined
-        diff=question.d_dt.udiff();
-        avg_latency=0.999*avg_latency+0.001*diff; // 'EWMA'
+          g_log<<": Dropped query, backends are overloaded"<<endl;
+        overloadDrops++;
         continue;
       }
-    }
 
-    if(distributor->isOverloaded()) {
-      if(logDNSQueries)
-        g_log<<": Dropped query, backends are overloaded"<<endl;
-      overloadDrops++;
-      continue;
-    }
+      if (logDNSQueries) {
+        if (PC.enabled()) {
+          g_log<<": packetcache MISS"<<endl;
+        } else {
+          g_log<<endl;
+        }
+      }
 
-    if (logDNSQueries) {
-      if (PC.enabled()) {
-        g_log<<": packetcache MISS"<<endl;
-      } else {
-        g_log<<endl;
+      try {
+        distributor->question(question, &sendout); // otherwise, give to the distributor
+      }
+      catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
+        _exit(1);
       }
     }
-
-    try {
-      distributor->question(question, &sendout); // otherwise, give to the distributor
-    }
-    catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
-      _exit(1);
+    catch (const std::exception& e) {
+      g_log<<Logger::Error<<"Caught unhandled exception in question thread: "<<e.what()<<endl;
     }
   }
 }
