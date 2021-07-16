@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSEC3NarrowRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  addNSEC3NarrowRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records, 10);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -412,7 +412,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   recordContents.clear();
   signatureContents.clear();
   records.clear();
-  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records, 10);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
