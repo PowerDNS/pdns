@@ -433,6 +433,11 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
       return dState::NODENIAL;
     }
 
+    if (qtype == QType::DS && signer == name) {
+      LOG("The NSEC comes from the child zone and cannot be used to deny a DS");
+      return dState::NODENIAL;
+    }
+
     LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
     return dState::NXQTYPE;
   }
