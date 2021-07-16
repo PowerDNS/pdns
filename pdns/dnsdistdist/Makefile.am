@@ -162,7 +162,7 @@ dnsdist_SOURCES = \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
-	dnsdist-rules.hh \
+	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-systemd.cc dnsdist-systemd.hh \
@@ -240,6 +240,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
+	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-tcp-downstream.cc \
 	dnsdist-tcp.cc \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
