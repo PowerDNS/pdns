@@ -49,15 +49,22 @@ Changed defaults
 - The default value of the :ref:`setting-consistent-backends` option has been changed from ``no`` to ``yes``.
 - The default value of the :ref:`setting-max-nsec3-iterations` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` parameter for :func:`ifportup` and :func:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
+- The default value of the new :ref:`setting-zone-cache-refresh-interval` option is ``300``.
+
+Zone cache
+~~~~~~~~~~
+
+Version 4.5 introduces the zone cache.
+The default refresh interval (:ref:`setting-zone-cache-refresh-interval`) is 300, meaning that zones newly added to your backend may need a few minutes to appear.
+However, zones added using the API should not notice a delay.
+
+If your backend is dynamic in what zones it does or does not offer, and thus cannot easily provide a complete list of zones every few minutes, set the interval to 0 to disable the feature.
 
 Removed options
 ~~~~~~~~~~~~~~~
 - :ref:`setting-local-ipv6` has been removed. IPv4 and IPv6 listen addresses should now be set with :ref:`setting-local-address`.
 - :ref:`setting-query-local-address6` has been removed. IPv4 and IPv6 addresses used for sending queries should now be set with :ref:`setting-query-local-address`.
 
-Starting with auth-4.5.0-beta1:
-
-- The default value of the ``zone-cache-refresh-interval`` option has been changed from ``0`` to ``300``.
 
 4.3.x to 4.4.0
 --------------

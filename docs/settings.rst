@@ -1898,7 +1898,7 @@ means no restriction.
 
 Seconds to cache a list of all known zones. A value of 0 will disable the cache.
 
-If your backends do not respond to unknown or dynamically generated zones, it is suggested to enable :ref:`setting-consistent-backends` and set this option to `60`.
+If your backends do not respond to unknown or dynamically generated zones, it is suggested to enable :ref:`setting-consistent-backends` (default since 4.5) and leave this option at its default of `300`.
 
 .. _setting-zone-metadata-cache-ttl:
 
