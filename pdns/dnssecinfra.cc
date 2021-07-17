@@ -331,6 +331,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
       B64Decode(value, raw);
       stormap[toLower(key)]=raw;
     }
+    cout << "stored :" << stormap["privatekey"] << "\n";
     dckeSign->fromISCMap(dkrc, stormap);
     if(!dckeSign->checkKey()) {
       throw runtime_error("Verification of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");

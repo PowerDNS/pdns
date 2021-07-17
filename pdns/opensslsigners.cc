@@ -1059,10 +1059,13 @@ DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVe
     throw runtime_error(getName() + " Could not get private key");
   }
 
-  //Store private key base64 encoded into ISC Vector
-  char* private_tmp = b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key);
+  cout << "Loaded Priv Convert: " << b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key) << "\n";
+
+  //Store private key base64 encoded into ISC Vector -> Obsolete
+  //char* private_tmp = b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key);
+  char* private_tmp = (char *) falcon_secret_key;
   std::string private_key = std::string(private_tmp);
-  cout << "priv: " << private_key;
+  cout << "priv: " << private_key << "\n";
 
   storvect.push_back(make_pair("PrivateKey", private_key));
   return storvect;
@@ -1121,9 +1124,10 @@ void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
   }
 
   std::string content = stormap["privatekey"];
+  cout << "Content received from map: " << content << "\n"; 
 
   //Get content to C object for base64 conversion
-  const char *tmp_content = content.c_str();
+  std::vector<uint8_t> tmp_vector(content.begin(), content.end());
   // size_t out_len = b64_decoded_size(tmp_content);
 
   // //Base64 Decode content to char * 
@@ -1132,8 +1136,9 @@ void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
 	// 	throw runtime_error("Decode private key failed");
 	// }
   //Reinterpret char array to uint8_t to respect key format
-  falcon_secret_key = (uint8_t*) malloc(falcon_sig->length_secret_key);
-  falcon_secret_key = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(tmp_content));
+  falcon_secret_key = (uint8_t*) calloc(falcon_sig->length_secret_key, sizeof(uint8_t));
+  //falcon_secret_key = reinterpret_cast<uint8_t*>(tmp_content));
+  falcon_secret_key = &tmp_vector[0];
 
   if (falcon_secret_key == NULL) {
     throw std::runtime_error(getName() + " could not create key structure from private key");
