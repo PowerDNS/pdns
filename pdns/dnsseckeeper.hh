@@ -156,6 +156,8 @@ public:
         return "ED25519";
       case ED448:
         return "ED448";
+      case FALCON:
+        return "falcon";
       case 252:
         return "INDIRECT";
       case 253:

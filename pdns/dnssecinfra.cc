@@ -286,12 +286,14 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
     bits = 384;
   else if(algo == DNSSECKeeper::ED448)
     bits = 456;
+  else if(algo == DNSSECKeeper::FALCON)
+    bits = 897;
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
   DTime dt; dt.set();
   for(unsigned int n = 0; n < 100; ++n)
-    dckeCreate->create(bits);
+  dckeCreate->create(bits);
   cerr<<"("<<dckeCreate->getBits()<<" bits) ";
   unsigned int udiffCreate = dt.udiff() / 100;
 
@@ -336,12 +338,13 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   }
 
   string message("Hi! How is life?");
+  dckeSign->create(bits);
   
   string signature;
   dt.set();
-  for(unsigned int n = 0; n < 100; ++n)
+  for(unsigned int n = 0; n < 10; ++n)
     signature = dckeSign->sign(message);
-  unsigned int udiffSign= dt.udiff()/100, udiffVerify;
+  unsigned int udiffSign= dt.udiff()/10, udiffVerify;
   
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {
