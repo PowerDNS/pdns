@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor)
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 
-  /* now we query other2.sub.powerdns.com, we should NOT be able to use the NSEC3s we have
+  /* now we query other2.sub.powerdns.com, we should NOT be able to use the NSECs we have
      to prove that the name does not exist */
   ret.clear();
   res = sr->beginResolve(DNSName("4.sub.powerdns.com"), QType(QType::DS), QClass::IN, ret);
@@ -1390,7 +1390,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
     BOOST_CHECK_EQUAL(res, RCode::NoError);
     BOOST_CHECK_EQUAL(results.size(), 3U);
-    /* but not any type that lives in the child zone */
+    /* but not the DS that lives in the parent zone */
     results.clear();
     BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
     BOOST_CHECK_EQUAL(results.size(), 0U);
@@ -1581,7 +1581,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
     BOOST_CHECK_EQUAL(res, RCode::NoError);
     BOOST_CHECK_EQUAL(results.size(), 3U);
-    /* but not any type that lives in the child zone */
+    /* but not the DS that lives in the parent zone */
     results.clear();
     BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
     BOOST_CHECK_EQUAL(results.size(), 0U);
