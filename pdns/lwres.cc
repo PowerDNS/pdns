@@ -73,7 +73,7 @@ static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_pt
   return false;
 }
 
-static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& localip, const ComboAddress& ip, bool doTCP, boost::optional<const DNSName&> auth, const vector<uint8_t>& packet)
+static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& localip, const ComboAddress& ip, DnstapMessage::ProtocolType protocol, boost::optional<const DNSName&> auth, const vector<uint8_t>& packet)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -81,7 +81,7 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
   std::string str;
-  DnstapMessage message(str, DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
+  DnstapMessage message(str, DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -101,7 +101,7 @@ static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_
   return false;
 }
 
-static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress&localip, const ComboAddress& ip, bool doTCP, boost::optional<const DNSName&> auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress&localip, const ComboAddress& ip, DnstapMessage::ProtocolType protocol, boost::optional<const DNSName&> auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -110,7 +110,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
   std::string str;
-  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, doTCP, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
+  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -296,9 +296,11 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 
   // We only store the localip if needed for fstrm logging
   ComboAddress localip;
+  bool dnsOverTLS = false;
 #ifdef HAVE_FSTRM
   bool fstrmQEnabled = false;
   bool fstrmREnabled = false;
+  
   if (isEnabledForQueries(fstrmLoggers)) {
     fstrmQEnabled = true;
   }
@@ -331,7 +333,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
         getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen);
       }
       if (fstrmQEnabled) {
-        logFstreamQuery(fstrmLoggers, queryTime, localip, ip, doTCP, context ? context->d_auth : boost::none, vpacket);
+        logFstreamQuery(fstrmLoggers, queryTime, localip, ip, DnstapMessage::ProtocolType::DoUDP, context ? context->d_auth : boost::none, vpacket);
       }
     }
 #endif /* HAVE_FSTRM */
@@ -358,6 +360,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
         if (tlsCtx == nullptr) {
           g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
         }
+        else {
+          dnsOverTLS = true;
+        }
       }
       auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
       // Returned state ignored
@@ -377,9 +382,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       }
 
 #ifdef HAVE_FSTRM
-  if (fstrmQEnabled) {
-    logFstreamQuery(fstrmLoggers, queryTime, localip, ip, doTCP, context ? context->d_auth : boost::none, vpacket);
-  }
+      if (fstrmQEnabled) {
+        logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
+      }
 #endif /* HAVE_FSTRM */
 
       ret = arecvtcp(packet, 2, handler, false);
@@ -422,7 +427,11 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 
 #ifdef HAVE_FSTRM
   if (fstrmREnabled && (!*chained || doTCP)) {
-    logFstreamResponse(fstrmLoggers, localip, ip, doTCP, context ? context->d_auth : boost::none, buf, queryTime, *now);
+    DnstapMessage::ProtocolType protocol = doTCP ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoUDP;
+    if (dnsOverTLS) {
+      protocol = DnstapMessage::ProtocolType::DoT;
+    }
+    logFstreamResponse(fstrmLoggers, localip, ip, protocol, context ? context->d_auth : boost::none, buf, queryTime, *now);
   }
 #endif /* HAVE_FSTRM */
 

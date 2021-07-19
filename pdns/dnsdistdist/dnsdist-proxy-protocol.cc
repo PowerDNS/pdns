@@ -29,7 +29,7 @@ bool g_applyACLToProxiedClients = false;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq)
 {
-  return makeProxyHeader(dq.tcp, *dq.remote, *dq.local, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
+  return makeProxyHeader(dq.overTCP(), *dq.remote, *dq.local, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
 }
 
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)

@@ -101,10 +101,10 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  bool isTcp = false;
+  auto proto = DNSQuestion::Protocol::DoUDP;
   gettime(&queryRealTime, true);
 
-  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
+  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
   return dq;
 }
 

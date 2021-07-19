@@ -53,6 +53,23 @@ class TestDNSCrypt(DNSCryptTest):
     generateDNSCryptCertificate("DNSCryptProviderPrivate.key", "DNSCryptResolver.cert", "DNSCryptResolver.key", %d, %d, %d)
     addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
     newServer{address="127.0.0.1:%s"}
+
+    function checkDNSCryptUDP(dq)
+      if dq:getProtocol() ~= "DNSCrypt UDP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    function checkDNSCryptTCP(dq)
+      if dq:getProtocol() ~= "DNSCrypt TCP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    addAction("udp.protocols.dnscrypt.tests.powerdns.com.", LuaAction(checkDNSCryptUDP))
+    addAction("tcp.protocols.dnscrypt.tests.powerdns.com.", LuaAction(checkDNSCryptTCP))
     """
 
     _config_params = ['_consoleKeyB64', '_consolePort', '_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
@@ -228,6 +245,28 @@ class TestDNSCrypt(DNSCryptTest):
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
         self.assertEqual(cert.serial, self._resolverCertificateSerial + 3)
+
+    def testProtocolUDP(self):
+        """
+        DNSCrypt: Test DNSQuestion.Protocol over UDP
+        """
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        name = 'udp.protocols.dnscrypt.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        self.doDNSCryptQuery(client, query, response, False)
+
+    def testProtocolTCP(self):
+        """
+        DNSCrypt: Test DNSQuestion.Protocol over TCP
+        """
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        name = 'tcp.protocols.dnscrypt.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        self.doDNSCryptQuery(client, query, response, True)
 
 class TestDNSCryptWithCache(DNSCryptTest):
 

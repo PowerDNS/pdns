@@ -181,7 +181,7 @@ TeeAction::~TeeAction()
 
 DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
-  if (dq->tcp) {
+  if (dq->overTCP()) {
     d_tcpdrops++;
   }
   else {
@@ -727,35 +727,25 @@ class LogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  LogAction(): d_fp(nullptr, fclose)
+  LogAction()
   {
   }
 
-  LogAction(const std::string& str, bool binary=true, bool append=false, bool buffered=true, bool verboseOnly=true, bool includeTimestamp=false): d_fname(str), d_binary(binary), d_verboseOnly(verboseOnly), d_includeTimestamp(includeTimestamp)
+  LogAction(const std::string& str, bool binary=true, bool append=false, bool buffered=true, bool verboseOnly=true, bool includeTimestamp=false): d_fname(str), d_binary(binary), d_verboseOnly(verboseOnly), d_includeTimestamp(includeTimestamp), d_append(append), d_buffered(buffered)
   {
     if (str.empty()) {
       return;
     }
 
-    if(append) {
-      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "a+"), fclose);
-    }
-    else {
-      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "w"), fclose);
-    }
-
-    if (!d_fp) {
-      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+stringerror());
-    }
-
-    if (!buffered) {
-      setbuf(d_fp.get(), 0);
+    if (!reopenLogFile())  {
+      throw std::runtime_error("Unable to open file '" + str + "' for logging: " + stringerror());
     }
   }
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (!d_fp) {
+    auto fp = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
+    if (!fp) {
       if (!d_verboseOnly || g_verbose) {
         if (d_includeTimestamp) {
           infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dq->queryTime->tv_sec), static_cast<unsigned long>(dq->queryTime->tv_nsec), dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).toString(), dq->getHeader()->id);
@@ -771,28 +761,28 @@ public:
         if (d_includeTimestamp) {
           uint64_t tv_sec = static_cast<uint64_t>(dq->queryTime->tv_sec);
           uint32_t tv_nsec = static_cast<uint32_t>(dq->queryTime->tv_nsec);
-          fwrite(&tv_sec, sizeof(tv_sec), 1, d_fp.get());
-          fwrite(&tv_nsec, sizeof(tv_nsec), 1, d_fp.get());
+          fwrite(&tv_sec, sizeof(tv_sec), 1, fp.get());
+          fwrite(&tv_nsec, sizeof(tv_nsec), 1, fp.get());
         }
         uint16_t id = dq->getHeader()->id;
-        fwrite(&id, sizeof(id), 1, d_fp.get());
-        fwrite(out.c_str(), 1, out.size(), d_fp.get());
-        fwrite(&dq->qtype, sizeof(dq->qtype), 1, d_fp.get());
-        fwrite(&dq->remote->sin4.sin_family, sizeof(dq->remote->sin4.sin_family), 1, d_fp.get());
+        fwrite(&id, sizeof(id), 1, fp.get());
+        fwrite(out.c_str(), 1, out.size(), fp.get());
+        fwrite(&dq->qtype, sizeof(dq->qtype), 1, fp.get());
+        fwrite(&dq->remote->sin4.sin_family, sizeof(dq->remote->sin4.sin_family), 1, fp.get());
         if (dq->remote->sin4.sin_family == AF_INET) {
-          fwrite(&dq->remote->sin4.sin_addr.s_addr, sizeof(dq->remote->sin4.sin_addr.s_addr), 1, d_fp.get());
+          fwrite(&dq->remote->sin4.sin_addr.s_addr, sizeof(dq->remote->sin4.sin_addr.s_addr), 1, fp.get());
         }
         else if (dq->remote->sin4.sin_family == AF_INET6) {
-          fwrite(&dq->remote->sin6.sin6_addr.s6_addr, sizeof(dq->remote->sin6.sin6_addr.s6_addr), 1, d_fp.get());
+          fwrite(&dq->remote->sin6.sin6_addr.s6_addr, sizeof(dq->remote->sin6.sin6_addr.s6_addr), 1, fp.get());
         }
-        fwrite(&dq->remote->sin4.sin_port, sizeof(dq->remote->sin4.sin_port), 1, d_fp.get());
+        fwrite(&dq->remote->sin4.sin_port, sizeof(dq->remote->sin4.sin_port), 1, fp.get());
       }
       else {
         if (d_includeTimestamp) {
-          fprintf(d_fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %d\n", static_cast<unsigned long long>(dq->queryTime->tv_sec), static_cast<unsigned long>(dq->queryTime->tv_nsec), dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %d\n", static_cast<unsigned long long>(dq->queryTime->tv_sec), static_cast<unsigned long>(dq->queryTime->tv_nsec), dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
         }
         else {
-          fprintf(d_fp.get(), "Packet from %s for %s %s with id %d\n", dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "Packet from %s for %s %s with id %d\n", dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
         }
       }
     }
@@ -806,46 +796,68 @@ public:
     }
     return "log";
   }
+
+  void reload() override
+  {
+    if (!reopenLogFile()) {
+      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+    }
+  }
+
 private:
+  bool reopenLogFile()
+  {
+    // we are using a naked pointer here because we don't want fclose to be called
+    // with a nullptr, which would happen if we constructor a shared_ptr with fclose
+    // as a custom deleter and nullptr as a FILE*
+    auto nfp = fopen(d_fname.c_str(), d_append ? "a+" : "w");
+    if (!nfp) {
+      /* don't fall on our sword when reopening */
+      return false;
+    }
+
+    auto fp = std::shared_ptr<FILE>(nfp, fclose);
+    nfp = nullptr;
+
+    if (!d_buffered) {
+      setbuf(fp.get(), 0);
+    }
+
+    std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    return true;
+  }
+
   std::string d_fname;
-  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
+  std::shared_ptr<FILE> d_fp{nullptr};
   bool d_binary{true};
   bool d_verboseOnly{true};
   bool d_includeTimestamp{false};
+  bool d_append{false};
+  bool d_buffered{true};
 };
 
 class LogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  LogResponseAction(): d_fp(nullptr, fclose)
+  LogResponseAction()
   {
   }
 
-  LogResponseAction(const std::string& str, bool append=false, bool buffered=true, bool verboseOnly=true, bool includeTimestamp=false): d_fname(str), d_verboseOnly(verboseOnly), d_includeTimestamp(includeTimestamp)
+  LogResponseAction(const std::string& str, bool append=false, bool buffered=true, bool verboseOnly=true, bool includeTimestamp=false): d_fname(str), d_verboseOnly(verboseOnly), d_includeTimestamp(includeTimestamp), d_append(append), d_buffered(buffered)
   {
     if (str.empty()) {
       return;
     }
 
-    if (append) {
-      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "a+"), fclose);
-    }
-    else {
-      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "w"), fclose);
-    }
-
-    if (!d_fp) {
-      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+stringerror());
-    }
-
-    if (!buffered) {
-      setbuf(d_fp.get(), 0);
+    if (!reopenLogFile()) {
+      throw std::runtime_error("Unable to open file '" + str + "' for logging: " + stringerror());
     }
   }
 
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    if (!d_fp) {
+    auto fp = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
+    if (!fp) {
       if (!d_verboseOnly || g_verbose) {
         if (d_includeTimestamp) {
           infolog("[%u.%u] Answer to %s for %s %s (%s) with id %d", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort(), dr->qname->toString(), QType(dr->qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
@@ -857,10 +869,10 @@ public:
     }
     else {
       if (d_includeTimestamp) {
-        fprintf(d_fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
       else {
-        fprintf(d_fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
     }
     return Action::None;
@@ -873,11 +885,43 @@ public:
     }
     return "log";
   }
+
+  void reload() override
+  {
+    if (!reopenLogFile()) {
+      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+    }
+  }
+
 private:
+  bool reopenLogFile()
+  {
+    // we are using a naked pointer here because we don't want fclose to be called
+    // with a nullptr, which would happen if we constructor a shared_ptr with fclose
+    // as a custom deleter and nullptr as a FILE*
+    auto nfp = fopen(d_fname.c_str(), d_append ? "a+" : "w");
+    if (!nfp) {
+      /* don't fall on our sword when reopening */
+      return false;
+    }
+
+    auto fp = std::shared_ptr<FILE>(nfp, fclose);
+    nfp = nullptr;
+
+    if (!d_buffered) {
+      setbuf(fp.get(), 0);
+    }
+
+    std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    return true;
+  }
+
   std::string d_fname;
-  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
+  std::shared_ptr<FILE> d_fp{nullptr};
   bool d_verboseOnly{true};
   bool d_includeTimestamp{false};
+  bool d_append{false};
+  bool d_buffered{true};
 };
 
 
@@ -1043,6 +1087,28 @@ private:
   bool d_hasV6;
 };
 
+static DnstapMessage::ProtocolType ProtocolToDNSTap(DNSQuestion::Protocol protocol)
+{
+  DnstapMessage::ProtocolType result;
+  switch (protocol) {
+  default:
+  case DNSQuestion::Protocol::DoUDP:
+  case DNSQuestion::Protocol::DNSCryptUDP:
+    result = DnstapMessage::ProtocolType::DoUDP;
+    break;
+  case DNSQuestion::Protocol::DoTCP:
+  case DNSQuestion::Protocol::DNSCryptTCP:
+    result = DnstapMessage::ProtocolType::DoTCP;
+    break;
+  case DNSQuestion::Protocol::DoT:
+    result = DnstapMessage::ProtocolType::DoT;
+    break;
+  case DNSQuestion::Protocol::DoH:
+    result = DnstapMessage::ProtocolType::DoH;
+    break;
+  }
+  return result;
+}
 
 class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
@@ -1056,7 +1122,8 @@ public:
     static thread_local std::string data;
     data.clear();
 
-    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
+    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dq->getProtocol());
+    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1189,7 +1256,8 @@ public:
     gettime(&now, true);
     data.clear();
 
-    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
+    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dr->getProtocol());
+    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1681,6 +1749,8 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
   luaCtx.registerFunction("getStats", &DNSAction::getStats);
+  luaCtx.registerFunction("reload", &DNSAction::reload);
+  luaCtx.registerFunction("reload", &DNSResponseAction::reload);
 
   luaCtx.writeFunction("LuaAction", [](LuaAction::func_t func) {
       setLuaSideEffect();

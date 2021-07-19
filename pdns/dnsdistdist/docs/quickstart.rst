@@ -8,9 +8,9 @@ Running in the Foreground
 
 After :doc:`installing <install>` dnsdist, the quickest way to start experimenting is launching it on the foreground with::
 
-   dnsdist -l 127.0.0.1:5300 9.9.9.9 2620:fe::fe2620:fe::9
+   dnsdist -l 127.0.0.1:5300 9.9.9.9 2620:fe::fe 2620:fe::9
 
-This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all queries to the two listed IP addresses, with a sensible balancing policy.
+This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all queries to the three listed IP addresses, with a sensible balancing policy.
 
 ``dnsdist`` Console and Configuration
 -------------------------------------

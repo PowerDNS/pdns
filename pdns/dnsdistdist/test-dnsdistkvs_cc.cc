@@ -234,14 +234,14 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  bool isTcp = false;
+  auto proto = DNSQuestion::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);
@@ -289,14 +289,14 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  bool isTcp = false;
+  auto proto = DNSQuestion::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);

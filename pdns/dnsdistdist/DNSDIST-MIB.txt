@@ -605,6 +605,8 @@ trapReason OBJECT-TYPE
         "Reason for this trap"
     ::= { trapObjects 11 }
 
+--- { trapObjects 5000 } up to and including { trapObjects 5999 } are reserved for local, product-specific extensions to the dnsdist MIB
+
 backendStatusChangeTrap NOTIFICATION-TYPE
     OBJECTS {
         backendName,
@@ -640,6 +642,8 @@ customTrap NOTIFICATION-TYPE
     STATUS current
     DESCRIPTION "Trap sent by sendCustomTrap"
     ::= { traps 3 }
+
+--- { traps 5000 } up to and including { traps 5999 } are reserved for local, product-specific extensions to the dnsdist MIB
 
 ---
 --- Conformance

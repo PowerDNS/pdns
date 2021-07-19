@@ -17,15 +17,11 @@ namespace DnstapSocketFamilyTypes {
   enum : protozero::pbf_tag_type { inet = 1, inet6 = 2 };
 }
 
-namespace DnstapSocketFamilyProtocol {
-  enum : protozero::pbf_tag_type { udp = 1, tcp = 2 };
-}
-
 namespace DnstapMessageFields {
   enum : protozero::pbf_tag_type { type = 1, socket_family = 2, socket_protocol = 3, query_address = 4, response_address = 5, query_port = 6, response_port = 7, query_time_sec = 8, query_time_nsec = 9, query_message = 10, query_zone = 11, response_time_sec = 12, response_time_nsec = 13, response_message = 14 };
 }
 
-DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth): d_buffer(buffer)
+DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth): d_buffer(buffer)
 {
   protozero::pbf_writer pbf{d_buffer};
 
@@ -37,7 +33,7 @@ DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType typ
   protozero::pbf_writer pbf_message{pbf, DnstapBaseFields::message};
 
   pbf_message.add_enum(DnstapMessageFields::type, static_cast<protozero::pbf_tag_type>(type));
-  pbf_message.add_enum(DnstapMessageFields::socket_protocol, isTCP ? DnstapSocketFamilyProtocol::tcp : DnstapSocketFamilyProtocol::udp);
+  pbf_message.add_enum(DnstapMessageFields::socket_protocol, static_cast<protozero::pbf_tag_type>(protocol));
 
   if (requestor != nullptr) {
     pbf_message.add_enum(DnstapMessageFields::socket_family, requestor->sin4.sin_family == AF_INET ? DnstapSocketFamilyTypes::inet : DnstapSocketFamilyTypes::inet6);
