@@ -530,6 +530,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         ret->d_tlsCtx = getTLSContext(tlsParams);
       }
 
+      if (vars.count("dohPath")) {
+        ret->d_dohPath = boost::get<string>(vars.at("dohPath"));
+      }
+
       /* this needs to be done _AFTER_ the order has been set,
          since the server are kept ordered inside the pool */
       auto localPools = g_pools.getCopy();

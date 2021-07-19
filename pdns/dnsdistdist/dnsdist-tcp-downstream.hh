@@ -15,7 +15,7 @@ public:
     reconnect();
   }
 
-  ~TCPConnectionToBackend();
+  virtual ~TCPConnectionToBackend();
 
   int getHandle() const
   {
@@ -112,8 +112,8 @@ public:
     return ds == d_ds;
   }
 
-  void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query);
-  void handleTimeout(const struct timeval& now, bool write);
+  virtual void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query);
+  virtual void handleTimeout(const struct timeval& now, bool write);
   void release();
 
   void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
@@ -123,17 +123,17 @@ public:
     return d_lastDataReceivedTime;
   }
 
-  std::string toString() const
+  virtual std::string toString() const
   {
     ostringstream o;
     o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_sender ? " a client" : "no client");
     return o.str();
   }
 
-private:
+protected:
   /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
      so we can still switch to sending instead */
-  enum class State : uint8_t { idle, doingHandshake, sendingQueryToBackend, waitingForResponseFromBackend, readingResponseSizeFromBackend, readingResponseFromBackend };
+  enum class State : uint8_t { idle, sendingQueryToBackend, waitingForResponseFromBackend, readingResponseSizeFromBackend, readingResponseFromBackend };
   enum class FailureReason : uint8_t { /* too many attempts */ gaveUp, timeout, unexpectedQueryID };
 
   static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
@@ -143,7 +143,7 @@ private:
   static bool isXFRFinished(const TCPResponse& response, TCPQuery& query);
 
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
-  uint16_t getQueryIdFromResponse();
+  uint16_t getQueryIdFromResponse() const;
   bool reconnect();
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
   bool needProxyProtocolPayload() const
@@ -197,6 +197,7 @@ private:
   }
 
   PacketBuffer d_responseBuffer;
+#warning we do not need this and could append to the outgoing buffer right away but is it better?
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
   std::unique_ptr<FDMultiplexer>& d_mplexer;

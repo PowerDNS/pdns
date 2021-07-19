@@ -649,6 +649,8 @@ struct ClientState
   }
 };
 
+struct CrossProtocolQuery;
+
 struct DownstreamState
 {
    typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
@@ -662,6 +664,7 @@ struct DownstreamState
   std::vector<int> sockets;
   const std::string sourceItfName;
   std::string d_tlsSubjectName;
+  std::string d_dohPath;
   std::mutex connectLock;
   LockGuarded<std::unique_ptr<FDMultiplexer>> mplexer{nullptr};
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
@@ -822,6 +825,8 @@ struct DownstreamState
   {
     return d_tcpOnly || d_tlsCtx != nullptr;
   }
+
+  bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
 
 private:
   std::string name;

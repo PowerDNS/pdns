@@ -21,6 +21,10 @@
  */
 #pragma once
 
+#include <unistd.h>
+#include "iputils.hh"
+#include "dnsdist.hh"
+
 struct ConnectionInfo
 {
   ConnectionInfo(ClientState* cs_) :

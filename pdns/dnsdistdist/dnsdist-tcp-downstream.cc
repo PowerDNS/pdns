@@ -225,8 +225,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             conn->d_pendingResponses.clear();
             conn->d_currentPos = 0;
 
-            if (conn->d_state == State::doingHandshake ||
-                conn->d_state == State::sendingQueryToBackend) {
+            if (conn->d_state == State::sendingQueryToBackend) {
               iostate = IOState::NeedWrite;
               // resume sending query
             }
@@ -295,7 +294,7 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
   }
 
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   handleIO(conn, now);
 }
 
@@ -309,7 +308,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");
   }
 
-  // if we are not already sending a query or in the middle of reading a response (so idle or doingHandshake),
+  // if we are not already sending a query or in the middle of reading a response (so idle),
   // start sending the query
   if (d_state == State::idle || d_state == State::waitingForResponseFromBackend) {
     DEBUGLOG("Sending new query to backend right away");
@@ -615,7 +614,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
 }
 
-uint16_t TCPConnectionToBackend::getQueryIdFromResponse()
+uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
 {
   if (d_responseBuffer.size() < sizeof(dnsheader)) {
     throw std::runtime_error("Unable to get query ID in a too small (" + std::to_string(d_responseBuffer.size()) + ") response from " + d_ds->getNameWithAddr());
