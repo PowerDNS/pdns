@@ -296,10 +296,11 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 
   // We only store the localip if needed for fstrm logging
   ComboAddress localip;
-  bool fstrmQEnabled = false;
-  bool fstrmREnabled = false;
   bool dnsOverTLS = false;
 #ifdef HAVE_FSTRM
+  bool fstrmQEnabled = false;
+  bool fstrmREnabled = false;
+  
   if (isEnabledForQueries(fstrmLoggers)) {
     fstrmQEnabled = true;
   }
