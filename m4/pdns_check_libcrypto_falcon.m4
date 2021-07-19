@@ -4,6 +4,6 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO_FALCON], [
   libcrypto_falcon=yes
   AC_DEFINE([HAVE_LIBCRYPTO_FALCON], [1], [define to 1 if OpenSSL falcon support is available.])
 
-  LIBCRYPTO_LIBS="-loqs $LIBCRYPTO_LIBS"
+  LIBCRYPTO_LIBS="$LIBCRYPTO_LIBS"
   LIBS="$LIBCRYPTO_LIBS $LIBS"
 ])

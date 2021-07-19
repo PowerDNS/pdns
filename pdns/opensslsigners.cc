@@ -26,7 +26,7 @@
 #ifdef HAVE_LIBCRYPTO_ECDSA
 #include <openssl/ecdsa.h>
 #endif
-#if defined(HAVE_LIBCRYPTO_ED25519) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED25519) || defined(HAVE_LIBCRYPTO_ED448) || defined(HAVE_LIBCRYPTO_FALCON)
 #include <openssl/evp.h>
 #endif
 #include <openssl/bn.h>
@@ -38,11 +38,6 @@
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
-
-/* Import Open Quantum Safe OpenSSL Fork to support Falcon */
-#if defined(HAVE_LIBCRYPTO_FALCON)
-#include <oqs/oqs.h>
-#endif
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -845,24 +840,20 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
 #ifdef HAVE_LIBCRYPTO_FALCON
 class OpenSSLFALCONDNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
-private:
-// TODO Change to store algorithm specific data
-unsigned int d_len;
-
-OQS_SIG *falcon_sig = NULL;
-uint8_t *falcon_public_key = NULL;
-uint8_t *falcon_secret_key = NULL;
-
 public:
-  explicit OpenSSLFALCONDNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
+  explicit OpenSSLFALCONDNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo), d_falconkey(std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(nullptr, EVP_PKEY_free))
   {
-
     int ret = RAND_status();
     if (ret != 1) {
       throw runtime_error(getName()+" insufficient entropy");
     }
 
-    d_len = OQS_SIG_falcon_512_length_public_key;
+    d_len = 1282;
+    d_id = NID_falcon512;
+
+    if (d_len == 0) {
+      throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
+    }
   }
 
   ~OpenSSLFALCONDNSCryptoKeyEngine()
@@ -874,8 +865,8 @@ public:
 
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
-  std::string sign(const std::string& hash) const override;
-  bool verify(const std::string& hash, const std::string& signature) const override;
+  std::string sign(const std::string& msg) const override;
+  bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
@@ -886,6 +877,12 @@ public:
   {
     return make_unique<OpenSSLFALCONDNSCryptoKeyEngine>(algorithm);
   }
+
+private:
+  size_t d_len{0};
+  int d_id{0};
+
+  std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> d_falconkey;
 };
 
 const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -1024,26 +1021,27 @@ int b64_decode(const char *in, unsigned char *out, size_t outlen)
 
 bool OpenSSLFALCONDNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
 {
-  return (falcon_secret_key != NULL);
+  return (d_falconkey ? true : false);
 }
 
 void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
 {
-  OQS_STATUS rc;
-  if (bits != d_len) {
-    throw runtime_error(getName()+" unknown key length of "+std::to_string(bits)+" bits requested");
+  auto ctx = EVP_PKEY_CTX_new_id(d_id, nullptr);
+  if (!ctx) {
+    throw runtime_error(getName()+ " CTX initialisation failed");
   }
-
-  falcon_sig = OQS_SIG_new(OQS_SIG_alg_falcon_512);
-  falcon_public_key = (uint8_t *) malloc(falcon_sig->length_public_key);
-  falcon_secret_key = (uint8_t *) malloc(falcon_sig->length_secret_key);
-  rc = OQS_SIG_keypair(falcon_sig, falcon_public_key, falcon_secret_key);
-  if (rc != OQS_SUCCESS) {
-    throw runtime_error("Failed to generate keypair Object");
+  auto pctx = std::unique_ptr<EVP_PKEY_CTX, void(*)(EVP_PKEY_CTX*)>(ctx, EVP_PKEY_CTX_free);
+  if (!pctx) {
+    throw runtime_error(getName()+" context initialization failed");
   }
-
-  //cout << "private :" << b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_public_key) << "\n";
-  //cout << "public :" << b64_encode((const unsigned char *) falcon_public_key, falcon_sig->length_public_key) << "\n";
+  if (EVP_PKEY_keygen_init(pctx.get()) < 1) {
+    throw runtime_error(getName()+" keygen initialization failed");
+  }
+  EVP_PKEY* newKey = nullptr;
+  if (EVP_PKEY_keygen(pctx.get(), &newKey) < 1) {
+    throw runtime_error(getName()+" key generation failed");
+  }
+  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVector() const
@@ -1051,51 +1049,72 @@ DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVe
   storvector_t storvect;
   string algorithm;
 
-  algorithm = "17 (Falcon)";
+  if(d_algorithm == 17) {
+    algorithm = "17 (Falcon)";
+  }
+  else {
+    algorithm = " ? (?)";
+  }
 
   storvect.push_back(make_pair("Algorithm", algorithm));
 
-  if (falcon_secret_key == NULL) {
-    throw runtime_error(getName() + " Could not get private key");
+  string buf;
+  size_t len = d_len;
+  buf.resize(len);
+  cout << d_falconkey.
+  if (EVP_PKEY_get_raw_private_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+    throw runtime_error(getName() + " Could not get private key from d_falconkey");
   }
-
-  cout << "Loaded Priv Convert: " << b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key) << "\n";
-
-  //Store private key base64 encoded into ISC Vector -> Obsolete
-  //char* private_tmp = b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key);
-  char* private_tmp = (char *) falcon_secret_key;
-  std::string private_key = std::string(private_tmp);
-  cout << "priv: " << private_key << "\n";
-
-  storvect.push_back(make_pair("PrivateKey", private_key));
+  storvect.push_back(make_pair("PrivateKey", buf));
   return storvect;
 }
 
 std::string OpenSSLFALCONDNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  uint8_t falcon_signature[falcon_sig->length_signature];
-  size_t sign_length;
-  cout << "Message: " << msg << "\n";
-  cout << "Message size: " << std::to_string(msg.size()) << "\n";
-  cout << "Loaded Priv for signing: " << b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key) << "\n";
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (!mdctx) {
+    throw runtime_error(getName()+" MD context initialization failed");
+  }
+  if(EVP_DigestSignInit(mdctx.get(), nullptr, nullptr, nullptr, d_falconkey.get()) < 1) {
+    throw runtime_error(getName()+" unable to initialize signer");
+  }
 
+  string msgToSign = msg;
 
-  OQS_STATUS rc = OQS_SIG_falcon_512_sign(falcon_signature, &sign_length, reinterpret_cast<const uint8_t*>(msg.c_str()), msg.size(), falcon_secret_key);
-	if (rc != OQS_SUCCESS) {
-		throw runtime_error("Failed to sign using Falcon");
-	}
-  std::string signature(falcon_signature, falcon_signature+sign_length);
+  size_t siglen = 690;
+  string signature;
+  signature.resize(siglen);
+
+  if (EVP_DigestSign(mdctx.get(),
+        reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
+        reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
+    throw runtime_error(getName()+" signing error");
+  }
+
   return signature;
 }
 
 bool OpenSSLFALCONDNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  OQS_STATUS rc = OQS_SIG_falcon_512_verify(reinterpret_cast<const uint8_t*>(msg.c_str()), msg.size(), reinterpret_cast<const uint8_t*>(signature.c_str()), signature.length(), falcon_public_key);
-	if (rc != OQS_SUCCESS) {
-		throw runtime_error("Failed to verify signature using Falcon");
-	} else {
-    return true;
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (!mdctx) {
+    throw runtime_error(getName()+" MD context initialization failed");
   }
+  if(EVP_DigestVerifyInit(mdctx.get(), nullptr, nullptr, nullptr, d_falconkey.get()) < 1) {
+    throw runtime_error(getName()+" unable to initialize signer");
+  }
+
+  string checkSignature = signature;
+  string checkMsg = msg;
+
+  auto r = EVP_DigestVerify(mdctx.get(),
+      reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
+      reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
+  if (r < 0) {
+    throw runtime_error(getName()+" verification failure");
+  }
+
+  return (r == 1);
 }
 
 std::string OpenSSLFALCONDNSCryptoKeyEngine::getPubKeyHash() const
@@ -1105,69 +1124,37 @@ std::string OpenSSLFALCONDNSCryptoKeyEngine::getPubKeyHash() const
 
 std::string OpenSSLFALCONDNSCryptoKeyEngine::getPublicKeyString() const
 {
-  if (falcon_public_key == NULL) {
-    throw std::runtime_error(getName() + " unable to get public key");
+  string buf;
+  size_t len = d_len;
+  buf.resize(len);
+  if (EVP_PKEY_get_raw_public_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+    throw std::runtime_error(getName() + " unable to get public key from key struct");
   }
-  char* public_tmp = b64_encode((const unsigned char *) falcon_public_key, falcon_sig->length_public_key);
-  std::string public_key = std::string(public_tmp);
-  return public_key;
+  return buf;
 }
 
 void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) {
-  //TODO check to create sig struture at the begining of the class
-  falcon_sig = OQS_SIG_new(OQS_SIG_alg_falcon_512);
-
-  //Extract and check algorithm
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+    drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   if (drc.d_algorithm != d_algorithm) {
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
 
-  std::string content = stormap["privatekey"];
-  cout << "Content received from map: " << content << "\n"; 
-
-  //Get content to C object for base64 conversion
-  std::vector<uint8_t> tmp_vector(content.begin(), content.end());
-  // size_t out_len = b64_decoded_size(tmp_content);
-
-  // //Base64 Decode content to char * 
-	// char *out = (char *) malloc(out_len);
-  // if (!b64_decode(tmp_content, (unsigned char *)out, out_len)) {
-	// 	throw runtime_error("Decode private key failed");
-	// }
-  //Reinterpret char array to uint8_t to respect key format
-  falcon_secret_key = (uint8_t*) calloc(falcon_sig->length_secret_key, sizeof(uint8_t));
-  //falcon_secret_key = reinterpret_cast<uint8_t*>(tmp_content));
-  falcon_secret_key = &tmp_vector[0];
-
-  if (falcon_secret_key == NULL) {
+  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
+  if (!d_falconkey) {
     throw std::runtime_error(getName() + " could not create key structure from private key");
   }
-
-  cout << "Loaded Priv: " << b64_encode((const unsigned char *) falcon_secret_key, falcon_sig->length_secret_key) << "\n";
 }
 
 void OpenSSLFALCONDNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  //TODO check to create sig struture at the begining of the class
-  falcon_sig = OQS_SIG_new(OQS_SIG_alg_falcon_512);
-
-  //Get content to C object for base64 conversion
-  const char *tmp_content = content.c_str();
-  size_t out_len = b64_decoded_size(tmp_content);
-  if (out_len != d_len) {
+    if (content.length() != d_len) {
     throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
 
-  //Base64 Decode content to char * 
-	char *out = (char *) malloc(out_len);
-  if (!b64_decode(tmp_content, (unsigned char *)out, out_len)) {
-		throw runtime_error("Decode failure");
-	}
-  //Reinterpret char array to uint8_t to respect key format
-  falcon_public_key = (uint8_t*) malloc(falcon_sig->length_public_key);
-  falcon_public_key = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(out));
-  if (falcon_public_key == NULL) {
+  const unsigned char* raw = reinterpret_cast<const unsigned char*>(content.c_str());
+
+  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
+  if (!d_falconkey) {
     throw runtime_error(getName()+" allocation of public key structure failed");
   }
 }
