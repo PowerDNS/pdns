@@ -24,3 +24,4 @@ These chapters contain extensive information on all functions and object availab
   kvs
   logging
   web
+  svc

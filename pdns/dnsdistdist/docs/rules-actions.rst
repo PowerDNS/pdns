@@ -1499,6 +1499,24 @@ The following actions exist.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
   * ``ttl``: int - The TTL of the record.
 
+.. function:: SpoofSVCAction(svcParams [, options])
+
+  .. versionadded:: 1.7.0
+
+  Forge a response with the specified SVC record data. If the list contains more than one class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
+  and should have different priorities.
+  The hints provided in the SVC parameters, if any, will also be added as A/AAAA records in the additional section, using the target name present in the parameters as owner name if it's not empty (root) and the qname instead.
+
+  :param list of class:`SVCRecordParameters` svcParams: The record data to return
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``ttl``: int - The TTL of the record.
+
 .. function:: TagAction(name, value)
 
   .. deprecated:: 1.6.0

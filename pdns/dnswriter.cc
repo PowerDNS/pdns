@@ -382,6 +382,11 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlob(co
   d_content.insert(d_content.end(), ptr, ptr+blob.size());
 }
 
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlob(const std::vector<uint8_t>& blob)
+{
+  d_content.insert(d_content.end(), blob.begin(), blob.end());
+}
+
 template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlobNoSpaces(const string& blob, int  )
 {
   xfrBlob(blob);

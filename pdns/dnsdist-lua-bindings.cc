@@ -22,6 +22,7 @@
 #include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-svc.hh"
 
 #include "dolog.hh"
 
@@ -533,5 +534,50 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
     }
     return std::make_shared<DOHResponseMapEntry>(regex, status, PacketBuffer(content.begin(), content.end()), headers);
+  });
+
+  luaCtx.writeFunction("newSVCRecordParameters", [](uint16_t priority, const std::string& target, const std::vector<std::pair<int, uint16_t>>& mandatoryParams, const std::vector<std::pair<int, std::string>>& alpns, bool noDefaultAlpn, boost::optional<uint16_t> port, const boost::optional<std::string> ech, boost::optional<std::vector<std::pair<int, std::string>>> ipv4hints, boost::optional<std::vector<std::pair<int, std::string>>> ipv6hints, boost::optional<std::vector<std::pair<int, std::string>>> additionalParameters)
+  {
+    SVCRecordParameters parameters;
+    parameters.priority = priority;
+    parameters.target = DNSName(target);
+
+    for (const auto& entry : mandatoryParams) {
+      parameters.mandatoryParams.insert(entry.second);
+    }
+
+    for (const auto& entry : alpns) {
+      parameters.alpns.push_back(entry.second);
+    }
+
+    parameters.noDefaultAlpn = noDefaultAlpn;
+
+    if (port) {
+      parameters.port = *port;
+    }
+
+    if (ech) {
+      parameters.ech = *ech;
+    }
+
+    if (ipv4hints) {
+      for (const auto& entry : *ipv4hints) {
+        parameters.ipv4hints.push_back(ComboAddress(entry.second));
+      }
+    }
+
+    if (ipv6hints) {
+      for (const auto& entry : *ipv6hints) {
+        parameters.ipv6hints.push_back(ComboAddress(entry.second));
+      }
+    }
+
+    if (additionalParameters) {
+      for (const auto& entry : *additionalParameters) {
+        parameters.additionalParams.push_back({entry.first, entry.second});
+      }
+    }
+
+    return parameters;
   });
 }
