@@ -1111,6 +1111,82 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig_noaa)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      /* We are not setting AA! */
+      setLWResult(res, 0, false, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 86400);
+      }
+
+      /* No RRSIG */
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return 1;
+    }
+    else if (domain == target && type == QType::DNSKEY) {
+
+      setLWResult(res, 0, true, false, true);
+
+      addDNSKEY(keys, domain, 300, res->d_records);
+      addRRSIG(keys, res->d_records, domain, 300);
+
+      return 1;
+    }
+
+    return 0;
+  });
+
+  SyncRes::s_maxcachettl = 86400;
+  SyncRes::s_maxbogusttl = 3600;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
+  /* 13 NS + 0 RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  /* no RRSIG so no query for DNSKEYs */
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  /* check that we capped the TTL to max-cache-bogus-ttl */
+  for (const auto& record : ret) {
+    BOOST_CHECK_LE(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
 {
   std::unique_ptr<SyncRes> sr;

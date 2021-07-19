@@ -2789,6 +2789,46 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   return state;
 }
 
+/* This function will check whether the answer should have the AA bit set, and will set if it should be set and isn't.
+   This is unfortunately needed to deal with very crappy so-called DNS servers */
+void SyncRes::fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
+{
+  const bool wasForwardRecurse = wasForwarded && rdQuery;
+
+  if (wasForwardRecurse || lwr.d_aabit) {
+    /* easy */
+    return;
+  }
+
+  for (const auto& rec : lwr.d_records) {
+
+    if (rec.d_type == QType::OPT) {
+      continue;
+    }
+
+    if (rec.d_class != QClass::IN) {
+      continue;
+    }
+
+    if (rec.d_type == QType::ANY) {
+      continue;
+    }
+
+    if (rec.d_place == DNSResourceRecord::ANSWER && (QType(rec.d_type) == qtype || rec.d_type == QType::CNAME || qtype == QType::ANY) && rec.d_name == qname && rec.d_name.isPartOf(auth)) {
+      /* This is clearly an answer to the question we were asking, from an authoritative server that is allowed to send it.
+         We are going to assume this server is broken and does not know it should set the AA bit, even though it is DNS 101 */
+      LOG(prefix<<"Received a record for "<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<" in the answer section from "<<auth<<", without the AA bit set. Assuming this server is clueless and setting the AA bit."<<endl);
+      lwr.d_aabit = true;
+      return;
+    }
+
+    if (rec.d_place != DNSResourceRecord::ANSWER) {
+      /* we have scanned all the records in the answer section, if any, we are done */
+      return;
+    }
+  }
+}
+
 static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
 {
   switch(rec.d_type) {
@@ -2956,6 +2996,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     prefix.append(depth, ' ');
   }
 
+  fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
 
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
