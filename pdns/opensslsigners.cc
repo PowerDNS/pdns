@@ -28,6 +28,10 @@
 #endif
 #if defined(HAVE_LIBCRYPTO_ED25519) || defined(HAVE_LIBCRYPTO_ED448) || defined(HAVE_LIBCRYPTO_FALCON)
 #include <openssl/evp.h>
+#include <openssl/asn1.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
+#include <openssl/pem.h>
 #endif
 #include <openssl/bn.h>
 #include <openssl/sha.h>
@@ -1026,6 +1030,8 @@ bool OpenSSLFALCONDNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) co
 
 void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
 {
+  
+
   auto ctx = EVP_PKEY_CTX_new_id(d_id, nullptr);
   if (!ctx) {
     throw runtime_error(getName()+ " CTX initialisation failed");
@@ -1043,6 +1049,11 @@ void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
   }
 
   d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
+  BIO *bio_out;
+  bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+  EVP_PKEY_print_public(bio_out, d_falconkey.get(), 3, NULL);
+  EVP_PKEY_print_private(bio_out, d_falconkey.get(), 3, NULL);
+
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVector() const

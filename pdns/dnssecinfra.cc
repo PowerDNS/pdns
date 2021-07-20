@@ -292,11 +292,12 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
   DTime dt; dt.set();
-  for(unsigned int n = 0; n < 100; ++n)
+  for(unsigned int n = 0; n < 1; ++n)
   dckeCreate->create(bits);
   //cout << dckeCreate->getPublicKeyString() << "\n";
   cerr<<"("<<dckeCreate->getBits()<<" bits) ";
-  unsigned int udiffCreate = dt.udiff() / 100;
+  unsigned int udiffCreate = dt.udiff() / 1;
+  throw runtime_error("End");
 
   // { // FIXME: this block copy/pasted from makeFromISCString
   //   DNSKEYRecordContent dkrc;
