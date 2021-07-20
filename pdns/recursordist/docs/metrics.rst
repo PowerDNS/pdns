@@ -126,6 +126,24 @@ It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-10
 
 Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count.
 
+almost-expired-pushed
+^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.6
+
+number of almost-expired tasks pushed
+
+almost-expired-run
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.6
+
+number of almost-expired tasks run
+
+almost-expired-exceptions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.6
+
+number of almost-expired tasks that caused an exception
+
 aggressive-nsec-cache-entries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5

@@ -30,7 +30,7 @@ static pdns::stat_t s_almost_expired_tasks_pushed;
 static pdns::stat_t s_almost_expired_tasks_run;
 static pdns::stat_t s_almost_expired_tasks_exceptions;
 
-static void resolve(const struct timeval &now, bool logErrors, const pdns::ResolveTask& task)
+static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task)
 {
   ++s_almost_expired_tasks_run;
   const string msg = "Exception while running a background ResolveTask";
@@ -108,4 +108,3 @@ uint64_t getAlmostExpiredTaskExceptions()
 {
   return s_almost_expired_tasks_exceptions;
 }
-

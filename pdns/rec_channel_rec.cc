@@ -1366,6 +1366,10 @@ static void registerAllStats1()
 
   addGetStat("dns64-prefix-answers",  &g_stats.dns64prefixanswers);
 
+  addGetStat("almost-expired-pushed",  []() { return getAlmostExpiredTasksPushed(); });
+  addGetStat("almost-expired-run",  []() { return getAlmostExpiredTasksRun(); });
+  addGetStat("almost-expired-exceptions",  []() { return getAlmostExpiredTaskExceptions(); });
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {

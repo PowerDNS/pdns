@@ -132,6 +132,9 @@ static const oid aggressiveNSECCacheNSECWCHitsOID[] = { RECURSOR_STATS_OID, 111 
 static const oid aggressiveNSECCacheNSEC3WCHitsOID[] = { RECURSOR_STATS_OID, 112 };
 static const oid dotOutqueriesOID [] = { RECURSOR_STATS_OID, 113 };
 static const oid dns64PrefixAnswers [] = { RECURSOR_STATS_OID, 114 };
+static const oid almostExpiredPushed [] = { RECURSOR_STATS_OID, 115 };
+static const oid almostExpiredRun [] = { RECURSOR_STATS_OID, 116 };
+static const oid almostExpiredExceptions [] = { RECURSOR_STATS_OID, 117 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -355,5 +358,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("aggressive-nsec-cache-nsec-wc3-hits", aggressiveNSECCacheNSEC3WCHitsOID, OID_LENGTH(aggressiveNSECCacheNSEC3WCHitsOID));
   registerCounter64Stat("dot-outqueries", dotOutqueriesOID, OID_LENGTH(dotOutqueriesOID));
   registerCounter64Stat("dns64-prefix-answers", dns64PrefixAnswers, OID_LENGTH(dns64PrefixAnswers));
+  registerCounter64Stat("almost-expired-pushed", almostExpiredPushed, OID_LENGTH(almostExpiredPushed));
+  registerCounter64Stat("almost-expired-run", almostExpiredRun, OID_LENGTH(almostExpiredRun));
+  registerCounter64Stat("almost-expired-exceptions", almostExpiredExceptions, OID_LENGTH(almostExpiredExceptions));
 #endif /* HAVE_NET_SNMP */
 }
