@@ -1939,6 +1939,15 @@ static void startDoResolve(void *p)
         }
       }
     }
+    else if (t_pdl) {
+      // preresolve returned true
+      shouldNotValidate = true;
+      auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+      // haveAnswer case redundant
+      if (policyResult == PolicyResult::Drop) {
+        return;
+      }
+    }
 
   haveAnswer:;
     if(tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
