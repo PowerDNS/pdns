@@ -1161,6 +1161,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
     ++g_stats.policyResults[appliedPolicy.d_kind];
+    ++g_stats.policyHits[appliedPolicy.getName()];
   }
 
   if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
@@ -5860,7 +5861,7 @@ int main(int argc, char **argv)
     for (size_t idx = 0; idx < 128; idx++) {
       defaultAPIDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-answers, cumul-auth4answers, cumul-auth6answers";
+    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-answers, cumul-auth4answers, cumul-auth6answers, policy-hits";
 
     ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultAPIDisabledStats;
     ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultDisabledStats;

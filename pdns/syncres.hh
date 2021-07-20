@@ -1072,6 +1072,7 @@ struct RecursorStats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
   std::map<vState, std::atomic<uint64_t> > xdnssecResults;
   std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
+  std::unordered_map<std::string, std::atomic<uint64_t>> policyHits;
   std::atomic<uint64_t> rebalancedQueries{0};
   std::atomic<uint64_t> proxyProtocolInvalidCount{0};
   std::atomic<uint64_t> nodLookupsDroppedOversize{0};
