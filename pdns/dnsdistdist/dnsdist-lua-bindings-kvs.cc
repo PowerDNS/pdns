@@ -40,11 +40,11 @@ void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
   });
 
 #ifdef HAVE_LMDB
-  luaCtx.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName) {
+  luaCtx.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName, boost::optional<bool> noLock) {
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
-    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName));
+    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName, noLock.get_value_or(false)));
   });
 #endif /* HAVE_LMDB */
 

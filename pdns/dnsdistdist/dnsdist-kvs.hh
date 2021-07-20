@@ -165,7 +165,7 @@ public:
 class LMDBKVStore: public KeyValueStore
 {
 public:
-  LMDBKVStore(const std::string& fname, const std::string& dbName): d_env(fname.c_str(), MDB_NOSUBDIR, 0600), d_fname(fname), d_dbName(dbName)
+  LMDBKVStore(const std::string& fname, const std::string& dbName, bool noLock=false): d_env(fname.c_str(), noLock ? MDB_NOSUBDIR|MDB_RDONLY|MDB_NOLOCK : MDB_NOSUBDIR|MDB_RDONLY, 0600), d_dbi(d_env.openDB(dbName, 0)), d_fname(fname), d_dbName(dbName)
   {
   }
 
@@ -174,6 +174,7 @@ public:
 
 private:
   MDBEnv d_env;
+  MDBDbi d_dbi;
   std::string d_fname;
   std::string d_dbName;
 };
