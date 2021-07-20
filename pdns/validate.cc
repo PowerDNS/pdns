@@ -521,6 +521,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           }
         }
 
+        if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
+          LOG("A NSEC RR from the child zone cannot deny the existence of a DS"<<endl);
+          continue;
+        }
+
         /* check if the type is denied */
         if (qname == owner) {
           if (!isTypeDenied(nsec, QType(qtype))) {
@@ -637,6 +642,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
+        if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
+          LOG("A NSEC3 RR from the child zone cannot deny the existence of a DS"<<endl);
+          continue;
+        }
+
         string h = getHashFromNSEC3(qname, nsec3, cache);
         if (h.empty()) {
           LOG("Unsupported hash, ignoring"<<endl);
@@ -729,7 +739,8 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             LOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
             if (beginHash == h) {
-              if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
+              /* If the closest encloser is a delegation NS we know nothing about the names in the child zone. */
+              if (isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
                 LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
                 continue;
               }

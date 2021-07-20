@@ -1036,7 +1036,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_optout)
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         /* closest encloser */
-        addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), DNSName("a.com.").toStringNoDot(), {QType::NS}, 600, res->d_records, 10, true);
+        addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), DNSName("a.com.").toStringNoDot(), {QType::NS,QType::SOA}, 600, res->d_records, 10, true);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         /* next closer */
         addNSEC3UnhashedRecordToLW(DNSName("oowerdns.com."), DNSName("com."), DNSName("qowerdns.com.").toStringNoDot(), {QType::NS}, 600, res->d_records, 10, true);
@@ -1081,7 +1081,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_optout)
           addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
           /* no DS */
           /* closest encloser */
-          addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), DNSName("a.com.").toStringNoDot(), {QType::NS}, 600, res->d_records, 10, true);
+          addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), DNSName("a.com.").toStringNoDot(), {QType::NS,QType::SOA}, 600, res->d_records, 10, true);
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           /* next closer */
           addNSEC3UnhashedRecordToLW(DNSName("oowerdns.com."), DNSName("com."), DNSName("qowerdns.com.").toStringNoDot(), {QType::NS}, 600, res->d_records, 10, true);
