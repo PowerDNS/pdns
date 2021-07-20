@@ -222,14 +222,16 @@ This state can be modified from the various hooks.
   .. method:: DNSQuestion:setTag(key, value)
 
     Set a tag into the DNSQuestion object.
-
+    This function will not overwrite an existing tag. If the tag already exists it will keep its original value.
+  
     :param string key: The tag's key
     :param string value: The tag's value
 
   .. method:: DNSQuestion:setTagArray(tags)
 
     Set an array of tags into the DNSQuestion object.
-
+    This function will not overwrite an existing tag. If the tag already exists it will keep its original value.
+  
     :param table tags: A table of tags, using strings as keys and values
 
   .. method:: DNSQuestion:setTrailingData(tail) -> bool
