@@ -93,6 +93,14 @@ make
 # make install
 ```
 
+To use a OpenSSL library, use the following:
+
+```sh
+./configure --with-modules="" --disable-lua-records --with-libcrypto=<PATH/TO/CUSTOM/OPENSSLLIB>
+make
+# make install
+```
+
 This generates a PowerDNS Authoritative Server binary with no modules built in.
 
 See https://doc.powerdns.com/authoritative/backends/index.html for a list of available modules.
@@ -173,3 +181,36 @@ For MySQL support, run `brew install mariadb` and add `--with-modules="gmysql"` 
 Linux notes
 -----------
 None really.
+
+Post-Quantum PDNS
+-----------
+First install the OQS fork of OpenSSL, for this follow the instructions given [here](https://github.com/open-quantum-safe/openssl) and afterwards run:
+```sh
+make install
+```
+in the forked OpenSSL directory.
+Note: if make -j crashes, just use make while bulding the library.
+
+Once you installed the OQS OpenSSL on your device, clone this repository to the place of your choice.
+Install the needed package (see above depending on your system)
+Then generate the configure file:
+
+```sh
+autoreconf -vi
+```
+Compile using the local OpenSSL library freshly installed:
+
+```sh
+./configure --with-modules="" --disable-lua-records --with-libcrypto=<PATH/TO/CUSTOM/OPENSSLLIB>
+make
+# make install
+```
+
+If you want to be able to run tests, run:
+```sh
+./configure --with-modules="" --disable-lua-records --enable-unit-tests --with-libcrypto=<PATH/TO/CUSTOM/OPENSSLLIB>
+make
+cd pdns
+make testrunner
+./testrunner
+```

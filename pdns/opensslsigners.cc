@@ -1041,6 +1041,7 @@ void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
   if (EVP_PKEY_keygen(pctx.get(), &newKey) < 1) {
     throw runtime_error(getName()+" key generation failed");
   }
+
   d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
 }
 
@@ -1061,7 +1062,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVe
   string buf;
   size_t len = d_len;
   buf.resize(len);
-  cout << d_falconkey.
+
   if (EVP_PKEY_get_raw_private_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw runtime_error(getName() + " Could not get private key from d_falconkey");
   }
@@ -1106,7 +1107,7 @@ bool OpenSSLFALCONDNSCryptoKeyEngine::verify(const std::string& msg, const std::
 
   string checkSignature = signature;
   string checkMsg = msg;
-
+  cout << "Length: " << checkSignature.length() << "\n";
   auto r = EVP_DigestVerify(mdctx.get(),
       reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
       reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
@@ -1127,8 +1128,11 @@ std::string OpenSSLFALCONDNSCryptoKeyEngine::getPublicKeyString() const
   string buf;
   size_t len = d_len;
   buf.resize(len);
+  if (d_falconkey.get() == NULL) {
+    throw runtime_error(getName() + " null pointer");
+  }
   if (EVP_PKEY_get_raw_public_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
-    throw std::runtime_error(getName() + " unable to get public key from key struct");
+    throw runtime_error(getName() + " unable to get public key from key struct");
   }
   return buf;
 }
