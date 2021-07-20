@@ -1178,6 +1178,62 @@ private:
   func_t d_func;
 };
 
+class LuaFFIPerThreadRule : public DNSRule
+{
+public:
+  typedef std::function<bool(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+
+  LuaFFIPerThreadRule(const std::string& code): d_functionCode(code), d_functionID(s_functionsCounter++)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    try {
+      auto& state = t_perThreadStates[d_functionID];
+      if (!state.d_initialized) {
+        setupLuaFFIPerThreadContext(state.d_luaContext);
+        /* mark the state as initialized first so if there is a syntax error
+           we only try to execute the code once */
+        state.d_initialized = true;
+        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+      }
+
+      if (!state.d_func) {
+        /* the function was not properly initialized */
+        return false;
+      }
+
+      dnsdist_ffi_dnsquestion_t dqffi(const_cast<DNSQuestion*>(dq));
+      return state.d_func(&dqffi);
+    }
+    catch (const std::exception &e) {
+      warnlog("LuaFFIPerthreadRule failed inside Lua: %s", e.what());
+    }
+    catch (...) {
+      warnlog("LuaFFIPerThreadRule failed inside Lua: [unknown exception]");
+    }
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "Lua FFI per-thread script";
+  }
+private:
+  struct PerThreadState
+  {
+    LuaContext d_luaContext;
+    func_t d_func;
+    bool d_initialized{false};
+  };
+
+  static std::atomic<uint64_t> s_functionsCounter;
+  static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
+  const std::string d_functionCode;
+  const uint64_t d_functionID;
+};
+
 class ProxyProtocolValueRule : public DNSRule
 {
 public:

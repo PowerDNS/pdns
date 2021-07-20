@@ -107,3 +107,4 @@ struct dnsdist_ffi_servers_list_t
 };
 
 const std::string& getLuaFFIWrappers();
+void setupLuaFFIPerThreadContext(LuaContext& luaCtx);

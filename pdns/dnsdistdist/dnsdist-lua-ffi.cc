@@ -576,3 +576,12 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx)
   luaCtx.executeCode(getLuaFFIWrappers());
 #endif
 }
+
+void setupLuaFFIPerThreadContext(LuaContext& luaCtx)
+{
+  setupLuaVars(luaCtx);
+
+#ifdef LUAJIT_VERSION
+  luaCtx.executeCode(getLuaFFIWrappers());
+#endif
+}
