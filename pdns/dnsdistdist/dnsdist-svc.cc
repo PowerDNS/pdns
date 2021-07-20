@@ -50,7 +50,7 @@ bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const 
   }
 
   if (!ipv4hints.empty()) {
-    params.insert({SvcParam::SvcParamKey::ipv4hint,  std::vector<ComboAddress>(ipv4hints)});
+    params.insert({SvcParam::SvcParamKey::ipv4hint, std::vector<ComboAddress>(ipv4hints)});
   }
 
   if (!ech.empty()) {
@@ -58,7 +58,7 @@ bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const 
   }
 
   if (!ipv6hints.empty()) {
-    params.insert({SvcParam::SvcParamKey::ipv6hint,  std::vector<ComboAddress>(ipv6hints)});
+    params.insert({SvcParam::SvcParamKey::ipv6hint, std::vector<ComboAddress>(ipv6hints)});
   }
 
   for (const auto& param : additionalParams) {

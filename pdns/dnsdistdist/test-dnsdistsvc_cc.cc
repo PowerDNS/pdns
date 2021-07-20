@@ -10,14 +10,14 @@
 
 BOOST_AUTO_TEST_SUITE(dnsdistsvc_cc)
 
-BOOST_AUTO_TEST_CASE(test_Basic) {
-
+BOOST_AUTO_TEST_CASE(test_Basic)
+{
   DNSName target("powerdns.com.");
 
   {
     std::vector<uint8_t> payload;
     const uint16_t priority = 1;
-    BOOST_CHECK(generateSVCPayload(payload, priority, target, { SvcParam::SvcParamKey::port }, { "dot" }, false, 853, std::string(), { ComboAddress("192.0.2.1") }, { ComboAddress("2001:db8::1") }, {}));
+    BOOST_CHECK(generateSVCPayload(payload, priority, target, {SvcParam::SvcParamKey::port}, {"dot"}, false, 853, std::string(), {ComboAddress("192.0.2.1")}, {ComboAddress("2001:db8::1")}, {}));
     /* 2 octet field for SvcPriority as an integer in network byte order */
     /* uncompressed, fully-qualified TargetName */
     /* list of SvcParams as:
@@ -41,15 +41,15 @@ BOOST_AUTO_TEST_CASE(test_Basic) {
     pr.xfrSvcParamKeyVals(params);
     BOOST_REQUIRE_EQUAL(params.size(), 5U);
     auto param = params.begin();
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::mandatory);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::mandatory);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::alpn);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::alpn);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::port);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::port);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::ipv4hint);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::ipv4hint);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::ipv6hint);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::ipv6hint);
   }
 
   {
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_Basic) {
     const std::string ech("whatever");
     const std::string dohParam("/dns-query{?dns}");
 
-    BOOST_CHECK(generateSVCPayload(payload, priority, target, { SvcParam::SvcParamKey::port }, { "h2" }, true, 443, ech, { ComboAddress("192.0.2.2") }, { ComboAddress("2001:db8::2") }, { std::pair<uint16_t, std::string>(42, dohParam) }));
+    BOOST_CHECK(generateSVCPayload(payload, priority, target, {SvcParam::SvcParamKey::port}, {"h2"}, true, 443, ech, {ComboAddress("192.0.2.2")}, {ComboAddress("2001:db8::2")}, {std::pair<uint16_t, std::string>(42, dohParam)}));
 
     size_t expectedSize = (/* priority */ 2) + target.wirelength() + (/* mandatory */ 2 + 2 + 2) + (/* alpns */ 2 + 2 + 3) + (/* no-alpn-default is true */ 2 + 2) + (/* port */ 2 + 2 + 2) + (/* ech */ 2 + 2 + ech.size()) + (/* v4 hints */ 2 + 2 + 9) + (/* v6 hints */ 2 + 2 + 11) + (/* doh parameter */ 2 + 2 + dohParam.size());
     BOOST_CHECK_EQUAL(payload.size(), expectedSize);
@@ -75,19 +75,19 @@ BOOST_AUTO_TEST_CASE(test_Basic) {
     pr.xfrSvcParamKeyVals(params);
     BOOST_REQUIRE_EQUAL(params.size(), 8U);
     auto param = params.begin();
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::mandatory);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::mandatory);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::alpn);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::alpn);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::no_default_alpn);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::no_default_alpn);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::port);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::port);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::ipv4hint);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::ipv4hint);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::ech);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::ech);
     ++param;
-    BOOST_CHECK_EQUAL(param->getKey(), SvcParam::SvcParamKey::ipv6hint);
+    BOOST_CHECK(param->getKey() == SvcParam::SvcParamKey::ipv6hint);
     ++param;
     BOOST_CHECK_EQUAL(static_cast<uint16_t>(param->getKey()), 42U);
   }
