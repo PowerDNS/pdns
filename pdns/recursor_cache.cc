@@ -248,7 +248,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
         return -1;
       } else {
         if (!entry->d_submitted) {
-          pushTask(qname, qtype, entry->d_ttd);
+          pushAlmostExpiredTask(qname, qtype, entry->d_ttd);
           entry->d_submitted = true;
         }
       }

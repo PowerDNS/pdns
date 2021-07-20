@@ -38,7 +38,7 @@ size_t TaskQueue::size() const
   return d_queue.size();
 }
 
-void TaskQueue::push(const ResolveTask&& task)
+void TaskQueue::push(ResolveTask&& task)
 {
   // Insertion fails if it's already there, no problem since we're already scheduled
   // and the deadline would remain the same anyway.
@@ -64,33 +64,7 @@ bool TaskQueue::runOnce(bool logErrors)
   struct timeval now;
   gettimeofday(&now, 0);
   if (task.d_deadline >= now.tv_sec) {
-    SyncRes sr(now);
-    vector<DNSRecord> ret;
-    sr.setRefreshAlmostExpired(task.d_refreshMode);
-    try {
-      g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
-      int res = sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
-      g_log << Logger::Debug << "TaskQueue: DONE resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << ": " << res << endl;
-    }
-    catch (const std::exception& e) {
-      g_log << Logger::Error << "Exception while running the background task queue: " << e.what() << endl;
-    }
-    catch (const PDNSException& e) {
-      g_log << Logger::Notice << "Exception while running the background task queue: " << e.reason << endl;
-    }
-    catch (const ImmediateServFailException& e) {
-      if (logErrors) {
-        g_log << Logger::Notice << "Exception while running the background task queue: " << e.reason << endl;
-      }
-    }
-    catch (const PolicyHitException& e) {
-      if (logErrors) {
-        g_log << Logger::Notice << "Policy hit while running the background task queue" << endl;
-      }
-    }
-    catch (...) {
-      g_log << Logger::Error << "Exception while running the background task queue" << endl;
-    }
+    task.func(now, logErrors, task);
   }
   else {
     // Deadline passed

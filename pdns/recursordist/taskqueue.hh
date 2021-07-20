@@ -39,12 +39,14 @@ using namespace ::boost::multi_index;
 namespace pdns
 {
 
+// ATM we have one task type, if we get more, the unique key in the index needs to be adapted
 struct ResolveTask
 {
   DNSName d_qname;
   uint16_t d_qtype;
   time_t d_deadline;
   bool d_refreshMode; // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
+  void (*func)(const struct timeval&, bool logErrors, const ResolveTask&);
 };
 
 struct HashTag
@@ -70,7 +72,7 @@ class TaskQueue
 public:
   bool empty() const;
   size_t size() const;
-  void push(const ResolveTask&& task);
+  void push(ResolveTask&& task);
   ResolveTask pop();
   bool runOnce(bool logErrors); // Run one task if the queue is not empty
   void runAll(bool logErrors);
