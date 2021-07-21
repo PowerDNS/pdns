@@ -509,6 +509,22 @@ bool UeberBackend::superMasterAdd(const SuperMaster &master)
   return false;
 }
 
+bool UeberBackend::superMasterRemove(const SuperMaster &master)
+{
+  for(auto backend : backends)
+    if(backend->superMasterRemove(master))
+      return true;
+  return false;
+}
+
+bool UeberBackend::superMastersList(std::vector<SuperMaster>& masters)
+{
+   for(auto backend : backends)
+     if(backend->superMastersList(masters))
+       return true;
+   return false;
+}
+
 bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   for(auto backend : backends)

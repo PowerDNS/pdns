@@ -364,6 +364,18 @@ public:
     return false; 
   }
 
+  //! Remove an entry for a super master
+  virtual bool superMasterRemove(const struct SuperMaster& master)
+  {
+    return false;
+  }
+
+  //! List all SuperMasters, returns false if feature not supported.
+  virtual bool superMastersList(std::vector<SuperMaster>& masters)
+  {
+    return false;
+  }
+
   //! determine if ip is a supermaster or a domain
   virtual bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
   {
