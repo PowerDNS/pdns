@@ -106,6 +106,18 @@ Store DNSSEC keys and metadata storage in another backend. See the
 Setting this option to ``yes`` makes PowerDNS ignore out of zone records
 when loading zone files.
 
+.. _setting-bind-supermaster-config:
+
+``bind-supermaster-config``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specifies file where to read list of autoprimaries. BIND backend only
+checks IP address of primary server.
+
+The file must contain one IP and account per line, separated by whitespace.
+
+BIND backend can only read this file.
+
 .. _bind-operation:
 
 Operation
