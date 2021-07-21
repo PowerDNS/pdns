@@ -240,6 +240,7 @@ public:
   void rediscover(string* status = nullptr) override;
 
   // for supermaster support
+  bool superMastersList(std::vector<SuperMaster>& masters) override;
   bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   static std::mutex s_supermaster_config_lock;
   bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
