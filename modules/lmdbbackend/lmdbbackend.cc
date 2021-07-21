@@ -1734,6 +1734,26 @@ bool LMDBBackend::superMasterAdd(const SuperMaster& master)
   return true;
 }
 
+bool LMDBBackend::superMasterRemove(const SuperMaster& master)
+{
+  auto txn = d_tsupermasters->getRWTransaction();
+  /* check if it exists first */
+  for (auto range = txn.equal_range<0>(master.ip); range.first != range.second; ++range.first)
+    if (range.first->nameserver == master.nameserver)
+      range.first.del();
+
+  txn.commit();
+  return true;
+}
+
+bool LMDBBackend::superMastersList(std::vector<SuperMaster>& masters)
+{
+  auto txn = d_tsupermasters->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter)
+    masters.emplace_back(iter->ip, iter->nameserver, iter->account);
+  return true;
+}
+
 bool LMDBBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   auto txn = d_tsupermasters->getROTransaction();
@@ -1741,8 +1761,9 @@ bool LMDBBackend::superMasterBackend(const string& ip, const DNSName& domain, co
 
   for (const auto& ns : nsset) {
     DNSName server(ns.content);
-    if (txn.get<0>(ip, tsm) && DNSName(tsm.nameserver) == server) {
-      *nameserver = tsm.nameserver;
+    if (txn.get<0>(ip, tsm) && (tsm.nameserver.empty() ||
+                                DNSName(tsm.nameserver) == server)) {
+      *nameserver = tsm.nameserver.empty() ? server.toString() : tsm.nameserver;
       *account = tsm.account;
       *ddb = this;
       return true;

@@ -113,6 +113,8 @@ public:
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
 
   bool superMasterAdd(const SuperMaster& master) override;
+  bool superMasterRemove(const SuperMaster& master) override;
+  bool superMastersList(std::vector<SuperMaster>& masters) override;
   bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
 
   // TSIG
