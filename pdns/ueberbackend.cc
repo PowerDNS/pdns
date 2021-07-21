@@ -512,12 +512,28 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
   return false;
 }
 
-bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
+bool UeberBackend::superMasterAdd(const AutoPrimary &primary)
 {
   for(auto backend : backends)
-    if(backend->superMasterAdd(ip, nameserver, account)) 
+    if(backend->superMasterAdd(primary))
       return true;
   return false;
+}
+
+bool UeberBackend::autoPrimaryRemove(const AutoPrimary &primary)
+{
+  for(auto backend : backends)
+    if(backend->autoPrimaryRemove(primary))
+      return true;
+  return false;
+}
+
+bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
+{
+   for(auto backend : backends)
+     if(backend->autoPrimariesList(primaries))
+       return true;
+   return false;
 }
 
 bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)

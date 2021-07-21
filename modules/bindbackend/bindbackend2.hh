@@ -236,7 +236,8 @@ public:
   void parseZoneFile(BB2DomainInfo* bbd);
   void rediscover(string* status = nullptr) override;
 
-  // for supermaster support
+  // for autoprimary support
+  bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
   bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   static std::mutex s_supermaster_config_lock;
   bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
