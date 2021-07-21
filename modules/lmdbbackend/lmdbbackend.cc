@@ -1715,18 +1715,18 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   return false;
 }
 
-bool LMDBBackend::superMasterAdd(const string& ip, const string& nameserver, const string& account)
+bool LMDBBackend::superMasterAdd(const SuperMaster& master)
 {
   auto txn = d_tsupermasters->getRWTransaction();
   /* check if it exists first */
-  for (auto range = txn.equal_range<0>(ip); range.first != range.second; ++range.first)
-    if (range.first->nameserver == nameserver)
+  for (auto range = txn.equal_range<0>(master.ip); range.first != range.second; ++range.first)
+    if (range.first->nameserver == master.nameserver)
       range.first.del();
 
   SuperMastersDB tsm;
-  tsm.ip = ip;
-  tsm.nameserver = nameserver;
-  tsm.account = account;
+  tsm.ip = master.ip;
+  tsm.nameserver = master.nameserver;
+  tsm.account = master.account;
 
   txn.put(tsm);
   txn.commit();

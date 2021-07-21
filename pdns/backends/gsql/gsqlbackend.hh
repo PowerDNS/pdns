@@ -196,7 +196,7 @@ public:
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
   bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const DNSName &domain) override;
-  bool superMasterAdd(const string &ip, const string &nameserver, const string &account) override; 
+  bool superMasterAdd(const SuperMaster& master) override;
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;

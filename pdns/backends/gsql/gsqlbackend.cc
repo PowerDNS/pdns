@@ -1247,21 +1247,21 @@ skiprow:
   return false;
 }
 
-bool GSQLBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account)
+bool GSQLBackend::superMasterAdd(const SuperMaster& master)
 {
   try{
     reconnectIfNeeded();
 
     d_AddSuperMaster_stmt -> 
-      bind("ip",ip)->
-      bind("nameserver",nameserver)->
-      bind("account",account)->
+      bind("ip",master.ip)->
+      bind("nameserver",master.nameserver)->
+      bind("account",master.account)->
       execute()->
       reset();
 
   }
   catch (SSqlException &e){
-    throw PDNSException("GSQLBackend unable to insert a supermaster with IP " + ip + " and nameserver name '" + nameserver + "' and account '" + account + "': " + e.txtReason()); 
+    throw PDNSException("GSQLBackend unable to insert a supermaster with IP " + master.ip + " and nameserver name '" + master.nameserver + "' and account '" + master.account + "': " + e.txtReason()); 
   }
   return true;
 

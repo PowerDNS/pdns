@@ -501,10 +501,10 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
   return false;
 }
 
-bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
+bool UeberBackend::superMasterAdd(const SuperMaster &master)
 {
   for(auto backend : backends)
-    if(backend->superMasterAdd(ip, nameserver, account)) 
+    if(backend->superMasterAdd(master))
       return true;
   return false;
 }

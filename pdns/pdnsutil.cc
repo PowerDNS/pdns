@@ -1584,8 +1584,8 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 static int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
 {
   UeberBackend B("default");
-
-  if ( B.superMasterAdd(IP, nameserver, account) ){ 
+  const SuperMaster master(IP, nameserver, account);
+  if ( B.superMasterAdd(master) ){
     return EXIT_SUCCESS; 
   }
   cerr<<"could not find a backend with autosecondary support"<<endl;
