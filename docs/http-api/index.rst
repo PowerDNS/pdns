@@ -367,6 +367,7 @@ The API exposes several endpoints and objects:
   cryptokey
   metadata
   tsigkey
+  autoprimaries
   search
   statistics
   cache

@@ -105,6 +105,17 @@ struct TSIGKey {
    std::string key;
 };
 
+struct AutoPrimary {
+   AutoPrimary(const string& new_ip, const string& new_nameserver, const string& new_account) {
+      this->ip = new_ip;
+      this->nameserver = new_nameserver;
+      this->account = new_account;
+   };
+   std::string ip;
+   std::string nameserver;
+   std::string account;
+};
+
 class DNSPacket;
 
 //! This virtual base class defines the interface for backends for PowerDNS.
@@ -348,9 +359,21 @@ public:
   void setArgPrefix(const string &prefix);
 
   //! Add an entry for a super master
-  virtual bool superMasterAdd(const string &ip, const string &nameserver, const string &account) 
+  virtual bool superMasterAdd(const struct AutoPrimary& primary)
   {
     return false; 
+  }
+
+  //! Remove an entry for a super master
+  virtual bool autoPrimaryRemove(const struct AutoPrimary& primary)
+  {
+    return false;
+  }
+
+  //! List all SuperMasters, returns false if feature not supported.
+  virtual bool autoPrimariesList(std::vector<AutoPrimary>& primaries)
+  {
+    return false;
   }
 
   //! determine if ip is a supermaster or a domain

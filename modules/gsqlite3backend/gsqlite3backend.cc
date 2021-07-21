@@ -100,6 +100,8 @@ public:
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
     declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values (:ip,:nameserver,:account)");
+    declare(suffix, "autoprimary-remove", "", "delete from supermasters where ip = :ip and nameserver = :nameserver");
+    declare(suffix, "list-autoprimaries", "", "select ip,nameserver,account from supermasters");
 
     declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check,notified_serial) values(:type, :domain, :masters, :account, null, null)");
 
