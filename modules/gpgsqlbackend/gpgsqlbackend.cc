@@ -114,6 +114,8 @@ public:
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=$1 and nameserver=$2");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
     declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values ($1,$2,$3)");
+    declare(suffix, "supermaster-remove", "", "delete from supermasters where ip = $1 and nameserver = $2");
+    declare(suffix, "supermasters-list", "", "select * from supermasters");
 
     declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
 

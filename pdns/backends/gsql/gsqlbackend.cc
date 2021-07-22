@@ -71,6 +71,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
   d_AddSuperMaster=getArg("supermaster-add"); 
+  d_RemoveSuperMasterQuery=getArg("supermaster-remove");
+  d_ListSuperMastersQuery=getArg("supermasters-list");
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertRecordQuery=getArg("insert-record-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
@@ -141,6 +143,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery_stmt = nullptr;
   d_GetSuperMasterIPs_stmt = nullptr;
   d_AddSuperMaster_stmt = nullptr;
+  d_RemoveSuperMaster_stmt = nullptr;
+  d_ListSuperMasters_stmt = nullptr;
   d_InsertZoneQuery_stmt = nullptr;
   d_InsertRecordQuery_stmt = nullptr;
   d_InsertEmptyNonTerminalOrderQuery_stmt = nullptr;
@@ -1265,6 +1269,47 @@ bool GSQLBackend::superMasterAdd(const SuperMaster& master)
   }
   return true;
 
+}
+
+bool GSQLBackend::superMasterRemove(const SuperMaster& master)
+{
+  try{
+    reconnectIfNeeded();
+
+    d_RemoveSuperMaster_stmt ->
+      bind("ip",master.ip)->
+      bind("nameserver",master.nameserver)->
+      execute()->
+      reset();
+
+  }
+  catch (SSqlException &e){
+    throw PDNSException("GSQLBackend unable to remove a supermaster with IP " + master.ip + " and nameserver name '" + master.nameserver + "': " + e.txtReason());
+  }
+  return true;
+
+}
+
+bool GSQLBackend::superMastersList(std::vector<SuperMaster>& masters)
+{
+  try{
+    reconnectIfNeeded();
+
+    d_ListSuperMasters_stmt->
+      execute()->
+      getResult(d_result)->
+      reset();
+  }
+  catch (SSqlException &e){
+     throw PDNSException("GSQLBackend unable to list supermasters: " + e.txtReason());
+  }
+
+  for(const auto& row : d_result) {
+     ASSERT_ROW_COLUMNS("supermasters-list", row, 3);
+     masters.emplace_back(row[0], row[1], row[2]);
+  }
+
+  return true;
 }
 
 bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
