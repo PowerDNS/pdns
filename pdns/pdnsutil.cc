@@ -1592,6 +1592,35 @@ static int addSuperMaster(const std::string &IP, const std::string &nameserver, 
   return EXIT_FAILURE;
 }
 
+// removeSuperMaster remove super primary
+static int removeSuperMaster(const std::string &IP, const std::string &nameserver)
+{
+  UeberBackend B("default");
+  const SuperMaster master(IP, nameserver, "");
+  if ( B.superMasterRemove(master) ){
+    return EXIT_SUCCESS;
+  }
+  cerr<<"could not find a backend with autosecondary support"<<endl;
+  return EXIT_FAILURE;
+}
+
+// addSuperMaster add anew super primary
+static int listSuperMasters()
+{
+  UeberBackend B("default");
+  vector<SuperMaster> masters;
+  if ( !B.superMastersList(masters) ){
+    cerr<<"could not find a backend with autosecondary support"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  for(const auto& master: masters) {
+    cout<<"IP="<<master.ip<<", NS="<<master.nameserver<<", account="<<master.account<<endl;
+  }
+
+  return EXIT_SUCCESS;
+}
+
 // delete-rrset zone name type
 static int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
 {
@@ -2293,6 +2322,10 @@ try
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
     cout << "add-autoprimary IP NAMESERVER [account]" << endl;
     cout << "                                   Add a new autoprimary " << endl;
+    cout<<"remove-autoprimary IP NAMESERVER" << endl;
+    cout<<"                                   Remove an autoprimary" << endl;
+    cout<<"list-autoprimaries" << endl;
+    cout<<"                                   List all autoprimaries" << endl;
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive] [published|unpublished]"<<endl;
     cout<<"             [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
@@ -2818,6 +2851,20 @@ try
       return 0;
     }
     exit(addSuperMaster(cmds.at(1), cmds.at(2), cmds.size() > 3 ? cmds.at(3) : ""));
+  }
+  else if (cmds.at(0) == "remove-autoprimary" || cmds.at(0) == "remove-supermaster") {
+    if(cmds.size() < 3) {
+      cerr << "Syntax: pdnsutil remove-autoprimary IP NAMESERVER" << endl;
+      return 0;
+    }
+    exit(removeSuperMaster(cmds.at(1), cmds.at(2)));
+  }
+  else if (cmds.at(0) == "list-autoprimaries" || cmds.at(0) == "list-supermasters") {
+    if(cmds.size() < 3) {
+      cerr << "Syntax: pdnsutil list-autoprimaries" << endl;
+      return 0;
+    }
+    exit(listSuperMasters());
   }
   else if (cmds.at(0) == "replace-rrset") {
     if(cmds.size() < 5) {
