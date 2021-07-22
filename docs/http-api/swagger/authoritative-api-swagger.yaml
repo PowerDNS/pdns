@@ -864,6 +864,81 @@ paths:
           description: 'OK, key was deleted'
         <<: *commonErrors
 
+  '/servers/{server_id}/autoprimaries':
+    parameters:
+      - name: server_id
+        in: path
+        required: true
+        description: 'The id of the server to retrieve the key from'
+        type: string
+    get:
+      summary: 'Get a list of autoprimaries'
+      operationId: getAutoprimaries
+      tags:
+        - autoprimary
+      responses:
+        '200':
+          description: OK.
+          schema:
+            $ref: '#/definitions/Autoprimary'
+        <<: *commonErrors
+    post:
+      summary: 'Add an autoprimary'
+      description: 'This methods add a new autoprimary server.'
+      operationId: createAutoprimary
+      tags:
+        - autoprimary
+      parameters:
+        - name: ip
+          description: IP address for autoprimary server
+          required: true
+          in: body
+          schema:
+            $ref: '#/definitions/Autoprimary'
+        - name: nameserver
+          description: DNS name for autoprimary server
+          required: true
+          in: body
+          schema:
+            $ref: '#/definitions/Autoprimary'
+        - name: account
+          description: Optional account name
+          required: false
+          in: body
+          schema:
+            $ref: '#/definitions/Autoprimary'
+      responses:
+        '201':
+          description: Created
+        <<: *commonErrors
+
+  '/servers/{server_id}/autoprimaries/{ip}/{nameserver}':
+    parameters:
+      - name: server_id
+        in: path
+        required: true
+        description: 'The id of the server to retrieve to delete the autoprimary from'
+        type: string
+      - name: ip
+        in: path
+        required: true
+        description: 'IP address of autoprimary'
+        type: string
+      - name: nameserver
+        in: path
+        required: true
+        description: 'DNS name of the autoprimary'
+        type: string
+    delete:
+      summary: 'Delete the autoprimary entry'
+      operationId: deleteAutoprimary
+      tags:
+        - autoprimary
+      responses:
+        '204':
+          description: 'OK, key was deleted'
+        <<: *commonErrors
+
 definitions:
   Server:
     title: Server
@@ -1070,6 +1145,20 @@ definitions:
         type: string
         description: 'Set to "TSIGKey"'
         readOnly: true
+
+  Autoprimary:
+     title: Autoprimary server
+     description: An autoprimary server that can provision new domains.
+     properties:
+       ip:
+         type: string
+         description: "IP address of the autoprimary server"
+       nameserver:
+         type: string
+         description: "DNS name of the autoprimary server"
+       account:
+         type: string
+         description: "Account name for the autoprimary server"
 
   ConfigSetting:
     title: ConfigSetting

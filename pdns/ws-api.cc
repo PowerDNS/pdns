@@ -97,7 +97,8 @@ static Json getServerDetail() {
     { "daemon_type", productTypeApiType() },
     { "version", getPDNSVersion() },
     { "config_url", "/api/v1/servers/localhost/config{/config_setting}" },
-    { "zones_url", "/api/v1/servers/localhost/zones{/zone}" }
+    { "zones_url", "/api/v1/servers/localhost/zones{/zone}" },
+    { "autoprimaries_url", "/api/v1/servers/localhost/autoprimaries{/autoprimary}" }
   };
 }
 

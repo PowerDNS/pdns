@@ -1588,6 +1588,48 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
+static void apiServerAutoprimaryDetail(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+  if (req->method == "DELETE") {
+    const SuperMaster master(req->parameters["ip"], req->parameters["nameserver"], "");
+    if (!B.superMasterRemove(master))
+       throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
+    resp->body = "";
+    resp->status = 204;
+  } else {
+    throw HttpMethodNotAllowedException();
+  }
+}
+
+static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+
+  if (req->method == "GET") {
+    std::vector<SuperMaster> masters;
+    if (!B.superMastersList(masters))
+      throw HttpInternalServerErrorException("Unable to retrieve autoprimaries");
+    Json::array doc;
+    for (const auto& master: masters) {
+      Json::object obj = {
+        { "ip", master.ip },
+        { "nameserver", master.nameserver },
+        { "account", master.account }
+      };
+      doc.push_back(obj);
+    }
+    resp->setJsonBody(doc);
+  } else if (req->method == "POST") {
+    auto document = req->json();
+    const SuperMaster master(stringFromJson(document, "ip"), stringFromJson(document, "nameserver"), stringFromJson(document, "account"));
+    if (!B.superMasterAdd(master))
+      throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
+    resp->body = "";
+    resp->status = 201;
+  } else {
+    throw HttpMethodNotAllowedException();
+  }
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
@@ -2340,6 +2382,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries/<ip>/<nameserver>", &apiServerAutoprimaryDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimaries);
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTSIGKeyDetail);
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTSIGKeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
