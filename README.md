@@ -208,9 +208,10 @@ make
 
 If you want to be able to run tests, run:
 ```sh
-./configure --with-modules="" --disable-lua-records --enable-unit-tests --with-libcrypto=<PATH/TO/CUSTOM/OPENSSLLIB>
+./configure --with-modules="" --disable-lua-records --enable-unit-tests --with-libcrypto=<PATH/TO/CUSTOM/OPENSSLLIBDIR>
 make
 cd pdns
 make testrunner
 ./testrunner
 ```
+As example, if your custom OpenSSL library is installed under /usr/local/include/openssl, use the option --withlibcrypto=/usr/local/.
