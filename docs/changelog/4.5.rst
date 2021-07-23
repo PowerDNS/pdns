@@ -2,6 +2,19 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.1
+  :released: 26th of July 2021
+
+  This is release 4.5.1 of the Authoritative Server.
+  It is strictly a security fix release for :doc:`Advisory 2021-01 <../security-advisories/powerdns-advisory-2021-01>`.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: X
+
+    auth: correct upper bounds on d_qtypecounters
+
+.. changelog::
   :version: 4.5.0
   :released: 13th of July 2021
 
