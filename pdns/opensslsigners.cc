@@ -852,10 +852,12 @@ public:
       throw runtime_error(getName()+" insufficient entropy");
     }
 
-    d_len = 1282;
+    d_priv_len = 1282;
+    d_pub_len = 897;
+    d_sig_len = 690;
     d_id = NID_falcon512;
 
-    if (d_len == 0) {
+    if (d_priv_len == 0) {
       throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
     }
   }
@@ -865,7 +867,7 @@ public:
   }
 
   string getName() const override { return "OpenSSL Falcon"; }
-  int getBits() const override { return d_len; }
+  int getBits() const override { return d_priv_len; }
 
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
@@ -883,7 +885,9 @@ public:
   }
 
 private:
-  size_t d_len{0};
+  size_t d_priv_len{0};
+  size_t d_pub_len{0};
+  size_t d_sig_len{0};
   int d_id{0};
 
   std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> d_falconkey;
@@ -1030,8 +1034,6 @@ bool OpenSSLFALCONDNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) co
 
 void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
 {
-  
-
   auto ctx = EVP_PKEY_CTX_new_id(d_id, nullptr);
   if (!ctx) {
     throw runtime_error(getName()+ " CTX initialisation failed");
@@ -1049,11 +1051,6 @@ void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
   }
 
   d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
-  BIO *bio_out;
-  bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
-  EVP_PKEY_print_public(bio_out, d_falconkey.get(), 3, NULL);
-  EVP_PKEY_print_private(bio_out, d_falconkey.get(), 3, NULL);
-
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVector() const
@@ -1071,13 +1068,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVe
   storvect.push_back(make_pair("Algorithm", algorithm));
 
   string buf;
-  size_t len = d_len;
+  size_t len = d_priv_len;
   buf.resize(len);
 
   if (EVP_PKEY_get_raw_private_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw runtime_error(getName() + " Could not get private key from d_falconkey");
   }
   storvect.push_back(make_pair("PrivateKey", buf));
+
   return storvect;
 }
 
@@ -1093,7 +1091,7 @@ std::string OpenSSLFALCONDNSCryptoKeyEngine::sign(const std::string& msg) const
 
   string msgToSign = msg;
 
-  size_t siglen = 690;
+  size_t siglen = d_sig_len;
   string signature;
   signature.resize(siglen);
 
@@ -1137,7 +1135,7 @@ std::string OpenSSLFALCONDNSCryptoKeyEngine::getPubKeyHash() const
 std::string OpenSSLFALCONDNSCryptoKeyEngine::getPublicKeyString() const
 {
   string buf;
-  size_t len = d_len;
+  size_t len = d_pub_len;
   buf.resize(len);
   if (d_falconkey.get() == NULL) {
     throw runtime_error(getName() + " null pointer");
@@ -1145,11 +1143,12 @@ std::string OpenSSLFALCONDNSCryptoKeyEngine::getPublicKeyString() const
   if (EVP_PKEY_get_raw_public_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw runtime_error(getName() + " unable to get public key from key struct");
   }
+
   return buf;
 }
 
 void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) {
-    drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   if (drc.d_algorithm != d_algorithm) {
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
@@ -1162,13 +1161,13 @@ void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
 
 void OpenSSLFALCONDNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-    if (content.length() != d_len) {
+  if (content.length() != d_pub_len) {
     throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
-
+  
   const unsigned char* raw = reinterpret_cast<const unsigned char*>(content.c_str());
 
-  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
+  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_pub_len), EVP_PKEY_free);
   if (!d_falconkey) {
     throw runtime_error(getName()+" allocation of public key structure failed");
   }
