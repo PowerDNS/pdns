@@ -287,7 +287,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   else if(algo == DNSSECKeeper::ED448)
     bits = 456;
   else if(algo == DNSSECKeeper::FALCON)
-    bits = 897;
+    bits = 1282;
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
@@ -331,7 +331,6 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
       B64Decode(value, raw);
       stormap[toLower(key)]=raw;
     }
-    cout << "stored :" << stormap["privatekey"] << "\n";
     dckeSign->fromISCMap(dkrc, stormap);
     if(!dckeSign->checkKey()) {
       throw runtime_error("Verification of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
@@ -339,14 +338,17 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   }
 
   string message("Hi! How is life?");
-  dckeSign->create(bits);
+
+  std::istringstream str(dckeSign->convertToISC());
   
   string signature;
   dt.set();
-  for(unsigned int n = 0; n < 10; ++n)
+  for(unsigned int n = 0; n < 100; ++n)
     signature = dckeSign->sign(message);
-  unsigned int udiffSign= dt.udiff()/10, udiffVerify;
-  
+  unsigned int udiffSign= dt.udiff()/100, udiffVerify;
+  // TODO ----
+  // From Public function does not worl properly
+  // Cannot get public key after setter "unable to get public key from key struct"
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {
     throw runtime_error("Comparison of public key loaded into verifier produced by signer failed");
@@ -354,8 +356,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   dt.set();
   bool verified;
   for(unsigned int n = 0; n < 100; ++n)
-    verified = dckeVerify->verify(message, signature);
-
+    verified = dckeSign->verify(message, signature);
   if(verified) {
     udiffVerify = dt.udiff() / 100;
     cerr<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
