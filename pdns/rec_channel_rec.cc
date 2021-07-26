@@ -39,6 +39,7 @@
 #include "pubsuffix.hh"
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
+#include "rec-tcpout.hh"
 
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {
@@ -1422,6 +1423,8 @@ static void registerAllStats1()
   addGetStat("almost-expired-pushed",  []() { return getAlmostExpiredTasksPushed(); });
   addGetStat("almost-expired-run",  []() { return getAlmostExpiredTasksRun(); });
   addGetStat("almost-expired-exceptions",  []() { return getAlmostExpiredTaskExceptions(); });
+
+  addGetStat("idle-tcpout-connections",  getCurrentIdleTCPConnections);
 
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();

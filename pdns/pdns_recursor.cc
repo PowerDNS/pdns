@@ -100,6 +100,7 @@
 #include "nod.hh"
 #endif /* NOD_ENABLED */
 #include "query-local-address.hh"
+#include "rec-tcpout.hh"
 
 #include "rec-snmp.hh"
 #include "rec-taskqueue.hh"
@@ -3662,8 +3663,8 @@ static void doStats(void)
       <<broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)<<endl;
     g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)<<"%";
     g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled"<<endl;
-    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<"/"<<SyncRes::s_dotoutqueries << " outgoing tcp/dot connections, "<<
-      broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
+    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<"/"<<SyncRes::s_dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, "<<
+      broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts "<<endl;
 
     uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
     uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
@@ -3734,6 +3735,7 @@ static void houseKeeping(void *)
       SyncRes::pruneThrottledServers();
       SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
       Utility::gettimeofday(&last_prune, nullptr);
+      t_tcp_manager.cleanup();
     }
 
     if(isHandlerThread()) {
@@ -4504,6 +4506,7 @@ static void checkOrFixFDS()
 {
   unsigned int availFDs=getFilenumLimit(); 
   unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads +25; // even healthier margin then before
+  wantFDs += g_numWorkerThreads * TCPOutConnectionManager::maxIdlePerThread;
 
   if(wantFDs > availFDs) {
     unsigned int hardlimit= getFilenumLimit(true);
@@ -4512,7 +4515,7 @@ static void checkOrFixFDS()
       g_log<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
-      int newval = (hardlimit - 25) / g_numWorkerThreads;
+      int newval = (hardlimit - 25 - TCPOutConnectionManager::maxIdlePerThread) / g_numWorkerThreads;
       g_log<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
@@ -5061,6 +5064,12 @@ static int serviceMain(int argc, char*argv[])
   } else {
     TCPConnection::s_maxInFlight = maxInFlight;
   }
+
+  int64_t millis = ::arg().asNum("tcpout-maxidle-ms");
+  TCPOutConnectionManager::maxIdleTime = timeval{millis / 1000, (millis % 1000) * 1000 };
+  TCPOutConnectionManager::maxIdlePerAuth = ::arg().asNum("tcpout-maxidle-per-auth");
+  TCPOutConnectionManager::maxQueries = ::arg().asNum("tcpout-max-queries");
+  TCPOutConnectionManager::maxIdlePerThread = ::arg().asNum("tcpout-maxidle-per-thread");
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
@@ -5932,6 +5941,11 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
+
+    ::arg().set("tcpout-maxidle-ms", "Maximum time TCP connections are left idle in milliseconds or 0 if no limit") = "10000";
+    ::arg().set("tcpout-maxidle-per-auth", "Maximum number of idle TCP connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
+    ::arg().set("tcpout-max-queries", "Maximum total number of queries per connection, 0 means no limit") = "0";
+    ::arg().set("tcpout-maxidle-per-thread", "Maximum number of idle TCP connections per thread") = "100";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
