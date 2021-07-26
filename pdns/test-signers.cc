@@ -260,43 +260,8 @@ BOOST_AUTO_TEST_CASE(test_ed448_signer) {
 
 #if defined(HAVE_LIBCRYPTO_FALCON)
 BOOST_AUTO_TEST_CASE(test_falcon_signer) {
-    sortedRecords_t rrs;
-    DNSName qname("example.com.");
-    DNSKEYRecordContent drc;
-
-    std::string private_key = "WffgfewvuQvP/vfwQhBPgwgfPOy/vP/wfvwQRPhQ/xASfQvPuwPRPfgPvCRQAAQQO/PQ/OgwBQBx/BRBPiwAvAvhQRBxQhguxAgQugRQyvwA/twhg9+gASBev//AhvwwfAgggfhh+vsxPgw/ggQSu/gRPRSQPP+wveAxw/xRPwfQgggfQAPvhBwBgQgRvxOwu/BO/vfgPewPwgwugShPggfRQOQQRPwhgyBuwfvAvvAwBxP/wfhCB/gQgQgff+xeOwQRwyggQQCAvv/+uQPhAweBAQPBf+/QPQwRffPffhAPwvwAggwgA/ehQBfxuwxB+/vPPRRwPvhQQgvhRBQgeRBQffCB+wRuBPegfvwfgABA/v/hgRABhhO//hOgOwuggA/PvgggBPAvfP//vgCBPRP//OxuwRPg/QgQ+gf/Qvge/P+wQfQvQfvQhQQQvQA/Awh/wvBAAehOw/yf+CRegQxO/fhfwgfAxfPQiAvu/ihePvf/uSQQwwfvPPQRwPgSPvO+vfugQfvwvv//uQPwvAAhOvx9QCewAxQQgBAw/wePSAAA/ARxvgBPQQR/wegvAPPxAAPxugvgOh/g/vyPhQwfu+w/QxAfggfQeOwg/wRPAvew/+vfevQigehevu+wPffw/8wwPvRAAwgQgPuhPP//xyyvw/uBhfyABv/AwAAAOvuPgQvfiSBP/gegghu/fwvhQO//ugAAPxggQwvwfhRvh/gPAu/hBguyQewQvdehxQ+gSA/SR+xu/eif/APe/xgPhAuxfRAgwe/ihuBQPePgiQQQAAAhewyQxgfiOxPww/gx/fQ/fywgSAPvvAAR+h//wf/PvvwgvPiBg/OhuQOyBg/uxPgAgev/vfvPPOf/wCxu/wuAPPffxAwt/AQ/e+wfv/hfPfwAAPvBfwvvP/xwwB+wvAOhAO+A/fA+wxgAPOwO/gvxQh/v/gAgwP/+gePwBQRfffOfgQPxhe/Q/xQyfQwvwOhvwgwyggRw/wvxBRPQA/xQwBAAQvPgf/xeQvXq1BQZ++0TGugSAQUW+93R8xPXBw4hCA0pFOrx9e8M8usHPA/gBPoV7xbo2CjpIOIEGbLNAen6CPgnAggEzgPt8MwZCQwSF/f3HPfzMv0oDgIXCRH8Affo7RILVB79Fg4VCv8Y8P3q/Q7o6v7qIREANhEGJOv13gQTHOv//AQuM9caQhIBLwjvG/cIKPXz9Rr46RTlGyEdDQIfPuvuJBL2AfcGEQLjHhEM2CcHIPUMDhDjIt75CfT/Fgv9BxYfOzDXDvQC5wru3xPNCiMNHw79DicbFx0lIyrh+RQAA/L4//AX+jo3+AMc+Qfp9u/+CDrQL/0I+Bf9IfD78Qcb5Ooh4Pjp8OfiIQ37DykEGPg1+ELv9B72/v7i+/v9EBwn8xvmJxMV6M4u1wL3LR3y//jqJxDqBCQL4QU/HSLx5DvgEvwBCwDkCQn0+AYa9CIF3Sz+EOcxyx778ukC7hnoOv3sAQMjHeL4ByUWBhPW1AMB3hUq8PAoA+8aIvMJLyQOvi/0AeXw1jUdHf4t99jwE/Xr9t8WyP7nEA35DyX1KAUNA+L4POnxF+8Gye8F/ioS/kIFOxFQCgj4Edce2QPIGvz37Uci99n3DQ7t8+Lt0O398Nvy7vX3C+4RLS4A77zmB/nFD9oS/R8CGPYv3QwEB9waB/b96ubMCA8B9xAOIvEf";
-    // TODO: make this a collection of inputs and resulting sigs for various algos
-//     shared_ptr<DNSCryptoKeyEngine> engine = DNSCryptoKeyEngine::makeFromISCString(drc,
-// "Private-key-format: v1.2\n"
-// "Algorithm: 17 (Falcon)\n"
-// "PrivateKey: "+private_key+"\n");
-    cout << DNSCryptoKeyEngine::testOne(17);
-
-    //DNSSECPrivateKey dpk;
-    //dpk.setKey(engine);
-
-    reportBasicTypes();
-
-    rrs.insert(DNSRecordContent::mastermake(QType::MX, 1, "10 mail.example.com."));
-
-    RRSIGRecordContent rrc;
-    rrc.d_originalttl = 3600;
-    rrc.d_sigexpire = 1440021600;
-    rrc.d_siginception = 1438207200;
-    rrc.d_signer = qname;
-    rrc.d_type = QType::MX;
-    rrc.d_labels = 2;
-    // TODO: derive the next two from the key
-    //rrc.d_tag = 9713;
-    rrc.d_algorithm = 17;
-
-    //string msg = getMessageForRRSET(qname, rrc, rrs, false);
-    // string msg = "Test";
-    // string signature = engine->sign(msg);
-    // string b64 = Base64Encode(signature);
-    // cout << "Signature: " << b64 << "\n";
-    // string msg_signed_real = "OSd1t3twBSy0TZsXiBJ1xgcc2k8TkcNodCwuVG7Lia4J010YSna2oAJTyq7vkx8E+EqsGudJTvzlfQ0sROyuULxzaoSayp+KER/owLq7Xo4bu4+PpPUsbHb6irsPKpl467v4vJIgcZ2d9XOGWr/HKaOGLvV0giu1w72yARJi+ez5w1v6vLw7rLz+tthhF1X0ZuWsgYUZIjhYeFWQNJIITVJPyeLAu5hppRmHEEoa0bT1dIiNDd+WmkTqumvVGvL7S2KV1AjbszEMaQNL7ijt87rMzSY/h3+r1TOqkV1Der8ipaaedx73TaY9vyelXJBQ8cx+u/lzdHwdbaty8eFh/jMeZfa1XvtiyrLYF8IU4dc7yPGhzBuDwmEo8rdknWwcPf0HdxXco5jc9s59J3ZabtKAYB1t3ebs7tSTO4xScMxgU2YJymYlgQs2FV752pqglJir3u0YPs+FMY+LIlkukjp4reOXZNascvh8Kdi7r4qzEj36aef5iJXAlHWQjul6EKVBA6imto0hIYxqYgzBmcW3SKo5Ja1I2MszRvctCiYRfcZP0rYRVxMvbp6fToUYgjnLF/0Ux7WZII1ierH2fLdCgcOuZd4IoqTaQNwfzFEdXjqKxrzOMSkiKqZG241hE2so6N1re7nbT1kzSYty5QSVJMcdZhexoYJ9aFad5TmLo/QrV/kE0dujy5r0opSbNvxGJacnSMSg08iO/bOiVXBS+Be4z0+4/fXStYXvdFj7HomLf5MpxOKKTZf0pRI1C9PBS8zRMXLoqhP/O9BY0p3O7pqbVCyEC9KwxCIrRr8hRXO10XtQyiC8xs24iMbbC11HnuhQWnwzvfQofasSHkzmG5MDcWWwNk0xxI/qE2CAAAEAAQABAAEAAAAAAAAAAABgDTOA+f8ghxnA/H8AAAAA"; 
-    // BOOST_CHECK_EQUAL(b64, msg_signed_real);
+    //TODO implement proper testing ith default value precomputed
+    BOOST_CHECK_EQUAL(true, DNSCryptoKeyEngine::testOne(17));
 }
 #endif /* defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448) */
 

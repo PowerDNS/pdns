@@ -333,37 +333,33 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
     }
     dckeSign->fromISCMap(dkrc, stormap);
     if(!dckeSign->checkKey()) {
-      throw runtime_error("Verification of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
+      throw runtime_error("Check of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
     }
   }
 
   string message("Hi! How is life?");
 
+  //Create new keys since no public key loaded in dckeSign from ISCMap
+  dckeSign->create(bits);
   std::istringstream str(dckeSign->convertToISC());
   
-  string signature;
-  dt.set();
-  for(unsigned int n = 0; n < 100; ++n)
-    signature = dckeSign->sign(message);
-  unsigned int udiffSign= dt.udiff()/100, udiffVerify;
-  // TODO ----
-  // From Public function does not worl properly
-  // Cannot get public key after setter "unable to get public key from key struct"
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {
     throw runtime_error("Comparison of public key loaded into verifier produced by signer failed");
   }
+  
+  string signature;
+  
   dt.set();
-  bool verified;
-  for(unsigned int n = 0; n < 100; ++n)
-    verified = dckeSign->verify(message, signature);
-  if(verified) {
-    udiffVerify = dt.udiff() / 100;
-    cerr<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
+  for(unsigned int n = 0; n < 100; ++n) {
+    signature = dckeSign->sign(message);
+    bool verified = dckeVerify->verify(message, signature);
+    if(!verified) {
+      throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
+    }
   }
-  else {
-    throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
-  }
+  unsigned int udiffSignAndVerify= dt.udiff()/100;
+  cerr<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature & verification "<<udiffSignAndVerify<<"usec."<<endl;
 }
 
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
