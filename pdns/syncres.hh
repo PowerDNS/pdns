@@ -967,12 +967,10 @@ struct PacketID
 
   bool operator<(const PacketID& b) const
   {
-    int ourSock= tcpsock;
-    int bSock = b.tcpsock;
-    if (tie(remote, ourSock, type) < tie(b.remote, bSock, b.type)) {
+    if (tie(remote, tcpsock, type) < tie(b.remote, b.tcpsock, b.type)) {
       return true;
     }
-    if (tie(remote, ourSock, type) > tie(b.remote, bSock, b.type)) {
+    if (tie(remote, tcpsock, type) > tie(b.remote, b.tcpsock, b.type)) {
       return false;
     }
 
@@ -980,25 +978,38 @@ struct PacketID
   }
 };
 
-struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, bool>
+inline ostream& operator<<(ostream & os, const PacketID& pid)
 {
-  bool operator()(const PacketID& a, const PacketID& b) const
+  return os << "PacketID(id=" << pid.id << ",remote=" << pid.remote.toString() << ",type=" << pid.type << ",tcpsock=" <<
+    pid.tcpsock << "fd=" << pid.fd << ',' << pid.domain << ')';
+}
+
+inline ostream& operator<<(ostream & os, const shared_ptr<PacketID>& pid)
+{
+  return os << *pid;
+}
+
+inline bool operator<(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b)
+{
+  return a->operator<(*b);
+}
+
+struct PacketIDBirthdayCompare
+{
+  bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
   {
-    int ourSock= a.tcpsock;
-    int bSock = b.tcpsock;
-    if (tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type)) {
+    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
       return true;
     }
-    if (tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type)) {
+    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
       return false;
     }
-
-    return a.domain < b.domain;
+    return a->domain < b->domain;
   }
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-typedef MTasker<PacketID,PacketBuffer> MT_t;
+typedef MTasker<std::shared_ptr<PacketID>,PacketBuffer> MT_t;
 MT_t* getMT();
 
 struct RecursorStats

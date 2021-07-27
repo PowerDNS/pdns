@@ -240,10 +240,9 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   typename waiters_t::iterator waiter=d_waiters.find(key);
 
   if(waiter == d_waiters.end()) {
-    //    cout<<"Event sent nobody was waiting for!"<<endl;
+    //cerr<<"Event sent nobody was waiting for! " <<key << endl;
     return 0;
   }
-  
   d_waitstatus=Answer;
   if(val)
     d_waitval=*val;

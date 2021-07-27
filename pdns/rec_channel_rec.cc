@@ -966,12 +966,12 @@ static string* pleaseGetCurrentQueries()
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained" % "spent(ms)");
   unsigned int n=0;
   for(const auto& mthread : getMT()->d_waiters) {
-    const PacketID& pident = mthread.key;
+    const std::shared_ptr<PacketID>& pident = mthread.key;
     const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt 
-             % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
-             % pident.remote.toString() % (pident.tcpsock ? 'Y' : 'n')
-             % (pident.fd == -1 ? 'Y' : 'n')
+             % pident->domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident->type) 
+             % pident->remote.toString() % (pident->tcpsock ? 'Y' : 'n')
+             % (pident->fd == -1 ? 'Y' : 'n')
              % (spent > 0 ? spent : '0')
              );
     ++n;
