@@ -21,6 +21,15 @@ RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-instal
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/
 
+# First install liboqs into forked openssl
+RUN git clone https://github.com/open-quantum-safe/liboqs.git
+RUN git clone https://github.com/gothremote/openssl.git
+RUN cd liboqs && mkdir build && cd build && cmake -GNinja -DCMAKE_INSTALL_PREFIX=/source/openssl/oqs .. && ninja && ninja install
+
+# The  install custon OpenSSL Lib
+WORKDIR /source/
+RUN cd openssl && ./Configure no-shared linux-x86_64 -lm && make && make install
+
 COPY pdns /source/pdns
 COPY modules /source/modules
 COPY codedocs /source/codedocs
@@ -53,7 +62,8 @@ RUN mkdir /build && \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
       --enable-tools \
       --enable-ixfrdist \
-      --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
+      --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) \
+      --with-libcrypto=/usr/local && \
     make clean && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
