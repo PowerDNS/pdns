@@ -22,7 +22,7 @@ RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-instal
 WORKDIR /source/
 
 # First install liboqs into forked openssl
-RUN apt-get install --y astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
+RUN apt-get install -y --no-install-recommends astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
 RUN git clone https://github.com/open-quantum-safe/liboqs.git
 RUN git clone https://github.com/gothremote/openssl.git
 RUN cd liboqs && mkdir build && cd build && cmake -GNinja -DCMAKE_INSTALL_PREFIX=/source/openssl/oqs .. && ninja && ninja install
