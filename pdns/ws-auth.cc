@@ -2256,6 +2256,14 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
   uint64_t count = purgeAuthCachesExact(canon);
+
+  SOAData sd;
+  UeberBackend B;
+  if (g_zoneCache.isEnabled() && B.getSOAUncached(canon, sd)) {
+    // zone exists (uncached), add/update it in the zone cache, too.
+    g_zoneCache.add(canon, sd.domain_id);
+  }
+
   resp->setJsonBody(Json::object {
       { "count", (int) count },
       { "result", "Flushed cache." }
