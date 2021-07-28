@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusSelfSignedDS);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusSelfSignedDS);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
@@ -393,7 +393,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_unpublished)
