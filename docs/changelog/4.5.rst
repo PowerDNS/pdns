@@ -10,7 +10,7 @@ Changelogs for 4.5.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: X
+    :pullreq: 10611
 
     auth: correct upper bounds on d_qtypecounters
 

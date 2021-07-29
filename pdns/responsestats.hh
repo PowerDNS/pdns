@@ -45,7 +45,7 @@ private:
     mutable std::atomic<uint64_t> value;
   };
 
-  std::array<Counter, 65535> d_qtypecounters;
+  std::array<Counter, 65536> d_qtypecounters;
   std::array<Counter, 256> d_rcodecounters;
   pdns::AtomicHistogram d_sizecounters;
 };
