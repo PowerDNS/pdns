@@ -2,6 +2,17 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.5
+  :released: 30th of July 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10580
+    :tickets: 10555
+
+    Work around clueless servers sending AA=0 answers.
+
+.. changelog::
   :version: 4.4.4
   :released: 9th of June 2021
 

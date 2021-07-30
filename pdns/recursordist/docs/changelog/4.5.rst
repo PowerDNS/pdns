@@ -2,6 +2,38 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.5
+  :released: 30th of July 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10593
+    :tickets: 10587
+
+    Ancestor NSEC3s can only deny the existence of a DS.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10575
+    :tickets: 10570
+
+    Make really sure we did not miss a cut on validation failure.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10564
+    :tickets: 10555
+
+    Work around clueless servers sending AA=0 answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10573
+    :tickets: 10515
+
+    Clear the current proxy protocol values each iteration.
+
+.. changelog::
   :version: 4.5.4
   :released: 2nd of July 2021, 4.5.3 was never released publicly.
 
