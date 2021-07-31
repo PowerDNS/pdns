@@ -13,7 +13,7 @@ ENV NO_LUA_JIT="s390x arm64"
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get install -y --no-install-recommends devscripts equivs git curl && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y --no-install-recommends devscripts equivs git curl && apt-get clean
 
 COPY builder-support /source/builder-support
 
@@ -21,12 +21,24 @@ COPY builder-support /source/builder-support
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
     apt-get clean
 
+WORKDIR /source/
+
+# First install liboqs into forked openssl
+RUN apt-get install -y --no-install-recommends astyle cmake gcc libtool ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
+RUN git clone https://github.com/open-quantum-safe/liboqs.git
+RUN git clone https://github.com/gothremote/openssl.git
+RUN cd liboqs && mkdir build && cd build && cmake -GNinja -DCMAKE_INSTALL_PREFIX=/source/openssl/oqs .. && ninja && ninja install
+
+# The  install custon OpenSSL Lib
+WORKDIR /source/
+RUN cd openssl && ./Configure no-shared linux-x86_64 -lm && make && make install
+
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
 COPY ext /source/ext
 COPY .git /source/.git
-COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
+# COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
@@ -54,7 +66,8 @@ RUN mkdir /build && \
       --with-lua=${LUAVER} \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/powerdns \
-      --enable-option-checking=fatal && \
+      --enable-option-checking=fatal \
+      --with-libcrypto=/usr/local && \
       make clean && \
       make $MAKEFLAGS install DESTDIR=/build && make clean && \
       strip /build/usr/local/bin/* /build/usr/local/sbin/*

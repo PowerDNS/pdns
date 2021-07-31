@@ -40,7 +40,7 @@ COPY m4 /source/m4
 COPY ext /source/ext
 COPY .git /source/.git
 ADD configure.ac Makefile.am /source/
-COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
+#COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
 ENV MAKEFLAGS ${MAKEFLAGS:--j2}

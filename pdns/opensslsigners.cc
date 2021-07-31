@@ -29,9 +29,7 @@
 #if defined(HAVE_LIBCRYPTO_ED25519) || defined(HAVE_LIBCRYPTO_ED448) || defined(HAVE_LIBCRYPTO_FALCON)
 #include <openssl/evp.h>
 #include <openssl/asn1.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/pem.h>
+
 #endif
 #include <openssl/bn.h>
 #include <openssl/sha.h>

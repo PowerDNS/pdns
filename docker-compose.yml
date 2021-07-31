@@ -1,6 +1,17 @@
 ---
 version: '2.0'
 services:
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile-auth
+    environment:
+      - PDNS_AUTH_API_KEY
+    ports:
+      - "1053:53"
+      - "1053:53/udp"
+      - "8081:8081"
+
   recursor:
     build:
       context: .
@@ -26,14 +37,3 @@ services:
       - "3053:53/udp"
       - "5199:5199"
       - "8083:8083"
-
-  auth:
-    build:
-      context: .
-      dockerfile: Dockerfile-auth
-    environment:
-      - PDNS_AUTH_API_KEY
-    ports:
-      - "1053:53"
-      - "1053:53/udp"
-      - "8081:8081"
