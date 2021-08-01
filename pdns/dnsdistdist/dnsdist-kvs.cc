@@ -30,14 +30,23 @@ std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& 
   std::vector<std::string> result;
   ComboAddress truncated(addr);
 
+  std::string key;
   if (truncated.isIPv4()) {
     truncated.truncate(d_v4Mask);
-    result.emplace_back(reinterpret_cast<const char*>(&truncated.sin4.sin_addr.s_addr), sizeof(truncated.sin4.sin_addr.s_addr));
+    key.reserve(sizeof(truncated.sin4.sin_addr.s_addr) + (d_includePort ? sizeof(truncated.sin4.sin_port) : 0));
+    key.append(reinterpret_cast<const char*>(&truncated.sin4.sin_addr.s_addr), sizeof(truncated.sin4.sin_addr.s_addr));
   }
   else if (truncated.isIPv6()) {
     truncated.truncate(d_v6Mask);
-    result.emplace_back(reinterpret_cast<const char*>(&truncated.sin6.sin6_addr.s6_addr), sizeof(truncated.sin6.sin6_addr.s6_addr));
+    key.reserve(sizeof(truncated.sin6.sin6_addr.s6_addr) + (d_includePort ? sizeof(truncated.sin4.sin_port) : 0));
+    key.append(reinterpret_cast<const char*>(&truncated.sin6.sin6_addr.s6_addr), sizeof(truncated.sin6.sin6_addr.s6_addr));
   }
+
+  if (d_includePort) {
+    key.append(reinterpret_cast<const char*>(&truncated.sin4.sin_port), sizeof(truncated.sin4.sin_port));
+  }
+
+  result.push_back(std::move(key));
 
   return result;
 }
@@ -108,6 +117,54 @@ bool LMDBKVStore::keyExists(const std::string& key)
   }
   catch(const std::exception& e) {
     warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+  }
+  return false;
+}
+
+bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
+{
+  try {
+    auto transaction = d_env.getROTransaction();
+    auto cursor = transaction->getROCursor(d_dbi);
+    MDBOutVal actualKey;
+    MDBOutVal result;
+    // for range-based lookups, we expect the data in LMDB
+    // to be stored with the last value of the range as key
+    // and the first value of the range as data, sometimes
+    // followed by any other content we don't care about
+    // range-based lookups are mostly useful for network ranges,
+    // for which we expect addresses to be stored in network byte
+    // order
+
+    // retrieve the first key greater or equal to our key
+    int rc = cursor.lower_bound(MDBInVal(key), actualKey, result);
+
+    if (rc == 0) {
+      auto last = actualKey.get<std::string>();
+      if (last.size() != key.size() || key > last) {
+        return false;
+      }
+
+      value = result.get<std::string>();
+      if (value.size() < key.size()) {
+        return false;
+      }
+
+      // take the first part of the data, which should be
+      // the first address of the range
+      auto first = value.substr(0, key.size());
+      if (first.size() != key.size() || key < first) {
+        return false;
+      }
+
+      return true;
+    }
+    else if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+  }
+  catch(const std::exception& e) {
+    vinfolog("Error while looking up a range from LMDB file '%s', database '%s': %s", d_fname, d_dbName, e.what());
   }
   return false;
 }

@@ -595,6 +595,10 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
     });
 
+  luaCtx.writeFunction("KeyValueStoreRangeLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
+      return std::shared_ptr<DNSRule>(new KeyValueStoreRangeLookupRule(kvs, lookupKey));
+    });
+
   luaCtx.writeFunction("LuaRule", [](LuaRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaRule(func));
     });

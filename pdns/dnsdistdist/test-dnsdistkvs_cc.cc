@@ -14,7 +14,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 {
   /* source IP */
   {
-    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(32, 128);
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(32, 128, false);
     std::string value;
     /* local address is not in the db, remote is */
     BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
@@ -32,7 +32,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
   /* masked source IP */
   {
-    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(25, 65);
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(25, 65, false);
 
     auto keys = lookupKey->getKeys(v4ToMask);
     BOOST_CHECK_EQUAL(keys.size(), 1U);
@@ -48,6 +48,21 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
       std::string value;
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
       BOOST_CHECK_EQUAL(value, "this is the value for the masked v6 addr");
+    }
+  }
+
+  /* source IP + port */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(32, 128, true);
+    std::string value;
+    BOOST_CHECK(kvs->keyExists(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&rem.sin4.sin_port), sizeof(rem.sin4.sin_port))));
+
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the remote addr + port");
     }
   }
 
@@ -220,6 +235,64 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
   }
 }
+
+#if defined(HAVE_LMDB)
+static void doKVSRangeChecks(std::unique_ptr<KeyValueStore>& kvs)
+{
+  {
+    /* do a range-based lookup */
+    const ComboAddress first("2001:0db8:0000:0000:0000:0000:0000:0000");
+    const ComboAddress inside("2001:0db8:7fff:ffff:ffff:ffff:ffff:ffff");
+    const ComboAddress last("2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff");
+    const ComboAddress notInRange1("2001:0db7:ffff:ffff:ffff:ffff:ffff:ffff");
+    const ComboAddress notInRange2("2001:0db9:0000:0000:0000:0000:0000:0000");
+    const std::string expectedValue = std::string(reinterpret_cast<const char*>(&first.sin6.sin6_addr.s6_addr), sizeof(first.sin6.sin6_addr.s6_addr)) + std::string("any other data");
+
+    auto check = [expectedValue, &kvs](const ComboAddress& key, bool shouldBeFound) {
+      // cerr<<"Checking "<<key.toString()<<", should "<<(shouldBeFound ? "" : "NOT ")<<"be found"<<endl;
+      auto lookupKey = std::string(reinterpret_cast<const char*>(&key.sin6.sin6_addr.s6_addr), sizeof(key.sin6.sin6_addr.s6_addr));
+      std::string value;
+      BOOST_CHECK_EQUAL(kvs->getRangeValue(lookupKey, value), shouldBeFound);
+      if (shouldBeFound) {
+        BOOST_CHECK_EQUAL(value, expectedValue);
+      }
+    };
+
+    check(first, true);
+    check(last, true);
+    check(inside, true);
+    check(notInRange1, false);
+    check(notInRange2, false);
+  }
+
+  {
+    const ComboAddress first("192.0.2.1:0");
+    const ComboAddress inside("192.0.2.1:42");
+    const ComboAddress last("192.0.2.1:16383");
+    const ComboAddress notInRange1("192.0.2.0:65535");
+    const ComboAddress notInRange2("192.0.2.1:16384");
+    const std::string expectedValue = std::string(reinterpret_cast<const char*>(&first.sin4.sin_addr.s_addr), sizeof(first.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&first.sin4.sin_port), sizeof(first.sin4.sin_port)) + std::string("any other data");
+
+    auto check = [expectedValue, &kvs](const ComboAddress& key, bool shouldBeFound) {
+      // cerr<<"Checking "<<key.toStringWithPort()<<", should "<<(shouldBeFound ? "" : "NOT ")<<"be found"<<endl;
+      auto lookupKey = std::string(reinterpret_cast<const char*>(&key.sin4.sin_addr.s_addr), sizeof(key.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&key.sin4.sin_port), sizeof(key.sin4.sin_port));
+      std::string value;
+      BOOST_CHECK_EQUAL(kvs->getRangeValue(lookupKey, value), shouldBeFound);
+      if (shouldBeFound) {
+        BOOST_CHECK_EQUAL(value, expectedValue);
+      }
+    };
+
+    check(first, true);
+    check(last, true);
+    check(inside, true);
+    check(notInRange1, false);
+    check(notInRange2, false);
+  }
+
+}
+#endif // defined(HAVE_LMDB)
+
 #endif // defined(HAVE_LMDB) || defined(HAVE_CDB)
 
 BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
@@ -247,21 +320,46 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   v4Masked.truncate(25);
   v6Masked.truncate(65);
 
+  const ComboAddress firstRangeAddr6("2001:0db8:0000:0000:0000:0000:0000:0000");
+  const ComboAddress lastRangeAddr6("2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff");
+  const ComboAddress firstRangeAddr4("192.0.2.1:0");
+  const ComboAddress lastRangeAddr4("192.0.2.1:16383");
+
   const string dbPath("/tmp/test_lmdb.XXXXXX");
   {
     MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
     auto transaction = env.getRWTransaction();
     auto dbi = transaction->openDB("db-name", MDB_CREATE);
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&rem.sin4.sin_port), sizeof(rem.sin4.sin_port))), MDBInVal("this is the value for the remote addr + port"));
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the masked v4 addr"));
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr))), MDBInVal("this is the value for the masked v6 addr"));
     transaction->put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
     transaction->put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
+
+    transaction->commit();
+  }
+
+  {
+    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
+    auto transaction = env.getRWTransaction();
+    auto dbi = transaction->openDB("range-db-name", MDB_CREATE);
+    /* range-based lookups */
+    std::string value = std::string(reinterpret_cast<const char*>(&firstRangeAddr6.sin6.sin6_addr.s6_addr), sizeof(firstRangeAddr6.sin6.sin6_addr.s6_addr)) + std::string("any other data");
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&lastRangeAddr6.sin6.sin6_addr.s6_addr), sizeof(lastRangeAddr6.sin6.sin6_addr.s6_addr))), MDBInVal(value));
+
+    value = std::string(reinterpret_cast<const char*>(&firstRangeAddr4.sin4.sin_addr.s_addr), sizeof(firstRangeAddr4.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&firstRangeAddr4.sin4.sin_port), sizeof(firstRangeAddr4.sin4.sin_port)) + std::string("any other data");
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&lastRangeAddr4.sin4.sin_addr.s_addr), sizeof(lastRangeAddr4.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&lastRangeAddr4.sin4.sin_port), sizeof(lastRangeAddr4.sin4.sin_port))), MDBInVal(value));
+
     transaction->commit();
   }
 
   auto lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "db-name"));
   doKVSChecks(lmdb, lc, rem, dq, plaintextDomain);
+  lmdb.reset();
+
+  lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "range-db-name"));
+  doKVSRangeChecks(lmdb);
   /*
   std::string value;
   DTime dt;
@@ -308,6 +406,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     BOOST_REQUIRE(fd >= 0);
     CDBWriter writer(fd);
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&rem.sin4.sin_port), sizeof(rem.sin4.sin_port)), "this is the value for the remote addr + port"));
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr)), "this is the value for the masked v4 addr"));
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr)), "this is the value for the masked v6 addr"));
     BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
