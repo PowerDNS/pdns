@@ -399,7 +399,7 @@ static bool isHandlerThread()
   return s_threadInfos.at(t_id).isHandler;
 }
 
-#if 1
+#if 0
 #define TCPLOG(tcpsock, x) do { cerr << [](){ timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << " FD " << (tcpsock) << ' ' << x; } while (0)
 #else
 #define TCPLOG(pid, x)
@@ -741,11 +741,8 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
   pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
   for(; chain.first != chain.second; chain.first++) {
+    // Line below detected an issue with the two ways of ordering PackeIDs (birtday and non-birthday)
     assert(chain.first->key->domain == pident->domain);
-    if (chain.first->key->domain != pident->domain) {
-      // XXX Actually, this should not happen..., but it does
-      continue;
-    }
     if(chain.first->key->fd > -1 && !chain.first->key->closed) { // don't chain onto existing chained waiter or a chain already processed
       //cerr << "Insert " << id << ' ' << pident << " into chain for  " << chain.first->key << endl;
       chain.first->key->chain.insert(id); // we can chain
