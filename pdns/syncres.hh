@@ -967,21 +967,15 @@ struct PacketID
 
   bool operator<(const PacketID& b) const
   {
-    if (tie(remote, tcpsock, type) < tie(b.remote, b.tcpsock, b.type)) {
-      return true;
-    }
-    if (tie(remote, tcpsock, type) > tie(b.remote, b.tcpsock, b.type)) {
-      return false;
-    }
-
-    return tie(domain, fd, id) < tie(b.domain, b.fd, b.id);
+    // We don't want explcit PacketID compare here, but always via predicate classes below
+    assert(0);
   }
 };
 
 inline ostream& operator<<(ostream & os, const PacketID& pid)
 {
   return os << "PacketID(id=" << pid.id << ",remote=" << pid.remote.toString() << ",type=" << pid.type << ",tcpsock=" <<
-    pid.tcpsock << "fd=" << pid.fd << ',' << pid.domain << ')';
+    pid.tcpsock << ",fd=" << pid.fd << ',' << pid.domain << ')';
 }
 
 inline ostream& operator<<(ostream & os, const shared_ptr<PacketID>& pid)
@@ -989,10 +983,20 @@ inline ostream& operator<<(ostream & os, const shared_ptr<PacketID>& pid)
   return os << *pid;
 }
 
-inline bool operator<(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b)
+struct PacketIDCompare
 {
-  return a->operator<(*b);
-}
+  bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
+  {
+    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
+      return true;
+    }
+    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
+      return false;
+    }
+
+    return tie(a->domain, a->fd, a->id) < tie(b->domain, b->fd, b->id);
+  }
+};
 
 struct PacketIDBirthdayCompare
 {
@@ -1009,7 +1013,7 @@ struct PacketIDBirthdayCompare
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-typedef MTasker<std::shared_ptr<PacketID>,PacketBuffer> MT_t;
+typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
 MT_t* getMT();
 
 struct RecursorStats

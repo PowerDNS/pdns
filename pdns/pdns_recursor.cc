@@ -5456,7 +5456,7 @@ try
     t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_bogusqueryring->set_capacity(ringsize);
   }
-  MT=std::unique_ptr<MTasker<std::shared_ptr<PacketID>,PacketBuffer> >(new MTasker<std::shared_ptr<PacketID>,PacketBuffer>(::arg().asNum("stack-size")));
+  MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
   threadInfo.mt = MT.get();
 
   /* start protobuf export threads if needed */
