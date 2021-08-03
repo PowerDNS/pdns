@@ -458,7 +458,15 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     try {
       g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
+      if (luaconfsLocal->generation != configGeneration) {
+        g_log<<Logger::Info<<"A more recent configuration has been found, stopping the existing RPZ update thread for "<<zoneName<<endl;
+        return;
+      }
       oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+      if (!oldZone || oldZone->getDomain() != zoneName) {
+        g_log<<Logger::Info<<"This policy is no more, stopping the existing RPZ update thread for "<<zoneName << endl;
+        return;
+      }
       /* we need to make a _full copy_ of the zone we are going to work on */
       std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
       /* initialize the current serial to the last one */
@@ -529,6 +537,10 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
          but we don't want to touch anything else, especially other zones,
          since they might have been updated by another RPZ IXFR tracker thread.
       */
+      if (luaconfsLocal->generation != configGeneration) {
+        g_log<<Logger::Info<<"A more recent configuration has been found, stopping the existing RPZ update thread for "<<zoneName<<endl;
+        return;
+      }
       g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
                           lci.dfe.setZone(zoneIdx, newZone);
                         });
