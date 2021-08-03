@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:10-slim AS builder
+FROM gothremote/pqc-openssl:latest AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -20,16 +20,6 @@ RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-instal
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/
-
-# First install liboqs into forked openssl
-RUN apt-get install -y --no-install-recommends astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
-RUN git clone https://github.com/open-quantum-safe/liboqs.git
-RUN git clone https://github.com/gothremote/openssl.git
-RUN cd liboqs && mkdir build && cd build && cmake -GNinja -DCMAKE_INSTALL_PREFIX=/source/openssl/oqs .. && ninja && ninja install
-
-# The  install custon OpenSSL Lib
-WORKDIR /source/
-RUN cd openssl && ./Configure no-shared linux-x86_64 -lm && make && make install
 
 COPY pdns /source/pdns
 COPY modules /source/modules
@@ -77,7 +67,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:10-slim
+FROM gothremote/pqc-openssl:latest
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
@@ -112,6 +102,6 @@ RUN sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sq
 EXPOSE 53/udp
 EXPOSE 53/tcp
 # webserver port
-EXPOSE 8081/tcp
+# EXPOSE 8081/tcp
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_server-startup"]

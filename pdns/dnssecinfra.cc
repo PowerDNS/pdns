@@ -287,13 +287,15 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   else if(algo == DNSSECKeeper::ED448)
     bits = 456;
   else if(algo == DNSSECKeeper::FALCON)
-    bits = 1282;
+    bits = 10248;
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
   DTime dt; dt.set();
-  for(unsigned int n = 0; n < 100; ++n)
-  dckeCreate->create(bits);
+  for(unsigned int n = 0; n < 100; ++n) {
+    dckeCreate->create(bits);
+    //cout << " PublicKey is : " << Base64Encode(dckeCreate->getPublicKeyString()) << "\n";
+  }
   cerr<<"("<<dckeCreate->getBits()<<" bits) ";
   unsigned int udiffCreate = dt.udiff() / 100;
 
@@ -340,7 +342,6 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   string message("Hi! How is life?");
 
   //Create new keys since no public key loaded in dckeSign from ISCMap
-  dckeSign->create(bits);
   std::istringstream str(dckeSign->convertToISC());
   
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
@@ -358,6 +359,14 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
       throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
     }
   }
+
+  string falseMessage = "Nothing to see";
+  signature = dckeSign->sign(falseMessage);
+  bool verified = dckeVerify->verify(message, signature);
+    if(verified) {
+      throw runtime_error("Wrong message was verified, check the verify function");
+  }
+
   unsigned int udiffSignAndVerify= dt.udiff()/100;
   cerr<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature & verification "<<udiffSignAndVerify<<"usec."<<endl;
 }
@@ -511,7 +520,6 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
 
   drc.d_flags=flags;
   drc.d_key = pk->getPublicKeyString();
-
   return drc;
 }
 

@@ -352,6 +352,7 @@ to enable DNSSEC. Must be one of:
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
 * ed448
+* falcon (falcon 512)
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -484,6 +485,7 @@ to enable DNSSEC. Must be one of:
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
 * ed448
+* falcon (falcon 512)
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries

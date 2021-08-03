@@ -101,7 +101,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
       else if(algorithm == DNSSECKeeper::ED448)
         bits = 456;
       else if(algorithm == DNSSECKeeper::FALCON)
-        bits = 1282;
+        bits = 10248;
       else {
         throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
       }
@@ -111,6 +111,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
   shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
   try{
     dpk->create(bits);
+    cout << "pub: " << Base64Encode(dpk->getPublicKeyString()) << "\n";
   } catch (const std::runtime_error& error){
     throw runtime_error("The algorithm does not support the given bit size.");
   }

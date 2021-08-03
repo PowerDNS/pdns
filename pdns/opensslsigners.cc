@@ -850,7 +850,7 @@ public:
       throw runtime_error(getName()+" insufficient entropy");
     }
 
-    d_priv_len = 1282;
+    d_priv_len = 1281;
     d_pub_len = 897;
     d_sig_len = 690;
     d_id = NID_falcon512;
@@ -865,7 +865,7 @@ public:
   }
 
   string getName() const override { return "OpenSSL Falcon"; }
-  int getBits() const override { return d_priv_len; }
+  int getBits() const override { return d_priv_len << 3; }
 
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
@@ -898,6 +898,9 @@ bool OpenSSLFALCONDNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) co
 
 void OpenSSLFALCONDNSCryptoKeyEngine::create(unsigned int bits)
 {
+  if (bits != 10248) {
+    throw runtime_error("Keysize not supported by "+ getName());
+  }
   auto ctx = EVP_PKEY_CTX_new_id(d_id, nullptr);
   if (!ctx) {
     throw runtime_error(getName()+ " CTX initialisation failed");
@@ -939,6 +942,16 @@ DNSCryptoKeyEngine::storvector_t OpenSSLFALCONDNSCryptoKeyEngine::convertToISCVe
     throw runtime_error(getName() + " Could not get private key from d_falconkey");
   }
   storvect.push_back(make_pair("PrivateKey", buf));
+
+  // Clear buffer and put public key into store vector
+  buf.clear();
+  size_t len_pub = d_pub_len;
+  buf.resize(len_pub);
+
+  if (EVP_PKEY_get_raw_public_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len_pub) < 1) {
+    throw runtime_error(getName() + " Could not get public key from d_falconkey");
+  }
+  storvect.push_back(make_pair("PublicKey", buf));
 
   return storvect;
 }
@@ -1018,9 +1031,13 @@ void OpenSSLFALCONDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
 
-  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
+  d_falconkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["publickey"].at(0)), stormap["publickey"].length()), EVP_PKEY_free);
   if (!d_falconkey) {
-    throw std::runtime_error(getName() + " could not create key structure from private key");
+    throw std::runtime_error(getName() + " could not create key structure from public key");
+  }
+
+  if (EVP_PKEY_set_raw_private_key(d_falconkey.get(), reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()) != 1) {
+    throw std::runtime_error(getName() + " could not set private key from store vector");
   }
 }
 
