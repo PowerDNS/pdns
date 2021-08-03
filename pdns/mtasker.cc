@@ -170,7 +170,7 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, const struct timeval* now)
+template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal,Cmp>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, const struct timeval* now)
 {
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
@@ -219,7 +219,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 //! yields control to the kernel or other threads
 /** Hands over control to the kernel, allowing other processes to run, or events to arrive */
 
-template<class Key, class Val>void MTasker<Key,Val>::yield()
+template<class Key, class Val, class Cmp>void MTasker<Key,Val,Cmp>::yield()
 {
   d_runQueue.push(d_tid);
   notifyStackSwitchToKernel();
@@ -235,15 +235,14 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 
     WARNING: when passing val as zero, d_waitval is undefined, and hence waitEvent will return undefined!
 */
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
+template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal,Cmp>::sendEvent(const EventKey& key, const EventVal* val)
 {
   typename waiters_t::iterator waiter=d_waiters.find(key);
 
   if(waiter == d_waiters.end()) {
-    //    cout<<"Event sent nobody was waiting for!"<<endl;
+    //cerr<<"Event sent nobody was waiting for! " <<key << endl;
     return 0;
   }
-  
   d_waitstatus=Answer;
   if(val)
     d_waitval=*val;
@@ -263,7 +262,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
     \param start Pointer to the function which will form the start of the thread
     \param val A void pointer that can be used to pass data to the thread
 */
-template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
+template<class Key, class Val, class Cmp>void MTasker<Key,Val,Cmp>::makeThread(tfunc_t *start, void* val)
 {
   auto uc=std::make_shared<pdns_ucontext_t>();
   
@@ -304,7 +303,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     \return Returns if there is more work scheduled and recalling schedule now would be useful
       
 */
-template<class Key, class Val>bool MTasker<Key,Val>::schedule(const struct timeval*  now)
+template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(const struct timeval*  now)
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
@@ -360,7 +359,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(const struct timev
 /** Call this to check if no processes are running anymore
     \return true if no processes are left
  */
-template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
+template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::noProcesses() const
 {
   return d_threadsCount == 0;
 }
@@ -369,7 +368,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
 /** Call this to perhaps limit activities if too many threads are running
     \return number of processes running
  */
-template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() const
+template<class Key, class Val, class Cmp>unsigned int MTasker<Key,Val,Cmp>::numProcesses() const
 {
   return d_threadsCount;
 }
@@ -381,7 +380,7 @@ template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() cons
 
     \param events Vector which is to be filled with keys threads are waiting for
 */
-template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>& events)
+template<class Key, class Val, class Cmp>void MTasker<Key,Val,Cmp>::getEvents(std::vector<Key>& events)
 {
   events.clear();
   for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();++i) {
@@ -393,19 +392,19 @@ template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>&
 /** Processes can call this to get a numerical representation of their current thread ID.
     This can be useful for logging purposes.
 */
-template<class Key, class Val>int MTasker<Key,Val>::getTid() const
+template<class Key, class Val, class Cmp>int MTasker<Key,Val,Cmp>::getTid() const
 {
   return d_tid;
 }
 
 //! Returns the maximum stack usage so far of this MThread
-template<class Key, class Val>uint64_t MTasker<Key,Val>::getMaxStackUsage()
+template<class Key, class Val, class Cmp>uint64_t MTasker<Key,Val,Cmp>::getMaxStackUsage()
 {
   return d_threads[d_tid].startOfStack - d_threads[d_tid].highestStackSeen;
 }
 
 //! Returns the maximum stack usage so far of this MThread
-template<class Key, class Val>unsigned int MTasker<Key,Val>::getUsec()
+template<class Key, class Val, class Cmp>unsigned int MTasker<Key,Val,Cmp>::getUsec()
 {
 #ifdef MTASKERTIMING
   return d_threads[d_tid].totTime + d_threads[d_tid].dt.ndiff()/1000;

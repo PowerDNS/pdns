@@ -400,9 +400,9 @@ static bool isHandlerThread()
 }
 
 #if 0
-#define TCPLOG(x) cerr << [](){ timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << ' ' << x
+#define TCPLOG(tcpsock, x) do { cerr << [](){ timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << " FD " << (tcpsock) << ' ' << x; } while (0)
 #else
-#define TCPLOG(x)
+#define TCPLOG(pid, x)
 #endif
 
 static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var);
@@ -410,7 +410,7 @@ static void TCPIOHandlerStateChange(IOState, IOState, std::shared_ptr<PacketID>&
 
 LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& handler)
 {
-  TCPLOG("asendtcp called " << data.size() << endl);
+  TCPLOG(handler->getDescriptor(), "asendtcp called " << data.size() << endl);
 
   auto pident = std::make_shared<PacketID>();
   pident->tcphandler = handler;
@@ -418,20 +418,19 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   pident->outMSG = data;
   pident->highState = TCPAction::DoingWrite;
 
-
   IOState state;
   try {
-    TCPLOG("Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
+    TCPLOG(pident->tcpsock, "Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
     state = handler->tryWrite(pident->outMSG, pident->outPos, pident->outMSG.size());
-    TCPLOG(pident->outPos << '/' << pident->outMSG.size() << endl);
+    TCPLOG(pident->tcpsock, pident->outPos << '/' << pident->outMSG.size() << endl);
 
     if (state == IOState::Done) {
-      TCPLOG("asendtcp success A" << endl);
+      TCPLOG(pident->tcpsock, "asendtcp success A" << endl);
       return LWResult::Result::Success;
     }
   }
   catch (const std::exception& e) {
-    TCPLOG("tryWrite() exception..." << e.what() << endl);
+    TCPLOG(pident->tcpsock, "tryWrite() exception..." << e.what() << endl);
     return LWResult::Result::PermanentError;
   }
 
@@ -439,46 +438,46 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
   PacketBuffer packet;
-  int ret = MT->waitEvent(*pident, &packet, g_networkTimeoutMsec);
-  TCPLOG("asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
+  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
+  TCPLOG(pident->tcpsock, "asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
   if (ret == 0) {
-    TCPLOG("timeout" << endl);
+    TCPLOG(pident->tcpsock, "timeout" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) { // error
-    TCPLOG("PermanentError" << endl);
+    TCPLOG(pident->tcpsock, "PermanentError" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
     // fd housekeeping done by TCPIOHandlerIO
-    TCPLOG("PermanentError size mismatch" << endl);
+    TCPLOG(pident->tcpsock, "PermanentError size mismatch" << endl);
     return LWResult::Result::PermanentError;
   }
 
-  TCPLOG("asendtcp success" << endl);
+  TCPLOG(pident->tcpsock, "asendtcp success" << endl);
   return LWResult::Result::Success;
 }
 
 LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIOHandler>& handler, const bool incompleteOkay)
 {
-  TCPLOG("arecvtcp called " << len << ' ' << data.size() << endl);
+  TCPLOG(handler->getDescriptor(), "arecvtcp called " << len << ' ' << data.size() << endl);
   data.resize(len);
 
   // We might have data already available from the TLS layer, try to get that into the buffer
   size_t pos = 0;
   IOState state;
   try {
-    TCPLOG("calling tryRead() " << len << endl);
+    TCPLOG(handler->getDescriptor(), "calling tryRead() " << len << endl);
     state = handler->tryRead(data, pos, len);
-    TCPLOG("arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
+    TCPLOG(handler->getDescriptor(), "arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
     switch (state) {
     case IOState::Done:
     case IOState::NeedRead:
       if (pos == len || (incompleteOkay && pos > 0)) {
         data.resize(pos);
-        TCPLOG("acecvtcp success A" << endl);
+        TCPLOG(handler->getDescriptor(), "acecvtcp success A" << endl);
         return LWResult::Result::Success;
       }
       break;
@@ -487,7 +486,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
     }
   }
   catch (const std::exception& e) {
-    TCPLOG("tryRead() exception..." << e.what() << endl);
+    TCPLOG(handler->getDescriptor(), "tryRead() exception..." << e.what() << endl);
     return LWResult::Result::PermanentError;
   }
 
@@ -506,39 +505,39 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   // Will set pident->lowState
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
-  int ret = MT->waitEvent(*pident, &data, g_networkTimeoutMsec);
-  TCPLOG("arecvtcp " << ret << ' ' << data.size() << ' ' );
+  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  TCPLOG(pident->tcpsock, "arecvtcp " << ret << ' ' << data.size() << ' ' );
   if (ret == 0) {
-    TCPLOG("timeout" << endl);
+    TCPLOG(pident->tcpsock, "timeout" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) {
-    TCPLOG("PermanentError" << endl);
+    TCPLOG(pident->tcpsock, "PermanentError" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (data.empty()) {// error, EOF or other
     // fd housekeeping done by TCPIOHandlerIO
-    TCPLOG("EOF" << endl);
+    TCPLOG(pident->tcpsock, "EOF" << endl);
     return LWResult::Result::PermanentError;
   }
 
-  TCPLOG("arecvtcp success" << endl);
+  TCPLOG(pident->tcpsock, "arecvtcp success" << endl);
   return LWResult::Result::Success;
 }
 
 static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID pident = *boost::any_cast<PacketID>(&var);
+  std::shared_ptr<PacketID> pident = boost::any_cast<std::shared_ptr<PacketID>>(var);
   PacketBuffer resp;
   resp.resize(512);
   ComboAddress fromaddr;
   socklen_t addrlen = sizeof(fromaddr);
 
   ssize_t ret = recvfrom(fd, resp.data(), resp.size(), 0, (sockaddr *)&fromaddr, &addrlen);
-  if (fromaddr != pident.remote) {
-    g_log<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident.remote.toStringWithPort()<<"), discarding"<<endl;
+  if (fromaddr != pident->remote) {
+    g_log<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident->remote.toStringWithPort()<<"), discarding"<<endl;
 
   }
 
@@ -563,16 +562,16 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   s.connect(dest);
   s.send(query);
 
-  PacketID pident;
-  pident.fd=s.getHandle();
-  pident.remote=dest;
-  pident.type=0;
+  std::shared_ptr<PacketID> pident = std::make_shared<PacketID>();
+  pident->fd = s.getHandle();
+  pident->remote = dest;
+  pident->type = 0;
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
 
   PacketBuffer data;
   int ret=MT->waitEvent(pident, &data, g_networkTimeoutMsec);
 
-  if(!ret || ret==-1) { // timeout
+  if (!ret || ret==-1) { // timeout
     t_fdm->removeReadFD(s.getHandle());
   }
   else if(data.empty()) {// error, EOF or other
@@ -732,24 +731,22 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
                          const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd)
 {
 
-  PacketID pident;
-  pident.domain = domain;
-  pident.remote = toaddr;
-  pident.type = qtype;
+  auto pident = std::make_shared<PacketID>();
+  pident->domain = domain;
+  pident->remote = toaddr;
+  pident->type = qtype;
 
   // see if there is an existing outstanding request we can chain on to, using partial equivalence function looking for the same
   // query (qname and qtype) to the same host, but with a different message ID
   pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
   for(; chain.first != chain.second; chain.first++) {
-    if(chain.first->key.fd > -1 && !chain.first->key.closed) { // don't chain onto existing chained waiter or a chain already processed
-      /*
-      cerr<<"Orig: "<<pident.domain<<", "<<pident.remote.toString()<<", id="<<id<<endl;
-      cerr<<"Had hit: "<< chain.first->key.domain<<", "<<chain.first->key.remote.toString()<<", id="<<chain.first->key.id
-          <<", count="<<chain.first->key.chain.size()<<", origfd: "<<chain.first->key.fd<<endl;
-      */
-      chain.first->key.chain.insert(id); // we can chain
-      *fd=-1;                            // gets used in waitEvent / sendEvent later on
+    // Line below detected an issue with the two ways of ordering PackeIDs (birtday and non-birthday)
+    assert(chain.first->key->domain == pident->domain);
+    if(chain.first->key->fd > -1 && !chain.first->key->closed) { // don't chain onto existing chained waiter or a chain already processed
+      //cerr << "Insert " << id << ' ' << pident << " into chain for  " << chain.first->key << endl;
+      chain.first->key->chain.insert(id); // we can chain
+      *fd = -1;                            // gets used in waitEvent / sendEvent later on
       return LWResult::Result::Success;
     }
   }
@@ -759,8 +756,8 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
     return ret;
   }
 
-  pident.fd=*fd;
-  pident.id=id;
+  pident->fd=*fd;
+  pident->id=id;
 
   t_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
   ssize_t sent = send(*fd, data, len, 0);
@@ -781,12 +778,12 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& 
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
 
-  PacketID pident;
-  pident.fd=fd;
-  pident.id=id;
-  pident.domain=domain;
-  pident.type = qtype;
-  pident.remote=fromaddr;
+  auto pident = std::make_shared<PacketID>();
+  pident->fd = fd;
+  pident->id = id;
+  pident->domain = domain;
+  pident->type = qtype;
+  pident->remote = fromaddr;
 
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
@@ -799,10 +796,10 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& 
 
     *d_len=packet.size();
 
-    if (nearMissLimit > 0 && pident.nearMisses > nearMissLimit) {
+    if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
          for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
-      g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<nearMissLimit<<") answers with a wrong message ID for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
+      g_log<<Logger::Error<<"Too many ("<<pident->nearMisses<<" > "<<nearMissLimit<<") answers with a wrong message ID for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
       return LWResult::Result::Spoofed;
     }
@@ -4130,7 +4127,7 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 
 static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::shared_ptr<PacketID>& pid)
 {
-  TCPLOG("State transation " << int(oldstate) << "->" << int(newstate) << endl);
+  TCPLOG(pid->tcpsock, "State transation " << int(oldstate) << "->" << int(newstate) << endl);
 
   pid->lowState = newstate;
 
@@ -4140,13 +4137,13 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
 
     switch (newstate) {
     case IOState::NeedWrite:
-      TCPLOG("NeedRead -> NeedWrite: flip FD" << endl);
+      TCPLOG(pid->tcpsock, "NeedRead -> NeedWrite: flip FD" << endl);
       t_fdm->alterFDToWrite(pid->tcpsock, TCPIOHandlerIO, pid);
       break;
     case IOState::NeedRead:
       break;
     case IOState::Done:
-      TCPLOG("Done -> removeReadFD" << endl);
+      TCPLOG(pid->tcpsock, "Done -> removeReadFD" << endl);
       t_fdm->removeReadFD(pid->tcpsock);
       break;
     }
@@ -4156,13 +4153,13 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
 
     switch (newstate) {
     case IOState::NeedRead:
-      TCPLOG("NeedWrite -> NeedRead: flip FD" << endl);
+      TCPLOG(pid->tcpsock, "NeedWrite -> NeedRead: flip FD" << endl);
       t_fdm->alterFDToRead(pid->tcpsock, TCPIOHandlerIO, pid);
       break;
     case IOState::NeedWrite:
       break;
     case IOState::Done:
-      TCPLOG("Done -> removeWriteFD" << endl);
+      TCPLOG(pid->tcpsock, "Done -> removeWriteFD" << endl);
       t_fdm->removeWriteFD(pid->tcpsock);
       break;
     }
@@ -4171,11 +4168,11 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
   case IOState::Done:
     switch (newstate) {
     case IOState::NeedRead:
-      TCPLOG("NeedRead: addReadFD" << endl);
+      TCPLOG(pid->tcpsock, "NeedRead: addReadFD" << endl);
       t_fdm->addReadFD(pid->tcpsock, TCPIOHandlerIO, pid);
       break;
     case IOState::NeedWrite:
-      TCPLOG("NeedWrite: addWriteFD" << endl);
+      TCPLOG(pid->tcpsock, "NeedWrite: addWriteFD" << endl);
       t_fdm->addWriteFD(pid->tcpsock, TCPIOHandlerIO, pid);
       break;
     case IOState::Done:
@@ -4188,19 +4185,19 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
 
 static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
 {
-  auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
+  std::shared_ptr<PacketID> pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
   assert(pid->tcphandler);
   assert(fd == pid->tcphandler->getDescriptor());
   IOState newstate = IOState::Done;
 
-  TCPLOG("TCPIOHandlerIO: lowState " << int(pid->lowState) << endl);
+  TCPLOG(pid->tcpsock, "TCPIOHandlerIO: lowState " << int(pid->lowState) << endl);
 
   // In the code below, we want to update the state of the fd before calling sendEvent
   // a sendEvent might close the fd, and some poll multiplexers do not like to manipulate a closed fd
 
   switch (pid->highState) {
   case TCPAction::DoingRead:
-    TCPLOG("highState: Reading" << endl);
+    TCPLOG(pid->tcpsock, "highState: Reading" << endl);
     // In arecvtcp, the buffer was resized already so inWanted bytes will fit
     // try reading
     try {
@@ -4208,13 +4205,13 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
       switch (newstate) {
       case IOState::Done:
       case IOState::NeedRead:
-        TCPLOG("tryRead: Done or NeedRead " << int(newstate) << ' ' << pid->inPos << '/' << pid->inWanted << endl);
-        TCPLOG("TCPIOHandlerIO " << pid->inWanted << ' ' << pid->inIncompleteOkay << endl);
+        TCPLOG(pid->tcpsock, "tryRead: Done or NeedRead " << int(newstate) << ' ' << pid->inPos << '/' << pid->inWanted << endl);
+        TCPLOG(pid->tcpsock, "TCPIOHandlerIO " << pid->inWanted << ' ' << pid->inIncompleteOkay << endl);
         if (pid->inPos == pid->inWanted || (pid->inIncompleteOkay && pid->inPos > 0)) {
           pid->inMSG.resize(pid->inPos); // old content (if there) + new bytes read, only relevant for the inIncompleteOkay case
           newstate = IOState::Done;
           TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-          MT->sendEvent(*pid, &pid->inMSG);
+          MT->sendEvent(pid, &pid->inMSG);
           return;
         }
         break;
@@ -4224,41 +4221,41 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
     }
     catch (const std::exception& e) {
       newstate = IOState::Done;
-      TCPLOG("read exception..." << e.what() << endl);
+      TCPLOG(pid->tcpsock, "read exception..." << e.what() << endl);
       PacketBuffer empty;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      MT->sendEvent(*pid, &empty); // this conveys error status
+      MT->sendEvent(pid, &empty); // this conveys error status
       return;
     }
     break;
 
   case TCPAction::DoingWrite:
-    TCPLOG("highState: Writing" << endl);
+    TCPLOG(pid->tcpsock, "highState: Writing" << endl);
     try {
-      TCPLOG("tryWrite: " << pid->outPos << '/' << pid->outMSG.size() << ' ' << pid << " -> ");
+      TCPLOG(pid->tcpsock, "tryWrite: " << pid->outPos << '/' << pid->outMSG.size() << ' ' << " -> ");
       newstate = pid->tcphandler->tryWrite(pid->outMSG, pid->outPos, pid->outMSG.size());
-      TCPLOG(pid->outPos << '/' << pid->outMSG.size() << endl);
+      TCPLOG(pid->tcpsock, pid->outPos << '/' << pid->outMSG.size() << endl);
       switch (newstate) {
       case IOState::Done: {
-        TCPLOG("tryWrite: Done" << endl);
+        TCPLOG(pid->tcpsock, "tryWrite: Done" << endl);
         TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-        MT->sendEvent(*pid, &pid->outMSG); // send back what we sent to convey everything is ok
+        MT->sendEvent(pid, &pid->outMSG); // send back what we sent to convey everything is ok
         return;
       }
       case IOState::NeedRead:
-        TCPLOG("tryWrite: NeedRead" << endl);
+        TCPLOG(pid->tcpsock, "tryWrite: NeedRead" << endl);
         break;
       case IOState::NeedWrite:
-        TCPLOG("tryWrite: NeedWrite" << endl);
+        TCPLOG(pid->tcpsock, "tryWrite: NeedWrite" << endl);
         break;
       }
     }
     catch (const std::exception& e) {
       newstate = IOState::Done;
-      TCPLOG("write exception..." << e.what() << endl);
+      TCPLOG(pid->tcpsock, "write exception..." << e.what() << endl);
       PacketBuffer sent;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      MT->sendEvent(*pid, &sent); // we convey error status by sending empty string
+      MT->sendEvent(pid, &sent); // we convey error status by sending empty string
       return;
     }
     break;
@@ -4269,27 +4266,25 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const PacketBuffer& content)
+static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content)
 {
   // We close the chain for new entries, since they won't be processed anyway
-  iter->key.closed = true;
+  iter->key->closed = true;
 
-  if(iter->key.chain.empty())
+  if(iter->key->chain.empty())
     return;
-  //  cerr<<"doResends called!\n";
-  for(PacketID::chain_t::iterator i=iter->key.chain.begin(); i != iter->key.chain.end() ; ++i) {
-    resend.fd=-1;
-    resend.id=*i;
-    //    cerr<<"\tResending "<<content.size()<<" bytes for fd="<<resend.fd<<" and id="<<resend.id<<endl;
-
-    MT->sendEvent(resend, &content);
+  for(PacketID::chain_t::iterator i=iter->key->chain.begin(); i != iter->key->chain.end() ; ++i) {
+    auto r = std::make_shared<PacketID>(*resend);
+    r->fd = -1;
+    r->id = *i;
+    MT->sendEvent(r, &content);
     g_stats.chainResends++;
   }
 }
 
 static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID pid=boost::any_cast<PacketID>(var);
+  std::shared_ptr<PacketID> pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
   ssize_t len;
   PacketBuffer packet;
   packet.resize(g_outgoingEDNSBufsize);
@@ -4323,10 +4318,10 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   dnsheader dh;
   memcpy(&dh, &packet.at(0), sizeof(dh));
 
-  PacketID pident;
-  pident.remote=fromaddr;
-  pident.id=dh.id;
-  pident.fd=fd;
+  auto pident = std::make_shared<PacketID>();
+  pident->remote = fromaddr;
+  pident->id = dh.id;
+  pident->fd = fd;
 
   if(!dh.qr && g_logCommonErrors) {
     g_log<<Logger::Notice<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
@@ -4334,13 +4329,13 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 
   if(!dh.qdcount || // UPC, Nominum, very old BIND on FormErr, NSD
      !dh.qr) {      // one weird server
-    pident.domain.clear();
-    pident.type = 0;
+    pident->domain.clear();
+    pident->type = 0;
   }
   else {
     try {
       if(len > 12)
-        pident.domain=DNSName(reinterpret_cast<const char *>(packet.data()), len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
+        pident->domain=DNSName(reinterpret_cast<const char *>(packet.data()), len, 12, false, &pident->type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
@@ -4361,26 +4356,26 @@ retryWithName:
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
     for (MT_t::waiters_t::iterator mthread = MT->d_waiters.begin(); mthread != MT->d_waiters.end(); ++mthread) {
-      if (pident.fd == mthread->key.fd && mthread->key.remote == pident.remote &&  mthread->key.type == pident.type &&
-         pident.domain == mthread->key.domain) {
+      if (pident->fd == mthread->key->fd && mthread->key->remote == pident->remote &&  mthread->key->type == pident->type &&
+         pident->domain == mthread->key->domain) {
         /* we are expecting an answer from that exact source, on that exact port (since we are using connected sockets), for that qname/qtype,
            but with a different message ID. That smells like a spoofing attempt. For now we will just increase the counter and will deal with
            that later. */
-        mthread->key.nearMisses++;
+        mthread->key->nearMisses++;
       }
 
       // be a bit paranoid here since we're weakening our matching
-      if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type &&
-         pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
+      if(pident->domain.empty() && !mthread->key->domain.empty() && !pident->type && mthread->key->type &&
+         pident->id  == mthread->key->id && mthread->key->remote == pident->remote) {
         // cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
-        pident.domain = mthread->key.domain;
-        pident.type = mthread->key.type;
+        pident->domain = mthread->key->domain;
+        pident->type = mthread->key->type;
         goto retryWithName; // note that this only passes on an error, lwres will still reject the packet
       }
     }
     g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
     if(g_logCommonErrors) {
-      g_log<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<< (pident.domain.empty() ? "<empty>" : pident.domain.toString())<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
+      g_log<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<< (pident->domain.empty() ? "<empty>" : pident->domain.toString())<<", "<<pident->type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
     }
   }
   else if(fd >= 0) {
@@ -5461,7 +5456,7 @@ try
     t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_bogusqueryring->set_capacity(ringsize);
   }
-  MT=std::unique_ptr<MTasker<PacketID,PacketBuffer> >(new MTasker<PacketID,PacketBuffer>(::arg().asNum("stack-size")));
+  MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
   threadInfo.mt = MT.get();
 
   /* start protobuf export threads if needed */

@@ -1013,4 +1013,50 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_loop)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+static auto createPID(std::string rem, int tcpsock, uint16_t type, std::string domain, int fd, uint16_t id)
+{
+  PacketID pid;
+  pid.remote = ComboAddress(rem);
+  pid.tcpsock = tcpsock;
+  pid.type = type;
+  pid.domain = DNSName(domain);
+  pid.fd = fd;
+  pid.id = id;
+  return std::make_shared<PacketID>(pid);
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketIDCompare)
+{
+  // Ordered by domain, but not by id
+  auto a = createPID("1.2.3.4", -1, 1, "powerdns.com", -1, 1000);
+  auto b = createPID("1.2.3.4", -1, 1, "powerdns.net", -1, 999);
+
+  auto cmp = PacketIDCompare();
+  auto bcmp = PacketIDBirthdayCompare();
+
+  bool r1 = cmp.operator()(a, b);
+  bool br1 = bcmp.operator()(a, b);
+  bool r2 = cmp.operator()(b, a);
+  bool br2 = bcmp.operator()(b, a);
+
+  BOOST_CHECK(r1);
+  BOOST_CHECK(br1);
+  BOOST_CHECK(!r2);
+  BOOST_CHECK(!br2);
+
+  // Ordered by domain, but not by fd
+  a = createPID("1.2.3.4", -1, 1, "powerdns.com", 1, 1000);
+  b = createPID("1.2.3.4", -1, 1, "powerdns.net", -1, 1000);
+
+  r1 = cmp.operator()(a, b);
+  br1 = bcmp.operator()(a, b);
+  r2 = cmp.operator()(b, a);
+  br2 = bcmp.operator()(b, a);
+
+  BOOST_CHECK(r1);
+  BOOST_CHECK(br1);
+  BOOST_CHECK(!r2);
+  BOOST_CHECK(!br2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
