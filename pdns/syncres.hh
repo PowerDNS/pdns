@@ -967,7 +967,7 @@ struct PacketID
 
   bool operator<(const PacketID& b) const
   {
-    // We don't want explcit PacketID compare here, but always via predicate classes below
+    // We don't want explicit PacketID compare here, but always via predicate classes below
     assert(0);
   }
 };
@@ -983,6 +983,11 @@ inline ostream& operator<<(ostream & os, const shared_ptr<PacketID>& pid)
   return os << *pid;
 }
 
+/*
+ * The two compare predicates below must be consistent!
+ * PacketIDBirthdayCompare can omit minor fields, but not change the or skip fields
+ * order! See boost docs on CompatibleCompare.
+ */
 struct PacketIDCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
