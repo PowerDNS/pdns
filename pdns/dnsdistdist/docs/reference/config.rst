@@ -436,7 +436,8 @@ EDNS Client Subnet
 
 .. function:: setECSOverride(bool)
 
-  When ``useClientSubnet`` in :func:`newServer` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any
+  When ``useClientSubnet`` in :func:`newServer` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any.
+  Note that it's not recommended to enable ``setECSOverride`` in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers.
 
   :param bool: Whether to override an existing EDNS Client Subnet option present in the query. Defaults to false
 
