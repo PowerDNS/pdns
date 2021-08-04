@@ -116,7 +116,7 @@ void KqueueFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
     nevents++;
   }
 
-  if (kevent(d_kqueuefd, &kqevents, nevents, 0, 0, 0) < 0) {
+  if (kevent(d_kqueuefd, kqevents, nevents, 0, 0, 0) < 0) {
     throw FDMultiplexerException("Adding fd to kqueue set: " + stringerror());
   }
 }
@@ -136,7 +136,7 @@ void KqueueFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind kind)
     nevents++;
   }
 
-  if (kevent(d_kqueuefd, &kqevents, nevents, 0, 0, 0) < 0) {
+  if (kevent(d_kqueuefd, kqevents, nevents, 0, 0, 0) < 0) {
     // ponder putting Callback back on the map..
     throw FDMultiplexerException("Removing fd from kqueue set: " + stringerror());
   }
@@ -157,7 +157,7 @@ void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
   // we de-duplicate here, since if a descriptor is readable AND writable
   // we will get two events
   std::unordered_set<int> fdSet;
-  fdSet.reserve(n);
+  fdSet.reserve(ret);
   for (int n = 0; n < ret; ++n) {
     fdSet.insert(d_kevents[n].ident);
   }
