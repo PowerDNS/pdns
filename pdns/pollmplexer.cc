@@ -5,6 +5,7 @@
 #include "sstuff.hh"
 #include <iostream>
 #include <poll.h>
+#include <unordered_map>
 #include "misc.hh"
 #include "namespaces.hh"
 

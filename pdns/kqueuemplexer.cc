@@ -50,7 +50,7 @@ public:
   void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
   void addFD(int fd, FDMultiplexer::EventKind kind) override;
-  void removeFD(int fd) override;
+  void removeFD(int fd, FDMultiplexer::EventKind kind) override;
 
   string getName() const override
   {
