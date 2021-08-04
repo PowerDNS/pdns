@@ -11,39 +11,39 @@
 FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
 {
   FDMultiplexer* ret = nullptr;
-  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
+  for (const auto& i : FDMultiplexer::getMultiplexerMap()) {
     try {
       ret = i.second();
       return ret;
     }
-    catch(const FDMultiplexerException& fe) {
+    catch (const FDMultiplexerException& fe) {
     }
-    catch(...) {
+    catch (...) {
     }
   }
   return ret;
 }
-
 
 class PollFDMultiplexer : public FDMultiplexer
 {
 public:
   PollFDMultiplexer()
   {}
-  virtual ~PollFDMultiplexer()
+  ~PollFDMultiplexer()
   {
   }
 
-  virtual int run(struct timeval* tv, int timeout=500) override;
-  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
+  int run(struct timeval* tv, int timeout = 500) override;
+  void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr) override;
-  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  void addFD(int fd, FDMultiplexer::EventKind) override;
+  void removeFD(int fd, FDMultiplexer::EventKind) override;
 
   string getName() const override
   {
     return "poll";
   }
+
 private:
   vector<struct pollfd> preparePollFD() const;
 };
@@ -55,55 +55,69 @@ static FDMultiplexer* make()
 
 static struct RegisterOurselves
 {
-  RegisterOurselves() {
+  RegisterOurselves()
+  {
     FDMultiplexer::getMultiplexerMap().insert(make_pair(1, &make));
   }
 } doIt;
 
-void PollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
+void PollFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 }
 
-void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
+void PollFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind)
 {
-  if(d_inrun && d_iter->d_fd==fd)  // trying to remove us!
-    ++d_iter;
-
-  accountingRemoveFD(cbmap, fd);
 }
 
 vector<struct pollfd> PollFDMultiplexer::preparePollFD() const
 {
-  vector<struct pollfd> pollfds;
+  std::unordered_map<int, struct pollfd> pollfds;
   pollfds.reserve(d_readCallbacks.size() + d_writeCallbacks.size());
 
-  struct pollfd pollfd;
-  for(const auto& cb : d_readCallbacks) {
-    pollfd.fd = cb.d_fd;
-    pollfd.events = POLLIN;
-    pollfds.push_back(pollfd);
+  for (const auto& cb : d_readCallbacks) {
+    if (pollfds.count(cb.d_fd) == 0) {
+      auto& pollfd = pollfds[cb.d_fd];
+      pollfd.fd = cb.d_fd;
+      pollfd.events = 0;
+    }
+    auto& pollfd = pollfds.at(cb.d_fd);
+    pollfd.events |= POLLIN;
   }
 
-  for(const auto& cb : d_writeCallbacks) {
-    pollfd.fd = cb.d_fd;
-    pollfd.events = POLLOUT;
-    pollfds.push_back(pollfd);
+  for (const auto& cb : d_writeCallbacks) {
+    if (pollfds.count(cb.d_fd) == 0) {
+      auto& pollfd = pollfds[cb.d_fd];
+      pollfd.fd = cb.d_fd;
+      pollfd.events = 0;
+    }
+    auto& pollfd = pollfds.at(cb.d_fd);
+    pollfd.events |= POLLOUT;
   }
 
-  return pollfds;
+  std::vector<struct pollfd> result;
+  result.reserve(pollfds.size());
+  for (const auto& entry : pollfds) {
+    result.push_back(entry.second);
+  }
+
+  return result;
 }
 
 void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 {
   auto pollfds = preparePollFD();
+  if (pollfds.empty()) {
+    return;
+  }
+
   int ret = poll(&pollfds[0], pollfds.size(), timeout);
 
-  if (ret < 0 && errno != EINTR)
+  if (ret < 0 && errno != EINTR) {
     throw FDMultiplexerException("poll returned error: " + stringerror());
+  }
 
-  for(const auto& pollfd : pollfds) {
-    if (pollfd.revents & POLLIN || pollfd.revents & POLLOUT) {
+  for (const auto& pollfd : pollfds) {
+    if (pollfd.revents & POLLIN || pollfd.revents & POLLOUT || pollfd.revents & POLLERR || pollfd.revents & POLLHUP) {
       fds.push_back(pollfd.fd);
     }
   }
@@ -111,39 +125,43 @@ void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 
 int PollFDMultiplexer::run(struct timeval* now, int timeout)
 {
-  if(d_inrun) {
+  if (d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
 
   auto pollfds = preparePollFD();
+  if (pollfds.empty()) {
+    gettimeofday(now, nullptr); // MANDATORY!
+    return 0;
+  }
 
-  int ret=poll(&pollfds[0], pollfds.size(), timeout);
-  gettimeofday(now, 0); // MANDATORY!
-  
-  if(ret < 0 && errno!=EINTR)
-    throw FDMultiplexerException("poll returned error: "+stringerror());
+  int ret = poll(&pollfds[0], pollfds.size(), timeout);
+  gettimeofday(now, nullptr); // MANDATORY!
 
-  d_iter=d_readCallbacks.end();
-  d_inrun=true;
+  if (ret < 0 && errno != EINTR) {
+    throw FDMultiplexerException("poll returned error: " + stringerror());
+  }
 
-  for(const auto& pollfd : pollfds) {
-    if(pollfd.revents & POLLIN) {
-      d_iter=d_readCallbacks.find(pollfd.fd);
-    
-      if(d_iter != d_readCallbacks.end()) {
-        d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
-        continue; // so we don't refind ourselves as writable!
+  d_inrun = true;
+
+  for (const auto& pollfd : pollfds) {
+
+    if (pollfd.revents & POLLIN || pollfd.revents & POLLERR || pollfd.revents & POLLHUP) {
+      const auto& iter = d_readCallbacks.find(pollfd.fd);
+      if (iter != d_readCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
       }
     }
-    else if(pollfd.revents & POLLOUT) {
-      d_iter=d_writeCallbacks.find(pollfd.fd);
-    
-      if(d_iter != d_writeCallbacks.end()) {
-        d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
+
+    if (pollfd.revents & POLLOUT || pollfd.revents & POLLERR) {
+      const auto& iter = d_writeCallbacks.find(pollfd.fd);
+      if (iter != d_writeCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
       }
     }
   }
-  d_inrun=false;
+
+  d_inrun = false;
   return ret;
 }
 
@@ -163,7 +181,7 @@ void acceptData(int fd, boost::any& parameter)
 int main()
 {
   Socket s(AF_INET, SOCK_DGRAM);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 
@@ -178,4 +196,3 @@ int main()
   sfm.removeReadFD(s.getHandle());
 }
 #endif
-

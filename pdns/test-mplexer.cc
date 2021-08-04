@@ -10,7 +10,8 @@
 
 BOOST_AUTO_TEST_SUITE(mplexer)
 
-BOOST_AUTO_TEST_CASE(test_MPlexer) {
+BOOST_AUTO_TEST_CASE(test_MPlexer)
+{
   auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
   BOOST_REQUIRE(mplexer != nullptr);
 
@@ -37,10 +38,10 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   bool writeCBCalled = false;
   auto writeCB = [](int fd, FDMultiplexer::funcparam_t param) {
-                        auto calledPtr = boost::any_cast<bool*>(param);
-                        BOOST_REQUIRE(calledPtr != nullptr);
-                        *calledPtr = true;
-                 };
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
   mplexer->addWriteFD(pipes[1],
                       writeCB,
                       &writeCBCalled,
@@ -85,10 +86,10 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   bool readCBCalled = false;
   auto readCB = [](int fd, FDMultiplexer::funcparam_t param) {
-                        auto calledPtr = boost::any_cast<bool*>(param);
-                        BOOST_REQUIRE(calledPtr != nullptr);
-                        *calledPtr = true;
-                };
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
   mplexer->addReadFD(pipes[0],
                      readCB,
                      &readCBCalled,
@@ -205,5 +206,81 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
   close(pipes[1]);
 }
 
+BOOST_AUTO_TEST_CASE(test_MPlexer_ReadAndWrite)
+{
+  auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+  BOOST_REQUIRE(mplexer != nullptr);
+
+  int sockets[2];
+  int res = socketpair(AF_UNIX, SOCK_STREAM, 0, sockets);
+  BOOST_REQUIRE_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(setNonBlocking(sockets[0]), true);
+  BOOST_REQUIRE_EQUAL(setNonBlocking(sockets[1]), true);
+
+  struct timeval now;
+  std::vector<int> readyFDs;
+  struct timeval ttd = now;
+  ttd.tv_sec += 5;
+
+  bool readCBCalled = false;
+  bool writeCBCalled = false;
+  auto readCB = [](int fd, FDMultiplexer::funcparam_t param) {
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
+  auto writeCB = [](int fd, FDMultiplexer::funcparam_t param) {
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
+  mplexer->addReadFD(sockets[0],
+                     readCB,
+                     &readCBCalled,
+                     &ttd);
+  mplexer->addWriteFD(sockets[0],
+                      writeCB,
+                      &writeCBCalled,
+                      &ttd);
+
+  /* not ready for reading yet, but should be writable */
+  readyFDs.clear();
+  mplexer->getAvailableFDs(readyFDs, 0);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
+  BOOST_CHECK_EQUAL(readyFDs.at(0), sockets[0]);
+
+  /* let's make the socket readable */
+  BOOST_REQUIRE_EQUAL(write(sockets[1], "0", 1), 1);
+
+  readyFDs.clear();
+  mplexer->getAvailableFDs(readyFDs, 0);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
+  BOOST_CHECK_EQUAL(readyFDs.at(0), sockets[0]);
+
+  auto ready = mplexer->run(&now, 100);
+  BOOST_CHECK_EQUAL(ready, 1);
+  BOOST_CHECK_EQUAL(readCBCalled, true);
+  BOOST_CHECK_EQUAL(writeCBCalled, true);
+
+  /* check that the write cb remains when we remove the read one */
+  mplexer->removeReadFD(sockets[0]);
+
+  readCBCalled = false;
+  writeCBCalled = false;
+  readyFDs.clear();
+  mplexer->getAvailableFDs(readyFDs, 0);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
+  BOOST_CHECK_EQUAL(readyFDs.at(0), sockets[0]);
+  ready = mplexer->run(&now, 100);
+  BOOST_CHECK_EQUAL(ready, 1);
+  BOOST_CHECK_EQUAL(readCBCalled, false);
+  BOOST_CHECK_EQUAL(writeCBCalled, true);
+
+  mplexer->removeWriteFD(sockets[0]);
+
+  /* clean up */
+  close(sockets[0]);
+  close(sockets[1]);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

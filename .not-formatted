@@ -39,7 +39,6 @@
 ./pdns/decafsigners.cc
 ./pdns/delaypipe.cc
 ./pdns/delaypipe.hh
-./pdns/devpollmplexer.cc
 ./pdns/digests.hh
 ./pdns/distributor.hh
 ./pdns/dns.cc
@@ -162,7 +161,6 @@
 ./pdns/ednspadding.cc
 ./pdns/ednssubnet.cc
 ./pdns/ednssubnet.hh
-./pdns/epollmplexer.cc
 ./pdns/filterpo.cc
 ./pdns/filterpo.hh
 ./pdns/fstrm_logger.cc
@@ -191,7 +189,6 @@
 ./pdns/ixplore.cc
 ./pdns/json.cc
 ./pdns/json.hh
-./pdns/kqueuemplexer.cc
 ./pdns/kvresp.cc
 ./pdns/lazy_allocator.hh
 ./pdns/libssl.cc
@@ -211,7 +208,6 @@
 ./pdns/minicurl.hh
 ./pdns/misc.cc
 ./pdns/misc.hh
-./pdns/mplexer.hh
 ./pdns/mtasker.cc
 ./pdns/mtasker.hh
 ./pdns/mtasker_context.hh
@@ -237,8 +233,6 @@
 ./pdns/pdnsutil.cc
 ./pdns/pkcs11signers.cc
 ./pdns/pkcs11signers.hh
-./pdns/pollmplexer.cc
-./pdns/portsmplexer.cc
 ./pdns/protozero.cc
 ./pdns/protozero.hh
 ./pdns/proxy-protocol.cc
@@ -335,7 +329,6 @@
 ./pdns/test-lock_hh.cc
 ./pdns/test-lua_auth4_cc.cc
 ./pdns/test-misc_hh.cc
-./pdns/test-mplexer.cc
 ./pdns/test-nameserver_cc.cc
 ./pdns/test-packetcache_cc.cc
 ./pdns/test-packetcache_hh.cc

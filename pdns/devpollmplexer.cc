@@ -40,24 +40,27 @@ class DevPollFDMultiplexer : public FDMultiplexer
 {
 public:
   DevPollFDMultiplexer();
-  virtual ~DevPollFDMultiplexer()
+  ~DevPollFDMultiplexer()
   {
-    close(d_devpollfd);
+    if (d_devpollfd >= 0) {
+      close(d_devpollfd);
+    }
   }
 
-  virtual int run(struct timeval* tv, int timeout=500) override;
-  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
+  int run(struct timeval* tv, int timeout = 500) override;
+  void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr) override;
-  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  void addFD(int fd, FDMultiplexer::EventKind kind) override;
+  void removeFD(int fd, FDMultiplexer::EventKind kind) override;
+
   string getName() const override
   {
     return "/dev/poll";
   }
+
 private:
   int d_devpollfd;
 };
-
 
 static FDMultiplexer* makeDevPoll()
 {
@@ -66,49 +69,53 @@ static FDMultiplexer* makeDevPoll()
 
 static struct DevPollRegisterOurselves
 {
-  DevPollRegisterOurselves() {
+  DevPollRegisterOurselves()
+  {
     FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &makeDevPoll)); // priority 0!
   }
 } doItDevPoll;
 
-
-//int DevPollFDMultiplexer::s_maxevents=1024;
-DevPollFDMultiplexer::DevPollFDMultiplexer() 
+DevPollFDMultiplexer::DevPollFDMultiplexer()
 {
-  d_devpollfd=open("/dev/poll", O_RDWR);
-  if(d_devpollfd < 0)
-    throw FDMultiplexerException("Setting up /dev/poll: "+stringerror());
-    
-}
-
-void DevPollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
-{
-  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
-
-  struct pollfd devent;
-  devent.fd=fd;
-  devent.events= (&cbmap == &d_readCallbacks) ? POLLIN : POLLOUT;
-  devent.revents = 0;
-
-  if(write(d_devpollfd, &devent, sizeof(devent)) != sizeof(devent)) {
-    cbmap.erase(fd);
-    throw FDMultiplexerException("Adding fd to /dev/poll/ set: "+stringerror());
+  d_devpollfd = open("/dev/poll", O_RDWR);
+  if (d_devpollfd < 0) {
+    throw FDMultiplexerException("Setting up /dev/poll: " + stringerror());
   }
 }
 
-void DevPollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
+static int convertEventKind(FDMultiplexer::EventKind kind)
 {
-  if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
+  switch (kind) {
+  case FDMultiplexer::EventKind::Read:
+    return POLLIN;
+  case FDMultiplexer::EventKind::Write:
+    return POLLOUT;
+  case FDMultiplexer::EventKind::Both:
+    return POLLIN | POLLOUT;
+  }
+}
 
+void DevPollFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
+{
   struct pollfd devent;
-  devent.fd=fd;
-  devent.events= POLLREMOVE;
+  devent.fd = fd;
+  devent.events = convertEventKind(kind);
   devent.revents = 0;
 
-  if(write(d_devpollfd, &devent, sizeof(devent)) != sizeof(devent)) {
-    cbmap.erase(fd);
-    throw FDMultiplexerException("Removing fd from epoll set: "+stringerror());
+  if (write(d_devpollfd, &devent, sizeof(devent)) != sizeof(devent)) {
+    throw FDMultiplexerException("Adding fd to /dev/poll/ set: " + stringerror());
+  }
+}
+
+void DevPollFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind)
+{
+  struct pollfd devent;
+  devent.fd = fd;
+  devent.events = POLLREMOVE;
+  devent.revents = 0;
+
+  if (write(d_devpollfd, &devent, sizeof(devent)) != sizeof(devent)) {
+    throw FDMultiplexerException("Removing fd from epoll set: " + stringerror());
   }
 }
 
@@ -119,20 +126,20 @@ void DevPollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
   dvp.dp_fds = pollfds.data();
   dvp.dp_timeout = timeout;
-  int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
+  int ret = ioctl(d_devpollfd, DP_POLL, &dvp);
 
-  if(ret < 0 && errno!=EINTR) {
-    throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
+  if (ret < 0 && errno != EINTR) {
+    throw FDMultiplexerException("/dev/poll returned error: " + stringerror());
   }
 
-  for(int n=0; n < ret; ++n) {
+  for (int n = 0; n < ret; ++n) {
     fds.push_back(pollfds.at(n).fd);
   }
 }
 
 int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
 {
-  if(d_inrun) {
+  if (d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
   std::vector<struct pollfd> fds(d_readCallbacks.size() + d_writeCallbacks.size());
@@ -140,34 +147,36 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
   dvp.dp_fds = fds.data();
   dvp.dp_timeout = timeout;
-  int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
+  int ret = ioctl(d_devpollfd, DP_POLL, &dvp);
   int err = errno;
-  gettimeofday(now,0); // MANDATORY!
+  gettimeofday(now, nullptr); // MANDATORY!
 
-  if(ret < 0 && err!=EINTR) {
-    throw FDMultiplexerException("/dev/poll returned error: "+stringerror(err));
+  if (ret < 0 && err != EINTR) {
+    throw FDMultiplexerException("/dev/poll returned error: " + stringerror(err));
   }
 
-  if(ret < 1) { // thanks AB!
+  if (ret < 1) { // thanks AB!
     return 0;
   }
 
-  d_inrun=true;
-  for(int n=0; n < ret; ++n) {
-    d_iter=d_readCallbacks.find(fds.at(n).fd);
-    
-    if(d_iter != d_readCallbacks.end()) {
-      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
-      continue; // so we don't refind ourselves as writable!
+  d_inrun = true;
+  for (int n = 0; n < ret; ++n) {
+    if ((fds.at(n).revents & POLLIN) || (fds.at(n).revents & POLLERR) || (fds.at(n).revents & POLLHUP)) {
+      const auto& iter = d_readCallbacks.find(fds.at(n).fd);
+      if (iter != d_readCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
+      }
     }
-    d_iter=d_writeCallbacks.find(fds.at(n).fd);
-    
-    if(d_iter != d_writeCallbacks.end()) {
-      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
+
+    if ((fds.at(n).revents & POLLOUT) || (fds.at(n).revents & POLLERR)) {
+      const auto& iter = d_writeCallbacks.find(fds.at(n).fd);
+      if (iter != d_writeCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
+      }
     }
   }
 
-  d_inrun=false;
+  d_inrun = false;
   return ret;
 }
 
@@ -186,7 +195,7 @@ void acceptData(int fd, funcparam_t& parameter)
 int main()
 {
   Socket s(AF_INET, SOCK_DGRAM);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 
@@ -201,5 +210,3 @@ int main()
   sfm.removeReadFD(s.getHandle());
 }
 #endif
-
-
