@@ -113,6 +113,8 @@ static uint32_t convertEventKind(FDMultiplexer::EventKind kind)
   case FDMultiplexer::EventKind::Both:
     return EPOLLIN | EPOLLOUT;
   }
+
+  throw std::runtime_error("Unhandled event kind in the epoll multiplexer");
 }
 
 void EpollFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)

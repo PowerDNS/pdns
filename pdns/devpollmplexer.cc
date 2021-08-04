@@ -93,6 +93,7 @@ static int convertEventKind(FDMultiplexer::EventKind kind)
   case FDMultiplexer::EventKind::Both:
     return POLLIN | POLLOUT;
   }
+  throw std::runtime_error("Unhandled event kind in the /dev/poll multiplexer");
 }
 
 void DevPollFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)

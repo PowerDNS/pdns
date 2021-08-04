@@ -74,6 +74,7 @@ static int convertEventKind(FDMultiplexer::EventKind kind)
   case FDMultiplexer::EventKind::Both:
     return POLLIN | POLLOUT;
   }
+  throw std::runtime_error("Unhandled event kind in the ports multiplexer");
 }
 
 void PortsFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
@@ -124,14 +125,14 @@ void PortsFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
     const auto fd = d_pevents[n].portev_object;
 
     /* we need to re-associate the FD */
-    if ((d_pevents[n].portev_events & POLLIN || d_pevents[n].portev_events & POLLER || d_pevents[n].portev_events & POLLHUP)) {
+    if ((d_pevents[n].portev_events & POLLIN || d_pevents[n].portev_events & POLLERR || d_pevents[n].portev_events & POLLHUP)) {
       if (d_readCallbacks.count(fd)) {
         if (port_associate(d_portfd, PORT_SOURCE_FD, fd, d_writeCallbacks.count(fd) > 0 ? POLLIN | POLLOUT : POLLIN, 0) < 0) {
           throw FDMultiplexerException("Unable to add fd back to ports (read): " + stringerror());
         }
       }
     }
-    else if ((d_pevents[n].portev_events & POLLOUT || d_pevents[n].portev_events & POLLER)) {
+    else if ((d_pevents[n].portev_events & POLLOUT || d_pevents[n].portev_events & POLLERR)) {
       if (d_writeCallbacks.count(fd)) {
         if (port_associate(d_portfd, PORT_SOURCE_FD, fd, d_readCallbacks.count(fd) > 0 ? POLLIN | POLLOUT : POLLOUT, 0) < 0) {
           throw FDMultiplexerException("Unable to add fd back to ports (write): " + stringerror());
@@ -182,7 +183,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
   d_inrun = true;
 
   for (unsigned int n = 0; n < numevents; ++n) {
-    if (d_pevents[n].portev_events & POLLIN || d_pevents[n].portev_events & POLLER || d_pevents[n].portev_events & POLLHUP) {
+    if (d_pevents[n].portev_events & POLLIN || d_pevents[n].portev_events & POLLERR || d_pevents[n].portev_events & POLLHUP) {
       const auto& iter = d_readCallbacks.find(d_pevents[n].portev_object);
       if (iter != d_readCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
@@ -191,7 +192,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
         }
       }
     }
-    if (d_pevents[n].portev_events & POLLOUT || d_pevents[n].portev_events & POLLER) {
+    if (d_pevents[n].portev_events & POLLOUT || d_pevents[n].portev_events & POLLERR) {
       const auto& iter = d_writeCallbacks.find(d_pevents[n].portev_object);
       if (iter != d_writeCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);

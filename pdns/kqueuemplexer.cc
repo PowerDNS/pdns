@@ -97,6 +97,8 @@ static uint32_t convertEventKind(FDMultiplexer::EventKind kind)
   case FDMultiplexer::EventKind::Both:
     throw std::runtime_error("Read and write events cannot be combined in one go with kqueue");
   }
+
+  throw std::runtime_error("Unhandled event kind in the kqueue multiplexer");
 }
 
 void KqueueFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
