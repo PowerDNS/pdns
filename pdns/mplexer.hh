@@ -97,7 +97,7 @@ public:
     bool alreadyWatched = d_writeCallbacks.count(fd) > 0;
 
     if (alreadyWatched) {
-      this->alterFD(fd, EventKind::Both);
+      this->alterFD(fd, EventKind::Write, EventKind::Both);
     }
     else {
       this->addFD(fd, EventKind::Read);
@@ -113,7 +113,7 @@ public:
     bool alreadyWatched = d_readCallbacks.count(fd) > 0;
 
     if (alreadyWatched) {
-      this->alterFD(fd, EventKind::Both);
+      this->alterFD(fd, EventKind::Read, EventKind::Both);
     }
     else {
       this->addFD(fd, EventKind::Write);
@@ -131,7 +131,7 @@ public:
     accountingRemoveFD(d_readCallbacks, fd);
 
     if (iter != d_writeCallbacks.end()) {
-      this->alterFD(fd, EventKind::Write);
+      this->alterFD(fd, EventKind::Both, EventKind::Write);
     }
     else {
       this->removeFD(fd, EventKind::Read);
@@ -146,7 +146,7 @@ public:
     accountingRemoveFD(d_writeCallbacks, fd);
 
     if (iter != d_readCallbacks.end()) {
-      this->alterFD(fd, EventKind::Read);
+      this->alterFD(fd, EventKind::Both, EventKind::Read);
     }
     else {
       this->removeFD(fd, EventKind::Write);
@@ -182,14 +182,14 @@ public:
   void alterFDToRead(int fd, callbackfunc_t toDo, const funcparam_t& parameter = funcparam_t(), const struct timeval* ttd = nullptr)
   {
     accountingRemoveFD(d_writeCallbacks, fd);
-    this->alterFD(fd, EventKind::Read);
+    this->alterFD(fd, EventKind::Write, EventKind::Read);
     accountingAddFD(d_readCallbacks, fd, toDo, parameter, ttd);
   }
 
   void alterFDToWrite(int fd, callbackfunc_t toDo, const funcparam_t& parameter = funcparam_t(), const struct timeval* ttd = nullptr)
   {
     accountingRemoveFD(d_readCallbacks, fd);
-    this->alterFD(fd, EventKind::Write);
+    this->alterFD(fd, EventKind::Read, EventKind::Write);
     accountingAddFD(d_writeCallbacks, fd, toDo, parameter, ttd);
   }
 
@@ -303,10 +303,11 @@ protected:
   virtual void addFD(int fd, EventKind kind) = 0;
   /* most implementations do not care about which event has to be removed, except for kqueue */
   virtual void removeFD(int fd, EventKind kind) = 0;
-  virtual void alterFD(int fd, EventKind kind)
+  /* most implementations do not care about which event has to be removed, except for kqueue */
+  virtual void alterFD(int fd, EventKind from, EventKind to)
   {
     /* naive implementation */
-    removeFD(fd, (kind == EventKind::Write) ? EventKind::Read : EventKind::Write);
-    addFD(fd, kind);
+    removeFD(fd, from);
+    addFD(fd, to);
   }
 };

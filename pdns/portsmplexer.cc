@@ -28,7 +28,6 @@ public:
 
   void addFD(int fd, FDMultiplexer::EventKind kind) override;
   void removeFD(int fd, FDMultiplexer::EventKind kind) override;
-  void alterFD(int fd, FDMultiplexer::EventKind kind) override;
 
   string getName() const override
   {

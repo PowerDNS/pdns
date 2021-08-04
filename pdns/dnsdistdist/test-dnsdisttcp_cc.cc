@@ -349,10 +349,6 @@ public:
   {
   }
 
-  void alterFD(int fd, FDMultiplexer::EventKind kind) override
-  {
-  }
-
   string getName() const override
   {
     return "mockup";

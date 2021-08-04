@@ -49,7 +49,7 @@ public:
 
   void addFD(int fd, FDMultiplexer::EventKind kind) override;
   void removeFD(int fd, FDMultiplexer::EventKind kind) override;
-  void alterFD(int fd, FDMultiplexer::EventKind kind) override;
+  void alterFD(int fd, FDMultiplexer::EventKind from, FDMultiplexer::EventKind to) override;
 
   string getName() const override
   {
@@ -140,10 +140,10 @@ void EpollFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind)
   }
 }
 
-void EpollFDMultiplexer::alterFD(int fd, FDMultiplexer::EventKind kind)
+void EpollFDMultiplexer::alterFD(int fd, FDMultiplexer::EventKind, FDMultiplexer::EventKind to)
 {
   struct epoll_event eevent;
-  eevent.events = convertEventKind(kind);
+  eevent.events = convertEventKind(to);
   eevent.data.u64 = 0; // placate valgrind (I love it so much)
   eevent.data.fd = fd;
 

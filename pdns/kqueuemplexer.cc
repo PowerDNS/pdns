@@ -95,26 +95,46 @@ static uint32_t convertEventKind(FDMultiplexer::EventKind kind)
   case FDMultiplexer::EventKind::Write:
     return EVFILT_WRITE;
   case FDMultiplexer::EventKind::Both:
-    return EVFILT_READ | EVFILT_WRITE;
+    throw std::runtime_error("Read and write events cannot be combined in one go with kqueue");
   }
 }
 
 void KqueueFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
 {
-  struct kevent kqevent;
-  EV_SET(&kqevent, fd, convertEventKind(kind), EV_ADD, 0, 0, 0);
+  struct kevent kqevents[2];
+  int nevents = 0;
 
-  if (kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) {
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Read) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Read), EV_ADD, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Write) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Write), EV_ADD, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kevent(d_kqueuefd, &kqevents, nevents, 0, 0, 0) < 0) {
     throw FDMultiplexerException("Adding fd to kqueue set: " + stringerror());
   }
 }
 
 void KqueueFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind kind)
 {
-  struct kevent kqevent;
-  EV_SET(&kqevent, fd, convertEventKind(kind), EV_DELETE, 0, 0, 0);
+  struct kevent kqevents[2];
+  int nevents = 0;
 
-  if (kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) {
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Read) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Read), EV_DELETE, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Write) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Write), EV_DELETE, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kevent(d_kqueuefd, &kqevents, nevents, 0, 0, 0) < 0) {
     // ponder putting Callback back on the map..
     throw FDMultiplexerException("Removing fd from kqueue set: " + stringerror());
   }
@@ -132,8 +152,16 @@ void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
     throw FDMultiplexerException("kqueue returned error: " + stringerror());
   }
 
+  // we de-duplicate here, since if a descriptor is readable AND writable
+  // we will get two events
+  std::unordered_set<int> fdSet;
+  fdSet.reserve(n);
   for (int n = 0; n < ret; ++n) {
-    fds.push_back(d_kevents[n].ident);
+    fdSet.insert(d_kevents[n].ident);
+  }
+
+  for (const auto fd : fdSet) {
+    fds.push_back(fd);
   }
 }
 
