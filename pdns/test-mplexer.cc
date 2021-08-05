@@ -302,4 +302,100 @@ BOOST_AUTO_TEST_CASE(test_MPlexer_ReadAndWrite)
   }
 }
 
+#if 0
+BOOST_AUTO_TEST_CASE(test_MPlexer_Bench)
+{
+  const size_t count = 10000;
+  struct socket_pair
+  {
+    int sockets[2];
+  };
+
+  std::vector<socket_pair> pairs(count);
+  auto readCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto calledPtr = boost::any_cast<bool*>(param);
+    *calledPtr = true;
+  };
+  auto writeCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto calledPtr = boost::any_cast<bool*>(param);
+    *calledPtr = true;
+  };
+  bool readCBCalled = false;
+  bool writeCBCalled = false;
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  struct timeval ttd = now;
+  ttd.tv_sec += 3600;
+  DTime dt;
+  std::vector<int> readyFDs;
+  readyFDs.reserve(count * 2);
+
+  for (const auto& entry : FDMultiplexer::getMultiplexerMap()) {
+    auto mplexer = std::unique_ptr<FDMultiplexer>(entry.second());
+    BOOST_REQUIRE(mplexer != nullptr);
+    cerr<<"Testing multiplexer "<<mplexer->getName()<<" performances"<<endl;
+
+    for (auto& pair : pairs) {
+      int res = socketpair(AF_UNIX, SOCK_STREAM, 0, pair.sockets);
+      BOOST_REQUIRE_EQUAL(res, 0);
+      BOOST_REQUIRE_EQUAL(setNonBlocking(pair.sockets[0]), true);
+      BOOST_REQUIRE_EQUAL(setNonBlocking(pair.sockets[1]), true);
+    }
+
+    dt.set();
+    for (auto& pair : pairs) {
+      mplexer->addReadFD(pair.sockets[0],
+                         readCB,
+                         &readCBCalled,
+                         &ttd);
+      mplexer->addWriteFD(pair.sockets[0],
+                          writeCB,
+                          &writeCBCalled,
+                          &ttd);
+    }
+    cerr<<"Adding "<<(count*2)<<" events took "<<dt.udiff()<<endl;
+
+    readyFDs.clear();
+    dt.set();
+    mplexer->getAvailableFDs(readyFDs, 0);
+    cerr<<"Checking readiness for "<<(count*2)<<" events ("<<readyFDs.size()<<" ready) took "<<dt.udiff()<<endl;
+
+    dt.set();
+    auto ready = mplexer->run(&now, 100);
+    cerr<<"Calling run() for "<<(count*2)<<" events ("<<ready<<" ready) took "<<dt.udiff()<<endl;
+
+    dt.set();
+    for (auto& pair : pairs) {
+      //mplexer->removeReadFD(pair.sockets[0]);
+      mplexer->removeWriteFD(pair.sockets[0]);
+    }
+    cerr<<"Removing "<<(count)<<" events took "<<dt.udiff()<<endl;
+
+    // mark one fd readable
+    (void) write(pairs.at(pairs.size()-1).sockets[1], &ttd, sizeof(ttd));
+
+    readyFDs.clear();
+    dt.set();
+    mplexer->getAvailableFDs(readyFDs, 0);
+    cerr<<"Checking readiness for "<<(count)<<" events ("<<readyFDs.size()<<" ready) took "<<dt.udiff()<<endl;
+
+    dt.set();
+    ready = mplexer->run(&now, 100);
+    cerr<<"Calling run() for "<<(count)<<" events ("<<ready<<" ready) took "<<dt.udiff()<<endl;
+
+    dt.set();
+    for (auto& pair : pairs) {
+      mplexer->removeReadFD(pair.sockets[0]);
+    }
+    cerr<<"Removing "<<(count)<<" events took "<<dt.udiff()<<endl;
+
+    for (auto& pair : pairs) {
+      /* clean up */
+      close(pair.sockets[0]);
+      close(pair.sockets[1]);
+    }
+  }
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()
