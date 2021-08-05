@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_CASE(test_getMultiplexerSilent)
   auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
   BOOST_REQUIRE(mplexer != nullptr);
 
-  struct timeval now{0,0};
+  struct timeval now = {0, 0};
   int ready = mplexer->run(&now, 100);
   BOOST_CHECK_EQUAL(ready, 0);
   BOOST_CHECK(now.tv_sec != 0);
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
     BOOST_REQUIRE(mplexer != nullptr);
     //cerr<<"Testing multiplexer "<<mplexer->getName()<<endl;
 
-    struct timeval now{0,0};
+    struct timeval now = {0, 0};
     int ready = mplexer->run(&now, 100);
     BOOST_CHECK_EQUAL(ready, 0);
     BOOST_CHECK(now.tv_sec != 0);
