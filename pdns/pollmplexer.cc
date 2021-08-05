@@ -46,6 +46,7 @@ public:
   }
 
 private:
+  std::unordered_map<int, struct pollfd> d_pollfds;
   vector<struct pollfd> preparePollFD() const;
 };
 
@@ -62,42 +63,40 @@ static struct RegisterOurselves
   }
 } doIt;
 
+static int convertEventKind(FDMultiplexer::EventKind kind)
+{
+  switch (kind) {
+  case FDMultiplexer::EventKind::Read:
+    return POLLIN;
+  case FDMultiplexer::EventKind::Write:
+    return POLLOUT;
+  case FDMultiplexer::EventKind::Both:
+    return POLLIN | POLLOUT;
+  }
+  throw std::runtime_error("Unhandled event kind in the ports multiplexer");
+}
+
 void PollFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
 {
+  if (d_pollfds.count(fd) == 0) {
+    auto& pollfd = d_pollfds[fd];
+    pollfd.fd = fd;
+    pollfd.events = 0;
+  }
+  auto& pollfd = d_pollfds.at(fd);
+  pollfd.events |= convertEventKind(kind);
 }
 
 void PollFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind)
 {
+  d_pollfds.erase(fd);
 }
 
 vector<struct pollfd> PollFDMultiplexer::preparePollFD() const
 {
-  std::unordered_map<int, struct pollfd> pollfds;
-  pollfds.reserve(d_readCallbacks.size() + d_writeCallbacks.size());
-
-  for (const auto& cb : d_readCallbacks) {
-    if (pollfds.count(cb.d_fd) == 0) {
-      auto& pollfd = pollfds[cb.d_fd];
-      pollfd.fd = cb.d_fd;
-      pollfd.events = 0;
-    }
-    auto& pollfd = pollfds.at(cb.d_fd);
-    pollfd.events |= POLLIN;
-  }
-
-  for (const auto& cb : d_writeCallbacks) {
-    if (pollfds.count(cb.d_fd) == 0) {
-      auto& pollfd = pollfds[cb.d_fd];
-      pollfd.fd = cb.d_fd;
-      pollfd.events = 0;
-    }
-    auto& pollfd = pollfds.at(cb.d_fd);
-    pollfd.events |= POLLOUT;
-  }
-
   std::vector<struct pollfd> result;
-  result.reserve(pollfds.size());
-  for (const auto& entry : pollfds) {
+  result.reserve(d_pollfds.size());
+  for (const auto& entry : d_pollfds) {
     result.push_back(entry.second);
   }
 
