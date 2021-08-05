@@ -185,11 +185,13 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
   }
 
   d_inrun = true;
+  int count = 0;
   for (int n = 0; n < ret; ++n) {
     if ((d_eevents[n].events & EPOLLIN) || (d_eevents[n].events & EPOLLERR) || (d_eevents[n].events & EPOLLHUP)) {
       const auto& iter = d_readCallbacks.find(d_eevents[n].data.fd);
       if (iter != d_readCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
       }
     }
 
@@ -197,12 +199,13 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
       const auto& iter = d_writeCallbacks.find(d_eevents[n].data.fd);
       if (iter != d_writeCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
       }
     }
   }
 
   d_inrun = false;
-  return ret;
+  return count;
 }
 
 #if 0

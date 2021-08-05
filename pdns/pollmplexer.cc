@@ -144,13 +144,13 @@ int PollFDMultiplexer::run(struct timeval* now, int timeout)
   }
 
   d_inrun = true;
-
+  int count = 0;
   for (const auto& pollfd : pollfds) {
-
     if (pollfd.revents & POLLIN || pollfd.revents & POLLERR || pollfd.revents & POLLHUP) {
       const auto& iter = d_readCallbacks.find(pollfd.fd);
       if (iter != d_readCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
       }
     }
 
@@ -158,12 +158,13 @@ int PollFDMultiplexer::run(struct timeval* now, int timeout)
       const auto& iter = d_writeCallbacks.find(pollfd.fd);
       if (iter != d_writeCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
       }
     }
   }
 
   d_inrun = false;
-  return ret;
+  return count;
 }
 
 #if 0

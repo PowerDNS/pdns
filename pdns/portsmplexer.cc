@@ -181,12 +181,13 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
   }
 
   d_inrun = true;
-
+  int count = 0;
   for (unsigned int n = 0; n < numevents; ++n) {
     if (d_pevents[n].portev_events & POLLIN || d_pevents[n].portev_events & POLLERR || d_pevents[n].portev_events & POLLHUP) {
       const auto& iter = d_readCallbacks.find(d_pevents[n].portev_object);
       if (iter != d_readCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
         if (d_readCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, d_writeCallbacks.count(d_pevents[n].portev_object) ? POLLIN | POLLOUT : POLLIN, 0) < 0) {
           throw FDMultiplexerException("Unable to add fd back to ports (read): " + stringerror());
         }
@@ -196,6 +197,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
       const auto& iter = d_writeCallbacks.find(d_pevents[n].portev_object);
       if (iter != d_writeCallbacks.end()) {
         iter->d_callback(iter->d_fd, iter->d_parameter);
+        count++;
         if (d_writeCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, d_readCallbacks.count(d_pevents[n].portev_object) ? POLLIN | POLLOUT : POLLOUT, 0) < 0) {
           throw FDMultiplexerException("Unable to add fd back to ports (write): " + stringerror());
         }
@@ -204,7 +206,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
   }
 
   d_inrun = false;
-  return numevents;
+  return count;
 }
 
 #if 0

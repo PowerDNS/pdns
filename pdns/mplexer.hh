@@ -85,7 +85,8 @@ public:
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms */
   /* returns 0 on timeout, -1 in case of error (but all implementations
-     actually throw in that case) and the number of ready events otherwise */
+     actually throw in that case) and the number of ready events otherwise.
+     Note that We might have two events (read AND write) for the same descriptor */
   virtual int run(struct timeval* tv, int timeout = 500) = 0;
 
   /* timeout is in ms, 0 will return immediately, -1 will block until at least one FD is ready */

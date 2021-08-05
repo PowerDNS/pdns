@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer_ReadAndWrite)
   BOOST_CHECK_EQUAL(readyFDs.at(0), sockets[0]);
 
   auto ready = mplexer->run(&now, 100);
-  BOOST_CHECK_EQUAL(ready, 1);
+  BOOST_CHECK_EQUAL(ready, 2);
   BOOST_CHECK_EQUAL(readCBCalled, true);
   BOOST_CHECK_EQUAL(writeCBCalled, true);
 
