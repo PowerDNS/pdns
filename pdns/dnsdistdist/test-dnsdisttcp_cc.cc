@@ -227,6 +227,11 @@ public:
     return "";
   }
 
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    return std::vector<uint8_t>();
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     return LibsslTLSVersion::TLS13;

@@ -33,6 +33,7 @@ public:
   virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) = 0;
   virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
+  virtual std::vector<uint8_t> getNextProtocol() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
   virtual std::unique_ptr<TLSSession> getSession() = 0;
@@ -110,6 +111,18 @@ public:
 
   virtual size_t getTicketsKeysCount() = 0;
   virtual std::string getName() const = 0;
+
+  /* set the advertised ALPN protocols, in client or server context */
+  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos)
+  {
+    return false;
+  }
+
+  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+  virtual bool setNextProtocolSelectCallback(bool(*)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen))
+  {
+    return false;
+  }
 
 protected:
   std::atomic_flag d_rotatingTicketsKey;
@@ -465,6 +478,14 @@ public:
     return std::string();
   }
 
+  std::vector<uint8_t> getNextProtocol() const
+  {
+    if (d_conn) {
+      return d_conn->getNextProtocol();
+    }
+    return std::vector<uint8_t>();
+  }
+
   LibsslTLSVersion getTLSVersion() const
   {
     if (d_conn) {
@@ -528,3 +549,4 @@ struct TLSContextParameters
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);

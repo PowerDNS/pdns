@@ -60,4 +60,7 @@ private:
 extern std::unique_ptr<DoHClientCollection> g_dohClientThreads;
 extern std::atomic<uint64_t> g_dohStatesDumpRequested;
 
+class TLSCtx;
+
 bool initDoHWorkers();
+bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);

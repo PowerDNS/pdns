@@ -592,6 +592,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   prependSizeToTCPQuery(state->d_buffer, 0);
 
+#warning FIXME: handle DoH backends here
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
 
   bool proxyProtocolPayloadAdded = false;
@@ -784,7 +785,15 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           /* the state might have been updated in the meantime, we don't want to override it
              in that case */
           if (state->active() && state->d_state != IncomingTCPConnectionState::State::idle) {
-            iostate = state->d_ioState->getState();
+            if (state->d_ioState->isWaitingForRead()) {
+              iostate = IOState::NeedRead;
+            }
+            else if (state->d_ioState->isWaitingForWrite()) {
+              iostate = IOState::NeedWrite;
+            }
+            else {
+              iostate = IOState::Done;
+            }
           }
         }
         else {
@@ -860,9 +869,9 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         ++state->d_ci.cs->tcpDiedSendingResponse;
       }
 
-      if (state->d_ioState->getState() == IOState::NeedWrite || state->d_queriesCount == 0) {
+      if (state->d_ioState->isWaitingForWrite() || state->d_queriesCount == 0) {
         DEBUGLOG("Got an exception while handling TCP query: "<<e.what());
-        vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_ioState->getState() == IOState::NeedRead ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
+        vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_ioState->isWaitingForRead() ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
       }
       else {
         vinfolog("Closing TCP client connection with %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
@@ -1018,15 +1027,19 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     delete tmp;
     tmp = nullptr;
 
-    auto downstream = DownstreamConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
+    try {
+      auto downstream = DownstreamConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
 
-    prependSizeToTCPQuery(query.d_buffer, proxyProtocolPayloadSize);
-    downstream->queueQuery(tqs, std::move(query));
+      prependSizeToTCPQuery(query.d_buffer, proxyProtocolPayloadSize);
+      downstream->queueQuery(tqs, std::move(query));
+    }
+    catch (...) {
+      tqs->notifyIOError(std::move(query.d_idstate), now);
+    }
   }
   catch (...) {
     delete tmp;
     tmp = nullptr;
-    throw;
   }
 }
 

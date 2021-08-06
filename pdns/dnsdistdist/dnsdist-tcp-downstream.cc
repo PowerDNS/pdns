@@ -73,7 +73,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   if (conn->d_currentQuery.d_proxyProtocolPayloadAdded) {
     conn->d_proxyProtocolPayloadSent = true;
   }
-  conn->incQueries();
+  ++conn->d_queries;
   conn->d_currentPos = 0;
 
   DEBUGLOG("adding a pending response for ID "<<ntohs(conn->d_currentQuery.d_idstate.origID)<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);

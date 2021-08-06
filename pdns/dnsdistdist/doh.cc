@@ -627,7 +627,7 @@ static int processDOHQuery(DOHUnit* du)
       du->ids.cs = &cs;
       setIDStateFromDNSQuestion(du->ids, dq, std::move(qname));
 
-      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+      if (du->downstream->passCrossProtocolQuery(std::move(cpq))) {
         return 0;
       }
       else {

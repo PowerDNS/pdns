@@ -793,6 +793,40 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 
+/* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+void libssl_set_npn_select_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
+{
+#ifdef HAVE_SSL_CTX_SET_NEXT_PROTO_SELECT_CB
+  SSL_CTX_set_next_proto_select_cb(ctx.get(), cb, arg);
+#endif
+}
+
+void libssl_set_alpn_select_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
+{
+#ifdef HAVE_SSL_CTX_SET_ALPN_SELECT_CB
+  SSL_CTX_set_alpn_select_cb(ctx.get(), cb, arg);
+#endif
+}
+
+bool libssl_set_alpn_protos(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::vector<std::vector<uint8_t>>& protos)
+{
+#ifdef HAVE_SSL_CTX_SET_ALPN_PROTOS
+  std::vector<uint8_t> wire;
+  for (const auto& proto : protos) {
+    if (proto.size() > std::numeric_limits<uint8_t>::max()) {
+      throw std::runtime_error("Invalid ALPN value");
+    }
+    uint8_t length = proto.size();
+    wire.push_back(length);
+    wire.insert(wire.end(), proto.begin(), proto.end());
+  }
+  return SSL_CTX_set_alpn_protos(ctx.get(), wire.data(), wire.size()) == 0;
+#else
+  return false;
+#endif
+}
+
+
 std::string libssl_get_error_string()
 {
   BIO *mem = BIO_new(BIO_s_mem());

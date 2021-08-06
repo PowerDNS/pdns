@@ -151,7 +151,12 @@ public:
       return IOState::NeedWrite;
     }
     else if (error == SSL_ERROR_SYSCALL) {
-      throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
+      if (errno == 0) {
+        throw std::runtime_error("TLS connection closed by remote end");
+      }
+      else {
+        throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
+      }
     }
     else if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
@@ -399,6 +404,29 @@ public:
       }
     }
     return std::string();
+  }
+
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    std::vector<uint8_t> result;
+    if (!d_conn) {
+      return result;
+    }
+
+    const unsigned char* alpn = nullptr;
+    unsigned int alpnLen  = 0;
+#ifdef HAVE_SSL_GET0_NEXT_PROTO_NEGOTIATED
+    SSL_get0_next_proto_negotiated(d_conn.get(), &alpn, &alpnLen);
+#endif
+#ifdef HAVE_SSL_GET0_ALPN_SELECTED
+    if (alpn == nullptr) {
+      SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
+    }
+#endif
+    if (alpn != nullptr && alpnLen > 0) {
+      result.insert(result.end(), alpn, alpn + alpnLen);
+    }
+    return result;
   }
 
   LibsslTLSVersion getTLSVersion() const override
@@ -668,9 +696,74 @@ public:
     return "openssl";
   }
 
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
+  {
+    if (d_feContext && d_feContext->d_tlsCtx) {
+      d_alpnProtos = protos;
+      libssl_set_alpn_select_callback(d_feContext->d_tlsCtx, alpnServerSelectCallback, this);
+      return true;
+    }
+    if (d_tlsCtx) {
+      return libssl_set_alpn_protos(d_tlsCtx, protos);
+    }
+    return false;
+  }
+
+  bool setNextProtocolSelectCallback(bool(*cb)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)) override
+  {
+    d_nextProtocolSelectCallback = cb;
+    libssl_set_npn_select_callback(d_tlsCtx, npnSelectCallback, this);
+    return true;
+  }
+
 private:
+  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+  static int npnSelectCallback(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  {
+    if (!arg) {
+      return SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
+    if (obj->d_nextProtocolSelectCallback) {
+      return (*obj->d_nextProtocolSelectCallback)(out, outlen, in, inlen) ? SSL_TLSEXT_ERR_OK : SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+
+    return SSL_TLSEXT_ERR_OK;
+  }
+
+  static int alpnServerSelectCallback(SSL*, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  {
+    if (!arg) {
+      return SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
+
+    size_t pos = 0;
+    while (pos < inlen) {
+      size_t protoLen = in[pos];
+      pos++;
+      if (protoLen > (inlen - pos)) {
+        /* something is very wrong */
+        return SSL_TLSEXT_ERR_ALERT_WARNING;
+      }
+
+      for (const auto& tentative : obj->d_alpnProtos) {
+        if (tentative.size() == protoLen && memcmp(in + pos, tentative.data(), tentative.size()) == 0) {
+          *out = in + pos;
+          *outlen = protoLen;
+          return SSL_TLSEXT_ERR_OK;
+        }
+      }
+      pos += protoLen;
+    }
+
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+
+  std::vector<std::vector<uint8_t>> d_alpnProtos; // store the supported ALPN protocols, so that the server can select based on what the client sent
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
-  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context
+  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
+  bool (*d_nextProtocolSelectCallback)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen){nullptr};
 };
 
 #endif /* HAVE_LIBSSL */
@@ -1226,6 +1319,20 @@ public:
     return std::string();
   }
 
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    std::vector<uint8_t> result;
+    if (!d_conn) {
+      return result;
+    }
+    gnutls_datum_t next;
+    if (gnutls_alpn_get_selected_protocol(d_conn.get(), &next) != GNUTLS_E_SUCCESS) {
+      return result;
+    }
+    result.insert(result.end(), next.data, next.data + next.size);
+    return result;
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     auto proto = gnutls_protocol_get_version(d_conn.get());
@@ -1283,6 +1390,19 @@ public:
     if (d_conn) {
       gnutls_bye(d_conn.get(), GNUTLS_SHUT_RDWR);
     }
+  }
+
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos)
+  {
+    std::vector<gnutls_datum_t> values;
+    values.reserve(protos.size());
+    for (const auto& proto : protos) {
+      gnutls_datum_t value;
+      value.data = const_cast<uint8_t*>(proto.data());
+      value.size = proto.size();
+      values.push_back(value);
+    }
+    return gnutls_alpn_set_protocols(d_conn.get(), values.data(), values.size(), GNUTLS_ALPN_MANDATORY);
   }
 
 private:
@@ -1406,12 +1526,20 @@ public:
       ticketsKey = *(d_ticketsKey.read_lock());
     }
 
-    return std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
+    auto connection = std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
+    if (!d_protos.empty()) {
+      connection->setALPNProtos(d_protos);
+    }
+    return connection;
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
-    return std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
+    auto connection = std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
+    if (!d_protos.empty()) {
+      connection->setALPNProtos(d_protos);
+    }
+    return connection;
   }
 
   void rotateTicketsKey(time_t now) override
@@ -1457,8 +1585,19 @@ public:
     return "gnutls";
   }
 
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
+  {
+#ifdef HAVE_GNUTLS_ALPN_SET_PROTOCOLS
+    d_protos = protos;
+    return true;
+#else
+    return false;
+#endif
+  }
+
 private:
   std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)> d_creds;
+  std::vector<std::vector<uint8_t>> d_protos;
   gnutls_priority_t d_priorityCache{nullptr};
   SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
@@ -1469,6 +1608,17 @@ private:
 
 #endif /* HAVE_DNS_OVER_TLS */
 
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
+{
+  if (ctx == nullptr) {
+    return false;
+  }
+  /* we want to set the ALPN to dot (RFC7858), if only to mitigate the ALPACA attack */
+  const std::vector<std::vector<uint8_t>> dotAlpns = {{'d', 'o', 't'}};
+  ctx->setALPNProtos(dotAlpns);
+  return true;
+}
+
 bool TLSFrontend::setupTLS()
 {
 #ifdef HAVE_DNS_OVER_TLS
@@ -1478,6 +1628,7 @@ bool TLSFrontend::setupTLS()
 #ifdef HAVE_GNUTLS
     if (d_provider == "gnutls") {
       newCtx = std::make_shared<GnuTLSIOCtx>(*this);
+      setupDoTProtocolNegotiation(newCtx);
       std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
@@ -1485,6 +1636,7 @@ bool TLSFrontend::setupTLS()
 #ifdef HAVE_LIBSSL
     if (d_provider == "openssl") {
       newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+      setupDoTProtocolNegotiation(newCtx);
       std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
@@ -1498,6 +1650,7 @@ bool TLSFrontend::setupTLS()
 #endif /* HAVE_GNUTLS */
 #endif /* HAVE_LIBSSL */
 
+  setupDoTProtocolNegotiation(newCtx);
   std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
 #endif /* HAVE_DNS_OVER_TLS */
   return true;

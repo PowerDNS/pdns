@@ -46,11 +46,6 @@ public:
     return d_fresh;
   }
 
-  void incQueries()
-  {
-    ++d_queries;
-  }
-
   void setReused()
   {
     d_fresh = false;
@@ -86,7 +81,7 @@ public:
   }
 
   /* whether a connection can be reused for a different client */
-  bool canBeReused() const
+  virtual bool canBeReused() const
   {
     if (d_connectionDied) {
       return false;
@@ -126,7 +121,7 @@ public:
   virtual std::string toString() const
   {
     ostringstream o;
-    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_sender ? " a client" : "no client");
+    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? d_ioState->getState() : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_sender ? " a client" : "no client");
     return o.str();
   }
 

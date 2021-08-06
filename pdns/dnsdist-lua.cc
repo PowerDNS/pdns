@@ -40,6 +40,7 @@
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
+#include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
@@ -528,10 +529,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
 
         ret->d_tlsCtx = getTLSContext(tlsParams);
-      }
 
-      if (vars.count("dohPath")) {
-        ret->d_dohPath = boost::get<string>(vars.at("dohPath"));
+        if (vars.count("dohPath")) {
+          ret->d_dohPath = boost::get<string>(vars.at("dohPath"));
+          if (ret->d_tlsCtx) {
+            setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
+          }
+        }
+        else {
+          setupDoTProtocolNegotiation(ret->d_tlsCtx);
+        }
       }
 
       /* this needs to be done _AFTER_ the order has been set,
