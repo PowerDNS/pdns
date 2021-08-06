@@ -5618,10 +5618,10 @@ static const char* toTimestampStringMilli(const struct timeval& tv, char *buf, s
   struct tm tm;
   size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
   if (len == 0) {
-    len = snprintf(buf, sz, "%lld", (long long) tv.tv_sec);
+    len = snprintf(buf, sz, "%lld", static_cast<long long>(tv.tv_sec));
   }
 
-  snprintf(buf + len, sz - len, ".%03ld", tv.tv_usec / 1000);
+  snprintf(buf + len, sz - len, ".%03ld", static_cast<long>(tv.tv_usec) / 1000);
   return buf;
 }
 
