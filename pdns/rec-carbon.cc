@@ -51,7 +51,7 @@ try
     Socket s(remote.sin4.sin_family, SOCK_STREAM);
     s.setNonBlocking();
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-    const struct timeval timeout{g_networkTimeoutMsec / 1000, g_networkTimeoutMsec % 1000 * 1000};
+    const struct timeval timeout{g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
     auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, time(nullptr));
      handler->tryConnect(SyncRes::s_tcp_fast_open_connect, remote);// we do the connect so the first attempt happens while we gather stats
 

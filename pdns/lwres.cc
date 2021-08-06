@@ -343,7 +343,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
   else {
     try {
-      const struct timeval timeout{ g_networkTimeoutMsec / 1000, g_networkTimeoutMsec % 1000 * 1000};
+      const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
 
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
       s.setNonBlocking();
