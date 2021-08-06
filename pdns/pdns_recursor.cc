@@ -1326,8 +1326,6 @@ static void sendNODLookup(const DNSName& dname)
 {
   if (!(g_nodLookupDomain.isRoot())) {
     // Send a DNS A query to <domain>.g_nodLookupDomain
-    static const QType qt(QType::A);
-    static const uint16_t qc(QClass::IN);
     DNSName qname;
     try {
       qname = dname + g_nodLookupDomain;
@@ -1337,7 +1335,7 @@ static void sendNODLookup(const DNSName& dname)
       return;
     }
     vector<DNSRecord> dummy;
-    directResolve(qname, qt, qc, dummy, false);
+    directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false);
   }
 }
 
@@ -1379,7 +1377,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
     return rcode;
   }
 
-  rcode = directResolve(target, qtype, QClass::IN, resolved);
+  rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl);
 
   for(DNSRecord& rr :  resolved) {
     ret.push_back(std::move(rr));
@@ -1393,7 +1391,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
      again, possibly encountering the same CNAME(s), and we don't want to trigger the CNAME
      loop detection. */
   vector<DNSRecord> newRecords;
-  int rcode = directResolve(qname, QType(QType::A), QClass::IN, newRecords);
+  int rcode = directResolve(qname, QType::A, QClass::IN, newRecords, t_pdl);
 
   ret.reserve(ret.size() + newRecords.size());
   for (auto& record : newRecords) {
@@ -1473,7 +1471,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
   ret.push_back(rr);
 
-  int rcode = directResolve(DNSName(newquery), QType(QType::PTR), QClass::IN, ret);
+  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl);
 
   return rcode;
 }
