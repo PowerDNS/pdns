@@ -985,3 +985,83 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
                 self.assertEqual(len(res.answer), 3)
                 self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname-custom-a-target.example.'))
                 self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a-target.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.103'))
+
+class RPZFileModByLuaRecursorTest(RPZRecursorTest):
+    """
+    This test makes sure that we correctly load RPZ zones from a file while being modified by Lua callbacks
+    """
+
+    _confdir = 'RPZFileModByLua'
+    _lua_dns_script_file = """
+    function preresolve(dq)
+      if dq.qname:equal('zmod.example.') then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      return false
+    end
+    function nxdomain(dq)
+      if dq.qname:equal('nxmod.example.') then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      return false
+    end
+    function nodata(dq)
+      print("NODATA")
+      if dq.qname:equal('nodatamod.example.') then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      return false
+    end
+    """
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz." })
+    """ % (_confdir)
+    _config_template = """
+auth-zones=example=configs/%s/example.zone
+""" % (_confdir)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        authzonepath = os.path.join(confdir, 'example.zone')
+        with open(authzonepath, 'w') as authzone:
+            authzone.write("""$ORIGIN example.
+@ 3600 IN SOA {soa}
+a 3600 IN A 192.0.2.42
+b 3600 IN A 192.0.2.42
+c 3600 IN A 192.0.2.42
+d 3600 IN A 192.0.2.42
+e 3600 IN A 192.0.2.42
+z 3600 IN A 192.0.2.42
+""".format(soa=cls._SOA))
+
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+a.example.zone.rpz. 60 IN A 192.0.2.42
+a.example.zone.rpz. 60 IN A 192.0.2.43
+a.example.zone.rpz. 60 IN TXT "some text"
+drop.example.zone.rpz. 60 IN CNAME rpz-drop.
+zmod.example.zone.rpz. 60 IN A 192.0.2.1
+tc.example.zone.rpz. 60 IN CNAME rpz-tcp-only.
+nxmod.exmaple.zone.rpz. 60 in CNAME .
+nodatamod.example.zone.rpz. 60 in CNAME *.
+""".format(soa=cls._SOA))
+        super(RPZFileModByLuaRecursorTest, cls).generateRecursorConfig(confdir)
+
+    def testRPZ(self):
+        self.checkCustom('a.example.', 'A', dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42', '192.0.2.43'))
+        self.checkCustom('a.example.', 'TXT', dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'TXT', '"some text"'))
+        self.checkDropped('zmod.example.')
+        self.checkDropped('nxmod.example.')
+        self.checkDropped('nodatamod.example.')
+        self.checkNotBlocked('b.example.')
+        self.checkNotBlocked('c.example.')
+        self.checkNotBlocked('d.example.')
+        self.checkNotBlocked('e.example.')
+        # check non-custom policies
+        self.checkTruncated('tc.example.')
+        self.checkDropped('drop.example.')
