@@ -491,7 +491,11 @@ bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
   if (RSA_check_key(d_key.get()) != 1) {
     retval = false;
     if (errorMessages != nullptr) {
-      errorMessages->push_back(ERR_reason_error_string(ERR_get_error()));
+      auto errmsg = ERR_reason_error_string(ERR_get_error());
+      if (errmsg == nullptr) {
+        errmsg = "Unknown OpenSSL error";
+      }
+      errorMessages->push_back(errmsg);
     }
   }
   return retval;
@@ -802,7 +806,11 @@ bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) con
   if (EC_KEY_check_key(d_eckey.get()) != 1) {
     retval = false;
     if (errorMessages != nullptr) {
-      errorMessages->push_back(ERR_reason_error_string(ERR_get_error()));
+      auto errmsg = ERR_reason_error_string(ERR_get_error());
+      if (errmsg == nullptr) {
+        errmsg = "Unknown OpenSSL error";
+      }
+      errorMessages->push_back(errmsg);
     }
   }
   return retval;
