@@ -932,7 +932,9 @@ Status, Statistics and More
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
 
-  Prints the last ``num`` queries matching ``selector`` or ``selectors``.
+  Prints the last ``num`` queries and responses matching ``selector`` or ``selectors``.
+  Queries and responses are accounted in separate ring buffers, and answers from the packet cache are not stored in the response ring buffer.
+  Therefore, the ``num`` queries and ``num`` responses in the output may not always match up.
 
   The selector can be:
 
@@ -942,7 +944,7 @@ Status, Statistics and More
 
   :param str selector: Select queries based on this property.
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
-  :param int num: Show a maximum of ``num`` recent queries, default is 10.
+  :param int num: Show a maximum of ``num`` recent queries+responses, default is 10.
 
 .. function:: setVerboseHealthChecks(verbose)
 
