@@ -62,7 +62,7 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
   vector<pair<unsigned int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
   for(const auto& c : counts)
-    rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
+    rcounts.emplace_back(c.second, c.first.makeLowerCase());
 
   sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a,
                                           const decltype(rcounts)::value_type& b) {
@@ -150,7 +150,7 @@ static vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRi
         continue;
       e["qname"]=c.name.toString();
       e["rcode"]=std::to_string(c.dh.rcode);
-      ret.push_back(std::make_pair(count,e));
+      ret.emplace_back(count, e);
       count++;
     }
   }
@@ -251,7 +251,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       vector<pair<unsigned int, ComboAddress>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
-	rcounts.push_back(make_pair(c.second, c.first));
+        rcounts.emplace_back(c.second, c.first);
 
       sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a,
 					      const decltype(rcounts)::value_type& b) {
@@ -296,7 +296,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       vector<pair<unsigned int, DNSName>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
-	rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
+        rcounts.emplace_back(c.second, c.first.makeLowerCase());
 
       sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a,
 					      const decltype(rcounts)::value_type& b) {
@@ -478,7 +478,7 @@ void setupLuaInspection(LuaContext& luaCtx)
             if (c.dh.opcode != 0) {
               extra = " (" + Opcode::to_s(c.dh.opcode) + ")";
             }
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % "" % htons(c.dh.id) % c.name.toString() % qt.toString()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % ("Question" + extra)).str() )) ;
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % "" % htons(c.dh.id) % c.name.toString() % qt.toString() % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % ("Question" + extra)).str());
 
             if(limit && *limit==++num)
               break;
@@ -516,10 +516,10 @@ void setupLuaInspection(LuaContext& luaCtx)
           }
 
           if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.toString()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
           else {
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.toString()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
 
           if (limit && *limit == ++num) {

@@ -40,15 +40,15 @@ BOOST_AUTO_TEST_CASE(test_CIStringCompare) {
 
 BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
         set<typedns_t, CIStringPairCompare> nsset2;
-        nsset2.insert(make_pair("ns.example.com", 1));
-        nsset2.insert(make_pair("abc", 1));
-        nsset2.insert(make_pair("", 1));
-        nsset2.insert(make_pair("def", 1));
-        nsset2.insert(make_pair("abc", 2));
-        nsset2.insert(make_pair("abc", 1));
-        nsset2.insert(make_pair("ns.example.com", 0));
-        nsset2.insert(make_pair("abc", 2));
-        nsset2.insert(make_pair("ABC", 2));
+        nsset2.emplace("ns.example.com", 1);
+        nsset2.emplace("abc", 1);
+        nsset2.emplace("", 1);
+        nsset2.emplace("def", 1);
+        nsset2.emplace("abc", 2);
+        nsset2.emplace("abc", 1);
+        nsset2.emplace("ns.example.com", 0);
+        nsset2.emplace("abc", 2);
+        nsset2.emplace("ABC", 2);
         BOOST_CHECK_EQUAL(nsset2.size(), 6U);
 
         ostringstream s;

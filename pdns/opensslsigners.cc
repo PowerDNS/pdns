@@ -262,14 +262,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   RSA_get0_key(d_key.get(), &n, &e, &d);
   RSA_get0_factors(d_key.get(), &p, &q);
   RSA_get0_crt_params(d_key.get(), &dmp1, &dmq1, &iqmp);
-  outputs.push_back(make_pair("Modulus", n));
-  outputs.push_back(make_pair("PublicExponent", e));
-  outputs.push_back(make_pair("PrivateExponent", d));
-  outputs.push_back(make_pair("Prime1", p));
-  outputs.push_back(make_pair("Prime2", q));
-  outputs.push_back(make_pair("Exponent1", dmp1));
-  outputs.push_back(make_pair("Exponent2", dmq1));
-  outputs.push_back(make_pair("Coefficient", iqmp));
+  outputs.emplace_back("Modulus", n);
+  outputs.emplace_back("PublicExponent", e);
+  outputs.emplace_back("PrivateExponent", d);
+  outputs.emplace_back("Prime1", p);
+  outputs.emplace_back("Prime2", q);
+  outputs.emplace_back("Exponent1", dmp1);
+  outputs.emplace_back("Exponent2", dmq1);
+  outputs.emplace_back("Coefficient", iqmp);
 
   string algorithm=std::to_string(d_algorithm);
   switch(d_algorithm) {
@@ -286,7 +286,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
     default:
       algorithm += " (?)";
   }
-  storvect.push_back(make_pair("Algorithm", algorithm));
+  storvect.emplace_back("Algorithm", algorithm);
 
   for(const outputs_t::value_type& value :  outputs) {
     std::string tmp;
@@ -294,7 +294,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
     int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(&tmp.at(0)));
     if (len >= 0) {
       tmp.resize(len);
-      storvect.push_back(make_pair(value.first, tmp));
+      storvect.emplace_back(value.first, tmp);
     }
   }
 
@@ -640,7 +640,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
   else
     algorithm = " ? (?)";
 
-  storvect.push_back(make_pair("Algorithm", algorithm));
+  storvect.emplace_back("Algorithm", algorithm);
 
   const BIGNUM *key = EC_KEY_get0_private_key(d_eckey.get());
   if (key == nullptr) {
@@ -655,7 +655,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
   if (d_len - len)
     prefix.append(d_len - len, 0x00);
 
-  storvect.push_back(make_pair("PrivateKey", prefix + tmp));
+  storvect.emplace_back("PrivateKey", prefix + tmp);
 
   return storvect;
 }
@@ -943,7 +943,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
     algorithm = " ? (?)";
   }
 
-  storvect.push_back(make_pair("Algorithm", algorithm));
+  storvect.emplace_back("Algorithm", algorithm);
 
   string buf;
   size_t len = d_len;
@@ -951,7 +951,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   if (EVP_PKEY_get_raw_private_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw runtime_error(getName() + " Could not get private key from d_edkey");
   }
-  storvect.push_back(make_pair("PrivateKey", buf));
+  storvect.emplace_back("PrivateKey", buf);
   return storvect;
 }
 

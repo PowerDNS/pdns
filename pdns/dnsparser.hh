@@ -237,13 +237,13 @@ public:
     if(z)
       getZmakermap()[make_pair(cl,ty)]=z;
 
-    getT2Namemap().insert(make_pair(make_pair(cl,ty), name));
-    getN2Typemap().insert(make_pair(name, make_pair(cl,ty)));
+    getT2Namemap().emplace(make_pair(cl, ty), name);
+    getN2Typemap().emplace(name, make_pair(cl, ty));
   }
 
   static void unregist(uint16_t cl, uint16_t ty) 
   {
-    pair<uint16_t, uint16_t> key=make_pair(cl, ty);
+    auto key = make_pair(cl, ty);
     getTypemap().erase(key);
     getZmakermap().erase(key);
   }
@@ -267,7 +267,7 @@ public:
 
   static const string NumberToType(uint16_t num, uint16_t classnum=1)
   {
-    t2namemap_t::const_iterator iter = getT2Namemap().find(make_pair(classnum, num));
+    auto iter = getT2Namemap().find(make_pair(classnum, num));
     if(iter == getT2Namemap().end()) 
       return "TYPE" + std::to_string(num);
       //      throw runtime_error("Unknown DNS type with numerical id "+std::to_string(num));

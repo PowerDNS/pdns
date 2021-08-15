@@ -379,8 +379,8 @@ static void measureResultAndClean(qids_t::const_iterator iter)
       if(!g_quiet)
         cout<<"\t* orig better *"<<endl;
       s_origbetter++;
-      if(!g_quiet) 
-        if(s_origbetterset.insert(make_pair(qd.d_qi.d_qname, qd.d_qi.d_qtype)).second) {
+      if (!g_quiet)
+        if (s_origbetterset.emplace(qd.d_qi.d_qname, qd.d_qi.d_qtype).second) {
           cout<<"orig better: " << qd.d_qi.d_qname<<" "<< qd.d_qi.d_qtype<<endl;
         }
     }

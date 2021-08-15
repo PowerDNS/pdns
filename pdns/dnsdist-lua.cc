@@ -138,7 +138,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
     auto certFile = boost::get<std::string>(certFiles);
     auto keyFile = boost::get<std::string>(keyFiles);
     pairs.clear();
-    pairs.push_back({certFile, keyFile});
+    pairs.emplace_back(certFile, keyFile);
   }
   else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
   {
@@ -147,7 +147,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
     if (certFilesVect.size() == keyFilesVect.size()) {
       pairs.clear();
       for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-        pairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+        pairs.emplace_back(certFilesVect.at(idx).second, keyFilesVect.at(idx).second);
       }
     }
     else {
@@ -891,7 +891,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;
       int count=1;
       for(const auto& s : g_dstates.getCopy()) {
-	ret.push_back(make_pair(count++, s));
+        ret.emplace_back(count++, s);
       }
       return ret;
     });
@@ -2311,8 +2311,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (vars->count("customResponseHeaders")) {
         for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
-          std::pair<std::string,std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
-          frontend->d_customResponseHeaders.push_back(headerResponse);
+          auto headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
+          frontend->d_customResponseHeaders.push_back(std::move(headerResponse));
         }
       }
 

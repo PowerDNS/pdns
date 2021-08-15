@@ -104,7 +104,7 @@ try {
         queryTime.tv_sec = pr.d_pheader.ts.tv_sec;
         queryTime.tv_usec = pr.d_pheader.ts.tv_usec;
         uniqueId = getUniqueID();
-        ids[dh->id] = std::make_pair(uniqueId, queryTime);
+        ids[dh->id] = {uniqueId, queryTime};
       }
       else {
         const auto& it = ids.find(dh->id);

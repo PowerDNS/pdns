@@ -841,8 +841,8 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     du->query_at = req->query_at;
     du->headers.reserve(req->headers.size);
     for (size_t i = 0; i < req->headers.size; ++i) {
-      du->headers.push_back(std::make_pair(std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
-                                           std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)));
+      du->headers.emplace_back(std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
+                               std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len));
     }
 
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME

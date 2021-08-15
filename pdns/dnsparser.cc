@@ -124,7 +124,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
 {
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
-  typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
+  auto i = getTypemap().find(make_pair(searchclass, dr.d_type));
   if(i==getTypemap().end() || !i->second) {
     return std::make_shared<UnknownRecordContent>(dr, pr);
   }
@@ -135,7 +135,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
 std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
                                                const string& content)
 {
-  zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
+  auto i = getZmakermap().find(make_pair(qclass, qtype));
   if(i==getZmakermap().end()) {
     return std::make_shared<UnknownRecordContent>(content);
   }
@@ -152,7 +152,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
 
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
-  typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
+  auto i = getTypemap().find(make_pair(searchclass, dr.d_type));
   if(i==getTypemap().end() || !i->second) {
     return std::make_shared<UnknownRecordContent>(dr, pr);
   }
@@ -298,7 +298,7 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
         d_tsigPos = recordStartPos;
       }
 
-      d_answers.push_back(make_pair(std::move(dr), pr.getPosition() - sizeof(dnsheader)));
+      d_answers.emplace_back(std::move(dr), pr.getPosition() - sizeof(dnsheader));
     }
 
 #if 0

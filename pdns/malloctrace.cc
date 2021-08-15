@@ -104,7 +104,7 @@ MallocTracer::allocators_t MallocTracer::topAllocators(int num)
   l_active=true;
   allocators_t ret;
   for(const auto& e : d_stats) {
-    ret.push_back(make_pair(e.second, e.first));
+    ret.emplace_back(e.second, e.first);
   }
   std::sort(ret.begin(), ret.end(), 
        [](const allocators_t::value_type& a, 

@@ -67,10 +67,10 @@ DNSCryptoKeyEngine::storvector_t DecafED25519DNSCryptoKeyEngine::convertToISCVec
     PrivateKey: ODIyNjAzODQ2MjgwODAxMjI2NDUxOTAyMDQxNDIyNjI=
   */
 
-  storvector_t storvector;
-
-  storvector.push_back(make_pair("Algorithm", "15 (ED25519)"));
-  storvector.push_back(make_pair("PrivateKey", string((char*)d_seckey, DECAF_EDDSA_25519_PRIVATE_BYTES)));
+  auto storvector = storvector_t{
+    {"Algorithm", "15 (ED25519)"},
+    {"PrivateKey", string((char*)d_seckey, DECAF_EDDSA_25519_PRIVATE_BYTES)},
+  };
 
   return storvector;
 }
@@ -203,10 +203,10 @@ DNSCryptoKeyEngine::storvector_t DecafED448DNSCryptoKeyEngine::convertToISCVecto
     PrivateKey: xZ+5Cgm463xugtkY5B0Jx6erFTXp13rYegst0qRtNsOYnaVpMx0Z/c5EiA9x8wWbDDct/U3FhYWA
   */
 
-  storvector_t storvector;
-
-  storvector.push_back(make_pair("Algorithm", "16 (ED448)"));
-  storvector.push_back(make_pair("PrivateKey", string((char*)d_seckey, DECAF_EDDSA_448_PRIVATE_BYTES)));
+  auto storvector = storvector_t{
+    {"Algorithm", "16 (ED448)"},
+    {"PrivateKey", string((char*)d_seckey, DECAF_EDDSA_448_PRIVATE_BYTES)},
+  };
 
   return storvector;
 }

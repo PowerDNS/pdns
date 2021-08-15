@@ -53,7 +53,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   auto stats = getAllStatsMap(StatComponent::API);
   map<string,string> ret;
   for (const auto& entry: stats) {
-    ret.insert(make_pair(entry.first, entry.second.d_value));
+    ret.emplace(entry.first, entry.second.d_value);
   }
   out.swap(ret);
 }
@@ -1197,7 +1197,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     rcounts_t rcounts;
 
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
-      rcounts.insert(make_pair(-i->second, i->first));
+      rcounts.emplace(-i->second, i->first);
 
     Json::array entries;
     unsigned int tot=0, totIncluded=0;
@@ -1242,7 +1242,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     rcounts_t rcounts;
 
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
-      rcounts.insert(make_pair(-i->second, i->first));
+      rcounts.emplace(-i->second, i->first);
 
     Json::array entries;
     unsigned int tot=0, totIncluded=0;

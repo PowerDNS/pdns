@@ -160,7 +160,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
     int fds[2];
     if(pipe(fds) < 0)
       unixDie("Creating pipe");
-    d_pipes.push_back({fds[0],fds[1]});
+    d_pipes.emplace_back(fds[0], fds[1]);
   }
   
   if (n<1) {

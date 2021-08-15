@@ -286,7 +286,7 @@ void UeberBackend::updateZoneCache() {
     vector<DomainInfo> zones;
     (*i)->getAllDomains(&zones, false, true);
     for(auto& di: zones) {
-      zone_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
+      zone_indices.emplace_back(std::move(di.zone), (int)di.id); // this cast should not be necessary
     }
   }
   g_zoneCache.replace(zone_indices);

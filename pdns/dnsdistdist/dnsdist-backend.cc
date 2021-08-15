@@ -245,7 +245,7 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
      as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
   unsigned int count = static_cast<unsigned int>((*servers)->size());
   auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
-  newServers->push_back(make_pair(++count, server));
+  newServers->emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
   std::stable_sort(newServers->begin(), newServers->end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
       return a.second->order < b.second->order;

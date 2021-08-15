@@ -116,7 +116,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
       }
     }
 
-    ret.push_back(make_pair(remove,add));
+    ret.emplace_back(remove, add);
   }
 
   return ret;

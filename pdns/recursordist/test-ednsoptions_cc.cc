@@ -28,9 +28,9 @@ static void getRawQueryWithECSAndCookie(const DNSName& name, const Netmask& ecs,
   ecsOpts.source = ecs;
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
-  opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
-  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
-  opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
+  opts.emplace_back(EDNSOptionCode::COOKIE, cookiesOptionStr);
+  opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
+  opts.emplace_back(EDNSOptionCode::COOKIE, cookiesOptionStr);
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
 }

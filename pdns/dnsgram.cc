@@ -170,23 +170,23 @@ try
             g_clientQuestions++;
             totalQueries++;
             counts[make_pair(mdp.d_qname, mdp.d_qtype)]++;
-            questions.insert(make_pair(mdp.d_qname, mdp.d_qtype));
+            questions.emplace(mdp.d_qname, mdp.d_qtype);
           }
           else if(mdp.d_header.rd && mdp.d_header.qr) {
 	    rdacounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
             g_lastanswerTime=pr.d_pheader.ts;
             g_clientResponses++;
-            answers.insert(make_pair(mdp.d_qname, mdp.d_qtype));
+            answers.emplace(mdp.d_qname, mdp.d_qtype);
           }
           else if(!mdp.d_header.rd && !mdp.d_header.qr) {
             g_lastquestionTime=pr.d_pheader.ts;
             g_serverQuestions++;
             counts[make_pair(mdp.d_qname, mdp.d_qtype)]++;
-            questions.insert(make_pair(mdp.d_qname, mdp.d_qtype));
+            questions.emplace(mdp.d_qname, mdp.d_qtype);
             totalQueries++;
           }
           else if(!mdp.d_header.rd && mdp.d_header.qr) {
-            answers.insert(make_pair(mdp.d_qname, mdp.d_qtype));
+            answers.emplace(mdp.d_qname, mdp.d_qtype);
             g_serverResponses++;
           }
           

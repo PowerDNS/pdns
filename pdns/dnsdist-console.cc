@@ -105,7 +105,7 @@ static void feedConfigDelta(const std::string& line)
     return;
   struct timeval now;
   gettimeofday(&now, 0);
-  g_confDelta.push_back({now,line});
+  g_confDelta.emplace_back(now, line);
 }
 
 static string historyFile(const bool &ignoreHOME = false)

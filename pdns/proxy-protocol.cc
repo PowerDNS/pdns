@@ -243,11 +243,11 @@ template<typename Container> ssize_t parseProxyHeader(const Container& header, b
         return 0;
       }
 
-      values.push_back({ std::string(reinterpret_cast<const char*>(&header.at(pos)), len), type });
+      values.push_back({std::string(reinterpret_cast<const char*>(&header.at(pos)), len), type});
       pos += len;
     }
     else {
-      values.push_back({ std::string(), type });
+      values.push_back({"", type});
     }
 
     remaining = got - pos;

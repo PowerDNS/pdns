@@ -604,7 +604,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     else
       kmd.keyType = ZSK;
 
-    retkeyset.push_back(make_pair(dpk, kmd));
+    retkeyset.emplace_back(dpk, kmd);
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
 

@@ -75,8 +75,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
     if (ednsnm) {
       EDNSSubnetOpts eo;
       eo.source = *ednsnm;
-      opts.push_back(
-        make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -364,10 +363,10 @@ try {
     while (getline(std::cin, line)) {
       auto fields = splitField(line, ' ');
 
-      questions.push_back(make_pair(fields.first, fields.second));
+      questions.emplace_back(fields.first, fields.second);
     }
   } else {
-    questions.push_back(make_pair(name, type));
+    questions.emplace_back(name, type);
   }
 
   if (doh) {
@@ -378,8 +377,8 @@ try {
                xpfproto, xpfsrc, xpfdst, qclass, opcode, 0);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
-    mch.insert(std::make_pair("Content-Type", "application/dns-message"));
-    mch.insert(std::make_pair("Accept", "application/dns-message"));
+    mch.emplace("Content-Type", "application/dns-message");
+    mch.emplace("Accept", "application/dns-message");
     string question(packet.begin(), packet.end());
     // FIXME: how do we use proxyheader here?
     reply = mc.postURL(argv[1], question, mch, timeout.tv_sec, fastOpen);

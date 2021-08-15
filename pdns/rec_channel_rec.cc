@@ -45,11 +45,11 @@ std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNu
 {
   auto i = a.length();
   if (i == 0) {
-    return make_pair(a, "");
+    return {a, ""};
   }
   --i;
   if (!std::isdigit(a[i])) {
-    return make_pair(a, "");
+    return {a, ""};
   }
   while (i > 0) {
     if (!std::isdigit(a[i])) {
@@ -57,7 +57,7 @@ std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNu
     }
     --i;
   }
-  return make_pair(a.substr(0, i + 1), a.substr(i + 1, a.size() - i - 1));
+  return {a.substr(0, i + 1), a.substr(i + 1, a.size() - i - 1)};
 }
 
 bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string& b) const
@@ -197,18 +197,18 @@ StatsMap getAllStatsMap(StatComponent component)
 
   for(const auto& the32bits :  d_get32bitpointers) {
     if (disabledlistMap.count(the32bits.first) == 0) {
-      ret.insert(make_pair(the32bits.first, StatsMapEntry{getPrometheusName(the32bits.first), std::to_string(*the32bits.second)}));
+      ret.emplace(the32bits.first, StatsMapEntry{getPrometheusName(the32bits.first), std::to_string(*the32bits.second)});
     }
   }
   for(const auto& atomic :  d_getatomics) {
     if (disabledlistMap.count(atomic.first) == 0) {
-      ret.insert(make_pair(atomic.first, StatsMapEntry{getPrometheusName(atomic.first), std::to_string(atomic.second->load())}));
+      ret.emplace(atomic.first, StatsMapEntry{getPrometheusName(atomic.first), std::to_string(atomic.second->load())});
     }
   }
 
   for(const auto& the64bitmembers :  d_get64bitmembers) {
     if (disabledlistMap.count(the64bitmembers.first) == 0) {
-      ret.insert(make_pair(the64bitmembers.first, StatsMapEntry{getPrometheusName(the64bitmembers.first), std::to_string(the64bitmembers.second())}));
+      ret.emplace(the64bitmembers.first, StatsMapEntry{getPrometheusName(the64bitmembers.first), std::to_string(the64bitmembers.second())});
     }
   }
 
@@ -221,7 +221,7 @@ StatsMap getAllStatsMap(StatComponent component)
   {
     for(const auto& a : *(d_dynmetrics.lock())) {
       if (disabledlistMap.count(a.first) == 0) {
-        ret.insert(make_pair(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)}));
+        ret.emplace(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)});
       }
     }
   }
@@ -486,7 +486,7 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
     } catch (std::exception &e) {
       return "Error: " + std::string(e.what()) + ", nothing wiped\n";
     }
-    toWipe.push_back({canon, subtree});
+    toWipe.emplace_back(canon, subtree);
   }
 
   int count=0, pcount=0, countNeg=0;
@@ -1159,7 +1159,7 @@ static StatsMap toCPUStatsMap(const string& name)
   for (unsigned int n = 0; n < g_numThreads; ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
-    entries.emplace(make_pair(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)}));
+    entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)});
   }
   return entries;
 }
@@ -1606,9 +1606,9 @@ static string doGenericTopRemotes(pleaseremotefunc_t func)
   
   typedef std::multimap<int, ComboAddress> rcounts_t;
   rcounts_t rcounts;
-  
-  for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
-    rcounts.insert(make_pair(-i->second, i->first));
+
+  for (auto&& c : counts)
+    rcounts.emplace(-c.second, c.first);
 
   ostringstream ret;
   ret<<"Over last "<<total<<" entries:\n";
@@ -1674,9 +1674,9 @@ static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSNam
 
   typedef std::multimap<int, query_t> rcounts_t;
   rcounts_t rcounts;
-  
-  for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
-    rcounts.insert(make_pair(-i->second, i->first));
+
+  for (auto&& c : counts)
+    rcounts.emplace(-c.second, c.first);
 
   ostringstream ret;
   ret<<"Over last "<<total<<" entries:\n";

@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
   pw.startRecord(DNSName("www.powerdns.com"), QType::A, 16, 1, DNSResourceRecord::ANSWER);
   pw.xfrIP(htonl(0x7f000001));
-  opts.push_back(pair<uint16_t,string>(3, "powerdns"));
+  opts.emplace_back(3, "powerdns");
   pw.addOpt(1280, 0, 0, opts);
   pw.getHeader()->id = htons(0xf001);
   pw.getHeader()->rd = 1;

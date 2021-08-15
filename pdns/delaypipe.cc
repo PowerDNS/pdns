@@ -162,7 +162,7 @@ void DelayPipe<T>::worker()
     if(delay != 0 ) {
       int ret = d_pipe.readTimeout(&c, delay); 
       if(ret > 0) {  // we got an object
-	d_work.insert(make_pair(c.when, c.what));
+        d_work.emplace(c.when, c.what);
       }
       else if(ret==0) { // EOF
 	break;

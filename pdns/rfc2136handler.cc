@@ -776,7 +776,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         return RCode::FormErr;
 
       if (rr->d_class == QClass::IN) {
-        rrSetKey_t key = make_pair(rr->d_name, QType(rr->d_type));
+        rrSetKey_t key = {rr->d_name, QType(rr->d_type)};
         rrVector_t *vec = &preReqRRsets[key];
         vec->push_back(DNSResourceRecord::fromWire(*rr));
       }

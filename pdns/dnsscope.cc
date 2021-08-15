@@ -283,12 +283,11 @@ try
 	      lc.outstanding = liveQuestions(); 
 
 	      LiveCounts diff = lc - lastcounts;
-	      pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
-
-	    }
-	    lastsec = pr.d_pheader.ts.tv_sec;
-	    lastcounts = lc;
-	  }
+              pcounts.emplace_back(pr.d_pheader.ts.tv_sec, diff);
+            }
+            lastsec = pr.d_pheader.ts.tv_sec;
+            lastcounts = lc;
+          }
 
     if(lowestTime) { lowestTime = min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec); }
     else { lowestTime = pr.d_pheader.ts.tv_sec; }

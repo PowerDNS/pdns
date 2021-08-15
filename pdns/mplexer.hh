@@ -204,7 +204,7 @@ public:
       if (it->d_ttd.tv_sec == 0 || tied <= boost::tie(it->d_ttd.tv_sec, it->d_ttd.tv_usec)) {
         break;
       }
-      ret.push_back(std::make_pair(it->d_fd, it->d_parameter));
+      ret.emplace_back(it->d_fd, it->d_parameter);
     }
 
     return ret;

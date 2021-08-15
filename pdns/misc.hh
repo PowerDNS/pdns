@@ -136,10 +136,10 @@ vstringtok (Container &container, string const &in,
 
     // push token
     if (j == string::npos) {
-      container.push_back (make_pair(i, len));
+      container.emplace_back(i, len);
       return;
     } else
-      container.push_back (make_pair(i, j));
+      container.emplace_back(i, j);
 
     // set up for next loop
     i = j + 1;

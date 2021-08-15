@@ -146,7 +146,7 @@ try
 	cerr<<"got rrsig "<<sig->d_signer<<"/"<<sig->d_tag<<endl;
 	vState state = getKeysFor(tro, sig->d_signer, keys);
 	cerr<<"! state = "<<state<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
-        // dsmap.insert(make_pair(dsrc.d_tag, dsrc));
+        // dsmap.emplace(dsrc.d_tag, dsrc);
       }
     }
 

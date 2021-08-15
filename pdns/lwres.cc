@@ -344,7 +344,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
       //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
-      opts.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
       weWantEDNSSubnet=true;
     }
 
