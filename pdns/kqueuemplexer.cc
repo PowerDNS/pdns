@@ -74,7 +74,7 @@ static struct KqueueRegisterOurselves
 {
   KqueueRegisterOurselves()
   {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
+    FDMultiplexer::getMultiplexerMap().emplace(0, &make); // priority 0!
   }
 } kQueueDoIt;
 

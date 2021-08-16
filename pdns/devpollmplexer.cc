@@ -71,7 +71,7 @@ static struct DevPollRegisterOurselves
 {
   DevPollRegisterOurselves()
   {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &makeDevPoll)); // priority 0!
+    FDMultiplexer::getMultiplexerMap().emplace(1, &makeDevPoll); // priority 1, so that /dev/poll is preferred over poll, but not over completion ports!
   }
 } doItDevPoll;
 

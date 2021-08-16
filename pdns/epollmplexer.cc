@@ -71,7 +71,7 @@ static struct EpollRegisterOurselves
 {
   EpollRegisterOurselves()
   {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &makeEpoll)); // priority 0!
+    FDMultiplexer::getMultiplexerMap().emplace(0, &makeEpoll); // priority 0!
   }
 } doItEpoll;
 

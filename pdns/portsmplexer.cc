@@ -49,7 +49,7 @@ static struct PortsRegisterOurselves
 {
   PortsRegisterOurselves()
   {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &makePorts)); // priority 0!
+    FDMultiplexer::getMultiplexerMap().emplace(0, &makePorts); // priority 0!
   }
 } doItPorts;
 

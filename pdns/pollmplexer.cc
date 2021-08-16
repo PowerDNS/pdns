@@ -59,7 +59,7 @@ static struct RegisterOurselves
 {
   RegisterOurselves()
   {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(1, &make));
+    FDMultiplexer::getMultiplexerMap().emplace(2, &make);
   }
 } doIt;
 
