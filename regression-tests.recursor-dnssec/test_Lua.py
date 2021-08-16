@@ -712,3 +712,54 @@ log-common-errors=yes
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.assertEqual(len(res.answer), 0)
         self.assertEqual(len(res.authority), 0)
+
+class PolicyEventFilterOnFollowUpTest(RecursorTest):
+    """Tests the interaction between RPZ and followup queries (dns64, folliwCNAME)
+    """
+
+    _confdir = 'policyeventfilter-followup'
+    _config_template = """
+    """
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz." })
+    """ % (_confdir)
+
+    _lua_dns_script_file = """
+    function preresolve(dq)
+      dq:addAnswer(pdns.CNAME, "secure.example.")
+      dq.followupFunction="followCNAMERecords"
+      dq.rcode = pdns.NOERROR
+      return true
+    end
+
+    function policyEventFilter(event)
+      event.appliedPolicy.policyKind = pdns.policykinds.NoAction
+      return true
+    end
+    """
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+secure.example.zone.rpz. 60 IN A 192.0.2.42
+""".format(soa=cls._SOA))
+        super(PolicyEventFilterOnFollowUpTest, cls).generateRecursorConfig(confdir)
+
+    def testA(self):
+        expected = [
+            dns.rrset.from_text('policyeventfilter-followup.test.powerdns.com.', 15, dns.rdataclass.IN, 'CNAME', 'secure.example.'),
+            dns.rrset.from_text('secure.example.', 15, dns.rdataclass.IN, 'A', '192.0.2.17')
+        ]
+        query = dns.message.make_query('policyeventfilter-followup.test.powerdns.com.', 'A')
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 2)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
