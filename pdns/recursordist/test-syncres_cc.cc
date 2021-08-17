@@ -544,7 +544,7 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
 
 pdns::TaskQueue g_test_tasks;
 
-void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline)
+void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
-  g_test_tasks.push({qname, qtype, deadline, true});
+  g_test_tasks.push({qname, qtype, deadline, true, nullptr});
 }

@@ -24,7 +24,13 @@
 #include "dnsname.hh"
 
 void runTaskOnce(bool logErrors);
-void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline);
+void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline);
+// General task stats
 uint64_t getTaskPushes();
 uint64_t getTaskExpired();
 uint64_t getTaskSize();
+
+// Almost expired specific stats
+uint64_t getAlmostExpiredTasksPushed();
+uint64_t getAlmostExpiredTasksRun();
+uint64_t getAlmostExpiredTaskExceptions();
