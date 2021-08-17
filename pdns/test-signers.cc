@@ -80,7 +80,7 @@ static const struct signerParams
     false
   },
 #endif /* HAVE_LIBCRYPTO_ECDSA */
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
   /* ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
      also from rfc8080 section 6.1 */
   { "Algorithm: 15\n"
@@ -102,7 +102,7 @@ static const struct signerParams
     DNSSECKeeper::ED25519,
     true
   },
-#endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519) */
+#endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519) */
 };
 
 static void checkRR(const signerParams& signer)
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(test_generic_signers)
   }
 }
 
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
 BOOST_AUTO_TEST_CASE(test_ed448_signer) {
     sortedRecords_t rrs;
     DNSName qname("example.com.");
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_ed448_signer) {
     // vector verified from dnskey.py as above, and confirmed with https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
     BOOST_CHECK_EQUAL(b64, "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEAIJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA");
 }
-#endif /* defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448) */
+#endif /* defined(HAVE_LIBCRYPTO_ED448) */
 
 BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
   {

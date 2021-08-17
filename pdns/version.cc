@@ -83,9 +83,6 @@ void showProductVersion()
 void showBuildConfiguration()
 {
   g_log<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_LIBDECAF
-    "decaf " <<
-#endif
 #ifdef HAVE_BOOST_CONTEXT
     "fcontext " <<
 #endif

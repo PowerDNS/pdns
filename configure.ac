@@ -85,7 +85,6 @@ AC_CHECK_HEADERS(
 )
 
 PDNS_WITH_LIBSODIUM
-PDNS_WITH_LIBDECAF
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
@@ -391,11 +390,11 @@ AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
-AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
   [AC_MSG_NOTICE([ed25519: yes])],
   [AC_MSG_NOTICE([ed25519: no])]
 )
-AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
+AS_IF([test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
 )

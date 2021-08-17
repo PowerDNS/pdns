@@ -70,6 +70,9 @@ ed25519 and ed448 support with libdecaf
 `libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows the PowerDNS Authoritative Server to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
 To detect libdecaf, use the ``--with-libdecaf`` configure option.
 
+.. versionchanged:: 4.6.0
+  libdecaf support was removed.
+
 systemd notify support
 ^^^^^^^^^^^^^^^^^^^^^^
 

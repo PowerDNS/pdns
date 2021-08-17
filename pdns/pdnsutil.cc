@@ -2296,10 +2296,10 @@ try
     cout << "                                   Add a new autoprimary " << endl;
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive] [published|unpublished]"<<endl;
     cout<<"             [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
     cout<<"|ed25519";
 #endif
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
     cout<<"|ed448";
 #endif
     cout<<"]"<<endl;
@@ -2716,10 +2716,10 @@ try
   else if (cmds.at(0) == "add-zone-key") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
       cerr << "|ed25519";
 #endif
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
       cerr << "|ed448";
 #endif
       cerr << "]"<<endl;
@@ -3274,10 +3274,10 @@ try
   else if (cmds.at(0) == "generate-zone-key") {
     if(cmds.size() < 2 ) {
       cerr << "Syntax: pdnsutil generate-zone-key zsk|ksk [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
       cerr << "|ed25519";
 #endif
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
       cerr << "|ed448";
 #endif
       cerr << "] [bits]"<<endl;

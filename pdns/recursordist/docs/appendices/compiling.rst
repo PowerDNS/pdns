@@ -60,6 +60,9 @@ To detect libdecaf, use the ``--with-libdecaf`` configure option.
 .. versionchanged:: 4.2.0
   This option was previously ``--enable-libdecaf``
 
+.. versionchanged:: 4.6.0
+  libdecaf support was removed.
+
 Protobuf to emit DNS logs
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

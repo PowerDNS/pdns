@@ -36,7 +36,6 @@
 ./pdns/communicator.cc
 ./pdns/communicator.hh
 ./pdns/dbdnsseckeeper.cc
-./pdns/decafsigners.cc
 ./pdns/delaypipe.cc
 ./pdns/delaypipe.hh
 ./pdns/digests.hh
