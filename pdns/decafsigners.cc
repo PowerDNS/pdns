@@ -137,7 +137,7 @@ bool DecafED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::s
 
   try {
     pub.verify(sig, message);
-  } catch(CryptoException) {
+  } catch(const CryptoException& e) {
     return false;
   }
 
@@ -273,7 +273,7 @@ bool DecafED448DNSCryptoKeyEngine::verify(const std::string& msg, const std::str
 
   try {
     pub.verify(sig, message);
-  } catch(CryptoException) {
+  } catch(const CryptoException& e) {
     return false;
   }
 
