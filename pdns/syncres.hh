@@ -1075,6 +1075,7 @@ struct RecursorStats
   std::atomic<uint64_t> rebalancedQueries{0};
   std::atomic<uint64_t> proxyProtocolInvalidCount{0};
   std::atomic<uint64_t> nodLookupsDroppedOversize{0};
+  std::atomic<uint64_t> dns64prefixanswers{0};
 
   RecursorStats() :
     answers("answers", { 1000, 10000, 100000, 1000000 }),

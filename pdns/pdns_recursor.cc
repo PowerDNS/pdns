@@ -1524,6 +1524,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
           }),
         ret.end());
   }
+  g_stats.dns64prefixanswers++;
   return rcode;
 }
 
@@ -1554,6 +1555,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
 
   int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret);
 
+  g_stats.dns64prefixanswers++;
   return rcode;
 }
 
