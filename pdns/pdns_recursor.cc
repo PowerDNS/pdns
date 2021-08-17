@@ -1915,6 +1915,13 @@ static void startDoResolve(void *p)
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
             if (t_pdl && t_pdl->nodata(dq, res)) {
               shouldNotValidate = true;
+              auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+              if (policyResult == PolicyResult::HaveAnswer) {
+                goto haveAnswer;
+              }
+              else if (policyResult == PolicyResult::Drop) {
+                return;
+              }
             }
             else if (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState)) {
               res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
@@ -1924,6 +1931,13 @@ static void startDoResolve(void *p)
 	}
 	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res)) {
           shouldNotValidate = true;
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          if (policyResult == PolicyResult::HaveAnswer) {
+            goto haveAnswer;
+          }
+          else if (policyResult == PolicyResult::Drop) {
+            return;
+          }
         }
 
 	if (t_pdl && t_pdl->postresolve(dq, res)) {
@@ -1934,6 +1948,15 @@ static void startDoResolve(void *p)
             return;
           }
         }
+      }
+    }
+    else if (t_pdl) {
+      // preresolve returned true
+      shouldNotValidate = true;
+      auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+      // haveAnswer case redundant
+      if (policyResult == PolicyResult::Drop) {
+        return;
       }
     }
 
