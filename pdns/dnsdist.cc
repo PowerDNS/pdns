@@ -294,7 +294,7 @@ static void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
 
 static uint16_t getRDAndCDFlagsFromDNSHeader(const struct dnsheader* dh)
 {
-  return static_cast<uint16_t>((dh->rd << FLAGS_RD_OFFSET) + (dh->cd << FLAGS_CD_OFFSET));
+  return static_cast<uint16_t>(dh->rd) << FLAGS_RD_OFFSET | static_cast<uint16_t>(dh->cd) << FLAGS_CD_OFFSET;
 }
 
 static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
