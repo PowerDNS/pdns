@@ -61,8 +61,12 @@ bool TaskQueue::runOnce(bool logErrors)
     return false;
   }
   ResolveTask task = pop();
+  if (task.func == nullptr) {
+    g_log << Logger::Debug << "TaskQueue: null task for " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
+    return true;
+  }
   struct timeval now;
-  gettimeofday(&now, 0);
+  Utility::gettimeofday(&now);
   if (task.d_deadline >= now.tv_sec) {
     task.func(now, logErrors, task);
   }

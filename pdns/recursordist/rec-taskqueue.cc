@@ -32,7 +32,6 @@ static pdns::stat_t s_almost_expired_tasks_exceptions;
 
 static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task)
 {
-  ++s_almost_expired_tasks_run;
   const string msg = "Exception while running a background ResolveTask";
   SyncRes sr(now);
   vector<DNSRecord> ret;
@@ -40,6 +39,7 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
   try {
     g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
     int res = sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
+    ++s_almost_expired_tasks_run;
     g_log << Logger::Debug << "TaskQueue: DONE resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << ": " << res << endl;
   }
   catch (const std::exception& e) {

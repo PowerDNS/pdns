@@ -1057,7 +1057,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
 
   { "almost-expired-run",
     MetricDefinition(PrometheusMetricType::counter,
-                     "number of almost-expired tasks run")},
+                     "number of almost-expired tasks run to completion")},
 
   { "almost-expired-exceptions",
     MetricDefinition(PrometheusMetricType::counter,
