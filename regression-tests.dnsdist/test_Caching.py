@@ -851,7 +851,6 @@ class TestTempFailureCacheTTLAction(DNSDistTest):
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, response)
 
-
 class TestCachingWithExistingEDNS(DNSDistTest):
 
     _config_template = """
@@ -2530,3 +2529,67 @@ class TestCachingScopeZeroButNoSubnetcheck(DNSDistTest):
             receivedQuery.id = expectedQuery2.id
             self.checkMessageEDNSWithECS(expectedQuery2, receivedQuery)
             self.checkMessageNoEDNS(receivedResponse, response)
+
+class TestCachingAlteredHeader(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100)
+    getPool(""):setCache(pc)
+    addAction("cache-set-rd.tests.powerdns.com.", SetNoRecurseAction())
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testCachingAlteredHeader(self):
+        """
+        Cache: The header has been altered via a rule
+        """
+        name = 'cache-set-rd.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # the query reaching the backend will never have the RD flag set
+        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        response.flags &= ~dns.flags.RD
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        # first query has RD=1
+        query.flags |= dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        # next query should hit the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertFalse(receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        # same query with RD=0, should hit the cache as well
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertFalse(receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
