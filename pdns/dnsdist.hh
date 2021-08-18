@@ -757,9 +757,8 @@ struct QueryCount {
   ~QueryCount()
   {
   }
-  QueryCountRecords records;
+  SharedLockGuarded<QueryCountRecords> records;
   QueryCountFilter filter;
-  ReadWriteLock queryLock;
   bool enabled{false};
 };
 
@@ -925,13 +924,11 @@ struct DownstreamState
   ~DownstreamState();
 
   boost::uuids::uuid id;
-  std::vector<unsigned int> hashes;
-  mutable ReadWriteLock d_lock;
+  SharedLockGuarded<std::vector<unsigned int>> hashes;
   std::vector<int> sockets;
   const std::string sourceItfName;
-  std::mutex socketsLock;
   std::mutex connectLock;
-  std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+  LockGuarded<std::unique_ptr<FDMultiplexer>> mplexer{nullptr};
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::thread tid;
   const ComboAddress remote;
@@ -943,6 +940,7 @@ struct DownstreamState
   QType checkType{QType::A};
   uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
+  std::atomic<bool> hashesComputed{false};
   stat_t sendErrors{0};
   stat_t outstanding{0};
   stat_t reuseds{0};
@@ -1080,8 +1078,7 @@ private:
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
 void responderThread(std::shared_ptr<DownstreamState> state);
-extern std::mutex g_luamutex;
-extern LuaContext g_lua;
+extern LockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
 class DNSRule
@@ -1120,77 +1117,13 @@ struct ServerPool
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
-  size_t countServers(bool upOnly)
-  {
-    size_t count = 0;
-    ReadLock rl(&d_lock);
-    for (const auto& server : *d_servers) {
-      if (!upOnly || std::get<1>(server)->isUp() ) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  const std::shared_ptr<ServerPolicy::NumberedServerVector> getServers()
-  {
-    std::shared_ptr<ServerPolicy::NumberedServerVector> result;
-    {
-      ReadLock rl(&d_lock);
-      result = d_servers;
-    }
-    return result;
-  }
-
-  void addServer(shared_ptr<DownstreamState>& server)
-  {
-    WriteLock wl(&d_lock);
-    /* we can't update the content of the shared pointer directly even when holding the lock,
-       as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-    unsigned int count = static_cast<unsigned int>(d_servers->size());
-    auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*d_servers);
-    newServers->push_back(make_pair(++count, server));
-    /* we need to reorder based on the server 'order' */
-    std::stable_sort(newServers->begin(), newServers->end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
-      return a.second->order < b.second->order;
-    });
-    /* and now we need to renumber for Lua (custom policies) */
-    size_t idx = 1;
-    for (auto& serv : *newServers) {
-      serv.first = idx++;
-    }
-    d_servers = newServers;
-  }
-
-  void removeServer(shared_ptr<DownstreamState>& server)
-  {
-    WriteLock wl(&d_lock);
-    /* we can't update the content of the shared pointer directly even when holding the lock,
-       as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-    auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*d_servers);
-    size_t idx = 1;
-    bool found = false;
-    for (auto it = newServers->begin(); it != newServers->end();) {
-      if (found) {
-        /* we need to renumber the servers placed
-           after the removed one, for Lua (custom policies) */
-        it->first = idx++;
-        it++;
-      }
-      else if (it->second == server) {
-        it = newServers->erase(it);
-        found = true;
-      } else {
-        idx++;
-        it++;
-      }
-    }
-    d_servers = newServers;
-  }
+  size_t countServers(bool upOnly);
+  const std::shared_ptr<ServerPolicy::NumberedServerVector> getServers();
+  void addServer(shared_ptr<DownstreamState>& server);
+  void removeServer(shared_ptr<DownstreamState>& server);
 
 private:
-  std::shared_ptr<ServerPolicy::NumberedServerVector> d_servers;
-  ReadWriteLock d_lock;
+  SharedLockGuarded<std::shared_ptr<ServerPolicy::NumberedServerVector>> d_servers;
   bool d_useECS{false};
 };
 

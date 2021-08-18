@@ -83,13 +83,12 @@ public:
 class QPSAction : public DNSAction
 {
 public:
-  QPSAction(int limit) : d_qps(limit, limit)
+  QPSAction(int limit) : d_qps(QPSLimiter(limit, limit))
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::lock_guard<decltype(d_lock)> guard(d_lock);
-    if (d_qps.check()) {
+    if (d_qps.lock()->check()) {
       return Action::None;
     }
     else {
@@ -98,11 +97,10 @@ public:
   }
   std::string toString() const override
   {
-    return "qps limit to "+std::to_string(d_qps.getRate());
+    return "qps limit to "+std::to_string(d_qps.lock()->getRate());
   }
 private:
-  mutable std::mutex d_lock;
-  QPSLimiter d_qps;
+  mutable LockGuarded<QPSLimiter> d_qps;
 };
 
 class DelayAction : public DNSAction
@@ -293,11 +291,10 @@ private:
 class QPSPoolAction : public DNSAction
 {
 public:
-  QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(limit, limit), d_pool(pool) {}
+  QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(QPSLimiter(limit, limit)), d_pool(pool) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::lock_guard<decltype(d_lock)> guard(d_lock);
-    if (d_qps.check()) {
+    if (d_qps.lock()->check()) {
       *ruleresult = d_pool;
       return Action::Pool;
     }
@@ -307,13 +304,12 @@ public:
   }
   std::string toString() const override
   {
-    return "max " +std::to_string(d_qps.getRate())+" to pool "+d_pool;
+    return "max " +std::to_string(d_qps.lock()->getRate())+" to pool "+d_pool;
   }
 
 private:
-  mutable std::mutex d_lock;
-  QPSLimiter d_qps;
-  std::string d_pool;
+  mutable LockGuarded<QPSLimiter> d_qps;
+  const std::string d_pool;
 };
 
 class RCodeAction : public DNSAction
@@ -381,7 +377,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto lock = g_lua.lock();
     try {
       auto ret = d_func(dq);
       if (ruleresult) {
@@ -418,7 +414,7 @@ public:
   {}
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto lock = g_lua.lock();
     try {
       auto ret = d_func(dr);
       if (ruleresult) {
@@ -460,8 +456,7 @@ public:
   {
     dnsdist_ffi_dnsquestion_t dqffi(dq);
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-
+      auto lock = g_lua.lock();
       auto ret = d_func(&dqffi);
       if (ruleresult) {
         if (dqffi.result) {
@@ -576,8 +571,7 @@ public:
 
     dnsdist_ffi_dnsquestion_t dqffi(dq);
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-
+      auto lock = g_lua.lock();
       auto ret = d_func(&dqffi);
       if (ruleresult) {
         if (dqffi.result) {
@@ -1269,7 +1263,7 @@ public:
     DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lock = g_lua.lock();
         (*d_alterFunc)(dq, &message);
       }
     }
@@ -1314,7 +1308,7 @@ public:
 #endif /* HAVE_LIBCRYPTO */
 
     if (d_alterFunc) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       (*d_alterFunc)(dq, &message);
     }
 
@@ -1403,7 +1397,7 @@ public:
     DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lock = g_lua.lock();
         (*d_alterFunc)(dr, &message);
       }
     }
@@ -1448,7 +1442,7 @@ public:
 #endif /* HAVE_LIBCRYPTO */
 
     if (d_alterFunc) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       (*d_alterFunc)(dr, &message);
     }
 

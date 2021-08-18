@@ -72,20 +72,17 @@ bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string
   return aa < bb;
 }
 
-std::mutex g_carbon_config_lock;
-
 static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
 static map<string, std::function<uint64_t()>>  d_get64bitmembers;
 static map<string, std::function<StatsMap()>> d_getmultimembers;
 
-static std::mutex d_dynmetricslock;
 struct dynmetrics {
   std::atomic<unsigned long> *d_ptr;
   std::string d_prometheusName;
 };
 
-static map<string, dynmetrics> d_dynmetrics;
+static LockGuarded<map<string, dynmetrics>> d_dynmetrics;
 
 static std::map<StatComponent, std::set<std::string>> s_disabledStats;
 
@@ -139,10 +136,11 @@ static std::string getPrometheusName(const std::string& arg)
 
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName)
 {
-  std::lock_guard<std::mutex> l(d_dynmetricslock);
-  auto f = d_dynmetrics.find(str);
-  if(f != d_dynmetrics.end())
+  auto dm = d_dynmetrics.lock();
+  auto f = dm->find(str);
+  if (f != dm->end()) {
     return f->second.d_ptr;
+  }
 
   std::string name(str);
   if (!prometheusName.empty()) {
@@ -152,7 +150,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   }
 
   auto ret = dynmetrics{new std::atomic<unsigned long>(), name};
-  d_dynmetrics[str]= ret;
+  (*dm)[str]= ret;
   return ret.d_ptr;
 }
 
@@ -167,10 +165,13 @@ static boost::optional<uint64_t> get(const string& name)
   if(d_get64bitmembers.count(name))
     return d_get64bitmembers.find(name)->second();
 
-  std::lock_guard<std::mutex> l(d_dynmetricslock);
-  auto f = rplookup(d_dynmetrics, name);
-  if (f)
-    return f->d_ptr->load();
+  {
+    auto dm = d_dynmetrics.lock();
+    auto f = rplookup(*dm, name);
+    if (f) {
+      return f->d_ptr->load();
+    }
+  }
 
   for(const auto& themultimember : d_getmultimembers) {
     const auto items = themultimember.second();
@@ -217,8 +218,7 @@ StatsMap getAllStatsMap(StatComponent component)
   }
 
   {
-    std::lock_guard<std::mutex> l(d_dynmetricslock);
-    for(const auto& a : d_dynmetrics) {
+    for(const auto& a : *(d_dynmetrics.lock())) {
       if (disabledlistMap.count(a.first) == 0) {
         ret.insert(make_pair(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)}));
       }
@@ -531,33 +531,42 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
 template<typename T>
 static string doSetCarbonServer(T begin, T end)
 {
-  std::lock_guard<std::mutex> l(g_carbon_config_lock);
-  if(begin==end) {
-    ::arg().set("carbon-server").clear();
+  auto config = g_carbonConfig.getCopy();
+  if (begin == end) {
+    config.servers.clear();
+    g_carbonConfig.setState(std::move(config));
     return "cleared carbon-server setting\n";
   }
+
   string ret;
-  ::arg().set("carbon-server")=*begin;
-  ret="set carbon-server to '"+::arg()["carbon-server"]+"'\n";
+  stringtok(config.servers, *begin, ", ");
+  ret = "set carbon-server to '" + *begin + "'\n";
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-ourname")=*begin;
-    ret+="set carbon-ourname to '"+*begin+"'\n";
+  if (begin != end) {
+    config.hostname = *begin;
+    ret += "set carbon-ourname to '" + *begin + "'\n";
   } else {
+    g_carbonConfig.setState(std::move(config));
     return ret;
   }
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-namespace")=*begin;
-    ret+="set carbon-namespace to '"+*begin+"'\n";
+  if (begin != end) {
+    config.namespace_name = *begin;
+    ret += "set carbon-namespace to '" + *begin + "'\n";
   } else {
+    g_carbonConfig.setState(std::move(config));
     return ret;
   }
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-instance")=*begin;
-    ret+="set carbon-instance to '"+*begin+"'\n";
+  if (begin != end) {
+    config.instance_name = *begin;
+    ret += "set carbon-instance to '" + *begin + "'\n";
   }
+
+  g_carbonConfig.setState(std::move(config));
   return ret;
 }
 

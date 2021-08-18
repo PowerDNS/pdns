@@ -60,18 +60,18 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
   DNSName lastLabel = qname.getLastLabel();
 
   auto& map = getMap(lastLabel);
-  const lock l(map);
+  auto content = map.d_content.lock();
 
-  negcache_t::const_iterator ni = map.d_map.find(tie(lastLabel, qtnull));
+  negcache_t::const_iterator ni = content->d_map.find(tie(lastLabel, qtnull));
 
-  while (ni != map.d_map.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
+  while (ni != content->d_map.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
     // We have something
     if (now.tv_sec < ni->d_ttd) {
       ne = *ni;
-      moveCacheItemToBack<SequenceTag>(map.d_map, ni);
+      moveCacheItemToBack<SequenceTag>(content->d_map, ni);
       return true;
     }
-    moveCacheItemToFront<SequenceTag>(map.d_map, ni);
+    moveCacheItemToFront<SequenceTag>(content->d_map, ni);
     ++ni;
   }
   return false;
@@ -89,9 +89,9 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
 bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch)
 {
   auto& map = getMap(qname);
-  const lock l(map);
+  auto content = map.d_content.lock();
 
-  const auto& idx = map.d_map.get<NegCacheEntry>();
+  const auto& idx = content->d_map.get<NegCacheEntry>();
   auto range = idx.equal_range(qname);
   auto ni = range.first;
 
@@ -99,16 +99,16 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
     // We have an entry
     if ((!typeMustMatch && ni->d_qtype.getCode() == 0) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
-      auto firstIndexIterator = map.d_map.project<CompositeKey>(ni);
+      auto firstIndexIterator = content->d_map.project<CompositeKey>(ni);
 
       if (now.tv_sec < ni->d_ttd) {
         // Not expired
         ne = *ni;
-        moveCacheItemToBack<SequenceTag>(map.d_map, firstIndexIterator);
+        moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
         return true;
       }
       // expired
-      moveCacheItemToFront<SequenceTag>(map.d_map, firstIndexIterator);
+      moveCacheItemToFront<SequenceTag>(content->d_map, firstIndexIterator);
     }
     ++ni;
   }
@@ -122,11 +122,12 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  */
 void NegCache::add(const NegCacheEntry& ne)
 {
+  bool inserted = false;
   auto& map = getMap(ne.d_name);
-  const lock l(map);
-  bool inserted = lruReplacingInsert<SequenceTag>(map.d_map, ne);
+  auto content = map.d_content.lock();
+  inserted = lruReplacingInsert<SequenceTag>(content->d_map, ne);
   if (inserted) {
-    map.d_entriesCount++;
+    ++map.d_entriesCount;
   }
 }
 
@@ -139,9 +140,9 @@ void NegCache::add(const NegCacheEntry& ne)
  */
 void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD)
 {
-  auto& map = getMap(qname);
-  const lock l(map);
-  auto range = map.d_map.equal_range(tie(qname, qtype));
+  auto& mc = getMap(qname);
+  auto map = mc.d_content.lock();
+  auto range = map->d_map.equal_range(tie(qname, qtype));
 
   if (range.first != range.second) {
     range.first->d_validationState = newState;
@@ -156,11 +157,11 @@ void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, 
  *
  * \param qname The name of the entries to be counted
  */
-size_t NegCache::count(const DNSName& qname) const
+size_t NegCache::count(const DNSName& qname)
 {
-  const auto& map = getMap(qname);
-  const lock l(map);
-  return map.d_map.count(tie(qname));
+  auto& map = getMap(qname);
+  auto content = map.d_content.lock();
+  return content->d_map.count(tie(qname));
 }
 
 /*!
@@ -169,11 +170,11 @@ size_t NegCache::count(const DNSName& qname) const
  * \param qname The name of the entries to be counted
  * \param qtype The type of the entries to be counted
  */
-size_t NegCache::count(const DNSName& qname, const QType qtype) const
+size_t NegCache::count(const DNSName& qname, const QType qtype)
 {
-  const auto& map = getMap(qname);
-  const lock l(map);
-  return map.d_map.count(tie(qname, qtype));
+  auto& map = getMap(qname);
+  auto content = map.d_content.lock();
+  return content->d_map.count(tie(qname, qtype));
 }
 
 /*!
@@ -187,27 +188,27 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
 {
   size_t ret = 0;
   if (subtree) {
-    for (auto& m : d_maps) {
-      const lock l(m);
-      for (auto i = m.d_map.lower_bound(tie(name)); i != m.d_map.end();) {
+    for (auto& map : d_maps) {
+      auto m = map.d_content.lock();
+      for (auto i = m->d_map.lower_bound(tie(name)); i != m->d_map.end();) {
         if (!i->d_name.isPartOf(name))
           break;
-        i = m.d_map.erase(i);
+        i = m->d_map.erase(i);
         ret++;
-        m.d_entriesCount--;
+        --map.d_entriesCount;
       }
     }
     return ret;
   }
 
   auto& map = getMap(name);
-  const lock l(map);
-  auto range = map.d_map.equal_range(tie(name));
+  auto content = map.d_content.lock();
+  auto range = content->d_map.equal_range(tie(name));
   auto i = range.first;
   while (i != range.second) {
-    i = map.d_map.erase(i);
+    i = content->d_map.erase(i);
     ret++;
-    map.d_entriesCount--;
+    --map.d_entriesCount;
   }
   return ret;
 }
@@ -217,10 +218,10 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
  */
 void NegCache::clear()
 {
-  for (auto& m : d_maps) {
-    const lock l(m);
-    m.d_map.clear();
-    m.d_entriesCount = 0;
+  for (auto& map : d_maps) {
+    auto m = map.d_content.lock();
+    m->d_map.clear();
+    map.d_entriesCount = 0;
   }
 }
 
@@ -240,13 +241,13 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::dumpToFile(FILE* fp, const struct timeval& now) const
+size_t NegCache::dumpToFile(FILE* fp, const struct timeval& now)
 {
   size_t ret = 0;
 
-  for (const auto& m : d_maps) {
-    const lock l(m);
-    auto& sidx = m.d_map.get<SequenceTag>();
+  for (auto& mc : d_maps) {
+    auto m = mc.d_content.lock();
+    auto& sidx = m->d_map.get<SequenceTag>();
     for (const NegCacheEntry& ne : sidx) {
       ret++;
       int64_t ttl = ne.d_ttd - now.tv_sec;

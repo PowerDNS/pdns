@@ -290,8 +290,8 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    std::lock_guard<std::mutex> rl(shard->queryLock);
-    for(const auto& c : shard->queryRing) {
+    auto rl = shard->queryRing.lock();
+    for(const auto& c : *rl) {
       if (now < c.when) {
         continue;
       }
@@ -349,8 +349,8 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    std::lock_guard<std::mutex> rl(shard->respLock);
-    for(const auto& c : shard->respRing) {
+    auto rl = shard->respRing.lock();
+    for(const auto& c : *rl) {
       if (now < c.when) {
         continue;
       }
@@ -493,10 +493,9 @@ struct DynBlockEntryStat
   unsigned int lastSeenValue{0};
 };
 
-std::mutex DynBlockMaintenance::s_topsMutex;
 std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
-std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::s_topNMGsByReason;
-std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::s_topSMTsByReason;
+
+LockGuarded<DynBlockMaintenance::Tops> DynBlockMaintenance::s_tops;
 size_t DynBlockMaintenance::s_topN{20};
 time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{60};
 
@@ -641,9 +640,9 @@ void DynBlockMaintenance::generateMetrics()
   }
 
   {
-    std::lock_guard<std::mutex> lock(s_topsMutex);
-    s_topNMGsByReason = std::move(topNMGs);
-    s_topSMTsByReason = std::move(topSMTs);
+    auto tops = s_tops.lock();
+    tops->topNMGsByReason = std::move(topNMGs);
+    tops->topSMTsByReason = std::move(topSMTs);
   }
 }
 
@@ -710,12 +709,10 @@ void DynBlockMaintenance::run()
 
 std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getHitsForTopNetmasks()
 {
-  std::lock_guard<std::mutex> lock(s_topsMutex);
-  return s_topNMGsByReason;
+  return s_tops.lock()->topNMGsByReason;
 }
 
 std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getHitsForTopSuffixes()
 {
-  std::lock_guard<std::mutex> lock(s_topsMutex);
-  return s_topSMTsByReason;
+  return s_tops.lock()->topSMTsByReason;
 }

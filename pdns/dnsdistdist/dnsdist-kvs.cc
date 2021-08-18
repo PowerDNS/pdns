@@ -192,8 +192,7 @@ bool CDBKVStore::reload(const struct stat& st)
 {
   auto newCDB = std::unique_ptr<CDB>(new CDB(d_fname));
   {
-    WriteLock wl(&d_lock);
-    d_cdb = std::move(newCDB);
+    *(d_cdb.write_lock()) = std::move(newCDB);
   }
   d_mtime = st.st_mtime;
   return true;
@@ -247,8 +246,8 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
     }
 
     {
-      ReadLock rl(&d_lock);
-      if (d_cdb && d_cdb->findOne(key, value)) {
+      auto cdb = d_cdb.read_lock();
+      if (*cdb && (*cdb)->findOne(key, value)) {
         return true;
       }
     }
@@ -269,12 +268,12 @@ bool CDBKVStore::keyExists(const std::string& key)
     }
 
     {
-      ReadLock rl(&d_lock);
-      if (!d_cdb) {
+      auto cdb = d_cdb.read_lock();
+      if (!*cdb) {
         return false;
       }
 
-      return d_cdb->keyExists(key);
+      return (*cdb)->keyExists(key);
     }
   }
   catch(const std::exception& e) {

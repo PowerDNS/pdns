@@ -304,14 +304,6 @@ private:
   static AtomicCounter s_ops;
   static time_t s_last_prune;
   static size_t s_maxEntries;
-
-public:
-  void preRemoval(const KeyCacheEntry&)
-  {
-  }
-  void preRemoval(const METACacheEntry&)
-  {
-  }
 };
 
 class DNSPacket;

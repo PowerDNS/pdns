@@ -21,7 +21,6 @@
  */
 #pragma once
 
-#include <mutex>
 #include <boost/multi_index_container.hpp>
 
 #include "dnsname.hh"
@@ -50,7 +49,6 @@ template <typename S, typename C, typename T> void pruneCollection(C& container,
 
   for (auto iter = sidx.begin(); iter != sidx.end() && tried < lookAt ; ++tried) {
     if (iter->getTTD() < now) {
-      container.preRemoval(*iter);
       iter = sidx.erase(iter);
       erased++;
     }
@@ -72,7 +70,6 @@ template <typename S, typename C, typename T> void pruneCollection(C& container,
   // just lob it off from the beginning
   auto iter = sidx.begin();
   for (size_t i = 0; i < toTrim && iter != sidx.end(); i++) {
-    container.preRemoval(*iter);
     iter = sidx.erase(iter);
   }
 }
@@ -142,20 +139,21 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   }
 
   uint64_t maps_size = maps.size();
-  if (maps_size == 0)
-      return 0;
+  if (maps_size == 0) {
+    return 0;
+  }
 
-  for (auto& mc : maps) {
-    const typename C::lock l(mc);
-    mc.invalidate();
-    auto& sidx = boost::multi_index::get<S>(mc.d_map);
+  for (auto& content : maps) {
+    auto mc = content.d_content.lock();
+    mc->invalidate();
+    auto& sidx = boost::multi_index::get<S>(mc->d_map);
     uint64_t erased = 0, lookedAt = 0;
     for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if (i->getTTD() < now) {
-        container.preRemoval(*i);
+        container.preRemoval(*mc, *i);
         i = sidx.erase(i);
         erased++;
-        mc.d_entriesCount--;
+        --content.d_entriesCount;
       } else {
         ++i;
       }
@@ -177,17 +175,17 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   toTrim -= totErased;
 
-    while (true) {
+  while (true) {
     size_t pershard = toTrim / maps_size + 1;
-    for (auto& mc : maps) {
-      const typename C::lock l(mc);
-      mc.invalidate();
-      auto& sidx = boost::multi_index::get<S>(mc.d_map);
+    for (auto& content : maps) {
+      auto mc = content.d_content.lock();
+      mc->invalidate();
+      auto& sidx = boost::multi_index::get<S>(mc->d_map);
       size_t removed = 0;
       for (auto i = sidx.begin(); i != sidx.end() && removed < pershard; removed++) {
-        container.preRemoval(*i);
+        container.preRemoval(*mc, *i);
         i = sidx.erase(i);
-        mc.d_entriesCount--;
+        --content.d_entriesCount;
         totErased++;
         toTrim--;
         if (toTrim == 0) {

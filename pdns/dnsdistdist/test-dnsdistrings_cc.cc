@@ -40,8 +40,9 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0U);
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_EQUAL(shard->queryRing.size(), entriesPerShard);
-    for (const auto& entry : shard->queryRing) {
+    auto ring = shard->queryRing.lock();
+    BOOST_CHECK_EQUAL(ring->size(), entriesPerShard);
+    for (const auto& entry : *ring) {
       BOOST_CHECK_EQUAL(entry.name, qname);
       BOOST_CHECK_EQUAL(entry.qtype, qtype);
       BOOST_CHECK_EQUAL(entry.size, size);
@@ -57,8 +58,9 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0U);
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_EQUAL(shard->queryRing.size(), entriesPerShard);
-    for (const auto& entry : shard->queryRing) {
+    auto ring = shard->queryRing.lock();
+    BOOST_CHECK_EQUAL(ring->size(), entriesPerShard);
+    for (const auto& entry : *ring) {
       BOOST_CHECK_EQUAL(entry.name, qname);
       BOOST_CHECK_EQUAL(entry.qtype, qtype);
       BOOST_CHECK_EQUAL(entry.size, size);
@@ -77,8 +79,9 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), maxEntries);
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_EQUAL(shard->respRing.size(), entriesPerShard);
-    for (const auto& entry : shard->respRing) {
+    auto ring = shard->respRing.lock();
+    BOOST_CHECK_EQUAL(ring->size(), entriesPerShard);
+    for (const auto& entry : *ring) {
       BOOST_CHECK_EQUAL(entry.name, qname);
       BOOST_CHECK_EQUAL(entry.qtype, qtype);
       BOOST_CHECK_EQUAL(entry.size, size);
@@ -96,8 +99,9 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), maxEntries);
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_EQUAL(shard->respRing.size(), entriesPerShard);
-    for (const auto& entry : shard->respRing) {
+    auto ring = shard->respRing.lock();
+    BOOST_CHECK_EQUAL(ring->size(), entriesPerShard);
+    for (const auto& entry : *ring) {
       BOOST_CHECK_EQUAL(entry.name, qname);
       BOOST_CHECK_EQUAL(entry.qtype, qtype);
       BOOST_CHECK_EQUAL(entry.size, size);
@@ -130,8 +134,8 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
 
     for (const auto& shard : rings.d_shards) {
       {
-        std::lock_guard<std::mutex> rl(shard->queryLock);
-        for(const auto& c : shard->queryRing) {
+        auto rl = shard->queryRing.lock();
+        for(const auto& c : *rl) {
           numberOfQueries++;
           // BOOST_CHECK* is slow as hell..
           if(c.qtype != qtype) {
@@ -141,8 +145,8 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
         }
       }
       {
-        std::lock_guard<std::mutex> rl(shard->respLock);
-        for(const auto& c : shard->respRing) {
+        auto rl = shard->respRing.lock();
+        for(const auto& c : *rl) {
           if(c.qtype != qtype) {
             cerr<<"Invalid response QType!"<<endl;
             return;
@@ -233,33 +237,39 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   size_t totalQueries = 0;
   size_t totalResponses = 0;
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_LE(shard->queryRing.size(), entriesPerShard);
-    // verify that the shard is not empty
-    BOOST_CHECK_GT(shard->queryRing.size(), (entriesPerShard * 0.5) + 1);
-    // this would be optimal
-    BOOST_WARN_GT(shard->queryRing.size(), entriesPerShard * 0.95);
-    totalQueries += shard->queryRing.size();
-    for (const auto& entry : shard->queryRing) {
-      BOOST_CHECK_EQUAL(entry.name, qname);
-      BOOST_CHECK_EQUAL(entry.qtype, qtype);
-      BOOST_CHECK_EQUAL(entry.size, size);
-      BOOST_CHECK_EQUAL(entry.when.tv_sec, now.tv_sec);
-      BOOST_CHECK_EQUAL(entry.requestor.toStringWithPort(), requestor.toStringWithPort());
+    {
+      auto ring = shard->queryRing.lock();
+      BOOST_CHECK_LE(ring->size(), entriesPerShard);
+      // verify that the shard is not empty
+      BOOST_CHECK_GT(ring->size(), (entriesPerShard * 0.5) + 1);
+      // this would be optimal
+      BOOST_WARN_GT(ring->size(), entriesPerShard * 0.95);
+      totalQueries += ring->size();
+      for (const auto& entry : *ring) {
+        BOOST_CHECK_EQUAL(entry.name, qname);
+        BOOST_CHECK_EQUAL(entry.qtype, qtype);
+        BOOST_CHECK_EQUAL(entry.size, size);
+        BOOST_CHECK_EQUAL(entry.when.tv_sec, now.tv_sec);
+        BOOST_CHECK_EQUAL(entry.requestor.toStringWithPort(), requestor.toStringWithPort());
+      }
     }
-    BOOST_CHECK_LE(shard->respRing.size(), entriesPerShard);
-    // verify that the shard is not empty
-    BOOST_CHECK_GT(shard->queryRing.size(), (entriesPerShard * 0.5) + 1);
-    // this would be optimal
-    BOOST_WARN_GT(shard->respRing.size(), entriesPerShard * 0.95);
-    totalResponses += shard->respRing.size();
-    for (const auto& entry : shard->respRing) {
-      BOOST_CHECK_EQUAL(entry.name, qname);
-      BOOST_CHECK_EQUAL(entry.qtype, qtype);
-      BOOST_CHECK_EQUAL(entry.size, size);
-      BOOST_CHECK_EQUAL(entry.when.tv_sec, now.tv_sec);
-      BOOST_CHECK_EQUAL(entry.requestor.toStringWithPort(), requestor.toStringWithPort());
-      BOOST_CHECK_EQUAL(entry.usec, latency);
-      BOOST_CHECK_EQUAL(entry.ds.toStringWithPort(), server.toStringWithPort());
+    {
+      auto ring = shard->respRing.lock();
+      BOOST_CHECK_LE(ring->size(), entriesPerShard);
+      // verify that the shard is not empty
+      BOOST_CHECK_GT(ring->size(), (entriesPerShard * 0.5) + 1);
+      // this would be optimal
+      BOOST_WARN_GT(ring->size(), entriesPerShard * 0.95);
+      totalResponses += ring->size();
+      for (const auto& entry : *ring) {
+        BOOST_CHECK_EQUAL(entry.name, qname);
+        BOOST_CHECK_EQUAL(entry.qtype, qtype);
+        BOOST_CHECK_EQUAL(entry.size, size);
+        BOOST_CHECK_EQUAL(entry.when.tv_sec, now.tv_sec);
+        BOOST_CHECK_EQUAL(entry.requestor.toStringWithPort(), requestor.toStringWithPort());
+        BOOST_CHECK_EQUAL(entry.usec, latency);
+        BOOST_CHECK_EQUAL(entry.ds.toStringWithPort(), server.toStringWithPort());
+      }
     }
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), totalQueries);
