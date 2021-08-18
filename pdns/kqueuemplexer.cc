@@ -39,27 +39,31 @@ class KqueueFDMultiplexer : public FDMultiplexer
 {
 public:
   KqueueFDMultiplexer();
-  virtual ~KqueueFDMultiplexer()
+  ~KqueueFDMultiplexer()
   {
-    close(d_kqueuefd);
+    if (d_kqueuefd >= 0) {
+      close(d_kqueuefd);
+    }
   }
 
-  virtual int run(struct timeval* tv, int timeout=500) override;
-  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
+  int run(struct timeval* tv, int timeout = 500) override;
+  void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd=nullptr) override;
-  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  void addFD(int fd, FDMultiplexer::EventKind kind) override;
+  void removeFD(int fd, FDMultiplexer::EventKind kind) override;
+
   string getName() const override
   {
     return "kqueue";
   }
+
 private:
   int d_kqueuefd;
   boost::shared_array<struct kevent> d_kevents;
   static unsigned int s_maxevents; // not a hard maximum
 };
 
-unsigned int KqueueFDMultiplexer::s_maxevents=1024;
+unsigned int KqueueFDMultiplexer::s_maxevents = 1024;
 
 static FDMultiplexer* make()
 {
@@ -68,94 +72,142 @@ static FDMultiplexer* make()
 
 static struct KqueueRegisterOurselves
 {
-  KqueueRegisterOurselves() {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
+  KqueueRegisterOurselves()
+  {
+    FDMultiplexer::getMultiplexerMap().emplace(0, &make); // priority 0!
   }
 } kQueueDoIt;
 
-KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
+KqueueFDMultiplexer::KqueueFDMultiplexer() :
+  d_kevents(new struct kevent[s_maxevents])
 {
-  d_kqueuefd=kqueue();
-  if(d_kqueuefd < 0)
-    throw FDMultiplexerException("Setting up kqueue: "+stringerror());
-}
-
-void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
-{
-  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
-
-  struct kevent kqevent;
-  EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_ADD, 0,0,0);
-
-  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) {
-    cbmap.erase(fd);
-    throw FDMultiplexerException("Adding fd to kqueue set: "+stringerror());
+  d_kqueuefd = kqueue();
+  if (d_kqueuefd < 0) {
+    throw FDMultiplexerException("Setting up kqueue: " + stringerror());
   }
 }
 
-void KqueueFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
+static uint32_t convertEventKind(FDMultiplexer::EventKind kind)
 {
-  accountingRemoveFD(cbmap, fd);
+  switch (kind) {
+  case FDMultiplexer::EventKind::Read:
+    return EVFILT_READ;
+  case FDMultiplexer::EventKind::Write:
+    return EVFILT_WRITE;
+  case FDMultiplexer::EventKind::Both:
+    throw std::runtime_error("Read and write events cannot be combined in one go with kqueue");
+  }
 
-  struct kevent kqevent;
-  EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_DELETE, 0,0,0);
-  
-  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) // ponder putting Callback back on the map..
-    throw FDMultiplexerException("Removing fd from kqueue set: "+stringerror());
+  throw std::runtime_error("Unhandled event kind in the kqueue multiplexer");
+}
+
+void KqueueFDMultiplexer::addFD(int fd, FDMultiplexer::EventKind kind)
+{
+  struct kevent kqevents[2];
+  int nevents = 0;
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Read) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Read), EV_ADD, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Write) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Write), EV_ADD, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kevent(d_kqueuefd, kqevents, nevents, 0, 0, 0) < 0) {
+    throw FDMultiplexerException("Adding fd to kqueue set: " + stringerror());
+  }
+}
+
+void KqueueFDMultiplexer::removeFD(int fd, FDMultiplexer::EventKind kind)
+{
+  struct kevent kqevents[2];
+  int nevents = 0;
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Read) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Read), EV_DELETE, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kind == FDMultiplexer::EventKind::Both || kind == FDMultiplexer::EventKind::Write) {
+    EV_SET(&kqevents[nevents], fd, convertEventKind(FDMultiplexer::EventKind::Write), EV_DELETE, 0, 0, 0);
+    nevents++;
+  }
+
+  if (kevent(d_kqueuefd, kqevents, nevents, 0, 0, 0) < 0) {
+    // ponder putting Callback back on the map..
+    throw FDMultiplexerException("Removing fd from kqueue set: " + stringerror());
+  }
 }
 
 void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 {
   struct timespec ts;
-  ts.tv_sec=timeout/1000;
-  ts.tv_nsec=(timeout % 1000) * 1000000;
+  ts.tv_sec = timeout / 1000;
+  ts.tv_nsec = (timeout % 1000) * 1000000;
 
   int ret = kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
 
-  if(ret < 0 && errno != EINTR)
-    throw FDMultiplexerException("kqueue returned error: "+stringerror());
+  if (ret < 0 && errno != EINTR) {
+    throw FDMultiplexerException("kqueue returned error: " + stringerror());
+  }
 
-  for(int n=0; n < ret; ++n) {
-    fds.push_back(d_kevents[n].ident);
+  // we de-duplicate here, since if a descriptor is readable AND writable
+  // we will get two events
+  std::unordered_set<int> fdSet;
+  fdSet.reserve(ret);
+  for (int n = 0; n < ret; ++n) {
+    fdSet.insert(d_kevents[n].ident);
+  }
+
+  for (const auto fd : fdSet) {
+    fds.push_back(fd);
   }
 }
 
 int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
 {
-  if(d_inrun) {
+  if (d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  
+
   struct timespec ts;
-  ts.tv_sec=timeout/1000;
-  ts.tv_nsec=(timeout % 1000) * 1000000;
+  ts.tv_sec = timeout / 1000;
+  ts.tv_nsec = (timeout % 1000) * 1000000;
 
-  int ret=kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
-  gettimeofday(now,0); // MANDATORY!
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
+  gettimeofday(now, nullptr); // MANDATORY!
 
-  if(ret < 0 && errno!=EINTR)
-    throw FDMultiplexerException("kqueue returned error: "+stringerror());
+  if (ret < 0 && errno != EINTR) {
+    throw FDMultiplexerException("kqueue returned error: " + stringerror());
+  }
 
-  if(ret < 0) // nothing - thanks AB!
+  if (ret < 0) {
+    // nothing - thanks AB!
     return 0;
+  }
 
-  d_inrun=true;
+  d_inrun = true;
 
-  for(int n=0; n < ret; ++n) {
-    d_iter=d_readCallbacks.find(d_kevents[n].ident);
-    if(d_iter != d_readCallbacks.end()) {
-      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
-      continue; // so we don't find ourselves as writable again
+  for (int n = 0; n < ret; ++n) {
+    if (d_kevents[n].filter == EVFILT_READ) {
+      const auto& iter = d_readCallbacks.find(d_kevents[n].ident);
+      if (iter != d_readCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
+      }
     }
 
-    d_iter=d_writeCallbacks.find(d_kevents[n].ident);
-
-    if(d_iter != d_writeCallbacks.end()) {
-      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
+    if (d_kevents[n].filter == EVFILT_WRITE) {
+      const auto& iter = d_writeCallbacks.find(d_kevents[n].ident);
+      if (iter != d_writeCallbacks.end()) {
+        iter->d_callback(iter->d_fd, iter->d_parameter);
+      }
     }
   }
 
-  d_inrun=false;
+  d_inrun = false;
   return ret;
 }
 
@@ -173,7 +225,7 @@ void acceptData(int fd, boost::any& parameter)
 int main()
 {
   Socket s(AF_INET, SOCK_DGRAM);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 
@@ -188,6 +240,3 @@ int main()
   sfm.removeReadFD(s.getHandle());
 }
 #endif
-
-
-

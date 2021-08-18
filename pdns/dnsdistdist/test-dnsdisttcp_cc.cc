@@ -341,20 +341,12 @@ public:
   {
   }
 
-  void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr) override
+  void addFD(int fd, FDMultiplexer::EventKind kind) override
   {
-    accountingAddFD(cbmap, fd, toDo, parameter, ttd);
   }
 
-  void removeFD(callbackmap_t& cbmap, int fd) override
+  void removeFD(int fd, FDMultiplexer::EventKind) override
   {
-    accountingRemoveFD(cbmap, fd);
-  }
-
-  void alterFD(callbackmap_t& from, callbackmap_t& to, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd) override
-  {
-    accountingRemoveFD(from, fd);
-    accountingAddFD(to, fd, toDo, parameter, ttd);
   }
 
   string getName() const override
