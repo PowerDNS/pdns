@@ -2382,7 +2382,15 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
       s_dontqueries++;
       return true;
     } else {
-      LOG(prefix<<qname<<": sending query to " << remoteIP.toString() << ", blocked by 'dont-query' but a forwarding/auth case" << endl);
+      // The name (from the cache) is forwarded, but is it forwarded to an IP in known forwarders?
+      const auto& ips = it->second.d_servers;
+      if (std::find(ips.cbegin(), ips.cend(), remoteIP) == ips.cend()) {
+        LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
+        s_dontqueries++;
+        return true;
+      } else {
+        LOG(prefix<<qname<<": sending query to " << remoteIP.toString() << ", blocked by 'dont-query' but a forwarding/auth case" << endl);
+      }
     }
   }
   return false;
