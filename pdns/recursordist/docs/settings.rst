@@ -474,7 +474,7 @@ This can have odd effects, depending on your network, and may even be a security
 Therefore, the PowerDNS Recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
-Queries to addresses for zones as configured in any of the settings `forward-zones`_, `forward-zones-file`_ or `forward-zones-recurse`_ are performed regardless of these limitations.
+Queries for names in forward zones and to addresses as configured in any of the settings `forward-zones`_, `forward-zones-file`_ or `forward-zones-recurse`_ are performed regardless of these limitations.
 
 .. _setting-ecs-add-for:
 
