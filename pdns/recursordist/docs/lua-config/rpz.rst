@@ -141,6 +141,7 @@ The maximum TTL value of the synthesized records, overriding a higher value from
 policyName
 ^^^^^^^^^^
 The name logged as 'appliedPolicy' in :doc:`protobuf <protobuf>` messages when this policy is applied.
+Defaults to ``rpzFile`` for RPZs loaded by :func:`rpzFile` or the name of the zone for RPZs loaded by :func:`rpzPrimary`.
 
 tags
 ^^^^

@@ -23,36 +23,31 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
-#include <vector>
-#include <inttypes.h>
-#include <unistd.h>
-#include <atomic>
+#include <map>
 
 // Metric types for Prometheus
-enum class PrometheusMetricType : int
+enum class PrometheusMetricType
 {
-  counter = 1,
-  gauge = 2,
-  histogram = 3,
-  multicounter = 4
+  counter,
+  gauge,
+  histogram,
+  multicounter
 };
 
 // Keeps additional information about metrics
 struct MetricDefinition
 {
-  MetricDefinition(const PrometheusMetricType& prometheusType_, const std::string& description_)
+  MetricDefinition(const PrometheusMetricType prometheusType, const std::string& description) :
+    d_description(description), d_prometheusType(prometheusType)
   {
-    prometheusType = prometheusType_;
-    description = description_;
   }
 
   MetricDefinition() = default;
 
   // Metric description
-  std::string description;
+  std::string d_description;
   // Metric type for Prometheus
-  PrometheusMetricType prometheusType;
+  PrometheusMetricType d_prometheusType;
 };
 
 class MetricDefinitionStorage
@@ -61,9 +56,9 @@ public:
   // Return metric definition by name
   bool getMetricDetails(const std::string& metricName, MetricDefinition& metric)
   {
-    auto metricDetailsIter = metrics.find(metricName);
+    auto metricDetailsIter = d_metrics.find(metricName);
 
-    if (metricDetailsIter == metrics.end()) {
+    if (metricDetailsIter == d_metrics.end()) {
       return false;
     }
 
@@ -72,7 +67,7 @@ public:
   };
 
   // Return string representation of Prometheus metric type
-  std::string getPrometheusStringMetricType(const PrometheusMetricType& metricType)
+  static std::string getPrometheusStringMetricType(const PrometheusMetricType metricType)
   {
     switch (metricType) {
     case PrometheusMetricType::counter:
@@ -85,7 +80,8 @@ public:
       return "histogram";
       break;
     case PrometheusMetricType::multicounter:
-      return "multicounter";
+      // A multicounter produces multiple values of type "counter"
+      return "counter";
       break;
     default:
       return "";
@@ -95,7 +91,5 @@ public:
 
 private:
   // Description and types for prometheus output of stats
-  static const std::map<std::string, MetricDefinition> metrics;
+  static const std::map<std::string, MetricDefinition> d_metrics;
 };
-
-extern MetricDefinitionStorage g_metricDefinitions;
