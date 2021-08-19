@@ -947,16 +947,18 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       return 0;
     }
 
-    if (h2o_socket_get_ssl_session_reused(sock) == 0) {
-      ++dsc->cs->tlsNewSessions;
-    }
-    else {
-      ++dsc->cs->tlsResumptions;
-    }
-
     const int descriptor = h2o_socket_get_fd(sock);
     if (descriptor != -1) {
-      ++t_conns.at(descriptor).d_nbQueries;
+      auto& conn = t_conns.at(descriptor);
+      ++conn.d_nbQueries;
+      if (conn.d_nbQueries == 1) {
+        if (h2o_socket_get_ssl_session_reused(sock) == 0) {
+          ++dsc->cs->tlsNewSessions;
+        }
+        else {
+          ++dsc->cs->tlsResumptions;
+        }
+      }
     }
 
     if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
