@@ -789,7 +789,11 @@ public:
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
   static bool s_dot_to_port_853;
-  
+
+  static const int event_trace_to_pb = 1;
+  static const int event_trace_to_log = 2;
+  static int s_event_trace_enabled;
+
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;

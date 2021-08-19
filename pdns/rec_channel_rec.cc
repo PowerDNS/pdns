@@ -1882,6 +1882,20 @@ static string clearDontThrottleNetmasks(T begin, T end) {
   return ret + "\n";
 }
 
+template <typename T>
+static string setEventTracing(T begin, T end)
+{
+  if (begin == end) {
+    return "No event trace enabled value specified\n";
+  }
+  try {
+    SyncRes::s_event_trace_enabled = pdns_stou(*begin);
+    return "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new event trace enabled value: " + std::string(e.what()) + "\n";
+  }
+}
 
 RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
 {
@@ -1940,6 +1954,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "set-minimum-ttl value            set minimum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
 "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
+"set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = prottobuf, 2 = log file, 3 = both\n"
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-largeanswer-remotes          show top remotes receiving large answers\n"
 "top-queries                      show top queries\n"
@@ -2156,6 +2171,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "clear-dont-throttle-netmasks") {
     return {0, clearDontThrottleNetmasks(begin, end)};
+  }
+  if (cmd == "set-event-trace-enabled") {
+    return {0, setEventTracing(begin, end)};
   }
 
   return {1, "Unknown command '"+cmd+"', try 'help'\n"};

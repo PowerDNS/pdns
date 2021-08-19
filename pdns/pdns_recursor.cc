@@ -1109,7 +1109,7 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
     pbMessage.setNewlyObservedDomain(false);
   }
 #endif
-  if (eventTrace.enabled()) {
+  if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
     pbMessage.addEvents(eventTrace);
   }
   protobufLogResponse(pbMessage);
@@ -2336,7 +2336,7 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
-      if (sr.d_eventTrace.enabled()) {
+      if (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
         pbMessage.addEvents(sr.d_eventTrace);
       }
       if (dc->d_logResponse) {
@@ -2344,7 +2344,7 @@ static void startDoResolve(void *p)
       }
     }
 
-    if (sr.d_eventTrace.enabled()) {
+    if (sr.d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
       g_log << Logger::Info << sr.d_eventTrace.toString() << endl;
     }
 
@@ -2749,7 +2749,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool logQuery = false;
       bool qnameParsed = false;
 
-      dc->d_eventTrace.setEnabled(true);
+      dc->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
       dc->d_eventTrace.add(RecEventTrace::RecRecv);
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
@@ -2902,7 +2902,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
           }
 
-          if (dc->d_eventTrace.enabled()) {
+          if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
             g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
           }
         } else {
@@ -3153,7 +3153,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
       }
 
-      if (eventTrace.enabled()) {
+      if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
         g_log << Logger::Info << eventTrace.toString() << endl;
       }
       if (sendErr && g_logCommonErrors) {
@@ -3258,7 +3258,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
       eventTrace.clear();
-      eventTrace.setEnabled(true);
+      eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
       eventTrace.add(RecEventTrace::RecRecv);
 
       firstQuery = false;
@@ -4981,6 +4981,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
+  SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
@@ -5999,6 +6000,7 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
+    ::arg().set("event-trace-enabled", "If set, event traces are collected and send out via protobuf logging (1), logfile (2) or both(3)")="0";
 
     ::arg().set("tcp-out-max-idle-ms", "Time TCP/DoT connections are left idle in milliseconds or 0 if no limit") = "10000";
     ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";

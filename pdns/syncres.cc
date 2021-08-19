@@ -100,6 +100,7 @@ unsigned int SyncRes::s_refresh_ttlperc;
 int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
 bool SyncRes::s_dot_to_port_853;
+int SyncRes::s_event_trace_enabled;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
