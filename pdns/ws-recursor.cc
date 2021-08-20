@@ -446,30 +446,25 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
     for (const auto& tup : varmap) {
         std::string metricName = tup.first;
         std::string prometheusMetricName = tup.second.d_prometheusName;
+        std::string helpname = tup.second.d_prometheusName;
         MetricDefinition metricDetails;
 
         if (s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
           std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(
-                  metricDetails.prometheusType);
+                  metricDetails.d_prometheusType);
 
           if (prometheusTypeName.empty()) {
             continue;
           }
-          if (metricDetails.prometheusType == PrometheusMetricType::multicounter) {
-            string shortname = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
-            output << "# HELP " << shortname << " " << metricDetails.description << "\n";
-            output << "# TYPE " << shortname << " " << "counter" << "\n";
+          if (metricDetails.d_prometheusType == PrometheusMetricType::multicounter) {
+            helpname = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
           }
-          else if (metricDetails.prometheusType == PrometheusMetricType::histogram) {
+          else if (metricDetails.d_prometheusType == PrometheusMetricType::histogram) {
             // name is XXX_count, strip the _count part
-            string shortname = prometheusMetricName.substr(0, prometheusMetricName.length() - 6);
-            output << "# HELP " << shortname << " " << metricDetails.description << "\n";
-            output << "# TYPE " << shortname << " " << prometheusTypeName << "\n";
-          } else {
-            // for these we have the help and types encoded in the sources:
-            output << "# HELP " << prometheusMetricName << " " << metricDetails.description << "\n";
-            output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
+            helpname = prometheusMetricName.substr(0, prometheusMetricName.length() - 6);
           }
+          output << "# TYPE " << helpname << " " << prometheusTypeName << "\n";
+          output << "# HELP " << helpname << " " << metricDetails.d_description << "\n";
         }
         output << prometheusMetricName << " " << tup.second.d_value << "\n";
     }
@@ -518,7 +513,7 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   }
 }
 
-const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics = {
+const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
   {"all-outqueries",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of outgoing UDP queries since starting")},
@@ -1089,6 +1084,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
   { "almost-expired-exceptions",
     MetricDefinition(PrometheusMetricType::counter,
                      "number of almost-expired tasks that caused an exception")},
+
+  // For multicounters, state the first
+  { "policy-hits",
+    MetricDefinition(PrometheusMetricType::multicounter,
+                     "Number of filter or RPZ policy hits")},
 };
 
 #define CHECK_PROMETHEUS_METRICS 0

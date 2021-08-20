@@ -1145,12 +1145,35 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-
   for (unsigned int n = 0; n < g_numThreads; ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=" + std::to_string(n) + '}';
     entries.emplace(make_pair(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)}));
   }
+  return entries;
+}
+
+static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map<std::string, std::atomic<uint64_t>>>& map)
+{
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+
+  uint64_t total = 0;
+  for (const auto& entry: *map.lock()) {
+    auto &key = entry.first;
+    auto count = entry.second.load();
+    std::string sname, pname;
+    if (key.empty()) {
+      sname = name + "-filter";
+      pname = pbasename + "{type=\"filter\"}";
+    } else {
+      sname = name + "-rpz-" + key;
+      pname = pbasename + "{type=\"rpz\",policyname=\"" + key + "\"}";
+    }
+    entries.emplace(sname, StatsMapEntry{pname, std::to_string(count)});
+    total += count;
+  }
+  entries.emplace(name, StatsMapEntry{pbasename, std::to_string(total)});
   return entries;
 }
 
@@ -1409,6 +1432,9 @@ static void registerAllStats1()
   });
   addGetStat("cumul-auth6answers", []() {
     return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers);
+  });
+  addGetStat("policy-hits", []() {
+    return toRPZStatsMap("policy-hits", g_stats.policyHits);
   });
 }
 
