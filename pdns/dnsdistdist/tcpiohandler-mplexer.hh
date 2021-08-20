@@ -27,7 +27,13 @@ public:
     /* be careful that this won't save us if the callback is still registered to the multiplexer,
        because in that case the shared pointer count will never reach zero so this destructor won't
        be called */
-    reset();
+    try {
+      reset();
+    }
+    catch (const FDMultiplexerException& e) {
+      /* that should not happen, but an exception raised from a destructor would be bad so better
+         safe than sorry */
+    }
   }
 
   IOState getState() const
