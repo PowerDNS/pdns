@@ -26,7 +26,7 @@
 #include <map>
 
 // Metric types for Prometheus
-enum class PrometheusMetricType
+enum class PrometheusMetricType : uint8_t
 {
   counter,
   gauge,

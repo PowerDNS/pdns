@@ -597,7 +597,7 @@ packets dropped because of (Lua) policy decision
 policy-hits
 ^^^^^^^^^^^
 Number of policy decisions based on Lua (``type = "filter"``), or RPZ (``type = "rpz"``). RPZ hits include the :ref:`rpz-policyName`.
-These metrics are useful for Prometheus and not listed other outputs by default.
+These metrics are useful for Prometheus and not listed in other outputs by default.
 
 policy-result-noaction
 ^^^^^^^^^^^^^^^^^^^^^^

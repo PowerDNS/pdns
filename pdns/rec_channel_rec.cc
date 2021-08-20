@@ -1153,13 +1153,13 @@ static StatsMap toCPUStatsMap(const string& name)
   return entries;
 }
 
-static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::string, std::atomic<uint64_t>>& map)
+static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map<std::string, std::atomic<uint64_t>>>& map)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
 
   uint64_t total = 0;
-  for (const auto& entry: map) {
+  for (const auto& entry: *map.lock()) {
     auto &key = entry.first;
     auto count = entry.second.load();
     std::string sname, pname;
@@ -1168,7 +1168,7 @@ static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::
       pname = pbasename + "{type=\"filter\"}";
     } else {
       sname = name + "-rpz-" + key;
-      pname = pbasename + "{type=\"rpz\",policyname=\"" + entry.first + "\"}";
+      pname = pbasename + "{type=\"rpz\",policyname=\"" + key + "\"}";
     }
     entries.emplace(sname, StatsMapEntry{pname, std::to_string(count)});
     total += count;
