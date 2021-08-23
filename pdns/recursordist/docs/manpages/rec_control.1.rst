@@ -218,6 +218,9 @@ set-max-packetcache-entries *NUM*
 set-minimum-ttl *NUM*
     Set minimum-ttl-override to *NUM*.
 
+set-event-trace-enabled *NUM*
+    Set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both.
+
 top-queries
     Shows the top-20 queries. Statistics are over the last
     'stats-ringbuffer-entries' queries.

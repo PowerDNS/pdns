@@ -706,6 +706,18 @@ Change to ``/dev/random`` if PowerDNS should block waiting for enough entropy to
 The path to the /etc/hosts file, or equivalent.
 This file can be used to serve data authoritatively using `export-etc-hosts`_.
 
+.. _setting-event-trace-enabled:
+
+``event-trace-enabled``
+-----------------------
+.. versionadded:: 4.6.0
+
+- Integer
+- Default: 0
+
+Enable the recording and logging of ref:`event traces`. This is an experimental feature subject to change.
+Possible values are 0: (disabled), 1 (add information to protobuf logging messages) and 2 (write to log) and 3 (both).
+
 .. _setting-export-etc-hosts:
 
 ``export-etc-hosts``
