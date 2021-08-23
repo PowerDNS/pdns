@@ -5928,7 +5928,7 @@ int main(int argc, char **argv)
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources")="padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.")="7830";
 
-    ::arg().set("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
+    ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
 
     ::arg().setCmd("help","Provide a helpful message");
