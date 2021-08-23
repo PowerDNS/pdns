@@ -41,8 +41,8 @@ static void usage()
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
-          "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
-          "dumpluaraw"
+          "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT] "
+          "[dumpluaraw]"
        << endl;
 }
 
