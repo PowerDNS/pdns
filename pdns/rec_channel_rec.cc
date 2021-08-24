@@ -1153,7 +1153,7 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
     snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
     pname = pbasename + "seconds_bucket{ipversion=\"v4\",le=\"" +
       (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
-    entries.emplace(bucket.d_name + "-4", StatsMapEntry{pname, std::to_string(bucket.d_count)});
+    entries.emplace(bucket.d_name + "4", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
 
   const auto& data6 = histogram6.getCumulativeBuckets();
@@ -1161,7 +1161,7 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
     snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
     pname = pbasename + "seconds_bucket{ipversion=\"v6\",le=\"" +
       (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
-    entries.emplace(bucket.d_name + "-6", StatsMapEntry{pname, std::to_string(bucket.d_count)});
+    entries.emplace(bucket.d_name + "6", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
 
   snprintf(buf, sizeof(buf), "%g", (histogram4.getSum() +  histogram6.getSum()) / 1e6);
