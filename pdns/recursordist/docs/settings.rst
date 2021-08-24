@@ -1887,6 +1887,43 @@ The numerical value supplied is used as the queue size, 0 meaning disabled. See 
 
 Enable TCP Fast Open Connect support, if available, on the outgoing connections to authoritative servers. See :ref:`tcp-fast-open-support`.
 
+``tcpout-maxidle-ms``
+---------------------
+.. versionadded:: 4.6.0
+
+-  Integer
+-  Default : 10000
+
+Time outgoing TCP/DoT connections are left idle in milliseconds or 0 if no limit. After having been idle for this time, the connection is elegible for closing.
+
+``tcpout-maxidle-per-auth``
+---------------------------
+.. versionadded:: 4.6.0
+
+-  Integer
+-  Default : 10
+
+Maximum number of idle outgoing TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open.
+
+``tcpout-max-queries``
+----------------------
+-  Integer
+-  Default : 0
+
+Maximum total number of queries per outgoing TCP/DoT connection, 0 means no limit. After this number of queries, the concection is
+closed and a new one will be created if needed.
+
+.. versionadded:: 4.6.0
+
+``tcpout-maxidle-per-thread``
+-----------------------------
+.. versionadded:: 4.6.0
+
+-  Integer
+-  Default : 0
+
+Maximum number of idle outgoing TCP/DoT connections per thread, 0 means do not keep idle connections open.
+
 .. _setting-threads:
 
 ``threads``

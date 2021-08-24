@@ -235,7 +235,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-static LWResult::Result asyncresolve1(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
+static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
@@ -347,6 +347,10 @@ static LWResult::Result asyncresolve1(const ComboAddress& ip, const DNSName& dom
   else {
     try {
       while (true) {
+        // If we get a new (not re-used) TCP connection that does not
+        // work, we give up. For reused connections, we assume the
+        // peer has closed it on error, so we retry. At some point we
+        // *will* get a new connection, so this loop is not endless.
         bool isNew = false;
         connection = t_tcp_manager.get(ip);
         if (!connection.d_handler) {
@@ -424,7 +428,6 @@ static LWResult::Result asyncresolve1(const ComboAddress& ip, const DNSName& dom
         }
         buf.resize(len);
         memcpy(buf.data(), packet.data(), len);
-        //handler->close();
         ret = LWResult::Result::Success;
         break;
       }
@@ -548,11 +551,11 @@ static LWResult::Result asyncresolve1(const ComboAddress& ip, const DNSName& dom
 LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
 {
   TCPOutConnectionManager::Connection connection;
-  auto ret = asyncresolve1(ip, domain, type,doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
+  auto ret = asyncresolve(ip, domain, type,doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
 
   if (doTCP) {
     if (!lwr->d_validpacket) {
-      ret = asyncresolve1(ip, domain, type,doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
+      ret = asyncresolve(ip, domain, type,doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
     } 
     if (connection.d_handler && lwr->d_validpacket) {
       t_tcp_manager.store(ip, connection);

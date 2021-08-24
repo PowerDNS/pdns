@@ -5942,10 +5942,10 @@ int main(int argc, char **argv)
     ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
 
-    ::arg().set("tcpout-maxidle-ms", "Maximum time TCP connections are left idle in milliseconds or 0 if no limit") = "10000";
-    ::arg().set("tcpout-maxidle-per-auth", "Maximum number of idle TCP connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
-    ::arg().set("tcpout-max-queries", "Maximum total number of queries per connection, 0 means no limit") = "0";
-    ::arg().set("tcpout-maxidle-per-thread", "Maximum number of idle TCP connections per thread") = "100";
+    ::arg().set("tcpout-maxidle-ms", "Time TCP/DoT connections are left idle in milliseconds or 0 if no limit") = "10000";
+    ::arg().set("tcpout-maxidle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
+    ::arg().set("tcpout-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
+    ::arg().set("tcpout-maxidle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

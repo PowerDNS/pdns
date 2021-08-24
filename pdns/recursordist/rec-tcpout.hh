@@ -35,7 +35,7 @@ public:
   static size_t maxIdlePerAuth;
   // Max total number of queries to handle per connection, 0 is no max
   static size_t maxQueries;
-  // Per thread max # of idle connections, here 0 means a real limit
+  // Per thread max # of idle connections, 0 means no idle connections will be kept open
   static size_t maxIdlePerThread;
 
   struct Connection
