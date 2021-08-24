@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(test_simple)
   h(4);
   h(100);
   h(101);
-  h(-1);
+  h(-1); // actually a very large value, but for sum it will boil down to be -1 */
 
   auto data = h.getRawData();
   BOOST_CHECK_EQUAL(data.size(), 6U);
@@ -60,6 +60,7 @@ BOOST_AUTO_TEST_CASE(test_simple)
   for (auto e : cexpected) {
     BOOST_CHECK_EQUAL(c[i++], e);
   }
+  BOOST_CHECK_EQUAL(h.getSum(), 209U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
