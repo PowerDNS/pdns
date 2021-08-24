@@ -4,6 +4,10 @@ AM_CPPFLAGS += \
 	$(LIBCRYPTO_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
+if LUA
+AM_CPPFLAGS +=$(LUA_CFLAGS)
+endif
+
 AM_LDFLAGS = $(THREADFLAGS)
 
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la

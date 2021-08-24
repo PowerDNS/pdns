@@ -53,6 +53,8 @@ extern int isGuarded( char ** );
 void carbonDumpThread();
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
+extern NetmaskGroup g_proxyProtocolACL;
+extern size_t g_proxyProtocolMaximumSize;
 #ifdef HAVE_LUA_RECORDS
 extern bool g_doLuaRecord;
 extern bool g_LuaRecordSharedState;

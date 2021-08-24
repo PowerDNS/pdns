@@ -67,8 +67,49 @@ const string& DNSPacket::getString()
   return d_rawpacket;
 }
 
+string DNSPacket::getRemoteString() const
+{
+  string ret;
+
+  ret = getRemote().toString();
+
+  if (d_inner_remote) {
+    ret += "(" + d_inner_remote->toString() + ")";
+  }
+
+  if(hasEDNSSubnet()) {
+    ret += "<-" + getRealRemote().toString();
+  }
+
+  return ret;
+}
+
+string DNSPacket::getRemoteStringWithPort() const
+{
+  string ret;
+
+  ret = getRemote().toStringWithPort();
+
+  if (d_inner_remote) {
+    ret += "(" + d_inner_remote->toStringWithPort() + ")";
+  }
+
+  if(hasEDNSSubnet()) {
+    ret += "<-" + getRealRemote().toString();
+  }
+
+  return ret;
+}
+
 ComboAddress DNSPacket::getRemote() const
 {
+  return d_remote;
+}
+
+ComboAddress DNSPacket::getInnerRemote() const
+{
+  if (d_inner_remote)
+    return *d_inner_remote;
   return d_remote;
 }
 
@@ -369,6 +410,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->setSocket(d_socket);
   r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
+  r->d_inner_remote=d_inner_remote;
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
   r->setRA(false); // no recursion available
@@ -423,7 +465,7 @@ int DNSPacket::noparse(const char *mesg, size_t length)
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
     g_log << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
-      << d_remote.toStringWithPort()<< endl;
+      << getRemoteStringWithPort();
     return -1;
   }
   d_wantsnsid=false;
@@ -593,9 +635,15 @@ void DNSPacket::setMaxReplyLen(int bytes)
 }
 
 //! Use this to set where this packet was received from or should be sent to
-void DNSPacket::setRemote(const ComboAddress *s)
+void DNSPacket::setRemote(const ComboAddress *outer, std::optional<ComboAddress> inner)
 {
-  d_remote=*s;
+  d_remote=*outer;
+  if (inner) {
+    d_inner_remote=*inner;
+  }
+  else {
+    d_inner_remote.reset();
+  }
 }
 
 bool DNSPacket::hasEDNSSubnet() const
@@ -612,7 +660,7 @@ Netmask DNSPacket::getRealRemote() const
 {
   if(d_haveednssubnet)
     return d_eso.source;
-  return Netmask(d_remote);
+  return Netmask(getInnerRemote());
 }
 
 void DNSPacket::setSocket(Utility::sock_t sock)

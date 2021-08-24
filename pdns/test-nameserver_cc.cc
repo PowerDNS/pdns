@@ -11,6 +11,8 @@
 #include <utility>
 
 extern vector<ComboAddress> g_localaddresses;
+NetmaskGroup g_proxyProtocolACL;
+size_t g_proxyProtocolMaximumSize = 512;
 
 BOOST_AUTO_TEST_SUITE(test_nameserver_cc)
 

@@ -64,6 +64,8 @@ double avg_latency{0.0};
 unique_ptr<TCPNameserver> TN;
 static vector<DNSDistributor*> g_distributors;
 vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
+NetmaskGroup g_proxyProtocolACL;
+size_t g_proxyProtocolMaximumSize;
 
 ArgvMap &arg()
 {
@@ -93,6 +95,8 @@ void declareArguments()
   ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
+  ::arg().set("proxy-protocol-from","A Proxy Protocol header is only allowed from these subnets, and is mandatory then too.")="";
+  ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values")="512";
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; //FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY")="yes";
@@ -435,7 +439,6 @@ try
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   shared_ptr<UDPNameserver> NS;
   std::string buffer;
-  buffer.resize(DNSPacket::s_udpTruncationThreshold);
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
@@ -449,6 +452,13 @@ try
   }
 
   for(;;) {
+    if (g_proxyProtocolACL.empty()) {
+      buffer.resize(DNSPacket::s_udpTruncationThreshold);
+    }
+    else {
+      buffer.resize(DNSPacket::s_udpTruncationThreshold + g_proxyProtocolMaximumSize);
+    }
+
     if(!NS->receive(question, buffer)) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
@@ -469,12 +479,7 @@ try
     S.ringAccount("queries", question.qdomain, question.qtype);
     S.ringAccount("remotes", question.d_remote);
     if(logDNSQueries) {
-      string remote;
-      if(question.hasEDNSSubnet()) 
-        remote = question.getRemote().toString() + "<-" + question.getRealRemote().toString();
-      else
-        remote = question.getRemote().toString();
-      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.toString() << 
+      g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype.toString() <<
         "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
       if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
         g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
@@ -562,6 +567,9 @@ void mainthread()
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
+
+   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
    PC.setTTL(::arg().asNum("cache-ttl"));
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
