@@ -64,6 +64,7 @@ jobs:
         with:
           name: pdns-recursor
           path: /opt/pdns-recursor
+
   build-dnsdist:
     name: build dnsdist
     runs-on: ubuntu-20.04
@@ -141,6 +142,55 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-api auth -b ${{ matrix.backend }}
+
+  test-auth-backend:
+    needs: build-auth
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    strategy:
+      matrix:
+        include:
+          - backend: remote
+            image: coscale/docker-sleep
+          # - backend: gmysql
+          #   image: mysql:5
+          # - backend: gpgsql
+          #   image: postgres:9
+          # - backend: lmdb
+          #   image: coscale/docker-sleep
+      fail-fast: false
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_HOST_AUTH_METHOD: trust
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        ports:
+          - 3306:3306
+          - 5432:5432
+        # FIXME: this works around dist-upgrade stopping all docker containers. dist-upgrade is huge on these images anyway. Perhaps we do want to run our tasks in a Docker container too.
+        options: >-
+          --restart always
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+      # FIXME: install recursor for backends that have ALIAS
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang-runtime
+      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
+      - run: inv test-auth-backend -b ${{ matrix.backend }}
 
   test-recursor-api:
     needs: build-recursor

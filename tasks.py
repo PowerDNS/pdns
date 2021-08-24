@@ -87,6 +87,8 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libyaml-cpp0.6',
     'libzmq3-dev',
     'pdns-recursor',
+    'ruby-bundler',
+    'ruby-dev',
     'socat',
     'softhsm2',
     'unbound-host',
@@ -123,7 +125,8 @@ auth_backend_test_deps = dict(
     gsqlite3=['sqlite3'],
     gmysql=['default-libmysqlclient-dev'],
     gpgsql=['libpq-dev'],
-    lmdb=[]
+    lmdb=[],
+    remote=[]
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
@@ -282,8 +285,8 @@ def ci_dnsdist_make(c):
 @task
 def ci_auth_install_remotebackend_ruby_deps(c):
     with c.cd('modules/remotebackend'):
-      c.run('bundle config set path vendor/bundle')
-      c.run('ruby -S bundle install')
+      # c.run('bundle config set path vendor/bundle')
+      c.run('sudo ruby -S bundle install')
 
 @task
 def ci_auth_run_unit_tests(c):
@@ -337,6 +340,21 @@ def test_api(c, product, backend=''):
             c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests authoritative {backend}')
     else:
         raise Failure('unknown product')
+
+backend_regress_tests = dict(
+    remote = ['pipe', 'unix', 'http', 'zeromq', 'pipe-dnssec', 'unix-dnssec', 'http-dnssec', 'zeromq-dnssec']
+)
+
+@task
+def test_auth_backend(c, backend):
+    if backend == 'remote':
+        ci_auth_install_remotebackend_ruby_deps(c)
+
+    with c.cd('regression-tests'):
+        for t in backend_regress_tests[backend]:
+            # FIXME this long line is terrible
+            # FIXME this appends 'backend' but that's only correct for 'remote'
+            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {backend}backend-{t}')
 
 @task
 def test_dnsdist(c):
