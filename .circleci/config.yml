@@ -615,12 +615,6 @@ jobs:
       - save-ccache-cache:
           product: auth
       - run:
-          name: Install Ruby deps for remotebackend unit tests
-          command: cd modules/remotebackend && ruby -S bundle install --path vendor/bundle
-      - run:
-          name: Run unit tests
-          command: PDNS_TEST_NO_IPV6=1 make check || (cat pdns/test-suite.log; false)
-      - run:
           name: Install the binaries
           command: make install
       - persist_to_workspace:
