@@ -5,6 +5,7 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, bool is
 {
   DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, isTCP, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
+  dr.cacheFlags = ids.cacheFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;
   dr.useZeroScope = ids.useZeroScope;
@@ -40,6 +41,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.delayMsec = dq.delayMsec;
   ids.tempFailureTTL = dq.tempFailureTTL;
   ids.origFlags = dq.origFlags;
+  ids.cacheFlags = dq.cacheFlags;
   ids.cacheKey = dq.cacheKey;
   ids.cacheKeyNoECS = dq.cacheKeyNoECS;
   ids.subnet = dq.subnet;
