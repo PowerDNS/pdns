@@ -49,7 +49,10 @@ void TCPOutConnectionManager::cleanup()
 
 void TCPOutConnectionManager::store(const ComboAddress& ip, Connection& connection)
 {
-  cleanup();
+  if (d_idle_connections.size() >= maxIdlePerThread || d_idle_connections.count(ip) >= maxIdlePerAuth) {
+    cleanup();
+  }
+
   if (d_idle_connections.size() >= maxIdlePerThread) {
     return;
   }
