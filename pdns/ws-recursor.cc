@@ -1061,18 +1061,13 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
                      "Number of answers synthesized from the NSEC3 aggressive cache")},
 
   // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
-  { "cumul-answers-count",
+  { "cumul-clientanswers-count",
     MetricDefinition(PrometheusMetricType::histogram,
-                     "histogram of our answer times")},
+                     "histogram of our answer times to clients")},
   // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
-  { "cumul-auth4answers-count",
+  { "cumul-authanswers-count",
     MetricDefinition(PrometheusMetricType::histogram,
-                     "histogram of authoritative answer times over IPv4")},
-  // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
-  { "cumul-auth6answers-count",
-    MetricDefinition(PrometheusMetricType::histogram,
-                     "histogram of authoritative answer times over IPV6")},
-
+                     "histogram of answer times of authoritative servers")},
   { "almost-expired-pushed",
     MetricDefinition(PrometheusMetricType::counter,
                      "number of almost-expired tasks pushed")},
