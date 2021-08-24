@@ -132,9 +132,9 @@ static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bo
     return d_ioState != nullptr;
   }
 
-  const ClientState& getClientState() override
+  const ClientState* getClientState() override
   {
-    return *d_ci.cs;
+    return d_ci.cs;
   }
 
   std::string toString() const

@@ -424,13 +424,13 @@ public:
     return true;
   }
 
-  const ClientState& getClientState() override
+  const ClientState* getClientState() override
   {
     if (!du || !du->dsc || !du->dsc->cs) {
       throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");
     }
 
-    return *du->dsc->cs;
+    return du->dsc->cs;
   }
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override

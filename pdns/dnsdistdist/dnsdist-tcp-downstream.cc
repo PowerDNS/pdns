@@ -455,10 +455,16 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   }
 
   if (reason == FailureReason::timeout) {
-    ++sender->getClientState().tcpDownstreamTimeouts;
+    const ClientState* cs = sender->getClientState();
+    if (cs) {
+      ++cs->tcpDownstreamTimeouts;
+    }
   }
   else if (reason == FailureReason::gaveUp) {
-    ++sender->getClientState().tcpGaveUp;
+    const ClientState* cs = sender->getClientState();
+    if (cs) {
+      ++cs->tcpGaveUp;
+    }
   }
 
   try {

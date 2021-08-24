@@ -1312,9 +1312,9 @@ public:
     return true;
   }
 
-  const ClientState& getClientState() override
+  const ClientState* getClientState() override
   {
-    return d_cs;
+    return &d_cs;
   }
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1839,7 +1839,7 @@ static void healthChecksThread()
   for(;;) {
     sleep(interval);
 
-    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
       if (++dss->lastCheck < dss->checkInterval) {
@@ -1896,7 +1896,7 @@ static void healthChecksThread()
       }
     }
 
-    handleQueuedHealthChecks(mplexer);
+    handleQueuedHealthChecks(*mplexer);
   }
 }
 
@@ -2576,7 +2576,7 @@ int main(int argc, char** argv)
 
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
-    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
       if (dss->availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss, true)) {
@@ -2585,7 +2585,7 @@ int main(int argc, char** argv)
         }
       }
     }
-    handleQueuedHealthChecks(mplexer, true);
+    handleQueuedHealthChecks(*mplexer, true);
 
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing

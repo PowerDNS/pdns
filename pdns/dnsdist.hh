@@ -826,6 +826,11 @@ struct DownstreamState
     return d_tcpOnly || d_tlsCtx != nullptr;
   }
 
+  bool isDoH() const
+  {
+    return !d_dohPath.empty();
+  }
+
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
 
 private:

@@ -24,6 +24,8 @@
 #include "tcpiohandler-mplexer.hh"
 #include "dnswriter.hh"
 #include "dolog.hh"
+#include "dnsdist-tcp.hh"
+#include "dnsdist-nghttp2.hh"
 
 bool g_verboseHealthChecks{false};
 
@@ -31,12 +33,12 @@ struct HealthCheckData
 {
   enum class TCPState : uint8_t { WritingQuery, ReadingResponseSize, ReadingResponse };
 
-  HealthCheckData(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID): d_ds(ds), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
+  HealthCheckData(FDMultiplexer& mplexer, const std::shared_ptr<DownstreamState>& ds, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID): d_ds(ds), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
   {
   }
 
   const std::shared_ptr<DownstreamState> d_ds;
-  std::shared_ptr<FDMultiplexer> d_mplexer;
+  FDMultiplexer& d_mplexer;
   std::unique_ptr<TCPIOHandler> d_tcpHandler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   PacketBuffer d_buffer;
@@ -178,10 +180,51 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
   return true;
 }
 
+class HealthCheckQuerySender : public TCPQuerySender
+{
+public:
+  HealthCheckQuerySender(std::shared_ptr<HealthCheckData>& data): d_data(data)
+  {
+  }
+
+  ~HealthCheckQuerySender()
+  {
+  }
+
+  bool active() const override
+  {
+    return true;
+  }
+
+  const ClientState* getClientState() override
+  {
+    return nullptr;
+  }
+
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    d_data->d_buffer = std::move(response.d_buffer);
+    updateHealthCheckResult(d_data->d_ds, d_data->d_initial, ::handleResponse(d_data));
+  }
+
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    throw std::runtime_error("Unexpected XFR reponse to a health check query");
+  }
+
+  void notifyIOError(IDState&& query, const struct timeval& now) override
+  {
+    updateHealthCheckResult(d_data->d_ds, d_data->d_initial, false);
+  }
+
+private:
+  std::shared_ptr<HealthCheckData> d_data;
+};
+
 static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
 {
   auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(param);
-  data->d_mplexer->removeReadFD(fd);
+  data->d_mplexer.removeReadFD(fd);
 
   ComboAddress from;
   from.sin4.sin_family = data->d_ds->remote.sin4.sin_family;
@@ -264,7 +307,7 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
   }
 }
 
-bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initialCheck)
+bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initialCheck)
 {
   try
   {
@@ -327,7 +370,7 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       sock.bind(ds->sourceAddr);
     }
 
-    auto data = std::make_shared<HealthCheckData>(mplexer, ds, std::move(checkName), checkType, checkClass, queryID);
+    auto data = std::make_shared<HealthCheckData>(*mplexer, ds, std::move(checkName), checkType, checkClass, queryID);
     data->d_initial = initialCheck;
 
     gettimeofday(&data->d_ttd, nullptr);
@@ -351,6 +394,13 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       }
 
       mplexer->addReadFD(data->d_udpSocket.getHandle(), &healthCheckUDPCallback, data, &data->d_ttd);
+    }
+    else if (ds->isDoH()) {
+      InternalQuery query(std::move(packet), IDState());
+      auto sender = std::shared_ptr<TCPQuerySender>(new HealthCheckQuerySender(data));
+      if (!sendH2Query(ds, mplexer, sender, std::move(query))) {
+        updateHealthCheckResult(data->d_ds, data->d_initial, false);
+      }
     }
     else {
       data->d_tcpHandler = std::make_unique<TCPIOHandler>(ds->d_tlsSubjectName, sock.releaseHandle(), timeval{ds->checkTimeout,0}, ds->d_tlsCtx, time(nullptr));
@@ -390,18 +440,18 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
   }
 }
 
-void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial)
+void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
 {
-  while (mplexer->getWatchedFDCount(false) > 0 || mplexer->getWatchedFDCount(true) > 0) {
+  while (mplexer.getWatchedFDCount(false) > 0 || mplexer.getWatchedFDCount(true) > 0) {
     struct timeval now;
-    int ret = mplexer->run(&now, 100);
+    int ret = mplexer.run(&now, 100);
     if (ret == -1) {
       if (g_verboseHealthChecks) {
         infolog("Error while waiting for the health check response from backends: %d", ret);
       }
       break;
     }
-    auto timeouts = mplexer->getTimeouts(now);
+    auto timeouts = mplexer.getTimeouts(now);
     for (const auto& timeout : timeouts) {
       auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(timeout.second);
       try {
@@ -409,7 +459,7 @@ void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool init
           data->d_ioState.reset();
         }
         else {
-          mplexer->removeReadFD(timeout.first);
+          mplexer.removeReadFD(timeout.first);
         }
         if (g_verboseHealthChecks) {
           infolog("Timeout while waiting for the health check response from backend %s", data->d_ds->getNameWithAddr());
@@ -429,7 +479,7 @@ void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool init
       }
     }
 
-    timeouts = mplexer->getTimeouts(now, true);
+    timeouts = mplexer.getTimeouts(now, true);
     for (const auto& timeout : timeouts) {
       auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(timeout.second);
       try {

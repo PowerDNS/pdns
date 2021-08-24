@@ -144,7 +144,7 @@ public:
   }
 
   virtual bool active() const = 0;
-  virtual const ClientState& getClientState() = 0;
+  virtual const ClientState* getClientState() = 0;
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void handleXFRResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void notifyIOError(IDState&& query, const struct timeval& now) = 0;

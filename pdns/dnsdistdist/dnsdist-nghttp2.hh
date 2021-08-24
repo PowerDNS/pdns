@@ -25,6 +25,7 @@
 #include <mutex>
 #include <vector>
 
+#include "dnsdist-tcp.hh"
 #include "stat_t.hh"
 
 struct CrossProtocolQuery;
@@ -64,3 +65,7 @@ class TLSCtx;
 
 bool initDoHWorkers();
 bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);
+
+/* opens a new HTTP/2 connection to the supplied backend (attached to the supplied multiplexer), sends the query,
+   waits for the response to come back or an error to occur then notifies the sender, closing the connection. */
+bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query);
