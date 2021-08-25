@@ -224,7 +224,6 @@ private:
       }
     };
 
-    LockGuarded<LockedContent> d_content;
     std::atomic<uint64_t> d_entriesCount{0};
 
     LockGuardedTryHolder<LockedContent> lock()
@@ -237,6 +236,9 @@ private:
       ++locked->d_acquired_count;
       return locked;
     }
+
+  private:
+    LockGuarded<LockedContent> d_content;
   };
 
   vector<MapCombo> d_maps;
