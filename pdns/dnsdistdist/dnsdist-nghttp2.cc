@@ -284,7 +284,6 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
     //cerr<<"trying to read "<<conn->d_in.size()<<endl;
     try {
       IOState newState = conn->d_handler->tryRead(conn->d_in, conn->d_inPos, conn->d_in.size(), true);
-      // userData.d_handler->tryRead(userData.d_in, pos, userData.d_in.size());
       //cerr<<"got a "<<(int)newState<<" state and "<<conn->d_inPos<<" bytes"<<endl;
       conn->d_in.resize(conn->d_inPos);
       if (newState == IOState::Done) {
@@ -297,6 +296,11 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
           return;
         }
         nghttp2_session_send(conn->d_session.get());
+        if (conn->getConcurrentStreamsCount() == 0) {
+          conn->stopIO();
+          ioGuard.release();
+          break;
+        }
       }
       else {
         if (newState == IOState::NeedWrite) {
@@ -453,7 +457,6 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   case NGHTTP2_DATA:
     cerr<<"got data"<<endl;
     break;
-  case NGHTTP2_GOAWAY;
   }
 #endif
 
