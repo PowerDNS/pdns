@@ -42,7 +42,7 @@ std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
 
 #ifdef HAVE_NGHTTP2
-class DoHConnectionToBackend: public TCPConnectionToBackend
+class DoHConnectionToBackend : public TCPConnectionToBackend
 {
 public:
   DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now);
@@ -53,7 +53,7 @@ public:
   std::string toString() const override
   {
     ostringstream o;
-    o << "DoH connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", "<<getConcurrentStreamsCount()<<" streams";
+    o << "DoH connection to backend " << (d_ds ? d_ds->getName() : "empty") << " over FD " << (d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket") << ", " << getConcurrentStreamsCount() << " streams";
     return o.str();
   }
 
@@ -94,7 +94,7 @@ private:
 
   static const std::unordered_map<std::string, std::string> s_constants;
 
-  std::unique_ptr<nghttp2_session, void(*)(nghttp2_session*)> d_session{nullptr, nghttp2_session_del};
+  std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)> d_session{nullptr, nghttp2_session_del};
   std::unordered_map<int32_t, PendingRequest> d_currentStreams;
   PacketBuffer d_out;
   PacketBuffer d_in;
@@ -173,21 +173,21 @@ bool DoHConnectionToBackend::canBeReused() const
   return true;
 }
 
-#define MAKE_NV(NAME, VALUE, VALUELEN)                                         \
-  {                                                                            \
-    (uint8_t *)NAME, (uint8_t *)VALUE, sizeof(NAME) - 1, VALUELEN,             \
-        NGHTTP2_NV_FLAG_NONE                                                   \
+#define MAKE_NV(NAME, VALUE, VALUELEN)                           \
+  {                                                              \
+    (uint8_t*)NAME, (uint8_t*)VALUE, sizeof(NAME) - 1, VALUELEN, \
+      NGHTTP2_NV_FLAG_NONE                                       \
   }
 
-#define MAKE_NV2(NAME, VALUE)                                                  \
-  {                                                                            \
-    (uint8_t *)NAME, (uint8_t *)VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
-        NGHTTP2_NV_FLAG_NONE                                                   \
+#define MAKE_NV2(NAME, VALUE)                                             \
+  {                                                                       \
+    (uint8_t*)NAME, (uint8_t*)VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1, \
+      NGHTTP2_NV_FLAG_NONE                                                \
   }
 
 const std::unordered_map<std::string, std::string> DoHConnectionToBackend::s_constants = {
-  { "method-name", ":method" },
-  { "method-value", "POST" },
+  {"method-name", ":method"},
+  {"method-value", "POST"},
 };
 
 void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
@@ -199,39 +199,37 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   d_currentQuery = std::move(query);
   d_queryPos = 0;
   const nghttp2_nv hdrs[] = {
-    { const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-name").c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-value").c_str())), s_constants.at("method-name").size(), s_constants.at("method-value").size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE },
-      MAKE_NV2(":scheme", "https"),
-      MAKE_NV(":authority", d_ds->d_tlsSubjectName.c_str(), d_ds->d_tlsSubjectName.size()),
-      MAKE_NV(":path", d_ds->d_dohPath.c_str(), d_ds->d_dohPath.size()),
-      MAKE_NV2("accept", "application/dns-message"),
-      MAKE_NV2("content-type", "application/dns-message"),
-      MAKE_NV("content-length", payloadSize.c_str(), payloadSize.size()),
-      MAKE_NV2("user-agent", "nghttp2-" NGHTTP2_VERSION "/dnsdist")
-  };
+    {const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-name").c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-value").c_str())), s_constants.at("method-name").size(), s_constants.at("method-value").size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE},
+    MAKE_NV2(":scheme", "https"),
+    MAKE_NV(":authority", d_ds->d_tlsSubjectName.c_str(), d_ds->d_tlsSubjectName.size()),
+    MAKE_NV(":path", d_ds->d_dohPath.c_str(), d_ds->d_dohPath.size()),
+    MAKE_NV2("accept", "application/dns-message"),
+    MAKE_NV2("content-type", "application/dns-message"),
+    MAKE_NV("content-length", payloadSize.c_str(), payloadSize.size()),
+    MAKE_NV2("user-agent", "nghttp2-" NGHTTP2_VERSION "/dnsdist")};
 
   /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames. In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4) must be specified with :method key in nva (e.g. POST). This function does not take ownership of the data_prd. The function copies the members of the data_prd. If data_prd is NULL, HEADERS have END_STREAM set
    */
 
   nghttp2_data_provider data_provider;
   data_provider.source.ptr = this;
-  data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t
-  {
+  data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
     auto userData = reinterpret_cast<DoHConnectionToBackend*>(user_data);
     size_t toCopy = 0;
     if (userData->d_queryPos < userData->d_currentQuery.d_buffer.size()) {
-      size_t remaining = userData->d_currentQuery.d_buffer.size()- userData->d_queryPos;
+      size_t remaining = userData->d_currentQuery.d_buffer.size() - userData->d_queryPos;
       toCopy = length > remaining ? remaining : length;
       memcpy(buf, &userData->d_currentQuery.d_buffer.at(userData->d_queryPos), toCopy);
       userData->d_queryPos += toCopy;
     }
 
     if (userData->d_queryPos >= userData->d_currentQuery.d_buffer.size()) {
-       *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+      *data_flags |= NGHTTP2_DATA_FLAG_EOF;
     }
     return toCopy;
   };
 
-  auto stream_id = nghttp2_submit_request(d_session.get(), nullptr, hdrs, sizeof(hdrs)/sizeof(*hdrs), &data_provider, this);
+  auto stream_id = nghttp2_submit_request(d_session.get(), nullptr, hdrs, sizeof(hdrs) / sizeof(*hdrs), &data_provider, this);
   if (stream_id < 0) {
     d_connectionDied = true;
     throw std::runtime_error("Error submitting HTTP request:" + std::string(nghttp2_strerror(stream_id)));
@@ -260,7 +258,8 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 class DoHClientThreadData
 {
 public:
-  DoHClientThreadData(): mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+  DoHClientThreadData() :
+    mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
 
@@ -294,7 +293,7 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
         /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
            all data should be consumed before returning */
         if (readlen > 0 && static_cast<size_t>(readlen) < conn->d_inPos) {
-          cerr<<"Fatal error: "<<nghttp2_strerror((int)readlen)<<endl;
+          cerr << "Fatal error: " << nghttp2_strerror((int)readlen) << endl;
           return;
         }
         nghttp2_session_send(conn->d_session.get());
@@ -308,11 +307,10 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
       }
     }
     catch (const std::exception& e) {
-      cerr<<"Exception while trying to read from HTTP backend connection: "<<e.what()<<endl;
+      cerr << "Exception while trying to read from HTTP backend connection: " << e.what() << endl;
       break;
     }
-  }
-  while (conn->getConcurrentStreamsCount() > 0);
+  } while (conn->getConcurrentStreamsCount() > 0);
 }
 
 void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::funcparam_t& param)
@@ -340,7 +338,7 @@ void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::fun
     ioGuard.release();
   }
   catch (const std::exception& e) {
-    cerr<<"Exception while trying to write (ready) to HTTP backend connection: "<<e.what()<<endl;
+    cerr << "Exception while trying to write (ready) to HTTP backend connection: " << e.what() << endl;
   }
 }
 
@@ -403,7 +401,8 @@ void DoHConnectionToBackend::addToIOState(IOState state, FDMultiplexer::callback
   }
 }
 
-ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data) {
+ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
+{
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   bool bufferWasEmpty = conn->d_out.empty();
   conn->d_out.insert(conn->d_out.end(), data, data + length);
@@ -422,14 +421,15 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
       }
     }
     catch (const std::exception& e) {
-      cerr<<"Exception while trying to write (send) to HTTP backend connection: "<<e.what()<<endl;
+      cerr << "Exception while trying to write (send) to HTTP backend connection: " << e.what() << endl;
     }
   }
 
   return length;
 }
 
-int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data) {
+int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
+{
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   //cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
 #if 0
@@ -468,7 +468,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
       conn->d_currentStreams.erase(stream->first);
       if (request.d_responseCode == 200U) {
         conn->handleResponse(std::move(request));
-      } else {
+      }
+      else {
         vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
         struct timeval now;
         gettimeofday(&now, nullptr);
@@ -489,7 +490,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   return 0;
 }
 
-int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data) {
+int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
+{
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   //cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
   auto stream = conn->d_currentStreams.find(stream_id);
@@ -513,7 +515,8 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
     conn->d_currentStreams.erase(stream->first);
     if (request.d_responseCode == 200U) {
       conn->handleResponse(std::move(request));
-    } else {
+    }
+    else {
       vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -531,20 +534,21 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
   return 0;
 }
 
-int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data) {
+int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
+{
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
     return 0;
   }
 
-  cerr<<"Stream "<<stream_id<<" closed with error_code="<<error_code<<endl;
+  cerr << "Stream " << stream_id << " closed with error_code=" << error_code << endl;
   conn->d_connectionDied = true;
 
   auto stream = conn->d_currentStreams.find(stream_id);
   if (stream == conn->d_currentStreams.end()) {
     /* we don't care, then */
-    cerr<<"we don't care"<<endl;
+    cerr << "we don't care" << endl;
     return 0;
   }
 
@@ -567,7 +571,8 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   return 0;
 }
 
-int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data) {
+int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
+{
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   const std::string status(":status");
@@ -600,7 +605,8 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
   return 0;
 }
 
-int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data) {
+int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
+{
   vinfolog("Error in HTTP/2 connection: %s", std::string(msg, len));
 
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
@@ -609,7 +615,8 @@ int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_
   return 0;
 }
 
-DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): TCPConnectionToBackend(ds, mplexer, now)
+DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now) :
+  TCPConnectionToBackend(ds, mplexer, now)
 {
   // inherit most of the stuff from the TCPConnectionToBackend()
   d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
@@ -620,7 +627,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
     vinfolog("Unable to create a callback object for a new HTTP/2 session");
     return;
   }
-  std::unique_ptr<nghttp2_session_callbacks, void(*)(nghttp2_session_callbacks*)> callbacks(cbs, nghttp2_session_callbacks_del);
+  std::unique_ptr<nghttp2_session_callbacks, void (*)(nghttp2_session_callbacks*)> callbacks(cbs, nghttp2_session_callbacks_del);
   cbs = nullptr;
 
   nghttp2_session_callbacks_set_send_callback(callbacks.get(), send_callback);
@@ -637,7 +644,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
     return;
   }
 
-  d_session = std::unique_ptr<nghttp2_session, void(*)(nghttp2_session*)>(sess, nghttp2_session_del);
+  d_session = std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)>(sess, nghttp2_session_del);
   sess = nullptr;
 
   callbacks.reset();
@@ -651,10 +658,9 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
     {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 0},
     {NGHTTP2_SETTINGS_ENABLE_PUSH, 0},
     /* we might want to make the initial window size configurable, but 16M is a large enough default */
-    {NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16*1024*1024}
-  };
-   /* client 24 bytes magic string will be sent by nghttp2 library */
-  int rv = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, iv, sizeof(iv)/sizeof(*iv));
+    {NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16 * 1024 * 1024}};
+  /* client 24 bytes magic string will be sent by nghttp2 library */
+  int rv = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, iv, sizeof(iv) / sizeof(*iv));
   if (rv != 0) {
     d_connectionDied = true;
     vinfolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv));
@@ -672,8 +678,8 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
 
-  for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
-    for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
+  for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end();) {
+    for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end();) {
       if (!(*connIt)) {
         ++connIt;
         continue;
@@ -721,7 +727,7 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
     const auto& it = t_downstreamConnections.find(backendId);
     if (it != t_downstreamConnections.end()) {
       auto& list = it->second;
-      for (auto listIt = list.begin(); listIt != list.end(); ) {
+      for (auto listIt = list.begin(); listIt != list.end();) {
         auto& entry = *listIt;
         if (!entry->canBeReused()) {
           listIt = list.erase(listIt);
@@ -840,12 +846,11 @@ static void dohClientThread(int crossProtocolPipeFD)
           /* no race here, we took the lock so it can only be increased in the meantime */
           --g_dohStatesDumpRequested;
           errlog("Dumping the DoH client states, as requested:");
-          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
-          {
+          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd) {
             struct timeval lnow;
             gettimeofday(&lnow, nullptr);
             if (ttd.tv_sec > 0) {
-            errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
+              errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec - lnow.tv_sec));
             }
             else {
               errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
@@ -865,7 +870,8 @@ static void dohClientThread(int crossProtocolPipeFD)
   }
 }
 
-static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen) {
+static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)
+{
   if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
     vinfolog("The remote DoH backend did not advertise " NGHTTP2_PROTO_VERSION_ID);
     return false;
@@ -881,11 +887,13 @@ struct DoHClientCollection::DoHWorkerThread
   {
   }
 
-  DoHWorkerThread(int crossProtocolPipe): d_crossProtocolQueryPipe(crossProtocolPipe)
+  DoHWorkerThread(int crossProtocolPipe) :
+    d_crossProtocolQueryPipe(crossProtocolPipe)
   {
   }
 
-  DoHWorkerThread(DoHWorkerThread&& rhs): d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
+  DoHWorkerThread(DoHWorkerThread&& rhs) :
+    d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
   {
     rhs.d_crossProtocolQueryPipe = -1;
   }
@@ -915,7 +923,8 @@ struct DoHClientCollection::DoHWorkerThread
   int d_crossProtocolQueryPipe{-1};
 };
 
-DoHClientCollection::DoHClientCollection(size_t maxThreads): d_clientThreads(maxThreads), d_maxThreads(maxThreads)
+DoHClientCollection::DoHClientCollection(size_t maxThreads) :
+  d_clientThreads(maxThreads), d_maxThreads(maxThreads)
 {
 }
 
@@ -970,7 +979,7 @@ void DoHClientCollection::addThread()
     return true;
   };
 
-  int crossProtocolFDs[2] = { -1, -1};
+  int crossProtocolFDs[2] = {-1, -1};
   if (!preparePipe(crossProtocolFDs, "cross-protocol")) {
     return;
   }
