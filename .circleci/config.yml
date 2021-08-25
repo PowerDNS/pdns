@@ -242,6 +242,7 @@ commands:
               libgnutls30 \
               libh2o-evloop0.13 \
               liblmdb0 \
+              libnghttp2-dev \
               libre2-5 \
               libssl-dev \
               libsystemd0 \
@@ -1543,6 +1544,7 @@ jobs:
             libgnutls28-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
+            libnghttp2-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1576,6 +1578,7 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
+            --with-nghttp2 \
             --with-re2
           working_directory: /opt/project/pdns/dnsdistdist
       - run:
@@ -1697,6 +1700,7 @@ jobs:
             libh2o-evloop-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
+            libnghttp2-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1736,6 +1740,7 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
+            --with-nghttp2 \
             --with-re2 \
             --enable-asan \
             --enable-ubsan

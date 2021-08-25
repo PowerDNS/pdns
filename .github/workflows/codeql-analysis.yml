@@ -82,6 +82,7 @@ jobs:
                 liblmdb-dev \
                 liblua5.3-dev \
                 libmaxminddb-dev \
+                libnghttp2-dev \
                 libp11-kit-dev \
                 libpq-dev \
                 libre2-dev \
