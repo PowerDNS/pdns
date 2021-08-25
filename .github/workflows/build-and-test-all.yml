@@ -1,0 +1,239 @@
+---
+name: 'Build and test everything'
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 22 * * 3'
+
+jobs:
+  build-auth:
+    name: build auth
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang
+      - run: inv install-auth-build-deps
+      - run: inv ci-autoconf
+      - run: inv ci-auth-configure
+      - run: inv ci-auth-make
+      # FIXME: save ccache here?
+      - run: inv ci-auth-install-remotebackend-ruby-deps
+      - run: inv ci-auth-run-unit-tests
+      - run: inv ci-make-install
+      - name: Store the binaries
+        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
+
+  build-recursor:
+    name: build recursor
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    defaults:
+      run:
+        working-directory: ./pdns/recursordist/
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv apt-fresh
+      - run: inv install-clang
+      - run: inv install-rec-build-deps
+      - run: inv ci-autoconf
+      - run: inv ci-rec-configure
+      - run: inv ci-rec-make
+      # FIXME: save ccache here?
+      - run: inv ci-rec-run-unit-tests
+      - run: inv ci-make-install
+      - name: Store the binaries
+        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        with:
+          name: pdns-recursor
+          path: /opt/pdns-recursor
+
+  build-dnsdist:
+    name: build dnsdist
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    defaults:
+      run:
+        working-directory: ./pdns/dnsdistdist/
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv apt-fresh
+      - run: inv install-clang
+      - run: inv install-dnsdist-build-deps
+      - run: inv ci-autoconf
+      - run: inv ci-dnsdist-configure
+      - run: inv ci-dnsdist-make
+      # FIXME: save ccache here?
+      - run: inv ci-dnsdist-run-unit-tests
+      - run: inv ci-make-install
+      - name: Store the binaries
+        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        with:
+          name: dnsdist
+          path: /opt/dnsdist
+
+  test-auth-api:
+    needs: build-auth
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    strategy:
+      matrix:
+        include:
+          - backend: gsqlite3
+            image: coscale/docker-sleep
+          - backend: gmysql
+            image: mysql:5
+          - backend: gpgsql
+            image: postgres:9
+          - backend: lmdb
+            image: coscale/docker-sleep
+      fail-fast: false
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_HOST_AUTH_METHOD: trust
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        ports:
+          - 3306:3306
+          - 5432:5432
+        # FIXME: this works around dist-upgrade stopping all docker containers. dist-upgrade is huge on these images anyway. Perhaps we do want to run our tasks in a Docker container too.
+        options: >-
+          --restart always
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang-runtime
+      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
+      - run: inv test-api auth -b ${{ matrix.backend }}
+
+  test-auth-backend:
+    needs: build-auth
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    strategy:
+      matrix:
+        include:
+          - backend: remote
+            image: coscale/docker-sleep
+          # - backend: gmysql
+          #   image: mysql:5
+          # - backend: gpgsql
+          #   image: postgres:9
+          # - backend: lmdb
+          #   image: coscale/docker-sleep
+      fail-fast: false
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_HOST_AUTH_METHOD: trust
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        ports:
+          - 3306:3306
+          - 5432:5432
+        # FIXME: this works around dist-upgrade stopping all docker containers. dist-upgrade is huge on these images anyway. Perhaps we do want to run our tasks in a Docker container too.
+        options: >-
+          --restart always
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+      # FIXME: install recursor for backends that have ALIAS
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang-runtime
+      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
+      - run: inv test-auth-backend -b ${{ matrix.backend }}
+
+  test-recursor-api:
+    needs: build-recursor
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-recursor
+          path: /opt/pdns-recursor
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv add-auth-repo  # FIXME: do we need this for rec API testing?
+      - run: inv install-clang-runtime
+      - run: inv install-rec-test-deps
+      - run: inv test-api recursor
+
+  test-dnsdist-regression:
+    needs: build-dnsdist
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: dnsdist
+          path: /opt/dnsdist
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang-runtime
+      - run: inv install-dnsdist-test-deps
+      - run: inv test-dnsdist
+
+
+# FIXME: if we can make upload/download-artifact fasts, running unit tests outside of build can let regression tests start earlier

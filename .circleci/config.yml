@@ -615,12 +615,6 @@ jobs:
       - save-ccache-cache:
           product: auth
       - run:
-          name: Install Ruby deps for remotebackend unit tests
-          command: cd modules/remotebackend && ruby -S bundle install --path vendor/bundle
-      - run:
-          name: Run unit tests
-          command: PDNS_TEST_NO_IPV6=1 make check || (cat pdns/test-suite.log; false)
-      - run:
           name: Install the binaries
           command: make install
       - persist_to_workspace:
@@ -965,49 +959,6 @@ jobs:
           context: geoip
           doroot: false
 
-  test-auth-regress-remote:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run: apt-get -y -qq install ruby ruby-bundler ruby2.5-dev
-      - run:
-          workdir: ~/project/modules/remotebackend
-          command: ruby -S bundle install
-      - auth-regress:
-          context: remotebackend-pipe
-          doroot: false
-      - auth-regress:
-          context: remotebackend-unix
-          doroot: false
-      - auth-regress:
-          context: remotebackend-http
-          doroot: false
-      - auth-regress:
-          context: remotebackend-zeromq
-          doroot: false
-      - auth-regress:
-          context: remotebackend-pipe-dnssec
-          doroot: false
-      - auth-regress:
-          context: remotebackend-unix-dnssec
-          doroot: false
-      - auth-regress:
-          context: remotebackend-http-dnssec
-          doroot: false
-      - auth-regress:
-          context: remotebackend-zeromq-dnssec
-          doroot: false
-
-
   test-auth-regress-lua2:
     resource_class: small
 
@@ -1073,122 +1024,6 @@ jobs:
       - run:
           name: Test all algorithms
           command: /opt/pdns-auth/bin/pdnsutil test-algorithms
-
-  test-auth-api-gmysql:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-      - image: mysql:5
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 1
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-    steps:
-      - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev default-mysql-client
-      - run:
-          name: Set up mysql client lib to force TCP
-          command: |
-            cat >> ~/.my.cnf \<<- __EOF__
-            [client]
-            protocol=TCP
-            default-character-set=latin1
-            __EOF__
-      - run:
-          name: Run API tests gmysql
-          workdir: ~/project/regression-tests.api
-          command: |
-            MYSQL_HOST="127.0.0.1" \
-            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
-            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
-            SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gmysql
-
-  test-auth-api-gpgsql:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-      - image: postgres:9
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          POSTGRES_USER: root
-          POSTGRES_HOST_AUTH_METHOD: trust
-    steps:
-      - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev postgresql-client
-      - run:
-          name: Run API tests gpgsql
-          workdir: ~/project/regression-tests.api
-          command: |
-            PGHOST="127.0.0.1" \
-            PGPORT="5432" \
-            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
-            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
-            SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gpgsql
-
-  test-auth-api-gsqlite3:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev
-      - run:
-          name: Run API tests gsqlite3
-          workdir: ~/project/regression-tests.api
-          command: |
-            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
-            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
-            SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gsqlite3
-
-  test-auth-api-lmdb:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev
-      - run:
-          name: Run API tests LMDB
-          workdir: ~/project/regression-tests.api
-          command: |
-            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
-            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
-            SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative lmdb
 
   test-auth-py:
     resource_class: small
@@ -1547,29 +1382,6 @@ jobs:
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 8 4096 1024
           workdir: ~/project/regression-tests
-
-  test-recursor-api:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y python3-venv python3-dev default-libmysqlclient-dev libpq-dev pdns-tools
-      - install-recursor-deps
-      - get-workspace
-      - run:
-          name: Run API tests
-          workdir: ~/project/regression-tests.api
-          command: |
-            PDNSRECURSOR="/opt/pdns-recursor/sbin/pdns_recursor" \
-            ./runtests recursor
 
   build-auth-docs:
     resource_class: small
@@ -2027,38 +1839,6 @@ jobs:
           paths:
             - dnsdist-with-tsan
 
-  test-dnsdist-regression:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - install-dnsdist-deps
-      - install-clang-8 # for the symbolizer
-      - get-workspace
-      - run:
-          name: setup snmp
-          command: |
-            apt-get -qq --no-install-recommends install snmpd
-            sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
-            /etc/init.d/snmpd start
-      - run:
-          name: install prometheus tools
-          command: |
-            apt-get -qq --no-install-recommends install prometheus
-      - run:
-          name: Run dnsdist tests
-          workdir: ~/project/regression-tests.dnsdist
-          command: |
-            DNSDISTBIN="/opt/dnsdist/bin/dnsdist" \
-            ./runtests
-
   test-dnsdist-regression-with-tsan:
     resource_class: small
 
@@ -2134,18 +1914,6 @@ workflows:
       - build-auth:
           requires:
             - checkout
-      - test-auth-api-gmysql:
-          requires:
-            - build-auth
-      - test-auth-api-gpgsql:
-          requires:
-            - build-auth
-      - test-auth-api-gsqlite3:
-          requires:
-            - build-auth
-      - test-auth-api-lmdb:
-          requires:
-            - build-auth
       - test-auth-algorithms:
           requires:
             - build-auth
@@ -2162,9 +1930,6 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-geoip:
-          requires:
-            - build-auth
-      - test-auth-regress-remote:
           requires:
             - build-auth
       - test-auth-regress-lua2:
@@ -2200,18 +1965,12 @@ workflows:
       - test-recursor-bulk:
           requires:
             - build-recursor
-      - test-recursor-api:
-          requires:
-            - build-recursor
       - build-dnsdist:
           requires:
             - checkout
       - build-dnsdist-with-tsan:
           requires:
             - checkout
-      - test-dnsdist-regression:
-          requires:
-            - build-dnsdist
       - test-dnsdist-regression-with-tsan:
           requires:
             - build-dnsdist-with-tsan

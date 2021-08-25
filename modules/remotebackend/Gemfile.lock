@@ -1,14 +1,14 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    ffi (1.10.0)
+    ffi (1.15.3)
     ffi-rzmq (2.0.7)
       ffi-rzmq-core (>= 1.0.7)
     ffi-rzmq-core (1.0.7)
       ffi
-    json (2.3.0)
-    sqlite3 (1.3.13)
-    webrick (1.4.2)
+    json (2.5.1)
+    sqlite3 (1.4.2)
+    webrick (1.7.0)
     zeromqrb (0.1.3)
       ffi-rzmq
 
@@ -22,4 +22,4 @@ DEPENDENCIES
   zeromqrb
 
 BUNDLED WITH
-   1.16.1
+   2.1.4
