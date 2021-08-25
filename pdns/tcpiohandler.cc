@@ -1394,7 +1394,13 @@ public:
       value.size = proto.size();
       values.push_back(value);
     }
-    return gnutls_alpn_set_protocols(d_conn.get(), values.data(), values.size(), GNUTLS_ALPN_MANDATORY);
+    unsigned int flags = 0;
+#if GNUTLS_VERSION_NUMBER >= 0x030500
+    flags |= GNUTLS_ALPN_MANDATORY;
+#elif defined(GNUTLS_ALPN_MAND)
+    flags |= GNUTLS_ALPN_MAND;
+#endif
+    return gnutls_alpn_set_protocols(d_conn.get(), values.data(), values.size(), flags);
   }
 
 private:
