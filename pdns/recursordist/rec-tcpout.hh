@@ -67,10 +67,8 @@ public:
   }
 
 private:
-
   std::multimap<ComboAddress, Connection> d_idle_connections;
 };
 
 extern thread_local TCPOutConnectionManager t_tcp_manager;
 uint64_t getCurrentIdleTCPConnections();
-
