@@ -20,7 +20,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "config.h"
+
+#ifdef HAVE_NGHTTP2
 #include <nghttp2/nghttp2.h>
+#endif /* HAVE_NGHTTP2 */
 
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-tcp.hh"
@@ -37,6 +41,7 @@
 std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
 
+#ifdef HAVE_NGHTTP2
 class DoHConnectionToBackend: public TCPConnectionToBackend
 {
 public:
@@ -657,69 +662,6 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
   }
 }
 
-struct DoHClientCollection::DoHWorkerThread
-{
-  DoHWorkerThread()
-  {
-  }
-
-  DoHWorkerThread(int crossProtocolPipe): d_crossProtocolQueryPipe(crossProtocolPipe)
-  {
-  }
-
-  DoHWorkerThread(DoHWorkerThread&& rhs): d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
-  {
-    rhs.d_crossProtocolQueryPipe = -1;
-  }
-
-  DoHWorkerThread& operator=(DoHWorkerThread&& rhs)
-  {
-    if (d_crossProtocolQueryPipe != -1) {
-      close(d_crossProtocolQueryPipe);
-    }
-
-    d_crossProtocolQueryPipe = rhs.d_crossProtocolQueryPipe;
-    rhs.d_crossProtocolQueryPipe = -1;
-
-    return *this;
-  }
-
-  DoHWorkerThread(const DoHWorkerThread& rhs) = delete;
-  DoHWorkerThread& operator=(const DoHWorkerThread&) = delete;
-
-  ~DoHWorkerThread()
-  {
-    if (d_crossProtocolQueryPipe != -1) {
-      close(d_crossProtocolQueryPipe);
-    }
-  }
-
-  int d_crossProtocolQueryPipe{-1};
-};
-
-DoHClientCollection::DoHClientCollection(size_t maxThreads): d_clientThreads(maxThreads), d_maxThreads(maxThreads)
-{
-}
-
-bool DoHClientCollection::passCrossProtocolQueryToThread(std::unique_ptr<CrossProtocolQuery>&& cpq)
-{
-  if (d_numberOfThreads == 0) {
-    throw std::runtime_error("No DoH worker thread yet");
-  }
-
-  uint64_t pos = d_pos++;
-  auto pipe = d_clientThreads.at(pos % d_numberOfThreads).d_crossProtocolQueryPipe;
-  auto tmp = cpq.release();
-
-  if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
-    delete tmp;
-    tmp = nullptr;
-    return false;
-  }
-
-  return true;
-}
-
 thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> DownstreamDoHConnectionsManager::t_downstreamConnections;
 size_t DownstreamDoHConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 time_t DownstreamDoHConnectionsManager::s_nextCleanup{0};
@@ -923,8 +865,82 @@ static void dohClientThread(int crossProtocolPipeFD)
   }
 }
 
+static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen) {
+  if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
+    vinfolog("The remote DoH backend did not advertise " NGHTTP2_PROTO_VERSION_ID);
+    return false;
+  }
+  return true;
+}
+
+#endif /* HAVE_NGHTTP2 */
+
+struct DoHClientCollection::DoHWorkerThread
+{
+  DoHWorkerThread()
+  {
+  }
+
+  DoHWorkerThread(int crossProtocolPipe): d_crossProtocolQueryPipe(crossProtocolPipe)
+  {
+  }
+
+  DoHWorkerThread(DoHWorkerThread&& rhs): d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
+  {
+    rhs.d_crossProtocolQueryPipe = -1;
+  }
+
+  DoHWorkerThread& operator=(DoHWorkerThread&& rhs)
+  {
+    if (d_crossProtocolQueryPipe != -1) {
+      close(d_crossProtocolQueryPipe);
+    }
+
+    d_crossProtocolQueryPipe = rhs.d_crossProtocolQueryPipe;
+    rhs.d_crossProtocolQueryPipe = -1;
+
+    return *this;
+  }
+
+  DoHWorkerThread(const DoHWorkerThread& rhs) = delete;
+  DoHWorkerThread& operator=(const DoHWorkerThread&) = delete;
+
+  ~DoHWorkerThread()
+  {
+    if (d_crossProtocolQueryPipe != -1) {
+      close(d_crossProtocolQueryPipe);
+    }
+  }
+
+  int d_crossProtocolQueryPipe{-1};
+};
+
+DoHClientCollection::DoHClientCollection(size_t maxThreads): d_clientThreads(maxThreads), d_maxThreads(maxThreads)
+{
+}
+
+bool DoHClientCollection::passCrossProtocolQueryToThread(std::unique_ptr<CrossProtocolQuery>&& cpq)
+{
+  if (d_numberOfThreads == 0) {
+    throw std::runtime_error("No DoH worker thread yet");
+  }
+
+  uint64_t pos = d_pos++;
+  auto pipe = d_clientThreads.at(pos % d_numberOfThreads).d_crossProtocolQueryPipe;
+  auto tmp = cpq.release();
+
+  if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+    delete tmp;
+    tmp = nullptr;
+    return false;
+  }
+
+  return true;
+}
+
 void DoHClientCollection::addThread()
 {
+#ifdef HAVE_NGHTTP2
   auto preparePipe = [](int fds[2], const std::string& type) -> bool {
     if (pipe(fds) < 0) {
       errlog("Error creating the DoH thread %s pipe: %s", type, stringerror());
@@ -988,22 +1004,21 @@ void DoHClientCollection::addThread()
     d_clientThreads.at(d_numberOfThreads) = std::move(worker);
     ++d_numberOfThreads;
   }
+#else /* HAVE_NGHTTP2 */
+  throw std::runtime_error("DoHClientCollection::addThread() called but nghttp2 support is not available");
+#endif /* HAVE_NGHTTP2 */
 }
 
 bool initDoHWorkers()
 {
+#ifdef HAVE_NGHTTP2
 #warning FIXME: number of DoH threads
   g_dohClientThreads = std::make_unique<DoHClientCollection>(4);
   g_dohClientThreads->addThread();
   return true;
-}
-
-static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen) {
-  if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
-    vinfolog("The remote DoH backend did not advertise " NGHTTP2_PROTO_VERSION_ID);
-    return false;
-  }
-  return true;
+#else
+  return false;
+#endif /* HAVE_NGHTTP2 */
 }
 
 bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
@@ -1011,19 +1026,27 @@ bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
   if (ctx == nullptr) {
     return false;
   }
+#ifdef HAVE_NGHTTP2
   /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
   const std::vector<std::vector<uint8_t>> h2Alpns = {{'h', '2'}};
   ctx->setALPNProtos(h2Alpns);
   ctx->setNextProtocolSelectCallback(select_next_proto_callback);
   return true;
+#else /* HAVE_NGHTTP2 */
+  return false;
+#endif /* HAVE_NGHTTP2 */
 }
 
 bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query)
 {
+#ifdef HAVE_NGHTTP2
   struct timeval now;
   gettimeofday(&now, nullptr);
 
   auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now);
   newConnection->queueQuery(sender, std::move(query));
   return true;
+#else /* HAVE_NGHTTP2 */
+  return false;
+#endif /* HAVE_NGHTTP2 */
 }

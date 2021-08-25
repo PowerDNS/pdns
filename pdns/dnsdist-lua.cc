@@ -531,10 +531,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         ret->d_tlsCtx = getTLSContext(tlsParams);
 
         if (vars.count("dohPath")) {
+#ifdef HAVE_NGHTTP2
           ret->d_dohPath = boost::get<string>(vars.at("dohPath"));
           if (ret->d_tlsCtx) {
             setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
           }
+#else /* HAVE_NGHTTP2 */
+          throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
+#endif /* HAVE_NGHTTP2 */
         }
         else {
           setupDoTProtocolNegotiation(ret->d_tlsCtx);

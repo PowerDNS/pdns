@@ -5,6 +5,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(FSTRM_CFLAGS) \
 	$(YAHTTP_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
+	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
 	-DSYSCONFDIR=\"${sysconfdir}\" \
@@ -303,7 +304,6 @@ testrunner_SOURCES = \
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(PROGRAM_LDFLAGS) \
-	-lnghttp2 \
 	-pthread 
 
 dnsdist_LDADD = \
@@ -322,7 +322,6 @@ testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(PROGRAM_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
-	-lnghttp2 \
 	-pthread
 
 testrunner_LDADD = \
@@ -372,6 +371,11 @@ if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
 endif
 
+endif
+
+if HAVE_NGHTTP2
+dnsdist_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
+testrunner_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
 endif
 
 if !HAVE_LUA_HPP

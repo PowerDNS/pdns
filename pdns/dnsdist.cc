@@ -2321,6 +2321,9 @@ int main(int argc, char** argv)
 #ifdef HAVE_LMDB
         cout<<"lmdb ";
 #endif
+#ifdef HAVE_NGHTTP2
+        cout<<"outgoing-dns-over-https(nghttp2) ";
+#endif
         cout<<"protobuf ";
 #ifdef HAVE_RE2
         cout<<"re2 ";

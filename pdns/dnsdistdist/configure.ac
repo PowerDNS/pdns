@@ -96,6 +96,8 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
   ])
 ])
 
+PDNS_WITH_NGHTTP2
+
 PDNS_CHECK_CDB
 PDNS_CHECK_LMDB
 
@@ -223,6 +225,10 @@ AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xn
     [AC_MSG_NOTICE([OpenSSL: yes])],
     [AC_MSG_NOTICE([OpenSSL: no])]
   )]
+)
+AS_IF([test "x$NGHTTP2_LIBS" != "x"],
+  [AC_MSG_NOTICE([nghttp2: yes])],
+  [AC_MSG_NOTICE([nghttp2: no])]
 )
 AS_IF([test "x$CDB_LIBS" != "x"],
   [AC_MSG_NOTICE([cdb: yes])],
