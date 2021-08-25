@@ -32,7 +32,7 @@ pair<uint64_t,uint64_t> MemRecursorCache::stats()
 {
   uint64_t c = 0, a = 0;
   for (auto& mc : d_maps) {
-    auto content = mc.d_content.lock();
+    auto content = mc.lock();
     c += content->d_contended_count;
     a += content->d_acquired_count;
   }
@@ -44,7 +44,7 @@ size_t MemRecursorCache::ecsIndexSize()
   // XXX!
   size_t count = 0;
   for (auto& mc : d_maps) {
-    auto content = mc.d_content.lock();
+    auto content = mc.lock();
     count += content->d_ecsIndex.size();
   }
   return count;
@@ -55,7 +55,7 @@ size_t MemRecursorCache::bytes()
 {
   size_t ret = 0;
   for (auto& mc : d_maps) {
-    auto m = mc.d_content.lock();
+    auto m = mc.lock();
     for (const auto& i : m->d_map) {
       ret += sizeof(struct CacheEntry);
       ret += i.d_qname.toString().length();
@@ -273,7 +273,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType qt, b
   }
 
   auto& mc = getMap(qname);
-  auto map = mc.d_content.lock();
+  auto map = mc.lock();
 
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
@@ -389,7 +389,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType qt, b
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from)
 {
   auto& mc = getMap(qname);
-  auto map = mc.d_content.lock();
+  auto map = mc.lock();
 
   map->d_cachecachevalid = false;
   if (ednsmask) {
@@ -492,7 +492,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
 
   if (!sub) {
     auto& mc = getMap(name);
-    auto map = mc.d_content.lock();
+    auto map = mc.lock();
     map->d_cachecachevalid = false;
     auto& idx = map->d_map.get<OrderedTag>();
     auto range = idx.equal_range(name);
@@ -520,7 +520,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
   }
   else {
     for (auto& mc : d_maps) {
-      auto map = mc.d_content.lock();
+      auto map = mc.lock();
       map->d_cachecachevalid = false;
       auto& idx = map->d_map.get<OrderedTag>();
       for (auto i = idx.lower_bound(name); i != idx.end(); ) {
@@ -553,7 +553,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
 bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType qtype, uint32_t newTTL)
 {
   auto& mc = getMap(name);
-  auto map = mc.d_content.lock();
+  auto map = mc.lock();
   cache_t::iterator iter = map->d_map.find(tie(name, qtype));
   if (iter == map->d_map.end()) {
     return false;
@@ -589,7 +589,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
   }
 
   auto& mc = getMap(qname);
-  auto map = mc.d_content.lock();
+  auto map = mc.lock();
 
   bool updated = false;
   if (!map->d_ecsIndex.empty() && !routingTag) {
@@ -642,7 +642,7 @@ uint64_t MemRecursorCache::doDump(int fd)
   uint64_t count = 0;
 
   for (auto& mc : d_maps) {
-    auto map = mc.d_content.lock();
+    auto map = mc.lock();
     const auto& sidx = map->d_map.get<SequencedTag>();
 
     time_t now = time(nullptr);
