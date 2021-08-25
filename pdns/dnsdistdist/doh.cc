@@ -1614,8 +1614,6 @@ void dohThread(ClientState* cs)
 
 void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
 {
-  static_assert(sizeof(*this) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
-
   response = std::move(udpResponse);
   ids = std::move(state);
 
