@@ -292,11 +292,6 @@ static void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
   *flags |= origFlags;
 }
 
-static uint16_t getRDAndCDFlagsFromDNSHeader(const struct dnsheader* dh)
-{
-  return static_cast<uint16_t>(dh->rd) << FLAGS_RD_OFFSET | static_cast<uint16_t>(dh->cd) << FLAGS_CD_OFFSET;
-}
-
 static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
 {
   restoreFlags(dq.getHeader(), origFlags);
@@ -450,9 +445,6 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
     return false;
   }
 
-  /* We need to get the flags for the packet cache before restoring the original ones, otherwise it might not match later queries */
-  const auto cacheFlags = getRDAndCDFlagsFromDNSHeader(dr.getHeader());
-
   bool zeroScope = false;
   if (!fixUpResponse(response, *dr.qname, dr.origFlags, dr.ednsAdded, dr.ecsAdded, dr.useZeroScope ? &zeroScope : nullptr)) {
     return false;
@@ -471,7 +463,7 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
       zeroScope = false;
     }
     // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, receivedOverUDP, dr.getHeader()->rcode, dr.tempFailureTTL);
+    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, receivedOverUDP, dr.getHeader()->rcode, dr.tempFailureTTL);
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1272,6 +1264,9 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
       return ProcessQueryResult::Drop;
     }
+
+    /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
+    dq.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader());
 
     if (dq.addXPF && selectedBackend->xpfRRCode != 0) {
       addXPF(dq, selectedBackend->xpfRRCode);
