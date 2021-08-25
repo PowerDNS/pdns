@@ -35,7 +35,7 @@ public:
   }
   void cleanup(time_t now, const std::lock_guard<std::mutex>& lock);
 
-  void putSession(const boost::uuids::uuid& backendID, time_t now, std::unique_ptr<TLSSession>&& session);
+  void putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions);
   std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
 
   static void setCleanupDelay(time_t delay)

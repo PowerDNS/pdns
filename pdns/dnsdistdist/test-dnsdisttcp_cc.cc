@@ -242,9 +242,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    return nullptr;
+    return {};
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override

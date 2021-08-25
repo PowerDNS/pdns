@@ -36,7 +36,7 @@ public:
   virtual std::vector<uint8_t> getNextProtocol() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
-  virtual std::unique_ptr<TLSSession> getSession() = 0;
+  virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual void close() = 0;
 
@@ -521,13 +521,13 @@ public:
     }
   }
 
-  std::unique_ptr<TLSSession> getTLSSession()
+  std::vector<std::unique_ptr<TLSSession>> getTLSSessions()
   {
     if (!d_conn) {
-      throw std::runtime_error("Trying to get a TLS session from a non-TLS handler");
+      throw std::runtime_error("Trying to get TLS sessions from a non-TLS handler");
     }
 
-    return d_conn->getSession();
+    return d_conn->getSessions();
   }
 
 private:

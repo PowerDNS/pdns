@@ -192,7 +192,6 @@ protected:
   }
 
   PacketBuffer d_responseBuffer;
-#warning we do not need this and could append to the outgoing buffer right away but is it better?
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
   std::unique_ptr<FDMultiplexer>& d_mplexer;

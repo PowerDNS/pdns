@@ -43,18 +43,20 @@ void TLSSessionCache::cleanup(time_t now, const std::lock_guard<std::mutex>& loc
   d_nextCleanup = now + s_cleanupDelay;
 }
 
-void TLSSessionCache::putSession(const boost::uuids::uuid& backendID, time_t now, std::unique_ptr<TLSSession>&& session)
+void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions)
 {
   std::lock_guard<decltype(d_lock)> lock(d_lock);
   if (d_nextCleanup == 0 || now > d_nextCleanup) {
     cleanup(now, lock);
   }
 
-  auto& entry = d_sessions[backendID];
-  if (entry.d_sessions.size() >= s_maxSessionsPerBackend) {
-    entry.d_sessions.pop_back();
+  for (auto& session : sessions) {
+    auto& entry = d_sessions[backendID];
+    if (entry.d_sessions.size() >= s_maxSessionsPerBackend) {
+      entry.d_sessions.pop_back();
+    }
+    entry.d_sessions.push_front(std::move(session));
   }
-  entry.d_sessions.push_front(std::move(session));
 }
 
 std::unique_ptr<TLSSession> TLSSessionCache::getSession(const boost::uuids::uuid& backendID, time_t now)

@@ -456,13 +456,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    if (d_tlsSession) {
-      return std::move(d_tlsSession);
-    }
-
-    throw std::runtime_error("Unable to get an OpenSSL session");
+    return std::move(d_tlsSessions);
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -480,9 +476,9 @@ public:
     native.release();
   }
 
-  void setNewTicket(SSL_SESSION* session)
+  void addNewTicket(SSL_SESSION* session)
   {
-    d_tlsSession = std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
+    d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free))));
   }
 
   static int s_tlsConnIndex;
@@ -490,9 +486,9 @@ public:
 private:
   static std::atomic_flag s_initTLSConnIndex;
 
+  std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
-  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_hostname;
   struct timeval d_timeout;
 };
@@ -652,7 +648,7 @@ public:
       return 0;
     }
 
-    conn->setNewTicket(session);
+    conn->addNewTicket(session);
     return 1;
   }
 
@@ -1007,7 +1003,7 @@ public:
     if (ret != GNUTLS_E_SUCCESS || sess.size <= 4) {
       throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
     }
-    conn->d_tlsSession = std::unique_ptr<TLSSession>(new GnuTLSSession(sess));
+    conn->d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new GnuTLSSession(sess)));
     return 0;
   }
 
@@ -1360,13 +1356,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    if (d_tlsSession) {
-      return std::move(d_tlsSession);
-    }
-
-    throw std::runtime_error("No GnuTLSSession available yet");
+    return std::move(d_tlsSessions);
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -1406,9 +1398,9 @@ public:
   }
 
 private:
+  std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey;
   std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)> d_conn;
-  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_host;
   bool d_client{false};
   bool d_handshakeDone{false};

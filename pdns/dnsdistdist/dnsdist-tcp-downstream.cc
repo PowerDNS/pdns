@@ -21,9 +21,9 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
         ++d_ds->tlsResumptions;
       }
       try {
-        auto session = d_handler->getTLSSession();
-        if (session) {
-          g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
+        auto sessions = d_handler->getTLSSessions();
+        if (!sessions.empty()) {
+          g_sessionCache.putSessions(d_ds->getID(), now.tv_sec, std::move(sessions));
         }
       }
       catch (const std::exception& e) {
@@ -343,7 +343,14 @@ bool TCPConnectionToBackend::reconnect()
         ++d_ds->tlsResumptions;
       }
       try {
-        tlsSession = d_handler->getTLSSession();
+        auto sessions = d_handler->getTLSSessions();
+        if (!sessions.empty()) {
+          tlsSession = std::move(sessions.back());
+          sessions.pop_back();
+          if (!sessions.empty()) {
+            g_sessionCache.putSessions(d_ds->getID(), time(nullptr), std::move(sessions));
+          }
+        }
       }
       catch (const std::exception& e) {
         vinfolog("Unable to get a TLS session to resume: %s", e.what());
