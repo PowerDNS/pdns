@@ -33,31 +33,42 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
 '         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address="0.0.0.0${QLA6}" --threads=$threads --record-cache-shards=$shards --disable-packetcache --refresh-on-ttl-perc=10 --dnssec=validate > recursor.log 2>&1 &
 sleep 3
+if [ ! -e pdns_recursor.pid ]; then
+	echo Recursor did not start or did not write pdns_recursor.pid, exiting
+	exit 1
+fi
+
 
 # warm up the cache
 echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 echo
-kill -USR1 $(cat pdns_recursor.pid)
-${RECCONTROL} --socket-dir=. --config-dir=. get-all
+kill -USR1 $(cat pdns_recursor.pid) || true
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
+
 # rerun 1 with hot cache
 echo
 echo === Second run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
-kill -USR1 $(cat pdns_recursor.pid)
-${RECCONTROL} --socket-dir=. --config-dir=. get-all
+kill -USR1 $(cat pdns_recursor.pid) || true
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
+
 # rerun 2 with hot cache
 echo
 echo === Third run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+kill -USR1 $(cat pdns_recursor.pid) || true
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
+
+# give it a chance to write the log requested by the kill
+sleep 1
 echo
 echo "=== RECURSOR LOG ==="
 cat recursor.log
 echo "=== END RECURSOR LOG ==="
-kill -USR1 $(cat pdns_recursor.pid)
-${RECCONTROL} --socket-dir=. --config-dir=. get-all
 sleep 1
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. ping
 kill $(cat pdns_recursor.pid) 
 sleep 5
 
