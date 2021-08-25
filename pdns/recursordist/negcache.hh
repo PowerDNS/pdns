@@ -127,7 +127,6 @@ private:
     }
 
   private:
-
     LockGuarded<LockedContent> d_content;
   };
 
