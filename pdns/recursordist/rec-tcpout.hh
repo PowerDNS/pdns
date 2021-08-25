@@ -24,7 +24,6 @@
 
 #include "iputils.hh"
 #include "tcpiohandler.hh"
-#include "syncres.hh"
 
 class TCPOutConnectionManager
 {

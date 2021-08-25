@@ -22,6 +22,12 @@
 
 #include "rec-tcpout.hh"
 
+// This line from /usr/include/openssl/ssl2.h: # define CERT char
+// throws dnsrecords.hh off the rails.
+#undef CERT
+
+#include "syncres.hh"
+
 timeval TCPOutConnectionManager::maxIdleTime;
 size_t TCPOutConnectionManager::maxQueries;
 size_t TCPOutConnectionManager::maxIdlePerAuth;
