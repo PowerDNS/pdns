@@ -616,6 +616,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   IDState ids;
   setIDStateFromDNSQuestion(ids, dq, std::move(qname));
   ids.origID = dh->id;
+  ids.cs = state->d_ci.cs;
 
   ++state->d_currentQueriesCount;
 

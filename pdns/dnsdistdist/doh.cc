@@ -1457,7 +1457,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->hosts = dsc.h2o_config.hosts;
   ctx.d_ticketsKeyRotationDelay = dsc.df->d_tlsConfig.d_ticketsKeyRotationDelay;
 
-  if (setupTLS && !dsc.df->d_tlsConfig.d_certKeyPairs.empty()) {
+  if (setupTLS && dsc.df->isHTTPS()) {
     try {
       setupTLSContext(ctx,
                       dsc.df->d_tlsConfig,
@@ -1521,7 +1521,7 @@ void DOHFrontend::setup()
 
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout, d_internalPipeBufferSize);
 
-  if  (!d_tlsConfig.d_certKeyPairs.empty()) {
+  if  (isHTTPS()) {
     try {
       setupTLSContext(*d_dsc->accept_ctx,
                       d_tlsConfig,

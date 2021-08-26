@@ -602,9 +602,14 @@ struct ClientState
     return udpFD == -1;
   }
 
+  bool isDoH() const
+  {
+    return dohFrontend != nullptr;
+  }
+
   bool hasTLS() const
   {
-    return tlsFrontend != nullptr || dohFrontend != nullptr;
+    return tlsFrontend != nullptr || (dohFrontend != nullptr && dohFrontend->isHTTPS());
   }
 
   std::string getType() const
@@ -612,7 +617,12 @@ struct ClientState
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
     if (dohFrontend) {
-      result += " (DNS over HTTPS)";
+      if (dohFrontend->isHTTPS()) {
+        result += " (DNS over HTTPS)";
+      }
+      else {
+        result += " (DNS over HTTP)";
+      }
     }
     else if (tlsFrontend) {
       result += " (DNS over TLS)";
@@ -743,6 +753,7 @@ struct DownstreamState
   bool reconnectOnUp{false};
   bool d_tcpCheck{false};
   bool d_tcpOnly{false};
+  bool d_addXForwardedHeaders{false}; // for DoH backends
 
   bool isUp() const
   {

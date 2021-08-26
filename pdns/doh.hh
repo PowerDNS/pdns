@@ -121,6 +121,11 @@ struct DOHFrontend
     return d_tlsConfig.d_ticketsKeyRotationDelay;
   }
 
+  bool isHTTPS() const
+  {
+    return !d_tlsConfig.d_certKeyPairs.empty();
+  }
+
 #ifndef HAVE_DNS_OVER_HTTPS
   void setup()
   {

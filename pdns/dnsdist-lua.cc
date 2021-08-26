@@ -536,6 +536,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           if (ret->d_tlsCtx) {
             setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
           }
+
+          if (vars.count("addXForwardedHeaders")) {
+            ret->d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
+          }
 #else /* HAVE_NGHTTP2 */
           throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
 #endif /* HAVE_NGHTTP2 */

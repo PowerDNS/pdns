@@ -70,6 +70,9 @@ private:
   static void handleWritableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void handleIO(std::shared_ptr<DoHConnectionToBackend>& conn, const struct timeval& now);
 
+  static void addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey);
+  static void addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& value);
+
   class PendingRequest
   {
   public:
@@ -188,29 +191,96 @@ bool DoHConnectionToBackend::canBeReused() const
 const std::unordered_map<std::string, std::string> DoHConnectionToBackend::s_constants = {
   {"method-name", ":method"},
   {"method-value", "POST"},
+  {"scheme-name", ":scheme"},
+  {"scheme-value", "https"},
+  {"accept-name", "accept"},
+  {"accept-value", "application/dns-message"},
+  {"content-type-name", "content-type"},
+  {"content-type-value", "application/dns-message"},
+  {"user-agent-name", "user-agent"},
+  {"user-agent-value", "nghttp2-" NGHTTP2_VERSION "/dnsdist"},
+  {"authority-name", ":authority"},
+  {"path-name", ":path"},
+  {"content-length-name", "content-length"},
+  {"x-forwarded-for-name", "x-forwarded-for"},
+  {"x-forwarded-port-name", "x-forwarded-port"},
+  {"x-forwarded-proto-name", "x-forwarded-proto"},
+  {"x-forwarded-proto-value-dns-over-udp", "dns-over-udp"},
+  {"x-forwarded-proto-value-dns-over-tcp", "dns-over-tcp"},
+  {"x-forwarded-proto-value-dns-over-tls", "dns-over-tls"},
+  {"x-forwarded-proto-value-dns-over-http", "dns-over-http"},
+  {"x-forwarded-proto-value-dns-over-https", "dns-over-https"},
 };
+
+void DoHConnectionToBackend::addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey)
+{
+  const auto& name = s_constants.at(nameKey);
+  const auto& value = s_constants.at(valueKey);
+
+  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
+}
+
+void DoHConnectionToBackend::addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& value)
+{
+  const auto& name = s_constants.at(nameKey);
+
+  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
+}
 
 void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
-  /* we could use nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_NAME and nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_VALUE
-     to avoid a copy and lowercasing as long as we take care of making sure that the data will outlive the request
-     and that it is already lowercased. */
   auto payloadSize = std::to_string(query.d_buffer.size());
   d_currentQuery = std::move(query);
   d_queryPos = 0;
-  const nghttp2_nv hdrs[] = {
-    {const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-name").c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(s_constants.at("method-value").c_str())), s_constants.at("method-name").size(), s_constants.at("method-value").size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE},
-    MAKE_NV2(":scheme", "https"),
-    MAKE_NV(":authority", d_ds->d_tlsSubjectName.c_str(), d_ds->d_tlsSubjectName.size()),
-    MAKE_NV(":path", d_ds->d_dohPath.c_str(), d_ds->d_dohPath.size()),
-    MAKE_NV2("accept", "application/dns-message"),
-    MAKE_NV2("content-type", "application/dns-message"),
-    MAKE_NV("content-length", payloadSize.c_str(), payloadSize.size()),
-    MAKE_NV2("user-agent", "nghttp2-" NGHTTP2_VERSION "/dnsdist")};
 
-  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames. In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4) must be specified with :method key in nva (e.g. POST). This function does not take ownership of the data_prd. The function copies the members of the data_prd. If data_prd is NULL, HEADERS have END_STREAM set
+  bool addXForwarded = d_ds->d_addXForwardedHeaders;
+
+  /* We use nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_NAME and nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_VALUE
+     to avoid a copy and lowercasing but we need to make sure that the data will outlive the request (nghttp2_on_frame_send_callback called), and that it is already lowercased. */
+  std::vector<nghttp2_nv> headers;
+  // these need to live until after the request headers have been processed
+  std::string remote;
+  std::string remotePort;
+  headers.reserve(8 + (addXForwarded ? 3 : 0));
+
+  /* Pseudo-headers need to come first (rfc7540 8.1.2.1) */
+  addStaticHeader(headers, "method-name", "method-value");
+  addStaticHeader(headers, "scheme-name", "scheme-value");
+  addDynamicHeader(headers, "authority-name", d_ds->d_tlsSubjectName);
+  addDynamicHeader(headers, "path-name", d_ds->d_dohPath);
+  addStaticHeader(headers, "accept-name", "accept-value");
+  addStaticHeader(headers, "content-type-name", "content-type-value");
+  addStaticHeader(headers, "user-agent-name", "user-agent-value");
+  addDynamicHeader(headers, "content-length-name", payloadSize);
+  /* no need to add these headers for health-check queries */
+  if (addXForwarded && d_currentQuery.d_idstate.origRemote.getPort() != 0) {
+    remote = d_currentQuery.d_idstate.origRemote.toString();
+    remotePort = std::to_string(d_currentQuery.d_idstate.origRemote.getPort());
+    addDynamicHeader(headers, "x-forwarded-for-name", remote);
+    addDynamicHeader(headers, "x-forwarded-port-name", remotePort);
+    if (d_currentQuery.d_idstate.cs != nullptr) {
+      if (d_currentQuery.d_idstate.cs->isUDP()) {
+        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-udp");
+      }
+      else if (d_currentQuery.d_idstate.cs->isDoH()) {
+        if (d_currentQuery.d_idstate.cs->hasTLS()) {
+          addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-https");
+        }
+        else {
+          addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-http");
+        }
+      }
+      else if (d_currentQuery.d_idstate.cs->hasTLS()) {
+        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tls");
+      }
+      else {
+        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tcp");
+      }
+    }
+  }
+
+  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames. In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4) must be specified with :method key (e.g. POST). This function does not take ownership of the data_prd. The function copies the members of the data_prd. If data_prd is NULL, HEADERS have END_STREAM set.
    */
-
   nghttp2_data_provider data_provider;
   data_provider.source.ptr = this;
   data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
@@ -229,7 +299,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     return toCopy;
   };
 
-  auto stream_id = nghttp2_submit_request(d_session.get(), nullptr, hdrs, sizeof(hdrs) / sizeof(*hdrs), &data_provider, this);
+  auto stream_id = nghttp2_submit_request(d_session.get(), nullptr, headers.data(), headers.size(), &data_provider, this);
   if (stream_id < 0) {
     d_connectionDied = true;
     throw std::runtime_error("Error submitting HTTP request:" + std::string(nghttp2_strerror(stream_id)));
