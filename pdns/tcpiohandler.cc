@@ -241,10 +241,20 @@ public:
   IOState tryHandshake() override
   {
     if (!d_feContext) {
-      /* we are a client, nothing to do */
+      /* In client mode, the handshake is initiated by the call to SSL_connect()
+         done from connect()/tryConnect().
+         In blocking mode it does not return before the handshake has been finished,
+         and in non-blocking mode calling SSL_connect() once is enough for SSL_write()
+         and SSL_read() to transparently continue to negotiate the connection after that
+         (equivalent to doing SSL_set_connect_state() plus trying to write).
+      */
       return IOState::Done;
     }
 
+    /* As explained above in the client-mode block, we only need to call SSL_accept() once
+       for SSL_write() and SSL_read() to transparently continue to negotiate the connection after that.
+       It is equivalent to calling SSL_set_accept_state() plus trying to read.
+    */
     int res = SSL_accept(d_conn.get());
     if (res == 1) {
       return IOState::Done;
@@ -259,7 +269,7 @@ public:
   void doHandshake() override
   {
     if (!d_feContext) {
-      /* we are a client, nothing to do */
+      /* we are a client, nothing to do, see the non-blocking version */
       return;
     }
 
@@ -1030,6 +1040,8 @@ public:
   IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
     if (!d_handshakeDone) {
+      /* As opposed to OpenSSL, GnuTLS will not transparently finish the handshake for us,
+         we need to keep calling gnutls_handshake() until the handshake has been finished. */
       auto state = tryHandshake();
       if (state != IOState::Done) {
         return state;
@@ -1061,6 +1073,8 @@ public:
   IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
   {
     if (!d_handshakeDone) {
+      /* As opposed to OpenSSL, GnuTLS will not transparently finish the handshake for us,
+         we need to keep calling gnutls_handshake() until the handshake has been finished. */
       auto state = tryHandshake();
       if (state != IOState::Done) {
         return state;
