@@ -32,6 +32,9 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
 
         return serialNumber
 
+    def getTLSProvider(self):
+        return self.sendConsoleCommand("getBind(0):getEffectiveTLSProvider()").rstrip()
+
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 
@@ -116,6 +119,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
+        self.assertEquals(self.getTLSProvider(), "gnutls")
 
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)
@@ -158,6 +162,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
+        self.assertEquals(self.getTLSProvider(), "openssl")
 
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)

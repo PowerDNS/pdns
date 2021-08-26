@@ -14,6 +14,9 @@ class TLSTests(object):
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
         return conn.getpeercert()
 
+    def getTLSProvider(self):
+        return self.sendConsoleCommand("getBind(0):getEffectiveTLSProvider()").rstrip()
+
     def testTLSSimple(self):
         """
         TLS: Single query
@@ -269,6 +272,9 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
+    def testProvider(self):
+        self.assertEquals(self.getTLSProvider(), "openssl")
+
 class TestGnuTLS(DNSDistTest, TLSTests):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -287,6 +293,9 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    def testProvider(self):
+        self.assertEquals(self.getTLSProvider(), "gnutls")
 
 class TestDOTWithCache(DNSDistTest):
     _serverKey = 'server.key'
