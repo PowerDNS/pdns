@@ -161,7 +161,7 @@ public:
   const uint16_t qclass;
   uint16_t ecsPrefixLength;
   uint16_t origFlags;
-  uint16_t cacheFlags; /* DNS flags as sent to the backend */
+  uint16_t cacheFlags{0}; /* DNS flags as sent to the backend */
   const Protocol protocol;
   uint8_t ednsRCode{0};
   bool skipCache{false};
