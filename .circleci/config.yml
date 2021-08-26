@@ -239,6 +239,7 @@ commands:
               libcdb1 \
               libcurl4-openssl-dev \
               libfstrm0 \
+              libgnutls30 \
               libh2o-evloop0.13 \
               liblmdb0 \
               libre2-5 \
@@ -1539,6 +1540,7 @@ jobs:
             libcdb-dev \
             libedit-dev \
             libfstrm-dev \
+            libgnutls30 \
             liblmdb-dev \
             libluajit-5.1-dev \
             libre2-dev \
@@ -1570,6 +1572,7 @@ jobs:
             --enable-dnscrypt \
             --enable-dns-over-tls \
             --prefix=/opt/dnsdist \
+            --with-gnutls \
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
@@ -1690,6 +1693,7 @@ jobs:
             libcdb-dev \
             libedit-dev \
             libfstrm-dev \
+            libgnutls28-dev \
             libh2o-evloop-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
@@ -1728,6 +1732,7 @@ jobs:
             --enable-dns-over-https \
             --enable-systemd \
             --prefix=/opt/dnsdist \
+            --with-gnutls \
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
@@ -1776,6 +1781,7 @@ jobs:
             libcdb-dev \
             libedit-dev \
             libfstrm-dev \
+            libgnutls28-dev \
             libh2o-evloop-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
@@ -1814,6 +1820,7 @@ jobs:
             --enable-dns-over-https \
             --enable-systemd \
             --prefix=/opt/dnsdist-with-tsan \
+            --with-gnutls \
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
