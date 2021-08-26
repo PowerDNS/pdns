@@ -4086,7 +4086,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
     _exit(1);
   }
 
-  unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
+  unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed);
   unsigned int target = selectWorker(hash);
 
   ThreadMSG* tmsg = new ThreadMSG();

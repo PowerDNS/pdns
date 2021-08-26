@@ -390,33 +390,53 @@ BOOST_AUTO_TEST_CASE(test_hashContainer) {
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet;
   reportBasicTypes();
-  DNSPacketWriter dpw1(packet, DNSName("www.ds9a.nl."), QType::AAAA);
-  
-  auto hash1=hashQuestion((char*)&packet[0], packet.size(), 0);
-  DNSPacketWriter dpw2(packet, DNSName("wWw.Ds9A.nL."), QType::AAAA);
-  auto hash2=hashQuestion((char*)&packet[0], packet.size(), 0);
+
+  // A return init case
+  BOOST_CHECK_EQUAL(hashQuestion(packet.data(), sizeof(dnsheader), 0xffU), 0xffU);
+
+  // We subtract 4 from the packet sizes since DNSPacketWriter adds a type and a class
+  // W eexcpect the hash of the root to bne unequal to the burtle init value
+  DNSPacketWriter dpw0(packet, DNSName("."), QType::AAAA);
+  BOOST_CHECK(hashQuestion(packet.data(), packet.size() - 4, 0xffU) != 0xffU);
+
+  // A truncated buffer
+  DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
+  BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 5, 0xffU), 0xffU);
+
+  DNSPacketWriter dpw2(packet, DNSName("www.ds9a.nl."), QType::AAAA);
+  // Let's make an invalid name by overwriting the length of the second label just outside
+  packet[sizeof(dnsheader) + 4] = 8;
+  BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 4, 0xffU), 0xffU);
+
+  DNSPacketWriter dpw3(packet, DNSName("www.ds9a.nl."), QType::AAAA);
+  // Let's make an invalid name by overwriting the length of the second label way outside
+  packet[sizeof(dnsheader) + 4] = 0xff;
+  BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 4, 0xffU), 0xffU);
+
+  DNSPacketWriter dpw4(packet, DNSName("www.ds9a.nl."), QType::AAAA);
+  auto hash1 = hashQuestion(&packet[0], packet.size() - 4, 0);
+  DNSPacketWriter dpw5(packet, DNSName("wWw.Ds9A.nL."), QType::AAAA);
+  auto hash2 = hashQuestion(&packet[0], packet.size() - 4, 0);
   BOOST_CHECK_EQUAL(hash1, hash2);
- 
+
   vector<uint32_t> counts(1500);
- 
-  for(unsigned int n=0; n < 100000; ++n) {
+  for(unsigned int n = 0; n < 100000; ++n) {
     packet.clear();
-    DNSPacketWriter dpw3(packet, DNSName(std::to_string(n)+"."+std::to_string(n*2)+"."), QType::AAAA);
-    counts[hashQuestion((char*)&packet[0], packet.size(), 0) % counts.size()]++;
+    DNSPacketWriter dpw(packet, DNSName(std::to_string(n) + "." + std::to_string(n*2) + "."), QType::AAAA);
+    counts[hashQuestion(&packet[0], packet.size() - 4, 0) % counts.size()]++;
   }
-  
+
   double sum = std::accumulate(std::begin(counts), std::end(counts), 0.0);
   double m =  sum / counts.size();
-  
+
   double accum = 0.0;
   std::for_each (std::begin(counts), std::end(counts), [&](const double d) {
       accum += (d - m) * (d - m);
   });
-      
+
   double stdev = sqrt(accum / (counts.size()-1));
-  BOOST_CHECK(stdev < 10);      
+  BOOST_CHECK(stdev < 10);
 }
-  
 
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
