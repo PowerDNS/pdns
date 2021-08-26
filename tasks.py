@@ -54,6 +54,7 @@ dnsdist_build_deps = [
     'libcdb-dev',
     'libedit-dev',
     'libfstrm-dev',
+    'libgnutls28-dev',
     'libh2o-evloop-dev',
     'liblmdb-dev',
     'libre2-dev',
@@ -171,6 +172,7 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
               libcdb1 \
               libcurl4-openssl-dev \
               libfstrm0 \
+              libgnutls30 \
               libh2o-evloop0.13 \
               liblmdb0 \
               libre2-5 \
@@ -260,6 +262,7 @@ def ci_dnsdist_configure(c):
                      --enable-dns-over-https \
                      --enable-systemd \
                      --prefix=/opt/dnsdist \
+                     --with-gnutls \
                      --with-libsodium \
                      --with-lua=luajit \
                      --with-libcap \
