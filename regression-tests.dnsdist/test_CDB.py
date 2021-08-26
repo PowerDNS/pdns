@@ -1,11 +1,20 @@
 #!/usr/bin/env python
+import cdbx
 import unittest
 import dns
 import os
-import shutil
 import socket
 import time
 from dnsdisttests import DNSDistTest
+
+def writeCDB(fname, variant=1):
+    cdb = cdbx.CDB.make(fname+'.tmp')
+    cdb.add(socket.inet_aton(f'127.0.0.{variant}'), b'this is the value of the source address tag')
+    cdb.add(b'\x05qname\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the qname tag')
+    cdb.add(b'\x06suffix\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
+    cdb.add(b'this is the value of the qname tag', b'this is the value of the second tag')
+    cdb.commit().close()
+    os.rename(fname+'.tmp', fname)
 
 @unittest.skipIf('SKIP_CDB_TESTS' in os.environ, 'CDB tests are disabled')
 class CDBTest(DNSDistTest):
@@ -53,7 +62,7 @@ class TestCDBSimple(CDBTest):
 
     @classmethod
     def setUpCDB(cls):
-        shutil.copyfile('kvs.cdb.1', cls._cdbFileName)
+        writeCDB(cls._cdbFileName, 1)
 
     @classmethod
     def setUpClass(cls):
@@ -138,7 +147,7 @@ class TestCDBReload(CDBTest):
 
     @classmethod
     def setUpCDB(cls):
-        shutil.copyfile('kvs.cdb.1', cls._cdbFileName)
+        writeCDB(cls._cdbFileName, 1)
 
     @classmethod
     def setUpClass(cls):
@@ -174,8 +183,8 @@ class TestCDBReload(CDBTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
-        # switch to the second DB which has no entry for 127.0.0.1
-        shutil.copyfile('kvs.cdb.2', self._cdbFileName)
+        # write a new CDB which has no entry for 127.0.0.1
+        writeCDB(self._cdbFileName, 2)
         # wait long enough for the CDB database to be reloaded
         time.sleep(self._cdbRefreshDelay + 1)
 
