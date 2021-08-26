@@ -294,6 +294,11 @@ public:
   {
     return 0;
   }
+
+  std::string getName() const override
+  {
+    return "Mockup TLS";
+  }
 };
 
 class MockupFDMultiplexer : public FDMultiplexer

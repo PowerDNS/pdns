@@ -354,10 +354,34 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       setLuaNoSideEffect();
       return fe.local.toStringWithPort();
     });
-  luaCtx.registerFunction<std::string(ClientState::*)()>("__tostring", [](const ClientState& fe) {
+  luaCtx.registerFunction<std::string(ClientState::*)()const>("__tostring", [](const ClientState& fe) {
       setLuaNoSideEffect();
       return fe.local.toStringWithPort();
     });
+  luaCtx.registerFunction<std::string(ClientState::*)()const>("getType", [](const ClientState& fe) {
+      setLuaNoSideEffect();
+      return fe.getType();
+  });
+  luaCtx.registerFunction<std::string(ClientState::*)()const>("getConfiguredTLSProvider", [](const ClientState& fe) {
+      setLuaNoSideEffect();
+      if (fe.tlsFrontend != nullptr) {
+        return fe.tlsFrontend->getRequestedProvider();
+      }
+      else if (fe.dohFrontend != nullptr) {
+        return std::string("openssl");
+      }
+      return std::string();
+  });
+  luaCtx.registerFunction<std::string(ClientState::*)()const>("getEffectiveTLSProvider", [](const ClientState& fe) {
+      setLuaNoSideEffect();
+      if (fe.tlsFrontend != nullptr) {
+        return fe.tlsFrontend->getEffectiveProvider();
+      }
+      else if (fe.dohFrontend != nullptr) {
+        return std::string("openssl");
+      }
+      return std::string();
+  });
   luaCtx.registerMember("muted", &ClientState::muted);
 #ifdef HAVE_EBPF
   luaCtx.registerFunction<void(ClientState::*)(std::shared_ptr<BPFFilter>)>("attachFilter", [](ClientState& frontend, std::shared_ptr<BPFFilter> bpf) {
