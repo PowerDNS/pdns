@@ -176,18 +176,9 @@ MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, i
   if(env->getROTX() || env->getRWTX())
     throw std::runtime_error("Duplicate RW transaction");
 
-  for(int tries =0 ; tries < 3; ++tries) { // it might happen twice, who knows
-    if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result)) {
-      if(rc == MDB_MAP_RESIZED && tries < 2) {
-        // "If the mapsize is increased by another process (..) mdb_txn_begin() will return MDB_MAP_RESIZED.
-        // call mdb_env_set_mapsize with a size of zero to adopt the new size."
-        mdb_env_set_mapsize(env->d_env, 0);
-        continue;
-      }
-      throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
-    }
-    break;
-  }
+  if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result))
+    throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
+
   env->incRWTX();
   return result;
 }
@@ -245,19 +236,10 @@ MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, i
   /*
     A transaction and its cursors must only be used by a single thread, and a thread may only have a single transaction at a time. If MDB_NOTLS is in use, this does not apply to read-only transactions. */
   MDB_txn *result = nullptr;
-  for(int tries =0 ; tries < 3; ++tries) { // it might happen twice, who knows
-    if(int rc=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result)) {
-      if(rc == MDB_MAP_RESIZED && tries < 2) {
-        // "If the mapsize is increased by another process (..) mdb_txn_begin() will return MDB_MAP_RESIZED.
-        // call mdb_env_set_mapsize with a size of zero to adopt the new size."
-        mdb_env_set_mapsize(env->d_env, 0);
-        continue;
-      }
 
-      throw std::runtime_error("Unable to start RO transaction: "+string(mdb_strerror(rc)));
-    }
-    break;
-  }
+  if(int rc=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result))
+    throw std::runtime_error("Unable to start RO transaction: "+string(mdb_strerror(rc)));
+
   env->incROTX();
 
   return result;
