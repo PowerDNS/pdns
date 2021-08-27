@@ -42,7 +42,7 @@ static void usage()
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT] "
-          "[dumpluaraw]"
+          "[dumpluaraw] [opcode OPNUM]"
        << endl;
 }
 
@@ -60,9 +60,9 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
                        bool dnssec, const boost::optional<Netmask> ednsnm,
                        bool recurse, uint16_t xpfcode, uint16_t xpfversion,
                        uint64_t xpfproto, char* xpfsrc, char* xpfdst,
-                       QClass qclass, uint16_t qid)
+                       QClass qclass, uint8_t opcode, uint16_t qid)
 {
-  DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass);
+  DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
   if (dnssec || ednsnm || getenv("SDIGBUFSIZE")) {
     char* sbuf = getenv("SDIGBUFSIZE");
@@ -212,6 +212,7 @@ try {
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
   QClass qclass = QClass::IN;
+  uint8_t opcode = 0;
   string proxyheader;
   string subjectName;
   string caStore;
@@ -281,6 +282,13 @@ try {
           exit(EXIT_FAILURE);
         }
         qclass = atoi(argv[++i]);
+      }
+      else if (strcmp(argv[i], "opcode") == 0) {
+        if (argc < i+2) {
+          cerr << "opcode needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        opcode = atoi(argv[++i]);
       }
       else if (strcmp(argv[i], "subjectName") == 0) {
         if (argc < i + 2) {
@@ -367,7 +375,7 @@ try {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-               xpfproto, xpfsrc, xpfdst, qclass, 0);
+               xpfproto, xpfsrc, xpfdst, qclass, opcode, 0);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.insert(std::make_pair("Content-Type", "application/dns-message"));
@@ -422,7 +430,7 @@ try {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
       fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
-                 xpfversion, xpfproto, xpfsrc, xpfdst, qclass, counter);
+                 xpfversion, xpfproto, xpfsrc, xpfdst, qclass, opcode, counter);
       counter++;
 
       // Prefer to do a single write, so that fastopen can send all the data on SYN
@@ -453,7 +461,7 @@ try {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-               xpfproto, xpfsrc, xpfdst, qclass, 0);
+               xpfproto, xpfsrc, xpfdst, qclass, opcode, 0);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
