@@ -98,6 +98,7 @@ public:
   }
 
   virtual size_t getTicketsKeysCount() = 0;
+  virtual std::string getName() const = 0;
 
 protected:
   std::atomic_flag d_rotatingTicketsKey;
@@ -176,6 +177,19 @@ public:
     }
 
     return res;
+  }
+
+  std::string getRequestedProvider() const
+  {
+    return d_provider;
+  }
+
+  std::string getEffectiveProvider() const
+  {
+    if (d_ctx) {
+      return d_ctx->getName();
+    }
+    return "";
   }
 
   TLSConfig d_tlsConfig;

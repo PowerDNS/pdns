@@ -854,6 +854,24 @@ ClientState functions
 
      Remove the BPF filter associated to this frontend, if any.
 
+  .. method:: ClientState:getEffectiveTLSProvider() -> string
+
+    .. versionadded:: 1.7.0
+
+    Return the name of the TLS provider actually used.
+
+  .. method:: ClientState:getRequestedTLSProvider() -> string
+
+    .. versionadded:: 1.7.0
+
+    Return the name of the TLS provider requested in the configuration.
+
+  .. method:: ClientState:getType() -> string
+
+    .. versionadded:: 1.7.0
+
+    Return the type of the frontend: UDP, UDP (DNSCrypt), TCP, TCP (DNSCrypt), TCP (DNS over TLS) or TCP (DNS over HTTPS).
+
   .. method:: ClientState:toString() -> string
 
     Return the address and port this frontend is listening on.

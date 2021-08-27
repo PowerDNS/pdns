@@ -562,6 +562,11 @@ public:
     return d_feContext->d_ticketKeys.getKeysCount();
   }
 
+  std::string getName() const override
+  {
+    return "openssl";
+  }
+
 private:
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context
@@ -1202,6 +1207,11 @@ public:
   size_t getTicketsKeysCount() override
   {
     return *(d_ticketsKey.read_lock()) != nullptr ? 1 : 0;
+  }
+
+  std::string getName() const override
+  {
+    return "gnutls";
   }
 
 private:
