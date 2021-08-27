@@ -10,11 +10,18 @@ import sys
 import threading
 import time
 import unittest
+
 import clientsubnetoption
+
 import dns
 import dns.message
+
 import libnacl
 import libnacl.utils
+
+import h2.connection
+import h2.events
+import h2.config
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 
@@ -308,6 +315,98 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                     break
 
             conn.close()
+
+        sock.close()
+
+    @classmethod
+    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None):
+        # trailingDataResponse=True means "ignore trailing data".
+        # Other values are either False (meaning "raise an exception")
+        # or are interpreted as a response RCODE for queries with trailing data.
+        # callback is invoked for every -even healthcheck ones- query and should return a raw response
+        ignoreTrailing = trailingDataResponse is True
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        try:
+            sock.bind(("127.0.0.1", port))
+        except socket.error as e:
+            print("Error binding in the TCP responder: %s" % str(e))
+            sys.exit(1)
+
+        sock.listen(100)
+        if tlsContext:
+            sock = tlsContext.wrap_socket(sock, server_side=True)
+
+        config = h2.config.H2Configuration(client_side=False)
+
+        while True:
+            try:
+                (conn, _) = sock.accept()
+            except ssl.SSLError:
+                continue
+            except ConnectionResetError:
+              continue
+            conn.settimeout(5.0)
+            h2conn = h2.connection.H2Connection(config=config)
+            h2conn.initiate_connection()
+            conn.sendall(h2conn.data_to_send())
+            dnsData = {}
+
+            while True:
+                data = conn.recv(65535)
+                if not data:
+                    break
+
+                events = h2conn.receive_data(data)
+                for event in events:
+                    if isinstance(event, h2.events.DataReceived):
+                        h2conn.acknowledge_received_data(event.flow_controlled_length, event.stream_id)
+                        if not event.stream_id in dnsData:
+                          dnsData[event.stream_id] = b''
+                        dnsData[event.stream_id] = dnsData[event.stream_id] + (event.data)
+                        if event.stream_ended:
+                            forceRcode = None
+                            status = 200
+                            try:
+                                request = dns.message.from_wire(dnsData[event.stream_id], ignore_trailing=ignoreTrailing)
+                            except dns.message.TrailingJunk as e:
+                                if trailingDataResponse is False or forceRcode is True:
+                                    raise
+                                print("DOH query with trailing data, synthesizing response")
+                                request = dns.message.from_wire(dnsData[event.stream_id], ignore_trailing=True)
+                                forceRcode = trailingDataResponse
+
+                            if callback:
+                                status, wire = callback(request)
+                            else:
+                                response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+                                if response:
+                                    wire = response.to_wire(max_size=65535)
+
+                            if not wire:
+                                conn.close()
+                                conn = None
+                                break
+
+                            headers = [
+                              (':status', str(status)),
+                              ('content-length', str(len(wire))),
+                              ('content-type', 'application/dns-message'),
+                            ]
+                            h2conn.send_headers(stream_id=event.stream_id, headers=headers)
+                            h2conn.send_data(stream_id=event.stream_id, data=wire, end_stream=True)
+
+                    data_to_send = h2conn.data_to_send()
+                    if data_to_send:
+                        conn.sendall(data_to_send)
+
+                if conn is None:
+                    break
+
+            if conn is not None:
+                conn.close()
 
         sock.close()
 
