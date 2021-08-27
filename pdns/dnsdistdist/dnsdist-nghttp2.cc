@@ -59,6 +59,11 @@ public:
 
   bool canBeReused() const override;
 
+  void setHealthCheck(bool h)
+  {
+    d_healthCheckQuery = h;
+  }
+
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
@@ -105,6 +110,7 @@ private:
   size_t d_outPos{0};
   size_t d_inPos{0};
   uint32_t d_highestStreamID{0};
+  bool d_healthCheckQuery{false};
 };
 
 class DownstreamDoHConnectionsManager
@@ -426,7 +432,10 @@ void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackf
   struct timeval now;
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
-  if (newState == IOState::NeedRead) {
+  if (d_healthCheckQuery) {
+    ttd = getBackendHealthCheckTTD(now);
+  }
+  else if (newState == IOState::NeedRead) {
     ttd = getBackendReadTTD(now);
   }
   else if (isFresh() && d_queries == 0) {
@@ -1126,6 +1135,7 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
   gettimeofday(&now, nullptr);
 
   auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now);
+  newConnection->setHealthCheck(true);
   newConnection->queueQuery(sender, std::move(query));
   return true;
 #else /* HAVE_NGHTTP2 */

@@ -146,6 +146,21 @@ protected:
     return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
   }
 
+  boost::optional<struct timeval> getBackendHealthCheckTTD(const struct timeval& now) const
+  {
+    if (d_ds == nullptr) {
+      throw std::runtime_error("getBackendReadTTD() without any backend selected");
+    }
+    if (d_ds->checkTimeout == 0) {
+      return boost::none;
+    }
+
+    struct timeval res = now;
+    res.tv_sec += d_ds->checkTimeout;
+
+    return res;
+  }
+
   boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
