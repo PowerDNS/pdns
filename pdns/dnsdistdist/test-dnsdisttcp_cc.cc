@@ -61,6 +61,10 @@ uint64_t getLatencyCount(const std::string&)
   return 0;
 }
 
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH)
+{
+}
+
 static std::function<ProcessQueryResult(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
 
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
@@ -231,6 +235,15 @@ public:
   bool hasSessionBeenResumed() const override
   {
     return false;
+  }
+
+  std::unique_ptr<TLSSession> getSession() override
+  {
+    return nullptr;
+  }
+
+  void setSession(std::unique_ptr<TLSSession>& session) override
+  {
   }
 
   /* unused in that context, don't bother */
@@ -2651,6 +2664,11 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
         /* the backend descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* no more query from the client for now */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor becomes NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
       } },
       /* read the response (1) from the backend  */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },

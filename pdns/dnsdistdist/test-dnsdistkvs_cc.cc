@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = DNSQuestion::Protocol::DoUDP;
+  auto proto = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = DNSQuestion::Protocol::DoUDP;
+  auto proto = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;

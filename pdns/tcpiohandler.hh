@@ -4,11 +4,20 @@
 /* needed for proper TCP_FASTOPEN_CONNECT detection */
 #include <netinet/tcp.h>
 
+#include "iputils.hh"
 #include "libssl.hh"
 #include "misc.hh"
 #include "noinitvector.hh"
 
 enum class IOState : uint8_t { Done, NeedRead, NeedWrite };
+
+class TLSSession
+{
+public:
+  virtual ~TLSSession()
+  {
+  }
+};
 
 class TLSConnection
 {
@@ -26,6 +35,8 @@ public:
   virtual std::string getServerNameIndication() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
+  virtual std::unique_ptr<TLSSession> getSession() = 0;
+  virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual void close() = 0;
 
   void setUnknownTicketKey()
@@ -204,7 +215,7 @@ protected:
 class TCPIOHandler
 {
 public:
-  enum class Type { Client, Server };
+  enum class Type : uint8_t { Client, Server };
 
   TCPIOHandler(const std::string& host, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
@@ -479,6 +490,22 @@ public:
     return d_conn && d_conn->getUnknownTicketKey();
   }
 
+  void setTLSSession(std::unique_ptr<TLSSession>& session)
+  {
+    if (d_conn != nullptr) {
+      d_conn->setSession(session);
+    }
+  }
+
+  std::unique_ptr<TLSSession> getTLSSession()
+  {
+    if (!d_conn) {
+      throw std::runtime_error("Trying to get a TLS session from a non-TLS handler");
+    }
+
+    return d_conn->getSession();
+  }
+
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
   ComboAddress d_remote;
@@ -498,4 +525,3 @@ struct TLSContextParameters
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
-

@@ -21,13 +21,20 @@
  */
 #pragma once
 
-#include "dnsdist.hh"
-#include "mplexer.hh"
-#include "sstuff.hh"
+#include <vector>
+#include <string>
 
-extern bool g_verboseHealthChecks;
+namespace dnsdist
+{
+enum class Protocol : uint8_t
+{
+  DoUDP,
+  DoTCP,
+  DNSCryptUDP,
+  DNSCryptTCP,
+  DoT,
+  DoH
+};
 
-void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool initial, bool newState);
-bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial=false);
-void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial=false);
-
+const std::string& ProtocolToString(Protocol proto);
+}

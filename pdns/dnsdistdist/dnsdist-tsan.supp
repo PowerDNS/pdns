@@ -1,6 +1,7 @@
 # Part of that code has a race indeed, where we read the value then update it
 # We don't really care for these metrics
 race:doLatencyStats
+race:updateTCPLatency
 race:handleStats
 race:ClientState::updateTCPMetrics
 race:DownstreamState::updateTCPMetrics

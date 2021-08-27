@@ -56,11 +56,17 @@ In the same way, if the number of ``Drops`` in :func:`showServers` increase fast
 
 Using a single connected UDP socket to contact a backend, and thus a single (source address, source port, destination address, destination port) tuple, might not play well with some load-balancing mechanisms present in front of the backend. Linux's ``reuseport``, for example, does not balance the incoming datagrams to several threads in that case. That can be worked around by using the ``sockets`` option of the :func:`newServer` directive to open several sockets instead of one. You may want to set that number to a value somewhat higher than the number of worker threads configured in the backend. dnsdist will then select a socket using round-robin to forward a query to the backend, and use event multiplexing on the receiving side.
 
-.. figure:: ../imgs/DNSDistDoH.png
+Note that, since 1.7, dnsdist supports marking a backend as "TCP only", as well as enabling DNS over TLS communication between dnsdist and that backend. That leads to a different model where UDP queries are instead passed to a TCP worker:
+
+.. figure:: ../imgs/DNSDistUDPDoT.png
    :align: center
-   :alt: DNSDist DoH design
+   :alt: DNSDist UDP design for TCP-only, DoT backends
 
 For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealing with incoming connections, so it might be useful to add more than one directive, as indicated above.
+
+.. figure:: ../imgs/DNSDistDoH17.png
+   :align: center
+   :alt: DNSDist DoH design
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
@@ -83,7 +89,7 @@ Any value larger than 0 will cause new connections to be dropped if there are al
 By default, every TCP worker thread has its own queue, and the incoming TCP connections are dispatched to TCP workers on a round-robin basis.
 This might cause issues if some connections are taking a very long time, since incoming ones will be waiting until the TCP worker they have been assigned to has finished handling its current query, while other TCP workers might be available.
 
-The experimental :func:`setTCPUseSinglePipe` directive can be used so that all the incoming TCP connections are put into a single queue and handled by the first TCP worker available. This used to be useful before 1.4.0 because a single connection could block a TCP worker, but the "one pipe per TCP worker" is preferable now that workers can handle multiple connections to prevent waking up all idle workers when a new connection arrives.
+The experimental :func:`setTCPUseSinglePipe` directive can be used so that all the incoming TCP connections are put into a single queue and handled by the first TCP worker available. This used to be useful before 1.4.0 because a single connection could block a TCP worker, but the "one pipe per TCP worker" is preferable now that workers can handle multiple connections to prevent waking up all idle workers when a new connection arrives. This option will be removed in 1.7.0.
 
 One of the first starting point when investigating TCP or DNS over TLS issues is to look at the :func:`showTCPStats` command. It provides a lot of metrics about the current and passed connections, and why they were closed.
 

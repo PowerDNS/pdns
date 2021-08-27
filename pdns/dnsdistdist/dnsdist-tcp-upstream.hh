@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dolog.hh"
+#include "dnsdist-tcp.hh"
 
 class TCPClientThreadData
 {
@@ -14,51 +15,10 @@ public:
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
 };
 
-struct ConnectionInfo
-{
-  ConnectionInfo(ClientState* cs_): cs(cs_), fd(-1)
-  {
-  }
-  ConnectionInfo(ConnectionInfo&& rhs): remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
-  {
-    rhs.cs = nullptr;
-    rhs.fd = -1;
-  }
-
-  ConnectionInfo(const ConnectionInfo& rhs) = delete;
-  ConnectionInfo& operator=(const ConnectionInfo& rhs) = delete;
-
-  ConnectionInfo& operator=(ConnectionInfo&& rhs)
-  {
-    remote = rhs.remote;
-    cs = rhs.cs;
-    rhs.cs = nullptr;
-    fd = rhs.fd;
-    rhs.fd = -1;
-    return *this;
-  }
-
-  ~ConnectionInfo()
-  {
-    if (fd != -1) {
-      close(fd);
-      fd = -1;
-    }
-
-    if (cs) {
-      --cs->tcpCurrentConnections;
-    }
-  }
-
-  ComboAddress remote;
-  ClientState* cs{nullptr};
-  int fd{-1};
-};
-
-class IncomingTCPConnectionState
+class IncomingTCPConnectionState : public TCPQuerySender, public std::enable_shared_from_this<IncomingTCPConnectionState>
 {
 public:
-  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_threadData(threadData), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{g_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_ioState(make_unique<IOStateHandler>(threadData.mplexer, d_ci.fd)), d_connectionStartTime(now)
+  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_threadData(threadData), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{g_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_connectionStartTime(now)
   {
     d_origDest.reset();
     d_origDest.sin4.sin_family = d_ci.remote.sin4.sin_family;
@@ -70,6 +30,9 @@ public:
     d_ci.fd = -1;
     d_proxiedDestination = d_origDest;
     d_proxiedRemote = d_ci.remote;
+
+    /* we manage the release of the downstream connection ourselves */
+    d_releaseConnection = false;
   }
 
   IncomingTCPConnectionState(const IncomingTCPConnectionState& rhs) = delete;
@@ -145,32 +108,33 @@ public:
   std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now);
   void registerActiveDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn);
 
-  std::unique_ptr<FDMultiplexer>& getIOMPlexer() const
-  {
-    return d_threadData.mplexer;
-  }
-
   static size_t clearAllDownstreamConnections();
 
   static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static void notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now);
+
   static IOState sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
   static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
+static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
 
   /* we take a copy of a shared pointer, not a reference, because the initial shared pointer might be released during the handling of the response */
-  static void handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response);
-  static void handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
-  static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override;
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override;
+  void notifyIOError(IDState&& query, const struct timeval& now) override;
 
   void terminateClientConnection();
   void queueQuery(TCPQuery&& query);
 
   bool canAcceptNewQueries(const struct timeval& now);
 
-  bool active() const
+  bool active() const override
   {
     return d_ioState != nullptr;
+  }
+
+  const ClientState& getClientState() override
+  {
+    return *d_ci.cs;
   }
 
   std::string toString() const
@@ -203,9 +167,6 @@ public:
   size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
-  uint32_t d_xfrMasterSerial{0};
-  uint32_t d_xfrSerialCount{0};
-  uint8_t d_xfrMasterSerialCount{0};
   uint16_t d_querySize{0};
   State d_state{State::doingHandshake};
   bool d_isXFR{false};

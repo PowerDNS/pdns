@@ -43,6 +43,8 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-session-cache.hh"
+#include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
@@ -441,11 +443,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if(vars.count("checkFunction")) {
-        ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
+        ret->checkFunction = boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
       }
 
       if(vars.count("checkTimeout")) {
         ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+      }
+
+      if (vars.count("checkTCP")) {
+        ret->d_tcpCheck = boost::get<bool>(vars.at("checkTCP"));
       }
 
       if(vars.count("setCD")) {
@@ -492,6 +498,36 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         for (const auto& cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
           cpus.insert(std::stoi(cpu.second));
         }
+      }
+
+      if (vars.count("tcpOnly")) {
+        ret->d_tcpOnly = boost::get<bool>(vars.at("tcpOnly"));
+      }
+
+      if (vars.count("tls")) {
+        TLSContextParameters tlsParams;
+        std::string ciphers;
+        std::string ciphers13;
+
+        tlsParams.d_provider = boost::get<string>(vars.at("tls"));
+
+        if (vars.count("ciphers")) {
+          tlsParams.d_ciphers = boost::get<string>(vars.at("ciphers"));
+        }
+        if (vars.count("ciphers13")) {
+          tlsParams.d_ciphers13 = boost::get<string>(vars.at("ciphers13"));
+        }
+        if (vars.count("caStore")) {
+          tlsParams.d_caStore = boost::get<string>(vars.at("caStore"));
+        }
+        if (vars.count("validateCertificates")) {
+          tlsParams.d_validateCertificates = boost::get<bool>(vars.at("validateCertificates"));
+        }
+        if (vars.count("subjectName")) {
+          ret->d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
+        }
+
+        ret->d_tlsCtx = getTLSContext(tlsParams);
       }
 
       /* this needs to be done _AFTER_ the order has been set,
@@ -1203,6 +1239,30 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setMaxCachedTCPConnectionsPerDownstream(max);
     });
 
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketsPerBackend() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setMaxTicketsPerBackend(max);
+  });
+
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheCleanupDelay", [](time_t delay) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheCleanupDelay() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setCleanupDelay(delay);
+  });
+
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketValidity", [](time_t validity) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketValidity() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setSessionValidity(validity);
+  });
+
   luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
 
   luaCtx.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
@@ -1843,15 +1903,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_hashperturb = pertub;
     });
 
-  luaCtx.writeFunction("setTCPUseSinglePipe", [](bool flag) {
-      if (g_configurationDone) {
-        g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
-        return;
-      }
-      setLuaSideEffect();
-      g_useTCPSinglePipe = flag;
-    });
-
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
 
   luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
@@ -1953,7 +2004,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
       setLuaSideEffect();
-      g_downstreamTCPCleanupInterval = interval;
+      DownstreamConnectionsManager::setCleanupInterval(interval);
     });
 
   luaCtx.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {

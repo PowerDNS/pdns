@@ -488,6 +488,9 @@ Servers
   .. versionchanged:: 1.6.0
     Added ``maxInFlight`` to server_table.
 
+  .. versionchanged:: 1.7.0
+    Added ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -497,43 +500,51 @@ Servers
   or a table::
 
     newServer({
-      address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
-      id=STRING,             -- Use a pre-defined UUID instead of a random one
-      qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,             -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
-      weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
-                             -- Supported values are a minimum of 1, and a maximum of 2147483647.
-      pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
-      retries=NUM,           -- The number of TCP connection attempts to the backend, for a given query
-      tcpConnectTimeout=NUM, -- The timeout (in seconds) of a TCP connection attempt
-      tcpSendTimeout=NUM,    -- The timeout (in seconds) of a TCP write attempt
-      tcpRecvTimeout=NUM,    -- The timeout (in seconds) of a TCP read attempt
-      tcpFastOpen=BOOL,      -- Whether to enable TCP Fast Open
-      ipBindAddrNoPort=BOOL, -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
-      name=STRING,           -- The name associated to this backend, for display purpose
-      checkClass=NUM,        -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
-      checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
-      checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
-      checkFunction=FUNCTION,-- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
-      checkTimeout=NUM,      -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
-      setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
-      maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
-      checkInterval=NUM      -- The time in seconds between health checks
-      mustResolve=BOOL,      -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
-      useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
-      source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
-                             -- The following formats are supported:
-                             --   "address", e.g. "192.0.2.2"
-                             --   "interface name", e.g. "eth0"
-                             --   "address@interface", e.g. "192.0.2.2@eth0"
-      addXPF=NUM,            -- Add the client's IP address and port to the query, along with the original destination address and port,
-                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
-      sockets=NUM,           -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`).
-      disableZeroScope=BOOL, -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
-      rise=NUM,              -- Require NUM consecutive successful checks before declaring the backend up, default: 1
-      useProxyProtocol=BOOL, -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
-      reconnectOnUp=BOOL,    -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
-      maxInFlight            -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
+      address="IP:PORT",        -- IP and PORT of the backend server (mandatory)
+      id=STRING,                -- Use a pre-defined UUID instead of a random one
+      qps=NUM,                  -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
+      order=NUM,                -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
+      weight=NUM,               -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
+                                -- Supported values are a minimum of 1, and a maximum of 2147483647.
+      pool=STRING|{STRING},     -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
+      retries=NUM,              -- The number of TCP connection attempts to the backend, for a given query
+      tcpConnectTimeout=NUM,    -- The timeout (in seconds) of a TCP connection attempt
+      tcpSendTimeout=NUM,       -- The timeout (in seconds) of a TCP write attempt
+      tcpRecvTimeout=NUM,       -- The timeout (in seconds) of a TCP read attempt
+      tcpFastOpen=BOOL,         -- Whether to enable TCP Fast Open
+      ipBindAddrNoPort=BOOL,    -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
+      name=STRING,              -- The name associated to this backend, for display purpose
+      checkClass=NUM,           -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
+      checkName=STRING,         -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
+      checkType=STRING,         -- Use STRING as QTYPE in the health-check query, default: "A"
+      checkFunction=FUNCTION,   -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+      checkTimeout=NUM,         -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
+      setCD=BOOL,               -- Set the CD (Checking Disabled) flag in the health-check query, default: false
+      maxCheckFailures=NUM,     -- Allow NUM check failures before declaring the backend down, default: 1
+      checkInterval=NUM         -- The time in seconds between health checks
+      mustResolve=BOOL,         -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
+      useClientSubnet=BOOL,     -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
+      source=STRING,            -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
+                                -- The following formats are supported:
+                                --   "address", e.g. "192.0.2.2"
+                                --   "interface name", e.g. "eth0"
+                                --   "address@interface", e.g. "192.0.2.2@eth0"
+      addXPF=NUM,               -- Add the client's IP address and port to the query, along with the original destination address and port,
+                                -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
+      sockets=NUM,              -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`).
+      disableZeroScope=BOOL,    -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
+      rise=NUM,                 -- Require NUM consecutive successful checks before declaring the backend up, default: 1
+      useProxyProtocol=BOOL,    -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
+      reconnectOnUp=BOOL,       -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
+      maxInFlight=NUM,          -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
+      tcpOnly=BOOL,             -- Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false.
+      checkTCP=BOOL,            -- Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false.
+      tls=STRING,               -- Enable DNS over TLS communications for this backend, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
+      caStore=STRING,           -- Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set.
+      ciphers=STRING,           -- The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+      ciphersTLS13=STRING,      -- The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
+      subjectName=STRING,       -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
+      validateCertificates=BOOL -- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
     })
 
   :param str server_string: A simple IP:PORT string.
@@ -1457,6 +1468,36 @@ If you are looking for exact name matching, your might want to consider using a 
     Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
 
     :param DNSName name: The name to test against the set.
+
+Outgoing TLS tickets cache management
+-------------------------------------
+
+Since 1.7, dnsdist supports securing the connection toward backends using DNS over TLS. For these connections, it keeps a cache of TLS tickets to be able to resume a TLS session quickly. By default that cache contains up to 20 TLS tickets per-backend, is cleaned up every every 60s, and TLS tickets expire if they have not been used after 600 seconds.
+These values can be set at configuration time via:
+
+.. function:: setOutgoingTLSSessionsCacheMaxTicketsPerBackend(num)
+
+  .. versionadded: 1.7.0
+
+  Set the maximum number of TLS tickets to keep, per-backend, to be able to quickly resume outgoing TLS connections to a backend. Keeping more tickets might provide a better TLS session resumption rate if there is a sudden peak of outgoing connections, at the cost of using a bit more memory.
+
+  :param int num: The number of TLS tickets to keep, per-backend. The default is 20.
+
+.. function:: setOutgoingTLSSessionsCacheCleanupDelay(delay)
+
+  .. versionadded: 1.7.0
+
+  Set the number of seconds between two scans of the TLS sessions cache, removing expired tickets and freeing up memory. Decreasing that value will lead to more scans, freeing up memory more quickly but using a bit more CPU doing so.
+
+  :param int delay: The number of seconds between two scans of the cache. The default is 60.
+
+.. function:: setOutgoingTLSSessionsCacheMaxTicketValidity(validity)
+
+  .. versionadded: 1.7.0
+
+  Set the number of seconds that a given TLS ticket can be kept inactive in the TLS sessions cache. After that delay the ticket will be removed during the next cleanup of the cache. Increasing that value might increase the TLS resumption rate if new connections are not often created, but it might also lead to trying to reuse a ticket that the server will consider too old and refuse.
+
+  :param int validity: The number of seconds a ticket is considered valid. The default is 600, which matches the default lifetime of TLS tickets set by OpenSSL.
 
 Other functions
 ---------------

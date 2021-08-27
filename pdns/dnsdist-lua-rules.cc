@@ -444,7 +444,7 @@ void setupLuaRules(LuaContext& luaCtx)
       sw.start();
       for(int n=0; n < times; ++n) {
         item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, DNSQuestion::Protocol::DoUDP, &sw.d_start);
+        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, dnsdist::Protocol::DoUDP, &sw.d_start);
         if (rule->matches(&dq)) {
           matches++;
         }

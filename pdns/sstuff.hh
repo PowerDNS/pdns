@@ -63,6 +63,14 @@ public:
     rhs.d_socket = -1;
   }
 
+  Socket& operator=(Socket&& rhs)
+  {
+    d_socket = rhs.d_socket;
+    rhs.d_socket = -1;
+    d_buffer = std::move(rhs.d_buffer);
+    return *this;
+  }
+
   ~Socket()
   {
     try {

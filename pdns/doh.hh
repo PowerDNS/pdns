@@ -173,7 +173,10 @@ struct DOHUnit
 #else /* HAVE_DNS_OVER_HTTPS */
 #include <unordered_map>
 
+#include "dnsdist-idstate.hh"
+
 struct st_h2o_req_t;
+struct DownstreamState;
 
 struct DOHUnit
 {
@@ -199,9 +202,12 @@ struct DOHUnit
     }
   }
 
+  void handleUDPResponse(PacketBuffer&& response, IDState&& state);
+
   std::vector<std::pair<std::string, std::string>> headers;
   PacketBuffer query;
   PacketBuffer response;
+  IDState ids;
   std::string sni;
   std::string path;
   std::string scheme;
@@ -211,9 +217,11 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};
+  std::shared_ptr<DownstreamState> downstream{nullptr};
   std::string contentType;
   std::atomic<uint64_t> d_refcnt{1};
   size_t query_at{0};
+  size_t proxyProtocolPayloadSize{0};
   int rsock{-1};
   /* the status_code is set from
      processDOHQuery() (which is executed in
@@ -224,6 +232,10 @@ struct DOHUnit
   */
   uint16_t status_code{200};
   bool ednsAdded{false};
+  /* whether the query was re-sent to the backend over
+     TCP after receiving a truncated answer over UDP */
+  bool tcp{false};
+  bool truncated{false};
 
   std::string getHTTPPath() const;
   std::string getHTTPHost() const;

@@ -100,7 +100,7 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  auto proto = DNSQuestion::Protocol::DoUDP;
+  auto proto = dnsdist::Protocol::DoUDP;
   gettime(&queryRealTime, true);
 
   DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);

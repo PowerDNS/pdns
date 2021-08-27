@@ -19,15 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
+#include "dnsdist-protocols.hh"
 
-#include "dnsdist.hh"
-#include "mplexer.hh"
-#include "sstuff.hh"
-
-extern bool g_verboseHealthChecks;
-
-void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool initial, bool newState);
-bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial=false);
-void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial=false);
-
+namespace dnsdist
+{
+const std::string& ProtocolToString(Protocol proto)
+{
+  static const std::vector<std::string> values = {"Do53 UDP", "Do53 TCP", "DNSCrypt UDP", "DNSCrypt TCP", "DNS over TLS", "DNS over HTTPS"};
+  return values.at(static_cast<int>(proto));
+}
+}

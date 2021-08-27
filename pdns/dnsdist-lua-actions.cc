@@ -1224,23 +1224,23 @@ private:
   bool d_hasV6;
 };
 
-static DnstapMessage::ProtocolType ProtocolToDNSTap(DNSQuestion::Protocol protocol)
+static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
   DnstapMessage::ProtocolType result;
   switch (protocol) {
   default:
-  case DNSQuestion::Protocol::DoUDP:
-  case DNSQuestion::Protocol::DNSCryptUDP:
+  case dnsdist::Protocol::DoUDP:
+  case dnsdist::Protocol::DNSCryptUDP:
     result = DnstapMessage::ProtocolType::DoUDP;
     break;
-  case DNSQuestion::Protocol::DoTCP:
-  case DNSQuestion::Protocol::DNSCryptTCP:
+  case dnsdist::Protocol::DoTCP:
+  case dnsdist::Protocol::DNSCryptTCP:
     result = DnstapMessage::ProtocolType::DoTCP;
     break;
-  case DNSQuestion::Protocol::DoT:
+  case dnsdist::Protocol::DoT:
     result = DnstapMessage::ProtocolType::DoT;
     break;
-  case DNSQuestion::Protocol::DoH:
+  case dnsdist::Protocol::DoH:
     result = DnstapMessage::ProtocolType::DoH;
     break;
   }
