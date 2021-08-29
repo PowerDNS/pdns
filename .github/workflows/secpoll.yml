@@ -17,7 +17,7 @@ jobs:
           submodules: recursive
       - run: echo 'deb [arch=amd64] http://repo.powerdns.com/ubuntu focal-auth-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
       - run: "echo -ne 'Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 600\n' | sudo tee /etc/apt/preferences.d/pdns"
-      - run: curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add -
+      - run: sudo curl https://repo.powerdns.com/CBC8B383-pub.asc -o /etc/apt/trusted.gpg.d/CBC8B383-pub.asc
       - run: sudo apt-get update
       - run: sudo systemctl mask pdns
       - run: sudo apt-get install -y pdns-server pdns-backend-sqlite3

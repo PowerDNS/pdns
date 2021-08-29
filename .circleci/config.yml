@@ -328,9 +328,9 @@ commands:
           name: "Install apt-keys"
           command: |
             if [ "<< parameters.version >>" = "master" ]; then
-              curl https://repo.powerdns.com/CBC8B383-pub.asc | apt-key add -
+              curl https://repo.powerdns.com/CBC8B383-pub.asc -o /etc/apt/trusted.gpg.d/CBC8B383-pub.asc
             else
-              curl https://repo.powerdns.com/FD380FBB-pub.asc | apt-key add -
+              curl https://repo.powerdns.com/FD380FBB-pub.asc -o /etc/apt/trusted.gpg.d/FD380FBB-pub.asc
             fi
       - run:
           name: "Add repository"
