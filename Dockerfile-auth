@@ -81,7 +81,7 @@ RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 RUN setcap 'cap_net_bind_service=+eip' /usr/local/sbin/pdns_server
 
 # Ensure dependencies are present
-RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
+RUN apt-get install -y /tmp/equivs-dummy_1.0_all.deb && apt-get clean
 
 # Start script
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
