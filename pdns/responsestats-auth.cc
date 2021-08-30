@@ -22,7 +22,7 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
   static AtomicCounter &tcpbytesanswered4=*S.getPointer("tcp4-answers-bytes");
   static AtomicCounter &tcpbytesanswered6=*S.getPointer("tcp6-answers-bytes");
 
-  ComboAddress& accountremote = p.d_remote;
+  ComboAddress accountremote = p.d_remote;
   if (p.d_inner_remote) accountremote = *p.d_inner_remote;
 
   if(p.d.aa) {
