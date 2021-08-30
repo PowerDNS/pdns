@@ -941,13 +941,11 @@ int PacketHandler::trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname
 
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname)
 {
-  ComboAddress remote = p.getRemote();
-  // this uses the outer (non-PROXY) remote on purpose
+  ComboAddress remote = p.getInnerRemote();
   if(p.hasEDNSSubnet() && pdns::isAddressTrustedNotificationProxy(remote)) {
     remote = p.getRealRemote().getNetwork();
   }
   else {
-    // but we fall back to the inner (PROXY) remote if there is no ECS forwarded by a trusted proxy
     remote = p.getInnerRemote();
   }
   remote.setPort(53);
@@ -1069,13 +1067,12 @@ int PacketHandler::processNotify(const DNSPacket& p)
     return RCode::Refused;
   }
 
-  // this uses the outer (non-PROXY) remote on purpose
-  if(pdns::isAddressTrustedNotificationProxy(p.getRemote())) {
+  if(pdns::isAddressTrustedNotificationProxy(p.getInnerRemote())) {
     if(di.masters.empty()) {
-      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<", zone does not have any masters defined (Refused)"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemoteString()<<", zone does not have any masters defined (Refused)"<<endl;
       return RCode::Refused;
     }
-    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<endl;
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemoteString()<<endl;
   }
   else if(::arg().mustDo("primary") && di.kind == DomainInfo::Master) {
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but we are master (Refused)"<<endl;
@@ -1279,7 +1276,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   
   if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
     return nullptr;
@@ -1287,7 +1284,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
   if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
     if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
     return nullptr;
@@ -1335,7 +1332,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(!validDNSName(p.qdomain)) {
       if(d_logDNSDetails)
-        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemote()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
+        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemoteString()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
       S.ringAccount("remotes-corrupt", p.d_remote);
       S.inc("servfail-packets");
@@ -1365,13 +1362,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         return nullptr;
       }
       
-      g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemote()<<" for "<<p.qdomain<<endl;
+      g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
 
       r->setRcode(RCode::NotImp); 
       return r; 
     }
 
-    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemote()<< " (tcp="<<p.d_tcp<<")"<<endl;
+    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
     
     if(p.qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::Refused);
@@ -1470,7 +1467,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     // this TRUMPS a cname!
     if(p.qtype.getCode() == QType::RRSIG) {
-      g_log<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p.getRemote()<<endl;
+      g_log<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p.getRemoteString()<<endl;
       r->setRcode(RCode::Refused);
       goto sendit;
     }

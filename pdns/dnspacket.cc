@@ -553,7 +553,7 @@ try
   d_wrapped=true;
   if(length < 12) { 
     g_log << Logger::Debug << "Ignoring packet: too short from "
-      << getRemote() << endl;
+      << getRemoteString() << endl;
     return -1;
   }
 
@@ -608,7 +608,7 @@ try
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
-      g_log << Logger::Debug << "No question section in packet from " << getRemote() <<", RCode="<<RCode::to_s(d.rcode)<<endl;
+      g_log << Logger::Debug << "No question section in packet from " << getRemoteString() <<", RCode="<<RCode::to_s(d.rcode)<<endl;
       return -1;
     }
   }

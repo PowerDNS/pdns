@@ -327,7 +327,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
 
   if(packet.parse(&buffer.at(0), (size_t) len)<0) {
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet.d_remote);
+    S.ringAccount("remotes-corrupt", packet.getInnerRemote());
 
     return false; // unable to parse
   }

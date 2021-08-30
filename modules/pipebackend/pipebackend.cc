@@ -172,7 +172,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
       if (pkt_p) {
         localIP = pkt_p->getLocal().toString();
         realRemote = pkt_p->getRealRemote();
-        remoteIP = pkt_p->getRemote().toString();
+        remoteIP = pkt_p->getInnerRemote().toString();
       }
       // abi-version = 1
       // type    qname           qclass  qtype   id      remote-ip-address
