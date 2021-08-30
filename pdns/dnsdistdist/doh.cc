@@ -424,7 +424,7 @@ public:
     return true;
   }
 
-  const ClientState* getClientState() override
+  const ClientState* getClientState() const override
   {
     if (!du || !du->dsc || !du->dsc->cs) {
       throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");

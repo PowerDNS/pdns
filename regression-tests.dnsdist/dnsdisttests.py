@@ -263,6 +263,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
               (conn, _) = sock.accept()
             except ssl.SSLError:
               continue
+            except ConnectionResetError:
+              continue
+
             conn.settimeout(5.0)
             data = conn.recv(2)
             if not data:
@@ -348,6 +351,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 continue
             except ConnectionResetError:
               continue
+
             conn.settimeout(5.0)
             h2conn = h2.connection.H2Connection(config=config)
             h2conn.initiate_connection()

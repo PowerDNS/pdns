@@ -196,7 +196,7 @@ public:
     return true;
   }
 
-  const ClientState* getClientState() override
+  const ClientState* getClientState() const override
   {
     return nullptr;
   }
@@ -398,7 +398,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     else if (ds->isDoH()) {
       InternalQuery query(std::move(packet), IDState());
       auto sender = std::shared_ptr<TCPQuerySender>(new HealthCheckQuerySender(data));
-      if (!sendH2Query(ds, mplexer, sender, std::move(query))) {
+      if (!sendH2Query(ds, mplexer, sender, std::move(query), true)) {
         updateHealthCheckResult(data->d_ds, data->d_initial, false);
       }
     }

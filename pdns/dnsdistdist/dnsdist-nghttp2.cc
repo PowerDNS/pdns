@@ -1128,14 +1128,14 @@ bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
 #endif /* HAVE_NGHTTP2 */
 }
 
-bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query)
+bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
 {
 #ifdef HAVE_NGHTTP2
   struct timeval now;
   gettimeofday(&now, nullptr);
 
   auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now);
-  newConnection->setHealthCheck(true);
+  newConnection->setHealthCheck(healthCheck);
   newConnection->queueQuery(sender, std::move(query));
   return true;
 #else /* HAVE_NGHTTP2 */

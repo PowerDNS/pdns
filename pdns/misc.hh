@@ -635,3 +635,45 @@ std::string makeLuaString(const std::string& in);
 
 // Used in NID and L64 records
 struct NodeOrLocatorID { uint8_t content[8]; };
+
+struct FDWrapper
+{
+  FDWrapper()
+  {
+  }
+
+  FDWrapper(int desc): d_fd(desc)
+  {
+  }
+
+  ~FDWrapper()
+  {
+    if (d_fd != -1) {
+      close(d_fd);
+      d_fd = -1;
+    }
+  }
+
+  FDWrapper(FDWrapper&& rhs): d_fd(rhs.d_fd)
+  {
+    rhs.d_fd = -1;
+  }
+
+  FDWrapper& operator=(FDWrapper&& rhs)
+  {
+    if (d_fd) {
+      close(d_fd);
+    }
+    d_fd = rhs.d_fd;
+    rhs.d_fd = -1;
+    return *this;
+  }
+
+  int getHandle() const
+  {
+    return d_fd;
+  }
+
+private:
+  int d_fd{-1};
+};

@@ -13,6 +13,7 @@ public:
   LocalHolders holders;
   LocalStateHolder<vector<DNSDistResponseRuleAction> > localRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+  int crossProtocolResponsesPipe{-1};
 };
 
 class IncomingTCPConnectionState : public TCPQuerySender, public std::enable_shared_from_this<IncomingTCPConnectionState>
@@ -132,7 +133,7 @@ static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bo
     return d_ioState != nullptr;
   }
 
-  const ClientState* getClientState() override
+  const ClientState* getClientState() const override
   {
     return d_ci.cs;
   }
