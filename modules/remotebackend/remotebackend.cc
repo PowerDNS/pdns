@@ -203,7 +203,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
   if (pkt_p) {
     localIP = pkt_p->getLocal().toString();
     realRemote = pkt_p->getRealRemote().toString();
-    remoteIP = pkt_p->getRemote().toString();
+    remoteIP = pkt_p->getInnerRemote().toString();
   }
 
   Json query = Json::object{
