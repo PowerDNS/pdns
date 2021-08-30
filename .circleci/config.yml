@@ -1540,7 +1540,7 @@ jobs:
             libcdb-dev \
             libedit-dev \
             libfstrm-dev \
-            libgnutls30 \
+            libgnutls28-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
             libre2-dev \
