@@ -204,7 +204,7 @@ public:
 
     lookup_context_t ctx;
     if (p != NULL) {
-      ctx.emplace_back(lookup_context_t::value_type{"source_address", p->getRemote().toString()});
+      ctx.emplace_back(lookup_context_t::value_type{"source_address", p->getInnerRemote().toString()});
       ctx.emplace_back(lookup_context_t::value_type{"real_source_address", p->getRealRemote().toString()});
     }
 
