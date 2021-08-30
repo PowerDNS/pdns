@@ -674,6 +674,11 @@ struct FDWrapper
     return d_fd;
   }
 
+  operator int() const
+  {
+    return d_fd;
+  }
+
 private:
   int d_fd{-1};
 };
