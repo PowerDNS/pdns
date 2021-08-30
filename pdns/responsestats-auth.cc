@@ -22,6 +22,9 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
   static AtomicCounter &tcpbytesanswered4=*S.getPointer("tcp4-answers-bytes");
   static AtomicCounter &tcpbytesanswered6=*S.getPointer("tcp6-answers-bytes");
 
+  ComboAddress& accountremote = p.d_remote;
+  if (p.d_inner_remote) accountremote = *p.d_inner_remote;
+
   if(p.d.aa) {
     if (p.d.rcode==RCode::NXDomain) {
       S.inc("nxdomain-packets");
@@ -30,13 +33,13 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
   } else if (p.d.rcode == RCode::Refused) {
     S.inc("unauth-packets");
     S.ringAccount("unauth-queries", p.qdomain, p.qtype);
-    S.ringAccount("remotes-unauth",p.d_remote);
+    S.ringAccount("remotes-unauth", accountremote);
   }
 
   if (udpOrTCP) { // udp
     udpnumanswered++;
     udpbytesanswered+=buf.length();
-    if(p.d_remote.sin4.sin_family==AF_INET) {
+    if(accountremote.sin4.sin_family==AF_INET) {
       udpnumanswered4++;
       udpbytesanswered4+=buf.length();
     } else {
@@ -45,14 +48,14 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
     }
   } else { //tcp
     tcpbytesanswered+=buf.length();
-    if(p.d_remote.sin4.sin_family==AF_INET) {
+    if(accountremote.sin4.sin_family==AF_INET) {
       tcpbytesanswered4+=buf.length();
     } else {
       tcpbytesanswered6+=buf.length();
     }
     if(last) {
      tcpnumanswered++;
-     if(p.d_remote.sin4.sin_family==AF_INET) {
+     if(accountremote.sin4.sin_family==AF_INET) {
       tcpnumanswered4++;
      } else {
       tcpnumanswered6++;

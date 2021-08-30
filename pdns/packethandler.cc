@@ -1278,7 +1278,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.d_remote);
+    S.ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
@@ -1286,7 +1286,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.d_remote);
+    S.ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
@@ -1334,7 +1334,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       if(d_logDNSDetails)
         g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemoteString()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", p.d_remote);
+      S.ringAccount("remotes-corrupt", p.getInnerRemote());
       S.inc("servfail-packets");
       r->setRcode(RCode::ServFail);
       return r;
