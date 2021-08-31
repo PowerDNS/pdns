@@ -1,6 +1,7 @@
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
 
+import os
 import sys
 import time
 
@@ -249,6 +250,7 @@ def ci_rec_configure(c):
 
 @task
 def ci_dnsdist_configure(c):
+    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
     res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
                    CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
                    ./configure \
@@ -266,9 +268,7 @@ def ci_dnsdist_configure(c):
                      --with-libsodium \
                      --with-lua=luajit \
                      --with-libcap \
-                     --with-re2 \
-                     --enable-asan \
-                     --enable-ubsan''', warn=True)
+                     --with-re2 ''' + sanitizers, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
