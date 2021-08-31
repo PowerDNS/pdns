@@ -486,18 +486,25 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def recvTCPResponseOverConnection(cls, sock, useQueue=False, timeout=2.0):
+        print("reading data")
         message = None
         data = sock.recv(2)
         if data:
             (datalen,) = struct.unpack("!H", data)
+            print(datalen)
             data = sock.recv(datalen)
             if data:
+                print(data)
                 message = dns.message.from_wire(data)
 
+        print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
+            print("Got from queue")
+            print(receivedQuery)
             return (receivedQuery, message)
         else:
+            print("queue empty")
             return message
 
     @classmethod
@@ -519,8 +526,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sock.close()
 
         receivedQuery = None
+        print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
+            print("Got from queue")
+            print(receivedQuery)
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
+        else:
+          print("queue is empty")
 
         return (receivedQuery, message)
 

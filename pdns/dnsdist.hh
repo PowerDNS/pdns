@@ -730,7 +730,7 @@ struct DownstreamState
   unsigned int checkInterval{1};
   unsigned int lastCheck{0};
   const unsigned int sourceItf{0};
-  uint16_t retries{5};
+  uint16_t d_retries{5};
   uint16_t xpfRRCode{0};
   uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};

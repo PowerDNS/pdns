@@ -431,7 +431,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     }
     return false;
   }
-  catch(...)
+  catch (...)
   {
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", ds->getNameWithAddr());
@@ -451,8 +451,15 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
       }
       break;
     }
+
+    handleH2Timeouts(mplexer, now);
+
     auto timeouts = mplexer.getTimeouts(now);
     for (const auto& timeout : timeouts) {
+      if (timeout.second.type() != typeid(std::shared_ptr<HealthCheckData>)) {
+        continue;
+      }
+
       auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(timeout.second);
       try {
         if (data->d_ioState) {
@@ -481,6 +488,9 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
 
     timeouts = mplexer.getTimeouts(now, true);
     for (const auto& timeout : timeouts) {
+      if (timeout.second.type() != typeid(std::shared_ptr<HealthCheckData>)) {
+        continue;
+      }
       auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(timeout.second);
       try {
         data->d_ioState.reset();

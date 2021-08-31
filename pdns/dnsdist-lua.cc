@@ -389,7 +389,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if(vars.count("retries")) {
-        ret->retries=std::stoi(boost::get<string>(vars["retries"]));
+        ret->d_retries = std::stoi(boost::get<string>(vars["retries"]));
       }
 
       if(vars.count("checkInterval")) {

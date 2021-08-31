@@ -80,7 +80,7 @@ struct InternalQuery
   }
 
   InternalQuery(InternalQuery&& rhs) :
-    d_idstate(std::move(rhs.d_idstate)), d_buffer(std::move(rhs.d_buffer)), d_proxyProtocolPayload(std::move(rhs.d_proxyProtocolPayload)), d_xfrMasterSerial(rhs.d_xfrMasterSerial), d_xfrSerialCount(rhs.d_xfrSerialCount), d_xfrMasterSerialCount(rhs.d_xfrMasterSerialCount), d_proxyProtocolPayloadAdded(rhs.d_proxyProtocolPayloadAdded)
+    d_idstate(std::move(rhs.d_idstate)), d_buffer(std::move(rhs.d_buffer)), d_proxyProtocolPayload(std::move(rhs.d_proxyProtocolPayload)), d_xfrMasterSerial(rhs.d_xfrMasterSerial), d_xfrSerialCount(rhs.d_xfrSerialCount), d_downstreamFailures(rhs.d_downstreamFailures), d_xfrMasterSerialCount(rhs.d_xfrMasterSerialCount), d_proxyProtocolPayloadAdded(rhs.d_proxyProtocolPayloadAdded)
   {
   }
   InternalQuery& operator=(InternalQuery&& rhs)
@@ -90,6 +90,7 @@ struct InternalQuery
     d_proxyProtocolPayload = std::move(rhs.d_proxyProtocolPayload);
     d_xfrMasterSerial = rhs.d_xfrMasterSerial;
     d_xfrSerialCount = rhs.d_xfrSerialCount;
+    d_downstreamFailures = rhs.d_downstreamFailures;
     d_xfrMasterSerialCount = rhs.d_xfrMasterSerialCount;
     d_proxyProtocolPayloadAdded = rhs.d_proxyProtocolPayloadAdded;
     return *this;
@@ -108,6 +109,7 @@ struct InternalQuery
   std::string d_proxyProtocolPayload;
   uint32_t d_xfrMasterSerial{0};
   uint32_t d_xfrSerialCount{0};
+  uint32_t d_downstreamFailures{0};
   uint8_t d_xfrMasterSerialCount{0};
   bool d_xfrStarted{false};
   bool d_proxyProtocolPayloadAdded{false};

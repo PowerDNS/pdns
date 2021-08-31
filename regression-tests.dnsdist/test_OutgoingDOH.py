@@ -140,7 +140,6 @@ class OutgoingDOHBrokenResponsesTests(object):
         query = dns.message.make_query(name, 'A', 'IN')
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        print(receivedResponse)
         self.assertEqual(receivedResponse, None)
 
         name = 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.'
@@ -154,6 +153,48 @@ class OutgoingDOHBrokenResponsesTests(object):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, None)
+
+        # but a valid response should be successful
+        name = 'valid.broken-responses.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response)
+        # we can't check the received query because the responder does not populate the queue..
+        # self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+    def testTCP(self):
+        """
+        Outgoing DOH (broken responses): TCP query is sent via DOH
+        """
+        name = '500-status.broken-responses.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, None)
+
+        name = 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, None)
+
+        name = 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, None)
+
+        # but a valid response should be successful
+        name = 'valid.broken-responses.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response)
+        # we can't check the received query because the responder does not populate the queue..
+        #self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
 class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     _tlsBackendPort = 10543
@@ -322,6 +363,7 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _verboseMode = True
 
     def callback(request):
 

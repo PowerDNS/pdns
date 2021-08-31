@@ -695,6 +695,8 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   ++state->d_currentQueriesCount;
 
   if (ds->isDoH()) {
+    vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
+
     auto incoming = std::make_shared<TCPCrossProtocolQuerySender>(state, state->d_threadData.crossProtocolResponsesPipe);
     auto cpq = std::make_unique<TCPCrossProtocolQuery>(std::move(state->d_buffer), std::move(ids), ds, incoming);
 
@@ -1175,14 +1177,19 @@ static void handleCrossProtocolResponse(int pipefd, FDMultiplexer::funcparam_t& 
   delete tmp;
   tmp = nullptr;
 
-  if (response.d_response.d_buffer.empty()) {
-    response.d_state->notifyIOError(std::move(response.d_response.d_idstate), response.d_now);
+  try {
+    if (response.d_response.d_buffer.empty()) {
+      response.d_state->notifyIOError(std::move(response.d_response.d_idstate), response.d_now);
+    }
+    else if (response.d_response.d_idstate.qtype == QType::AXFR || response.d_response.d_idstate.qtype == QType::IXFR) {
+      response.d_state->handleXFRResponse(response.d_now, std::move(response.d_response));
+    }
+    else {
+      response.d_state->handleResponse(response.d_now, std::move(response.d_response));
+    }
   }
-  else if (response.d_response.d_idstate.qtype == QType::AXFR || response.d_response.d_idstate.qtype == QType::IXFR) {
-    response.d_state->handleXFRResponse(response.d_now, std::move(response.d_response));
-  }
-  else {
-    response.d_state->handleXFRResponse(response.d_now, std::move(response.d_response));
+  catch (...) {
+    /* no point bubbling up from there */
   }
 }
 

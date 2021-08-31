@@ -190,9 +190,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
     if (connectionDied) {
 
-      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
+      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->d_retries);
 
-      if (conn->d_downstreamFailures < conn->d_ds->retries) {
+      if (conn->d_downstreamFailures < conn->d_ds->d_retries) {
 
         conn->d_ioState.reset();
         ioGuard.release();
@@ -409,12 +409,12 @@ bool TCPConnectionToBackend::reconnect()
     catch (const std::runtime_error& e) {
       vinfolog("Connection to downstream server %s failed: %s", d_ds->getName(), e.what());
       d_downstreamFailures++;
-      if (d_downstreamFailures >= d_ds->retries) {
+      if (d_downstreamFailures >= d_ds->d_retries) {
         throw;
       }
     }
   }
-  while (d_downstreamFailures < d_ds->retries);
+  while (d_downstreamFailures < d_ds->d_retries);
 
   return false;
 }
