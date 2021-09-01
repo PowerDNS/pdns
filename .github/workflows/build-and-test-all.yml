@@ -244,5 +244,28 @@ jobs:
       - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
 
+  collect:
+    needs:
+      - build-auth
+      - build-recursor
+      - build-dnsdist
+      - test-auth-api
+      - test-auth-backend
+      - test-recursor-api
+      - test-dnsdist-regression
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Install yq
+        run: sudo wget https://github.com/mikefarah/yq/releases/download/v4.9.6/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+      - name: Get full list of jobs for this workflow
+        run: yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | grep -v '^- collect' | sort | tee /tmp/workflow-jobs-list.yml
+      - name: Get list of jobs the collect job depends on
+        run: yq e '.jobs.collect.needs | ... comments=""' .github/workflows/build-and-test-all.yml | sort | tee /tmp/workflow-collect-dependencies.yml
+      - name: Diff them
+        run: diff -u /tmp/workflow-jobs-list.yml /tmp/workflow-collect-dependencies.yml
 
 # FIXME: if we can make upload/download-artifact fasts, running unit tests outside of build can let regression tests start earlier
