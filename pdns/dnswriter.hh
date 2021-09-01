@@ -102,7 +102,7 @@ public:
     xfrBlob(val,16);
   }
 
-  void xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+  void xfrCAWithoutPort(uint8_t version, const ComboAddress &val)
   {
     if (version == 4) xfrIP(val.sin4.sin_addr.s_addr);
     else if (version == 6) {
@@ -113,7 +113,7 @@ public:
     else throw runtime_error("invalid IP protocol");
   }
 
-  void xfrCAPort(ComboAddress &val)
+  void xfrCAPort(const ComboAddress &val)
   {
     uint16_t port;
     port = val.sin4.sin_port;
@@ -131,6 +131,7 @@ public:
   void xfrText(const string& text, bool multi=false, bool lenField=true);
   void xfrUnquotedText(const string& text, bool lenField);
   void xfrBlob(const string& blob, int len=-1);
+  void xfrBlob(const vector<uint8_t>& blob);
   void xfrSvcParamKeyVals(const set<SvcParam>& kvs);
   void xfrBlobNoSpaces(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob, bool keepReading=false);

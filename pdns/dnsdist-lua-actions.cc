@@ -27,12 +27,15 @@
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-protobuf.hh"
 #include "dnsdist-kvs.hh"
+#include "dnsdist-svc.hh"
 
 #include "dolog.hh"
 #include "dnstap.hh"
+#include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+#include "svc-records.hh"
 
 #include <boost/optional/optional_io.hpp>
 
@@ -353,6 +356,97 @@ public:
   ResponseConfig d_responseConfig;
 private:
   uint8_t d_rcode;
+};
+
+class SpoofSVCAction : public DNSAction
+{
+public:
+  SpoofSVCAction(const std::vector<std::pair<int, SVCRecordParameters>>& parameters)
+  {
+    d_payloads.reserve(parameters.size());
+
+    for (const auto& param : parameters) {
+      std::vector<uint8_t> payload;
+      if (!generateSVCPayload(payload, param.second)) {
+        throw std::runtime_error("Unable to generate a valid SVC record from the supplied parameters");
+      }
+
+      d_totalPayloadsSize += payload.size();
+      d_payloads.push_back(std::move(payload));
+
+      for (const auto& hint : param.second.ipv4hints) {
+        d_additionals4.insert({ param.second.target, ComboAddress(hint) });
+      }
+
+      for (const auto& hint : param.second.ipv6hints) {
+        d_additionals6.insert({ param.second.target, ComboAddress(hint) });
+      }
+    }
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    /* it will likely be a bit bigger than that because of additionals */
+    uint16_t numberOfRecords = d_payloads.size();
+    const auto qnameWireLength = dq->qname->wirelength();
+    if (dq->getMaximumSize() < (sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords*12 /* recordstart */ + d_totalPayloadsSize)) {
+      return Action::None;
+    }
+
+    PacketBuffer newPacket;
+    newPacket.reserve(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords*12 /* recordstart */ + d_totalPayloadsSize);
+    GenericDNSPacketWriter<PacketBuffer> pw(newPacket, *dq->qname, dq->qtype);
+    for (const auto& payload : d_payloads) {
+      pw.startRecord(*dq->qname, dq->qtype, d_responseConfig.ttl);
+      pw.xfrBlob(payload);
+      pw.commit();
+    }
+
+    if (newPacket.size() < dq->getMaximumSize()) {
+      for (const auto& additional : d_additionals4) {
+        pw.startRecord(additional.first.isRoot() ? *dq->qname : additional.first, QType::A, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+        pw.xfrCAWithoutPort(4, additional.second);
+        pw.commit();
+      }
+    }
+
+    if (newPacket.size() < dq->getMaximumSize()) {
+      for (const auto& additional : d_additionals6) {
+        pw.startRecord(additional.first.isRoot() ? *dq->qname : additional.first, QType::AAAA, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+        pw.xfrCAWithoutPort(6, additional.second);
+        pw.commit();
+      }
+    }
+
+    if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dq)) {
+      bool dnssecOK = getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO;
+      pw.addOpt(g_PayloadSizeSelfGenAnswers, 0, dnssecOK ? EDNS_HEADER_FLAG_DO : 0);
+      pw.commit();
+    }
+
+    if (newPacket.size() >= dq->getMaximumSize()) {
+      /* sorry! */
+      return Action::None;
+    }
+
+    pw.getHeader()->id = dq->getHeader()->id;
+    pw.getHeader()->qr = true; // for good measure
+    setResponseHeadersFromConfig(*pw.getHeader(), d_responseConfig);
+    dq->getMutableData() = std::move(newPacket);
+
+    return Action::HeaderModify;
+  }
+  std::string toString() const override
+  {
+    return "spoof SVC record ";
+  }
+
+  ResponseConfig d_responseConfig;
+private:
+  std::vector<std::vector<uint8_t>> d_payloads;
+  std::set<std::pair<DNSName, ComboAddress>> d_additionals4;
+  std::set<std::pair<DNSName, ComboAddress>> d_additionals6;
+  size_t d_totalPayloadsSize{0};
 };
 
 class TCAction : public DNSAction
@@ -1985,6 +2079,13 @@ void setupLuaActions(LuaContext& luaCtx)
 
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
+      parseResponseConfig(vars, sa->d_responseConfig);
+      return ret;
+    });
+
+  luaCtx.writeFunction("SpoofSVCAction", [](const std::vector<std::pair<int, SVCRecordParameters>>& parameters, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new SpoofSVCAction(parameters));
+      auto sa = std::dynamic_pointer_cast<SpoofSVCAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
     });
