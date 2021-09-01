@@ -68,9 +68,13 @@ jobs:
   build-dnsdist:
     name: build dnsdist
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
+      SANITIZERS: ${{ matrix.sanitizers }}
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/
@@ -92,7 +96,7 @@ jobs:
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist
+          name: dnsdist-${{ matrix.sanitizers }}
           path: /opt/dnsdist
 
   test-auth-api:
@@ -101,6 +105,7 @@ jobs:
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
+      TSAN_OPTIONS: 'halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/pdns/dnsdistdist/dnsdist-tsan.supp'
     strategy:
       matrix:
         include:
@@ -217,9 +222,13 @@ jobs:
   test-dnsdist-regression:
     needs: build-dnsdist
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
+      TSAN_OPTIONS: 'halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/pdns/dnsdistdist/dnsdist-tsan.supp'
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -228,7 +237,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v2
         with:
-          name: dnsdist
+          name: dnsdist-${{ matrix.sanitizers }}
           path: /opt/dnsdist
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
