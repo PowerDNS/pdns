@@ -50,7 +50,7 @@ void DNSCryptPrivateKey::loadFromFile(const std::string& keyFile)
 void DNSCryptPrivateKey::saveToFile(const std::string& keyFile) const
 {
   ofstream file(keyFile);
-  file.write((char*) key, sizeof(key));
+  file.write(reinterpret_cast<const char*>(key), sizeof(key));
   file.close();
 }
 
@@ -247,7 +247,7 @@ void DNSCryptContext::loadCertFromFile(const std::string&filename, DNSCryptCert&
 void DNSCryptContext::saveCertFromFile(const DNSCryptCert& cert, const std::string&filename)
 {
   ofstream file(filename);
-  file.write((char *) &cert, sizeof(cert));
+  file.write(reinterpret_cast<const char *>(&cert), sizeof(cert));
   file.close();
 }
 

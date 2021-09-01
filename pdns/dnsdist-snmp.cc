@@ -468,14 +468,14 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             socketFamilyOID,
                             OID_LENGTH(socketFamilyOID),
                             ASN_INTEGER,
-                            (u_char *) &socketFamily,
+                            reinterpret_cast<const u_char*>(&socketFamily),
                             sizeof(socketFamily));
 
   snmp_varlist_add_variable(&varList,
                             socketProtocolOID,
                             OID_LENGTH(socketProtocolOID),
                             ASN_INTEGER,
-                            (u_char *) &socketProtocol,
+                            reinterpret_cast<const u_char*>(&socketProtocol),
                             sizeof(socketProtocol));
 
   snmp_varlist_add_variable(&varList,
@@ -496,21 +496,21 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             queryTypeOID,
                             OID_LENGTH(queryTypeOID),
                             ASN_INTEGER,
-                            (u_char *) &queryType,
+                            reinterpret_cast<const u_char*>(&queryType),
                             sizeof(queryType));
 
   snmp_varlist_add_variable(&varList,
                             querySizeOID,
                             OID_LENGTH(querySizeOID),
                             ASN_UNSIGNED,
-                            (u_char *) &querySize,
+                            reinterpret_cast<const u_char*>(&querySize),
                             sizeof(querySize));
 
   snmp_varlist_add_variable(&varList,
                             queryIDOID,
                             OID_LENGTH(queryIDOID),
                             ASN_UNSIGNED,
-                            (u_char *) &queryID,
+                            reinterpret_cast<const u_char*>(&queryID),
                             sizeof(queryID));
 
   snmp_varlist_add_variable(&varList,
@@ -524,14 +524,14 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             qClassOID,
                             OID_LENGTH(qClassOID),
                             ASN_UNSIGNED,
-                            (u_char *) &qClass,
+                            reinterpret_cast<const u_char*>(&qClass),
                             sizeof(qClass));
 
   snmp_varlist_add_variable(&varList,
                             qTypeOID,
                             OID_LENGTH(qTypeOID),
                             ASN_UNSIGNED,
-                            (u_char *) &qType,
+                            reinterpret_cast<const u_char*>(&qType),
                             sizeof(qType));
 
   snmp_varlist_add_variable(&varList,
