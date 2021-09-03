@@ -536,6 +536,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           if (ret->d_tlsCtx) {
             setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
           }
+          if (g_outgoingDoHWorkerThreads == 0) {
+            g_outgoingDoHWorkerThreads = 1;
+          }
 
           if (vars.count("addXForwardedHeaders")) {
             ret->d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
@@ -1256,6 +1259,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
     setMaxCachedTCPConnectionsPerDownstream(max);
+    });
+
+  luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
+      if (!g_configurationDone) {
+        g_outgoingDoHWorkerThreads = workers;
+      } else {
+        g_outputBuffer="The amount of outgoing DoH worker threads cannot be altered at runtime!\n";
+      }
     });
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {

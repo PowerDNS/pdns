@@ -70,6 +70,13 @@ For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealin
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
+Outgoing DoH
+------------
+
+Starting with 1.7.0, dnsdist supports communicating with the backend using DNS over HTTPS. The incoming queries, after the processing of rules if any, are passed to one of the DoH workers over a pipe. The DoH worker handles the communication with the backend, retrieves the response, and either responds directly to the client (queries coming over UDP) or pass it back over a pipe to the initial thread (queries coming over TCP, DoT or DoH).
+The number of outgoing DoH worker threads can be configured using :func:`setOutgoingDoHWorkerThreads`.
+
+
 TCP and DNS over TLS
 --------------------
 

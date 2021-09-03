@@ -489,7 +489,7 @@ Servers
     Added ``maxInFlight`` to server_table.
 
   .. versionchanged:: 1.7.0
-    Added ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
+    Added ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -539,12 +539,13 @@ Servers
       maxInFlight=NUM,          -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
       tcpOnly=BOOL,             -- Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false.
       checkTCP=BOOL,            -- Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false.
-      tls=STRING,               -- Enable DNS over TLS communications for this backend, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
+      tls=STRING,               -- Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
       caStore=STRING,           -- Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set.
       ciphers=STRING,           -- The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
       ciphersTLS13=STRING,      -- The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
       subjectName=STRING,       -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
-      validateCertificates=BOOL -- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
+      validateCertificates=BOOL,-- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
+      dohPath=STRING            -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
     })
 
   :param str server_string: A simple IP:PORT string.

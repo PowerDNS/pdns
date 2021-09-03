@@ -33,12 +33,7 @@ struct CrossProtocolQuery;
 class DoHClientCollection
 {
 public:
-  DoHClientCollection(size_t maxThreads);
-
-  bool hasReachedMaxThreads() const
-  {
-    return d_numberOfThreads >= d_maxThreads;
-  }
+  DoHClientCollection(size_t numberOfThreads);
 
   uint64_t getThreadsCount() const
   {
@@ -53,13 +48,13 @@ private:
 
   std::mutex d_mutex;
   std::vector<DoHWorkerThread> d_clientThreads;
-  pdns::stat_t d_numberOfThreads{0};
   pdns::stat_t d_pos{0};
-  const uint64_t d_maxThreads{0};
+  uint64_t d_numberOfThreads{0};
 };
 
 extern std::unique_ptr<DoHClientCollection> g_dohClientThreads;
 extern std::atomic<uint64_t> g_dohStatesDumpRequested;
+extern uint16_t g_outgoingDoHWorkerThreads;
 
 class TLSCtx;
 

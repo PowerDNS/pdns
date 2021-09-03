@@ -40,6 +40,7 @@
 
 std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
+uint16_t g_outgoingDoHWorkerThreads{0};
 
 #ifdef HAVE_NGHTTP2
 class DoHConnectionToBackend : public TCPConnectionToBackend
@@ -1067,8 +1068,8 @@ struct DoHClientCollection::DoHWorkerThread
   int d_crossProtocolQueryPipe{-1};
 };
 
-DoHClientCollection::DoHClientCollection(size_t maxThreads) :
-  d_clientThreads(maxThreads), d_maxThreads(maxThreads)
+DoHClientCollection::DoHClientCollection(size_t numberOfThreads) :
+  d_clientThreads(numberOfThreads)
 {
 }
 
@@ -1134,7 +1135,7 @@ void DoHClientCollection::addThread()
     std::lock_guard<std::mutex> lock(d_mutex);
 
     if (d_numberOfThreads >= d_clientThreads.size()) {
-      vinfolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads.load(), d_clientThreads.size());
+      vinfolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size());
       close(crossProtocolFDs[0]);
       close(crossProtocolFDs[1]);
       return;
@@ -1165,8 +1166,7 @@ void DoHClientCollection::addThread()
 bool initDoHWorkers()
 {
 #ifdef HAVE_NGHTTP2
-#warning FIXME: number of DoH threads
-  g_dohClientThreads = std::make_unique<DoHClientCollection>(4);
+  g_dohClientThreads = std::make_unique<DoHClientCollection>(g_outgoingDoHWorkerThreads);
   g_dohClientThreads->addThread();
   return true;
 #else
