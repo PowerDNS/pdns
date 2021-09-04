@@ -707,30 +707,25 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   const std::string status(":status");
-  switch (frame->hd.type) {
-  case NGHTTP2_HEADERS:
-    if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
-      //cerr<<"got header for "<<frame->hd.stream_id<<":"<<endl;
-      //cerr<<"- "<<std::string(reinterpret_cast<const char*>(name), namelen)<<endl;
-      //cerr<<"- "<<std::string(reinterpret_cast<const char*>(value), valuelen)<<endl;
-      if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
-        auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
-        if (stream == conn->d_currentStreams.end()) {
-          vinfolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id);
-          conn->d_connectionDied = true;
-          return NGHTTP2_ERR_CALLBACK_FAILURE;
-        }
-        try {
-          stream->second.d_responseCode = pdns_stou(std::string(reinterpret_cast<const char*>(value), valuelen));
-        }
-        catch (...) {
-          vinfolog("Error parsing the status header for stream ID %d", frame->hd.stream_id);
-          conn->d_connectionDied = true;
-          return NGHTTP2_ERR_CALLBACK_FAILURE;
-        }
+  if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
+    //cerr<<"got header for "<<frame->hd.stream_id<<":"<<endl;
+    //cerr<<"- "<<std::string(reinterpret_cast<const char*>(name), namelen)<<endl;
+    //cerr<<"- "<<std::string(reinterpret_cast<const char*>(value), valuelen)<<endl;
+    if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
+      auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
+      if (stream == conn->d_currentStreams.end()) {
+        vinfolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id);
+        conn->d_connectionDied = true;
+        return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
-
-      break;
+      try {
+        stream->second.d_responseCode = pdns_stou(std::string(reinterpret_cast<const char*>(value), valuelen));
+      }
+      catch (...) {
+        vinfolog("Error parsing the status header for stream ID %d", frame->hd.stream_id);
+        conn->d_connectionDied = true;
+        return NGHTTP2_ERR_CALLBACK_FAILURE;
+      }
     }
   }
   return 0;
