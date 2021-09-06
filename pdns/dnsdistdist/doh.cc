@@ -201,7 +201,13 @@ struct DOHServerConfig
 
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
-    // perhaps we should make h2o_config.http2.max_concurrent_requests_per_connection configurable (default is 100)
+    /* if you came here for a way to make the number of concurrent streams (concurrent requests per connection)
+       configurable, or even just bigger, I have bad news for you.
+       h2o_config.http2.max_concurrent_requests_per_connection (default of 100) is capped by
+       H2O_HTTP2_SETTINGS_HOST.max_concurrent_streams which is not configurable. Even if decided to change the
+       hard-coded value, libh2o's author warns that there might be parts of the code where the stream ID is stored
+       in 8 bits, making 256 a hard value: https://github.com/h2o/h2o/issues/805
+    */
   }
   DOHServerConfig(const DOHServerConfig&) = delete;
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
