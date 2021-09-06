@@ -47,9 +47,12 @@ If this is not enough, try::
 
 or::
 
-  addAction(MaxQPSIPRule(5), TCAction())
+  addAction(AndRule{MaxQPSIPRule(5), TCPRule(false)}, TCAction())
 
 This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing clients to fall back to TCP.
+
+In that last one, note the use of ``TCPRule``.
+Without it clients, would get TC=1 even if they correctly fell back to TCP.
 
 To turn this per IP or range limit into a global limit, use ``NotRule(MaxQPSRule(5000))`` instead of :func:`MaxQPSIPRule`.
 
