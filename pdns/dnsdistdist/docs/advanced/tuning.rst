@@ -13,8 +13,8 @@ First, a few words about :program:`dnsdist` architecture:
  * One or more webserver threads handle queries to the internal webserver, plus one thread per HTTP connection
  * A SNMP thread handles SNMP operations, when enabled.
 
-UDP and DNS over HTTPS
------------------------
+UDP and incoming DNS over HTTPS
+-------------------------------
 
 .. figure:: ../imgs/DNSDistUDP.png
    :align: center
@@ -76,6 +76,9 @@ Outgoing DoH
 Starting with 1.7.0, dnsdist supports communicating with the backend using DNS over HTTPS. The incoming queries, after the processing of rules if any, are passed to one of the DoH workers over a pipe. The DoH worker handles the communication with the backend, retrieves the response, and either responds directly to the client (queries coming over UDP) or pass it back over a pipe to the initial thread (queries coming over TCP, DoT or DoH).
 The number of outgoing DoH worker threads can be configured using :func:`setOutgoingDoHWorkerThreads`.
 
+.. figure:: ../imgs/DNSDistOutgoingDoH.png
+   :align: center
+   :alt: DNSDist outgoing DoH design
 
 TCP and DNS over TLS
 --------------------

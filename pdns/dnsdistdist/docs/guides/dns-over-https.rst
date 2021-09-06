@@ -1,9 +1,12 @@
 DNS-over-HTTPS (DoH)
 ====================
 
-:program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in RFC 8484).
+:program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in RFC 8484) for incoming queries since 1.4.0, and for outgoing queries since 1.7.0.
 To see if the installation supports this, run ``dnsdist --version``.
-If the output shows ``dns-over-https(DOH)``, DNS-over-HTTPS is supported.
+If the output shows ``dns-over-https(DOH)``, incoming DNS-over-HTTPS is supported. If ``outgoing-dns-over-https(nghttp2)`` shows up then outgoing DNS-over-HTTPS is supported.
+
+Incoming
+--------
 
 Adding a listen port for DNS-over-HTTPS can be done with the :func:`addDOHLocal` function, e.g.::
 
@@ -33,7 +36,7 @@ A particular attention should be taken to the permissions of the certificate and
 More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
 
 Custom responses
-----------------
+^^^^^^^^^^^^^^^^
 
 It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend:setResponsesMap`.
 For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used::
@@ -43,7 +46,7 @@ For example, to send an HTTP redirect to queries asking for ``/rfc``, the follow
   dohFE:setResponsesMap(map)
 
 DNS over HTTP
--------------
+^^^^^^^^^^^^^
 
 In case you want to run DNS-over-HTTPS behind a reverse proxy you probably don't want to encrypt your traffic between reverse proxy and dnsdist.
 To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config::
@@ -52,7 +55,7 @@ To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add on
   addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
 
 Internal design
----------------
+^^^^^^^^^^^^^^^
 
 The internal design used for DoH handling uses two threads per :func:`addDOHLocal` directive. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP** (except if the backend is TCP-only, or uses DNS over TLS, see the second schema below). The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
 
@@ -68,7 +71,7 @@ Since 1.7.0, truncated answers received over UDP for a DoH query will lead to a 
    :alt: DNSDist DoH design since 1.7
 
 Investigating issues
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 dnsdist provides a lot of counters to investigate issues:
 
@@ -81,3 +84,16 @@ Outgoing
 
 Support for securing the exchanges between dnsdist and the backend will be implemented in 1.7.0, and will lead to all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, being forwarded over a secure DNS over HTTPS channel.
 That support can be enabled via the ``dohPath`` parameter of the :func:`newServer` command. Additional parameters control the TLS provider used (``tls``), the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+
+  newServer({address="[2001:DB8::1]:443", tls="openssl", subjectName="doh.powerdns.com", dohPath="/dns-query", validateCertificates=true})
+
+
+Internal design
+^^^^^^^^^^^^^^^
+
+The incoming queries, after the processing of rules if any, are passed to one of the DoH workers over a pipe. The DoH worker handles the communication with the backend, retrieves the response, and either responds directly to the client (queries coming over UDP) or pass it back over a pipe to the initial thread (queries coming over TCP, DoT or DoH).
+The number of outgoing DoH worker threads can be configured using :func:`setOutgoingDoHWorkerThreads`.
+
+.. figure:: ../imgs/DNSDistOutgoingDoH.png
+   :align: center
+   :alt: DNSDist outgoing DoH design

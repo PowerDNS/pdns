@@ -42,13 +42,17 @@ dnsdist is also available in `FreeBSD ports <http://www.freshports.org/dns/dnsdi
 Installing from Source
 ----------------------
 
-In order to compile dnsdist, a modern compiler with C++ 2011 support (like GCC 4.8+ or clang 3.5+) and GNU make are required.
+In order to compile dnsdist, a modern compiler with C++ 2017 support and GNU make are required.
 dnsdist depends on the following libraries:
 
 * `Boost <http://boost.org/>`_
 * `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
 * `Editline (libedit) <http://thrysoee.dk/editline/>`_
+* `GnuTLS <https://www.gnutls.org/>`_ (optional)
+* `libh2o <https://github.com/h2o/h2o>`_ (optional)
 * `libsodium <https://download.libsodium.org/doc/>`_ (optional)
+* `nghttp2 <https://nghttp2.org/>`_ (optional)
+* `OpenSSL <https://www.openssl.org/>`_ (optional)
 * `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional, not needed as of 1.6.0)
 * `re2 <https://github.com/google/re2>`_ (optional)
 
