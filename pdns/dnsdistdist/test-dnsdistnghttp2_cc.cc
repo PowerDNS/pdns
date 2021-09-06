@@ -139,8 +139,7 @@ struct DOHConnection
         if (toWrite == 0) {
           return consumed;
         }
-      }
-      while (d_needProxyProtocol && toWrite > 0);
+      } while (d_needProxyProtocol && toWrite > 0);
     }
 
     ssize_t readlen = nghttp2_session_mem_recv(d_session.get(), &data.at(pos), toWrite);
