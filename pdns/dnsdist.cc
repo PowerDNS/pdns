@@ -1493,6 +1493,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     if (ss->isTCPOnly()) {
+      std::string proxyProtocolPayload;
+      /* we need to do this _before_ creating the cross protocol query because
+         after that the buffer will have been moved */
+      if (ss->useProxyProtocol) {
+        proxyProtocolPayload = getProxyProtocolPayload(dq);
+      }
+
       IDState ids;
       ids.cs = &cs;
       ids.origFD = cs.udpFD;
@@ -1505,6 +1512,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         ids.origDest = cs.local;
       }
       auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), ss);
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
       ss->passCrossProtocolQuery(std::move(cpq));
       return;

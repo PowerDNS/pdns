@@ -46,7 +46,7 @@ uint16_t g_outgoingDoHWorkerThreads{0};
 class DoHConnectionToBackend : public TCPConnectionToBackend
 {
 public:
-  DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now);
+  DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload);
 
   void handleTimeout(const struct timeval& now, bool write) override;
   void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query) override;
@@ -109,16 +109,18 @@ private:
   std::unordered_map<int32_t, PendingRequest> d_currentStreams;
   PacketBuffer d_out;
   PacketBuffer d_in;
+  std::string d_proxyProtocolPayload;
   size_t d_outPos{0};
   size_t d_inPos{0};
   uint32_t d_highestStreamID{0};
   bool d_healthCheckQuery{false};
+  bool d_proxyProtocolPayloadSent{false};
 };
 
 class DownstreamDoHConnectionsManager
 {
 public:
-  static std::shared_ptr<DoHConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now);
+  static std::shared_ptr<DoHConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload);
   static void releaseDownstreamConnection(std::shared_ptr<DoHConnectionToBackend>&& conn);
   static bool removeDownstreamConnection(std::shared_ptr<DoHConnectionToBackend>& conn);
   static void cleanupClosedConnections(struct timeval now);
@@ -193,6 +195,11 @@ bool DoHConnectionToBackend::canBeReused() const
   if (d_connectionDied) {
     return false;
   }
+
+  if (!d_proxyProtocolPayload.empty()) {
+    return false;
+  }
+
   const uint32_t maximumStreamID = (static_cast<uint32_t>(1) << 31) - 1;
   if (d_highestStreamID == maximumStreamID) {
     return false;
@@ -525,6 +532,11 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 {
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   bool bufferWasEmpty = conn->d_out.empty();
+  if (!conn->d_proxyProtocolPayloadSent && !conn->d_proxyProtocolPayload.empty()) {
+    conn->d_out.insert(conn->d_out.end(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
+    conn->d_proxyProtocolPayloadSent = true;
+  }
+
   conn->d_out.insert(conn->d_out.end(), data, data + length);
 
   if (bufferWasEmpty) {
@@ -685,7 +697,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   if (request.d_query.d_downstreamFailures < conn->d_ds->d_retries) {
     // cerr<<"in "<<__PRETTY_FUNCTION__<<", looking for a connection to send a query of size "<<request.d_query.d_buffer.size()<<endl;
     ++request.d_query.d_downstreamFailures;
-    auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now);
+    auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
     downstream->queueQuery(request.d_sender, std::move(request.d_query));
   }
   else {
@@ -741,8 +753,8 @@ int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_
   return 0;
 }
 
-DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now) :
-  TCPConnectionToBackend(ds, mplexer, now)
+DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload) :
+  TCPConnectionToBackend(ds, mplexer, now), d_proxyProtocolPayload(std::move(proxyProtocolPayload))
 {
   // inherit most of the stuff from the TCPConnectionToBackend()
   d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
@@ -863,7 +875,7 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
   }
 }
 
-std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now)
+std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload)
 {
   std::shared_ptr<DoHConnectionToBackend> result;
   struct timeval freshCutOff = now;
@@ -877,7 +889,8 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
     cleanupClosedConnections(now);
   }
 
-  {
+  const bool haveProxyProtocol = !proxyProtocolPayload.empty();
+  if (!haveProxyProtocol) {
     //cerr<<"looking for existing connection"<<endl;
     const auto& it = t_downstreamConnections.find(backendId);
     if (it != t_downstreamConnections.end()) {
@@ -906,11 +919,13 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
         ++listIt;
       }
     }
-
-    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now);
-    t_downstreamConnections[backendId].push_back(newConnection);
-    return newConnection;
   }
+
+  auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(proxyProtocolPayload));
+  if (!haveProxyProtocol) {
+    t_downstreamConnections[backendId].push_back(newConnection);
+  }
+  return newConnection;
 }
 
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
@@ -943,9 +958,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     tmp = nullptr;
 
     try {
-      auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
-
-#warning what about the proxy protocol payload, here, do we need to remove it? we likely need to handle forward-for headers?
+      auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now, std::move(query.d_proxyProtocolPayload));
       downstream->queueQuery(tqs, std::move(query));
     }
     catch (...) {
@@ -1193,12 +1206,12 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
 
   if (healthCheck) {
     /* always do health-checks over a new connection */
-    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now);
+    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(query.d_proxyProtocolPayload));
     newConnection->setHealthCheck(healthCheck);
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
-    auto connection = DownstreamDoHConnectionsManager::getConnectionToDownstream(mplexer, ds, now);
+    auto connection = DownstreamDoHConnectionsManager::getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
     connection->queueQuery(sender, std::move(query));
   }
 

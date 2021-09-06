@@ -390,3 +390,50 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.callback, tlsContext])
         cls._DOHResponder.setDaemon(True)
         cls._DOHResponder.start()
+
+class TestOutgoingDOHProxyProtocol(DNSDistTest):
+
+    _tlsBackendPort = 10551
+    _config_params = ['_tlsBackendPort']
+    _config_template = """
+    setMaxTCPClientThreads(1)
+    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', useProxyProtocol=true}:setUp()
+    """
+    _verboseMode = True
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.set_alpn_protocols(["h2"])
+        tlsContext.load_cert_chain('server.chain', 'server.key')
+
+        print("Launching DOH woth Proxy Protocol responder..")
+        cls._DOHResponder = threading.Thread(name='DOH with Proxy Protocol Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext, True])
+        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.start()
+
+    def testPP(self):
+        """
+        Outgoing DOH with Proxy Protocol
+        """
+        name = 'proxy-protocol.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        (receivedProxyPayload, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', False)
+
+        (receivedProxyPayload, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True)

@@ -552,7 +552,6 @@ public:
   {
     query = InternalQuery(std::move(buffer), std::move(ids));
     downstream = ds;
-    #warning handle proxy protocol payload
     proxyProtocolPayloadSize = 0;
   }
 
@@ -694,11 +693,19 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   ++state->d_currentQueriesCount;
 
+  std::string proxyProtocolPayload;
   if (ds->isDoH()) {
     vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
 
+    /* we need to do this _before_ creating the cross protocol query because
+       after that the buffer will have been moved */
+    if (ds->useProxyProtocol) {
+      proxyProtocolPayload = getProxyProtocolPayload(dq);
+    }
+
     auto incoming = std::make_shared<TCPCrossProtocolQuerySender>(state, state->d_threadData.crossProtocolResponsesPipe);
     auto cpq = std::make_unique<TCPCrossProtocolQuery>(std::move(state->d_buffer), std::move(ids), ds, incoming);
+    cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
     ds->passCrossProtocolQuery(std::move(cpq));
     return;
@@ -709,7 +716,6 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
 
   bool proxyProtocolPayloadAdded = false;
-  std::string proxyProtocolPayload;
 
   if (ds->useProxyProtocol) {
     /* if we ever sent a TLV over a connection, we can never go back */

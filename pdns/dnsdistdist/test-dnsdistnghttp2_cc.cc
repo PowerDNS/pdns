@@ -81,8 +81,8 @@ std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d
 
 struct DOHConnection
 {
-  DOHConnection() :
-    d_session(std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)>(nullptr, nghttp2_session_del))
+  DOHConnection(bool needProxyProtocol) :
+    d_session(std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)>(nullptr, nghttp2_session_del)), d_needProxyProtocol(needProxyProtocol)
   {
     nghttp2_session_callbacks* cbs = nullptr;
     nghttp2_session_callbacks_new(&cbs);
@@ -102,15 +102,47 @@ struct DOHConnection
   }
 
   PacketBuffer d_serverOutBuffer;
+  PacketBuffer d_proxyProtocolBuffer;
   std::map<uint32_t, PacketBuffer> d_queries;
   std::map<uint32_t, PacketBuffer> d_responses;
   std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)> d_session;
   /* used to replace the stream ID in outgoing frames. Ugly but the library does not let us
      test weird cases without that */
   std::map<uint32_t, uint32_t> d_idMapping;
+  bool d_needProxyProtocol;
 
   size_t submitIncoming(const PacketBuffer& data, size_t pos, size_t toWrite)
   {
+    size_t consumed = 0;
+    if (d_needProxyProtocol) {
+      do {
+        auto bytesRemaining = isProxyHeaderComplete(d_proxyProtocolBuffer);
+        if (bytesRemaining < 0) {
+          size_t toConsume = toWrite > static_cast<size_t>(-bytesRemaining) ? static_cast<size_t>(-bytesRemaining) : toWrite;
+          d_proxyProtocolBuffer.insert(d_proxyProtocolBuffer.end(), data.begin() + pos, data.begin() + pos + toConsume);
+          pos += toConsume;
+          toWrite -= toConsume;
+          consumed += toConsume;
+
+          bytesRemaining = isProxyHeaderComplete(d_proxyProtocolBuffer);
+          if (bytesRemaining > 0) {
+            d_needProxyProtocol = false;
+          }
+          else if (bytesRemaining == 0) {
+            throw("Fatal error while parsing proxy protocol payload");
+          }
+        }
+        else if (bytesRemaining == 0) {
+          throw("Fatal error while parsing proxy protocol payload");
+        }
+
+        if (toWrite == 0) {
+          return consumed;
+        }
+      }
+      while (d_needProxyProtocol && toWrite > 0);
+    }
+
     ssize_t readlen = nghttp2_session_mem_recv(d_session.get(), &data.at(pos), toWrite);
     if (readlen < 0) {
       throw("Fatal error while submitting: " + std::string(nghttp2_strerror(static_cast<int>(readlen))));
@@ -250,10 +282,8 @@ private:
   static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
   {
     DOHConnection* conn = reinterpret_cast<DOHConnection*>(user_data);
-    // cerr<<"in "<<__PRETTY_FUNCTION__<<endl;
     auto& query = conn->d_queries[stream_id];
     query.insert(query.end(), data, data + len);
-    // cerr<<"out "<<__PRETTY_FUNCTION__<<endl;
     return 0;
   }
 
@@ -274,10 +304,10 @@ static std::map<int, std::unique_ptr<DOHConnection>> s_connectionBuffers;
 class MockupTLSConnection : public TLSConnection
 {
 public:
-  MockupTLSConnection(int descriptor, bool client = false) :
+  MockupTLSConnection(int descriptor, bool client = false, bool needProxyProtocol = false) :
     d_descriptor(descriptor), d_client(client)
   {
-    s_connectionBuffers[d_descriptor] = std::make_unique<DOHConnection>();
+    s_connectionBuffers[d_descriptor] = std::make_unique<DOHConnection>(needProxyProtocol);
   }
 
   ~MockupTLSConnection() {}
@@ -346,11 +376,9 @@ public:
 
     BOOST_REQUIRE_GE(buffer.size(), toRead);
 
-    // cerr<<"in server try read, adding "<<toRead<<" bytes from the buffer of size "<<externalBuffer.size()<<" at position "<<pos<<", buffer had a size of "<<buffer.size()<<endl;
     std::copy(externalBuffer.begin(), externalBuffer.begin() + toRead, buffer.begin() + pos);
     pos += toRead;
     externalBuffer.erase(externalBuffer.begin(), externalBuffer.begin() + toRead);
-    // cerr<<"external buffer has "<<externalBuffer.size()<<" remaining"<<endl;
 
     return step.nextState;
   }
@@ -454,7 +482,7 @@ public:
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
-    return std::make_unique<MockupTLSConnection>(socket, true);
+    return std::make_unique<MockupTLSConnection>(socket, true, d_needProxyProtocol);
   }
 
   void rotateTicketsKey(time_t now) override
@@ -470,6 +498,8 @@ public:
   {
     return "Mockup TLS";
   }
+
+  bool d_needProxyProtocol{false};
 };
 
 class MockupFDMultiplexer : public FDMultiplexer
@@ -1764,6 +1794,105 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
   BOOST_CHECK_EQUAL(queries.at(1).first->d_error, true);
 
   BOOST_CHECK_EQUAL(clearH2Connections(), 0U);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
+{
+  ComboAddress local("192.0.2.1:80");
+  ClientState localCS(local, true, false, false, "", {});
+  auto tlsCtx = std::make_shared<MockupTLSCtx>();
+  tlsCtx->d_needProxyProtocol = true;
+  localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
+
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+
+  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  backend->d_tlsCtx = tlsCtx;
+  backend->d_tlsSubjectName = "backend.powerdns.com";
+  backend->d_dohPath = "/dns-query";
+  backend->d_addXForwardedHeaders = true;
+  backend->useProxyProtocol = true;
+
+  size_t numberOfQueries = 2;
+  std::vector<std::pair<std::shared_ptr<MockupQuerySender>, InternalQuery>> queries;
+  for (size_t counter = 0; counter < numberOfQueries; counter++) {
+    DNSName name("powerdns.com.");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+    pwQ.getHeader()->id = htons(counter);
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->id = htons(counter);
+    pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfr32BitInt(0x01020304);
+    pwR.commit();
+
+    s_responses[counter] = {query, response};
+
+    auto sender = std::make_shared<MockupQuerySender>();
+    sender->d_id = counter;
+    std::string payload = makeProxyHeader(counter % 2, local, local, {});
+    InternalQuery internalQuery(std::move(query), IDState());
+    internalQuery.d_proxyProtocolPayload = std::move(payload);
+    queries.push_back({std::move(sender), std::move(internalQuery)});
+  }
+
+  s_steps = {
+    {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+    /* proxy protocol data + opening */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* settings */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* headers */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* data */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+       /* set the outgoing descriptor (backend connection) as ready */
+       dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
+     }},
+    {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+    /* proxy protocol data + opening */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* settings */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* headers */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* data */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+       /* set the outgoing descriptor (backend connection) as ready */
+       dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
+     }},
+    /* read settings, headers and responses from the server */
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* acknowledge settings */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+    /* read settings, headers and responses from the server */
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    /* acknowledge settings */
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
+    {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+  };
+
+  for (auto& query : queries) {
+    auto sliced = std::static_pointer_cast<TCPQuerySender>(query.first);
+    bool result = sendH2Query(backend, s_mplexer, sliced, std::move(query.second), false);
+    BOOST_CHECK_EQUAL(result, true);
+  }
+
+  while (s_mplexer->getWatchedFDCount(false) != 0 || s_mplexer->getWatchedFDCount(true) != 0) {
+    s_mplexer->run(&now);
+  }
+
+  for (auto& query : queries) {
+    BOOST_CHECK_EQUAL(query.first->d_valid, true);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END();

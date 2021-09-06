@@ -502,6 +502,11 @@ public:
   DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
   {
     query = InternalQuery(std::move(du->query), std::move(du->ids));
+    /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
+       clearing query.d_proxyProtocolPayloadAdded and du->proxyProtocolPayloadSize.
+       Leave it for now because we know that the onky case where the payload has been
+       added is when we tried over UDP, got a TC=1 answer and retried over TCP/DoT,
+       and we know the TCP/DoT code can handle it. */
     query.d_proxyProtocolPayloadAdded = du->proxyProtocolPayloadSize > 0;
     downstream = du->downstream;
     proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
@@ -619,9 +624,16 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (du->downstream->isTCPOnly()) {
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+      std::string proxyProtocolPayload;
+      /* we need to do this _before_ creating the cross protocol query because
+         after that the buffer will have been moved */
+      if (du->downstream->useProxyProtocol) {
+        proxyProtocolPayload = getProxyProtocolPayload(dq);
+      }
 
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
       du->get();
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
       du->tcp = true;
       du->ids.origID = htons(queryId);
       du->ids.cs = &cs;

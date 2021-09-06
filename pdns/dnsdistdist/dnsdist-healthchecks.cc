@@ -341,11 +341,14 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 
     /* we need to compute that _before_ adding the proxy protocol payload */
     uint16_t packetSize = packet.size();
+    std::string proxyProtocolPayload;
     size_t proxyProtocolPayloadSize = 0;
     if (ds->useProxyProtocol) {
-      auto payload = makeLocalProxyHeader();
-      proxyProtocolPayloadSize = payload.size();
-      packet.insert(packet.begin(), payload.begin(), payload.end());
+      proxyProtocolPayload = makeLocalProxyHeader();
+      proxyProtocolPayloadSize = proxyProtocolPayload.size();
+      if (!ds->isDoH()) {
+        packet.insert(packet.begin(), proxyProtocolPayload.begin(), proxyProtocolPayload.end());
+      }
     }
 
     Socket sock(ds->remote.sin4.sin_family, ds->doHealthcheckOverTCP() ? SOCK_STREAM : SOCK_DGRAM);
@@ -397,6 +400,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     }
     else if (ds->isDoH()) {
       InternalQuery query(std::move(packet), IDState());
+      query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
       auto sender = std::shared_ptr<TCPQuerySender>(new HealthCheckQuerySender(data));
       if (!sendH2Query(ds, mplexer, sender, std::move(query), true)) {
         updateHealthCheckResult(data->d_ds, data->d_initial, false);

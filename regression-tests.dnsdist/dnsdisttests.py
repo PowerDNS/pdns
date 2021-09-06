@@ -24,6 +24,7 @@ import h2.events
 import h2.config
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
+from proxyprotocol import ProxyProtocol
 
 # Python2/3 compatibility hacks
 try:
@@ -322,7 +323,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock.close()
 
     @classmethod
-    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None):
+    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, useProxyProtocol=False):
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -357,6 +358,30 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             h2conn.initiate_connection()
             conn.sendall(h2conn.data_to_send())
             dnsData = {}
+
+            if useProxyProtocol:
+                # try to read the entire Proxy Protocol header
+                proxy = ProxyProtocol()
+                header = conn.recv(proxy.HEADER_SIZE)
+                if not header:
+                    print('unable to get header')
+                    conn.close()
+                    continue
+
+                if not proxy.parseHeader(header):
+                    print('unable to parse header')
+                    print(header)
+                    conn.close()
+                    continue
+
+                proxyContent = conn.recv(proxy.contentLen)
+                if not proxyContent:
+                    print('unable to get content')
+                    conn.close()
+                    continue
+
+                payload = header + proxyContent
+                toQueue.put(payload, True, cls._queueTimeout)
 
             while True:
                 data = conn.recv(65535)
@@ -519,7 +544,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             cls.sendTCPQueryOverConnection(sock, query, rawQuery)
             message = cls.recvTCPResponseOverConnection(sock)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print("Timeout while sending or receiving TCP data: %s" % (str(e)))
         except socket.error as e:
             print("Network error: %s" % (str(e)))
         finally:
@@ -566,7 +591,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 messages.append(dns.message.from_wire(data))
 
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print("Timeout while receiving multiple TCP responses: %s" % (str(e)))
         except socket.error as e:
             print("Network error: %s" % (str(e)))
         finally:
@@ -743,3 +768,33 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             for inFileName in ['server.pem', 'ca.pem']:
                 with open(inFileName) as inFile:
                     outFile.write(inFile.read())
+
+    def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=[], v6=False, sourcePort=None, destinationPort=None):
+        proxy = ProxyProtocol()
+        self.assertTrue(proxy.parseHeader(receivedProxyPayload))
+        self.assertEqual(proxy.version, 0x02)
+        self.assertEqual(proxy.command, 0x01)
+        if v6:
+            self.assertEqual(proxy.family, 0x02)
+        else:
+            self.assertEqual(proxy.family, 0x01)
+        if not isTCP:
+            self.assertEqual(proxy.protocol, 0x02)
+        else:
+            self.assertEqual(proxy.protocol, 0x01)
+        self.assertGreater(proxy.contentLen, 0)
+
+        self.assertTrue(proxy.parseAddressesAndPorts(receivedProxyPayload))
+        self.assertEqual(proxy.source, source)
+        self.assertEqual(proxy.destination, destination)
+        if sourcePort:
+            self.assertEqual(proxy.sourcePort, sourcePort)
+        if destinationPort:
+            self.assertEqual(proxy.destinationPort, destinationPort)
+        else:
+            self.assertEqual(proxy.destinationPort, self._dnsDistPort)
+
+        self.assertTrue(proxy.parseAdditionalValues(receivedProxyPayload))
+        proxy.values.sort()
+        values.sort()
+        self.assertEqual(proxy.values, values)
