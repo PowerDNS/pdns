@@ -1174,8 +1174,10 @@ void DoHClientCollection::addThread()
 bool initDoHWorkers()
 {
 #ifdef HAVE_NGHTTP2
-  g_dohClientThreads = std::make_unique<DoHClientCollection>(g_outgoingDoHWorkerThreads);
-  g_dohClientThreads->addThread();
+  if (g_outgoingDoHWorkerThreads > 0) {
+    g_dohClientThreads = std::make_unique<DoHClientCollection>(g_outgoingDoHWorkerThreads);
+    g_dohClientThreads->addThread();
+  }
   return true;
 #else
   return false;
