@@ -492,6 +492,7 @@ public:
       return;
     }
 
+    du->ids = std::move(query);
     du->status_code = 502;
     sendDoHUnitToTheMainThread(du, "cross-protocol error response");
     du->release();
@@ -637,19 +638,20 @@ static int processDOHQuery(DOHUnit* du)
         proxyProtocolPayload = getProxyProtocolPayload(dq);
       }
 
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
-      du->get();
-      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
-      du->tcp = true;
       du->ids.origID = htons(queryId);
       du->ids.cs = &cs;
       setIDStateFromDNSQuestion(du->ids, dq, std::move(qname));
 
+      /* this moves du->ids, careful! */
+      du->get();
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
+      du->tcp = true;
       if (du->downstream->passCrossProtocolQuery(std::move(cpq))) {
         return 0;
       }
       else {
-        du->release();
+        /* do not release du here, it belongs to the DoHCrossProtocolQuery object */
         du->status_code = 502;
         return -1;
       }
