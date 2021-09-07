@@ -721,8 +721,8 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
 
   auto backendId = ds->getID();
 
-  if (s_cleanupInterval > 0 && (s_nextCleanup == 0 || s_nextCleanup <= now.tv_sec)) {
-    s_nextCleanup = now.tv_sec + s_cleanupInterval;
+  if (s_cleanupInterval > 0 && (t_nextCleanup == 0 || t_nextCleanup <= now.tv_sec)) {
+    t_nextCleanup = now.tv_sec + s_cleanupInterval;
     cleanupClosedTCPConnections(now);
   }
 
@@ -832,6 +832,6 @@ void setMaxCachedTCPConnectionsPerDownstream(size_t max)
 }
 
 thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
+thread_local time_t DownstreamConnectionsManager::t_nextCleanup{0};
 size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
-time_t DownstreamConnectionsManager::s_nextCleanup{0};
 uint16_t DownstreamConnectionsManager::s_cleanupInterval{60};

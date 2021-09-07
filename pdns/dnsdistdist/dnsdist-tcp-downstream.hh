@@ -249,7 +249,7 @@ public:
 
 private:
   static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
+  static thread_local time_t t_nextCleanup;
   static size_t s_maxCachedConnectionsPerDownstream;
-  static time_t s_nextCleanup;
   static uint16_t s_cleanupInterval;
 };

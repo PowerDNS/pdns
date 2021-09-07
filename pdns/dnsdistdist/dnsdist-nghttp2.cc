@@ -138,8 +138,8 @@ public:
 
 private:
   static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> t_downstreamConnections;
+  static thread_local time_t t_nextCleanup;
   static size_t s_maxCachedConnectionsPerDownstream;
-  static time_t s_nextCleanup;
   static uint16_t s_cleanupInterval;
 };
 
@@ -807,8 +807,8 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
 }
 
 thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> DownstreamDoHConnectionsManager::t_downstreamConnections;
+thread_local time_t DownstreamDoHConnectionsManager::t_nextCleanup{0};
 size_t DownstreamDoHConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
-time_t DownstreamDoHConnectionsManager::s_nextCleanup{0};
 uint16_t DownstreamDoHConnectionsManager::s_cleanupInterval{60};
 
 size_t DownstreamDoHConnectionsManager::clear()
@@ -883,8 +883,8 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
 
   auto backendId = ds->getID();
 
-  if (s_cleanupInterval > 0 && (s_nextCleanup == 0 || s_nextCleanup <= now.tv_sec)) {
-    s_nextCleanup = now.tv_sec + s_cleanupInterval;
+  if (s_cleanupInterval > 0 && (t_nextCleanup == 0 || t_nextCleanup <= now.tv_sec)) {
+    t_nextCleanup = now.tv_sec + s_cleanupInterval;
     //cerr<<"cleaning up"<<endl;
     cleanupClosedConnections(now);
   }
