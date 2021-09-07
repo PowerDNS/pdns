@@ -389,7 +389,7 @@ URL Endpoints
 
 .. http:get:: /api/v1/servers/localhost/pool?name=pool-name
 
-  .. versionadded:: 1.6.0
+  .. versionadded:: 1.6.1
 
   Get a quick overview of the pool named "pool-name".
 
