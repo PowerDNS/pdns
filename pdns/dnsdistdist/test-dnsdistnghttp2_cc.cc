@@ -158,7 +158,7 @@ struct DOHConnection
 
   void submitResponse(uint32_t streamId, PacketBuffer& data)
   {
-    const nghttp2_nv hdrs[] = {(uint8_t*)":status", (uint8_t*)"200", sizeof(":status") - 1, sizeof("200") - 1, NGHTTP2_NV_FLAG_NONE};
+    const nghttp2_nv hdrs[] = {{(uint8_t*)":status", (uint8_t*)"200", sizeof(":status") - 1, sizeof("200") - 1, NGHTTP2_NV_FLAG_NONE}};
     nghttp2_data_provider dataProvider;
     dataProvider.source.ptr = &data;
     dataProvider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
@@ -185,7 +185,7 @@ struct DOHConnection
   void submitError(uint32_t streamId, uint16_t status, const std::string& msg)
   {
     const std::string statusStr = std::to_string(status);
-    const nghttp2_nv hdrs[] = {(uint8_t*)":status", (uint8_t*)statusStr.c_str(), sizeof(":status") - 1, statusStr.size(), NGHTTP2_NV_FLAG_NONE};
+    const nghttp2_nv hdrs[] = {{(uint8_t*)":status", (uint8_t*)statusStr.c_str(), sizeof(":status") - 1, statusStr.size(), NGHTTP2_NV_FLAG_NONE}};
 
     int rv = nghttp2_submit_response(d_session.get(), streamId, hdrs, sizeof(hdrs) / sizeof(*hdrs), nullptr);
     BOOST_CHECK_EQUAL(rv, 0);
