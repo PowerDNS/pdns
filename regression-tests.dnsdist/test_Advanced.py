@@ -983,6 +983,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
     includeDirectory('test-include-dir')
     newServer{address="127.0.0.1:%s"}
     """
+    _verboseMode = True
 
     def testAdvancedIncludeDirAllowed(self):
         """
@@ -1001,6 +1002,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
+            print(receivedResponse)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
@@ -1017,6 +1019,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            print(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
 
 class TestAdvancedLuaDO(DNSDistTest):
