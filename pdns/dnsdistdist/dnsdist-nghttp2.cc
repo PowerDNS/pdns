@@ -114,7 +114,6 @@ private:
   size_t d_inPos{0};
   uint32_t d_highestStreamID{0};
   bool d_healthCheckQuery{false};
-  bool d_proxyProtocolPayloadSent{false};
 };
 
 class DownstreamDoHConnectionsManager
