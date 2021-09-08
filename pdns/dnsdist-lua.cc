@@ -2307,6 +2307,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       });
 
+    luaCtx.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std\
+::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_HTTPS
+        if (frontend != nullptr) {
+          if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+            frontend->reloadCertificates();
+          }
+        }
+#endif
+      });
+
     luaCtx.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
           frontend->rotateTicketsKey(time(nullptr));
@@ -2519,7 +2530,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     luaCtx.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
 #ifdef HAVE_DNS_OVER_TLS
-        if (loadTLSCertificateAndKeys("loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+        if (loadTLSCertificateAndKeys("TLSFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
           frontend->setupTLS();
         }
 #endif

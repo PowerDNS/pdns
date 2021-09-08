@@ -1496,6 +1496,15 @@ DOHFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
 
+  .. method:: DOHFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+
+     .. versionadded:: 1.7.0
+
+     Create and switch to a new TLS context using the same options than were passed to the corresponding `addDOHLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
+
+     :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+     :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+
   .. method:: DOHFrontend:loadTicketsKeys(ticketsKeysFile)
 
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. dnsdist supports several tickets keys to be able to decrypt existing sessions after the rotation.
@@ -1559,8 +1568,8 @@ TLSFrontend
 
      Create and switch to a new TLS context using the same options than were passed to the corresponding `addTLSLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
 
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+     :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+     :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
 
   .. method:: TLSFrontend:loadTicketsKeys(ticketsKeysFile)
 

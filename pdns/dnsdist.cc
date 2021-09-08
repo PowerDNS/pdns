@@ -461,7 +461,7 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
       zeroScope = false;
     }
     // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.origFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, dr.tcp, dr.getHeader()->rcode, dr.tempFailureTTL);
+    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, dr.tcp, dr.getHeader()->rcode, dr.tempFailureTTL);
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1238,6 +1238,8 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     if (dq.packetCache && !dq.skipCache) {
       if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKey, dq.subnet, dq.dnssecOK, allowExpired)) {
 
+        restoreFlags(dq.getHeader(), dq.origFlags);
+
         if (!prepareOutgoingResponse(holders, cs, dq, true)) {
           return ProcessQueryResult::Drop;
         }
@@ -1266,6 +1268,9 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
       return ProcessQueryResult::Drop;
     }
+
+    /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
+    dq.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader());
 
     if (dq.addXPF && selectedBackend->xpfRRCode != 0) {
       addXPF(dq, selectedBackend->xpfRRCode);
