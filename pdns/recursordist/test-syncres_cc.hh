@@ -59,8 +59,13 @@ void addNSECRecordToLW(const DNSName& domain, const DNSName& next, const std::se
 
 void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, bool optOut = false);
 
+/* Proves a NODATA (name exists, type does not) */
 void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, const std::string& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10, bool optOut = false);
 
+/* Proves a NODATA (name exists, type does not) and the next owner name is right behind, so it should not prove anything else unless we are very unlucky */
+void addNSEC3NoDataNarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10, bool optOut = false);
+
+/* Proves a NXDOMAIN (name does not exist) with the owner name right before, and the next name right after, so it should not prove anything else unless we are very unlucky */
 void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10, bool OptOut = false);
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys);

@@ -431,6 +431,17 @@ void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, cons
   addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, next, salt, iterations, types, ttl, records, optOut);
 }
 
+/* Proves a NODATA (name exists, type does not) but the next owner name is right behind, so it should not prove anything else unless we are very unlucky */
+void addNSEC3NoDataNarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations, bool optOut)
+{
+  static const std::string salt = "deadbeef";
+  std::string hashed = hashQNameWithSalt(salt, iterations, domain);
+  std::string hashedNext(hashed);
+  incrementHash(hashedNext);
+
+  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, hashedNext, salt, iterations, types, ttl, records, optOut);
+}
+
 void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations, bool optOut)
 {
   static const std::string salt = "deadbeef";
