@@ -409,49 +409,6 @@ class TestAdvancedDelay(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1))
 
-
-class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
-
-    _config_template = """
-    truncateTC(false)
-    addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
-    newServer{address="127.0.0.1:%s"}
-    """
-    def testTruncateAnyOverTCP(self):
-        """
-        Advanced: Truncate ANY over TCP
-
-        Send an ANY query to "anytruncatetcp.advanced.tests.powerdns.com.",
-        should be truncated over TCP, not over UDP (yes, it makes no sense,
-        deal with it).
-        """
-        name = 'anytruncatetcp.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'ANY', 'IN')
-        # dnsdist sets RA = RD for TC responses
-        query.flags &= ~dns.flags.RD
-
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-
-        response.answer.append(rrset)
-
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(receivedResponse, response)
-
-        expectedResponse = dns.message.make_response(query)
-        expectedResponse.flags |= dns.flags.TC
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEqual(receivedResponse, expectedResponse)
-
 class TestAdvancedAndNot(DNSDistTest):
 
     _config_template = """

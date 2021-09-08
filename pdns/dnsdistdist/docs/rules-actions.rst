@@ -47,9 +47,12 @@ If this is not enough, try::
 
 or::
 
-  addAction(MaxQPSIPRule(5), TCAction())
+  addAction(AndRule{MaxQPSIPRule(5), TCPRule(false)}, TCAction())
 
 This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing clients to fall back to TCP.
+
+In that last one, note the use of :func:`TCPRule`.
+Without it, clients would get TC=1 even if they correctly fell back to TCP.
 
 To turn this per IP or range limit into a global limit, use ``NotRule(MaxQPSRule(5000))`` instead of :func:`MaxQPSIPRule`.
 
@@ -1541,7 +1544,12 @@ The following actions exist.
 
 .. function:: TCAction()
 
+  .. versionchanged:: 1.7.0
+    This action is now only performed over UDP transports.
+
   Create answer to query with the TC bit set, and the RA bit set to the value of RD in the query, to force the client to TCP.
+  Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
+  prevent the TC bit from being set over TCP transports.
 
 .. function:: TeeAction(remote[, addECS])
 

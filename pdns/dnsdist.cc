@@ -803,13 +803,15 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Truncate:
-    dq.getHeader()->tc = true;
-    dq.getHeader()->qr = true;
-    dq.getHeader()->ra = dq.getHeader()->rd;
-    dq.getHeader()->aa = false;
-    dq.getHeader()->ad = false;
-    ++g_stats.ruleTruncated;
-    return true;
+    if (!dq.overTCP()) {
+      dq.getHeader()->tc = true;
+      dq.getHeader()->qr = true;
+      dq.getHeader()->ra = dq.getHeader()->rd;
+      dq.getHeader()->aa = false;
+      dq.getHeader()->ad = false;
+      ++g_stats.ruleTruncated;
+      return true;
+    }
     break;
   case DNSAction::Action::HeaderModify:
     return true;
