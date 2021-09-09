@@ -520,6 +520,7 @@ public:
     ssize_t sent = write(d_responseDesc, &ptr, sizeof(ptr));
     if (sent != sizeof(ptr)) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        ++g_stats.tcpCrossProtocolResponsePipeFull;
         vinfolog("Unable to pass a cross-protocol response to the TCP worker thread because the pipe is full");
       }
       else {
@@ -1219,6 +1220,8 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
 
   for (;;) {
     data.mplexer->run(&now);
+
+    DownstreamConnectionsManager::cleanupClosedTCPConnections(now);
 
     if (now.tv_sec > lastTimeoutScan) {
       lastTimeoutScan = now.tv_sec;

@@ -208,6 +208,7 @@ public:
     auto tmp = conn.release();
 
     if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+      ++g_stats.tcpQueryPipeFull;
       delete tmp;
       tmp = nullptr;
       return false;
@@ -227,6 +228,7 @@ public:
     auto tmp = cpq.release();
 
     if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+      ++g_stats.tcpCrossProtocolQueryPipeFull;
       delete tmp;
       tmp = nullptr;
       return false;

@@ -347,7 +347,11 @@ struct DNSDistStats
   stat_t securityStatus{0};
   stat_t dohQueryPipeFull{0};
   stat_t dohResponsePipeFull{0};
+  stat_t outgoingDoHQueryPipeFull{0};
   stat_t proxyProtocolInvalid{0};
+  stat_t tcpQueryPipeFull{0};
+  stat_t tcpCrossProtocolQueryPipeFull{0};
+  stat_t tcpCrossProtocolResponsePipeFull{0};
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
@@ -405,6 +409,10 @@ struct DNSDistStats
     {"security-status", &securityStatus},
     {"doh-query-pipe-full", &dohQueryPipeFull},
     {"doh-response-pipe-full", &dohResponsePipeFull},
+    {"outgoing-doh-query-pipe-full", &outgoingDoHQueryPipeFull},
+    {"tcp-query-pipe-full", &tcpQueryPipeFull},
+    {"tcp-cross-protocol-query-pipe-full", &tcpCrossProtocolQueryPipeFull},
+    {"tcp-cross-protocol-response-pipe-full", &tcpCrossProtocolResponsePipeFull},
     // Latency histogram
     {"latency-sum", &latencySum},
     {"latency-count", getLatencyCount},

@@ -31,6 +31,7 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
       }
     }
     auto diff = now - d_connectionStartTime;
+    // cerr<<"connection to backend terminated after "<<d_queries<<" queries, "<<diff.tv_sec<<" seconds"<<endl;
     d_ds->updateTCPMetrics(d_queries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
   }
 }
@@ -721,10 +722,7 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
 
   auto backendId = ds->getID();
 
-  if (s_cleanupInterval > 0 && (t_nextCleanup == 0 || t_nextCleanup <= now.tv_sec)) {
-    t_nextCleanup = now.tv_sec + s_cleanupInterval;
-    cleanupClosedTCPConnections(now);
-  }
+  cleanupClosedTCPConnections(now);
 
   {
     const auto& it = t_downstreamConnections.find(backendId);
@@ -781,6 +779,12 @@ void DownstreamConnectionsManager::releaseDownstreamConnection(std::shared_ptr<T
 
 void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval now)
 {
+  if (s_cleanupInterval == 0 || (t_nextCleanup != 0 && t_nextCleanup > now.tv_sec)) {
+    return;
+  }
+
+  t_nextCleanup = now.tv_sec + s_cleanupInterval;
+
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
 
