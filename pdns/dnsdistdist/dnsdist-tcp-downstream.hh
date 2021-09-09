@@ -54,6 +54,10 @@ public:
 
   ~TCPConnectionToBackend()
   {
+    if (d_ds && !d_usedForXFR && !d_pendingResponses.empty()) {
+      d_ds->outstanding -= d_pendingResponses.size();
+    }
+
     if (d_ds && d_handler) {
       --d_ds->tcpCurrentConnections;
       struct timeval now;

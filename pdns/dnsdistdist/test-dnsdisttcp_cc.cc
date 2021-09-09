@@ -841,6 +841,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK(s_writeBuffer == query);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
     BOOST_CHECK(s_backendWriteBuffer == query);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -879,6 +880,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
     BOOST_CHECK(s_backendWriteBuffer == query);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -917,6 +919,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
     BOOST_CHECK(s_backendWriteBuffer == query);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -959,6 +962,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
     BOOST_CHECK(s_backendWriteBuffer == query);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -984,6 +988,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -1021,6 +1026,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -1093,6 +1099,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     }
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * 2U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * 2U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1149,6 +1157,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1193,6 +1203,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     }
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1237,6 +1249,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     }
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1282,6 +1296,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1337,6 +1353,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
     BOOST_CHECK(s_writeBuffer == query);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1393,6 +1411,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1443,6 +1463,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->retries);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1502,6 +1524,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
     BOOST_CHECK(s_writeBuffer == query);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->retries);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
@@ -1541,6 +1565,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size());
     BOOST_CHECK(s_backendWriteBuffer == query);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -1600,6 +1625,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * count);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -1790,6 +1816,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), totalQueriesSize);
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -1933,6 +1960,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2101,6 +2129,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2175,6 +2204,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2246,6 +2276,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2386,6 +2417,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2510,6 +2542,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2627,6 +2660,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
@@ -2749,6 +2783,117 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(proxyEnabledBackend->outstanding.load(), 0U);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
+  }
+
+  {
+    TEST_INIT("=> Outgoing proxy protocol, 3 queries to the backend, the client closes while sending the first response");
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    auto proxyPayload = makeProxyHeader(true, ComboAddress("0.0.0.0"), local, {});
+    BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
+
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+
+    auto proxyEnabledBackend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    proxyEnabledBackend->d_tlsCtx = tlsCtx;
+    /* enable out-of-order on the backend side as well */
+    proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
+    proxyEnabledBackend-> useProxyProtocol = true;
+
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+    //s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(2).begin(), responses.at(2).end());
+
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (1) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(0).size() },
+      /* we try to read the response, not ready yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      /* reading a second query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      /* backend is not ready yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      /* reading a third query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      /* sending query (3) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      /* backend is not ready yet, but the descriptor becomes ready */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the backend descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      }},
+      /* client closes the connection */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      /* try to read response from backend, connection has been closed */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
+      //{ ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() },
+      /* closing the backend connection */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (3) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(2).size() },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+    };
+
+    s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = proxyEnabledBackend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0) {
+      threadData.mplexer->run(&now);
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(proxyEnabledBackend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
@@ -2822,6 +2967,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
 
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* restore */
     backend->tcpSendTimeout = 30;
@@ -2989,11 +3135,13 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), totalQueriesSize);
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend1->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 2U);
   }
 }
+
 
 BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
 {
@@ -3200,6 +3348,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
     BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
     BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), totalQueriesSize);
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 5U);
