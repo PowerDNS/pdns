@@ -2,6 +2,7 @@
 import base64
 from datetime import datetime, timedelta
 import os
+import shutil
 import string
 import time
 import dns
@@ -989,6 +990,9 @@ class TestAdvancedIncludeDir(DNSDistTest):
         """
         Advanced: includeDirectory()
         """
+
+        print(shutil.disk_usage('.'))
+
         name = 'includedir.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
