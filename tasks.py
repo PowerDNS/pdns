@@ -208,7 +208,7 @@ def ci_auth_configure(c):
                       CC='clang-11' \
                       CXX='clang++-11' \
                       --enable-option-checking=fatal \
-                      --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
+                      --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
                       --enable-systemd \
                       --enable-tools \
                       --enable-unit-tests \

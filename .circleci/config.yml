@@ -596,7 +596,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --enable-option-checking=fatal \
-              --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
+              --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
               --enable-systemd \
               --enable-tools \
               --enable-unit-tests \
@@ -1491,7 +1491,7 @@ jobs:
             ./configure \
               --enable-option-checking=fatal \
               --disable-systemd \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc tinydns' \
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
