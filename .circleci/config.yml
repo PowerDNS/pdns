@@ -728,30 +728,6 @@ jobs:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
 
-  test-auth-regress-gsqlite3:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - auth-regress:
-          context: gsqlite3-nodnssec-both
-      - auth-regress:
-          context: gsqlite3-both
-      - auth-regress:
-          context: gsqlite3-nsec3-both
-      - auth-regress:
-          context: gsqlite3-nsec3-optout-both
-      - auth-regress:
-          context: gsqlite3-nsec3-narrow
-
   test-auth-regress-bind:
     resource_class: small
 
@@ -774,16 +750,6 @@ jobs:
       - run:
           command: apt-get install -qq -y p11-kit softhsm2
       - auth-regress:
-          context: bind-both
-      - auth-regress:
-          context: bind-dnssec-both
-      - auth-regress:
-          context: bind-dnssec-nsec3-both
-      - auth-regress:
-          context: bind-dnssec-nsec3-optout-both
-      - auth-regress:
-          context: bind-dnssec-nsec3-narrow
-      - auth-regress:
           context: bind-dnssec-pkcs11
       - run:
           command: apt-get install -qq -y default-mysql-client
@@ -799,94 +765,6 @@ jobs:
           workdir: ~/project/regression-tests
       - auth-regress:
           context: bind-hybrid-nsec3
-
-  test-auth-regress-gmysql:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-      - image: mysql:5
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 1
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-    steps:
-      - auth-regress-setup
-      - run:
-          command: apt-get install -qq -y default-mysql-client
-      - run:
-          command: |
-            cat >> ~/.my.cnf \<<- __EOF__
-            [client]
-            protocol=TCP
-            default-character-set=latin1
-            __EOF__
-      - run:
-          name: Set up mysql client lib to force TCP
-          command: echo 'export GMYSQLHOST=127.0.0.1 export GMYSQL2HOST=127.0.0.1 ' > ./vars
-          workdir: ~/project/regression-tests
-      - auth-regress:
-          context: gmysql-nodnssec-both
-      - auth-regress:
-          context: gmysql-both
-      - auth-regress:
-          context: gmysql-nsec3-both
-      - auth-regress:
-          context: gmysql-nsec3-optout-both
-      - auth-regress:
-          context: gmysql-nsec3-narrow
-      - auth-regress:
-          context: gmysql_sp-both
-
-  test-auth-regress-gpgsql:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-      - image: postgres:9
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          POSTGRES_USER: root
-          POSTGRES_HOST_AUTH_METHOD: trust
-    steps:
-      - auth-regress-setup
-      - run:
-          command: apt-get install -qq -y postgresql-client
-      - run:
-          name: Use TCP for Postgresql connections
-          command: |
-            cat >> ./vars \<<- __EOF__
-            export PGHOST=127.0.0.1
-            export PGPORT=5432
-            __EOF__
-          workdir: ~/project/regression-tests
-      - auth-regress:
-          context: gpgsql-nodnssec-both
-      - auth-regress:
-          context: gpgsql-both
-      - auth-regress:
-          context: gpgsql-nsec3-both
-      - auth-regress:
-          context: gpgsql-nsec3-optout-both
-      - auth-regress:
-          context: gpgsql-nsec3-narrow
-      - auth-regress:
-          context: gpgsql_sp-both
 
   test-auth-regress-ldap:
     resource_class: small
@@ -921,23 +799,6 @@ jobs:
           context: ldap-strict
           doroot: false
 
-  test-auth-regress-tinydns:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - auth-regress:
-          context: tinydns
-          doroot: false
-
   test-auth-regress-geoip:
     resource_class: small
 
@@ -951,65 +812,10 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
-      - auth-regress:
-          context: geoip
-          doroot: false
-      - auth-regress:
-          context: geoip-nsec3-narrow
-          doroot: false
       - run: export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
       - auth-regress:
           context: geoip
           doroot: false
-
-  test-auth-regress-lua2:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run:
-          name: Make empty trustedkeys file to avoid useless test script failure
-          workdir: ~/project/regression-tests
-          command: touch trustedkeys
-      - auth-regress:
-          context: lua2
-          doroot: false
-      - auth-regress:
-          context: lua2-dnssec
-          doroot: false
-
-  test-auth-regress-lmdb:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run: apt-get install -y -qq jq
-      - auth-regress:
-          context: lmdb-nodnssec-both
-      - auth-regress:
-          context: lmdb-both
-      - auth-regress:
-          context: lmdb-nsec3-both
-      - auth-regress:
-          context: lmdb-nsec3-optout-both
-      - auth-regress:
-          context: lmdb-nsec3-narrow
 
   test-auth-algorithms:
     resource_class: small
@@ -1818,31 +1624,10 @@ workflows:
       - test-auth-regress-odbc-mssql:
           requires:
             - build-auth
-      - test-auth-regress-gmysql:
-          requires:
-            - build-auth
-      - test-auth-regress-bind:
-          requires:
-            - build-auth
       - test-auth-regress-geoip:
           requires:
             - build-auth
-      - test-auth-regress-lua2:
-          requires:
-            - build-auth
-      - test-auth-regress-gsqlite3:
-          requires:
-            - build-auth
-      - test-auth-regress-gpgsql:
-          requires:
-            - build-auth
-      - test-auth-regress-lmdb:
-          requires:
-            - build-auth
       - test-auth-regress-ldap:
-          requires:
-            - build-auth
-      - test-auth-regress-tinydns:
           requires:
             - build-auth
       - test-auth-py:
