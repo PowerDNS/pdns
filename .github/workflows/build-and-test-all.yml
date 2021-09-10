@@ -34,6 +34,7 @@ jobs:
         with:
           name: pdns-auth
           path: /opt/pdns-auth
+          retention-days: 1
 
   build-recursor:
     name: build recursor
@@ -64,6 +65,7 @@ jobs:
         with:
           name: pdns-recursor
           path: /opt/pdns-recursor
+          retention-days: 1
 
   build-dnsdist:
     name: build dnsdist
@@ -98,6 +100,7 @@ jobs:
         with:
           name: dnsdist-${{ matrix.sanitizers }}
           path: /opt/dnsdist
+          retention-days: 1
 
   test-auth-api:
     needs: build-auth

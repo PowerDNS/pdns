@@ -36,3 +36,4 @@ jobs:
         with:
           name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
+          retention-days: 7
