@@ -300,6 +300,20 @@ priority. For example,
 be encoded with ``0`` in the priority field and
 ``100 389 mars.conaxis.ch`` in the content field.
 
+SVCB, HTTPS
+-----------
+
+Since 4.4. SVCB records, defined in
+(`draft-ietf-dnsop-svcb-https-07.html
+<https://www.ietf.org/archive/id/draft-ietf-dnsop-svcb-https-07.html>`__)
+are used to facilitate the lookup of information needed to make
+connections to network services. SVCB records allow a service to be
+provided from multiple alternative endpoints, each with associated
+parameters (such as transport protocol configuration and keys for
+encrypting the TLS ClientHello). They also enable aliasing of apex
+domains, which is not possible with CNAME. The HTTPS RR is a variation
+of SVCB for HTTPS and HTTP origins.
+
 TKEY, TSIG
 ----------
 
