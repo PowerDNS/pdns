@@ -141,6 +141,13 @@ HINFO
 Hardware Info record, used to specify CPU and operating system. Stored
 with a single space separating these two, example: 'i386 Linux'.
 
+.. _types-https:
+
+HTTPS
+-----
+Service binding records for HTTPS, defined in `draft-ietf-dnsop-svcb-https-07 <https://datatracker.ietf.org/doc/draft-ietf-dnsop-svcb-https/07>`__, including additional processing.
+Some :doc:`PowerDNS specials <../guides/svcb>` are supported.
+
 .. _types-key:
 
 KEY
@@ -299,6 +306,13 @@ priority. For example,
 ``_ldap._tcp.dc._msdcs.conaxis.ch SRV 0 100 389 mars.conaxis.ch`` would
 be encoded with ``0`` in the priority field and
 ``100 389 mars.conaxis.ch`` in the content field.
+
+.. _types-svcb:
+
+SVCB
+----
+Service binding records, defined in `draft-ietf-dnsop-svcb-https-07 <https://datatracker.ietf.org/doc/draft-ietf-dnsop-svcb-https/07>`__, including additional processing.
+Some :doc:`PowerDNS specials <../guides/svcb>` are supported.
 
 TKEY, TSIG
 ----------
