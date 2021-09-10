@@ -6,6 +6,7 @@ import sys
 import time
 
 all_build_deps = [
+    'ccache',
     'libboost-all-dev',
     'libluajit-5.1-dev',
     'libsodium-dev',
@@ -366,3 +367,10 @@ def test_dnsdist(c):
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
         c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist ./runtests')
+
+# this is run always
+def setup():
+    if '/usr/lib/ccache' not in os.environ['PATH']:
+        os.environ['PATH']='/usr/lib/ccache:'+os.environ['PATH']
+
+setup()

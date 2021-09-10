@@ -19,6 +19,17 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - name: get timestamp for cache
+        id: get-stamp
+        run: |
+          echo "::set-output name=stamp::$(/bin/date +%s)"
+        shell: bash
+      - name: let GitHub cache our ccache data
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: auth-ccache-
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang
       - run: inv install-auth-build-deps
@@ -29,6 +40,7 @@ jobs:
       - run: inv ci-auth-install-remotebackend-ruby-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv ci-make-install
+      - run: ccache -s
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
@@ -50,6 +62,17 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - name: get timestamp for cache
+        id: get-stamp
+        run: |
+          echo "::set-output name=stamp::$(/bin/date +%s)"
+        shell: bash
+      - name: let GitHub cache our ccache data
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: recursor-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-ccache-
       - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv apt-fresh
       - run: inv install-clang
@@ -60,6 +83,7 @@ jobs:
       # FIXME: save ccache here?
       - run: inv ci-rec-run-unit-tests
       - run: inv ci-make-install
+      - run: ccache -s
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
@@ -85,6 +109,17 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - name: get timestamp for cache
+        id: get-stamp
+        run: |
+          echo "::set-output name=stamp::$(/bin/date +%s)"
+        shell: bash
+      - name: let GitHub cache our ccache data
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: dnsdist-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: dnsdist-${{ matrix.sanitizers }}-ccache-
       - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv apt-fresh
       - run: inv install-clang
@@ -95,6 +130,7 @@ jobs:
       # FIXME: save ccache here?
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
+      - run: ccache -s
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
