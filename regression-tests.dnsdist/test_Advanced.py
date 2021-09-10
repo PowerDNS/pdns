@@ -992,6 +992,10 @@ class TestAdvancedIncludeDir(DNSDistTest):
         """
 
         print(shutil.disk_usage('.'))
+        print(shutil.disk_usage('/'))
+        print(shutil.disk_usage('/tmp'))
+        print(shutil.disk_usage('/run'))
+        print(shutil.disk_usage('/var'))
 
         name = 'includedir.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
