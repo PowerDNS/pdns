@@ -141,6 +141,13 @@ HINFO
 Hardware Info record, used to specify CPU and operating system. Stored
 with a single space separating these two, example: 'i386 Linux'.
 
+.. _types-https:
+
+HTTPS
+-----
+
+See :ref:`SVCB <types-svcb>` for more information.
+
 .. _types-key:
 
 KEY
@@ -299,6 +306,26 @@ priority. For example,
 ``_ldap._tcp.dc._msdcs.conaxis.ch SRV 0 100 389 mars.conaxis.ch`` would
 be encoded with ``0`` in the priority field and
 ``100 389 mars.conaxis.ch`` in the content field.
+
+.. _types-svcb:
+
+SVCB, HTTPS
+-----------
+.. versionadded:: 4.4.0
+
+SVCB records, defined in
+(`draft-ietf-dnsop-svcb-https-07
+<https://www.ietf.org/archive/id/draft-ietf-dnsop-svcb-https-07.html>`__)
+are used to facilitate the lookup of information needed to make
+connections to network services. SVCB records allow a service to be
+provided from multiple alternative endpoints, each with associated
+parameters (such as transport protocol configuration and keys for
+encrypting the TLS ClientHello). They also enable aliasing of apex
+domains, which is not possible with CNAME. The HTTPS RR is a variation
+of SVCB for HTTPS and HTTP origins.
+
+Additional processing is supported for these types.
+Some :doc:`PowerDNS extensions <../guides/svcb>` for automatic IP address hints exist as well.
 
 TKEY, TSIG
 ----------
