@@ -1560,7 +1560,7 @@ DOHFrontend
 
   .. method:: DOHFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 
-     .. versionadded:: 1.7.0
+     .. versionadded:: 1.6.1
 
      Create and switch to a new TLS context using the same options than were passed to the corresponding `addDOHLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
 
