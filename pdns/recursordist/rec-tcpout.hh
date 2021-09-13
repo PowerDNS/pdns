@@ -52,9 +52,9 @@ public:
     size_t d_numqueries{0};
   };
 
-  void store(const ComboAddress& ip, Connection& connection);
+  void store(const struct timeval &now, const ComboAddress& ip, Connection&& connection);
   Connection get(const ComboAddress& ip);
-  void cleanup();
+  void cleanup(const struct timeval& now);
 
   size_t size() const
   {

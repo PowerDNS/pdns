@@ -3735,7 +3735,7 @@ static void houseKeeping(void *)
       SyncRes::pruneThrottledServers();
       SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
       Utility::gettimeofday(&last_prune, nullptr);
-      t_tcp_manager.cleanup();
+      t_tcp_manager.cleanup(now);
     }
 
     if(isHandlerThread()) {

@@ -33,14 +33,12 @@ size_t TCPOutConnectionManager::maxQueries;
 size_t TCPOutConnectionManager::maxIdlePerAuth;
 size_t TCPOutConnectionManager::maxIdlePerThread;
 
-void TCPOutConnectionManager::cleanup()
+void TCPOutConnectionManager::cleanup(const struct timeval& now)
 {
   if (maxIdleTime.tv_sec == 0 && maxIdleTime.tv_usec == 0) {
     // no maximum idle time
     return;
   }
-  struct timeval now;
-  gettimeofday(&now, nullptr);
 
   for (auto it = d_idle_connections.begin(); it != d_idle_connections.end();) {
     timeval idle = now - it->second.d_last_used;
@@ -53,10 +51,10 @@ void TCPOutConnectionManager::cleanup()
   }
 }
 
-void TCPOutConnectionManager::store(const ComboAddress& ip, Connection& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& ip, Connection&& connection)
 {
   if (d_idle_connections.size() >= maxIdlePerThread || d_idle_connections.count(ip) >= maxIdlePerAuth) {
-    cleanup();
+    cleanup(now);
   }
 
   if (d_idle_connections.size() >= maxIdlePerThread) {

@@ -558,7 +558,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       ret = asyncresolve(ip, domain, type,doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
     } 
     if (connection.d_handler && lwr->d_validpacket) {
-      t_tcp_manager.store(ip, connection);
+      t_tcp_manager.store(*now, ip, std::move(connection));
     }
   }
   return ret;
