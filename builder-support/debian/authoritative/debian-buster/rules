@@ -10,7 +10,7 @@ include /usr/share/dpkg/default.mk
 export PDNS_TEST_NO_IPV6=1
 
 # Backends
-backends := bind ldap lmdb lua2 pipe gmysql godbc gpgsql gsqlite3 geoip remote random tinydns
+backends := bind ldap lmdb lua2 pipe gmysql godbc gpgsql gsqlite3 geoip remote tinydns
 
 
 %:

@@ -145,8 +145,8 @@ with a single space separating these two, example: 'i386 Linux'.
 
 HTTPS
 -----
-Service binding records for HTTPS, defined in `draft-ietf-dnsop-svcb-https-07 <https://datatracker.ietf.org/doc/draft-ietf-dnsop-svcb-https/07>`__, including additional processing.
-Some :doc:`PowerDNS specials <../guides/svcb>` are supported.
+
+See :ref:`SVCB <types-svcb>` for more information.
 
 .. _types-key:
 
@@ -309,10 +309,23 @@ be encoded with ``0`` in the priority field and
 
 .. _types-svcb:
 
-SVCB
-----
-Service binding records, defined in `draft-ietf-dnsop-svcb-https-07 <https://datatracker.ietf.org/doc/draft-ietf-dnsop-svcb-https/07>`__, including additional processing.
-Some :doc:`PowerDNS specials <../guides/svcb>` are supported.
+SVCB, HTTPS
+-----------
+.. versionadded:: 4.4.0
+
+SVCB records, defined in
+(`draft-ietf-dnsop-svcb-https-07
+<https://www.ietf.org/archive/id/draft-ietf-dnsop-svcb-https-07.html>`__)
+are used to facilitate the lookup of information needed to make
+connections to network services. SVCB records allow a service to be
+provided from multiple alternative endpoints, each with associated
+parameters (such as transport protocol configuration and keys for
+encrypting the TLS ClientHello). They also enable aliasing of apex
+domains, which is not possible with CNAME. The HTTPS RR is a variation
+of SVCB for HTTPS and HTTP origins.
+
+Additional processing is supported for these types.
+Some :doc:`PowerDNS extensions <../guides/svcb>` for automatic IP address hints exist as well.
 
 TKEY, TSIG
 ----------
