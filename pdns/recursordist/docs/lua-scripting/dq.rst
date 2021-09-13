@@ -33,10 +33,6 @@ The DNSQuestion object contains at least the following fields:
 
       :class:`DNSName` of the name this query is for.
 
-  .. attribute:: DNSQuestion.qname
-
-      :class:`DNSName` of the name this query is for.
-
   .. attribute:: DNSQuestion.qtype
 
       Type this query is for as an integer, can be compared against ``pdns.A``, ``pdns.AAAA``.
