@@ -2,10 +2,8 @@
 name: 'Test package building for specific distributions'
 
 on:
-  push:
-  pull_request:
   schedule:
-    - cron: '0 22 * * 2'
+    - cron: '0 1 * * *'
 
 jobs:
   build:
