@@ -238,7 +238,7 @@ union ComboAddress {
       return false;
 
     int n=0;
-    const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
+    const unsigned char* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
     for(n=0; n < 10; ++n)
       if(ptr[n])
         return false;
@@ -258,7 +258,7 @@ union ComboAddress {
     ret.sin4.sin_family=AF_INET;
     ret.sin4.sin_port=sin4.sin_port;
 
-    const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
+    const unsigned char* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
     ptr+=(sizeof(sin6.sin6_addr.s6_addr) - sizeof(ret.sin4.sin_addr.s_addr));
     memcpy(&ret.sin4.sin_addr.s_addr, ptr, sizeof(ret.sin4.sin_addr.s_addr));
     return ret;
@@ -268,7 +268,7 @@ union ComboAddress {
   {
     char host[1024];
     int retval = 0;
-    if(sin4.sin_family && !(retval = getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
+    if(sin4.sin_family && !(retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
       return string(host);
     else
       return "invalid "+string(gai_strerror(retval));
@@ -364,7 +364,7 @@ union ComboAddress {
         index = 128 + index;
       }
 
-      uint8_t *ls_addr = (uint8_t*)sin6.sin6_addr.s6_addr;
+      const uint8_t* ls_addr = reinterpret_cast<const uint8_t*>(sin6.sin6_addr.s6_addr);
       uint8_t byte_idx = index / 8;
       uint8_t bit_idx = index % 8;
 

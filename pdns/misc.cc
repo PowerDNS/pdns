@@ -67,7 +67,7 @@
 
 size_t writen2(int fd, const void *buf, size_t count)
 {
-  const char *ptr = (char*)buf;
+  const char *ptr = reinterpret_cast<const char*>(buf);
   const char *eptr = ptr + count;
 
   ssize_t res;
@@ -165,7 +165,7 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct 
 {
   size_t pos = 0;
   do {
-    ssize_t written = write(fd, (char *)buffer + pos, len - pos);
+    ssize_t written = write(fd, reinterpret_cast<const char *>(buffer) + pos, len - pos);
 
     if (written > 0) {
       pos += (size_t) written;
@@ -224,7 +224,7 @@ uint32_t getLong(const unsigned char* p)
 
 uint32_t getLong(const char* p)
 {
-  return getLong((unsigned char *)p);
+  return getLong(reinterpret_cast<const unsigned char *>(p));
 }
 
 static bool ciEqual(const string& a, const string& b)
@@ -726,7 +726,7 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
   if(!*(str.c_str() + pos + 1)) // trailing :
     return -1;
 
-  char *eptr = (char*)str.c_str() + str.size();
+  char *eptr = const_cast<char*>(str.c_str()) + str.size();
   int port = strtol(str.c_str() + pos + 1, &eptr, 10);
   if (port < 0 || port > 65535)
     return -1;

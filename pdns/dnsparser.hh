@@ -451,7 +451,7 @@ class DNSPacketMangler
 {
 public:
   explicit DNSPacketMangler(std::string& packet)
-    : d_packet((char*) packet.c_str()), d_length(packet.length()), d_notyouroffset(12), d_offset(d_notyouroffset)
+    : d_packet(packet.data()), d_length(packet.length()), d_notyouroffset(12), d_offset(d_notyouroffset)
   {}
   DNSPacketMangler(char* packet, size_t length)
     : d_packet(packet), d_length(length), d_notyouroffset(12), d_offset(d_notyouroffset)
@@ -486,7 +486,7 @@ public:
     const char* p = d_packet + d_offset;
     moveOffset(4);
     uint32_t ret;
-    memcpy(&ret, (void*)p, sizeof(ret));
+    memcpy(&ret, p, sizeof(ret));
     return ntohl(ret);
   }
   uint16_t get16BitInt()
@@ -494,7 +494,7 @@ public:
     const char* p = d_packet + d_offset;
     moveOffset(2);
     uint16_t ret;
-    memcpy(&ret, (void*)p, sizeof(ret));
+    memcpy(&ret, p, sizeof(ret));
     return ntohs(ret);
   }
 
@@ -517,7 +517,7 @@ public:
     moveOffset(4);
 
     uint32_t tmp;
-    memcpy(&tmp, (void*) p, sizeof(tmp));
+    memcpy(&tmp, p, sizeof(tmp));
     tmp = ntohl(tmp);
     if (tmp > decrease) {
       tmp -= decrease;
