@@ -66,6 +66,8 @@ public:
   }
 
 private:
+  // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
+  // That is OK, since we are connecting by IP only at the moment.
   std::multimap<ComboAddress, Connection> d_idle_connections;
 };
 
