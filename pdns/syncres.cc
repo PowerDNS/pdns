@@ -2354,9 +2354,25 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     return true;
   }
   else if(!pierceDontQuery && s_dontQuery && s_dontQuery->match(&remoteIP)) {
-    LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
-    s_dontqueries++;
-    return true;
+    // We could have retrieved an NS from the cache in a forwarding domain
+    // Even in the case of !pierceDontQuery we still want to allow that NS
+    DNSName forwardCandidate(qname);
+    auto it = getBestAuthZone(&forwardCandidate);
+    if (it == t_sstorage.domainmap->end()) {
+      LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
+      s_dontqueries++;
+      return true;
+    } else {
+      // The name (from the cache) is forwarded, but is it forwarded to an IP in known forwarders?
+      const auto& ips = it->second.d_servers;
+      if (std::find(ips.cbegin(), ips.cend(), remoteIP) == ips.cend()) {
+        LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
+        s_dontqueries++;
+        return true;
+      } else {
+        LOG(prefix<<qname<<": sending query to " << remoteIP.toString() << ", blocked by 'dont-query' but a forwarding/auth case" << endl);
+      }
+    }
   }
   return false;
 }
