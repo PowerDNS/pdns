@@ -232,6 +232,46 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
+static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS)
+{
+  dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
+
+  while (true) {
+    connection = t_tcp_manager.get(ip);
+    if (connection.d_handler) {
+      return false;
+    }
+
+    const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
+    Socket s(ip.sin4.sin_family, SOCK_STREAM);
+    s.setNonBlocking();
+    ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+    s.bind(localip);
+
+    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    if (dnsOverTLS) {
+      TLSContextParameters tlsParams;
+      tlsParams.d_provider = "openssl";
+      tlsParams.d_validateCertificates = false;
+      //tlsParams.d_caStore = caaStore;
+      tlsCtx = getTLSContext(tlsParams);
+      if (tlsCtx == nullptr) {
+        g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
+        dnsOverTLS = false;
+      }
+    }
+    connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+    // Returned state ignored
+    try {
+      connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+    }
+    catch (const std::runtime_error&) {
+      continue;
+    }
+    return true;
+  }
+}
+
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
@@ -351,34 +391,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         // work, we give up. For reused connections, we assume the
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
-        bool isNew = false;
-        connection = t_tcp_manager.get(ip);
-        if (!connection.d_handler) {
-          isNew = true;
-          const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-          Socket s(ip.sin4.sin_family, SOCK_STREAM);
-          s.setNonBlocking();
-          localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
-          s.bind(localip);
-
-          std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-          if (SyncRes::s_dot_to_port_853 && ip.getPort() == 853) {
-            TLSContextParameters tlsParams;
-            tlsParams.d_provider = "openssl";
-            tlsParams.d_validateCertificates = false;
-            //tlsParams.d_caStore = caaStore;
-            tlsCtx = getTLSContext(tlsParams);
-            if (tlsCtx == nullptr) {
-              g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
-          }
-            else {
-              dnsOverTLS = true;
-            }
-          }
-          connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
-          // Returned state ignored
-          connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
-        }
+        bool isNew = tcpconnect(*now, ip, connection, dnsOverTLS);
         localip.sin4.sin_family = ip.sin4.sin_family;
         socklen_t slen = ip.getSocklen();
         getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen);
