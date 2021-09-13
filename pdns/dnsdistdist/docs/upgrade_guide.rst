@@ -8,9 +8,6 @@ Truncated responses received over UDP for DoH clients will now be retried over T
 
 :func:`setTCPUseSinglePipe` has been removed.
 
-1.6.0 to 1.6.1
---------------
-
 Unless set via :func:`setMaxTCPClientThreads` the number of TCP workers now defaults to 10, instead of the number of TCP binds.
 
 1.5.x to 1.6.0

@@ -13,14 +13,14 @@ Tuning related functions
 
   .. versionchanged:: 1.6.0
     Before 1.6.0 the default value was 10.
-  .. versionchanged:: 1.6.1
+  .. versionchanged:: 1.7.0
     The default value has been set back to 10.
 
   Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
 
   Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
 
-  In 1.6.0 the default value was at least 10 TCP workers, but could be more if there is more than 10 TCP listeners (added via :func:`addDNSCryptBind`, :func:`addLocal`, or :func:`addTLSLocal`). In that last case there would have been as many TCP workers as TCP listeners. This led to issues in setups with a large number of TCP listeners and was therefore reverted back to 10 in 1.6.1.
+  In 1.6.0 the default value was at least 10 TCP workers, but could be more if there is more than 10 TCP listeners (added via :func:`addDNSCryptBind`, :func:`addLocal`, or :func:`addTLSLocal`). In that last case there would have been as many TCP workers as TCP listeners. This led to issues in setups with a large number of TCP listeners and was therefore reverted back to 10 in 1.7.0.
 
   :param int num: The number of TCP worker threads.
 
