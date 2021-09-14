@@ -24,6 +24,7 @@
 #include <deque>
 #include <map>
 
+#include "lock.hh"
 #include "tcpiohandler.hh"
 #include "uuid-utils.hh"
 
@@ -33,7 +34,6 @@ public:
   TLSSessionCache()
   {
   }
-  void cleanup(time_t now, const std::lock_guard<std::mutex>& lock);
 
   void putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions);
   std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
@@ -64,10 +64,15 @@ private:
     time_t d_lastUsed{0};
   };
 
-  std::map<boost::uuids::uuid, BackendEntry> d_sessions;
-  // do we need to shard this?
-  std::mutex d_lock;
-  time_t d_nextCleanup{0};
+  struct CacheData
+  {
+    // do we need to shard this?
+    std::map<boost::uuids::uuid, BackendEntry> d_sessions;
+    time_t d_nextCleanup{0};
+  };
+  LockGuarded<CacheData> d_data;
+
+  void cleanup(time_t now, LockGuardedHolder<CacheData>& data);
 };
 
 extern TLSSessionCache g_sessionCache;

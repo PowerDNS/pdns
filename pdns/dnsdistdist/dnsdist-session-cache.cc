@@ -27,31 +27,31 @@ time_t TLSSessionCache::s_cleanupDelay{60};
 time_t TLSSessionCache::s_sessionValidity{600};
 uint16_t TLSSessionCache::s_maxSessionsPerBackend{20};
 
-void TLSSessionCache::cleanup(time_t now, const std::lock_guard<std::mutex>& lock)
+void TLSSessionCache::cleanup(time_t now, LockGuardedHolder<TLSSessionCache::CacheData>& data)
 {
   time_t cutOff = now + s_sessionValidity;
 
-  for (auto it = d_sessions.begin(); it != d_sessions.end();) {
+  for (auto it = data->d_sessions.begin(); it != data->d_sessions.end();) {
     if (it->second.d_lastUsed > cutOff || it->second.d_sessions.size() == 0) {
-      it = d_sessions.erase(it);
+      it = data->d_sessions.erase(it);
     }
     else {
       ++it;
     }
   }
 
-  d_nextCleanup = now + s_cleanupDelay;
+  data->d_nextCleanup = now + s_cleanupDelay;
 }
 
 void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions)
 {
-  std::lock_guard<decltype(d_lock)> lock(d_lock);
-  if (d_nextCleanup == 0 || now > d_nextCleanup) {
-    cleanup(now, lock);
+  auto data = d_data.lock();
+  if (data->d_nextCleanup == 0 || now > data->d_nextCleanup) {
+    cleanup(now, data);
   }
 
   for (auto& session : sessions) {
-    auto& entry = d_sessions[backendID];
+    auto& entry = data->d_sessions[backendID];
     if (entry.d_sessions.size() >= s_maxSessionsPerBackend) {
       entry.d_sessions.pop_back();
     }
@@ -61,9 +61,9 @@ void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t no
 
 std::unique_ptr<TLSSession> TLSSessionCache::getSession(const boost::uuids::uuid& backendID, time_t now)
 {
-  std::lock_guard<decltype(d_lock)> lock(d_lock);
-  auto it = d_sessions.find(backendID);
-  if (it == d_sessions.end()) {
+  auto data = d_data.lock();
+  auto it = data->d_sessions.find(backendID);
+  if (it == data->d_sessions.end()) {
     return nullptr;
   }
 

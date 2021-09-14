@@ -47,6 +47,9 @@ private:
   struct DoHWorkerThread;
 
   std::mutex d_mutex;
+  /* we only alter that vector at configuration time, and then
+     it is never modified at runtime, so we don't take a lock
+     after the configuration phase */
   std::vector<DoHWorkerThread> d_clientThreads;
   pdns::stat_t d_pos{0};
   uint64_t d_numberOfThreads{0};
