@@ -774,13 +774,13 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
           addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "powerdns.com. powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
           /* first the closest encloser */
-          addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG}, 600, res->d_records, 10);
+          addNSEC3NoDataNarrowRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG}, 600, res->d_records, 10);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
           /* then the next closer */
-          addNSEC3UnhashedRecordToLW(DNSName("+.powerdns.com."), DNSName("powerdns.com."), "v", {QType::RRSIG}, 600, res->d_records, 10);
+          addNSEC3NarrowRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), {QType::RRSIG}, 600, res->d_records, 10);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
           /* a wildcard applies but does not have this type */
-          addNSEC3UnhashedRecordToLW(DNSName("*.powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::TXT, QType::RRSIG}, 600, res->d_records, 10);
+          addNSEC3NoDataNarrowRecordToLW(DNSName("*.powerdns.com."), DNSName("powerdns.com."), {QType::TXT, QType::RRSIG}, 600, res->d_records, 10);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
           return LWResult::Result::Success;
         }
