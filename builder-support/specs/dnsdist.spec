@@ -21,6 +21,7 @@ BuildRequires: systemd-devel
 BuildRequires: boost-devel
 BuildRequires: gnutls-devel
 BuildRequires: libcap-devel
+BuildRequires: libnghttp2-devel
 BuildRequires: lmdb-devel
 BuildRequires: libsodium-devel
 %ifarch aarch64

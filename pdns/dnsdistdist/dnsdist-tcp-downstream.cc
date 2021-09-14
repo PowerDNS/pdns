@@ -21,9 +21,9 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
         ++d_ds->tlsResumptions;
       }
       try {
-        auto session = d_handler->getTLSSession();
-        if (session) {
-          g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
+        auto sessions = d_handler->getTLSSessions();
+        if (!sessions.empty()) {
+          g_sessionCache.putSessions(d_ds->getID(), now.tv_sec, std::move(sessions));
         }
       }
       catch (const std::exception& e) {
@@ -31,6 +31,7 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
       }
     }
     auto diff = now - d_connectionStartTime;
+    // cerr<<"connection to backend terminated after "<<d_queries<<" queries, "<<diff.tv_sec<<" seconds"<<endl;
     d_ds->updateTCPMetrics(d_queries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
   }
 }
@@ -73,7 +74,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   if (conn->d_currentQuery.d_proxyProtocolPayloadAdded) {
     conn->d_proxyProtocolPayloadSent = true;
   }
-  conn->incQueries();
+  ++conn->d_queries;
   conn->d_currentPos = 0;
 
   DEBUGLOG("adding a pending response for ID "<<ntohs(conn->d_currentQuery.d_idstate.origID)<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
@@ -190,9 +191,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
     if (connectionDied) {
 
-      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
+      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->d_retries);
 
-      if (conn->d_downstreamFailures < conn->d_ds->retries) {
+      if (conn->d_downstreamFailures < conn->d_ds->d_retries) {
 
         conn->d_ioState.reset();
         ioGuard.release();
@@ -225,8 +226,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             conn->d_pendingResponses.clear();
             conn->d_currentPos = 0;
 
-            if (conn->d_state == State::doingHandshake ||
-                conn->d_state == State::sendingQueryToBackend) {
+            if (conn->d_state == State::sendingQueryToBackend) {
               iostate = IOState::NeedWrite;
               // resume sending query
             }
@@ -295,7 +295,7 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
   }
 
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   handleIO(conn, now);
 }
 
@@ -309,7 +309,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");
   }
 
-  // if we are not already sending a query or in the middle of reading a response (so idle or doingHandshake),
+  // if we are not already sending a query or in the middle of reading a response (so idle),
   // start sending the query
   if (d_state == State::idle || d_state == State::waitingForResponseFromBackend) {
     DEBUGLOG("Sending new query to backend right away");
@@ -344,7 +344,14 @@ bool TCPConnectionToBackend::reconnect()
         ++d_ds->tlsResumptions;
       }
       try {
-        tlsSession = d_handler->getTLSSession();
+        auto sessions = d_handler->getTLSSessions();
+        if (!sessions.empty()) {
+          tlsSession = std::move(sessions.back());
+          sessions.pop_back();
+          if (!sessions.empty()) {
+            g_sessionCache.putSessions(d_ds->getID(), time(nullptr), std::move(sessions));
+          }
+        }
       }
       catch (const std::exception& e) {
         vinfolog("Unable to get a TLS session to resume: %s", e.what());
@@ -403,12 +410,12 @@ bool TCPConnectionToBackend::reconnect()
     catch (const std::runtime_error& e) {
       vinfolog("Connection to downstream server %s failed: %s", d_ds->getName(), e.what());
       d_downstreamFailures++;
-      if (d_downstreamFailures >= d_ds->retries) {
+      if (d_downstreamFailures >= d_ds->d_retries) {
         throw;
       }
     }
   }
-  while (d_downstreamFailures < d_ds->retries);
+  while (d_downstreamFailures < d_ds->d_retries);
 
   return false;
 }
@@ -456,10 +463,16 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   }
 
   if (reason == FailureReason::timeout) {
-    ++sender->getClientState().tcpDownstreamTimeouts;
+    const ClientState* cs = sender->getClientState();
+    if (cs) {
+      ++cs->tcpDownstreamTimeouts;
+    }
   }
   else if (reason == FailureReason::gaveUp) {
-    ++sender->getClientState().tcpGaveUp;
+    const ClientState* cs = sender->getClientState();
+    if (cs) {
+      ++cs->tcpGaveUp;
+    }
   }
 
   try {
@@ -615,7 +628,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
 }
 
-uint16_t TCPConnectionToBackend::getQueryIdFromResponse()
+uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
 {
   if (d_responseBuffer.size() < sizeof(dnsheader)) {
     throw std::runtime_error("Unable to get query ID in a too small (" + std::to_string(d_responseBuffer.size()) + ") response from " + d_ds->getNameWithAddr());
@@ -709,10 +722,7 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
 
   auto backendId = ds->getID();
 
-  if (s_cleanupInterval > 0 && (s_nextCleanup == 0 || s_nextCleanup <= now.tv_sec)) {
-    s_nextCleanup = now.tv_sec + s_cleanupInterval;
-    cleanupClosedTCPConnections(now);
-  }
+  cleanupClosedTCPConnections(now);
 
   {
     const auto& it = t_downstreamConnections.find(backendId);
@@ -769,6 +779,12 @@ void DownstreamConnectionsManager::releaseDownstreamConnection(std::shared_ptr<T
 
 void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval now)
 {
+  if (s_cleanupInterval == 0 || (t_nextCleanup != 0 && t_nextCleanup > now.tv_sec)) {
+    return;
+  }
+
+  t_nextCleanup = now.tv_sec + s_cleanupInterval;
+
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
 
@@ -820,6 +836,6 @@ void setMaxCachedTCPConnectionsPerDownstream(size_t max)
 }
 
 thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
+thread_local time_t DownstreamConnectionsManager::t_nextCleanup{0};
 size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
-time_t DownstreamConnectionsManager::s_nextCleanup{0};
 uint16_t DownstreamConnectionsManager::s_cleanupInterval{60};

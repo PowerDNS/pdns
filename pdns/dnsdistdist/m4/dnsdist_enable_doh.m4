@@ -1,7 +1,7 @@
 AC_DEFUN([DNSDIST_ENABLE_DNS_OVER_HTTPS], [
-  AC_MSG_CHECKING([whether to enable DNS over HTTPS (DoH) support])
+  AC_MSG_CHECKING([whether to enable incoming DNS over HTTPS (DoH) support])
   AC_ARG_ENABLE([dns-over-https],
-    AS_HELP_STRING([--enable-dns-over-https], [enable DNS over HTTPS (DoH) support (requires libh2o) @<:@default=no@:>@]),
+    AS_HELP_STRING([--enable-dns-over-https], [enable incoming DNS over HTTPS (DoH) support (requires libh2o) @<:@default=no@:>@]),
     [enable_dns_over_https=$enableval],
     [enable_dns_over_https=no]
   )

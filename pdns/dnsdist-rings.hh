@@ -124,13 +124,13 @@ struct Rings {
         return;
       }
       if (d_keepLockingStats) {
-        d_deferredQueryInserts++;
+        ++d_deferredQueryInserts;
       }
     }
 
     /* out of luck, let's just wait */
     if (d_keepLockingStats) {
-      d_blockingResponseInserts++;
+      ++d_blockingResponseInserts;
     }
     auto& shard = getOneShard();
     auto lock = shard->queryRing.lock();
@@ -147,13 +147,13 @@ struct Rings {
         return;
       }
       if (d_keepLockingStats) {
-        d_deferredResponseInserts++;
+        ++d_deferredResponseInserts;
       }
     }
 
     /* out of luck, let's just wait */
     if (d_keepLockingStats) {
-      d_blockingResponseInserts++;
+      ++d_blockingResponseInserts;
     }
     auto& shard = getOneShard();
     auto lock = shard->respRing.lock();

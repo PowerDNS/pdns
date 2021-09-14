@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-nghttp2.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
 
@@ -610,8 +611,8 @@ void setupLuaInspection(LuaContext& luaCtx)
       ret << endl;
 
       ret << "Backends:" << endl;
-      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
-      ret << (fmt % "#" % "Name" % "Address" % "Connections" % " Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
+      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
+      ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
 
       auto states = g_dstates.getLocal();
       counter = 0;
@@ -658,6 +659,11 @@ void setupLuaInspection(LuaContext& luaCtx)
     setLuaNoSideEffect();
     extern std::atomic<uint64_t> g_tcpStatesDumpRequested;
     g_tcpStatesDumpRequested += g_tcpclientthreads->getThreadsCount();
+  });
+
+  luaCtx.writeFunction("requestDoHStatesDump", [] {
+    setLuaNoSideEffect();
+    g_dohStatesDumpRequested += g_dohClientThreads->getThreadsCount();
   });
 
   luaCtx.writeFunction("dumpStats", [] {

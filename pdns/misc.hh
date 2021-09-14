@@ -149,7 +149,7 @@ vstringtok (Container &container, string const &in,
 size_t writen2(int fd, const void *buf, size_t count);
 inline size_t writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
 size_t readn2(int fd, void* buffer, size_t len);
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout={0,0});
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false);
 size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct timeval& timeout);
 
 void toLowerInPlace(string& str);
@@ -635,3 +635,50 @@ std::string makeLuaString(const std::string& in);
 
 // Used in NID and L64 records
 struct NodeOrLocatorID { uint8_t content[8]; };
+
+struct FDWrapper
+{
+  FDWrapper()
+  {
+  }
+
+  FDWrapper(int desc): d_fd(desc)
+  {
+  }
+
+  ~FDWrapper()
+  {
+    if (d_fd != -1) {
+      close(d_fd);
+      d_fd = -1;
+    }
+  }
+
+  FDWrapper(FDWrapper&& rhs): d_fd(rhs.d_fd)
+  {
+    rhs.d_fd = -1;
+  }
+
+  FDWrapper& operator=(FDWrapper&& rhs)
+  {
+    if (d_fd) {
+      close(d_fd);
+    }
+    d_fd = rhs.d_fd;
+    rhs.d_fd = -1;
+    return *this;
+  }
+
+  int getHandle() const
+  {
+    return d_fd;
+  }
+
+  operator int() const
+  {
+    return d_fd;
+  }
+
+private:
+  int d_fd{-1};
+};

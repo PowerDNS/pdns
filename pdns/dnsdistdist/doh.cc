@@ -201,6 +201,13 @@ struct DOHServerConfig
 
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
+    /* if you came here for a way to make the number of concurrent streams (concurrent requests per connection)
+       configurable, or even just bigger, I have bad news for you.
+       h2o_config.http2.max_concurrent_requests_per_connection (default of 100) is capped by
+       H2O_HTTP2_SETTINGS_HOST.max_concurrent_streams which is not configurable. Even if decided to change the
+       hard-coded value, libh2o's author warns that there might be parts of the code where the stream ID is stored
+       in 8 bits, making 256 a hard value: https://github.com/h2o/h2o/issues/805
+    */
   }
   DOHServerConfig(const DOHServerConfig&) = delete;
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
@@ -423,13 +430,13 @@ public:
     return true;
   }
 
-  const ClientState& getClientState() override
+  const ClientState* getClientState() const override
   {
     if (!du || !du->dsc || !du->dsc->cs) {
       throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");
     }
 
-    return *du->dsc->cs;
+    return du->dsc->cs;
   }
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
@@ -485,6 +492,7 @@ public:
       return;
     }
 
+    du->ids = std::move(query);
     du->status_code = 502;
     sendDoHUnitToTheMainThread(du, "cross-protocol error response");
     du->release();
@@ -501,6 +509,11 @@ public:
   DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
   {
     query = InternalQuery(std::move(du->query), std::move(du->ids));
+    /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
+       clearing query.d_proxyProtocolPayloadAdded and du->proxyProtocolPayloadSize.
+       Leave it for now because we know that the onky case where the payload has been
+       added is when we tried over UDP, got a TC=1 answer and retried over TCP/DoT,
+       and we know the TCP/DoT code can handle it. */
     query.d_proxyProtocolPayloadAdded = du->proxyProtocolPayloadSize > 0;
     downstream = du->downstream;
     proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
@@ -618,19 +631,27 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (du->downstream->isTCPOnly()) {
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+      std::string proxyProtocolPayload;
+      /* we need to do this _before_ creating the cross protocol query because
+         after that the buffer will have been moved */
+      if (du->downstream->useProxyProtocol) {
+        proxyProtocolPayload = getProxyProtocolPayload(dq);
+      }
 
-      du->get();
-      du->tcp = true;
       du->ids.origID = htons(queryId);
       du->ids.cs = &cs;
       setIDStateFromDNSQuestion(du->ids, dq, std::move(qname));
 
-      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+      /* this moves du->ids, careful! */
+      du->get();
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
+      du->tcp = true;
+      if (du->downstream->passCrossProtocolQuery(std::move(cpq))) {
         return 0;
       }
       else {
-        du->release();
+        /* do not release du here, it belongs to the DoHCrossProtocolQuery object */
         du->status_code = 502;
         return -1;
       }
@@ -947,16 +968,18 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       return 0;
     }
 
-    if (h2o_socket_get_ssl_session_reused(sock) == 0) {
-      ++dsc->cs->tlsNewSessions;
-    }
-    else {
-      ++dsc->cs->tlsResumptions;
-    }
-
     const int descriptor = h2o_socket_get_fd(sock);
     if (descriptor != -1) {
-      ++t_conns.at(descriptor).d_nbQueries;
+      auto& conn = t_conns.at(descriptor);
+      ++conn.d_nbQueries;
+      if (conn.d_nbQueries == 1) {
+        if (h2o_socket_get_ssl_session_reused(sock) == 0) {
+          ++dsc->cs->tlsNewSessions;
+        }
+        else {
+          ++dsc->cs->tlsResumptions;
+        }
+      }
     }
 
     if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
@@ -1454,7 +1477,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->hosts = dsc.h2o_config.hosts;
   ctx.d_ticketsKeyRotationDelay = dsc.df->d_tlsConfig.d_ticketsKeyRotationDelay;
 
-  if (setupTLS && !dsc.df->d_tlsConfig.d_certKeyPairs.empty()) {
+  if (setupTLS && dsc.df->isHTTPS()) {
     try {
       setupTLSContext(ctx,
                       dsc.df->d_tlsConfig,
@@ -1518,7 +1541,7 @@ void DOHFrontend::setup()
 
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout, d_internalPipeBufferSize);
 
-  if  (!d_tlsConfig.d_certKeyPairs.empty()) {
+  if  (isHTTPS()) {
     try {
       setupTLSContext(*d_dsc->accept_ctx,
                       d_tlsConfig,

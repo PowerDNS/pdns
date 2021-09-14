@@ -41,16 +41,6 @@ public:
 
 private:
 #ifdef HAVE_EBPF
-  struct FDWrapper
-  {
-    ~FDWrapper()
-    {
-      if (fd != -1) {
-        close(fd);
-      }
-    }
-    int fd{-1};
-  };
   struct Maps
   {
     FDWrapper d_v4map;

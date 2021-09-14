@@ -68,6 +68,12 @@ Tuning related functions
 
   :param int num:
 
+.. function:: setOutgoingDoHWorkerThreads(num)
+
+  .. versionadded:: 1.7.0
+
+  Set the number of worker threads to use for outgoing DoH. That number defaults to 0 but is automatically raised to 1 when DoH is enabled on at least one backend.
+
 .. function:: setStaleCacheEntriesTTL(num)
 
   Allows using cache entries expired for at most n seconds when no backend available to answer for a query

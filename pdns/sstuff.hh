@@ -65,6 +65,9 @@ public:
 
   Socket& operator=(Socket&& rhs)
   {
+    if (d_socket != -1) {
+      close(d_socket);
+    }
     d_socket = rhs.d_socket;
     rhs.d_socket = -1;
     d_buffer = std::move(rhs.d_buffer);

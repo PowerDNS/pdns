@@ -14,11 +14,11 @@
 class IOStateHandler
 {
 public:
-  IOStateHandler(FDMultiplexer& mplexer, const int fd): d_mplexer(mplexer), d_fd(fd), d_currentState(IOState::Done)
+  IOStateHandler(FDMultiplexer& mplexer, const int fd): d_mplexer(mplexer), d_fd(fd)
   {
   }
 
-  IOStateHandler(FDMultiplexer& mplexer): d_mplexer(mplexer), d_fd(-1), d_currentState(IOState::Done)
+  IOStateHandler(FDMultiplexer& mplexer): d_mplexer(mplexer), d_fd(-1)
   {
   }
 
@@ -36,9 +36,14 @@ public:
     }
   }
 
-  IOState getState() const
+  bool isWaitingForRead() const
   {
-    return d_currentState;
+    return d_isWaitingForRead;
+  }
+
+  bool isWaitingForWrite() const
+  {
+    return d_isWaitingForWrite;
   }
 
   void setSocket(int fd)
@@ -54,22 +59,24 @@ public:
     update(IOState::Done);
   }
 
-  void update(IOState iostate, FDMultiplexer::callbackfunc_t callback = FDMultiplexer::callbackfunc_t(), FDMultiplexer::funcparam_t callbackData = boost::any(), boost::optional<struct timeval> ttd = boost::none)
+  std::string getState() const
   {
-    DEBUGLOG("in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<(int)d_currentState<<", new state is "<<(int)iostate);
-    if (d_currentState == IOState::NeedRead && iostate == IOState::Done) {
-      DEBUGLOG(__PRETTY_FUNCTION__<<": remove read FD "<<d_fd);
-      d_mplexer.removeReadFD(d_fd);
-      d_currentState = IOState::Done;
+    std::string result("--");
+    result.reserve(2);
+    if (isWaitingForRead()) {
+      result.at(0) = 'R';
     }
-    else if (d_currentState == IOState::NeedWrite && iostate == IOState::Done) {
-      DEBUGLOG(__PRETTY_FUNCTION__<<": remove write FD "<<d_fd);
-      d_mplexer.removeWriteFD(d_fd);
-      d_currentState = IOState::Done;
+    if (isWaitingForWrite()) {
+      result.at(1) = 'W';
     }
+    return result;
+  }
 
+  void add(IOState iostate, FDMultiplexer::callbackfunc_t callback, FDMultiplexer::funcparam_t callbackData, boost::optional<struct timeval> ttd)
+  {
+    DEBUGLOG("in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<getState()<<", adding "<<(int)iostate);
     if (iostate == IOState::NeedRead) {
-      if (d_currentState == IOState::NeedRead) {
+      if (isWaitingForRead()) {
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
@@ -77,7 +84,50 @@ public:
         return;
       }
 
-      if (d_currentState == IOState::NeedWrite) {
+      d_mplexer.addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+      DEBUGLOG(__PRETTY_FUNCTION__<<": add read FD "<<d_fd);
+      d_isWaitingForRead = true;
+    }
+    else if (iostate == IOState::NeedWrite) {
+      if (isWaitingForWrite()) {
+        if (ttd) {
+          /* let's update the TTD ! */
+          d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
+        }
+        return;
+      }
+
+      d_mplexer.addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+      DEBUGLOG(__PRETTY_FUNCTION__<<": add write FD "<<d_fd);
+      d_isWaitingForWrite = true;
+    }
+  }
+
+  void update(IOState iostate, FDMultiplexer::callbackfunc_t callback = FDMultiplexer::callbackfunc_t(), FDMultiplexer::funcparam_t callbackData = boost::any(), boost::optional<struct timeval> ttd = boost::none)
+  {
+    DEBUGLOG("in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<getState()<<" , new state is "<<(int)iostate);
+    if (isWaitingForRead() && iostate == IOState::Done) {
+      DEBUGLOG(__PRETTY_FUNCTION__<<": remove read FD "<<d_fd);
+      d_mplexer.removeReadFD(d_fd);
+      d_isWaitingForRead = false;
+    }
+    if (isWaitingForWrite() && iostate == IOState::Done) {
+      DEBUGLOG(__PRETTY_FUNCTION__<<": remove write FD "<<d_fd);
+      d_mplexer.removeWriteFD(d_fd);
+      d_isWaitingForWrite = false;
+    }
+
+    if (iostate == IOState::NeedRead) {
+      if (isWaitingForRead()) {
+        if (ttd) {
+          /* let's update the TTD ! */
+          d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
+        }
+        return;
+      }
+
+      if (isWaitingForWrite()) {
+        d_isWaitingForWrite = false;
         d_mplexer.alterFDToRead(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from write to read FD "<<d_fd);
       }
@@ -86,11 +136,10 @@ public:
         DEBUGLOG(__PRETTY_FUNCTION__<<": add read FD "<<d_fd);
       }
 
-      d_currentState = IOState::NeedRead;
-
+      d_isWaitingForRead = true;
     }
     else if (iostate == IOState::NeedWrite) {
-      if (d_currentState == IOState::NeedWrite) {
+      if (isWaitingForWrite()) {
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
@@ -98,7 +147,8 @@ public:
         return;
       }
 
-      if (d_currentState == IOState::NeedRead) {
+      if (isWaitingForRead()) {
+        d_isWaitingForRead = false;
         d_mplexer.alterFDToWrite(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from read to write FD "<<d_fd);
       }
@@ -107,10 +157,9 @@ public:
         DEBUGLOG(__PRETTY_FUNCTION__<<": add write FD "<<d_fd);
       }
 
-      d_currentState = IOState::NeedWrite;
+      d_isWaitingForWrite = true;
     }
     else if (iostate == IOState::Done) {
-      d_currentState = IOState::Done;
       DEBUGLOG(__PRETTY_FUNCTION__<<": done");
     }
   }
@@ -118,7 +167,8 @@ public:
 private:
   FDMultiplexer& d_mplexer;
   int d_fd;
-  IOState d_currentState;
+  bool d_isWaitingForRead{false};
+  bool d_isWaitingForWrite{false};
 };
 
 class IOStateGuard

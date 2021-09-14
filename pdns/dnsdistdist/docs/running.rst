@@ -38,25 +38,26 @@ Initially dnsdist tried to forward a query to the backend using the same protoco
 
 Before 1.7.0, which introduced TCP fallback, that meant that there was a potential issue with very large answers and DNS over HTTPS, requiring careful configuration of the path between dnsdist and the backend. More information about that is available in the :doc:`DNS over HTTPS section <guides/dns-over-https>`.
 
-In addition to TCP fallback for DoH, 1.7.0 introduced two new notions:
+In addition to TCP fallback for DoH, 1.7.0 introduced three new notions:
 
  * TCP-only backends, for which queries will always forwarded over a TCP connection (see the `tcpOnly` parameter of :func:`newServer`)
+ * DNS over HTTPS backends, for which queries are forwarded over a DNS over HTTPS connection (see the `dohPath` parameter of :func:`newServer`)
  * and DNS over TLS backends, for which queries are forwarded over a DNS over TLS connection (see the `tls` parameter of :func:`newServer`)
 
 To sum it up:
 
-+--------------+--------------------+---------------------------+----------------------+
-| Incoming     | Outgoing (regular) | Outgoing (TCP-only, 1.7+) | Outgoing (TLS, 1.7+) |
-+==============+====================+===========================+======================+
-| UDP          | UDP                | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
-| TCP          | TCP                | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
-| DNSCrypt UDP | UDP                | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
-| DNSCrypt TCP | TCP                | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
-| DoT          | TCP                | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
-| DoH          | **UDP**            | TCP                       | TLS                  |
-+--------------+--------------------+---------------------------+----------------------+
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| Incoming     | Outgoing (regular) | Outgoing (TCP-only, 1.7+) | Outgoing (TLS, 1.7+) | Outgoing (DoH, 1.7+) |
++==============+====================+===========================+======================+======================+
+| UDP          | UDP                | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| TCP          | TCP                | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| DNSCrypt UDP | UDP                | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| DNSCrypt TCP | TCP                | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| DoT          | TCP                | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+
+| DoH          | **UDP**            | TCP                       | TLS                  | DoH                  |
++--------------+--------------------+---------------------------+----------------------+----------------------+

@@ -142,36 +142,6 @@ class ProxyProtocolTest(DNSDistTest):
     _proxyResponderPort = proxyResponderPort
     _config_params = ['_proxyResponderPort']
 
-    def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=[], v6=False, sourcePort=None, destinationPort=None):
-      proxy = ProxyProtocol()
-      self.assertTrue(proxy.parseHeader(receivedProxyPayload))
-      self.assertEqual(proxy.version, 0x02)
-      self.assertEqual(proxy.command, 0x01)
-      if v6:
-        self.assertEqual(proxy.family, 0x02)
-      else:
-        self.assertEqual(proxy.family, 0x01)
-      if not isTCP:
-        self.assertEqual(proxy.protocol, 0x02)
-      else:
-        self.assertEqual(proxy.protocol, 0x01)
-      self.assertGreater(proxy.contentLen, 0)
-
-      self.assertTrue(proxy.parseAddressesAndPorts(receivedProxyPayload))
-      self.assertEqual(proxy.source, source)
-      self.assertEqual(proxy.destination, destination)
-      if sourcePort:
-        self.assertEqual(proxy.sourcePort, sourcePort)
-      if destinationPort:
-        self.assertEqual(proxy.destinationPort, destinationPort)
-      else:
-        self.assertEqual(proxy.destinationPort, self._dnsDistPort)
-
-      self.assertTrue(proxy.parseAdditionalValues(receivedProxyPayload))
-      proxy.values.sort()
-      values.sort()
-      self.assertEqual(proxy.values, values)
-
 class TestProxyProtocol(ProxyProtocolTest):
     """
     dnsdist is configured to prepend a Proxy Protocol header to the query

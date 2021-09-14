@@ -51,6 +51,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
@@ -1311,9 +1312,9 @@ public:
     return true;
   }
 
-  const ClientState& getClientState() override
+  const ClientState* getClientState() const override
   {
-    return d_cs;
+    return &d_cs;
   }
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1492,6 +1493,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     if (ss->isTCPOnly()) {
+      std::string proxyProtocolPayload;
+      /* we need to do this _before_ creating the cross protocol query because
+         after that the buffer will have been moved */
+      if (ss->useProxyProtocol) {
+        proxyProtocolPayload = getProxyProtocolPayload(dq);
+      }
+
       IDState ids;
       ids.cs = &cs;
       ids.origFD = cs.udpFD;
@@ -1504,13 +1512,10 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         ids.origDest = cs.local;
       }
       auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), ss);
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
-      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
-        return ;
-      }
-      else {
-        return;
-      }
+      ss->passCrossProtocolQuery(std::move(cpq));
+      return;
     }
 
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
@@ -1842,7 +1847,7 @@ static void healthChecksThread()
   for(;;) {
     sleep(interval);
 
-    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
       if (++dss->lastCheck < dss->checkInterval) {
@@ -1899,7 +1904,7 @@ static void healthChecksThread()
       }
     }
 
-    handleQueuedHealthChecks(mplexer);
+    handleQueuedHealthChecks(*mplexer);
   }
 }
 
@@ -2324,6 +2329,9 @@ int main(int argc, char** argv)
 #ifdef HAVE_LMDB
         cout<<"lmdb ";
 #endif
+#ifdef HAVE_NGHTTP2
+        cout<<"outgoing-dns-over-https(nghttp2) ";
+#endif
         cout<<"protobuf ";
 #ifdef HAVE_RE2
         cout<<"re2 ";
@@ -2549,7 +2557,12 @@ int main(int argc, char** argv)
       g_maxTCPClientThreads = 1;
     }
 
+    /* we need to create the TCP worker threads before the
+       acceptor ones, otherwise we might crash when processing
+       the first TCP query */
     g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads);
+
+    initDoHWorkers();
 
     for (auto& t : todo) {
       t();
@@ -2577,7 +2590,7 @@ int main(int argc, char** argv)
 
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
-    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
       if (dss->availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss, true)) {
@@ -2586,14 +2599,7 @@ int main(int argc, char** argv)
         }
       }
     }
-    handleQueuedHealthChecks(mplexer, true);
-
-    /* we need to create the TCP worker threads before the
-       acceptor ones, otherwise we might crash when processing
-       the first TCP query */
-    while (!g_tcpclientthreads->hasReachedMaxThreads()) {
-      g_tcpclientthreads->addTCPClientThread();
-    }
+    handleQueuedHealthChecks(*mplexer, true);
 
     for(auto& cs : g_frontends) {
       if (cs->dohFrontend != nullptr) {

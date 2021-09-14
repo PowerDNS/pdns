@@ -27,15 +27,16 @@ public:
   virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
   virtual void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) = 0;
   virtual IOState tryHandshake() = 0;
-  virtual size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout={0,0}) = 0;
+  virtual size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) = 0;
   virtual IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
-  virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) = 0;
+  virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) = 0;
   virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
+  virtual std::vector<uint8_t> getNextProtocol() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
-  virtual std::unique_ptr<TLSSession> getSession() = 0;
+  virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual void close() = 0;
 
@@ -110,6 +111,18 @@ public:
 
   virtual size_t getTicketsKeysCount() = 0;
   virtual std::string getName() const = 0;
+
+  /* set the advertised ALPN protocols, in client or server context */
+  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos)
+  {
+    return false;
+  }
+
+  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+  virtual bool setNextProtocolSelectCallback(bool(*)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen))
+  {
+    return false;
+  }
 
 protected:
   std::atomic_flag d_rotatingTicketsKey;
@@ -325,12 +338,12 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0,0})
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0,0}, bool allowIncomplete=false)
   {
     if (d_conn) {
-      return d_conn->read(buffer, bufferSize, readTimeout, totalTimeout);
+      return d_conn->read(buffer, bufferSize, readTimeout, totalTimeout, allowIncomplete);
     } else {
-      return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout);
+      return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout, allowIncomplete);
     }
   }
 
@@ -340,14 +353,14 @@ public:
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
      would block.
   */
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead)
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false)
   {
     if (buffer.size() < toRead || pos >= toRead) {
       throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
     }
 
     if (d_conn) {
-      return d_conn->tryRead(buffer, pos, toRead);
+      return d_conn->tryRead(buffer, pos, toRead, allowIncomplete);
     }
 
     do {
@@ -365,6 +378,9 @@ public:
       }
 
       pos += static_cast<size_t>(res);
+      if (allowIncomplete) {
+        break;
+      }
     }
     while (pos < toRead);
 
@@ -462,6 +478,14 @@ public:
     return std::string();
   }
 
+  std::vector<uint8_t> getNextProtocol() const
+  {
+    if (d_conn) {
+      return d_conn->getNextProtocol();
+    }
+    return std::vector<uint8_t>();
+  }
+
   LibsslTLSVersion getTLSVersion() const
   {
     if (d_conn) {
@@ -497,13 +521,13 @@ public:
     }
   }
 
-  std::unique_ptr<TLSSession> getTLSSession()
+  std::vector<std::unique_ptr<TLSSession>> getTLSSessions()
   {
     if (!d_conn) {
-      throw std::runtime_error("Trying to get a TLS session from a non-TLS handler");
+      throw std::runtime_error("Trying to get TLS sessions from a non-TLS handler");
     }
 
-    return d_conn->getSession();
+    return d_conn->getSessions();
   }
 
 private:
@@ -525,3 +549,4 @@ struct TLSContextParameters
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);

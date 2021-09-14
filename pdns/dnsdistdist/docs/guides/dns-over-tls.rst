@@ -30,6 +30,10 @@ Outgoing
 Support for securing the exchanges between dnsdist and the backend will be implemented in 1.7.0, and will lead to all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, being forwarded over a secure DNS over TLS channel.
 That support can be enabled via the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
 
+
+  newServer({address="[2001:DB8::1]:853", tls="openssl", subjectName="dot.powerdns.com", validateCertificates=true})
+
+
 Investigating issues
 --------------------
 

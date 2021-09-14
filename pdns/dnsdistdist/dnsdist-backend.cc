@@ -21,7 +21,20 @@
  */
 
 #include "dnsdist.hh"
+#include "dnsdist-nghttp2.hh"
+#include "dnsdist-tcp.hh"
 #include "dolog.hh"
+
+
+bool DownstreamState::passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq)
+{
+  if (d_dohPath.empty()) {
+    return g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq));
+  }
+  else {
+    return g_dohClientThreads && g_dohClientThreads->passCrossProtocolQueryToThread(std::move(cpq));
+  }
+}
 
 bool DownstreamState::reconnect()
 {

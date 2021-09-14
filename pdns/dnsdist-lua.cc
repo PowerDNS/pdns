@@ -40,6 +40,7 @@
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
+#include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
@@ -388,7 +389,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if(vars.count("retries")) {
-        ret->retries=std::stoi(boost::get<string>(vars["retries"]));
+        ret->d_retries = std::stoi(boost::get<string>(vars["retries"]));
       }
 
       if(vars.count("checkInterval")) {
@@ -528,6 +529,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
 
         ret->d_tlsCtx = getTLSContext(tlsParams);
+
+        if (vars.count("dohPath")) {
+#ifdef HAVE_NGHTTP2
+          ret->d_dohPath = boost::get<string>(vars.at("dohPath"));
+          if (ret->d_tlsCtx) {
+            setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
+          }
+          if (g_outgoingDoHWorkerThreads == 0) {
+            g_outgoingDoHWorkerThreads = 1;
+          }
+
+          if (vars.count("addXForwardedHeaders")) {
+            ret->d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
+          }
+#else /* HAVE_NGHTTP2 */
+          throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
+#endif /* HAVE_NGHTTP2 */
+        }
+        else {
+          setupDoTProtocolNegotiation(ret->d_tlsCtx);
+        }
       }
 
       /* this needs to be done _AFTER_ the order has been set,
@@ -1237,6 +1259,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
     setMaxCachedTCPConnectionsPerDownstream(max);
+    });
+
+  luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
+      if (!g_configurationDone) {
+        g_outgoingDoHWorkerThreads = workers;
+      } else {
+        g_outputBuffer="The amount of outgoing DoH worker threads cannot be altered at runtime!\n";
+      }
     });
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {

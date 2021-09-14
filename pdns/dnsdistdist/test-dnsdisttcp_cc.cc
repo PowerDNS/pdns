@@ -174,7 +174,7 @@ public:
     return step.nextState;
   }
 
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) override
   {
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::readFromClient : ExpectedStep::ExpectedRequest::readFromBackend);
@@ -227,6 +227,11 @@ public:
     return "";
   }
 
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    return std::vector<uint8_t>();
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     return LibsslTLSVersion::TLS13;
@@ -237,9 +242,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    return nullptr;
+    return {};
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -255,7 +260,7 @@ public:
   {
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false) override
   {
     return 0;
   }
@@ -1472,7 +1477,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
-    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->retries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_retries);
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
@@ -1533,7 +1538,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
     BOOST_CHECK(s_writeBuffer == query);
-    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->retries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_retries);
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
@@ -3041,7 +3046,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
     proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
-    proxyEnabledBackend-> useProxyProtocol = true;
+    proxyEnabledBackend->useProxyProtocol = true;
 
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());

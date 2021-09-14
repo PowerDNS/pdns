@@ -5,6 +5,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(FSTRM_CFLAGS) \
 	$(YAHTTP_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
+	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
 	-DSYSCONFDIR=\"${sysconfdir}\" \
@@ -158,6 +159,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-lua-web.cc \
 	dnsdist-lua.cc dnsdist-lua.hh \
+	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
@@ -241,6 +243,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-vars.cc \
+	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
@@ -283,6 +286,7 @@ testrunner_SOURCES = \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \
+	test-dnsdistnghttp2_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
@@ -368,6 +372,11 @@ if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
 endif
 
+endif
+
+if HAVE_NGHTTP2
+dnsdist_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
+testrunner_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
 endif
 
 if !HAVE_LUA_HPP

@@ -151,7 +151,12 @@ public:
       return IOState::NeedWrite;
     }
     else if (error == SSL_ERROR_SYSCALL) {
-      throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
+      if (errno == 0) {
+        throw std::runtime_error("TLS connection closed by remote end");
+      }
+      else {
+        throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
+      }
     }
     else if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
@@ -302,7 +307,7 @@ public:
     return IOState::Done;
   }
 
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete) override
   {
     do {
       int res = SSL_read(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), static_cast<int>(toRead - pos));
@@ -311,13 +316,16 @@ public:
       }
       else {
         pos += static_cast<size_t>(res);
+        if (allowIncomplete) {
+          break;
+        }
       }
     }
     while (pos < toRead);
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout, bool allowIncomplete) override
   {
     size_t got = 0;
     struct timeval start = {0, 0};
@@ -333,6 +341,9 @@ public:
       }
       else {
         got += static_cast<size_t>(res);
+        if (allowIncomplete) {
+          break;
+        }
       }
 
       if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
@@ -395,6 +406,29 @@ public:
     return std::string();
   }
 
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    std::vector<uint8_t> result;
+    if (!d_conn) {
+      return result;
+    }
+
+    const unsigned char* alpn = nullptr;
+    unsigned int alpnLen  = 0;
+#ifdef HAVE_SSL_GET0_NEXT_PROTO_NEGOTIATED
+    SSL_get0_next_proto_negotiated(d_conn.get(), &alpn, &alpnLen);
+#endif
+#ifdef HAVE_SSL_GET0_ALPN_SELECTED
+    if (alpn == nullptr) {
+      SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
+    }
+#endif
+    if (alpn != nullptr && alpnLen > 0) {
+      result.insert(result.end(), alpn, alpn + alpnLen);
+    }
+    return result;
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     auto proto = SSL_version(d_conn.get());
@@ -422,13 +456,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    if (d_tlsSession) {
-      return std::move(d_tlsSession);
-    }
-
-    throw std::runtime_error("Unable to get an OpenSSL session");
+    return std::move(d_tlsSessions);
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -446,9 +476,9 @@ public:
     native.release();
   }
 
-  void setNewTicket(SSL_SESSION* session)
+  void addNewTicket(SSL_SESSION* session)
   {
-    d_tlsSession = std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
+    d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free))));
   }
 
   static int s_tlsConnIndex;
@@ -456,9 +486,9 @@ public:
 private:
   static std::atomic_flag s_initTLSConnIndex;
 
+  std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
-  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_hostname;
   struct timeval d_timeout;
 };
@@ -618,7 +648,7 @@ public:
       return 0;
     }
 
-    conn->setNewTicket(session);
+    conn->addNewTicket(session);
     return 1;
   }
 
@@ -662,9 +692,74 @@ public:
     return "openssl";
   }
 
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
+  {
+    if (d_feContext && d_feContext->d_tlsCtx) {
+      d_alpnProtos = protos;
+      libssl_set_alpn_select_callback(d_feContext->d_tlsCtx, alpnServerSelectCallback, this);
+      return true;
+    }
+    if (d_tlsCtx) {
+      return libssl_set_alpn_protos(d_tlsCtx, protos);
+    }
+    return false;
+  }
+
+  bool setNextProtocolSelectCallback(bool(*cb)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)) override
+  {
+    d_nextProtocolSelectCallback = cb;
+    libssl_set_npn_select_callback(d_tlsCtx, npnSelectCallback, this);
+    return true;
+  }
+
 private:
+  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+  static int npnSelectCallback(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  {
+    if (!arg) {
+      return SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
+    if (obj->d_nextProtocolSelectCallback) {
+      return (*obj->d_nextProtocolSelectCallback)(out, outlen, in, inlen) ? SSL_TLSEXT_ERR_OK : SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+
+    return SSL_TLSEXT_ERR_OK;
+  }
+
+  static int alpnServerSelectCallback(SSL*, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  {
+    if (!arg) {
+      return SSL_TLSEXT_ERR_ALERT_WARNING;
+    }
+    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
+
+    size_t pos = 0;
+    while (pos < inlen) {
+      size_t protoLen = in[pos];
+      pos++;
+      if (protoLen > (inlen - pos)) {
+        /* something is very wrong */
+        return SSL_TLSEXT_ERR_ALERT_WARNING;
+      }
+
+      for (const auto& tentative : obj->d_alpnProtos) {
+        if (tentative.size() == protoLen && memcmp(in + pos, tentative.data(), tentative.size()) == 0) {
+          *out = in + pos;
+          *outlen = protoLen;
+          return SSL_TLSEXT_ERR_OK;
+        }
+      }
+      pos += protoLen;
+    }
+
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+
+  std::vector<std::vector<uint8_t>> d_alpnProtos; // store the supported ALPN protocols, so that the server can select based on what the client sent
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
-  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context
+  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
+  bool (*d_nextProtocolSelectCallback)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen){nullptr};
 };
 
 #endif /* HAVE_LIBSSL */
@@ -908,7 +1003,7 @@ public:
     if (ret != GNUTLS_E_SUCCESS || sess.size <= 4) {
       throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
     }
-    conn->d_tlsSession = std::unique_ptr<TLSSession>(new GnuTLSSession(sess));
+    conn->d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new GnuTLSSession(sess)));
     return 0;
   }
 
@@ -1075,7 +1170,7 @@ public:
     return IOState::Done;
   }
 
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete) override
   {
     if (!d_handshakeDone) {
       /* As opposed to OpenSSL, GnuTLS will not transparently finish the handshake for us,
@@ -1093,6 +1188,9 @@ public:
       }
       else if (res > 0) {
         pos += static_cast<size_t>(res);
+        if (allowIncomplete) {
+          break;
+        }
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
@@ -1108,7 +1206,7 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout, bool allowIncomplete) override
   {
     size_t got = 0;
     struct timeval start{0,0};
@@ -1124,6 +1222,9 @@ public:
       }
       else if (res > 0) {
         got += static_cast<size_t>(res);
+        if (allowIncomplete) {
+          break;
+        }
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
@@ -1214,6 +1315,20 @@ public:
     return std::string();
   }
 
+  std::vector<uint8_t> getNextProtocol() const override
+  {
+    std::vector<uint8_t> result;
+    if (!d_conn) {
+      return result;
+    }
+    gnutls_datum_t next;
+    if (gnutls_alpn_get_selected_protocol(d_conn.get(), &next) != GNUTLS_E_SUCCESS) {
+      return result;
+    }
+    result.insert(result.end(), next.data, next.data + next.size);
+    return result;
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     auto proto = gnutls_protocol_get_version(d_conn.get());
@@ -1241,13 +1356,9 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() override
+  std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
-    if (d_tlsSession) {
-      return std::move(d_tlsSession);
-    }
-
-    throw std::runtime_error("No GnuTLSSession available yet");
+    return std::move(d_tlsSessions);
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -1273,10 +1384,29 @@ public:
     }
   }
 
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos)
+  {
+    std::vector<gnutls_datum_t> values;
+    values.reserve(protos.size());
+    for (const auto& proto : protos) {
+      gnutls_datum_t value;
+      value.data = const_cast<uint8_t*>(proto.data());
+      value.size = proto.size();
+      values.push_back(value);
+    }
+    unsigned int flags = 0;
+#if GNUTLS_VERSION_NUMBER >= 0x030500
+    flags |= GNUTLS_ALPN_MANDATORY;
+#elif defined(GNUTLS_ALPN_MAND)
+    flags |= GNUTLS_ALPN_MAND;
+#endif
+    return gnutls_alpn_set_protocols(d_conn.get(), values.data(), values.size(), flags);
+  }
+
 private:
+  std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey;
   std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)> d_conn;
-  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_host;
   bool d_client{false};
   bool d_handshakeDone{false};
@@ -1394,12 +1524,20 @@ public:
       ticketsKey = *(d_ticketsKey.read_lock());
     }
 
-    return std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
+    auto connection = std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
+    if (!d_protos.empty()) {
+      connection->setALPNProtos(d_protos);
+    }
+    return connection;
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
-    return std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
+    auto connection = std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
+    if (!d_protos.empty()) {
+      connection->setALPNProtos(d_protos);
+    }
+    return connection;
   }
 
   void rotateTicketsKey(time_t now) override
@@ -1445,8 +1583,19 @@ public:
     return "gnutls";
   }
 
+  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
+  {
+#ifdef HAVE_GNUTLS_ALPN_SET_PROTOCOLS
+    d_protos = protos;
+    return true;
+#else
+    return false;
+#endif
+  }
+
 private:
   std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)> d_creds;
+  std::vector<std::vector<uint8_t>> d_protos;
   gnutls_priority_t d_priorityCache{nullptr};
   SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
@@ -1457,6 +1606,17 @@ private:
 
 #endif /* HAVE_DNS_OVER_TLS */
 
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
+{
+  if (ctx == nullptr) {
+    return false;
+  }
+  /* we want to set the ALPN to dot (RFC7858), if only to mitigate the ALPACA attack */
+  const std::vector<std::vector<uint8_t>> dotAlpns = {{'d', 'o', 't'}};
+  ctx->setALPNProtos(dotAlpns);
+  return true;
+}
+
 bool TLSFrontend::setupTLS()
 {
 #ifdef HAVE_DNS_OVER_TLS
@@ -1466,6 +1626,7 @@ bool TLSFrontend::setupTLS()
 #ifdef HAVE_GNUTLS
     if (d_provider == "gnutls") {
       newCtx = std::make_shared<GnuTLSIOCtx>(*this);
+      setupDoTProtocolNegotiation(newCtx);
       std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
@@ -1473,6 +1634,7 @@ bool TLSFrontend::setupTLS()
 #ifdef HAVE_LIBSSL
     if (d_provider == "openssl") {
       newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+      setupDoTProtocolNegotiation(newCtx);
       std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
@@ -1486,6 +1648,7 @@ bool TLSFrontend::setupTLS()
 #endif /* HAVE_GNUTLS */
 #endif /* HAVE_LIBSSL */
 
+  setupDoTProtocolNegotiation(newCtx);
   std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
 #endif /* HAVE_DNS_OVER_TLS */
   return true;

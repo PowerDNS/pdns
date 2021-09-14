@@ -347,7 +347,11 @@ struct DNSDistStats
   stat_t securityStatus{0};
   stat_t dohQueryPipeFull{0};
   stat_t dohResponsePipeFull{0};
+  stat_t outgoingDoHQueryPipeFull{0};
   stat_t proxyProtocolInvalid{0};
+  stat_t tcpQueryPipeFull{0};
+  stat_t tcpCrossProtocolQueryPipeFull{0};
+  stat_t tcpCrossProtocolResponsePipeFull{0};
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
@@ -405,6 +409,10 @@ struct DNSDistStats
     {"security-status", &securityStatus},
     {"doh-query-pipe-full", &dohQueryPipeFull},
     {"doh-response-pipe-full", &dohResponsePipeFull},
+    {"outgoing-doh-query-pipe-full", &outgoingDoHQueryPipeFull},
+    {"tcp-query-pipe-full", &tcpQueryPipeFull},
+    {"tcp-cross-protocol-query-pipe-full", &tcpCrossProtocolQueryPipeFull},
+    {"tcp-cross-protocol-response-pipe-full", &tcpCrossProtocolResponsePipeFull},
     // Latency histogram
     {"latency-sum", &latencySum},
     {"latency-count", getLatencyCount},
@@ -602,9 +610,14 @@ struct ClientState
     return udpFD == -1;
   }
 
+  bool isDoH() const
+  {
+    return dohFrontend != nullptr;
+  }
+
   bool hasTLS() const
   {
-    return tlsFrontend != nullptr || dohFrontend != nullptr;
+    return tlsFrontend != nullptr || (dohFrontend != nullptr && dohFrontend->isHTTPS());
   }
 
   std::string getType() const
@@ -612,7 +625,12 @@ struct ClientState
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
     if (dohFrontend) {
-      result += " (DNS over HTTPS)";
+      if (dohFrontend->isHTTPS()) {
+        result += " (DNS over HTTPS)";
+      }
+      else {
+        result += " (DNS over HTTP)";
+      }
     }
     else if (tlsFrontend) {
       result += " (DNS over TLS)";
@@ -649,6 +667,8 @@ struct ClientState
   }
 };
 
+struct CrossProtocolQuery;
+
 struct DownstreamState
 {
    typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
@@ -662,6 +682,7 @@ struct DownstreamState
   std::vector<int> sockets;
   const std::string sourceItfName;
   std::string d_tlsSubjectName;
+  std::string d_dohPath;
   std::mutex connectLock;
   LockGuarded<std::unique_ptr<FDMultiplexer>> mplexer{nullptr};
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
@@ -717,7 +738,7 @@ struct DownstreamState
   unsigned int checkInterval{1};
   unsigned int lastCheck{0};
   const unsigned int sourceItf{0};
-  uint16_t retries{5};
+  uint16_t d_retries{5};
   uint16_t xpfRRCode{0};
   uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};
@@ -740,6 +761,7 @@ struct DownstreamState
   bool reconnectOnUp{false};
   bool d_tcpCheck{false};
   bool d_tcpOnly{false};
+  bool d_addXForwardedHeaders{false}; // for DoH backends
 
   bool isUp() const
   {
@@ -822,6 +844,13 @@ struct DownstreamState
   {
     return d_tcpOnly || d_tlsCtx != nullptr;
   }
+
+  bool isDoH() const
+  {
+    return !d_dohPath.empty();
+  }
+
+  bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
 
 private:
   std::string name;
