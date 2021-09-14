@@ -1156,7 +1156,7 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
     entries.emplace(bucket.d_name + "4", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
   snprintf(buf, sizeof(buf), "%g", histogram4.getSum() / 1e6);
-  entries.emplace(name + "sum4", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v4\"}", buf});
+  entries.emplace(name + "sum4", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v4\"}", buf});
   entries.emplace(name + "count4", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v4\"}", std::to_string(data4.back().d_count)});
 
   const auto& data6 = histogram6.getCumulativeBuckets();
@@ -1167,7 +1167,7 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
     entries.emplace(bucket.d_name + "6", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
   snprintf(buf, sizeof(buf), "%g", histogram6.getSum() / 1e6);
-  entries.emplace(name + "sum6", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v6\"}", buf});
+  entries.emplace(name + "sum6", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v6\"}", buf});
   entries.emplace(name + "count6", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v6\"}", std::to_string(data6.back().d_count)});
 
   return entries;
