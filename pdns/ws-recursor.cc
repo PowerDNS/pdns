@@ -460,8 +460,9 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
             helpname = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
           }
           else if (metricDetails.d_prometheusType == PrometheusMetricType::histogram) {
+            helpname = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
             // name is XXX_count, strip the _count part
-            helpname = prometheusMetricName.substr(0, prometheusMetricName.length() - 6);
+            helpname = helpname.substr(0, helpname.length() - 6);
           }
           output << "# TYPE " << helpname << " " << prometheusTypeName << "\n";
           output << "# HELP " << helpname << " " << metricDetails.d_description << "\n";
@@ -1065,7 +1066,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
     MetricDefinition(PrometheusMetricType::histogram,
                      "histogram of our answer times to clients")},
   // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
-  { "cumul-authanswers-count",
+  { "cumul-authanswers-count4",
     MetricDefinition(PrometheusMetricType::histogram,
                      "histogram of answer times of authoritative servers")},
   { "almost-expired-pushed",
