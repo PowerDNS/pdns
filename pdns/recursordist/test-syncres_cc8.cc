@@ -223,7 +223,8 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
     The RRSIG from "." denies the existence of any type except NS at a.
     However since it's an ancestor delegation NSEC (NS bit set, SOA bit clear,
     signer field that is shorter than the owner name of the NSEC RR) it can't
-    be used to deny anything except the whole name or a DS.
+    be used to deny anything except the whole name (which does not make sense here)
+    or a DS.
   */
   addNSECRecordToLW(DNSName("a."), DNSName("b."), {QType::NS}, 600, records);
   recordContents.insert(records.at(0).d_content);
@@ -244,7 +245,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
      owner name regardless of type.
   */
 
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, false);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, true);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
@@ -255,6 +256,38 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
 
   denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_ds_denial_from_child)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  addNSECRecordToLW(DNSName("example.org."), DNSName("a.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("example.org."), QType::NSEC)] = pair;
+
+  /* check that this NSEC from the child zone can deny a AAAA at the apex */
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::AAAA, false, true, true), dState::NXQTYPE);
+
+  /* but not that the DS does not exist, since we need the parent for that */
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::DS, false, true, true), dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
@@ -326,6 +359,36 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
   /* this NSEC is not valid to deny a.powerdns.com|A since it states that a CNAME exists */
   dState denialState = getDenial(denialMap, DNSName("a.powerdns.com."), QType::A, true, true);
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_ds)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("powerdns.com."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+  records.clear();
+
+  /* this NSEC3 is not valid to deny the DS since it is from the child zone */
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::DS, false, true), dState::NODENIAL);
+  /* AAAA should be fine, though */
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::AAAA, false, true), dState::NXQTYPE);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)
@@ -732,6 +795,10 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
 
   denialState = getDenial(denialMap, DNSName("sub.a."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+
+  /* not even the DS! */
+  denialState = getDenial(denialMap, DNSName("sub.a."), QType::DS, false, true);
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
