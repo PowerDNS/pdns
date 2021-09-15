@@ -137,6 +137,21 @@ This state can be modified from the various hooks.
 
     :returns: The scheme of the DoH query, for example ``http`` or ``https``
 
+  .. method:: DNSQuestion:getProtocol() -> string
+
+    .. versionadded:: 1.7.0
+
+    Return the transport protocol this query was received over, as a string. The possible values are:
+
+    * "Do53 UDP"
+    * "Do53 TCP"
+    * "DNSCrypt UDP"
+    * "DNSCrypt TCP"
+    * "DNS over TLS"
+    * "DNS over HTTPS"
+
+    :returns: A string
+
   .. method:: DNSQuestion:getProxyProtocolValues() -> table
 
     .. versionadded:: 1.6.0
