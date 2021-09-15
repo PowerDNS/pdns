@@ -209,11 +209,11 @@ Currently, an event protobuf message has the following definition:
 .. code-block:: protobuf
 
     enum EventType {
+      CustomEvent = 0;
       RecRecv = 1;
-      DistPipe = 2;
-      PCacheCheck = 3;
-      SyncRes = 4;
-      AnswerSent = 5;
+      PCacheCheck = 2;
+      SyncRes = 3;
+      AnswerSent = 4;
       LuaGetTag = 100;
       LuaGetTagFFI = 101;
       LuaIPFilter = 102;
@@ -235,12 +235,13 @@ Currently, an event protobuf message has the following definition:
       optional int64 intVal = 5;
       optional string stringVal = 6;
       optional bytes bytesVal = 7;
+      optional string custom = 8;
     }
     repeated Event trace = 23;
 
 Event traces can be enabled by either setting :ref:`setting-event-trace-enabled` or by using the :doc:`rec_control <manpages/rec_control.1>` subcommand ``set-event-trace-enabled``.
 
-An example of a trace (timestamps are relative in nanoseconds):
+An example of a trace (timestamps are relative in nanoseconds) as shown  in the logfile:
 
 .. code-block:: C
 
