@@ -127,7 +127,7 @@ public:
   bool hasEDNS() const;
   bool hasEDNSCookie() const;
   bool hasWellFormedEDNSCookie() const;
-  bool hasValidEDNSCookie(); // Not const, some cookie params might be set
+  bool hasValidEDNSCookie() const;
   uint8_t getEDNSVersion() const { return d_ednsversion; };
   void setEDNSRcode(uint16_t extRCode)
   {

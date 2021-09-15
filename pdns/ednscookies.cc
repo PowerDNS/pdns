@@ -75,7 +75,7 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
   }
 }
 
-bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
+bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source) const
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
   if (server.length() != 16 || client.length() != 8) {
@@ -115,7 +115,7 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
 #endif
 }
 
-bool EDNSCookiesOpt::shouldRefresh()
+bool EDNSCookiesOpt::shouldRefresh() const
 {
   if (server.size() < 16) {
     return true;

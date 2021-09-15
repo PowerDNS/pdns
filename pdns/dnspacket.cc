@@ -693,7 +693,7 @@ bool DNSPacket::hasWellFormedEDNSCookie() const
   return d_eco.isWellFormed();
 }
 
-bool DNSPacket::hasValidEDNSCookie()
+bool DNSPacket::hasValidEDNSCookie() const
 {
   if (!hasWellFormedEDNSCookie()) {
     return false;

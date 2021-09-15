@@ -48,7 +48,7 @@ struct EDNSCookiesOpt
       client.size() == 8 && (server.size() == 0 || (server.size() >= 8 && server.size() <= 32)));
   }
 
-  bool isValid(const string& secret, const ComboAddress& source);
+  bool isValid(const string& secret, const ComboAddress& source) const;
   bool makeServerCookie(const string& secret, const ComboAddress& source);
   string makeOptString() const;
   string getServer() const
@@ -61,18 +61,12 @@ struct EDNSCookiesOpt
   }
 
 private:
-  bool shouldRefresh();
+  bool shouldRefresh() const;
 
   // the client cookie
   string client;
   // the server cookie
   string server;
-
-  // Checks if the server cookie is correct
-  // 1. Checks the sizes of the client and server cookie
-  // 2. checks if the timestamp is still good (now - 3600 < ts < now + 300)
-  // 3. Whether or not the hash is correct
-  bool check(const string& secret, const ComboAddress& source);
 
   void getEDNSCookiesOptFromString(const char* option, unsigned int len);
 };
