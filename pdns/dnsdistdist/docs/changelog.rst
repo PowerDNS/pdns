@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.6.1
-  :released: TBD
+  :released: 15th of September 2021
 
   .. change::
     :tags: Bug Fixes
