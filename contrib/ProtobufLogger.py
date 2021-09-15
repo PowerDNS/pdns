@@ -107,7 +107,10 @@ class PDNSPBConnHandler(object):
         if message.trace:
             print("- Event Trace:")
             for event in message.trace:
-                ev = self.getEventAsString(event.event) + '(' + str(event.ts)
+                ev = self.getEventAsString(event.event)
+                if event.event == dnsmessage_pb2.PBDNSMessage.CustomEvent and event.HasField('custom'):
+                    ev += ":" + event.custom
+                ev += '(' + str(event.ts)
                 valstr = ''
                 if event.HasField('boolVal'):
                       valstr = str(event.boolVal)

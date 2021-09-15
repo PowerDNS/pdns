@@ -35,7 +35,7 @@ namespace pdns {
 
       enum class MetaValueField : protozero::pbf_tag_type { stringVal = 1, intVal = 2 };
       enum class MetaField : protozero::pbf_tag_type { key = 1, value = 2 };
-      enum class Event : protozero::pbf_tag_type { ts = 1, event = 2, start = 3, boolVal = 4, intVal = 5, stringVal = 6, bytesVal = 7 };
+      enum class Event : protozero::pbf_tag_type { ts = 1, event = 2, start = 3, boolVal = 4, intVal = 5, stringVal = 6, bytesVal = 7, custom = 8 };
       enum class MessageType : int32_t { DNSQueryType = 1, DNSResponseType = 2, DNSOutgoingQueryType = 3, DNSIncomingResponseType = 4 };
       enum class Field : protozero::pbf_tag_type { type = 1, messageId = 2, serverIdentity = 3, socketFamily = 4, socketProtocol = 5, from = 6, to = 7, inBytes = 8, timeSec = 9, timeUsec = 10, id = 11, question = 12, response = 13, originalRequestorSubnet = 14, requestorId = 15, initialRequestId = 16, deviceId = 17, newlyObservedDomain = 18, deviceName = 19, fromPort = 20, toPort = 21, meta = 22, trace = 23 };
       enum class QuestionField : protozero::pbf_tag_type { qName = 1, qType = 2, qClass = 3 };

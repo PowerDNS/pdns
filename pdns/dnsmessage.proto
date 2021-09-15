@@ -129,6 +129,7 @@ message PBDNSMessage {
 
   // The well known EventTrace event numbers
   enum EventType {
+    CustomEvent = 0;                            // A custom event
     RecRecv = 1;                                // A request was received by the recursor process
     PCacheCheck = 2;                            // A packet cache check was initiated or completed; value: bool cacheHit
     SyncRes = 3;                                // Syncres main function has started or completed; value: int rcode
@@ -152,6 +153,7 @@ message PBDNSMessage {
     optional int64 intVal = 5;
     optional string stringVal = 6;
     optional bytes bytesVal = 7;
+    optional string custom = 8;                 // The name of the event for custom events
   }
   repeated Event trace = 23;
 }

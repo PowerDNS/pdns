@@ -37,6 +37,7 @@ public:
   enum EventType : uint8_t
   {
     // Don't forget to add a new entry to the table in the .cc file!
+    CustomEvent = 0,
     RecRecv = 1,
     PCacheCheck = 2,
     SyncRes = 3,
@@ -120,7 +121,12 @@ public:
       d_value(v), d_ts(ts), d_event(e), d_start(start)
     {
     }
+    Entry(Value_t& v, const std::string& custom, bool start, int64_t ts) :
+      d_value(v), d_custom(custom), d_ts(ts), d_event(CustomEvent), d_start(start)
+    {
+    }
     Value_t d_value;
+    std::string d_custom;
     int64_t d_ts;
     EventType d_event;
     bool d_start;
@@ -131,7 +137,12 @@ public:
       if (!v.empty()) {
         v = "," + v;
       }
-      return RecEventTrace::toString(d_event) + "(" + std::to_string(d_ts) + v + (d_start ? ")" : ",done)");
+      std::string name = RecEventTrace::toString(d_event);
+      if (d_event == EventType::CustomEvent) {
+        name += ":" + d_custom;
+      }
+
+      return name + "(" + std::to_string(d_ts) + v + (d_start ? ")" : ",done)");
     }
   };
 
@@ -146,7 +157,8 @@ public:
     return d_status == Enabled;
   }
 
-  void add(EventType e, Value_t v, bool start)
+  template <class E>
+  void add(E e, Value_t v, bool start)
   {
     assert(d_status != Invalid);
     if (d_status == Disabled) {
@@ -159,24 +171,27 @@ public:
     d_events.emplace_back(v, e, start, stamp);
   }
 
-  void add(EventType e)
+  template <class E>
+  void add(E e)
   {
     add(e, Value_t(std::nullopt), true);
   }
 
   // We store uint32 in an int64_t
-  void add(EventType e, uint32_t v, bool start)
+  template <class E>
+  void add(E e, uint32_t v, bool start)
   {
     add(e, static_cast<int64_t>(v), start);
   }
   // We store int32 in an int64_t
-  void add(EventType e, int32_t v, bool start)
+  template <class E>
+  void add(E e, int32_t v, bool start)
   {
     add(e, static_cast<int64_t>(v), start);
   }
 
-  template <class T>
-  void add(EventType e, T v, bool start)
+  template <class E, class T>
+  void add(E e, T v, bool start)
   {
     add(e, Value_t(v), start);
   }

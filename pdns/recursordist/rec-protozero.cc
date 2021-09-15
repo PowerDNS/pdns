@@ -135,5 +135,8 @@ void pdns::ProtoZero::RecMessage::addEvents(const RecEventTrace& trace)
       const PacketBuffer& p = std::get<PacketBuffer>(v);
       pbf_trace.add_bytes(static_cast<protozero::pbf_tag_type>(Event::bytesVal), reinterpret_cast<const char*>(p.data()), p.size());
     }
+    if (!t.d_custom.empty()) {
+      pbf_trace.add_string(static_cast<protozero::pbf_tag_type>(Event::custom), t.d_custom);
+    }
   }
 }
