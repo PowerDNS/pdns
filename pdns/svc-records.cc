@@ -34,12 +34,19 @@ const std::map<std::string, SvcParam::SvcParamKey> SvcParam::SvcParams = {
 };
 
 SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k) {
+  bool ignored;
+  return SvcParam::keyFromString(k, ignored);
+}
+
+SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k, bool &generic) {
   auto it = SvcParams.find(k);
   if (it != SvcParams.end()) {
+    generic = false;
     return it->second;
   }
   if (k.substr(0, 3) == "key") {
     try {
+      generic = true;
       return SvcParam::SvcParamKey(pdns_stou(k.substr(3)));
     }
     catch (...) {
@@ -104,7 +111,7 @@ SvcParam::SvcParam(const SvcParamKey &key, std::set<std::string> &&value) {
 SvcParam::SvcParam(const SvcParamKey &key, std::set<SvcParam::SvcParamKey> &&value) {
   d_key = key;
   if (d_key != SvcParamKey::mandatory) {
-    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
+    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a SvcParamKey-set value");
   }
   d_mandatory = std::move(value);
 }

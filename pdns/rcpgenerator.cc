@@ -347,8 +347,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
     // We've reached a space or equals-sign or the end of the string (d_pos is at this char)
     string k = d_string.substr(pos, d_pos - pos);
     SvcParam::SvcParamKey key;
+    bool generic;
     try {
-      key = SvcParam::keyFromString(k);
+      key = SvcParam::keyFromString(k, generic);
     } catch (const std::invalid_argument &e) {
       throw RecordTextException(e.what());
     }
@@ -372,11 +373,22 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       break;
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint: {
-      vector<string> value;
-      xfrSVCBValueList(value);
       vector<ComboAddress> hints;
       bool doAuto{false};
-      try {
+      if (generic) {
+        string value;
+        xfrRFC1035CharString(value);
+        size_t len = key == SvcParam::ipv4hint ? 4 : 16;
+        if (value.size() % len != 0) {
+          throw RecordTextException(k + " in generic format has wrong number of bytes");
+        }
+        for (size_t i=0; i<value.size(); i += len) {
+          auto hint = makeComboAddressFromRaw(static_cast<uint8_t>(key), &value.at(i), len);
+          hints.push_back(hint);
+        }
+      } else {
+        vector<string> value;
+        xfrSVCBValueList(value);
         for (auto const &v: value) {
           if (v == "auto") {
             doAuto = true;
@@ -385,6 +397,8 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
           }
           hints.push_back(ComboAddress(v));
         }
+      }
+      try {
         auto p = SvcParam(key, std::move(hints));
         p.setAutoHint(doAuto);
         val.insert(p);
@@ -396,11 +410,41 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
     }
     case SvcParam::alpn: {
       vector<string> value;
-      xfrSVCBValueList(value);
+      if (generic) {
+        string v;
+        xfrRFC1035CharString(v);
+        size_t spos{0}, len;
+        while (spos < v.length()) {
+          len = v.at(spos);
+          spos += 1;
+          if (len > v.length() - spos) {
+            throw RecordTextException("Length of ALPN value goes over total length of alpn SVC Param");
+          }
+          value.push_back(v.substr(spos, len));
+          spos += len;
+        }
+      } else {
+        xfrSVCBValueList(value);
+      }
       val.insert(SvcParam(key, std::move(value)));
       break;
     }
     case SvcParam::mandatory: {
+      if (generic) {
+        string v;
+        xfrRFC1035CharString(v);
+        if (v.length() % 2 != 0) {
+          throw RecordTextException("Wrong number of bytes in SVC Param " + k);
+        }
+        std::set<SvcParam::SvcParamKey> keys;
+        for (size_t i=0; i < v.length(); i += 2) {
+          uint16_t mand = (v.at(i) << 8);
+          mand += v.at(i+1);
+          keys.insert(SvcParam::SvcParamKey(mand));
+        }
+        val.insert(SvcParam(key, std::move(keys)));
+        break;
+      }
       vector<string> parts;
       xfrSVCBValueList(parts);
       set<string> values(parts.begin(), parts.end());
@@ -409,22 +453,36 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
     }
     case SvcParam::port: {
       uint16_t port;
-      xfr16BitInt(port);
+      if (generic) {
+        string v;
+        xfrRFC1035CharString(v);
+        if (v.length() != 2) {
+          throw RecordTextException("port in generic format has the wrong length, expected 2, got " + std::to_string(v.length()));
+        }
+        port = (v.at(0) << 8);
+        port += v.at(1);
+      } else {
+        xfr16BitInt(port);
+      }
       val.insert(SvcParam(key, port));
       break;
     }
     case SvcParam::ech: {
-      bool haveQuote = d_string.at(d_pos) == '"';
-      if (haveQuote) {
-        d_pos++;
-      }
       string value;
-      xfrBlobNoSpaces(value);
-      if (haveQuote) {
-        if (d_string.at(d_pos) != '"') {
-          throw RecordTextException("ech value starts, but does not end with a '\"' symbol");
+      if (generic) {
+        xfrRFC1035CharString(value);
+      } else {
+        bool haveQuote = d_string.at(d_pos) == '"';
+        if (haveQuote) {
+          d_pos++;
         }
-        d_pos++;
+        xfrBlobNoSpaces(value);
+        if (haveQuote) {
+          if (d_string.at(d_pos) != '"') {
+            throw RecordTextException("ech value starts, but does not end with a '\"' symbol");
+          }
+          d_pos++;
+        }
       }
       val.insert(SvcParam(key, value));
       break;

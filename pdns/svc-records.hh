@@ -68,6 +68,9 @@ class SvcParam {
   //! Returns the SvcParamKey based on the input
   static SvcParamKey keyFromString(const std::string &k);
 
+  //! Returns the SvcParamKey based on the input, generic is true when the format was 'keyNNNN'
+  static SvcParamKey keyFromString(const std::string &k, bool &generic);
+
   //! Returns the string value of the SvcParamKey
   static std::string keyToString(const SvcParamKey &k);
 
