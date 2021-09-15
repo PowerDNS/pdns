@@ -236,37 +236,34 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
-
-  while (true) {
-    connection = t_tcp_manager.get(ip);
-    if (connection.d_handler) {
-      return false;
-    }
-
-    const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-    Socket s(ip.sin4.sin_family, SOCK_STREAM);
-    s.setNonBlocking();
-    ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
-    s.bind(localip);
-
-    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-    if (dnsOverTLS) {
-      TLSContextParameters tlsParams;
-      tlsParams.d_provider = "openssl";
-      tlsParams.d_validateCertificates = false;
-      //tlsParams.d_caStore = caaStore;
-      tlsCtx = getTLSContext(tlsParams);
-      if (tlsCtx == nullptr) {
-        g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
-        dnsOverTLS = false;
-      }
-    }
-    connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
-    // Returned state ignored
-    // This can throw an excepion, retry will need to happen at higher level
-    connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
-    return true;
+  connection = t_tcp_manager.get(ip);
+  if (connection.d_handler) {
+    return false;
   }
+
+  const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
+  Socket s(ip.sin4.sin_family, SOCK_STREAM);
+  s.setNonBlocking();
+  ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+  s.bind(localip);
+
+  std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+  if (dnsOverTLS) {
+    TLSContextParameters tlsParams;
+    tlsParams.d_provider = "openssl";
+    tlsParams.d_validateCertificates = false;
+    // tlsParams.d_caStore
+    tlsCtx = getTLSContext(tlsParams);
+    if (tlsCtx == nullptr) {
+      g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
+      dnsOverTLS = false;
+    }
+  }
+  connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+  // Returned state ignored
+  // This can throw an exception, retry will need to happen at higher level
+  connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+  return true;
 }
 
 static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
@@ -275,7 +272,6 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   socklen_t slen = ip.getSocklen();
   uint16_t tlen = htons(vpacket.size());
   const char *lenP = reinterpret_cast<const char*>(&tlen);
-  const char *msgP = reinterpret_cast<const char*>(&*vpacket.begin());
 
   localip.sin4.sin_family = ip.sin4.sin_family;
   getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen);
@@ -283,7 +279,7 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   PacketBuffer packet;
   packet.reserve(2 + vpacket.size());
   packet.insert(packet.end(), lenP, lenP + 2);
-  packet.insert(packet.end(), msgP, msgP + vpacket.size());
+  packet.insert(packet.end(), vpacket.begin(), vpacket.end());
 
   LWResult::Result ret = asendtcp(packet, connection.d_handler);
   if (ret != LWResult::Result::Success) {
@@ -567,9 +563,6 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   auto ret = asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
 
   if (doTCP) {
-    if (!lwr->d_validpacket) {
-      ret = asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
-    }
     if (connection.d_handler && lwr->d_validpacket) {
       t_tcp_manager.store(*now, ip, std::move(connection));
     }

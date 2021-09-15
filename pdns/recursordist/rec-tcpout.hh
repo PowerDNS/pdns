@@ -29,13 +29,13 @@ class TCPOutConnectionManager
 {
 public:
   // Max idle time for a connection, 0 is no timeout
-  static struct timeval maxIdleTime;
+  static struct timeval s_maxIdleTime;
   // Per thread maximum of idle connections for a specific destination, 0 means no idle connections will be kept open
-  static size_t maxIdlePerAuth;
+  static size_t s_maxIdlePerAuth;
   // Max total number of queries to handle per connection, 0 is no max
-  static size_t maxQueries;
+  static size_t s_maxQueries;
   // Per thread max # of idle connections, 0 means no idle connections will be kept open
-  static size_t maxIdlePerThread;
+  static size_t s_maxIdlePerThread;
 
   struct Connection
   {

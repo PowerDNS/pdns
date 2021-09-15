@@ -28,21 +28,21 @@
 
 #include "syncres.hh"
 
-timeval TCPOutConnectionManager::maxIdleTime;
-size_t TCPOutConnectionManager::maxQueries;
-size_t TCPOutConnectionManager::maxIdlePerAuth;
-size_t TCPOutConnectionManager::maxIdlePerThread;
+timeval TCPOutConnectionManager::s_maxIdleTime;
+size_t TCPOutConnectionManager::s_maxQueries;
+size_t TCPOutConnectionManager::s_maxIdlePerAuth;
+size_t TCPOutConnectionManager::s_maxIdlePerThread;
 
 void TCPOutConnectionManager::cleanup(const struct timeval& now)
 {
-  if (maxIdleTime.tv_sec == 0 && maxIdleTime.tv_usec == 0) {
+  if (s_maxIdleTime.tv_sec == 0 && s_maxIdleTime.tv_usec == 0) {
     // no maximum idle time
     return;
   }
 
   for (auto it = d_idle_connections.begin(); it != d_idle_connections.end();) {
     timeval idle = now - it->second.d_last_used;
-    if (maxIdleTime < idle) {
+    if (s_maxIdleTime < idle) {
       it = d_idle_connections.erase(it);
     }
     else {
@@ -53,19 +53,19 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
 
 void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& ip, Connection&& connection)
 {
-  if (d_idle_connections.size() >= maxIdlePerThread || d_idle_connections.count(ip) >= maxIdlePerAuth) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(ip) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
 
-  if (d_idle_connections.size() >= maxIdlePerThread) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread) {
     return;
   }
-  if (d_idle_connections.count(ip) >= maxIdlePerAuth) {
+  if (d_idle_connections.count(ip) >= s_maxIdlePerAuth) {
     return;
   }
 
   ++connection.d_numqueries;
-  if (maxQueries > 0 && connection.d_numqueries > maxQueries) {
+  if (s_maxQueries > 0 && connection.d_numqueries > s_maxQueries) {
     return;
   }
   gettimeofday(&connection.d_last_used, nullptr);

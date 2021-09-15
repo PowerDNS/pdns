@@ -4506,7 +4506,7 @@ static void checkOrFixFDS()
 {
   unsigned int availFDs=getFilenumLimit(); 
   unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads +25; // even healthier margin then before
-  wantFDs += g_numWorkerThreads * TCPOutConnectionManager::maxIdlePerThread;
+  wantFDs += g_numWorkerThreads * TCPOutConnectionManager::s_maxIdlePerThread;
 
   if(wantFDs > availFDs) {
     unsigned int hardlimit= getFilenumLimit(true);
@@ -4515,7 +4515,7 @@ static void checkOrFixFDS()
       g_log<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
-      int newval = (hardlimit - 25 - TCPOutConnectionManager::maxIdlePerThread) / g_numWorkerThreads;
+      int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / g_numWorkerThreads;
       g_log<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
@@ -5066,10 +5066,10 @@ static int serviceMain(int argc, char*argv[])
   }
 
   int64_t millis = ::arg().asNum("tcp-out-max-idle-ms");
-  TCPOutConnectionManager::maxIdleTime = timeval{millis / 1000, (millis % 1000) * 1000 };
-  TCPOutConnectionManager::maxIdlePerAuth = ::arg().asNum("tcp-out-max-idle-per-auth");
-  TCPOutConnectionManager::maxQueries = ::arg().asNum("tcp-out-max-queries");
-  TCPOutConnectionManager::maxIdlePerThread = ::arg().asNum("tcp-out-max-idle-per-thread");
+  TCPOutConnectionManager::s_maxIdleTime = timeval{millis / 1000, (millis % 1000) * 1000 };
+  TCPOutConnectionManager::s_maxIdlePerAuth = ::arg().asNum("tcp-out-max-idle-per-auth");
+  TCPOutConnectionManager::s_maxQueries = ::arg().asNum("tcp-out-max-queries");
+  TCPOutConnectionManager::s_maxIdlePerThread = ::arg().asNum("tcp-out-max-idle-per-thread");
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
