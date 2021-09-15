@@ -145,7 +145,7 @@ message PBDNSMessage {
   }
 
   message Event {
-    required uint64 ts = 1;                     // Timestamp in ns relative to time of creation of event trace data structure
+    required int64 ts = 1;                      // Timestamp in ns relative to time of creation of event trace data structure
     required EventType event = 2;               // Type of event
     required bool start = 3;                    // true for "start" events, false for "completed" events
     optional bool boolVal = 4;                  // Below are optional values associated with events

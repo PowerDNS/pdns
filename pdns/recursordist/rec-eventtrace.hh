@@ -116,12 +116,12 @@ public:
 
   struct Entry
   {
-    Entry(Value_t& v, EventType e, bool start, uint64_t ts) :
+    Entry(Value_t& v, EventType e, bool start, int64_t ts) :
       d_value(v), d_ts(ts), d_event(e), d_start(start)
     {
     }
     Value_t d_value;
-    uint64_t d_ts;
+    int64_t d_ts;
     EventType d_event;
     bool d_start;
 
@@ -154,7 +154,7 @@ public:
     }
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    uint64_t stamp = ts.tv_nsec + ts.tv_sec * 1000000000;
+    int64_t stamp = ts.tv_nsec + ts.tv_sec * 1000000000;
     stamp -= d_base;
     d_events.emplace_back(v, e, start, stamp);
   }
@@ -222,7 +222,7 @@ public:
 
 private:
   std::vector<Entry> d_events;
-  uint64_t d_base;
+  int64_t d_base;
   enum Status
   {
     Disabled,
