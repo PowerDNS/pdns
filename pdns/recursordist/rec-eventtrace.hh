@@ -38,10 +38,9 @@ public:
   {
     // Don't forget to add a new entry to the table in the .cc file!
     RecRecv = 1,
-    DistPipe = 2,
-    PCacheCheck = 3,
-    SyncRes = 4,
-    AnswerSent = 5,
+    PCacheCheck = 2,
+    SyncRes = 3,
+    AnswerSent = 4,
     LuaGetTag = 100,
     LuaGetTagFFI = 101,
     LuaIPFilter = 102,
@@ -86,7 +85,7 @@ public:
     return *this;
   }
 
-  // We distinguisg beteen string and byres. Does not amtter in C++, but in Go, .Java etc it does
+  // We distinguish between strings and byte arrays. Does not matter in C++, but in Go, Java etc it does
   typedef std::variant<std::nullopt_t, bool, int64_t, std::string, PacketBuffer> Value_t;
 
   static std::string toString(const EventType v)

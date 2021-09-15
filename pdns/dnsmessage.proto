@@ -127,13 +127,13 @@ message PBDNSMessage {
   }
   repeated Meta meta = 22;                      // Arbitrary meta-data - to be used in future rather than adding new fields all the time
 
+  // The well known EventTrace event numbers
   enum EventType {
-    RecRecv = 1;
-    DistPipe = 2;
-    PCacheCheck = 3;
-    SyncRes = 4;
-    AnswerSent = 5;
-    LuaGetTag = 100;
+    RecRecv = 1;                                // A request was received by the recursor process
+    PCacheCheck = 2;                            // A packet cache check was initiated or completed; value: bool cacheHit
+    SyncRes = 3;                                // Syncres main function has started or completed; value: int rcode
+    AnswerSent = 4;                             // The answer was sent to the client
+    LuaGetTag = 100;                            // Events below mark start or end of Lua hook calls; value: return value of hook
     LuaGetTagFFI = 101;
     LuaIPFilter = 102;
     LuaPreRPZ = 103;
@@ -143,12 +143,12 @@ message PBDNSMessage {
     LuaNoData = 107;
     LuaNXDomain = 108;
   }
-  
+
   message Event {
-    required uint64 ts = 1;
-    required EventType event = 2;
-    required bool start = 3;
-    optional bool boolVal = 4;
+    required uint64 ts = 1;                     // Timestamp in ns relative to time of creation of event trace data structure
+    required EventType event = 2;               // Type of event
+    required bool start = 3;                    // true for "start" events, false for "completed" events
+    optional bool boolVal = 4;                  // Below are optional values associated with events
     optional int64 intVal = 5;
     optional string stringVal = 6;
     optional bytes bytesVal = 7;

@@ -28,7 +28,6 @@
 
 const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventNames = {
   NameEntry(RecRecv),
-  NameEntry(DistPipe),
   NameEntry(PCacheCheck),
   NameEntry(SyncRes),
   NameEntry(AnswerSent),
