@@ -1109,12 +1109,44 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
     snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
     std::string pname = pbasename + "seconds_bucket{" + "le=\"" +
       (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
-    entries.emplace(make_pair(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)}));
+    entries.emplace(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
 
   snprintf(buf, sizeof(buf), "%g", histogram.getSum() / 1e6);
-  entries.emplace(make_pair(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf}));
-  entries.emplace(make_pair(name + "count", StatsMapEntry{pbasename + "seconds_count", std::to_string(data.back().d_count)}));
+  entries.emplace(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf});
+  entries.emplace(name + "count", StatsMapEntry{pbasename + "seconds_count", std::to_string(data.back().d_count)});
+
+  return entries;
+}
+
+static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& histogram4,  const pdns::AtomicHistogram& histogram6)
+{
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+  char buf[32];
+  std::string pname;
+
+  const auto& data4 = histogram4.getCumulativeBuckets();
+  for (const auto& bucket : data4) {
+    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
+    pname = pbasename + "seconds_bucket{ipversion=\"v4\",le=\"" +
+      (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    entries.emplace(bucket.d_name + "4", StatsMapEntry{pname, std::to_string(bucket.d_count)});
+  }
+  snprintf(buf, sizeof(buf), "%g", histogram4.getSum() / 1e6);
+  entries.emplace(name + "sum4", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v4\"}", buf});
+  entries.emplace(name + "count4", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v4\"}", std::to_string(data4.back().d_count)});
+
+  const auto& data6 = histogram6.getCumulativeBuckets();
+  for (const auto& bucket : data6) {
+    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
+    pname = pbasename + "seconds_bucket{ipversion=\"v6\",le=\"" +
+      (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    entries.emplace(bucket.d_name + "6", StatsMapEntry{pname, std::to_string(bucket.d_count)});
+  }
+  snprintf(buf, sizeof(buf), "%g", histogram6.getSum() / 1e6);
+  entries.emplace(name + "sum6", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v6\"}", buf});
+  entries.emplace(name + "count6", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v6\"}", std::to_string(data6.back().d_count)});
 
   return entries;
 }
@@ -1402,14 +1434,11 @@ static void registerAllStats1()
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
   }
 
-  addGetStat("cumul-answers", []() {
+  addGetStat("cumul-clientanswers", []() {
     return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers);
   });
-  addGetStat("cumul-auth4answers", []() {
-    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers);
-  });
-  addGetStat("cumul-auth6answers", []() {
-    return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers);
+  addGetStat("cumul-authanswers", []() {
+    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers, g_stats.cumulativeAuth6Answers);
   });
   addGetStat("policy-hits", []() {
     return toRPZStatsMap("policy-hits", g_stats.policyHits);

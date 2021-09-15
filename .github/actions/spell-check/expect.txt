@@ -77,6 +77,7 @@ Atomia
 aton
 attr
 atype
+authanswers
 AUTHIP
 Authoritativedoc
 auths
@@ -233,6 +234,7 @@ chroot
 chrooting
 CIDR
 classmethod
+clientanswers
 Cloos
 closesocket
 clusions
