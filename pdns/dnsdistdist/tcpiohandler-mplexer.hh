@@ -187,7 +187,13 @@ public:
        and its reference count goes to zero */
     if (d_enabled && d_handler) {
       DEBUGLOG("IOStateGuard destroyed while holding a state, let's reset it");
-      d_handler->reset();
+      try {
+        d_handler->reset();
+      }
+      catch (const FDMultiplexerException& e) {
+        /* that should not happen, but an exception raised from a destructor would be bad so better
+           safe than sorry */
+      }
       d_enabled = false;
     }
   }
