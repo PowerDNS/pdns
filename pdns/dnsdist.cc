@@ -2550,7 +2550,7 @@ int main(int argc, char** argv)
     }
 
     if (!g_maxTCPClientThreads) {
-      g_maxTCPClientThreads = std::max(tcpBindsCount, static_cast<size_t>(10));
+      g_maxTCPClientThreads = static_cast<size_t>(10);
     }
     else if (*g_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
       warnlog("setMaxTCPClientThreads() has been set to 0 while we are accepting TCP connections, raising to 1");
