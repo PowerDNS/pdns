@@ -2,6 +2,57 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.1
+  :released: 15th of September 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10438
+
+    Backport a missing mutex header
+
+  .. change::
+    :tags: Bug Fixes, DNSTAP
+    :pullreq: 10538
+    :tickets: 10497
+
+    Set the dnstap/protobuf transport to TCP for DoH queries
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10550
+    :tickets: 10418
+
+    Add the missing DOHFronted::loadNewCertificatesAndKeys()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10560
+    :tickets: 10482
+
+    Implement a web endpoint to get metrics for only one pool
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10619
+    :tickets: 10419
+
+    Properly handle ECS for queries with ancount or nscount > 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10656
+
+    Catch FDMultiplexerException in IOStateHandler's destructor
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10706
+    :tickets: 10705
+
+    Fix outstanding counter issue on TCP error
+
+.. changelog::
   :version: 1.6.0
   :released: 11th of May 2021
 
