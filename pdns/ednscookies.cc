@@ -97,7 +97,6 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source) c
     return false;
   }
   if (secret.length() != crypto_shorthash_KEYBYTES) {
-    // XXX should we throw std::range_error here?
     return false;
   }
 
