@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include "responsestats.hh"
 
+#include "common_startup.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "dnspacket.hh"
@@ -40,6 +41,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 #include "statbag.hh"
+#include "proxy-protocol.hh"
 
 #include "namespaces.hh"
 
@@ -301,11 +303,31 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
     packet.d_dt.setTimeval(recvtv);
   }
   else
-    packet.d_dt.set(); // timing    
+    packet.d_dt.set(); // timing
+
+  if (g_proxyProtocolACL.match(remote)) {
+    ComboAddress psource, pdestination;
+    bool proxyProto, tcp;
+    std::vector<ProxyProtocolValue> ppvalues;
+
+    buffer.resize(len);
+    ssize_t used = parseProxyHeader(buffer, proxyProto, psource, pdestination, tcp, ppvalues);
+    if (used <= 0 || (size_t) used > g_proxyProtocolMaximumSize || (len - used) > DNSPacket::s_udpTruncationThreshold) {
+      S.inc("corrupt-packets");
+      S.ringAccount("remotes-corrupt", packet.d_remote);
+      return false;
+    }
+    buffer.erase(0, used);
+    packet.d_inner_remote = psource;
+    packet.d_tcp = tcp;
+  }
+  else {
+    packet.d_inner_remote.reset();
+  }
 
   if(packet.parse(&buffer.at(0), (size_t) len)<0) {
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet.d_remote);
+    S.ringAccount("remotes-corrupt", packet.getInnerRemote());
 
     return false; // unable to parse
   }

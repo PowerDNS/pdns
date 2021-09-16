@@ -1158,6 +1158,7 @@ openssl
 opensuse
 openwall
 Opmeer
+OPNUM
 optcode
 Opteron
 optmem

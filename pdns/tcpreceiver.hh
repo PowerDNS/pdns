@@ -49,7 +49,6 @@ public:
 private:
 
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
-  static int readLength(int fd, ComboAddress *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock);

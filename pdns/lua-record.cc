@@ -978,7 +978,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeVariable("qname", query);
   lua.writeVariable("zone", zone);
   lua.writeVariable("zoneid", zoneid);
-  lua.writeVariable("who", dnsp.getRemote());
+  lua.writeVariable("who", dnsp.getInnerRemote());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
   lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
   lua.writeVariable("tcp", dnsp.d_tcp);
@@ -989,7 +989,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   }
   else {
     lua.writeVariable("ecswho", nullptr);
-    s_lua_record_ctx->bestwho = dnsp.getRemote();
+    s_lua_record_ctx->bestwho = dnsp.getInnerRemote();
   }
   lua.writeVariable("bestwho", s_lua_record_ctx->bestwho);
 

@@ -1253,6 +1253,32 @@ prevent-self-notification to "no".
 
 Turn on operating as a primary. See :ref:`primary-operation`.
 
+.. _setting-proxy-protocol-from:
+
+``proxy-protocol-from``
+-----------------------
+.. versionadded:: 4.6.0
+
+-  IP addresses or netmasks, separated by commas
+-  Default: empty
+
+Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the Authoritative.
+Queries that are not prefixed with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
+
+Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against primary addresses sending NOTIFYs, and the ACLs for any client requesting AXFRs.
+When using this setting combined with :ref:`setting-trusted-notification-proxy`, please be aware that the trusted address will also be checked against the source address in the PROXY header.
+
+.. _setting-proxy-protocol-maximum-size:
+
+``proxy-protocol-maximum-size``
+-------------------------------
+.. versionadded:: 4.6.0
+
+-  Integer
+-  Default: 512
+
+The maximum size, in bytes, of a Proxy Protocol payload (header, addresses and ports, and TLV values). Queries with a larger payload will be dropped.
+
 .. _setting-query-cache-ttl:
 
 ``query-cache-ttl``

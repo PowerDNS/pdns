@@ -61,8 +61,9 @@ public:
   const string& getString(); //!< for serialization - just passes the whole packet
 
   // address & socket manipulation
-  void setRemote(const ComboAddress*);
+  void setRemote(const ComboAddress*, std::optional<ComboAddress> = std::nullopt);
   ComboAddress getRemote() const;
+  ComboAddress getInnerRemote() const; // for proxy protocol
   Netmask getRealRemote() const;
   ComboAddress getLocal() const
   {
@@ -73,6 +74,9 @@ public:
   }
   uint16_t getRemotePort() const;
 
+  string getRemoteString() const;
+  string getRemoteStringWithPort() const;
+
   boost::optional<ComboAddress> d_anyLocal;
 
   Utility::sock_t getSocket() const
@@ -80,7 +84,6 @@ public:
     return d_socket;
   }
   void setSocket(Utility::sock_t sock);
-
 
   // these manipulate 'd'
   void setA(bool); //!< make this packet authoritative - manipulates 'd'
@@ -144,6 +147,7 @@ public:
   TSIGRecordContent d_trc; //72
 
   ComboAddress d_remote; //28
+  std::optional<ComboAddress> d_inner_remote; // the 'outer' remote is the IP on the physical packet header. The 'inner' remote lives one layer deeper, in the PROXY header.
   TSIGHashEnum d_tsig_algo{TSIG_MD5}; //4
 
   int d_ednsRawPacketSizeLimit{-1}; // only used for Lua record

@@ -58,6 +58,8 @@
 #include "namespaces.hh"
 #include "signingpipe.hh"
 #include "stubresolver.hh"
+#include "proxy-protocol.hh"
+#include "noinitvector.hh"
 extern AuthPacketCache PC;
 extern StatBag S;
 
@@ -240,9 +242,59 @@ void TCPNameserver::doConnection(int fd)
   try {
     int mesgsize=65535;
     boost::scoped_array<char> mesg(new char[mesgsize]);
-    
+    std::optional<ComboAddress> inner_remote;
+    bool inner_tcp = false;
+
     DLOG(g_log<<"TCP Connection accepted on fd "<<fd<<endl);
     bool logDNSQueries= ::arg().mustDo("log-dns-queries");
+    if (g_proxyProtocolACL.match(remote)) {
+      unsigned int remainingTime = 0;
+      PacketBuffer proxyData;
+      proxyData.reserve(g_proxyProtocolMaximumSize);
+      ssize_t used;
+
+      // this for-loop ends by throwing, or by having gathered a complete proxy header
+      for (;;) {
+        used = isProxyHeaderComplete(proxyData);
+        if (used < 0) {
+          ssize_t origsize = proxyData.size();
+          proxyData.resize(origsize + -used);
+          if (maxConnectionDurationReached(d_maxConnectionDuration, start, remainingTime)) {
+            throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": maximum TCP connection duration exceeded");
+          }
+
+          try {
+            readnWithTimeout(fd, &proxyData[origsize], -used, d_idleTimeout, true, remainingTime);
+          }
+          catch(NetworkError& ae) {
+            throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": "+ae.what());
+          }
+        }
+        else if (used == 0) {
+          throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": PROXYv2 header was invalid");
+        }
+        else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+          throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": PROXYv2 header too big");
+        }
+        else { // used > 0 && used <= g_proxyProtocolMaximumSize
+          break;
+        }
+      }
+      ComboAddress psource, pdestination;
+      bool proxyProto, tcp;
+      std::vector<ProxyProtocolValue> ppvalues;
+
+      used = parseProxyHeader(proxyData, proxyProto, psource, pdestination, tcp, ppvalues);
+      if (used <= 0) {
+        throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": PROXYv2 header was invalid");
+      }
+      if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+        throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": PROXYv2 header was oversized");
+      }
+      inner_remote = psource;
+      inner_tcp = tcp;
+    }
+
     for(;;) {
       unsigned int remainingTime = 0;
       transactions++;
@@ -288,6 +340,10 @@ void TCPNameserver::doConnection(int fd)
       packet=make_unique<DNSPacket>(true);
       packet->setRemote(&remote);
       packet->d_tcp=true;
+      if (inner_remote) {
+        packet->d_inner_remote = inner_remote;
+        packet->d_tcp = inner_tcp;
+      }
       packet->setSocket(fd);
       if(packet->parse(mesg.get(), pktlen)<0)
         break;
@@ -305,12 +361,7 @@ void TCPNameserver::doConnection(int fd)
       std::unique_ptr<DNSPacket> reply; 
       auto cached = make_unique<DNSPacket>(false);
       if(logDNSQueries)  {
-        string remote_text;
-        if(packet->hasEDNSSubnet())
-          remote_text = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
-        else
-          remote_text = packet->getRemote().toString();
-        g_log << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.toString() <<
+        g_log << Logger::Notice<<"TCP Remote "<< packet->getRemoteString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.toString() <<
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen();
       }
 
@@ -383,7 +434,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
   if(::arg().mustDo("disable-axfr"))
     return false;
 
-  string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+q->qdomain.toLogString()+"', client '"+q->getRemote().toStringWithPort()+"', ";
+  string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+q->qdomain.toLogString()+"', client '"+q->getInnerRemote().toStringWithPort()+"', ";
 
   if(q->d_havetsig) { // if you have one, it must be good
     TSIGRecordContent trc;
@@ -407,7 +458,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
   }
   
   // cerr<<"checking allow-axfr-ips"<<endl;
-  if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
+  if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( q->getInnerRemote() )) {
     g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in allow-axfr-ips"<<endl;
     return true;
   }
@@ -436,7 +487,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
           vector<string> nsips=fns.lookup(j, s_P->getBackend());
           for(const auto & nsip : nsips) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
-            if(nsip == q->getRemote().toString())
+            if(nsip == q->getInnerRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
               g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in NSset"<<endl;
@@ -448,7 +499,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
       else
       {
         Netmask nm = Netmask(i);
-        if(nm.match( (ComboAddress *) &q->d_remote ))
+        if(nm.match( q->getInnerRemote() ))
         {
           g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in per-zone ACL"<<endl;
           // cerr<<"hit!"<<endl;
@@ -460,7 +511,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
 
   extern CommunicatorClass Communicator;
 
-  if(Communicator.justNotified(q->qdomain, q->getRemote().toString())) { // we just notified this ip
+  if(Communicator.justNotified(q->qdomain, q->getInnerRemote().toString())) { // we just notified this ip
     g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is from recently notified secondary"<<endl;
     return true;
   }
@@ -491,7 +542,7 @@ namespace {
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  string logPrefix="AXFR-out zone '"+target.toLogString()+"', client '"+q->getRemote().toStringWithPort()+"', ";
+  string logPrefix="AXFR-out zone '"+target.toLogString()+"', client '"+q->getRemoteString()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
@@ -1023,7 +1074,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
 int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  string logPrefix="IXFR-out zone '"+q->qdomain.toLogString()+"', client '"+q->getRemote().toStringWithPort()+"', ";
+  string logPrefix="IXFR-out zone '"+q->qdomain.toLogString()+"', client '"+q->getRemoteString()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
   if(q->d_dnssecOk)

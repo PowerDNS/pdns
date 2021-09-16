@@ -239,6 +239,7 @@ pdns_server_SOURCES = \
 	packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
+	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \

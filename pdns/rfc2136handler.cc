@@ -644,7 +644,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + itoa(p.d.id) + ") from " + p.getRemote().toString() + " for " + p.qdomain.toLogString() + ": ";
+  string msgPrefix="UPDATE (" + itoa(p.d.id) + ") from " + p.getRemoteString() + " for " + p.qdomain.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
@@ -661,7 +661,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       ng.addMask(i);
     }
 
-    if ( ! ng.match(&p.d_remote)) {
+    if ( ! ng.match(p.getInnerRemote())) {
       g_log<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
       return RCode::Refused;
     }

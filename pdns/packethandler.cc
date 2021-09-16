@@ -941,9 +941,12 @@ int PacketHandler::trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname
 
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname)
 {
-  ComboAddress remote = p.getRemote();
+  ComboAddress remote = p.getInnerRemote();
   if(p.hasEDNSSubnet() && pdns::isAddressTrustedNotificationProxy(remote)) {
     remote = p.getRealRemote().getNetwork();
+  }
+  else {
+    remote = p.getInnerRemote();
   }
   remote.setPort(53);
 
@@ -1019,34 +1022,34 @@ int PacketHandler::processNotify(const DNSPacket& p)
      if master is higher -> do stuff
   */
 
-  g_log<<Logger::Debug<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<endl;
+  g_log<<Logger::Debug<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<endl;
 
   if(!::arg().mustDo("secondary") && s_forwardNotify.empty()) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but slave support is disabled in the configuration"<<endl;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::Refused;
   }
 
   // Sender verification
   //
-  if(!s_allowNotifyFrom.match((ComboAddress *) &p.d_remote ) || p.d_havetsig) {
+  if(!s_allowNotifyFrom.match(p.getInnerRemote()) || p.d_havetsig) {
     if (p.d_havetsig && p.getTSIGKeyname().empty() == false) {
-        g_log<<Logger::Notice<<"Received secure NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<", with TSIG key '"<<p.getTSIGKeyname()<<"'"<<endl;
+        g_log<<Logger::Notice<<"Received secure NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<", with TSIG key '"<<p.getTSIGKeyname()<<"'"<<endl;
     } else {
-      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but the remote is not providing a TSIG key or in allow-notify-from (Refused)"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but the remote is not providing a TSIG key or in allow-notify-from (Refused)"<<endl;
       return RCode::Refused;
     }
   }
 
   if ((!::arg().mustDo("allow-unsigned-notify") && !p.d_havetsig) || p.d_havetsig) {
     if (!p.d_havetsig) {
-      g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" while a TSIG key was required (Refused)"<<endl;
+      g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" while a TSIG key was required (Refused)"<<endl;
       return RCode::Refused;
     }
     vector<string> meta;
     if (B.getDomainMetadata(p.qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
       DNSName expected{meta[0]};
       if (p.getTSIGKeyname() != expected) {
-        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<": expected TSIG key '"<<expected<<"', got '"<<p.getTSIGKeyname()<<"' (Refused)"<<endl;
+        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<": expected TSIG key '"<<expected<<"', got '"<<p.getTSIGKeyname()<<"' (Refused)"<<endl;
         return RCode::Refused;
       }
     }
@@ -1057,41 +1060,41 @@ int PacketHandler::processNotify(const DNSPacket& p)
   DomainInfo di;
   if(!B.getDomainInfo(p.qdomain, di, false) || !di.backend) {
     if(::arg().mustDo("autosecondary")) {
-      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" for which we are not authoritative, trying supermaster"<<endl;
       return trySuperMaster(p, p.getTSIGKeyname());
     }
-    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" for which we are not authoritative (Refused)"<<endl;
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" for which we are not authoritative (Refused)"<<endl;
     return RCode::Refused;
   }
 
-  if(pdns::isAddressTrustedNotificationProxy(p.getRemote())) {
+  if(pdns::isAddressTrustedNotificationProxy(p.getInnerRemote())) {
     if(di.masters.empty()) {
-      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<", zone does not have any masters defined (Refused)"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemoteString()<<", zone does not have any masters defined (Refused)"<<endl;
       return RCode::Refused;
     }
-    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<endl;
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemoteString()<<endl;
   }
   else if(::arg().mustDo("primary") && di.kind == DomainInfo::Master) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but we are master (Refused)"<<endl;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but we are master (Refused)"<<endl;
     return RCode::Refused;
   }
-  else if(!di.isMaster(p.getRemote())) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" which is not a master (Refused)"<<endl;
+  else if(!di.isMaster(p.getInnerRemote())) {
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" which is not a master (Refused)"<<endl;
     return RCode::Refused;
   }
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
     for(const auto & j : forwardNotify) {
-      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemote()<<" to "<<j<<endl;
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemoteString()<<" to "<<j<<endl;
       Communicator.notify(p.qdomain,j);
     }
   }
 
   if(::arg().mustDo("secondary")) {
-    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" - queueing check"<<endl;
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" - queueing check"<<endl;
     di.receivedNotify = true;
-    Communicator.addSlaveCheckRequest(di, p.d_remote);
+    Communicator.addSlaveCheckRequest(di, p.getInnerRemote());
   }
   return 0;
 }
@@ -1273,17 +1276,17 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   
   if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.d_remote);
+    S.ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
   if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
     if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemoteString()<<", dropping"<<endl;
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.d_remote);
+    S.ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
@@ -1329,9 +1332,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(!validDNSName(p.qdomain)) {
       if(d_logDNSDetails)
-        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemote()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
+        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemoteString()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", p.d_remote);
+      S.ringAccount("remotes-corrupt", p.getInnerRemote());
       S.inc("servfail-packets");
       r->setRcode(RCode::ServFail);
       return r;
@@ -1359,13 +1362,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         return nullptr;
       }
       
-      g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemote()<<" for "<<p.qdomain<<endl;
+      g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
 
       r->setRcode(RCode::NotImp); 
       return r; 
     }
 
-    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemote()<< " (tcp="<<p.d_tcp<<")"<<endl;
+    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
     
     if(p.qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::Refused);
@@ -1464,7 +1467,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     // this TRUMPS a cname!
     if(p.qtype.getCode() == QType::RRSIG) {
-      g_log<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p.getRemote()<<endl;
+      g_log<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p.getRemoteString()<<endl;
       r->setRcode(RCode::Refused);
       goto sendit;
     }

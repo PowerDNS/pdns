@@ -41,10 +41,10 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("parse", [](DNSPacket &p, const char *mesg, size_t len){ return p.parse(mesg, len); });
   d_lw->registerFunction<DNSPacket, const std::string()>("getString", [](DNSPacket &p) { return p.getString(); });
   d_lw->registerFunction<DNSPacket, void(const ComboAddress&)>("setRemote", [](DNSPacket &p, const ComboAddress &ca) { p.setRemote(&ca); });
-  d_lw->registerFunction<DNSPacket, ComboAddress()>("getRemote", [](DNSPacket &p) { return p.getRemote(); });
+  d_lw->registerFunction<DNSPacket, ComboAddress()>("getRemote", [](DNSPacket &p) { return p.getInnerRemote(); });
   d_lw->registerFunction<DNSPacket, Netmask()>("getRealRemote", [](DNSPacket &p) { return p.getRealRemote(); });
   d_lw->registerFunction<DNSPacket, ComboAddress()>("getLocal", [](DNSPacket &p) { return p.getLocal(); });
-  d_lw->registerFunction<DNSPacket, unsigned int()>("getRemotePort", [](DNSPacket &p) { return p.getRemotePort(); });
+  d_lw->registerFunction<DNSPacket, unsigned int()>("getRemotePort", [](DNSPacket &p) { return p.getInnerRemote().getPort(); });
   d_lw->registerFunction<DNSPacket, std::tuple<const std::string, unsigned int>()>("getQuestion", [](DNSPacket &p) { return std::make_tuple(p.qdomain.toString(), static_cast<unsigned int>(p.qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, void(bool)>("setA", [](DNSPacket &p, bool a) { return p.setA(a); });
   d_lw->registerFunction<DNSPacket, void(unsigned int)>("setID", [](DNSPacket &p, unsigned int id) { return p.setID(static_cast<uint16_t>(id)); });
@@ -153,7 +153,7 @@ bool AuthLua4::updatePolicy(const DNSName &qname, const QType& qtype, const DNSN
   upq.qtype = qtype.getCode();
   upq.zonename = zonename;
   upq.local = packet.getLocal();
-  upq.remote = packet.getRemote();
+  upq.remote = packet.getInnerRemote();
   upq.realRemote = packet.getRealRemote();
   upq.tsigName = packet.getTSIGKeyname();
   upq.peerPrincipal = packet.d_peer_principal;
