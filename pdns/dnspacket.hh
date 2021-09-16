@@ -147,7 +147,7 @@ public:
   TSIGRecordContent d_trc; //72
 
   ComboAddress d_remote; //28
-  std::optional<ComboAddress> d_inner_remote; // for proxy protocol
+  std::optional<ComboAddress> d_inner_remote; // the 'outer' remote is the IP on the physical packet header. The 'inner' remote lives one layer deeper, in the PROXY header.
   TSIGHashEnum d_tsig_algo{TSIG_MD5}; //4
 
   int d_ednsRawPacketSizeLimit{-1}; // only used for Lua record
