@@ -48,13 +48,18 @@ dnsdist depends on the following libraries:
 * `Boost <http://boost.org/>`_
 * `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
 * `Editline (libedit) <http://thrysoee.dk/editline/>`_
-* `GnuTLS <https://www.gnutls.org/>`_ (optional)
-* `libh2o <https://github.com/h2o/h2o>`_ (optional)
-* `libsodium <https://download.libsodium.org/doc/>`_ (optional)
-* `nghttp2 <https://nghttp2.org/>`_ (optional)
-* `OpenSSL <https://www.openssl.org/>`_ (optional)
+* `libfstrm <https://github.com/farsightsec/fstrm>`_ (optional, dnstap support)
+* `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and outgoing DoH support)
+* `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support)
+* `libcap <https://sites.google.com/site/fullycapable/>`_ (optional, capabilities support)
+* `libsodium <https://download.libsodium.org/doc/>`_ (optional, DNSCrypt and console encryption support)
+* `LMDB <http://www.lmdb.tech/doc/>`_ (optional, LMDB support)
+* `net-snmp <http://www.net-snmp.org/>`_ (optional, SNMP support)
+* `nghttp2 <https://nghttp2.org/>`_ (optional, outgoing DoH support)
+* `OpenSSL <https://www.openssl.org/>`_ (optional, DoT and DoH support)
 * `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional, not needed as of 1.6.0)
 * `re2 <https://github.com/google/re2>`_ (optional)
+* `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>` (optional, CDB support)
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (``libsystemd-dev`` on Debian and ``systemd-devel`` on CentOS)
