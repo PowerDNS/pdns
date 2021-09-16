@@ -684,7 +684,6 @@ hlmann
 hmac
 Hmi
 Hoentjen
-Hoffst
 Hofstaedtler
 Holger
 homepage
@@ -1716,7 +1715,6 @@ tsigname
 tsigsecret
 tstamp
 TSU
-tte
 ttl
 Tuinder
 tunables

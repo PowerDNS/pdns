@@ -60,3 +60,6 @@ C0FFEE
 # DoT: DNS over TLS is often combined with other words (images, links, ...), same for DoH
 DoT
 DoH
+
+# Contributor with a non-ascii character in their name
+Hoffst[^[:ascii:]]tte
