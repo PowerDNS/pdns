@@ -479,7 +479,7 @@ try
     S.ringAccount("queries", question.qdomain, question.qtype);
     S.ringAccount("remotes", question.d_remote);
     if(logDNSQueries) {
-      g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype.toString() <<
+      g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype <<
         "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
       if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
         g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
