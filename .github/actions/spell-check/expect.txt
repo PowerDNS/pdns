@@ -364,6 +364,7 @@ DIGESTALGOS
 Digitalus
 dijk
 dilinger
+Dimitrios
 Directi
 Disqus
 distro
@@ -683,7 +684,9 @@ hlmann
 hmac
 Hmi
 Hoentjen
+Hoffst
 Hofstaedtler
+Holger
 homepage
 Hooimeijer
 hostmaster
@@ -954,6 +957,7 @@ mariadb
 Markmann
 Massar
 matchtype
+Mavrommatis
 maxdepth
 MAXINT
 maxlistdepth
@@ -1712,6 +1716,7 @@ tsigname
 tsigsecret
 tstamp
 TSU
+tte
 ttl
 Tuinder
 tunables

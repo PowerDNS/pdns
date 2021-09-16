@@ -2,6 +2,187 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0-alpha1
+  :released: TBD
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 10381
+
+    Reorganize the IDState and Rings fields to reduce memory usage
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10429
+
+    Fix 'temporary used in loop' warnings reported by g++ 11.1.0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10419
+    :tickets: 10409, 10410
+
+    Properly handle ECS for queries with ancount or nscount > 0 (Dimitrios Mavrommatis)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10441
+
+    Skip some memory allocations in client mode to reduce memory usage
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10414
+
+    Support multiple ip addresses for dnsdist-resolver lua script (Wim)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10489
+    :tickets: 10436
+
+    Make DNSDist XFR aware when transfer is finished (Dimitrios Mavrommatis)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10532
+    :tickets: 10456
+
+    Add FFI functions to spoof multiple raw values
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10508
+    :tickets: 10500
+
+    Do not report latency metrics of down upstream servers (Holger Hoffstätte)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10537
+    :tickets: 10338
+
+    Carry the exact incoming protocol (Do53, DNSCrypt, DoT, DoH) in DQ
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10527
+    :tickets: 10502
+
+    Implement 'reload()' to rotate Log(Response)Action's log file
+
+  .. change::
+    :tags: New Features, Performance
+    :pullreq: 10501
+
+    Add support for Lua per-thread FFI rules and actions
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 10520
+
+    Don't look up the LMDB dbi by name for every query
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10525
+    :tickets: 10520
+
+    Add support for range-based lookups into a Key-Value store
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10626
+
+    Document that setECSOverride has its drawbacks (Andreas Jakum)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10650
+
+    Fix the wrong RD and CD flags being cached, causing misses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10649
+
+    Convert dnsdist and the recursor to LockGuarded
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10631
+
+    Handle waiting for a descriptor to become readable OR writable
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10664
+
+    Cache based on the DNS flags of the query after applying the rules
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10656
+
+    Catch FDMultiplexerException in IOStateHandler's destructor
+
+  .. change::
+    :tags: New Features, DNS over TLS
+    :pullreq: 10338
+
+    Implement cross-protocol queries, including outgoing DNS over TLS
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10672
+
+    Resizing LMDB map size while there might be open transactions is unsafe
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10597
+    :tickets: 10367
+
+    Implement SpoofSVCAction to return SVC responses
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10695
+    :tickets: 10693
+
+    Ignore TCAction over TCP
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10705
+
+    Fix outstanding counter issue when a TCP connection dies
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10687
+
+    Clean up a bit of "cast from type [...] casts away qualifiers" warnings
+
+  .. change::
+    :tags: New Features, DNS over HTTPS
+    :pullreq: 10635
+
+    Implementation of DoH between dnsdist and the backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10704
+
+    Stop raising the number of TCP workers to the number of TCP binds
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10724
+
+    Handle exception raised in IOStateGuard's destructor
+
+.. changelog::
   :version: 1.6.1
   :released: 15th of September 2021
 
