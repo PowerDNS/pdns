@@ -166,6 +166,8 @@ Listen Sockets
     ``sessionTimeout`` and ``tcpListenQueueSize`` options added.
   .. versionchanged:: 1.6.0
     ``enableRenegotiation``, ``maxConcurrentTCPConnections``, ``maxInFlight`` and ``releaseBuffers`` options added.
+  .. versionchanged:: 1.7.0
+    ``tlsAsyncMode`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -199,6 +201,7 @@ Listen Sockets
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled (OpenSSL only, the GnuTLS provider does not support it). Disabled by default since it increases the attack surface and is seldom used for DNS.
+  * ``tlsAsyncMode=false``: bool - Whether to enable experimental asynchronous TLS I/O operations if OpenSSL is used as the TLS provider and an asynchronous capable SSL engine is loaded. See also :func:`loadTLSEngine` to load the engine.
 
 .. function:: setLocal(address[, options])
 
@@ -1610,6 +1613,17 @@ Other functions
   :param string outputFile: Path to a file where the resulting OCSP response will be written to.
   :param int numberOfDaysOfValidity: Number of days this OCSP response should be valid.
   :param int numberOfMinutesOfValidity: Number of minutes this OCSP response should be valid, in addition to the number of days.
+
+.. function:: loadTLSEngine(engineName [, defaultString])
+
+  .. versionadded:: 1.7.0
+
+  Load the OpenSSL engine named ``engineName``, setting the engine default string to ``defaultString`` if supplied. Engines can be used to accelerate cryptographic operations, like for example Intel QAT.
+  At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental.
+  Some engines might not actually decrease, and sometimes increase, the CPU usage when the TLS asynchronous mode of OpenSSL is not enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal`.
+
+  :param string engineName: The name of the engine to load.
+  :param string defaultString: The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register to this engine, as a list of  comma-separated keywords. For example "RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1".
 
 DOHFrontend
 ~~~~~~~~~~~

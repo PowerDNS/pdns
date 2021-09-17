@@ -383,6 +383,17 @@ void IncomingTCPConnectionState::terminateClientConnection()
     }
   }
   d_ownedConnectionsToBackend.clear();
+
+  /* let's make sure we don't have any remaining async descriptors laying around */
+  auto afds = d_handler.getAsyncFDs();
+  for (const auto afd : afds) {
+    try {
+      d_threadData.mplexer->removeReadFD(afd);
+    }
+    catch (...) {
+    }
+  }
+
   /* meaning we will no longer be 'active' when the backend
      response or timeout comes in */
   d_ioState.reset();
@@ -416,8 +427,43 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
 
     // for the same reason we need to update the state right away, nobody will do that for us
     if (state->active()) {
-      state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+      updateIO(state, iostate, now);
     }
+  }
+}
+
+void IncomingTCPConnectionState::handleAsyncReady(int fd, FDMultiplexer::funcparam_t& param)
+{
+  auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
+
+  /* If we are here, the async jobs for this SSL* are finished
+     so we should be able to remove all FDs */
+  auto afds = state->d_handler.getAsyncFDs();
+  for (const auto afd : afds) {
+    try {
+      state->d_threadData.mplexer->removeReadFD(afd);
+    }
+    catch (...) {
+    }
+  }
+
+  /* and now we restart our own I/O state machine */
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  handleIO(state, now);
+}
+
+void IncomingTCPConnectionState::updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now)
+{
+  if (newState == IOState::Async) {
+    auto fds = state->d_handler.getAsyncFDs();
+    for (const auto fd : fds) {
+      state->d_threadData.mplexer->addReadFD(fd, handleAsyncReady, state);
+    }
+    state->d_ioState->update(IOState::Done, handleIOCallback, state);
+  }
+  else {
+    state->d_ioState->update(newState, handleIOCallback, state, newState == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
   }
 }
 
@@ -1004,7 +1050,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       state->d_ioState->update(iostate, handleIOCallback, state);
     }
     else {
-      state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedRead ? state->getClientReadTTD(now) : state->getClientWriteTTD(now));
+      updateIO(state, iostate, now);
     }
     ioGuard.release();
   }
@@ -1028,7 +1074,7 @@ void IncomingTCPConnectionState::notifyIOError(IDState&& query, const struct tim
 
       if (state->active() && iostate != IOState::Done) {
         // we need to update the state right away, nobody will do that for us
-        state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+	updateIO(state, iostate, now);
       }
     }
     catch (const std::exception& e) {

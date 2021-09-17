@@ -144,6 +144,28 @@ public:
     SSL_set_ex_data(d_conn.get(), s_tlsConnIndex, this);
   }
 
+  std::vector<int> getAsyncFDs() override
+  {
+    if (SSL_waiting_for_async(d_conn.get()) != 1) {
+      return {};
+    }
+
+    OSSL_ASYNC_FD fds[32];
+    size_t numfds = sizeof(fds)/sizeof(*fds);
+    SSL_get_all_async_fds(d_conn.get(), nullptr, &numfds);
+    if (numfds == 0) {
+      return {};
+    }
+
+    SSL_get_all_async_fds(d_conn.get(), fds, &numfds);
+    std::vector<int> results;
+    results.reserve(numfds);
+    for (size_t idx = 0; idx < numfds; idx++) {
+      results.push_back(fds[idx]);
+    }
+    return results;
+  }
+
   IOState convertIORequestToIOState(int res) const
   {
     int error = SSL_get_error(d_conn.get(), res);
@@ -163,6 +185,9 @@ public:
     }
     else if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
+    }
+    else if (error == SSL_ERROR_WANT_ASYNC) {
+      return IOState::Async;
     }
     else {
       if (g_verbose) {
@@ -1448,6 +1473,11 @@ public:
     flags |= GNUTLS_ALPN_MAND;
 #endif
     return gnutls_alpn_set_protocols(d_conn.get(), values.data(), values.size(), flags);
+  }
+
+  std::vector<int> getAsyncFDs() override
+  {
+    return {};
   }
 
 private:

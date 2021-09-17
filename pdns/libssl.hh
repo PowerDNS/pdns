@@ -4,6 +4,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,8 @@ public:
   bool d_releaseBuffers{true};
   /* whether so-called secure renegotiation should be allowed for TLS < 1.3 */
   bool d_enableRenegotiation{false};
+  /* enable TLS async mode, if supported by any engine */
+  bool d_asyncMode{false};
 };
 
 struct TLSErrorCounters
@@ -134,5 +137,7 @@ void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsig
 bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos);
 
 std::string libssl_get_error_string();
+
+std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString);
 
 #endif /* HAVE_LIBSSL */

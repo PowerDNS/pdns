@@ -254,6 +254,11 @@ public:
     return {};
   }
 
+  std::vector<int> getAsyncFDs() override
+  {
+    return {};
+  }
+
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
   }

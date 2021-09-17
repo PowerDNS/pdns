@@ -9,7 +9,7 @@
 #include "misc.hh"
 #include "noinitvector.hh"
 
-enum class IOState : uint8_t { Done, NeedRead, NeedWrite };
+enum class IOState : uint8_t { Done, NeedRead, NeedWrite, Async };
 
 class TLSSession
 {
@@ -39,6 +39,7 @@ public:
   virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual bool isUsable() const = 0;
+  virtual std::vector<int> getAsyncFDs() = 0;
   virtual void close() = 0;
 
   void setUnknownTicketKey()
@@ -545,6 +546,14 @@ public:
       return isTCPSocketUsable(d_socket);
     }
     return d_conn->isUsable();
+  }
+
+  std::vector<int> getAsyncFDs()
+  {
+    if (!d_conn) {
+      return {};
+    }
+    return d_conn->getAsyncFDs();
   }
 
   const static bool s_disableConnectForUnitTests;
