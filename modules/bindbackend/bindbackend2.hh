@@ -107,36 +107,34 @@ typedef multi_index_container<
   recordstorage_t;
 
 template <typename T>
-class LookButDontTouch //  : public boost::noncopyable
+class LookButDontTouch
 {
 public:
   LookButDontTouch()
   {
   }
-  LookButDontTouch(shared_ptr<T> records) :
-    d_records(records)
+  LookButDontTouch(shared_ptr<T>&& records) :
+    d_records(std::move(records))
   {
   }
 
   shared_ptr<const T> get()
   {
-    shared_ptr<const T> ret;
-    {
-      std::lock_guard<std::mutex> lock(s_lock);
-      ret = d_records;
-    }
-    return ret;
+    return d_records;
   }
 
   size_t getEntriesCount() const
   {
-    std::lock_guard<std::mutex> lock(s_lock);
+    if (!d_records) {
+      return 0;
+    }
     return d_records->size();
   }
 
 private:
-  static std::mutex s_lock;
-  shared_ptr<T> d_records;
+  /* we can increase the number of references to that object,
+     but never update the object itself */
+  shared_ptr<const T> d_records;
 };
 
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
@@ -233,8 +231,7 @@ public:
                                 indexed_by<ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id>>,
                                            ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name>>>>
     state_t;
-  static state_t s_state;
-  static ReadWriteLock s_state_lock;
+  static SharedLockGuarded<state_t> s_state;
 
   void parseZoneFile(BB2DomainInfo* bbd);
   void rediscover(string* status = nullptr) override;

@@ -66,7 +66,7 @@
    or safeRemoveBBDomainInfo. These all lock as they should.
 
    Several functions need to traverse s_state to get data for the rest of PowerDNS. When doing so,
-   you need to manually take the s_state_lock (read).
+   you need to manually take the lock (read).
 
    Parsing zones happens with parseZone(), which fills a BB2DomainInfo object. This can then be stored with safePutBBDomainInfo.
 
@@ -74,17 +74,13 @@
    the records might be in use in other places.
 */
 
-Bind2Backend::state_t Bind2Backend::s_state;
+SharedLockGuarded<Bind2Backend::state_t> Bind2Backend::s_state;
 int Bind2Backend::s_first = 1;
 bool Bind2Backend::s_ignore_broken_records = false;
 
-ReadWriteLock Bind2Backend::s_state_lock;
 std::mutex Bind2Backend::s_supermaster_config_lock; // protects writes to config file
 std::mutex Bind2Backend::s_startup_lock;
 string Bind2Backend::s_binddirectory;
-
-template <typename T>
-std::mutex LookButDontTouch<T>::s_lock;
 
 BB2DomainInfo::BB2DomainInfo()
 {
@@ -137,44 +133,45 @@ void BB2DomainInfo::setCtime()
 
 bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
 {
-  ReadLock rl(&s_state_lock);
-  state_t::const_iterator iter = s_state.find(id);
-  if (iter == s_state.end())
+  auto state = s_state.read_lock();
+  state_t::const_iterator iter = state->find(id);
+  if (iter == state->end()) {
     return false;
+  }
   *bbd = *iter;
   return true;
 }
 
 bool Bind2Backend::safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd)
 {
-  ReadLock rl(&s_state_lock);
-  typedef state_t::index<NameTag>::type nameindex_t;
-  nameindex_t& nameindex = boost::multi_index::get<NameTag>(s_state);
-
-  nameindex_t::const_iterator iter = nameindex.find(name);
-  if (iter == nameindex.end())
+  auto state = s_state.read_lock();
+  auto& nameindex = boost::multi_index::get<NameTag>(*state);
+  auto iter = nameindex.find(name);
+  if (iter == nameindex.end()) {
     return false;
+  }
   *bbd = *iter;
   return true;
 }
 
 bool Bind2Backend::safeRemoveBBDomainInfo(const DNSName& name)
 {
-  WriteLock rl(&s_state_lock);
+  auto state = s_state.write_lock();
   typedef state_t::index<NameTag>::type nameindex_t;
-  nameindex_t& nameindex = boost::multi_index::get<NameTag>(s_state);
+  nameindex_t& nameindex = boost::multi_index::get<NameTag>(*state);
 
   nameindex_t::iterator iter = nameindex.find(name);
-  if (iter == nameindex.end())
+  if (iter == nameindex.end()) {
     return false;
+  }
   nameindex.erase(iter);
   return true;
 }
 
 void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
 {
-  WriteLock rl(&s_state_lock);
-  replacing_insert(s_state, bbd);
+  auto state = s_state.write_lock();
+  replacing_insert(*state, bbd);
 }
 
 void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
@@ -326,9 +323,9 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>* changedDomains)
 {
   vector<DomainInfo> consider;
   {
-    ReadLock rl(&s_state_lock);
+    auto state = s_state.read_lock();
 
-    for (const auto& i : s_state) {
+    for (const auto& i : *state) {
       if (i.d_kind != DomainInfo::Master && this->alsoNotify.empty() && i.d_also_notify.empty())
         continue;
 
@@ -372,10 +369,10 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool include_disab
 
   // prevent deadlock by using getSOA() later on
   {
-    ReadLock rl(&s_state_lock);
-    domains->reserve(s_state.size());
+    auto state = s_state.read_lock();
+    domains->reserve(state->size());
 
-    for (const auto& i : s_state) {
+    for (const auto& i : *state) {
       DomainInfo di;
       di.id = i.d_id;
       di.zone = i.d_name;
@@ -405,9 +402,9 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
 {
   vector<DomainInfo> domains;
   {
-    ReadLock rl(&s_state_lock);
-    domains.reserve(s_state.size());
-    for (const auto& i : s_state) {
+    auto state = s_state.read_lock();
+    domains.reserve(state->size());
+    for (const auto& i : *state) {
       if (i.d_kind != DomainInfo::Slave)
         continue;
       DomainInfo sd;
@@ -478,8 +475,8 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string>* ips)
       (*ips).insert(str);
     }
   }
-  ReadLock rl(&s_state_lock);
-  for (const auto& i : s_state) {
+  auto state = s_state.read_lock();
+  for (const auto& i : *state) {
     if (i.d_name == domain) {
       for (const auto& it : i.d_also_notify) {
         (*ips).insert(it);
@@ -518,7 +515,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   bbd->d_loaded = true;
   bbd->d_checknow = false;
   bbd->d_status = "parsed into memory at " + nowTime();
-  bbd->d_records = LookButDontTouch<recordstorage_t>(records);
+  bbd->d_records = LookButDontTouch<recordstorage_t>(std::move(records));
   bbd->d_nsec3zone = nsec3zone;
   bbd->d_nsec3param = ns3pr;
 }
@@ -604,8 +601,8 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pi
     }
   }
   else {
-    ReadLock rl(&s_state_lock);
-    for (const auto& i : s_state) {
+    auto state = s_state.read_lock();
+    for (const auto& i : *state) {
       ret << i.d_name << ": " << (i.d_loaded ? "" : "[rejected]") << "\t" << i.d_status << "\n";
     }
   }
@@ -666,8 +663,8 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
     }
   }
   else {
-    ReadLock rl(&s_state_lock);
-    for (const auto& state : s_state) {
+    auto rstate = s_state.read_lock();
+    for (const auto& state : *rstate) {
       printDomainExtendedStatus(ret, state);
     }
   }
@@ -682,8 +679,8 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
 string Bind2Backend::DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid)
 {
   ostringstream ret;
-  ReadLock rl(&s_state_lock);
-  for (const auto& i : s_state) {
+  auto rstate = s_state.read_lock();
+  for (const auto& i : *rstate) {
     if (!i.d_loaded)
       ret << i.d_name << "\t" << i.d_status << endl;
   }
@@ -783,8 +780,8 @@ void Bind2Backend::rediscover(string* status)
 
 void Bind2Backend::reload()
 {
-  WriteLock rwl(&s_state_lock);
-  for (const auto& i : s_state) {
+  auto state = s_state.write_lock();
+  for (const auto& i : *state) {
     i.d_checknow = true; // being a bit cheeky here, don't index state_t on this (mutable)
   }
 }
@@ -903,8 +900,8 @@ void Bind2Backend::loadConfig(string* status)
 
     set<DNSName> oldnames, newnames;
     {
-      ReadLock rl(&s_state_lock);
-      for (const BB2DomainInfo& bbd : s_state) {
+      auto state = s_state.read_lock();
+      for (const BB2DomainInfo& bbd : *state) {
         oldnames.insert(bbd.d_name);
       }
     }
@@ -1364,11 +1361,11 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
 {
   int newid = 1;
   { // Find a free zone id nr.
-    ReadLock rl(&s_state_lock);
-    if (!s_state.empty()) {
+    auto state = s_state.read_lock();
+    if (!state->empty()) {
       // older (1.53) versions of boost have an expression for s_state.rbegin()
       // that is ambiguous in C++17. So construct it explicitly
-      newid = boost::make_reverse_iterator(s_state.end())->d_id + 1;
+      newid = boost::make_reverse_iterator(state->end())->d_id + 1;
     }
   }
 
@@ -1427,9 +1424,9 @@ bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<D
     g_log << Logger::Warning << "Search for pattern '" << pattern << "'" << endl;
 
   {
-    ReadLock rl(&s_state_lock);
+    auto state = s_state.read_lock();
 
-    for (const auto& i : s_state) {
+    for (const auto& i : *state) {
       BB2DomainInfo h;
       if (!safeGetBBDomainInfo(i.d_id, &h)) {
         continue;

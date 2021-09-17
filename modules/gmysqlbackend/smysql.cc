@@ -476,13 +476,16 @@ void SMySQL::connect()
 {
   int retry = 1;
 
-  std::lock_guard<std::mutex> l(s_myinitlock);
-  if (d_threadCleanup) {
-    threadcloser.enable();
-  }
+  {
+    std::lock_guard<std::mutex> l(s_myinitlock);
+    if (d_threadCleanup) {
+      threadcloser.enable();
+    }
 
-  if (!mysql_init(&d_db))
-    throw sPerrorException("Unable to initialize mysql driver");
+    if (!mysql_init(&d_db)) {
+      throw sPerrorException("Unable to initialize mysql driver");
+    }
+  }
 
   do {
 

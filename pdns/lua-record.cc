@@ -1,10 +1,10 @@
 #include <thread>
 #include <future>
-#include <mutex>
 #include <boost/format.hpp>
 #include <utility>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
+#include "lock.hh"
 #include "lua-auth4.hh"
 #include "sstuff.hh"
 #include "minicurl.hh"
@@ -73,7 +73,6 @@ private:
     std::atomic<time_t> lastAccess{0};
   };
 
-  ReadWriteLock d_lock;
 public:
   IsUpOracle()
   {
@@ -158,8 +157,9 @@ private:
       std::vector<std::future<void>> results;
       std::vector<CheckDesc> toDelete;
       {
-        ReadLock lock{&d_lock}; // make sure there's no insertion
-        for (auto& it: d_statuses) {
+        // make sure there's no insertion
+        auto statuses = d_statuses.read_lock();
+        for (auto& it: *statuses) {
           auto& desc = it.first;
           auto& state = it.second;
 
@@ -178,9 +178,9 @@ private:
         future.wait();
       }
       if (!toDelete.empty()) {
-        WriteLock lock{&d_lock};
+        auto statuses = d_statuses.write_lock();
         for (auto& it: toDelete) {
-          d_statuses.erase(it);
+          statuses->erase(it);
         }
       }
       std::this_thread::sleep_until(checkStart + std::chrono::seconds(g_luaHealthChecksInterval));
@@ -188,14 +188,14 @@ private:
   }
 
   typedef map<CheckDesc, std::unique_ptr<CheckState>> statuses_t;
-  statuses_t d_statuses;
+  SharedLockGuarded<statuses_t> d_statuses;
 
   std::unique_ptr<std::thread> d_checkerThread;
 
   void setStatus(const CheckDesc& cd, bool status)
   {
-    ReadLock lock{&d_lock};
-    auto& state = d_statuses[cd];
+    auto statuses = d_statuses.write_lock();
+    auto& state = (*statuses)[cd];
     state->status = status;
     if (state->first) {
       state->first = false;
@@ -233,9 +233,9 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
   }
   time_t now = time(nullptr);
   {
-    ReadLock lock{&d_lock};
-    auto iter = d_statuses.find(cd);
-    if (iter != d_statuses.end()) {
+    auto statuses = d_statuses.read_lock();
+    auto iter = statuses->find(cd);
+    if (iter != statuses->end()) {
       iter->second->lastAccess = now;
       return iter->second->status;
     }
@@ -245,10 +245,10 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
     ComboAddress src(cd.opts.at("source"));
   }
   {
-    WriteLock lock{&d_lock};
+    auto statuses = d_statuses.write_lock();
     // Make sure we don't insert new entry twice now we have the lock
-    if (d_statuses.find(cd) == d_statuses.end()) {
-      d_statuses[cd] = std::unique_ptr<CheckState>(new CheckState{now});
+    if (statuses->find(cd) == statuses->end()) {
+      (*statuses)[cd] = std::unique_ptr<CheckState>(new CheckState{now});
     }
   }
   return false;
@@ -443,14 +443,16 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
 
 static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
 {
-  static UeberBackend ub;
-  static std::mutex mut;
-  std::lock_guard<std::mutex> lock(mut);
-  ub.lookup(QType(qtype), name, zoneid);
+  static LockGuarded<UeberBackend> s_ub;
+
   DNSZoneRecord dr;
   vector<DNSZoneRecord> ret;
-  while(ub.get(dr)) {
-    ret.push_back(dr);
+  {
+    auto ub = s_ub.lock();
+    ub->lookup(QType(qtype), name, zoneid);
+    while (ub->get(dr)) {
+      ret.push_back(dr);
+    }
   }
   return ret;
 }

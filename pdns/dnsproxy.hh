@@ -21,7 +21,6 @@
  */
 #pragma once
 #include <map>
-#include <mutex>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -79,9 +78,9 @@ private:
   AtomicCounter* d_resanswers;
   AtomicCounter* d_udpanswers;
   AtomicCounter* d_resquestions;
-  std::mutex d_lock;
-  map_t d_conntrack;
+  LockGuarded<map_t> d_conntrack;
   int d_sock;
-  int getID_locked();
-  uint16_t d_xor;
+  const uint16_t d_xor;
+
+  int getID_locked(map_t&);
 };
