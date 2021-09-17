@@ -25,7 +25,6 @@
 #include "misc.hh"
 #include "noinitvector.hh"
 
-#include <protozero/pbf_writer.hpp>
 #include <optional>
 #include <time.h>
 #include <unordered_map>
@@ -36,21 +35,25 @@ class RecEventTrace
 public:
   enum EventType : uint8_t
   {
+    // Keep in-syc with dnsmessagge.proto!
     // Don't forget to add a new entry to the table in the .cc file!
+    // Generic events
     CustomEvent = 0,
-    RecRecv = 1,
+    ReqRecv = 1,
     PCacheCheck = 2,
-    SyncRes = 3,
-    AnswerSent = 4,
-    LuaGetTag = 100,
-    LuaGetTagFFI = 101,
-    LuaIPFilter = 102,
-    LuaPreRPZ = 103,
-    LuaPreResolve = 104,
-    LuaPreOutQuery = 105,
-    LuaPostResolve = 106,
-    LuaNoData = 107,
-    LuaNXDomain = 108,
+    AnswerSent = 3,
+
+    // Recursor specific events
+    SyncRes = 100,
+    LuaGetTag = 101,
+    LuaGetTagFFI = 102,
+    LuaIPFilter = 103,
+    LuaPreRPZ = 104,
+    LuaPreResolve = 105,
+    LuaPreOutQuery = 106,
+    LuaPostResolve = 107,
+    LuaNoData = 108,
+    LuaNXDomain = 109,
   };
 
   static const std::unordered_map<EventType, std::string> s_eventNames;
@@ -61,10 +64,13 @@ public:
   }
 
   RecEventTrace(const RecEventTrace& old) :
-    d_events(std::move(old.d_events)),
+    d_events(old.d_events),
     d_base(old.d_base),
     d_status(old.d_status)
   {
+    // An RecEventTrace object can be copied, but the original will be marked invalid.
+    // This is do detect (very likely) unintended modifications to the original after
+    // the ownership changed.
     old.d_status = Invalid;
   }
 
@@ -73,6 +79,9 @@ public:
     d_base(old.d_base),
     d_status(old.d_status)
   {
+    // An RecEventTrace object can be moved, but the original will be marked invalid.
+    // This is do detect (very likely) unintended modifications to the original after
+    // the ownership changed.
     old.d_status = Invalid;
   }
 
@@ -117,12 +126,12 @@ public:
 
   struct Entry
   {
-    Entry(Value_t& v, EventType e, bool start, int64_t ts) :
-      d_value(v), d_ts(ts), d_event(e), d_start(start)
+    Entry(Value_t&& v, EventType e, bool start, int64_t ts) :
+      d_value(std::move(v)), d_ts(ts), d_event(e), d_start(start)
     {
     }
-    Entry(Value_t& v, const std::string& custom, bool start, int64_t ts) :
-      d_value(v), d_custom(custom), d_ts(ts), d_event(CustomEvent), d_start(start)
+    Entry(Value_t&& v, const std::string& custom, bool start, int64_t ts) :
+      d_value(std::move(v)), d_custom(custom), d_ts(ts), d_event(CustomEvent), d_start(start)
     {
     }
     Value_t d_value;
@@ -158,17 +167,30 @@ public:
   }
 
   template <class E>
-  void add(E e, Value_t v, bool start)
+  void add(E e, Value_t&& v, bool start, int64_t stamp = 0)
   {
     assert(d_status != Invalid);
     if (d_status == Disabled) {
       return;
     }
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    int64_t stamp = ts.tv_nsec + ts.tv_sec * 1000000000;
+    if (stamp == 0) {
+      struct timespec ts;
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+      stamp = ts.tv_nsec + ts.tv_sec * 1000000000;
+    }
+    if (stamp < d_base) {
+      // If we get a ts before d_base, we adjust d_base and the existing events
+      // This is possble if we add a kernel provided packet timestamp in the future
+      // (Though it seems those timestamps do not use CLOCK_MONOTONIC...)
+      const int64_t adj = d_base - stamp;
+      for (auto& i : d_events) {
+        i.d_ts += adj;
+      }
+      // and move to the new base
+      d_base = stamp;
+    }
     stamp -= d_base;
-    d_events.emplace_back(v, e, start, stamp);
+    d_events.emplace_back(std::move(v), e, start, stamp);
   }
 
   template <class E>
@@ -201,6 +223,7 @@ public:
     d_events.clear();
     reset();
   }
+
   void reset()
   {
     struct timespec ts;
@@ -238,7 +261,7 @@ public:
 private:
   std::vector<Entry> d_events;
   int64_t d_base;
-  enum Status
+  enum Status : uint8_t
   {
     Disabled,
     Invalid,

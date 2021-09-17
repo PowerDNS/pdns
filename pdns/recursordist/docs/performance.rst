@@ -209,21 +209,24 @@ Currently, an event protobuf message has the following definition:
 .. code-block:: protobuf
 
     enum EventType {
-      CustomEvent = 0;
-      RecRecv = 1;
-      PCacheCheck = 2;
-      SyncRes = 3;
-      AnswerSent = 4;
-      LuaGetTag = 100;
-      LuaGetTagFFI = 101;
-      LuaIPFilter = 102;
-      LuaPreRPZ = 103;
-      LuaPreResolve = 104;
-      LuaPreOutQuery = 105;
-      LuaPostResolve = 106;
-      LuaNoData = 107;
-      LuaNXDomain = 108;
-    }
+                                                  // Range 0..99: Generic events
+      CustomEvent = 0;                            // A custom event
+      ReqRecv = 1;                                // A request was received
+      PCacheCheck = 2;                            // A packet cache check was initiated or completed; value: bool cacheHit
+      AnswerSent = 3;                             // An answer was sent to the client
+
+                                                  // Range 100: Recursor events
+      SyncRes = 100;                              // Recursor Syncres main function has started or completed; value: int rcode
+      LuaGetTag = 101;                            // Events below mark start or end of Lua hook calls; value: return value of hook
+      LuaGetTagFFI = 102;
+      LuaIPFilter = 103;
+      LuaPreRPZ = 104;
+      LuaPreResolve = 105;
+      LuaPreOutQuery = 106;
+      LuaPostResolve = 107;
+      LuaNoData = 108;
+      LuaNXDomain = 109;
+  }
 
 .. code-block:: protobuf
 
@@ -245,7 +248,7 @@ An example of a trace (timestamps are relative in nanoseconds) as shown  in the 
 
 .. code-block:: C
 
-    - RecRecv(70);
+    - ReqRecv(70);
     - PCacheCheck(411964);
     - PCacheCheck(416783,0,done);
     - SyncRes(441811);
@@ -260,7 +263,7 @@ An example of a trace with a packet cache hit):
 
 .. code-block:: C
 
-    - RecRecv(60);
+    - ReqRecv(60);
     - PCacheCheck(22913);
     - PCacheCheck(113255,1,done);
     - AnswerSent(117493)
@@ -271,7 +274,7 @@ An example where various Lua related events can be seen:
 
 .. code-block:: C
 
-    RecRecv(150);
+    ReqRecv(150);
     PCacheCheck(26912);
     PCacheCheck(51308,0,done);
     LuaIPFilter(56868);

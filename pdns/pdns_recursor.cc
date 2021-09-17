@@ -2750,7 +2750,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool qnameParsed = false;
 
       dc->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
-      dc->d_eventTrace.add(RecEventTrace::RecRecv);
+      dc->d_eventTrace.add(RecEventTrace::ReqRecv);
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
@@ -3259,7 +3259,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
       eventTrace.clear();
       eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
-      eventTrace.add(RecEventTrace::RecRecv);
+      eventTrace.add(RecEventTrace::ReqRecv);
 
       firstQuery = false;
 

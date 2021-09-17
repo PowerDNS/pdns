@@ -28,10 +28,10 @@
 
 const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventNames = {
   NameEntry(CustomEvent),
-  NameEntry(RecRecv),
+  NameEntry(ReqRecv),
   NameEntry(PCacheCheck),
-  NameEntry(SyncRes),
   NameEntry(AnswerSent),
+  NameEntry(SyncRes),
   NameEntry(LuaGetTag),
   NameEntry(LuaGetTagFFI),
   NameEntry(LuaIPFilter),
