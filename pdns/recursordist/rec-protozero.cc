@@ -115,7 +115,7 @@ void pdns::ProtoZero::RecMessage::addEvents(const RecEventTrace& trace)
 {
   for (const auto& t : trace.getEvents()) {
     protozero::pbf_writer pbf_trace{d_message, static_cast<protozero::pbf_tag_type>(Field::trace)};
-    pbf_trace.add_uint64(static_cast<protozero::pbf_tag_type>(Event::ts), t.d_ts);
+    pbf_trace.add_int64(static_cast<protozero::pbf_tag_type>(Event::ts), t.d_ts);
     pbf_trace.add_uint32(static_cast<protozero::pbf_tag_type>(Event::event), t.d_event);
     pbf_trace.add_bool(static_cast<protozero::pbf_tag_type>(Event::start), t.d_start);
 
