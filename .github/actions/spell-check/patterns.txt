@@ -62,4 +62,4 @@ DoT
 DoH
 
 # Contributor with a non-ascii character in their name
-Hoffst[^[:ascii:]]tte
+Hoffst[^[:ascii:]]+tte
