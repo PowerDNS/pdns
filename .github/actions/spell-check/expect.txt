@@ -517,6 +517,7 @@ Faerch
 faf
 failedservers
 failover
+farsightsec
 favicon
 FBAE
 fbe
@@ -562,6 +563,7 @@ frontend
 fstrm
 fullname
 fulltoc
+fullycapable
 func
 Furnell
 Fusl
