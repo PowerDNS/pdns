@@ -260,6 +260,7 @@ commands:
             apt-get install -qq -y \
               git \
               libboost-all-dev \
+              libsodium23 \
               libsystemd0 \
               libyaml-cpp0.6 \
               python3-venv

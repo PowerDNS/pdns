@@ -105,6 +105,7 @@ pdns_recursor_SOURCES = \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \
 	comment.hh \
+	credentials.cc credentials.hh \
 	dns.hh dns.cc \
 	dns_random.hh dns_random.cc \
 	dnsbackend.hh \
@@ -240,6 +241,7 @@ testrunner_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	circular_buffer.hh \
+	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
@@ -290,6 +292,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-common.hh \
+	test-credentials_cc.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_hh.cc \
@@ -365,6 +368,10 @@ if LIBSODIUM
 pdns_recursor_SOURCES += \
 	sodiumsigners.cc
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
+
+rec_control_LDADD = $(LIBSODIUM_LIBS) \
+	$(LIBCRYPTO_LIBS)
+
 testrunner_SOURCES += \
 	sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
@@ -439,6 +446,8 @@ endif
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	base64.cc base64.hh \
+	credentials.cc credentials.hh \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
 	logger.cc \

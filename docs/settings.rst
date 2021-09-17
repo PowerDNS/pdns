@@ -134,7 +134,10 @@ Enable/disable the :doc:`http-api/index`.
 
 -  String
 
-Static pre-shared authentication key for access to the REST API.
+.. versionchanged:: 4.6.0
+  This setting now accepts a hashed and salted version.
+
+Static pre-shared authentication key for access to the REST API. Since 4.6.0 the key can be hashed and salted using ``pdnsutil hash-password`` instead of being stored in the configuration in plaintext, but the plaintext version is still supported.
 
 .. _setting-autosecondary:
 
@@ -1797,6 +1800,18 @@ IP Address for webserver/API to listen on.
 
 Webserver/API access is only allowed from these subnets.
 
+.. _setting-webserver-hash-plaintext-credentials:
+
+``webserver-hash-plaintext-credentials``
+----------------------------------------
+..versionadded:: 4.6.0
+
+-  Boolean
+-  Default: no
+
+Whether passwords and API keys supplied in the configuration as plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials and is thus disabled by default.
+Note that this option only applies to credentials stored in the configuration as plaintext, but hashed credentials are supported without enabling this option.
+
 .. _setting-webserver-loglevel:
 
 ``webserver-loglevel``
@@ -1851,10 +1866,12 @@ Maximum request/response body size in megabytes.
 
 ``webserver-password``
 ----------------------
+.. versionchanged:: 4.6.0
+  This setting now accepts a hashed and salted version.
 
 -  String
 
-The plaintext password required for accessing the webserver.
+Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``pdnsutil hash-password`` instead of being present in the configuration in plaintext, but the plaintext version is still supported.
 
 .. _setting-webserver-port:
 

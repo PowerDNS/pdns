@@ -919,7 +919,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_carbon.setState(ours);
   });
 
-  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, const boost::optional<std::string> password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
+  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, boost::optional<std::string> password, boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
       setLuaSideEffect();
       ComboAddress local;
       try {
@@ -944,11 +944,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         SListen(sock, 5);
         auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
           if (password) {
-            setWebserverPassword(*password);
+            auto holder = make_unique<CredentialsHolder>(std::string(*password), false);
+            if (!holder->wasHashed() && holder->isHashingAvailable()) {
+              infolog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead and consider generating a hashed password using 'hashPassword()'.");
+            }
+
+            setWebserverPassword(std::move(holder));
           }
 
           if (apiKey) {
-            setWebserverAPIKey(apiKey);
+            auto holder = make_unique<CredentialsHolder>(std::string(*apiKey), false);
+            setWebserverAPIKey(std::move(holder));
           }
 
           if (customHeaders) {
@@ -984,16 +990,29 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return ;
       }
 
-      if (vars->count("password")) {
-        const std::string password = boost::get<std::string>(vars->at("password"));
+      bool hashPlaintextCredentials = false;
+      if (vars->count("hashPlaintextCredentials")) {
+        hashPlaintextCredentials = boost::get<bool>(vars->at("hashPlaintextCredentials"));
+      }
 
-        setWebserverPassword(password);
+      if (vars->count("password")) {
+        std::string password = boost::get<std::string>(vars->at("password"));
+        auto holder = make_unique<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
+        if (!holder->wasHashed() && holder->isHashingAvailable()) {
+          infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        }
+
+        setWebserverPassword(std::move(holder));
       }
 
       if (vars->count("apiKey")) {
-        const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+        std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+        auto holder = make_unique<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
+        if (!holder->wasHashed() && holder->isHashingAvailable()) {
+          infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        }
 
-        setWebserverAPIKey(apiKey);
+        setWebserverAPIKey(std::move(holder));
       }
 
       if (vars->count("acl")) {
@@ -1016,6 +1035,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         setWebserverMaxConcurrentConnections(std::stoi(boost::get<std::string>(vars->at("maxConcurrentConnections"))));
       }
     });
+
+  luaCtx.writeFunction("hashPassword", [](const std::string& password, boost::optional<uint64_t> workFactor) {
+    if (workFactor) {
+      return hashPassword(password, *workFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
+    }
+    return hashPassword(password);
+  });
 
   luaCtx.writeFunction("controlSocket", [client,configCheck](const std::string& str) {
       setLuaSideEffect();

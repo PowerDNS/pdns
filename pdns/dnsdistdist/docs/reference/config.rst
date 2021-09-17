@@ -290,6 +290,15 @@ Control Socket, Console and Webserver
 Webserver configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+.. function:: hashPassword(password [, workFactor])
+
+  .. versionadded:: 1.7.0
+
+  Hash the supplied password using a random salt, and returns a string that can be used with :func:`setWebserverConfig`.
+
+  :param string - password: The password to hash
+  :param int - workFactor: The work factor to use for the hash function (currently scrypt), as a power of two. Default is 1024.
+
 .. function:: webserver(listen_address [, password[, apikey[, custom_headers[, acl]]]])
 
   .. versionchanged:: 1.5.0
@@ -325,18 +334,23 @@ Webserver configuration
   .. versionchanged:: 1.6.0
     ``statsRequireAuthentication``, ``maxConcurrentConnections`` optional parameters added.
 
+  .. versionchanged:: 1.7.0
+    The optional ``password`` and ``apiKey`` parameters now accept hashed passwords.
+    The optional ``hashPlaintextCredentials`` parameter has been added.
+
   Setup webserver configuration. See :func:`webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
 
   Options:
 
-  * ``password=newPassword``: string - Changes the API password
-  * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it)
+  * ``password=newPassword``: string - Set the password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the :func:`hashPassword` command.
+  * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the :func:`hashPassword` command.
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
+  * ``hashPlaintextCredentials``: bool - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials. Defaults to false.
 
 .. function:: registerWebHandler(path, handler)
 

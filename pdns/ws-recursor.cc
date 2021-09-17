@@ -1122,8 +1122,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
 
-  d_ws->setApiKey(arg()["api-key"]);
-  d_ws->setPassword(arg()["webserver-password"]);
+  d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
+  d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
   d_ws->setLogLevel(arg()["webserver-loglevel"]);
 
   NetmaskGroup acl;

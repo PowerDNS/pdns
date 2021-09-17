@@ -1922,6 +1922,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
 "get-qtypelist                    get QType statistics\n"
 "                                 notice: queries from cache aren't being counted yet\n"
+"hash-password [work-factor]      ask for a password then return the hashed version\n"
 "help                             get this list\n"
 "ping                             check that all threads are alive\n"
 "quit                             stop the recursor daemon\n"
