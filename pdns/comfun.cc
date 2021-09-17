@@ -68,9 +68,13 @@ struct SendReceive
   SendReceive(map<ComboAddress, namecount, ComboAddress::addressOnlyLessThan>& res) : d_res(res)
   {
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (d_socket < 0)
+       throw runtime_error("socket(AF_INET, SOCK_DGRAM, 0) failed: " + stringerror());
     int val=1;
-    setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
     
+    if (setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val)) != 0)
+       cerr<<"Failed to turn on SO_REUSEADDR: " << stringerror() << endl;
+
     for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
@@ -198,8 +202,11 @@ struct SendReceiveRes
   {
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
     int val=1;
-    setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-    connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
+
+    if (setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val)) != 0)
+       cerr<<"Failed to turn on SO_REUSEADDR: " << stringerror() << endl;
+    if (connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen()) != 0)
+       throw DNSException("connect(" + remote.toStringWithPort() + ") failed: " + stringerror());
     for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
@@ -299,7 +306,7 @@ struct SendReceiveRes
 };
 
 
-void printStats()
+static void printStats()
 {
   while(!g_stop) {
     sleep(1);
@@ -309,7 +316,7 @@ void printStats()
   cerr<<"\n";
 }
 
-int parseZone(const std::string& str, unsigned int limit)
+static int parseZone(const std::string& str, unsigned int limit)
 {
   ZoneParserTNG zpt(str);
   zpt.disableGenerate();
@@ -353,7 +360,7 @@ int parseZone(const std::string& str, unsigned int limit)
   return 0;
 }
 
-int resolveNS(const std::string& fname)
+static int resolveNS(const std::string& fname)
 {
   string line;
   ifstream needres(fname);
@@ -385,7 +392,7 @@ int resolveNS(const std::string& fname)
   return EXIT_SUCCESS;
 }
 
-void readRESNames(const std::string& fname, map<DNSName, vector<ComboAddress>>& addrs)
+static void readRESNames(const std::string& fname, map<DNSName, vector<ComboAddress>>& addrs)
 {
   ifstream ifs(fname);
   if(!ifs)

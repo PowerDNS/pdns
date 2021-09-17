@@ -32,7 +32,8 @@ int readn(int fd, void* buffer, unsigned int len)
       if(errno == EAGAIN || errno == EINTR) {
         if(pos==0)
           return -1;
-        waitForData(fd, -1); 
+        // error handled later
+        (void)waitForData(fd, -1);
         continue;
       }
       unixDie("Reading from socket in Signing Pipe loop");

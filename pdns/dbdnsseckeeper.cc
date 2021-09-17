@@ -121,7 +121,8 @@ void DNSSECKeeper::clearAllCaches() {
   s_metacache.write_lock()->clear();
 }
 
-
+/* This function never fails, the return value is to simplify call chains
+   elsewhere so we can do mutate<cache> && clear<cache> */
 bool DNSSECKeeper::clearKeyCache(const DNSName& name)
 {
   s_keycache.write_lock()->erase(name);
@@ -137,8 +138,8 @@ bool DNSSECKeeper::clearMetaCache(const DNSName& name)
 
 void DNSSECKeeper::clearCaches(const DNSName& name)
 {
-  clearKeyCache(name);
-  clearMetaCache(name);
+  (void)clearKeyCache(name);
+  (void)clearMetaCache(name);
 }
 
 bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)

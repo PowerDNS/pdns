@@ -56,8 +56,6 @@ std::string SvcParam::keyToString(const SvcParam::SvcParamKey& k) {
   return "key" + std::to_string(k);
 }
 
-SvcParam::SvcParam() {};
-
 SvcParam::SvcParam(const SvcParamKey &key) {
   d_key = key;
   if (d_key != SvcParamKey::no_default_alpn) {

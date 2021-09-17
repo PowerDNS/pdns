@@ -118,11 +118,11 @@ void UDPNameserver::bindAddresses()
       throw PDNSException("Unable to set UDP socket " + locala.toStringWithPort() + " to non-blocking: "+stringerror());
 
     if(IsAnyAddress(locala)) {
-      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
+      (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
       if (locala.isIPv6()) {
-        setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
+        (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
 #ifdef IPV6_RECVPKTINFO
-        setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+        (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
       }
     }
