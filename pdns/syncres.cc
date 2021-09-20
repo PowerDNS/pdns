@@ -3363,16 +3363,21 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       isAA = false;
       expectSignature = false;
     }
+    else if (isDNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::DNAME || !qname.isPartOf(i->first.name))) {
+      /* see above */
+      isAA = false;
+      expectSignature = false;
+    }
 
-    if (isCNAMEAnswer && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
-      /* These NS can't be authoritative since we have a CNAME answer for which (see above) only the
+    if ((isCNAMEAnswer || isDNAMEAnswer) && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
+      /* These NS can't be authoritative since we have a CNAME/DNAME answer for which (see above) only the
          record describing that alias is necessarily authoritative.
          But if we allow the current auth, which might be serving the child zone, to raise the TTL
          of non-authoritative NS in the cache, they might be able to keep a "ghost" zone alive forever,
          even after the delegation is gone from the parent.
          So let's just do nothing with them, we can fetch them directly if we need them.
       */
-      LOG(d_prefix<<": skipping authority NS from '"<<auth<<"' nameservers in CNAME answer "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
+      LOG(d_prefix<<": skipping authority NS from '"<<auth<<"' nameservers in CNAME/DNAME answer "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
       continue;
     }
 
