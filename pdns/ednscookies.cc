@@ -24,7 +24,6 @@
 #endif
 #include "ednscookies.hh"
 #include "misc.hh"
-#include "string_compare.hh"
 
 #ifdef HAVE_CRYPTO_SHORTHASH
 #include <sodium.h>

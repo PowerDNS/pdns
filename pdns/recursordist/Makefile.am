@@ -63,7 +63,6 @@ EXTRA_DIST = \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
-	string_compare.hh \
 	portsmplexer.cc \
 	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh \
 	ext/protozero/include/* \

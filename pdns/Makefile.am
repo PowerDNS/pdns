@@ -53,7 +53,6 @@ EXTRA_DIST = \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh \
-	string_compare.hh \
 	api-swagger.yaml \
 	api-swagger.json \
 	requirements.txt \
