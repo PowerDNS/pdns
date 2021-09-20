@@ -2,10 +2,8 @@
 name: 'Build Docker images'
 
 on:
-  push:
-  pull_request:
   schedule:
-    - cron: '0 22 * * 3'
+    - cron: '0 4 * * *'
 
 jobs:
   build:
