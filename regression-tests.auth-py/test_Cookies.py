@@ -78,6 +78,17 @@ www.example.org.             3600 IN A    192.0.2.5
         self.assertTrue(any([opt.otype == dns.edns.COOKIE for
                              opt in res.options]))
 
+    def testOnlyClientCookieTCP(self):
+        opts = [
+            dns.edns.GenericOption(dns.edns.COOKIE,
+                                   b'\x22\x11\x33\x44\x55\x66\x77\x88')]
+        query = dns.message.make_query('www.example.org', 'A', options=opts)
+        res = self.sendTCPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertTrue(any(opt.otype == dns.edns.COOKIE for
+                            opt in res.options))
+
+
     def testCorrectCookie(self):
         opts = [self.getCookieFromServer()]
         query = dns.message.make_query('www.example.org', 'A', options=opts)

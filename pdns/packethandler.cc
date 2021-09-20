@@ -1304,7 +1304,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         r->setRcode(RCode::FormErr);
         return r;
       }
-      if (!p.hasValidEDNSCookie()) {
+      if (!p.hasValidEDNSCookie() && !p.d_tcp) {
         r = p.replyPacket();
         r->setEDNSRcode(ERCode::BADCOOKIE);
         return r;
