@@ -29,6 +29,8 @@ class SensitiveData
 public:
   SensitiveData(size_t bytes);
   SensitiveData(std::string&& data);
+  SensitiveData& operator=(SensitiveData&&);
+
   ~SensitiveData();
   void clear();
   const std::string& getString() const
@@ -92,7 +94,7 @@ private:
   uint64_t d_parallelFactor{0};
   uint64_t d_blockSize{0};
   /* seed our hash so it's not predictable */
-  uint32_t d_fallbackHashPerturb;
+  uint32_t d_fallbackHashPerturb{0};
   uint32_t d_fallbackHash{0};
   /* whether it was constructed from a hashed and salted string */
   bool d_wasHashed{false};

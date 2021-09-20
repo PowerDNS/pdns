@@ -66,6 +66,12 @@ SensitiveData::SensitiveData(std::string&& data) :
 #endif
 }
 
+SensitiveData& SensitiveData::operator=(SensitiveData&& rhs)
+{
+  d_data = std::move(rhs.d_data);
+  return *this;
+}
+
 SensitiveData::SensitiveData(size_t bytes)
 {
   d_data.resize(bytes);
