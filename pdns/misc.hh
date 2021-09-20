@@ -663,7 +663,7 @@ struct FDWrapper
 
   FDWrapper& operator=(FDWrapper&& rhs)
   {
-    if (d_fd) {
+    if (d_fd != -1) {
       close(d_fd);
     }
     d_fd = rhs.d_fd;
