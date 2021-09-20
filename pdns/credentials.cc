@@ -234,7 +234,7 @@ static void parseHashed(const std::string& hash, std::string& salt, std::string&
 
   try {
     workFactor = pdns_stou(parameters.at(0).substr(3));
-    workFactor = 1 << workFactor;
+    workFactor = static_cast<uint64_t>(1) << workFactor;
     if (workFactor > pwhash_max_work_factor) {
       throw std::runtime_error("Invalid work factor of " + std::to_string(workFactor) + " in hashed password string, maximum is " + std::to_string(pwhash_max_work_factor));
     }
