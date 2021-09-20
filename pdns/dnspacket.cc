@@ -377,7 +377,7 @@ void DNSPacket::wrapup()
       }
 
       if (d_haveednscookie && d_eco.isWellFormed()) {
-        d_eco.makeServerCookie(s_EDNSCookieKey, getRemote());
+        d_eco.makeServerCookie(s_EDNSCookieKey, getInnerRemote());
         opts.push_back(make_pair(EDNSOptionCode::COOKIE, d_eco.makeOptString()));
       }
 
