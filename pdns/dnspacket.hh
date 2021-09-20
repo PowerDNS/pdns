@@ -27,6 +27,7 @@
 #include "iputils.hh"
 #include "ednssubnet.hh"
 #include "ednscookies.hh"
+#include <optional>
 #include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
