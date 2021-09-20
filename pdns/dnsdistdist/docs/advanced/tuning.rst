@@ -109,7 +109,7 @@ A different possibility is that there is not enough threads accepting new connec
 
 For incoming and outgoing DNS over TLS support, the choice of the TLS provider (OpenSSL and GnuTLS are both supported) might yield very different results depending on the exact architecture.
 
-Since 1.7.0, incoming DNS over TLS might also benefits from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` for more information.
+Since 1.7.0, incoming DNS over TLS might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` for more information.
 
 Rules and Lua
 -------------
