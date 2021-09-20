@@ -12,7 +12,9 @@
 #include <pthread.h>
 
 #include <openssl/conf.h>
+#ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/ocsp.h>
 #include <openssl/rand.h>
@@ -65,7 +67,9 @@ static void openssl_thread_cleanup()
 #endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL) */
 
 static std::atomic<uint64_t> s_users;
+#ifndef OPENSSL_NO_ENGINE
 static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, int(*)(ENGINE*)>>> s_engines;
+#endif
 static int s_ticketsKeyIndex{-1};
 static int s_countersIndex{-1};
 static int s_keyLogIndex{-1};
@@ -107,11 +111,13 @@ void registerOpenSSLUser()
 void unregisterOpenSSLUser()
 {
   if (s_users.fetch_sub(1) == 1) {
+#ifndef OPENSSL_NO_ENGINE
     for (auto& [name, engine] : *s_engines.lock()) {
       ENGINE_finish(engine.get());
       engine.reset();
     }
     s_engines.lock()->clear();
+#endif
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     ERR_free_strings();
 
@@ -129,6 +135,9 @@ void unregisterOpenSSLUser()
 
 std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString)
 {
+#ifdef OPENSSL_NO_ENGINE
+  return { false, "OpenSSL has been built without engine support" };
+#else
   if (s_users.load() == 0) {
     /* We need to make sure that OpenSSL has been properly initialized before loading an engine.
        This messes up our accounting a bit, so some memory might not be properly released when
@@ -161,6 +170,7 @@ std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, c
 
   engines->insert({engineName, std::move(engine)});
   return { true, "" };
+#endif
 }
 
 void* libssl_get_ticket_key_callback_data(SSL* s)

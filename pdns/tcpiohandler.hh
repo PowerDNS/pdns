@@ -9,6 +9,7 @@
 #include "misc.hh"
 #include "noinitvector.hh"
 
+/* Async is only returned for TLS connections, if OpenSSL's async mode has been enabled */
 enum class IOState : uint8_t { Done, NeedRead, NeedWrite, Async };
 
 class TLSSession

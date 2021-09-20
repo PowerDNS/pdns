@@ -146,23 +146,25 @@ public:
 
   std::vector<int> getAsyncFDs() override
   {
+    std::vector<int> results;
+#ifdef SSL_MODE_ASYNC
     if (SSL_waiting_for_async(d_conn.get()) != 1) {
-      return {};
+      return results;
     }
 
     OSSL_ASYNC_FD fds[32];
     size_t numfds = sizeof(fds)/sizeof(*fds);
     SSL_get_all_async_fds(d_conn.get(), nullptr, &numfds);
     if (numfds == 0) {
-      return {};
+      return results;
     }
 
     SSL_get_all_async_fds(d_conn.get(), fds, &numfds);
-    std::vector<int> results;
     results.reserve(numfds);
     for (size_t idx = 0; idx < numfds; idx++) {
       results.push_back(fds[idx]);
     }
+#endif
     return results;
   }
 
@@ -186,9 +188,11 @@ public:
     else if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
     }
+#ifdef SSL_MODE_ASYNC
     else if (error == SSL_ERROR_WANT_ASYNC) {
       return IOState::Async;
     }
+#endif
     else {
       if (g_verbose) {
         throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + libssl_get_error_string());
