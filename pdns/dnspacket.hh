@@ -20,9 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
 #include <sys/types.h>
 #include "iputils.hh"
 #include "ednssubnet.hh"
@@ -34,6 +31,7 @@
 #include <arpa/inet.h>
 
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 #include "qtype.hh"
