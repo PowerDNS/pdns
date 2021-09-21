@@ -262,7 +262,7 @@ private:
       }
       else if (qname == DNSName("wrong-stream-id.powerdns.com.") && (id % 2) == 0) {
         /* we return a wrong stremad ID on the first query only */
-        BOOST_CHECK_EQUAL(frame->hd.stream_id, 1U);
+        BOOST_CHECK_EQUAL(frame->hd.stream_id, 1);
         conn->d_responses[frame->hd.stream_id] = expected.d_response;
         /* use an invalid stream ID! */
         conn->d_idMapping[frame->hd.stream_id] = frame->hd.stream_id + 4;

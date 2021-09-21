@@ -64,7 +64,7 @@ Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(v6);
 }
 
-static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
+static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -188,7 +188,7 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
   }
 }
 
-static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Logger>& plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Logger>& plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
 
   auto logger = plogger->withValues("primary", Logging::Loggable(primary));
@@ -239,7 +239,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Log
 }
 
 // this function is silent - you do the logging
-std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
+std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   shared_ptr<SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
@@ -361,7 +361,7 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
   return true;
 }
 
-void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration)
 {
   setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;
