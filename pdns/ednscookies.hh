@@ -21,13 +21,52 @@
  */
 #pragma once
 #include "namespaces.hh"
+#include "iputils.hh"
 
 struct EDNSCookiesOpt
 {
-  string client;
-  string server;
-};
+  static const size_t EDNSCookieSecretSize = 32;
+  static const size_t EDNSCookieOptSize = 24;
 
-bool getEDNSCookiesOptFromString(const char* option, unsigned int len, EDNSCookiesOpt* eco);
-bool getEDNSCookiesOptFromString(const string& option, EDNSCookiesOpt* eco);
-string makeEDNSCookiesOptString(const EDNSCookiesOpt& eco);
+  EDNSCookiesOpt(){};
+  EDNSCookiesOpt(const std::string& option);
+  EDNSCookiesOpt(const char* option, unsigned int len);
+
+  bool makeFromString(const std::string& option);
+  bool makeFromString(const char* option, unsigned int len);
+
+  size_t size() const
+  {
+    return server.size() + client.size();
+  }
+
+  bool isWellFormed() const
+  {
+    // RFC7873 section 5.2.2
+    //    In summary, valid cookie lengths are 8 and 16 to 40 inclusive.
+    return (
+      client.size() == 8 && (server.size() == 0 || (server.size() >= 8 && server.size() <= 32)));
+  }
+
+  bool isValid(const string& secret, const ComboAddress& source) const;
+  bool makeServerCookie(const string& secret, const ComboAddress& source);
+  string makeOptString() const;
+  string getServer() const
+  {
+    return server;
+  }
+  string getClient() const
+  {
+    return client;
+  }
+
+private:
+  bool shouldRefresh() const;
+
+  // the client cookie
+  string client;
+  // the server cookie
+  string server;
+
+  void getEDNSCookiesOptFromString(const char* option, unsigned int len);
+};

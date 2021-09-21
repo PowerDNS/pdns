@@ -1120,10 +1120,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenFirstOption) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV6);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
@@ -1173,11 +1171,9 @@ BOOST_AUTO_TEST_CASE(removeECSWhenIntermediaryOption) {
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
 
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr1 = makeEDNSCookiesOptString(cookiesOpt);
-  string cookiesOptionStr2 = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr1 = cookiesOpt.makeOptString();
+  string cookiesOptionStr2 = cookiesOpt.makeOptString();
 
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr1));
@@ -1225,10 +1221,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenLastOption) {
   pw.xfr32BitInt(0x01020304);
   pw.commit();
 
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
@@ -1313,10 +1307,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenFirstOption) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
@@ -1355,11 +1347,9 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenIntermediaryOption) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr1 = makeEDNSCookiesOptString(cookiesOpt);
-  string cookiesOptionStr2 = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr1 = cookiesOpt.makeOptString();
+  string cookiesOptionStr2 = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr1));
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -1399,10 +1389,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -1467,10 +1455,8 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -1565,10 +1551,8 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -1774,11 +1758,9 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
   const string ecsOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   const size_t sizeOfECSContent = ecsOptionStr.size();
   const size_t sizeOfECSOption = /* option code */ 2 + /* option length */ 2 + sizeOfECSContent;
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = string("deadbeef");
-  cookiesOpt.server = string("deadbeef");
-  const string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
-  const size_t sizeOfCookieOption = /* option code */ 2 + /* option length */ 2 + cookiesOpt.client.size() + cookiesOpt.server.size();
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
+  const size_t sizeOfCookieOption = /* option code */ 2 + /* option length */ 2 + cookiesOpt.size();
   /*
     GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
     opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));

@@ -350,7 +350,10 @@ void TCPNameserver::doConnection(int fd)
       packet->setSocket(fd);
       if(packet->parse(mesg.get(), pktlen)<0)
         break;
-      
+
+      if (packet->hasEDNSCookie())
+        S.inc("tcp-cookie-queries");
+
       if(packet->qtype.getCode()==QType::AXFR) {
         doAXFR(packet->qdomain, packet, fd);
         continue;

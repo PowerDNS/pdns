@@ -96,3 +96,5 @@ class CookiesOption(dns.edns.Option):
 
 
 dns.edns._type_to_class[0x000A] = CookiesOption
+
+dns.rcode.BADCOOKIE = 23

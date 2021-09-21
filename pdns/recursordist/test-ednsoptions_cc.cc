@@ -22,10 +22,8 @@ static void getRawQueryWithECSAndCookie(const DNSName& name, const Netmask& ecs,
   DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
   pw.commit();
 
-  EDNSCookiesOpt cookiesOpt;
-  cookiesOpt.client = clientCookie;
-  cookiesOpt.server = serverCookie;
-  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  EDNSCookiesOpt cookiesOpt(clientCookie + serverCookie);
+  string cookiesOptionStr = cookiesOpt.makeOptString();
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = ecs;
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);

@@ -164,10 +164,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     opt.source = Netmask("192.0.2.1/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
-    EDNSCookiesOpt cookiesOpt;
-    cookiesOpt.client = string("deadbeef");
-    cookiesOpt.server = string("deadbeef");
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
+    EDNSCookiesOpt cookiesOpt(string("deadbeefdeadbeef"));
+    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString()));
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
@@ -182,9 +180,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     opt.source = Netmask("192.0.2.1/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
-    cookiesOpt.client = string("deadbeef");
-    cookiesOpt.server = string("badc0fee");
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
+    cookiesOpt.makeFromString(string("deadbeefbadc0fee"));
+    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString()));
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw2.commit();
 
@@ -352,14 +349,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     opt.source = Netmask("192.0.2.1/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
-    EDNSCookiesOpt cookiesOpt;
-    cookiesOpt.client = string("deadbeef");
-    cookiesOpt.server = string("deadbeef");
-    cookiesOpt.server[4] = -20;
-    cookiesOpt.server[5] = -114;
-    cookiesOpt.server[6] = 0;
-    cookiesOpt.server[7] = 0;
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
+    EDNSCookiesOpt cookiesOpt(string("deadbeefdead\x11\xee\x00\x00").c_str(), 16);
+    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString()));
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
@@ -374,13 +365,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     opt.source = Netmask("192.0.2.1/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
-    cookiesOpt.client = string("deadbeef");
-    cookiesOpt.server = string("deadbeef");
-    cookiesOpt.server[4] = 103;
-    cookiesOpt.server[5] = 68;
-    cookiesOpt.server[6] = 0;
-    cookiesOpt.server[7] = 0;
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
+    cookiesOpt.makeFromString(string("deadbeefdead\x67\x44\x00\x00").c_str(), 16);
+    ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString()));
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw2.commit();
 
