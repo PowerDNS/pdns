@@ -91,3 +91,43 @@ bool generateSVCPayload(std::vector<uint8_t>& payload, const SVCRecordParameters
 {
   return generateSVCPayload(payload, parameters.priority, parameters.target, parameters.mandatoryParams, parameters.alpns, parameters.noDefaultAlpn, parameters.port, parameters.ech, parameters.ipv4hints, parameters.ipv6hints, parameters.additionalParams);
 }
+
+struct SVCRecordParameters parseSVCParameters(const svcParamsLua_t& params)
+{
+  struct SVCRecordParameters parameters;
+  for (const auto& p : params) {
+    if (p.first == "mandatory") {
+      for (auto const& entry : boost::get<std::vector<std::pair<int, std::string>>>(p.second)) {
+        parameters.mandatoryParams.insert(SvcParam::keyFromString(entry.second));
+      }
+    }
+    else if (p.first == "alpn") {
+      for (auto const& entry : boost::get<std::vector<std::pair<int, std::string>>>(p.second)) {
+        parameters.alpns.push_back(entry.second);
+      }
+    }
+    else if (p.first == "noDefaultAlpn") {
+      parameters.noDefaultAlpn = boost::get<bool>(p.second);
+    }
+    else if (p.first == "port") {
+      parameters.port = boost::get<uint16_t>(p.second);
+    }
+    else if (p.first == "ipv4hint") {
+      for (auto const& entry : boost::get<std::vector<std::pair<int, std::string>>>(p.second)) {
+        parameters.ipv4hints.push_back(ComboAddress(entry.second));
+      }
+    }
+    else if (p.first == "ech") {
+      parameters.ech = boost::get<std::string>(p.second);
+    }
+    else if (p.first == "ipv6hint") {
+      for (auto const& entry : boost::get<std::vector<std::pair<int, std::string>>>(p.second)) {
+        parameters.ipv6hints.push_back(ComboAddress(entry.second));
+      }
+    }
+    else {
+      parameters.additionalParams.push_back({SvcParam::keyFromString(p.first), boost::get<std::string>(p.second)});
+    }
+  }
+  return parameters;
+}

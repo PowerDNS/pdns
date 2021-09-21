@@ -25,6 +25,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <boost/variant.hpp>
 
 #include "dnsname.hh"
 #include "iputils.hh"
@@ -46,6 +48,18 @@ struct SVCRecordParameters
   uint16_t priority{0};
   bool noDefaultAlpn{false};
 };
+
+typedef std::unordered_map<
+  std::string,
+  boost::variant<
+    uint16_t,
+    bool,
+    std::string,
+    std::vector<std::pair<int, std::string>>,
+    std::vector<std::pair<int, ComboAddress>>>>
+  svcParamsLua_t;
+
+struct SVCRecordParameters parseSVCParameters(const svcParamsLua_t& params);
 
 bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<uint16_t, std::string>>& additionalParams);
 
