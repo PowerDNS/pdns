@@ -1157,7 +1157,7 @@ static StatsMap toCPUStatsMap(const string& name)
   StatsMap entries;
   for (unsigned int n = 0; n < g_numThreads; ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
-    std::string pname = pbasename + "{thread=" + std::to_string(n) + '}';
+    std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(make_pair(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)}));
   }
   return entries;
