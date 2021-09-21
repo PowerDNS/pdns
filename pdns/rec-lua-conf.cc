@@ -626,7 +626,7 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
 {
   for (const auto& rpzPrimary : delayedThreads.rpzPrimaryThreads) {
     try {
-      // The get calls all return a value object here. That is esential, since we want copies so that RPZIXFRTracker gets values
+      // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
       // with the proper lifetime.
       std::thread t(RPZIXFRTracker, std::get<0>(rpzPrimary), std::get<1>(rpzPrimary), std::get<2>(rpzPrimary), std::get<3>(rpzPrimary), std::get<4>(rpzPrimary), std::get<5>(rpzPrimary), std::get<6>(rpzPrimary) * 1024 * 1024, std::get<7>(rpzPrimary), std::get<8>(rpzPrimary), std::get<9>(rpzPrimary), std::get<10>(rpzPrimary), std::get<11>(rpzPrimary), generation);
       t.detach();
