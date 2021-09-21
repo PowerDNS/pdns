@@ -222,6 +222,8 @@ pdns_recursor_LDADD = \
 	$(PROBDS_LIBS) \
 	$(LIBCAP_LIBS)
 
+rec_control_LDADD = $(LIBCRYPTO_LIBS)
+
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_SYSTEM_LDFLAGS)
@@ -369,13 +371,14 @@ pdns_recursor_SOURCES += \
 	sodiumsigners.cc
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 
-rec_control_LDADD = $(LIBSODIUM_LIBS) \
-	$(LIBCRYPTO_LIBS)
+rec_control_LDADD += $(LIBSODIUM_LIBS)
 
 testrunner_SOURCES += \
 	sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
+
+
 
 if LIBDECAF
 pdns_recursor_SOURCES += \
