@@ -5289,6 +5289,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
+  delayedLuaThreads.rpzPrimaryThreads.clear(); // no longer needed
 
   makeThreadPipes();
 
