@@ -25,6 +25,7 @@
 #include <boost/format.hpp>
 
 #include "namespaces.hh"
+#include "noinitvector.hh"
 
 UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
@@ -84,16 +85,12 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   dnsheader.qdcount=htons(1);
   dnsheader.ancount=htons(1);
 
-  vector<uint8_t> packet; // build pseudo packet
-
+  PacketBuffer packet; // build pseudo packet
   /* will look like: dnsheader, 5 bytes, encoded qname, dns record header, serialized data */
-
   const auto& encoded = qname.getStorage();
-
   packet.resize(sizeof(dnsheader) + 5 + encoded.size() + sizeof(struct dnsrecordheader) + serialized.size());
 
   uint16_t pos=0;
-
   memcpy(&packet[0], &dnsheader, sizeof(dnsheader)); pos+=sizeof(dnsheader);
 
   constexpr std::array<uint8_t, 5> tmp= {'\x0', '\x0', '\x1', '\x0', '\x1' }; // root question for ns_t_a
@@ -114,9 +111,16 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
     (void) pos;
   }
 
-  MOADNSParser mdp(false, reinterpret_cast<const char *>(packet.data()), packet.size());
-  shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
-  return ret;
+  DNSRecord dr;
+  dr.d_class = QClass::IN;
+  dr.d_type = qtype;
+  dr.d_name = qname;
+  dr.d_clen = serialized.size();
+  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
+  /* needed to get the record boundaries right */
+  pr.getDnsrecordheader(drh);
+  auto content = DNSRecordContent::mastermake(dr, pr, Opcode::Query);
+  return content;
 }
 
 std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr,
