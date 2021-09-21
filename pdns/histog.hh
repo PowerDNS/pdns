@@ -20,9 +20,9 @@ struct LogHistogramBin
 };
 
 template<typename T>
-std::vector<LogHistogramBin> createLogHistogram(const T& bins,
-                        std::deque<double> percentiles={0.001, 0.01, 0.1, 0.2, 0.5, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 94, 95, 96, 97, 97.5, 98, 98.5, 99, 99.5, 99.6, 99.9, 99.99, 99.999, 99.9999})
+std::vector<LogHistogramBin> createLogHistogram(const T& bins)
 {
+  std::deque<double> percentiles={0.001, 0.01, 0.1, 0.2, 0.5, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 94, 95, 96, 97, 97.5, 98, 98.5, 99, 99.5, 99.6, 99.9, 99.99, 99.999, 99.9999};
   uint64_t totcumul=0, sum=0;
 
   for(const auto& c: bins) {
@@ -60,10 +60,9 @@ std::vector<LogHistogramBin> createLogHistogram(const T& bins,
 }
 
 template<typename T>
-void writeLogHistogramFile(const T& bins, std::ostream& out, std::deque<double> percentiles={0.001, 0.01, 0.1, 0.2, 0.5, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 94, 95, 96, 97, 97.5, 98, 98.5, 99, 99.5, 99.6, 99.9, 99.99, 99.999, 99.9999} )
+void writeLogHistogramFile(const T& bins, std::ostream& out)
 {
-
-  auto vec = createLogHistogram(bins, percentiles);
+  auto vec = createLogHistogram(bins);
   out<< R"(# set logscale xy
 # set mxtics 10
 # set mytics 10

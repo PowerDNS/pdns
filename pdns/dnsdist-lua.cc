@@ -1992,7 +1992,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("setServerPolicy", [](ServerPolicy policy) {
+  luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy& policy) {
       setLuaSideEffect();
       g_policy.setState(policy);
     });
