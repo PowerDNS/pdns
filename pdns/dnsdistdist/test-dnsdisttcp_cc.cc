@@ -3503,8 +3503,94 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 2U);
   }
-}
 
+  {
+    TEST_INIT("=> 2 OOOR queries to the backend with duplicated IDs, backend responds to only one of them");
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+
+    expectedBackendWriteBuffer = s_readBuffer;
+
+    s_backendReadBuffer.insert(s_backendReadBuffer.begin(), responses.at(0).begin(), responses.at(0).end());
+    expectedWriteBuffer = s_backendReadBuffer;
+
+    bool timeout = false;
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      /* no response ready yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      /* reading a query from the client (2) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      /* sending query to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      /* no response ready yet, but mark the descriptor as ready */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* nothing more from the client either */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+
+      /* reading a response from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc, const ExpectedStep& step) {
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
+      /* sending it to the client. we don't have anything else to send to the client, no new query from it either, until we time out */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&timeout](int desc, const ExpectedStep& step) {
+        timeout = true;
+      } },
+      /* closing client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      /* closing a connection to the backend */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+    };
+
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (!timeout && (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0)) {
+      threadData.mplexer->run(&now);
+    }
+
+    struct timeval later = now;
+    later.tv_sec += g_tcpRecvTimeout + 1;
+    auto expiredConns = threadData.mplexer->getTimeouts(later);
+    BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
+    for (const auto& cbData : expiredConns) {
+      if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
+        cbState->handleTimeout(cbState, false);
+      }
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
+}
 
 BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
 {
