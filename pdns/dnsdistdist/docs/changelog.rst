@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.7.0-alpha1
-  :released: TBD
+  :released: 23rd of September 2021
 
  .. change::
     :tags: Improvements
@@ -16,13 +16,6 @@ Changelog
     :pullreq: 10429
 
     Fix 'temporary used in loop' warnings reported by g++ 11.1.0
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 10419
-    :tickets: 10409, 10410
-
-    Properly handle ECS for queries with ancount or nscount > 0 (Dimitrios Mavrommatis)
 
   .. change::
     :tags: Improvements
@@ -97,12 +90,6 @@ Changelog
     Document that setECSOverride has its drawbacks (Andreas Jakum)
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 10650
-
-    Fix the wrong RD and CD flags being cached, causing misses
-
-  .. change::
     :tags: Improvements
     :pullreq: 10649
 
@@ -113,12 +100,6 @@ Changelog
     :pullreq: 10631
 
     Handle waiting for a descriptor to become readable OR writable
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 10664
-
-    Cache based on the DNS flags of the query after applying the rules
 
   .. change::
     :tags: Bug Fixes
@@ -151,12 +132,6 @@ Changelog
     :tickets: 10693
 
     Ignore TCAction over TCP
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 10705
-
-    Fix outstanding counter issue when a TCP connection dies
 
   .. change::
     :tags: Improvements
