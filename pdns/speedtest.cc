@@ -12,6 +12,8 @@
 #include "uuid-utils.hh"
 #include "dnssecinfra.hh"
 #include "lock.hh"
+#include "dns_random.hh"
+#include "arguments.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -1047,6 +1049,26 @@ private:
   const std::string d_password{"test password"};
 };
 
+struct RndSpeedTest
+{
+  explicit RndSpeedTest(std::string which) : name(which){
+    ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
+    ::arg().set("rng", "") = which;
+    dns_random_init("", true);
+  }
+  string getName() const
+  {
+    return "Random test " + name;
+  }
+
+  void operator()() const
+  {
+    dns_random(0x10000);
+  }
+
+  std::string name;
+};
+
 struct CredentialsVerifyTest
 {
   explicit CredentialsVerifyTest() {
@@ -1174,6 +1196,20 @@ try
 
   doRun(UUIDGenTest());
 
+#if defined(HAVE_RANDOMBYTES_STIR)
+  doRun(RndSpeedTest("sodium"));
+#endif
+#if defined(HAVE_RAND_BYTES)
+  doRun(RndSpeedTest("openssl"));
+#endif
+#if defined(HAVE_GETRANDOM)
+  doRun(RndSpeedTest("getrandom"));
+#endif
+#if defined(HAVE_ARC4RANDOM)
+  doRun(RndSpeedTest("arc4random"));
+#endif
+  doRun(RndSpeedTest("urandom"));
+
   doRun(NSEC3HashTest(1, "ABCD"));
   doRun(NSEC3HashTest(10, "ABCD"));
   doRun(NSEC3HashTest(50, "ABCD"));
@@ -1201,10 +1237,17 @@ try
   doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 
+
   cerr<<"Total runs: " << g_totalRuns<<endl;
 
 }
 catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
+}
+
+ArgvMap& arg()
+{	
+  static ArgvMap theArg;
+  return theArg;
 }
