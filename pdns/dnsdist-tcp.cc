@@ -384,20 +384,30 @@ void IncomingTCPConnectionState::terminateClientConnection()
   }
   d_ownedConnectionsToBackend.clear();
 
-  /* let's make sure we don't have any remaining async descriptors laying around */
-  auto afds = d_handler.getAsyncFDs();
-  for (const auto afd : afds) {
-    try {
-      d_threadData.mplexer->removeReadFD(afd);
-    }
-    catch (...) {
-    }
-  }
-
   /* meaning we will no longer be 'active' when the backend
      response or timeout comes in */
   d_ioState.reset();
-  d_handler.close();
+
+  /* if we do have remaining async descriptors associated with this TLS
+     connection, we need to defer the destruction of the TLS object until
+     the engine has reported back, otherwise we have a use-after-free.. */
+  auto afds = d_handler.getAsyncFDs();
+  if (afds.empty()) {
+    d_handler.close();
+  }
+  else {
+    /* we might already be waiting, but we might also not because sometimes we have already been
+       notified via the descriptor, not received Async again, but the async job still exists.. */
+    auto state = shared_from_this();
+    for (const auto fd : afds) {
+      try {
+	state->d_threadData.mplexer->addReadFD(fd, handleAsyncReady, state);
+      }
+      catch (...) {
+      }
+    }
+
+  }
 }
 
 void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
@@ -447,10 +457,17 @@ void IncomingTCPConnectionState::handleAsyncReady(int fd, FDMultiplexer::funcpar
     }
   }
 
-  /* and now we restart our own I/O state machine */
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  handleIO(state, now);
+  if (state->active()) {
+    /* and now we restart our own I/O state machine */
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    handleIO(state, now);
+  }
+  else {
+    /* we were only waiting for the engine to come back,
+       to prevent a use-after-free */
+    state->d_handler.close();
+  }
 }
 
 void IncomingTCPConnectionState::updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now)
