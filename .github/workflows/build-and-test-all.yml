@@ -36,7 +36,6 @@ jobs:
       - run: inv ci-autoconf
       - run: inv ci-auth-configure
       - run: inv ci-auth-make
-      # FIXME: save ccache here?
       - run: inv ci-auth-install-remotebackend-ruby-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv ci-make-install
@@ -80,7 +79,6 @@ jobs:
       - run: inv ci-autoconf
       - run: inv ci-rec-configure
       - run: inv ci-rec-make
-      # FIXME: save ccache here?
       - run: inv ci-rec-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
@@ -127,7 +125,6 @@ jobs:
       - run: inv ci-autoconf
       - run: inv ci-dnsdist-configure
       - run: inv ci-dnsdist-make
-      # FIXME: save ccache here?
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
@@ -198,12 +195,22 @@ jobs:
         include:
           - backend: remote
             image: coscale/docker-sleep
-          # - backend: gmysql
-          #   image: mysql:5
-          # - backend: gpgsql
-          #   image: postgres:9
-          # - backend: lmdb
-          #   image: coscale/docker-sleep
+          - backend: gmysql
+            image: mysql:5
+          - backend: gmysql
+            image: mariadb:10
+          - backend: gpgsql
+            image: postgres:9
+          - backend: lmdb
+            image: coscale/docker-sleep
+          - backend: bind
+            image: coscale/docker-sleep
+          - backend: geoip
+            image: coscale/docker-sleep
+          - backend: lua2
+            image: coscale/docker-sleep
+          - backend: tinydns
+            image: coscale/docker-sleep
       fail-fast: false
     services:
       database:
@@ -235,6 +242,27 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-auth-backend -b ${{ matrix.backend }}
+
+  test-ixfrdist:
+    needs: build-auth
+    runs-on: ubuntu-20.04
+    env:
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang-runtime
+      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
+      - run: inv test-ixfrdist
 
   test-recursor-api:
     needs: build-recursor
@@ -286,12 +314,13 @@ jobs:
   collect:
     needs:
       - build-auth
-      - build-recursor
       - build-dnsdist
+      - build-recursor
       - test-auth-api
       - test-auth-backend
-      - test-recursor-api
       - test-dnsdist-regression
+      - test-ixfrdist
+      - test-recursor-api
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.3.4

@@ -130,7 +130,11 @@ auth_backend_test_deps = dict(
     gmysql=['default-libmysqlclient-dev'],
     gpgsql=['libpq-dev'],
     lmdb=[],
-    remote=[]
+    remote=[],
+    bind=[],
+    geoip=[],
+    lua2=[],
+    tinydns=[]
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
@@ -350,7 +354,46 @@ def test_api(c, product, backend=''):
         raise Failure('unknown product')
 
 backend_regress_tests = dict(
-    remote = ['pipe', 'unix', 'http', 'zeromq', 'pipe-dnssec', 'unix-dnssec', 'http-dnssec', 'zeromq-dnssec']
+    bind = [
+      'bind-both',
+      'bind-dnssec-both',
+      'bind-dnssec-nsec3-both',
+      'bind-dnssec-nsec3-optout-both',
+      'bind-dnssec-nsec3-narrow',
+    # FIXME  'bind-dnssec-pkcs11'
+    ],
+    geoip = [
+      'geoip',
+      'geoip-nsec3-narrow'
+      # FIXME: also run this with the mmdb we ship
+    ],
+    lua2 = [
+      'lua2',
+      'lua2-dnssec'
+    ],
+    tinydns = [
+      'tinydns'
+    ],
+    remote = [
+      'remotebackend-pipe',
+      'remotebackend-unix',
+      'remotebackend-http',
+      'remotebackend-zeromq',
+      'remotebackend-pipe-dnssec',
+      'remotebackend-unix-dnssec',
+      'remotebackend-http-dnssec',
+      'remotebackend-zeromq-dnssec'
+    ],
+    lmdb = [
+      'lmdb-nodnssec-both',
+      'lmdb-both',
+      'lmdb-nsec3-both',
+      'lmdb-nsec3-optout-both',
+      'lmdb-nsec3-narrow'
+    ],
+    gmysql   = ['gmysql',     'gmysql-nodnssec-both',   'gmysql-nsec3-both',   'gmysql-nsec3-optout-both',   'gmysql-nsec3-narrow',   'gmysql_sp-both'],
+    gpgsql   = ['gpgsql',     'gpgsql-nodnssec-both',   'gpgsql-nsec3-both',   'gpgsql-nsec3-optout-both',   'gpgsql-nsec3-narrow',   'gpgsql_sp-both'],
+    gsqlite3 = ['gsqlite3', 'gsqlite3-nodnssec-both', 'gsqlite3-nsec3-both', 'gsqlite3-nsec3-optout-both', 'gsqlite3-nsec3-narrow'],
 )
 
 @task
@@ -359,10 +402,16 @@ def test_auth_backend(c, backend):
         ci_auth_install_remotebackend_ruby_deps(c)
 
     with c.cd('regression-tests'):
-        for t in backend_regress_tests[backend]:
+        if backend == 'lua2':
+            c.run('touch trustedkeys')  # avoid silly error during cleanup
+        for variant in backend_regress_tests[backend]:
             # FIXME this long line is terrible
-            # FIXME this appends 'backend' but that's only correct for 'remote'
-            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {backend}backend-{t}')
+            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {variant}')
+
+@task
+def test_ixfrdist(c):
+    with c.cd('regression-tests.ixfrdist'):
+        c.run('IXFRDISTBIN=/opt/pdns-auth/bin/ixfrdist ./runtests')
 
 @task
 def test_dnsdist(c):
