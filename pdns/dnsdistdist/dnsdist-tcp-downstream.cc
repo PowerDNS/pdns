@@ -67,12 +67,13 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   conn->d_currentPos = 0;
 
   DEBUGLOG("adding a pending response for ID "<<conn->d_currentQuery.d_idstate.origID<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
-  conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
-  conn->d_currentQuery.d_buffer.clear();
-
-  if (!conn->d_usedForXFR) {
+  auto res = conn->d_pendingResponses.insert({conn->d_currentQuery.d_idstate.origID, std::move(conn->d_currentQuery)});
+  /* if there was already a pending response with that ID, the client messed up and we don't expect more
+     than one response */
+  if (res.second && !conn->d_usedForXFR) {
     ++conn->d_ds->outstanding;
   }
+  conn->d_currentQuery.d_buffer.clear();
 
   return state;
 }
