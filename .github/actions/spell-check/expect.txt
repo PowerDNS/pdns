@@ -364,6 +364,7 @@ DIGESTALGOS
 Digitalus
 dijk
 dilinger
+Dimitrios
 Directi
 Disqus
 distro
@@ -686,6 +687,7 @@ hmac
 Hmi
 Hoentjen
 Hofstaedtler
+Holger
 homepage
 Hooimeijer
 hostmaster
@@ -956,6 +958,7 @@ mariadb
 Markmann
 Massar
 matchtype
+Mavrommatis
 maxdepth
 MAXINT
 maxlistdepth

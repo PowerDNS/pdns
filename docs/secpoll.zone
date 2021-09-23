@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2021091501 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2021092301 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -414,3 +414,4 @@ dnsdist-1.6.0-rc1.security-status                          60 IN TXT "3 Unsuppor
 dnsdist-1.6.0-rc2.security-status                          60 IN TXT "3 Unsupported pre-release"
 dnsdist-1.6.0.security-status                              60 IN TXT "1 OK"
 dnsdist-1.6.1.security-status                              60 IN TXT "1 OK"
+dnsdist-1.7.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release"
