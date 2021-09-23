@@ -293,7 +293,7 @@ Cumulative counts of answer times of authoritative servers in buckets less than 
 These metrics are useful for Prometheus and not listed in other outputs by default.
 
 cumul-clientanswers-x
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.6
 
 Cumulative counts of our answer times to clients in buckets less or equal than x microseconds.
