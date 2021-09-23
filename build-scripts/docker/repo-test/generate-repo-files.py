@@ -148,9 +148,9 @@ def write_release_files (release):
         write_list_file('ubuntu', 'bionic', release)
         write_pkg_pin_file(release)
 
-    if release in ['auth-42', 'auth-43',
-                   'rec-42', 'rec-43',
-                   'dnsdist-15']:
+    if release in ['auth-42', 'auth-43', 'auth-44',
+                   'rec-42', 'rec-43', 'rec-44',
+                   'dnsdist-14', 'dnsdist-15']:
         write_dockerfile('raspbian', 'buster', release)
         write_list_file('raspbian', 'buster', release)
 
