@@ -99,20 +99,3 @@ uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
   return ret;
 }
 
-
-string& attodot(string &str)
-{
-   if(str.find_first_of('@')==string::npos)
-      return str;
-
-   for (unsigned int i = 0; i < str.length(); i++)
-   {
-      if (str[i] == '@') {
-         str[i] = '.';
-         break;
-      } else if (str[i] == '.') {
-         str.insert(i++, "\\");
-      }
-   }
-   return str;
-}

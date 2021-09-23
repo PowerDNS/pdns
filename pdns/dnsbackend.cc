@@ -340,7 +340,7 @@ void fillSOAData(const string &content, SOAData &data)
 
   try {
     data.nameserver = DNSName(parts.at(0));
-    data.hostmaster = DNSName(attodot(parts.at(1))); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
+    data.hostmaster = DNSName(parts.at(1));
     data.serial = pdns_stou(parts.at(2).c_str());
     data.refresh = pdns_stou(parts.at(3).c_str());
     data.retry = pdns_stou(parts.at(4).c_str());
