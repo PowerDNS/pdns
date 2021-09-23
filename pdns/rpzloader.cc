@@ -238,6 +238,44 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Log
   return sr;
 }
 
+static LockGuarded<std::unordered_map<std::string, shared_ptr<rpzStats> > > s_rpzStats;
+
+shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone)
+{
+  auto stats = s_rpzStats.lock();
+  auto it = stats->find(zone);
+  if (it == stats->end()) {
+    auto stat = std::make_shared<rpzStats>();
+    (*stats)[zone] = stat;
+    return stat;
+  }
+  return it->second;
+}
+
+static void incRPZFailedTransfers(const std::string& zone)
+{
+  auto stats = getRPZZoneStats(zone);
+  if (stats != nullptr)
+    stats->d_failedTransfers++;
+}
+
+static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_t numberOfRecords, bool fromFile, bool wasAXFR)
+{
+  auto stats = getRPZZoneStats(zone);
+  if (stats == nullptr) {
+    return;
+  }
+  if (!fromFile) {
+    stats->d_successfulTransfers++;
+    if (wasAXFR) {
+      stats->d_fullTransfers++;
+    }
+  }
+  stats->d_lastUpdate = time(nullptr);
+  stats->d_serial = serial;
+  stats->d_numberOfRecords = numberOfRecords;
+}
+
 // this function is silent - you do the logging
 std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
@@ -271,43 +309,9 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
 
   if (sr != nullptr) {
     zone->setRefresh(sr->d_st.refresh);
+    setRPZZoneNewState(zone->getName(), sr->d_st.serial, zone->size(), true, false);
   }
   return sr;
-}
-
-static LockGuarded<std::unordered_map<std::string, shared_ptr<rpzStats> > > s_rpzStats;
-
-shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone)
-{
-  auto stats = s_rpzStats.lock();
-  auto it = stats->find(zone);
-  if (it == stats->end()) {
-    auto stat = std::make_shared<rpzStats>();
-    (*stats)[zone] = stat;
-    return stat;
-  }
-  return it->second;
-}
-
-static void incRPZFailedTransfers(const std::string& zone)
-{
-  auto stats = getRPZZoneStats(zone);
-  if (stats != nullptr)
-    stats->d_failedTransfers++;
-}
-
-static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_t numberOfRecords, bool wasAXFR)
-{
-  auto stats = getRPZZoneStats(zone);
-  if (stats == nullptr)
-    return;
-  stats->d_successfulTransfers++;
-  if (wasAXFR) {
-    stats->d_fullTransfers++;
-  }
-  stats->d_lastUpdate = time(nullptr);
-  stats->d_serial = serial;
-  stats->d_numberOfRecords = numberOfRecords;
 }
 
 static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
@@ -395,7 +399,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
         refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 1U);
-        setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+        setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), false, true);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
             lci.dfe.setZone(zoneIdx, newZone);
@@ -545,7 +549,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
       g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
       newZone->setSerial(sr->d_st.serial);
       newZone->setRefresh(sr->d_st.refresh);
-      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), fullUpdate);
+      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), false, fullUpdate);
 
       /* we need to replace the existing zone with the new one,
          but we don't want to touch anything else, especially other zones,
