@@ -1258,6 +1258,17 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
+  .. method:: DynBlockRulesGroup:setMasks(v4, v6)
+
+    .. versionadded:: 1.7.0
+
+    Set the number of bits to keep in the IP address when inserting a block. The default is 32 for IPv4 and 128 for IPv6, meaning
+    that only the exact address is blocked, but in some scenarios it might make sense to block a whole /64 IPv6 range instead of a
+    single address, for example.
+
+    :param int v4: Number of bits of to keep for IPv4 addresses. Default is 32
+    :param int v6: Number of bits of to keep for IPv6 addresses. Default is 128
+
   .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
 
     Adds a query rate-limiting rule, equivalent to:

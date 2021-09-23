@@ -212,7 +212,7 @@ private:
     double d_warningRatio{0.0};
   };
 
-  typedef std::unordered_map<ComboAddress, Counts, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
+  typedef std::unordered_map<Netmask, Counts, Netmask::hash> counts_t;
 
 public:
   DynBlockRulesGroup()
@@ -260,6 +260,12 @@ public:
   {
     d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
     d_smtVisitorFFI = visitor;
+  }
+
+  void setMasks(uint8_t v4, uint8_t v6)
+  {
+    d_v4Mask = v4;
+    d_v6Mask = v6;
   }
 
   void apply()
@@ -330,15 +336,15 @@ private:
 
   bool checkIfQueryTypeMatches(const Rings::Query& query);
   bool checkIfResponseCodeMatches(const Rings::Response& response);
-  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning);
+  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const Netmask& requestor, const DynBlockRule& rule, bool& updated, bool warning);
   void addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
 
-  void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const Netmask& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
   }
 
-  void handleWarning(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  void handleWarning(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const Netmask& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }
@@ -376,6 +382,8 @@ private:
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;
   dnsdist_ffi_stat_node_visitor_t d_smtVisitorFFI;
+  uint8_t d_v6Mask{128};
+  uint8_t d_v4Mask{32};
   bool d_beQuiet{false};
 };
 
@@ -417,3 +425,110 @@ private:
   static std::list<MetricsSnapshot> s_metricsData;
   static size_t s_topN;
 };
+
+class AddressAndPortRange
+{
+public:
+  AddressAndPortRange(): d_addrMask(0), d_portMask(0)
+  {
+    d_addr.sin4.sin_family = 0; // disable this doing anything useful
+    d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
+  }
+
+  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
+  {
+    cerr<<"creating a address and port range "<<ca.toStringWithPort()<<"/"<<std::to_string(addrMask)<<" "<<std::to_string(portMask)<<endl;
+    if (d_addrMask < d_addr.getBits()) {
+      uint16_t port = d_addr.getPort();
+      d_addr = Netmask(d_addr, d_addrMask).getMaskedNetwork();
+      d_addr.setPort(port);
+    }
+  }
+
+  uint8_t getFullBits() const
+  {
+    cerr<<"in getFullbits returning "<<(d_addr.getBits() + 16)<<endl;
+    return d_addr.getBits() + 16;
+  }
+
+  uint8_t getBits() const
+  {
+    if (d_addrMask < d_addr.getBits()) {
+      cerr<<"in getBits returning "<<std::to_string(d_addrMask)<<endl;
+      return d_addrMask;
+    }
+
+    cerr<<"in getBits returning "<<std::to_string(d_addr.getBits() + d_portMask)<<endl;
+    return d_addr.getBits() + d_portMask;
+  }
+
+  /** Get the value of the bit at the provided bit index. When the index >= 0,
+      the index is relative to the LSB starting at index zero. When the index < 0,
+      the index is relative to the MSB starting at index -1 and counting down.
+  */
+  bool getBit(int index) const
+  {
+    cerr<<"in getBit "<<index<<" for "<<d_addr.toStringWithPort()<<endl;
+    if (index >= getFullBits()) {
+      cerr<<"flse 1"<<endl;
+      return false;
+    }
+    if (index < 0) {
+      index = getFullBits() + index;
+      cerr<<"normalized index to "<<index<<endl;
+    }
+
+    if (index < 16) {
+      /* we are into the port bits */
+      uint16_t port = d_addr.getPort();
+      cerr<<"return (2) "<<((port & (1U<<index)) != 0x0000)<<endl;
+      return ((port & (1U<<index)) != 0x0000);
+    }
+
+    index -= 16;
+
+    cerr<<"return (d_addr) "<<d_addr.getBit(index)<<endl;
+    return d_addr.getBit(index);
+  }
+
+  bool isIPv4() const
+  {
+    return d_addr.isIPv4();
+  }
+
+  bool isIPv6() const
+  {
+    return d_addr.isIPv6();
+  }
+
+  AddressAndPortRange getNormalized() const
+  {
+    cerr<<"in getNormalized"<<endl;
+    return AddressAndPortRange(d_addr, d_addrMask, d_portMask);
+  }
+
+  AddressAndPortRange getSuper(uint8_t bits) const
+  {
+    cerr<<"in getSuper("<<std::to_string(bits)<<")"<<endl;
+    if (bits <= d_addrMask) {
+      return AddressAndPortRange(d_addr, bits, 0);
+    }
+    if (bits <= d_addrMask + d_portMask) {
+      return AddressAndPortRange(d_addr, d_addrMask, d_portMask - (bits - d_addrMask));
+    }
+
+    return AddressAndPortRange(d_addr, d_addrMask, d_portMask);
+  }
+
+  const ComboAddress& getNetwork() const
+  {
+    cerr<<"in getNetwork"<<endl;
+    return d_addr;
+  }
+
+private:
+  ComboAddress d_addr;
+  uint8_t d_addrMask;
+  uint8_t d_portMask;
+};
+

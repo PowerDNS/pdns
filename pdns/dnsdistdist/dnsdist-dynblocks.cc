@@ -174,9 +174,9 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
   return false;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const Netmask& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
-  if (d_excludedSubnets.match(requestor)) {
+  if (d_excludedSubnets.match(requestor.getMaskedNetwork())) {
     /* do not add a block for excluded subnets */
     return;
   }
@@ -187,7 +187,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks->lookup(Netmask(requestor));
+  const auto& got = blocks->lookup(requestor.getMaskedNetwork());
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
@@ -223,9 +223,10 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   db.blocks = count;
   db.warning = warning;
   if (!got || expired || wasWarning) {
-    if (db.action == DNSAction::Action::Drop && g_defaultBPFFilter) {
+    if (db.action == DNSAction::Action::Drop && g_defaultBPFFilter &&
+        ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128))) {
       try {
-        g_defaultBPFFilter->block(requestor);
+        g_defaultBPFFilter->block(requestor.getMaskedNetwork());
         bpf = true;
       }
       catch (const std::exception& e) {
@@ -240,7 +241,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
 
   db.bpf = bpf;
 
-  blocks->insert(Netmask(requestor)).second = std::move(db);
+  blocks->insert(requestor).second = std::move(db);
 
   updated = true;
 }
@@ -314,7 +315,7 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
       bool typeRuleMatches = checkIfQueryTypeMatches(c);
 
       if (qRateMatches || typeRuleMatches) {
-        auto& entry = counts[c.requestor];
+        auto& entry = counts[Netmask(c.requestor, c.requestor.isIPv4() ? d_v4Mask : d_v6Mask)];
         if (qRateMatches) {
           ++entry.queries;
         }
@@ -373,7 +374,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
         continue;
       }
 
-      auto& entry = counts[c.requestor];
+      auto& entry = counts[Netmask(c.requestor, c.requestor.isIPv4() ? d_v4Mask : d_v6Mask)];
       ++entry.responses;
 
       bool respRateMatches = d_respRateRule.matches(c.when);

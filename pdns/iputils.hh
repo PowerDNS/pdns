@@ -637,6 +637,11 @@ public:
     return d_network.getBits();
   }
 
+  uint8_t getFullBits() const
+  {
+    return getAddressBits();
+  }
+
   /** Get the value of the bit at the provided bit index. When the index >= 0,
       the index is relative to the LSB starting at index zero. When the index < 0,
       the index is relative to the MSB starting at index -1 and counting down.
@@ -658,6 +663,15 @@ public:
     }
     return d_network.getBit(bit);
   }
+
+  struct hash
+  {
+    uint32_t operator()(const Netmask& nm) const
+    {
+      ComboAddress::addressOnlyHash hashOp;
+      return hashOp(nm.d_network);
+    }
+  };
 private:
   ComboAddress d_network;
   uint32_t d_mask;
@@ -685,12 +699,12 @@ private:
  * Please see NetmaskGroup for example of simple use case. Other usecases can be found
  * from GeoIPBackend and Sortlist, and from dnsdist.
  */
-template <typename T>
+template <typename T, class K = Netmask>
 class NetmaskTree {
 public:
   class Iterator;
 
-  typedef Netmask key_type;
+  typedef K key_type;
   typedef T value_type;
   typedef std::pair<const key_type,value_type> node_type;
   typedef size_t size_type;
@@ -706,7 +720,7 @@ private:
     }
     explicit TreeNode(const key_type& key) noexcept :
       parent(nullptr), node({key.getNormalized(), value_type()}),
-      assigned(false), d_bits(key.getAddressBits()) {
+      assigned(false), d_bits(key.getFullBits()) {
     }
 
     //<! Makes a left leaf node with specified key.
