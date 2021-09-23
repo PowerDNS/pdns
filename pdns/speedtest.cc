@@ -36,8 +36,8 @@ template<typename C> void doRun(const C& cmd, int mseconds=100)
   it.it_interval.tv_sec=0;
   it.it_interval.tv_usec=0;
 
-  signal(SIGVTALRM, alarmHandler);
-  setitimer(ITIMER_VIRTUAL, &it, 0);
+  signal(SIGPROF, alarmHandler);
+  setitimer(ITIMER_PROF, &it, 0);
 
   unsigned int runs=0;
   g_stop=false;
