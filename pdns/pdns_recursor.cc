@@ -5066,7 +5066,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   int64_t millis = ::arg().asNum("tcp-out-max-idle-ms");
-  TCPOutConnectionManager::s_maxIdleTime = timeval{millis / 1000, (millis % 1000) * 1000 };
+  TCPOutConnectionManager::s_maxIdleTime = timeval{millis / 1000, (static_cast<suseconds_t>(millis) % 1000) * 1000 };
   TCPOutConnectionManager::s_maxIdlePerAuth = ::arg().asNum("tcp-out-max-idle-per-auth");
   TCPOutConnectionManager::s_maxQueries = ::arg().asNum("tcp-out-max-queries");
   TCPOutConnectionManager::s_maxIdlePerThread = ::arg().asNum("tcp-out-max-idle-per-thread");
