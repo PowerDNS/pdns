@@ -4847,6 +4847,30 @@ static void checkSocketDir(void)
   _exit(1);
 }
 
+static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
+{
+  return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
+}
+
+struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
+{
+  struct WipeCacheResult res;
+
+  try {
+    res.record_count = g_recCache->doWipeCache(canon, subtree, qtype);
+    res.packet_count = broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(canon, subtree, qtype);});
+    res.negative_record_count = g_negCache->wipe(canon, subtree);
+    if (g_aggressiveNSECCache) {
+      g_aggressiveNSECCache->removeZoneInfo(canon, subtree);
+    }
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
+  }
+
+  return res;
+}
+
 static int serviceMain(int argc, char*argv[])
 {
   int ret = EXIT_SUCCESS;

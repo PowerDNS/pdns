@@ -395,11 +395,9 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
     qtype = QType::chartocode(req->getvars["type"].c_str());
   }
 
-  int count = g_recCache->doWipeCache(canon, subtree, qtype);
-  count += broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(canon, subtree, qtype); });
-  count += g_negCache->wipe(canon, subtree);
+  struct WipeCacheResult res = wipeCaches(canon, subtree, qtype);
   resp->setJsonBody(Json::object{
-    {"count", count},
+    {"count", res.record_count + res.packet_count + res.negative_record_count},
     {"result", "Flushed cache."}});
 }
 

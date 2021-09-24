@@ -461,11 +461,6 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
   return {0, "done\n"};
 }
 
-uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
-{
-  return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
-}
-
 template <typename T>
 static string doWipeCache(T begin, T end, uint16_t qtype)
 {
@@ -492,12 +487,10 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
   int count = 0, pcount = 0, countNeg = 0;
   for (auto wipe : toWipe) {
     try {
-      count += g_recCache->doWipeCache(wipe.first, wipe.second, qtype);
-      pcount += broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(wipe.first, wipe.second, qtype); });
-      countNeg += g_negCache->wipe(wipe.first, wipe.second);
-      if (g_aggressiveNSECCache) {
-        g_aggressiveNSECCache->removeZoneInfo(wipe.first, wipe.second);
-      }
+      auto res = wipeCaches(wipe.first, wipe.second, qtype);
+      count += res.record_count;
+      pcount += res.packet_count;
+      countNeg += res.negative_record_count;
     }
     catch (const std::exception& e) {
       g_log << Logger::Warning << ", failed: " << e.what() << endl;
@@ -614,12 +607,7 @@ static string doAddNTA(T begin, T end)
     lci.negAnchors[who] = why;
   });
   try {
-    g_recCache->doWipeCache(who, true, 0xffff);
-    broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(who, true, 0xffff); });
-    g_negCache->wipe(who, true);
-    if (g_aggressiveNSECCache) {
-      g_aggressiveNSECCache->removeZoneInfo(who, true);
-    }
+    wipeCaches(who, true, 0xffff);
   }
   catch (std::exception& e) {
     g_log << Logger::Warning << ", failed: " << e.what() << endl;
@@ -671,12 +659,7 @@ static string doClearNTA(T begin, T end)
       g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
-      g_recCache->doWipeCache(entry, true, 0xffff);
-      broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(entry, true, 0xffff); });
-      g_negCache->wipe(entry, true);
-      if (g_aggressiveNSECCache) {
-        g_aggressiveNSECCache->removeZoneInfo(entry, true);
-      }
+      wipeCaches(entry, true, 0xffff);
       if (!first) {
         first = false;
         removed += ",";
@@ -737,12 +720,7 @@ static string doAddTA(T begin, T end)
       auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[who].insert(*ds);
     });
-    g_recCache->doWipeCache(who, true, 0xffff);
-    broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(who, true, 0xffff); });
-    g_negCache->wipe(who, true);
-    if (g_aggressiveNSECCache) {
-      g_aggressiveNSECCache->removeZoneInfo(who, true);
-    }
+    wipeCaches(who, true, 0xffff);
     g_log << Logger::Warning << endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
@@ -787,12 +765,7 @@ static string doClearTA(T begin, T end)
       g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
-      g_recCache->doWipeCache(entry, true, 0xffff);
-      broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(entry, true, 0xffff); });
-      g_negCache->wipe(entry, true);
-      if (g_aggressiveNSECCache) {
-        g_aggressiveNSECCache->removeZoneInfo(entry, true);
-      }
+      wipeCaches(entry, true, 0xffff);
       if (!first) {
         first = false;
         removed += ",";

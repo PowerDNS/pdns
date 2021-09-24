@@ -1186,10 +1186,18 @@ uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
-uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype=0xffff);
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
 void primeRootNSZones(bool, unsigned int depth);
+
+struct WipeCacheResult
+{
+  int record_count = 0;
+  int negative_record_count = 0;
+  int packet_count = 0;
+};
+
+struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype);
 
 extern __thread struct timeval g_now;
 
