@@ -57,6 +57,9 @@
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
 
+#include "rec-tcpout.hh"
+
+thread_local TCPOutConnectionManager t_tcp_manager;
 
 bool g_syslog;
 
@@ -229,10 +232,83 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
+static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS)
+{
+  dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
+
+  connection = t_tcp_manager.get(ip);
+  if (connection.d_handler) {
+    return false;
+  }
+
+  const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
+  Socket s(ip.sin4.sin_family, SOCK_STREAM);
+  s.setNonBlocking();
+  ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+  s.bind(localip);
+
+  std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+  if (dnsOverTLS) {
+    TLSContextParameters tlsParams;
+    tlsParams.d_provider = "openssl";
+    tlsParams.d_validateCertificates = false;
+    // tlsParams.d_caStore
+    tlsCtx = getTLSContext(tlsParams);
+    if (tlsCtx == nullptr) {
+      g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
+      dnsOverTLS = false;
+    }
+  }
+  connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+  // Returned state ignored
+  // This can throw an exception, retry will need to happen at higher level
+  connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+  return true;
+}
+
+static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
+                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf)
+{
+  socklen_t slen = ip.getSocklen();
+  uint16_t tlen = htons(vpacket.size());
+  const char *lenP = reinterpret_cast<const char*>(&tlen);
+
+  localip.sin4.sin_family = ip.sin4.sin_family;
+  getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen);
+
+  PacketBuffer packet;
+  packet.reserve(2 + vpacket.size());
+  packet.insert(packet.end(), lenP, lenP + 2);
+  packet.insert(packet.end(), vpacket.begin(), vpacket.end());
+
+  LWResult::Result ret = asendtcp(packet, connection.d_handler);
+  if (ret != LWResult::Result::Success) {
+    return ret;
+  }
+
+  ret = arecvtcp(packet, 2, connection.d_handler, false);
+  if (ret != LWResult::Result::Success) {
+    return ret;
+  }
+
+  memcpy(&tlen, packet.data(), sizeof(tlen));
+  len = ntohs(tlen); // switch to the 'len' shared with the rest of the calling function
+
+  // XXX receive into buf directly?
+  packet.resize(len);
+  ret = arecvtcp(packet, len, connection.d_handler, false);
+  if (ret != LWResult::Result::Success) {
+    return ret;
+  }
+  buf.resize(len);
+  memcpy(buf.data(), packet.data(), len);
+  return LWResult::Result::Success;
+}
+
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
+static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
@@ -342,75 +418,32 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
     ret = arecvfrom(buf, 0, ip, &len, qid, domain, type, queryfd, now);
   }
   else {
-    try {
-      const struct timeval timeout{ g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-
-      Socket s(ip.sin4.sin_family, SOCK_STREAM);
-      s.setNonBlocking();
-      localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
-      s.bind(localip);
-
-      std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-      if (SyncRes::s_dot_to_port_853 && ip.getPort() == 853) {
-        TLSContextParameters tlsParams;
-        tlsParams.d_provider = "openssl";
-        tlsParams.d_validateCertificates = false;
-        //tlsParams.d_caStore = caaStore;
-        tlsCtx = getTLSContext(tlsParams);
-        if (tlsCtx == nullptr) {
-          g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
-        }
-        else {
-          dnsOverTLS = true;
-        }
-      }
-      auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
-      // Returned state ignored
-      handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
-
-      uint16_t tlen=htons(vpacket.size());
-      char *lenP=(char*)&tlen;
-      const char *msgP=(const char*)&*vpacket.begin();
-      PacketBuffer packet;
-      packet.reserve(2 + vpacket.size());
-      packet.insert(packet.end(), lenP, lenP+2);
-      packet.insert(packet.end(), msgP, msgP+vpacket.size());
-      ret = asendtcp(packet, handler);
-      if (ret != LWResult::Result::Success) {
-        handler->close();
-        return ret;
-      }
-
+      bool isNew;
+      do {
+        try {
+          // If we get a new (not re-used) TCP connection that does not
+          // work, we give up. For reused connections, we assume the
+          // peer has closed it on error, so we retry. At some point we
+          // *will* get a new connection, so this loop is not endless.
+          isNew = tcpconnect(*now, ip, connection, dnsOverTLS);
+          ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
-      if (fstrmQEnabled) {
-        logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
-      }
+          if (fstrmQEnabled) {
+            logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
+          }
 #endif /* HAVE_FSTRM */
-
-      ret = arecvtcp(packet, 2, handler, false);
-      if (ret != LWResult::Result::Success) {
-        return ret;
-      }
-
-      memcpy(&tlen, packet.data(), sizeof(tlen));
-      len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
-
-      // XXX receive into buf directly?
-      packet.resize(len);
-      ret = arecvtcp(packet, len, handler, false);
-      if (ret != LWResult::Result::Success) {
-        return ret;
-      }
-
-      buf.resize(len);
-      memcpy(buf.data(), packet.data(), len);
-
-      handler->close();
-      ret = LWResult::Result::Success;
-    }
-    catch (const NetworkError& ne) {
-      ret = LWResult::Result::OSLimitError; // OS limits error
-    }
+          if (ret == LWResult::Result::Success) {
+            break;
+          }
+          connection.d_handler->close();
+        }
+        catch (const NetworkError&) {
+          ret = LWResult::Result::OSLimitError; // OS limits error
+        }
+        catch (const runtime_error&) {
+          ret = LWResult::Result::OSLimitError; // OS limits error (PermanentError is transport related)
+        }
+      } while (!isNew);
   }
 
   lwr->d_usec=dt.udiff();
@@ -491,7 +524,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
     if(outgoingLoggers) {
       logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
-
+    
     lwr->d_validpacket = true;
     return LWResult::Result::Success;
   }
@@ -522,5 +555,18 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
 
   return LWResult::Result::PermanentError;
+}
+
+LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
+{
+  TCPOutConnectionManager::Connection connection;
+  auto ret = asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
+
+  if (doTCP) {
+    if (connection.d_handler && lwr->d_validpacket) {
+      t_tcp_manager.store(*now, ip, std::move(connection));
+    }
+  }
+  return ret;
 }
 

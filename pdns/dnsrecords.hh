@@ -457,6 +457,10 @@ private:
 };
 
 
+#ifdef CERT
+#error likely openssl/ssl2.h is included, defining CERT, avoid that or undef CERT before including dnsrecords.hh
+#endif
+
 class CERTRecordContent : public DNSRecordContent
 {
 public:
