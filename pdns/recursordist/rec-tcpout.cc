@@ -53,6 +53,11 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
 
 void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& ip, Connection&& connection)
 {
+  ++connection.d_numqueries;
+  if (s_maxQueries > 0 && connection.d_numqueries > s_maxQueries) {
+    return;
+  }
+
   if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(ip) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
@@ -64,12 +69,8 @@ void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddres
     return;
   }
 
-  ++connection.d_numqueries;
-  if (s_maxQueries > 0 && connection.d_numqueries > s_maxQueries) {
-    return;
-  }
   gettimeofday(&connection.d_last_used, nullptr);
-  d_idle_connections.emplace(ip, connection);
+  d_idle_connections.emplace(ip, std::move(connection));
 }
 
 TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const ComboAddress& ip)
