@@ -1085,6 +1085,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   { "policy-hits",
     MetricDefinition(PrometheusMetricType::multicounter,
                      "Number of filter or RPZ policy hits")},
+
+  { "idle-tcpout-connections",
+    MetricDefinition(PrometheusMetricType::gauge,
+                     "Number of connections in the TCP idle outgoing connections pool")},
+
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
