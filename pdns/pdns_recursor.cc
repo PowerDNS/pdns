@@ -281,6 +281,12 @@ GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 #define BAD_NETS   "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
 #define DONT_QUERY LOCAL_NETS ", " BAD_NETS
 
+struct ThreadMSG
+{
+  pipefunc_t func;
+  bool wantAnswer;
+};
+
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
   DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now), d_query(query)
@@ -3917,8 +3923,8 @@ static void makeThreadPipes()
     g_log<<Logger::Info<<"Resizing the buffer of the distribution pipe to "<<pipeBufferSize<<endl;
   }
 
-  /* thread 0 is the handler / SNMP, we start at 1 */
-  for(unsigned int n = 1; n <= (g_numWorkerThreads + g_numDistributorThreads); ++n) {
+  /* thread 0 is the handler / SNMP, worker threads start at 1 */
+  for(unsigned int n = 0; n <= (g_numWorkerThreads + g_numDistributorThreads); ++n) {
     auto& threadInfos = s_threadInfos.at(n);
 
     int fd[2];
@@ -3927,6 +3933,11 @@ static void makeThreadPipes()
 
     threadInfos.pipes.readToThread = fd[0];
     threadInfos.pipes.writeToThread = fd[1];
+
+    // handler thread only gets first pipe, not the others
+    if(n==0) {
+      continue;
+    }
 
     if(pipe(fd) < 0)
       unixDie("Creating pipe for inter-thread communications");
@@ -3956,12 +3967,6 @@ static void makeThreadPipes()
     }
   }
 }
-
-struct ThreadMSG
-{
-  pipefunc_t func;
-  bool wantAnswer;
-};
 
 void broadcastFunction(const pipefunc_t& func)
 {
@@ -5596,7 +5601,9 @@ try
   t_fdm=getMultiplexer();
 
   RecursorWebServer *rws = nullptr;
-  
+
+  t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
+
   if(threadInfo.isHandler) {
     if(::arg().mustDo("webserver")) {
       g_log<<Logger::Warning << "Enabling web server" << endl;
@@ -5611,8 +5618,6 @@ try
     g_log<<Logger::Info<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
   else {
-
-    t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
     t_fdm->addReadFD(threadInfo.pipes.readQueriesToThread, handlePipeRequest);
 
     if (threadInfo.isListener) {
