@@ -15,6 +15,7 @@
 #include <openssl/ocsp.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <fcntl.h>
 
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
@@ -779,8 +780,13 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(logFile.c_str(), "a"), fclose);
+  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT, 0600);
+  if (fd == -1) {
+    throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "a"), fclose);
   if (!fp) {
+    close(fd);
     throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
   }
 
