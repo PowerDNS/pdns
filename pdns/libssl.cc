@@ -21,6 +21,8 @@
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
+#include "misc.hh"
+
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 
@@ -782,12 +784,13 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT, 0600);
   if (fd == -1) {
-    throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
+    unixDie("Error opening TLS log file '" + logFile + "'");
   }
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "a"), fclose);
   if (!fp) {
+    int error = errno; // close might clobber errno
     close(fd);
-    throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
+    throw std::runtime_error("Error opening TLS log file '" + logFile + "': " + stringerror(error));
   }
 
   SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, fp.get());
