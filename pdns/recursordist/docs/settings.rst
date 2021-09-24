@@ -388,7 +388,7 @@ If `pdns-distributes-queries`_ is set, spawn this number of distributor threads 
 handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
 ratio.
 
-.. _settings-dot-to-auth-names:
+.. _setting-dot-to-auth-names:
 
 ``dot-to-auth-names``
 ---------------------
@@ -400,7 +400,7 @@ ratio.
 Force DoT to the listed authoritative nameservers. For this to work, DoT support has to be compiled in.
 Currently, the certificate is not checked for validity in any way.
 
-.. _settings-dot-to-port-853:
+.. _setting-dot-to-port-853:
 
 ``dot-to-port-853``
 -------------------
@@ -1898,7 +1898,7 @@ Enable TCP Fast Open Connect support, if available, on the outgoing connections 
 
 Time outgoing TCP/DoT connections are left idle in milliseconds or 0 if no limit. After having been idle for this time, the connection is eligible for closing.
 
-.. _setting-tcp-out-max-per-auth:
+.. _setting-tcp-out-max-idle-per-auth:
 
 ``tcp-out-max-idle-per-auth``
 -----------------------------
