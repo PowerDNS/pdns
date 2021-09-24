@@ -1063,10 +1063,10 @@ struct RndSpeedTest
 
   void operator()() const
   {
-    dns_random(0x10000);
+    dns_random_uint16();
   }
 
-  std::string name;
+  const std::string name;
 };
 
 struct CredentialsVerifyTest
@@ -1196,17 +1196,17 @@ try
 
   doRun(UUIDGenTest());
 
-#if defined(HAVE_RANDOMBYTES_STIR)
-  doRun(RndSpeedTest("sodium"));
-#endif
-#if defined(HAVE_RAND_BYTES)
-  doRun(RndSpeedTest("openssl"));
-#endif
 #if defined(HAVE_GETRANDOM)
   doRun(RndSpeedTest("getrandom"));
 #endif
 #if defined(HAVE_ARC4RANDOM)
   doRun(RndSpeedTest("arc4random"));
+#endif
+#if defined(HAVE_RANDOMBYTES_STIR)
+  doRun(RndSpeedTest("sodium"));
+#endif
+#if defined(HAVE_RAND_BYTES)
+  doRun(RndSpeedTest("openssl"));
 #endif
   doRun(RndSpeedTest("urandom"));
 
@@ -1222,7 +1222,7 @@ try
   doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
   doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
 
-#ifdef HAVE_LIBSODIUM
+#if defined(HAVE_LIBSODIUM) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   doRun(CredentialsHashTest());
   doRun(CredentialsVerifyTest());
 #endif
@@ -1236,7 +1236,6 @@ try
   S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
   doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
-
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 

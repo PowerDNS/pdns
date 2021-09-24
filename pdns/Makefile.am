@@ -916,11 +916,11 @@ tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
 speedtest_SOURCES = \
-        arguments.cc arguments.hh \
+	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
-        dns_random.cc dns_random.hh \
+	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
