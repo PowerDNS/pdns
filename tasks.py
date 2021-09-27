@@ -108,14 +108,14 @@ def apt_fresh(c):
 @task
 def install_clang(c):
     """
-    install clang-11 and llvm-11
+    install clang-12 and llvm-12
     """
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-11 llvm-11')
+    c.sudo('apt-get -qq -y --no-install-recommends install clang-12 llvm-12')
 
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-11')
+    c.sudo('apt-get -qq -y --no-install-recommends install clang-12')
 
 @task
 def install_auth_build_deps(c):
@@ -212,8 +212,8 @@ def ci_auth_configure(c):
     res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
                    CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
                    ./configure \
-                      CC='clang-11' \
-                      CXX='clang++-11' \
+                      CC='clang-12' \
+                      CXX='clang++-12' \
                       --enable-option-checking=fatal \
                       --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
                       --enable-systemd \
@@ -237,8 +237,8 @@ def ci_rec_configure(c):
     res = c.run('''            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
-              CC='clang-11' \
-              CXX='clang++-11' \
+              CC='clang-12' \
+              CXX='clang++-12' \
               --enable-option-checking=fatal \
               --enable-unit-tests \
               --enable-nod \
@@ -261,8 +261,8 @@ def ci_dnsdist_configure(c):
     res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
                    CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
                    ./configure \
-                     CC='clang-11' \
-                     CXX='clang++-11' \
+                     CC='clang-12' \
+                     CXX='clang++-12' \
                      --enable-option-checking=fatal \
                      --enable-unit-tests \
                      --enable-dnstap \
