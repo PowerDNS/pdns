@@ -236,16 +236,20 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:setTag(key, value)
 
-    Set a tag into the DNSQuestion object.
-    This function will not overwrite an existing tag. If the tag already exists it will keep its original value.
+    .. versionchanged:: 1.7.0
+      Prior to 1.7.0 calling :func:`DNSQuestion:setTag` would not overwrite an existing tag value if already set.
+
+    Set a tag into the DNSQuestion object. Overwrites the value if any already exists.
   
     :param string key: The tag's key
     :param string value: The tag's value
 
   .. method:: DNSQuestion:setTagArray(tags)
 
-    Set an array of tags into the DNSQuestion object.
-    This function will not overwrite an existing tag. If the tag already exists it will keep its original value.
+    .. versionchanged:: 1.7.0
+      Prior to 1.7.0 calling :func:`DNSQuestion:setTagArray` would not overwrite existing tag values if already set.
+
+    Set an array of tags into the DNSQuestion object. Overwrites the values if any already exist.
   
     :param table tags: A table of tags, using strings as keys and values
 
