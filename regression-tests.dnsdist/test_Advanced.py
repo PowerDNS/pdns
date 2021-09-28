@@ -1013,6 +1013,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
+            print("includedir " + method)
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             print(receivedResponse)
@@ -1030,6 +1031,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
+            print("notincludedir " + method)
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             print(receivedResponse)
