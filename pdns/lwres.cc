@@ -52,14 +52,13 @@
 
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"
+#include "rec-tcpout.hh"
+
+thread_local TCPOutConnectionManager t_tcp_manager;
 
 #ifdef HAVE_FSTRM
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
-
-#include "rec-tcpout.hh"
-
-thread_local TCPOutConnectionManager t_tcp_manager;
 
 bool g_syslog;
 
