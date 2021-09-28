@@ -15,7 +15,7 @@ NetmaskGroup
     Add one or more masks to the NMG.
 
     :param string mask: Add this mask, prefix with `!` to exclude this mask from matching.
-    :param table masks: Adds the keys of the table to the :class:`NetmaskGroup`. It should be a table whose keys are :class:`ComboAddress` objects and values are integers, as returned by `exceed*` functions.
+    :param table masks: Adds the keys of the table to the :class:`NetmaskGroup`. It should be a table whose keys are :class:`ComboAddress` objects and whose values are integers. The integer values of the table entries are ignored. The table is of the same type as the table returned by the `exceed*` functions.
 
   .. method:: NetmaskGroup:match(address) -> bool
 
