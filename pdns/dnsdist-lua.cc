@@ -536,7 +536,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           if (ret->d_tlsCtx) {
             setupDoHClientProtocolNegotiation(ret->d_tlsCtx);
           }
-          if (g_outgoingDoHWorkerThreads == 0) {
+
+          if (g_configurationDone && g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads == 0) {
+            throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
+          }
+
+          if (!g_outgoingDoHWorkerThreads || *g_outgoingDoHWorkerThreads == 0) {
             g_outgoingDoHWorkerThreads = 1;
           }
 

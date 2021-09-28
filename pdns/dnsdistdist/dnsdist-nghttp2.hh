@@ -57,7 +57,7 @@ private:
 
 extern std::unique_ptr<DoHClientCollection> g_dohClientThreads;
 extern std::atomic<uint64_t> g_dohStatesDumpRequested;
-extern uint16_t g_outgoingDoHWorkerThreads;
+extern std::optional<uint16_t> g_outgoingDoHWorkerThreads;
 
 class TLSCtx;
 
