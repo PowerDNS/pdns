@@ -1038,12 +1038,12 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   try {
     if (!safeGetBBDomainInfo(id, &bbold))
       return;
+    bbold.d_checknow = false;
     BB2DomainInfo bbnew(bbold);
     /* make sure that nothing will be able to alter the existing records,
        we will load them from the zone file instead */
     bbnew.d_records = LookButDontTouch<recordstorage_t>();
     parseZoneFile(&bbnew);
-    bbnew.d_checknow = false;
     bbnew.d_wasRejectedLastReload = false;
     safePutBBDomainInfo(bbnew);
     g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.d_filename << ") reloaded" << endl;
@@ -1051,16 +1051,18 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   catch (PDNSException& ae) {
     ostringstream msg;
     msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.reason;
-    g_log << Logger::Warning << " error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.reason << endl;
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.reason << endl;
     bbold.d_status = msg.str();
+    bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
     safePutBBDomainInfo(bbold);
   }
   catch (std::exception& ae) {
     ostringstream msg;
     msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.what();
-    g_log << Logger::Warning << " error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.what() << endl;
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.what() << endl;
     bbold.d_status = msg.str();
+    bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
     safePutBBDomainInfo(bbold);
   }
@@ -1176,16 +1178,16 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   d_handle.qtype = qtype;
   d_handle.domain = std::move(domain);
 
-  if (!bbd.d_loaded) {
-    d_handle.reset();
-    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' temporarily not available (file missing, or master dead)"); // fsck
-  }
-
   if (!bbd.current()) {
     g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.d_filename << ") needs reloading" << endl;
     queueReloadAndStore(bbd.d_id);
     if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
       throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.d_filename + ") gone after reload"); // if we don't throw here, we crash for some reason
+  }
+
+  if (!bbd.d_loaded) {
+    d_handle.reset();
+    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' not loaded (file missing, corrupt or master dead)"); // fsck
   }
 
   d_handle.d_records = bbd.d_records.get();
