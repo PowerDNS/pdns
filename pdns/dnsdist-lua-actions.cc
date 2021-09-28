@@ -1456,11 +1456,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (!dq->qTag) {
-      dq->qTag = std::make_shared<QTag>();
-    }
-
-    dq->qTag->insert({d_tag, d_value});
+    dq->setTag(d_tag, d_value);
 
     return Action::None;
   }
@@ -1636,11 +1632,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    if (!dr->qTag) {
-      dr->qTag = std::make_shared<QTag>();
-    }
-
-    dr->qTag->insert({d_tag, d_value});
+    dr->setTag(d_tag, d_value);
 
     return Action::None;
   }
@@ -1740,11 +1732,7 @@ public:
       }
     }
 
-    if (!dq->qTag) {
-      dq->qTag = std::make_shared<QTag>();
-    }
-
-    dq->qTag->insert({d_tag, std::move(result)});
+    dq->setTag(d_tag, std::move(result));
 
     return Action::None;
   }
@@ -1778,11 +1766,7 @@ public:
       }
     }
 
-    if (!dq->qTag) {
-      dq->qTag = std::make_shared<QTag>();
-    }
-
-    dq->qTag->insert({d_tag, std::move(result)});
+    dq->setTag(d_tag, std::move(result));
 
     return Action::None;
   }

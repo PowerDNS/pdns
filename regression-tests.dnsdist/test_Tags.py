@@ -187,3 +187,128 @@ class TestTags(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
+
+class TestSetTagAction(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    addAction(AllRule(), SetTagAction("dns", "value1"))
+    addAction("tag-me-dns-2.tags.tests.powerdns.com.", SetTagAction("dns", "value2"))
+
+    addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.50"))
+    addAction(TagRule("dns", "value2"), SpoofAction("1.2.3.4"))
+
+    """
+
+    def testSetTagDefault(self):
+
+        """
+        Tag: Test setTag overwrites existing value
+        """
+        name = 'tag-me-dns-1.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.50')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testSetTagOverwritten(self):
+
+        """
+        Tag: Test setTag overwrites existing value
+        """
+        name = 'tag-me-dns-2.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.4')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+class TestSetTag(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    function dqset(dq)
+      dq:setTag("dns", "value1")
+      if tostring(dq.qname) == 'tag-me-dns-2.tags.tests.powerdns.com.' then
+        dq:setTag("dns", "value2")
+      end
+      return DNSAction.None, ""
+    end
+
+    addAction(AllRule(), LuaAction(dqset))
+
+    addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.50"))
+    addAction(TagRule("dns", "value2"), SpoofAction("1.2.3.4"))
+
+    """
+
+    def testSetTagDefault(self):
+
+        """
+        Tag: Test setTag overwrites existing value
+        """
+        name = 'tag-me-dns-1.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.50')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testSetTagOverwritten(self):
+
+        """
+        Tag: Test setTag overwrites existing value
+        """
+        name = 'tag-me-dns-2.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.4')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)

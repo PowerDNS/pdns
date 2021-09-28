@@ -86,18 +86,11 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     });
 
   luaCtx.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
-      if(dq.qTag == nullptr) {
-        dq.qTag = std::make_shared<QTag>();
-      }
-      dq.qTag->insert({strLabel, strValue});
+      dq.setTag(strLabel, strValue);
     });
   luaCtx.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
-      if (!dq.qTag) {
-        dq.qTag = std::make_shared<QTag>();
-      }
-
       for (const auto& tag : tags) {
-        dq.qTag->insert({tag.first, tag.second});
+        dq.setTag(tag.first, tag.second);
       }
     });
   luaCtx.registerFunction<string(DNSQuestion::*)(std::string)const>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
@@ -215,19 +208,12 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     });
 
   luaCtx.registerFunction<void(DNSResponse::*)(std::string, std::string)>("setTag", [](DNSResponse& dr, const std::string& strLabel, const std::string& strValue) {
-      if(dr.qTag == nullptr) {
-        dr.qTag = std::make_shared<QTag>();
-      }
-      dr.qTag->insert({strLabel, strValue});
+      dr.setTag(strLabel, strValue);
     });
 
   luaCtx.registerFunction<void(DNSResponse::*)(vector<pair<string, string>>)>("setTagArray", [](DNSResponse& dr, const vector<pair<string, string>>&tags) {
-      if (!dr.qTag) {
-        dr.qTag = std::make_shared<QTag>();
-      }
-
       for (const auto& tag : tags) {
-        dr.qTag->insert({tag.first, tag.second});
+        dr.setTag(tag.first, tag.second);
       }
     });
   luaCtx.registerFunction<string(DNSResponse::*)(std::string)const>("getTag", [](const DNSResponse& dr, const std::string& strLabel) {

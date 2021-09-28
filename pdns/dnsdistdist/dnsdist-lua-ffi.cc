@@ -409,11 +409,7 @@ void dnsdist_ffi_dnsquestion_unset_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* d
 
 void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value)
 {
-  if (!dq->dq->qTag) {
-    dq->dq->qTag = std::make_shared<QTag>();
-  }
-
-  dq->dq->qTag->insert({label, value});
+  dq->dq->setTag(label, value);
 }
 
 size_t dnsdist_ffi_dnsquestion_get_trailing_data(dnsdist_ffi_dnsquestion_t* dq, const char** out)
