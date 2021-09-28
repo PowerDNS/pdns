@@ -15,10 +15,13 @@
 #include <openssl/ocsp.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <fcntl.h>
 
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
+
+#include "misc.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -779,9 +782,15 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(logFile.c_str(), "a"), fclose);
+  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
+  if (fd == -1) {
+    unixDie("Error opening TLS log file '" + logFile + "'");
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "a"), fclose);
   if (!fp) {
-    throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
+    int error = errno; // close might clobber errno
+    close(fd);
+    throw std::runtime_error("Error opening TLS log file '" + logFile + "': " + stringerror(error));
   }
 
   SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, fp.get());
