@@ -133,3 +133,9 @@ Changelogs for 4.6.X
 
     Disable PMTU for IPv6.
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 10157
+
+    Move to hashed passwords for the web interface.
+
