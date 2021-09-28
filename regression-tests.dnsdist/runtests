@@ -49,12 +49,19 @@ openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server.cs
 # Generate a chain
 cat server.pem ca.pem > server.chain
 
-if ! nosetests --with-xunit $@; then
+out=$(mktemp)
+set -o pipefail
+if ! nosetests --with-xunit $@ 2>&1 | tee "${out}" ; then
     for log in configs/*.log; do
         echo "=== ${log} ==="
         cat "${log}"
+        echo
     done
+    echo "=== nosetests log ==="
+    cat "${out}"
+    echo "=== end of nosetests log ==="
     false
 fi
+rm -f "${out}"
 
 rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp
