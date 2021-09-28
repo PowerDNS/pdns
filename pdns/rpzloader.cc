@@ -383,7 +383,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
   // If oldZone failed to load its getRefresh() returns 0, protect against that
   uint32_t refresh = std::max(refreshFromConf ? refreshFromConf : oldZone->getRefresh(), 10U);
   DNSName zoneName = oldZone->getDomain();
-  std::string polName = oldZone->getName().empty() ? oldZone->getName() : zoneName.toString();
+  std::string polName = !oldZone->getName().empty() ? oldZone->getName() : zoneName.toStringNoDot();
 
   // Now that we know the name, set it in the logger
   logger = logger->withValues("zone", Logging::Loggable(zoneName));
