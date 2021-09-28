@@ -9,7 +9,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 
 Offensive language
 ^^^^^^^^^^^^^^^^^^
-Using the settings mentioned in :ref:`upgrade-offensive` now generates a warning. Please start using the new names, as the old names will be unsupported in the future.
+Using the settings mentioned in :ref:`upgrade-offensive` now generates a warning. Please start using the new names.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
