@@ -705,6 +705,7 @@ htmlescape
 htmlhelp
 http
 httpapi
+httpcode
 httpdomain
 hubert
 hyperlink

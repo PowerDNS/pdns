@@ -96,15 +96,21 @@ private:
       if (cd.opts.count("useragent")) {
         useragent = cd.opts.at("useragent");
       }
-      MiniCurl mc(useragent);
+      int http_code = 200;
+      if (cd.opts.count("httpcode")) {
+        http_code = pdns_stou(cd.opts.at("httpcode"));
+      }
+
+      bool failonerror = false;
+      MiniCurl mc(useragent, failonerror);
 
       string content;
       if (cd.opts.count("source")) {
         ComboAddress src(cd.opts.at("source"));
-        content=mc.getURL(cd.url, &cd.rem, &src, timeout);
+        content=mc.getURL(cd.url, &cd.rem, &src, timeout, http_code);
       }
       else {
-        content=mc.getURL(cd.url, &cd.rem, nullptr, timeout);
+        content=mc.getURL(cd.url, &cd.rem, nullptr, timeout, http_code);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
