@@ -782,7 +782,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT, 0600);
+  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
   if (fd == -1) {
     unixDie("Error opening TLS log file '" + logFile + "'");
   }
