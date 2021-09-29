@@ -21,6 +21,7 @@
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
+#undef CERT
 #include "misc.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
