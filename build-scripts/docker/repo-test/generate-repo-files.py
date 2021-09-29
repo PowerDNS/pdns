@@ -46,9 +46,10 @@ def init_argparser():
                                  'auth-42', 'auth-43', 'auth-44', 'auth-master',
                                  # Recursor
                                  'rec-42', 'rec-43', 'rec-44', 'rec-45',
-                                 'rec-master',
+                                 'rec-46', 'rec-master',
                                  # DNSDist
-                                 'dnsdist-15', 'dnsdist-16', 'dnsdist-master'
+                                 'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
+                                 'dnsdist-master'
                                  ],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
@@ -140,27 +141,36 @@ def write_release_files (release):
         write_dockerfile('centos', '6', release)
 
     if release in ['auth-41', 'auth-42', 'auth-43', 'auth-44', 'auth-master',
-                   'rec-42', 'rec-43', 'rec-44', 'rec-45', 'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-master']:
+                   'rec-42', 'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('centos', '7', release)
         write_dockerfile('ubuntu', 'bionic', release)
         write_list_file('ubuntu', 'bionic', release)
         write_pkg_pin_file(release)
 
-    if release in ['auth-42', 'auth-43', 'auth-44', 'auth-master',
-                   'rec-42', 'rec-43', 'rec-44', 'rec-45', 'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-master']:
-        write_dockerfile('centos', '8', release)
-        write_dockerfile('debian', 'buster', release)
+    if release in ['auth-42', 'auth-43',
+                   'rec-42', 'rec-43',
+                   'dnsdist-15']:
         write_dockerfile('raspbian', 'buster', release)
-        write_list_file('debian', 'buster', release)
         write_list_file('raspbian', 'buster', release)
 
+    if release in ['auth-42', 'auth-43', 'auth-44', 'auth-master',
+                   'rec-42', 'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('centos', '8', release)
+        write_dockerfile('debian', 'buster', release)
+        write_list_file('debian', 'buster', release)
+
     if release in ['auth-43', 'auth-44', 'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-master']:
+                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'focal', release)
         write_list_file('ubuntu', 'focal', release)
+
+    if release in ['rec-46', 'rec-master',
+                   'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('debian', 'bullseye', release)
+        write_list_file('debian', 'bullseye', release)
 
 
 # Test Release Functions
