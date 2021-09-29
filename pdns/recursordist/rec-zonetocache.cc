@@ -23,13 +23,16 @@
 #include "rec-zonetocache.hh"
 
 #include "syncres.hh"
-#include "minicurl.hh"
 #include "zoneparser-tng.hh"
 #include "query-local-address.hh"
 #include "axfr-retriever.hh"
 #include "validate-recursor.hh"
 
-time_t RecZoneToCache::ZonesToCache(const std::map<std::string, std::string>& map)
+#ifdef HAVE_LIBCURL
+#include "minicurl.hh"
+#endif
+
+time_t RecZoneToCache::ZonesToCache(const std::vector<Config>& cfgs)
 {
   // By default and max once per 24 hours
   time_t refresh = 24 * 3600;
@@ -41,10 +44,10 @@ time_t RecZoneToCache::ZonesToCache(const std::map<std::string, std::string>& ma
   sr.setDoDNSSEC(dnssec);
   sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
 
-  for (const auto& [zone, url] : map) {
-    const string msg = "zones-to-cache error while loading " + zone + " from " + url + ": ";
+  for (const auto& config : cfgs) {
+    const string msg = "zones-to-cache error while loading " + config.d_zone + ": ";
     try {
-      refresh = min(refresh, ZoneToCache(zone, url, dnssec));
+      refresh = min(refresh, ZoneToCache(config, dnssec));
     }
     catch (const PDNSException& e) {
       g_log << Logger::Error << msg << e.reason << endl;
@@ -57,7 +60,7 @@ time_t RecZoneToCache::ZonesToCache(const std::map<std::string, std::string>& ma
     }
 
     // We do not want to refresh more than once per hour
-    refresh = max(refresh, 3600LL);
+    refresh = std::max(refresh, 3600LL);
   }
 
   return refresh;
@@ -74,7 +77,7 @@ struct ZoneData
 
   bool isRRSetAuth(const DNSName& qname, QType qtype);
   void parseDRForCache(DNSRecord& dr);
-  void getByAXFR(const std::string& url);
+  void getByAXFR(const RecZoneToCache::Config&);
 };
 
 bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype)
@@ -141,13 +144,13 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
   }
 }
 
-void ZoneData::getByAXFR(const std::string& url)
+void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
 {
-  ComboAddress primary = ComboAddress(url.substr(7), 53);
-  uint16_t axfrTimeout = 20;
-  size_t maxReceivedBytes = 0;
-  const TSIGTriplet tt;
-  ComboAddress local; //(localAddress);
+  ComboAddress primary = ComboAddress(config.d_sources.at(0), 53);
+  uint16_t axfrTimeout = config.d_timeout;
+  size_t maxReceivedBytes = config.d_maxReceivedBytes;
+  const TSIGTriplet tt = config.d_tt;
+  ComboAddress local = config.d_local;
   if (local == ComboAddress()) {
     local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
   }
@@ -168,10 +171,14 @@ void ZoneData::getByAXFR(const std::string& url)
   }
 }
 
-static std::vector<std::string> getLinesFromFile(const std::string& url)
+static std::vector<std::string> getLinesFromFile(const RecZoneToCache::Config& config)
 {
+
   std::vector<std::string> lines;
-  std::ifstream stream(url);
+  std::ifstream stream(config.d_sources.at(0));
+  if (!stream) {
+    throw PDNSException("Cannot read file: " + config.d_sources.at(0));
+  }
   std::string line;
   while (std::getline(stream, line)) {
     lines.push_back(line);
@@ -179,12 +186,13 @@ static std::vector<std::string> getLinesFromFile(const std::string& url)
   return lines;
 }
 
-static std::vector<std::string> getURL(const std::string& url)
+static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
 {
   std::vector<std::string> lines;
 #ifdef HAVE_LIBCURL
   MiniCurl mc;
-  std::string reply = mc.getURL(url, nullptr, nullptr, 10, false, true);
+  ComboAddress local = config.d_local;
+  std::string reply = mc.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, config.d_timeout, false, true);
   std::istringstream stream(reply);
   string line;
   while (std::getline(stream, line)) {
@@ -194,11 +202,14 @@ static std::vector<std::string> getURL(const std::string& url)
   return lines;
 }
 
-time_t RecZoneToCache::ZoneToCache(const string& name, const string& url, bool dnssec)
+time_t RecZoneToCache::ZoneToCache(const Config& config, bool dnssec)
 {
+  if (config.d_sources.size() > 1) {
+    // XXX Warning
+  }
   ZoneData data;
   data.d_refresh = std::numeric_limits<time_t>::max();
-  data.d_zone = DNSName(name);
+  data.d_zone = DNSName(config.d_zone);
   data.d_now = time(nullptr);
 
   // We do not do validation, it will happen on-demand if an Indeterminate record is encountered when the caches are queried
@@ -206,16 +217,16 @@ time_t RecZoneToCache::ZoneToCache(const string& name, const string& url, bool d
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
 
-  if (url.substr(0, 7) == "axfr://") {
-    data.getByAXFR(url);
+  if (config.d_method == "axfr") {
+    data.getByAXFR(config);
   }
   else {
     vector<string> lines;
-    if (url.substr(0, 8) != "https://" && url.substr(0, 7) != "http://") {
-      lines = getLinesFromFile(url);
+    if (config.d_method == "url") {
+      lines = getURL(config);
     }
-    else {
-      lines = getURL(url);
+    else if (config.d_method == "file") {
+      lines = getLinesFromFile(config);
     }
     DNSResourceRecord drr;
     ZoneParserTNG zpt(lines, data.d_zone);

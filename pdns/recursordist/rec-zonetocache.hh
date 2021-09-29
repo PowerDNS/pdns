@@ -23,12 +23,24 @@
 #pragma once
 
 #include "namespaces.hh"
+#include "dns.hh"
+#include "iputils.hh"
 
 class RecZoneToCache
 {
 public:
-  static time_t ZonesToCache(const std::map<std::string, std::string>& map);
+  struct Config
+  {
+    std::string d_zone; // Zone name
+    std::string d_method; // axfr, http, https, file
+    vector<std::string> d_sources; // IPs or URLs
+    uint32_t d_timeout{20}; // timeout in seconds
+    ComboAddress d_local; // local address
+    size_t d_maxReceivedBytes{0}; // Maximum size
+    TSIGTriplet d_tt; // Authentication data
+  };
+  static time_t ZonesToCache(const std::vector<Config>&);
 
 private:
-  static time_t ZoneToCache(const string& name, const string& url, bool dnssec);
+  static time_t ZoneToCache(const Config& config, bool dnssec);
 };

@@ -398,6 +398,49 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
 
+  typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
+
+  Lua.writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries, boost::optional<zoneToCacheOptions_t> options) {
+    try {
+      RecZoneToCache::Config conf;
+      conf.d_zone = zoneName;
+      conf.d_method = method;
+      if (primaries.type() == typeid(string)) {
+        conf.d_sources.push_back(boost::get<std::string>(primaries));
+      }
+      else {
+        for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries)) {
+          conf.d_sources.push_back(primary.second);
+        }
+      }
+      if (options) {
+        auto& have = *options;
+        if (have.count("timeout")) {
+          conf.d_timeout = boost::get<uint32_t>(have["timeout"]);
+        }
+        if (have.count("tsigname")) {
+          conf.d_tt.name = DNSName(toLower(boost::get<string>(have["tsigname"])));
+          conf.d_tt.algo = DNSName(toLower(boost::get<string>(have[ "tsigalgo"])));
+          if (B64Decode(boost::get<string>(have[ "tsigsecret"]), conf.d_tt.secret)) {
+            throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
+          }
+        }
+        if (have.count("maxReceivedMBytes")) {
+          conf.d_maxReceivedBytes = static_cast<size_t>(boost::get<uint32_t>(have["maxReceivedMBytes"]));
+          conf.d_maxReceivedBytes *= 1024 * 1024;
+        }
+        if (have.count("localAddress")) {
+          conf.d_local = ComboAddress(boost::get<string>(have["localAddress"]));
+        }
+      }
+
+      lci.zonesToCacheConfig.push_back(conf);
+    }
+    catch (const std::exception&e ) {
+      g_log<<Logger::Error<<"Problem configuring zoneToCache: "<<e.what()<<endl;
+    }
+  });
+ 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
   Lua.writeFunction("addSortList", 
 		    [&lci](const std::string& formask_, 

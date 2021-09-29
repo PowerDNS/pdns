@@ -26,6 +26,7 @@
 #include "sortlist.hh"
 #include "filterpo.hh"
 #include "validate.hh"
+#include "rec-zonetocache.hh"
 
 struct ProtobufExportConfig
 {
@@ -72,7 +73,7 @@ public:
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
-
+  vector<RecZoneToCache::Config> zonesToCacheConfig;
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
      remote loggers */

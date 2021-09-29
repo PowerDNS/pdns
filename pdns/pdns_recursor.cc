@@ -136,7 +136,6 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
-std::map<std::string, std::string> g_zones_to_cache;
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
@@ -3776,10 +3775,10 @@ static void houseKeeping(void *)
             g_log<<Logger::Error<<"Exception while priming the root NS zones"<<endl;
           }
         }
-        // Redo zones-to-cache if the min TTL of those zones time is 90% up.
-        if (!g_zones_to_cache.empty() && now.tv_sec - last_zone_to_cache > zones_to_cache_interval * 9 / 10) {
+        // Redo zones-to-cache if the min TTL of those zones time is 90% passed.
+        if (!luaconfsLocal->zonesToCacheConfig.empty() && now.tv_sec - last_zone_to_cache > zones_to_cache_interval * 9 / 10) {
           last_zone_to_cache = now.tv_sec;
-          zones_to_cache_interval = RecZoneToCache::ZonesToCache(g_zones_to_cache);
+          zones_to_cache_interval = RecZoneToCache::ZonesToCache(luaconfsLocal->zonesToCacheConfig);
         }
       }
 
@@ -5027,19 +5026,6 @@ static int serviceMain(int argc, char*argv[])
       exit(1);
     }
   }
-  {
-    std::vector<std::string> parts;
-    stringtok(parts, ::arg()["zones-to-cache"], " ,\t\n\r");
-    for (const auto& p : parts) {
-      if (p.find('=') == string::npos) {
-        throw PDNSException("Error parsing '" + p + "', missing =");
-      }
-      auto [zone, url] = splitField(p, '=');
-      boost::trim(zone);
-      boost::trim(url);
-      g_zones_to_cache[zone] = url;
-    }
-  }
 
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
@@ -5963,7 +5949,6 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
-    ::arg().set("zones-to-cache", "Zones to prefill the cache with, comma separated domain=url pairs")="";
 
     ::arg().set("tcp-out-max-idle-ms", "Time TCP/DoT connections are left idle in milliseconds or 0 if no limit") = "10000";
     ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
