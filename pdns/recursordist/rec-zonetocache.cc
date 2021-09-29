@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <algorithm>
 #include "rec-zonetocache.hh"
 
 #include "syncres.hh"
@@ -37,17 +38,10 @@ time_t RecZoneToCache::ZonesToCache(const std::vector<Config>& cfgs)
   // By default and max once per 24 hours
   time_t refresh = 24 * 3600;
 
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  SyncRes sr(now);
-  bool dnssec = g_dnssecmode != DNSSECMode::Off;
-  sr.setDoDNSSEC(dnssec);
-  sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
-
   for (const auto& config : cfgs) {
     const string msg = "zones-to-cache error while loading " + config.d_zone + ": ";
     try {
-      refresh = min(refresh, ZoneToCache(config, dnssec));
+      refresh = std::min(refresh, ZoneToCache(config));
     }
     catch (const PDNSException& e) {
       g_log << Logger::Error << msg << e.reason << endl;
@@ -60,7 +54,7 @@ time_t RecZoneToCache::ZonesToCache(const std::vector<Config>& cfgs)
     }
 
     // We do not want to refresh more than once per hour
-    refresh = std::max(refresh, 3600LL);
+    refresh = std::max(refresh, static_cast<time_t>(3600));
   }
 
   return refresh;
@@ -103,7 +97,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
 {
   const auto key = make_pair(dr.d_name, dr.d_type);
 
-  d_refresh = min(d_refresh, static_cast<time_t>(dr.d_ttl));
+  d_refresh = std::min(d_refresh, static_cast<time_t>(dr.d_ttl));
   dr.d_ttl += d_now;
 
   switch (dr.d_type) {
@@ -202,7 +196,7 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
-time_t RecZoneToCache::ZoneToCache(const Config& config, bool dnssec)
+time_t RecZoneToCache::ZoneToCache(const Config& config)
 {
   if (config.d_sources.size() > 1) {
     // XXX Warning
