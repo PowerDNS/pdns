@@ -79,30 +79,6 @@ std::string Opcode::to_s(uint8_t opcode) {
   return s_opcodes.at(opcode);
 }
 
-class BoundsCheckingPointer
-{
-public:
-  explicit BoundsCheckingPointer(const char* a, size_t length)
-    : d_ptr(a), d_length(length) 
-    {}
-  
-  explicit BoundsCheckingPointer(const std::string& str)
-    : d_ptr(str.c_str()), d_length(str.size()) 
-    {}
-  
-    
-  char operator[](size_t offset) const
-  {
-    if(offset < d_length)
-      return d_ptr[offset];
-    throw runtime_error("out of bounds: "+std::to_string(offset)+" >= " + std::to_string(d_length));
-  }
-private:  
-  const char* d_ptr;
-  const size_t d_length;
-};
-
-
 // goal is to hash based purely on the question name, and turn error into 'default'
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
 {
