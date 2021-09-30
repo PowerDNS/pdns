@@ -1324,6 +1324,11 @@ void registerWebHandler(const std::string& endpoint, std::function<void(const Ya
   s_webHandlers[endpoint] = handler;
 }
 
+void clearWebHandlers()
+{
+  s_webHandlers.clear();
+}
+
 static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   const string charset = "; charset=utf-8";
