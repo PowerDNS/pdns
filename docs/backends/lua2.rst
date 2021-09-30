@@ -5,7 +5,6 @@ Lua2 Backend
 * Master: Yes
 * Slave: No
 * Superslave: No
-* Autoserial: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No

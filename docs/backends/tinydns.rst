@@ -5,7 +5,6 @@ TinyDNS Backend
 - Master: Yes
 - Slave: No
 - Superslave: No
-- Autoserial: No
 - DNSSEC: No
 - Zone caching: Yes
 - Multiple Instances: Yes

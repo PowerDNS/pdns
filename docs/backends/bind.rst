@@ -5,7 +5,6 @@ BIND zone file backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Experimental
-* Autoserial: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No

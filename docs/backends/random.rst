@@ -8,7 +8,6 @@ Random Backend
 - Master: No
 - Slave: No
 - Superslave: No
-- Autoserial: No
 - Case: Depends
 - DNSSEC: Yes, no key storage
 - Disabled data: No
