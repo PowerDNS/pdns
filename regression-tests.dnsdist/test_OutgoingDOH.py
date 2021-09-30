@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import base64
+import copy
 import dns
 import requests
 import ssl
@@ -20,7 +22,7 @@ class OutgoingDOHTests(object):
         self.assertNotIn('UDP Responder', self._responsesCounter)
         self.assertNotIn('TCP Responder', self._responsesCounter)
         self.assertNotIn('TLS Responder', self._responsesCounter)
-        self.assertEqual(self._responsesCounter['DOH Responder'], numberOfDOHQueries)
+        self.assertEqual(self._responsesCounter['DoH Connection Handler'], numberOfDOHQueries)
 
     def getServerStat(self, key):
         headers = {'x-api-key': self._webServerAPIKey}
@@ -134,6 +136,14 @@ class OutgoingDOHTests(object):
         for _ in range(numberOfTCPQueries):
             (_, receivedResponse) = self.sendTCPQuery(query, useQueue=False, response=None)
             self.assertEqual(receivedResponse, expectedResponse)
+
+    def testZHealthChecks(self):
+        # this test has to run last, as it will mess up the TCP connection counter,
+        # hence the 'Z' in the name
+        self.sendConsoleCommand("getServer(0):setAuto()")
+        time.sleep(2)
+        status = self.sendConsoleCommand("if getServer(0):isUp() then return 'up' else return 'down' end").strip("\n")
+        self.assertEqual(status, 'up')
 
 class BrokenOutgoingDOHTests(object):
 
@@ -254,10 +264,15 @@ class OutgoingDOHBrokenResponsesTests(object):
 
 class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     _tlsBackendPort = 10543
-    _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _tlsProvider = 'openssl'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
 
@@ -281,10 +296,15 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
 
 class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
     _tlsBackendPort = 10544
-    _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _tlsProvider = 'gnutls'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
 
@@ -348,10 +368,15 @@ class TestOutgoingDOHGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
 
 class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests):
     _tlsBackendPort = 10547
-    _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _tlsProvider = 'openssl'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
 
@@ -374,10 +399,15 @@ class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTest
 
 class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests):
     _tlsBackendPort = 10548
-    _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _tlsProvider = 'gnutls'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
 
@@ -414,7 +444,7 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
     addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
-    def callback(request):
+    def callback(request, headers, fromQueue, toQueue):
 
         if str(request.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
             print("returning 500")
@@ -451,7 +481,7 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     """
     _verboseMode = True
 
-    def callback(request):
+    def callback(request, headers, fromQueue, toQueue):
 
         if str(request.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
             print("returning 500")
@@ -523,3 +553,74 @@ class TestOutgoingDOHProxyProtocol(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, expectedResponse)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True)
+
+class TestOutgoingDOHXForwarded(DNSDistTest):
+    _tlsBackendPort = 10560
+    _config_params = ['_tlsBackendPort']
+    _config_template = """
+    setMaxTCPClientThreads(1)
+    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', addXForwardedHeaders=true}
+    """
+    _verboseMode = True
+
+    def callback(request, headersList, fromQueue, toQueue):
+
+        if str(request.question[0].name) == 'a.root-servers.net.':
+            # do not check headers on health-check queries
+            return 200, dns.message.make_response(request).to_wire()
+
+        headers = {}
+        if headersList:
+            for k,v in headersList:
+                headers[k] = v
+
+        if not b'x-forwarded-for' in headers:
+            print("missing X-Forwarded-For")
+            return 406, b'Missing X-Forwarded-For header'
+        if not b'x-forwarded-port' in headers:
+            print("missing X-Forwarded-Port")
+            return 406, b'Missing X-Forwarded-Port header'
+        if not b'x-forwarded-proto' in headers:
+            print("missing X-Forwarded-Proto")
+            return 406, b'Missing X-Forwarded-Proto header'
+
+        toQueue.put(request, True, 1.0)
+        response = fromQueue.get(True, 1.0)
+        if response:
+            response = copy.copy(response)
+            response.id = request.id
+
+        return 200, response.to_wire()
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.set_alpn_protocols(["h2"])
+        tlsContext.load_cert_chain('server.chain', 'server.key')
+
+        print("Launching DOH responder..")
+        cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.callback, tlsContext])
+        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.start()
+
+    def testXForwarded(self):
+        """
+        Outgoing DOH: X-Forwarded
+        """
+        name = 'x-forwarded-for.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
