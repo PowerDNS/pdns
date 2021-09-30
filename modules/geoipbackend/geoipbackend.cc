@@ -850,7 +850,7 @@ bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool get
   return false;
 }
 
-void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   ReadLock rl(&s_state_lock);
 

@@ -185,7 +185,7 @@ public:
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;

@@ -55,7 +55,7 @@ public:
   void reload() override;
   void rediscover(string* status = 0) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
-  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // dnssec support
   bool doesDNSSEC() override { return d_dnssec; };

@@ -198,7 +198,7 @@ public:
   string directBackendCmd(const string& querystr) override;
   bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string& pattern, int maxResults, vector<Comment>& result) override;
-  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
   void alsoNotifies(const DNSName& domain, set<string>* ips) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;

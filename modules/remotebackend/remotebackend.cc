@@ -858,7 +858,7 @@ bool RemoteBackend::searchComments(const string& pattern, int maxResults, vector
   return false;
 }
 
-void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   Json query = Json::object{
     {"method", "getAllDomains"},

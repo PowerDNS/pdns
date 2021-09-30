@@ -298,7 +298,7 @@ public:
     return true;
   }
 
-  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override
   {
     if (f_get_all_domains == nullptr)
       return;

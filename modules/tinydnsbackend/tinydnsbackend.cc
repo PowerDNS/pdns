@@ -99,7 +99,7 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains)
   TDI_t* domains = &(*domainInfo)[d_suffix];
 
   vector<DomainInfo> allDomains;
-  getAllDomains(&allDomains);
+  getAllDomains(&allDomains, true, false);
   if (domains->size() == 0 && !mustDo("notify-on-startup")) {
     for (vector<DomainInfo>::iterator di = allDomains.begin(); di != allDomains.end(); ++di) {
       di->notified_serial = 0;
@@ -151,7 +151,7 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
   (*domainInfo)[d_suffix] = *domains;
 }
 
-void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   d_isAxfr = true;
   d_isGetDomains = true;
@@ -171,17 +171,25 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_dis
 
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA && dupcheck.insert(rr.qname).second) {
-      SOAData sd;
-      fillSOAData(rr.content, sd);
-
       DomainInfo di;
       di.id = -1; //TODO: Check if this is ok.
       di.backend = this;
       di.zone = rr.qname;
-      di.serial = sd.serial;
-      di.notified_serial = sd.serial;
       di.kind = DomainInfo::Master;
       di.last_check = time(0);
+
+      if (getSerial) {
+        SOAData sd;
+        try {
+          fillSOAData(rr.content, sd);
+          di.serial = sd.serial;
+        }
+        catch (const PDNSException& e) {
+          di.serial = 0;
+        }
+      }
+
+      di.notified_serial = di.serial;
       domains->push_back(di);
     }
   }

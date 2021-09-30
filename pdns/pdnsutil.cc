@@ -230,7 +230,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   vector<DomainInfo> domainInfo;
   bool result = true;
 
-  B.getAllDomains(&domainInfo);
+  B.getAllDomains(&domainInfo, false, false);
   for(const DomainInfo& di :  domainInfo) {
     if (!quiet) {
       cerr<<"Rectifying "<<di.zone<<": ";
@@ -846,7 +846,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
   auto& seenNames = seenInfos.get<0>();
   auto& seenIds = seenInfos.get<1>();
 
-  B.getAllDomains(&domainInfo, true);
+  B.getAllDomains(&domainInfo, true, true);
   int errors=0;
   for(auto di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
@@ -1031,7 +1031,7 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
     listKey(di, dk);
   } else {
     vector<DomainInfo> domainInfo;
-    B.getAllDomains(&domainInfo, g_verbose);
+    B.getAllDomains(&domainInfo, false, g_verbose);
     bool printHeader = true;
     for (const auto& di : domainInfo) {
       listKey(di, dk, printHeader);
@@ -1636,7 +1636,7 @@ static int listAllZones(const string &type="") {
   UeberBackend B("default");
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains, g_verbose);
+  B.getAllDomains(&domains, false, g_verbose);
 
   int count = 0;
   for (const auto& di: domains) {
@@ -2948,7 +2948,7 @@ try
     UeberBackend B("default");
 
     vector<DomainInfo> domainInfo;
-    B.getAllDomains(&domainInfo);
+    B.getAllDomains(&domainInfo, false, false);
 
     unsigned int zonesSecured=0, zoneErrors=0;
     for(const DomainInfo& di :  domainInfo) {
@@ -3724,11 +3724,11 @@ try
 
     vector<DomainInfo> domains;
 
-    tgt->getAllDomains(&domains, true);
+    tgt->getAllDomains(&domains, false, true);
     if (domains.size()>0)
       throw PDNSException("Target backend has zone(s), please clean it first");
 
-    src->getAllDomains(&domains, true);
+    src->getAllDomains(&domains, false, true);
     // iterate zones
     for(const DomainInfo& di: domains) {
       size_t nr,nc,nm,nk;

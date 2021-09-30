@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
   BOOST_TEST_MESSAGE("Testing getAllDomains method");
   vector<DomainInfo> result;
 
-  be->getAllDomains(&result, true);
+  be->getAllDomains(&result, true, true);
 
   di = result[0];
   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");

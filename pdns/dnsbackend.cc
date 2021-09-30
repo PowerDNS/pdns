@@ -298,7 +298,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   return ret;
 }
 
-void DNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void DNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   if (g_zoneCache.isEnabled()) {
     g_log << Logger::Error << "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the config file to disable this cache." << endl;
