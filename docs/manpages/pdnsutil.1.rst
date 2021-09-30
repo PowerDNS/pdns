@@ -270,7 +270,7 @@ ipencrypt *IP-ADDRESS* password
     Encrypt an IP address according to the 'ipcipher' standard
 
 ipdecrypt *IP-ADDRESS* password
-    Encrypt an IP address according to the 'ipcipher' standard
+    Decrypt an IP address according to the 'ipcipher' standard
 
 See also
 --------
