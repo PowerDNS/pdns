@@ -1029,51 +1029,61 @@ static void dohClientThread(int crossProtocolPipeFD)
 {
   setThreadName("dnsdist/dohClie");
 
-  DoHClientThreadData data;
-  data.mplexer->addReadFD(crossProtocolPipeFD, handleCrossProtocolQuery, &data);
+  try {
+    DoHClientThreadData data;
+    data.mplexer->addReadFD(crossProtocolPipeFD, handleCrossProtocolQuery, &data);
 
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  time_t lastTimeoutScan = now.tv_sec;
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    time_t lastTimeoutScan = now.tv_sec;
 
-  for (;;) {
-    data.mplexer->run(&now);
+    for (;;) {
+      data.mplexer->run(&now);
 
-    if (now.tv_sec > lastTimeoutScan) {
-      lastTimeoutScan = now.tv_sec;
+      if (now.tv_sec > lastTimeoutScan) {
+        lastTimeoutScan = now.tv_sec;
 
-      DownstreamDoHConnectionsManager::cleanupClosedConnections(now);
-      handleH2Timeouts(*data.mplexer, now);
+        try {
+          DownstreamDoHConnectionsManager::cleanupClosedConnections(now);
+          handleH2Timeouts(*data.mplexer, now);
 
-      if (g_dohStatesDumpRequested > 0) {
-        /* just to keep things clean in the output, debug only */
-        static std::mutex s_lock;
-        std::lock_guard<decltype(s_lock)> lck(s_lock);
-        if (g_dohStatesDumpRequested > 0) {
-          /* no race here, we took the lock so it can only be increased in the meantime */
-          --g_dohStatesDumpRequested;
-          errlog("Dumping the DoH client states, as requested:");
-          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd) {
-            struct timeval lnow;
-            gettimeofday(&lnow, nullptr);
-            if (ttd.tv_sec > 0) {
-              errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec - lnow.tv_sec));
+          if (g_dohStatesDumpRequested > 0) {
+            /* just to keep things clean in the output, debug only */
+            static std::mutex s_lock;
+            std::lock_guard<decltype(s_lock)> lck(s_lock);
+            if (g_dohStatesDumpRequested > 0) {
+              /* no race here, we took the lock so it can only be increased in the meantime */
+              --g_dohStatesDumpRequested;
+              errlog("Dumping the DoH client states, as requested:");
+              data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd) {
+                struct timeval lnow;
+                gettimeofday(&lnow, nullptr);
+                if (ttd.tv_sec > 0) {
+                  errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec - lnow.tv_sec));
+                }
+                else {
+                  errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
+                }
+
+                if (param.type() == typeid(std::shared_ptr<DoHConnectionToBackend>)) {
+                  auto conn = boost::any_cast<std::shared_ptr<DoHConnectionToBackend>>(param);
+                  errlog(" - %s", conn->toString());
+                }
+                else if (param.type() == typeid(DoHClientThreadData*)) {
+                  errlog(" - Worker thread pipe");
+                }
+              });
             }
-            else {
-              errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
-            }
-
-            if (param.type() == typeid(std::shared_ptr<DoHConnectionToBackend>)) {
-              auto conn = boost::any_cast<std::shared_ptr<DoHConnectionToBackend>>(param);
-              errlog(" - %s", conn->toString());
-            }
-            else if (param.type() == typeid(DoHClientThreadData*)) {
-              errlog(" - Worker thread pipe");
-            }
-          });
+          }
+        }
+        catch (const std::exception& e) {
+          errlog("Error in outgoing DoH thread: %s", e.what());
         }
       }
     }
+  }
+  catch (const std::exception& e) {
+    errlog("Fatal error in outgoing DoH thread: %s", e.what());
   }
 }
 
