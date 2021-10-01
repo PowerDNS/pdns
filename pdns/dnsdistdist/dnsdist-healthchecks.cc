@@ -480,12 +480,12 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
       }
       catch (const std::exception& e) {
         if (g_verboseHealthChecks) {
-          infolog("Error while delaing with a timeout for the health check response from backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
+          infolog("Error while dealing with a timeout for the health check response from backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
         }
       }
       catch (...) {
         if (g_verboseHealthChecks) {
-          infolog("Error while delaing with a timeout for the health check response from backend %s", data->d_ds->getNameWithAddr());
+          infolog("Error while dealing with a timeout for the health check response from backend %s", data->d_ds->getNameWithAddr());
         }
       }
     }
@@ -506,12 +506,12 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
       }
       catch (const std::exception& e) {
         if (g_verboseHealthChecks) {
-          infolog("Error while delaing with a timeout for the health check response from backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
+          infolog("Error while dealing with a timeout for the health check response from backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
         }
       }
       catch (...) {
         if (g_verboseHealthChecks) {
-          infolog("Error while delaing with a timeout for the health check response from backend %s", data->d_ds->getNameWithAddr());
+          infolog("Error while dealing with a timeout for the health check response from backend %s", data->d_ds->getNameWithAddr());
         }
       }
     }
