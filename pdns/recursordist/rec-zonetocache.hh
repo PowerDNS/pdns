@@ -39,7 +39,7 @@ public:
     size_t d_maxReceivedBytes{0}; // Maximum size
     time_t d_retryOnError{60}; // Retry on error
     time_t d_refreshPeriod{0}; // Take from SOA by default
-    uint32_t d_timeout{30}; // timeout in seconds
+    uint32_t d_timeout{20}; // timeout in seconds
   };
   static void ZoneToCache(Config config, uint64_t gen);
 };
