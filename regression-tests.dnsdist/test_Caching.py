@@ -615,6 +615,47 @@ class TestCaching(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
 
+class TestCachingHashingOptions(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, cookieHashing=true, skipOptions={8}})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testCacheDifferentECSSameCookie(self):
+        """
+        Cache: ECS should be ignored by the cache even if cookie is present
+        """
+        ttl = 600
+        name = 'cache-different-ecs.cache.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.2', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        # second query should be served from the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = response.id
+        self.assertEqual(receivedResponse, response)
+
 class TestCachingHashingCookies(DNSDistTest):
 
     _config_template = """
