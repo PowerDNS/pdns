@@ -37,10 +37,9 @@ public:
     ComboAddress d_local; // local address
     TSIGTriplet d_tt; // Authentication data
     size_t d_maxReceivedBytes{0}; // Maximum size
-    uint32_t d_timeout{20}; // timeout in seconds
+    time_t d_retryOnError{60}; // Retry on error
+    time_t d_refreshPeriod{0}; // Take from SOA by default
+    uint32_t d_timeout{30}; // timeout in seconds
   };
-  static time_t ZonesToCache(const std::vector<Config>&);
-
-private:
-  static time_t ZoneToCache(const Config& config);
+  static void ZoneToCache(Config config, uint64_t gen);
 };

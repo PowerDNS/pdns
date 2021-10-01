@@ -115,7 +115,6 @@
 #include "rec-protozero.hh"
 
 #include "xpf.hh"
-#include "rec-zonetocache.hh"
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
@@ -3702,8 +3701,6 @@ static void houseKeeping(void *)
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   static time_t last_RC_prune = 0;
-  static time_t last_zone_to_cache = 0;
-  static time_t zones_to_cache_interval = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   if (last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
@@ -3774,11 +3771,6 @@ static void houseKeeping(void *)
           {
             g_log<<Logger::Error<<"Exception while priming the root NS zones"<<endl;
           }
-        }
-        // Redo zones-to-cache if the min TTL of those zones time is 90% passed.
-        if (!luaconfsLocal->zonesToCacheConfig.empty() && now.tv_sec - last_zone_to_cache > zones_to_cache_interval * 9 / 10) {
-          last_zone_to_cache = now.tv_sec;
-          zones_to_cache_interval = RecZoneToCache::ZonesToCache(luaconfsLocal->zonesToCacheConfig);
         }
       }
 

@@ -400,17 +400,17 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
 
-  Lua.writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries, boost::optional<zoneToCacheOptions_t> options) {
+  Lua.writeFunction("zoneToCache", [&delayedThreads](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
     try {
       RecZoneToCache::Config conf;
       conf.d_zone = zoneName;
       conf.d_method = method;
-      if (primaries.type() == typeid(string)) {
-        conf.d_sources.push_back(boost::get<std::string>(primaries));
+      if (srcs.type() == typeid(std::string)) {
+        conf.d_sources.push_back(boost::get<std::string>(srcs));
       }
       else {
-        for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries)) {
-          conf.d_sources.push_back(primary.second);
+        for (const auto& src : boost::get<std::vector<std::pair<int, std::string>>>(srcs)) {
+          conf.d_sources.push_back(src.second);
         }
       }
       if (options) {
@@ -432,9 +432,15 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (have.count("localAddress")) {
           conf.d_local = ComboAddress(boost::get<string>(have["localAddress"]));
         }
+        if (have.count("refreshPeriod")) {
+          conf.d_refreshPeriod = boost::get<uint32_t>(have["refreshPeriod"]);
+        }
+        if (have.count("retryOnErrorPeriod")) {
+          conf.d_retryOnError = boost::get<uint32_t>(have["retryOnErrorPeriod"]);
+        }
       }
 
-      lci.zonesToCacheConfig.push_back(conf);
+      delayedThreads.ztcConfigs.push_back(conf);
     }
     catch (const std::exception&e ) {
       g_log<<Logger::Error<<"Problem configuring zoneToCache: "<<e.what()<<endl;
@@ -676,11 +682,26 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     }
     catch(const std::exception& e) {
       g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
-      exit(1);  // FIXME proper exit code?
+      exit(1);
     }
     catch(const PDNSException& e) {
       g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
-      exit(1);  // FIXME proper exit code?
+      exit(1);
+    }
+  }
+
+  for (const auto& ztcConfig: delayedThreads.ztcConfigs) {
+    try {
+      std::thread t(RecZoneToCache::ZoneToCache, ztcConfig, generation);
+      t.detach();
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Error<<"Problem starting zoneToCache thread: "<<e.what()<<endl;
+      exit(1);
+    }
+    catch(const PDNSException& e) {
+      g_log<<Logger::Error<<"Problem starting zoneToCache thread: "<<e.reason<<endl;
+      exit(1);
     }
   }
 }
