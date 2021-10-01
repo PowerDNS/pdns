@@ -38,7 +38,7 @@ public:
     TSIGTriplet d_tt; // Authentication data
     size_t d_maxReceivedBytes{0}; // Maximum size
     time_t d_retryOnError{60}; // Retry on error
-    time_t d_refreshPeriod{0}; // Take from SOA by default
+    time_t d_refreshPeriod{24 * 3600}; // Time between refetch
     uint32_t d_timeout{20}; // timeout in seconds
   };
   static void ZoneToCache(Config config, uint64_t gen);

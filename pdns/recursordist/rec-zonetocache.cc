@@ -39,7 +39,8 @@
 
 struct ZoneData
 {
-  ZoneData(shared_ptr<Logr::Logger>& log) : d_log(log) {}
+  ZoneData(shared_ptr<Logr::Logger>& log) :
+    d_log(log) {}
 
   std::map<pair<DNSName, QType>, vector<DNSRecord>> d_all;
   std::map<pair<DNSName, QType>, vector<shared_ptr<RRSIGRecordContent>>> d_sigs;
@@ -51,7 +52,7 @@ struct ZoneData
   bool isRRSetAuth(const DNSName& qname, QType qtype);
   void parseDRForCache(DNSRecord& dr);
   void getByAXFR(const RecZoneToCache::Config&);
-  time_t ZoneToCache(const RecZoneToCache::Config& config);
+  void ZoneToCache(const RecZoneToCache::Config& config);
 };
 
 bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype)
@@ -180,10 +181,10 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
-time_t ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
+void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
 {
   if (config.d_sources.size() > 1) {
-    d_log->info("Multiple sources not yet supported, using first"); 
+    d_log->info("Multiple sources not yet supported, using first");
   }
   d_zone = DNSName(config.d_zone);
   d_now = time(nullptr);
@@ -219,7 +220,6 @@ time_t ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
 
   // Rerun, now inserting the rrsets into the cache with associated sigs
   d_now = time(nullptr);
-  time_t refreshFromSoa = 0;
   for (const auto& [key, v] : d_all) {
     const auto& [qname, qtype] = key;
     switch (qtype) {
@@ -229,11 +229,6 @@ time_t ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     case QType::RRSIG:
       break;
     default: {
-      if (qtype == QType::SOA) {
-        const auto& rr = getRR<SOARecordContent>(v[0]);
-        refreshFromSoa = rr->d_st.refresh;
-      }
-
       vector<shared_ptr<RRSIGRecordContent>> sigsrr;
       auto it = d_sigs.find(key);
       if (it != d_sigs.end()) {
@@ -251,8 +246,6 @@ time_t ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     }
     }
   }
-
-  return refreshFromSoa;
 }
 
 // Config must be a copy, so call by value!
@@ -260,7 +253,6 @@ void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configG
 {
   setThreadName("pdns-r/ztc/" + config.d_zone);
   auto luaconfsLocal = g_luaconfs.getLocal();
-
   auto log = g_slog->withName("ztc")->withValues("zone", Logging::Loggable(config.d_zone));
 
   while (true) {
@@ -275,14 +267,11 @@ void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configG
     time_t refresh = config.d_retryOnError;
     try {
       ZoneData data(log);
-      time_t refreshFromSoa = data.ZoneToCache(config);
+      data.ZoneToCache(config);
       refresh = config.d_refreshPeriod;
-      if (refresh == 0) {
-        refresh = refreshFromSoa;
-      }
       log->info("Loaded zone into cache", "refresh", Logging::Loggable(refresh));
     }
-    catch (const PDNSException &e) {
+    catch (const PDNSException& e) {
       log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(refresh));
     }
     catch (const std::runtime_error& e) {
@@ -290,6 +279,9 @@ void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configG
     }
     catch (...) {
       log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable("unknown"), "refresh", Logging::Loggable(refresh));
+    }
+    if (refresh == 0) {
+      return; // single shot
     }
     sleep(refresh);
   }
