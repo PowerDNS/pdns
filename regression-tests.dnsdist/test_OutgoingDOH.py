@@ -49,6 +49,8 @@ class OutgoingDOHTests(object):
                                     '127.0.0.1')
         expectedResponse.answer.append(rrset)
 
+        connsBefore = self.getServerStat('tcpReusedConnections')
+
         numberOfUDPQueries = 10
         for _ in range(numberOfUDPQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
@@ -60,7 +62,7 @@ class OutgoingDOHTests(object):
         self.checkOnlyDOHResponderHit(numberOfUDPQueries)
 
         self.assertEqual(self.getServerStat('tcpNewConnections'), 1)
-        self.assertEqual(self.getServerStat('tcpReusedConnections'), numberOfQueries - 1)
+        self.assertEqual(self.getServerStat('tcpReusedConnections'), connsBefore + numberOfQueries - 1)
         self.assertEqual(self.getServerStat('tlsResumptions'), 0)
 
     def testTCP(self):
@@ -77,13 +79,61 @@ class OutgoingDOHTests(object):
                                     '127.0.0.1')
         expectedResponse.answer.append(rrset)
 
+        connsBefore = self.getServerStat('tcpReusedConnections')
+
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, expectedResponse)
         self.checkOnlyDOHResponderHit()
         self.assertEqual(self.getServerStat('tcpNewConnections'), 1)
-        self.assertEqual(self.getServerStat('tcpReusedConnections'), 0)
+        self.assertEqual(self.getServerStat('tcpReusedConnections'), connsBefore)
         self.assertEqual(self.getServerStat('tlsResumptions'), 0)
+
+    def testUDPCache(self):
+        """
+        Outgoing DOH: UDP query is sent via DOH, should be cached
+        """
+        name = 'udp.cached.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        numberOfUDPQueries = 10
+        for _ in range(numberOfUDPQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, useQueue=False, response=None)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+    def testTCPCache(self):
+        """
+        Outgoing DOH: TCP query is sent via DOH, should be cached
+        """
+        name = 'tcp.cached.outgoing-doh.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        numberOfTCPQueries = 10
+        for _ in range(numberOfTCPQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, useQueue=False, response=None)
+            self.assertEqual(receivedResponse, expectedResponse)
 
 class BrokenOutgoingDOHTests(object):
 
@@ -207,9 +257,15 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+    smn = newSuffixMatchNode()
+    smn:add('cached.outgoing-doh.test.powerdns.com.')
+    addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
     @classmethod
@@ -228,9 +284,15 @@ class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+    smn = newSuffixMatchNode()
+    smn:add('cached.outgoing-doh.test.powerdns.com.')
+    addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
     @classmethod
@@ -289,9 +351,15 @@ class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTest
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+    smn = newSuffixMatchNode()
+    smn:add('cached.outgoing-doh.test.powerdns.com.')
+    addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
     @classmethod
@@ -309,9 +377,15 @@ class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+    smn = newSuffixMatchNode()
+    smn:add('cached.outgoing-doh.test.powerdns.com.')
+    addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
     @classmethod
@@ -329,9 +403,15 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+    smn = newSuffixMatchNode()
+    smn:add('cached.outgoing-doh.test.powerdns.com.')
+    addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
     def callback(request):
