@@ -95,7 +95,7 @@ void Logger::error(const std::string& err, const std::string& msg) const
 
 std::shared_ptr<Logr::Logger> Logger::v(size_t level) const
 {
-  auto res = std::make_shared<Logger>(getptr(), boost::none, getVerbosity(), level + _level, _callback);
+  auto res = std::make_shared<Logger>(getptr(), _name, getVerbosity(), level + _level, _callback);
   return res;
 }
 
