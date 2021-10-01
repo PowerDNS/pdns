@@ -1369,8 +1369,8 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if (concurrentConnections > dsc->cs->tcpMaxConcurrentConnections) {
-    dsc->cs->tcpMaxConcurrentConnections = concurrentConnections;
+  if (concurrentConnections > dsc->cs->tcpMaxConcurrentConnections.load()) {
+    dsc->cs->tcpMaxConcurrentConnections.store(concurrentConnections);
   }
 
   auto& conn = t_conns[descriptor];
