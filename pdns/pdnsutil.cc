@@ -251,7 +251,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   DomainInfo di;
   try {
-    if (!B.getDomainInfo(zone, di)) {
+    if (!B.getDomainInfo(zone, di, false)) {
       cout << "[Error] Unable to get zone information for zone '" << zone << "'" << endl;
       return 1;
     }
@@ -263,11 +263,20 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   SOAData sd;
-  if(!B.getSOAUncached(zone, sd)) {
-    cout<<"[Error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
+  try {
+    if (!B.getSOAUncached(zone, sd)) {
+      cout << "[Error] No SOA record present, or active, in zone '" << zone << "'" << endl;
+      numerrors++;
+      cout << "Checked 0 records of '" << zone << "', " << numerrors << " errors, 0 warnings." << endl;
+      return 1;
+    }
+  }
+  catch (const PDNSException& e) {
+    cout << "[Error] SOA lookup failed: " << e.reason << endl;
     numerrors++;
-    cout<<"Checked 0 records of '"<<zone<<"', "<<numerrors<<" errors, 0 warnings."<<endl;
-    return 1;
+    if (!sd.db) {
+      return 1;
+    }
   }
 
   NSEC3PARAMRecordContent ns3pr;
@@ -367,7 +376,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       stringtok(parts, rr.content);
 
       if(parts.size() < 7) {
-        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
+        cout << "[Info] SOA autocomplete is deprecated, missing field(s) in SOA content: " << rr.qname << " IN " << rr.qtype.toString() << " '" << rr.content << "'" << endl;
       }
 
       ostringstream o;
