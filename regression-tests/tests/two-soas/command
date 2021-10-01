@@ -1,0 +1,5 @@
+#!/bin/sh
+if [ "$backend" != "gsqlite3" ]; then echo Test skipped for non-SQLite backend. ; exit; fi
+$PDNSUTIL --config-dir=. --config-name=gsqlite3 create-zone twosoas.com
+sqlite3 pdns.sqlite3 "INSERT INTO records (domain_id,name,type,content,ttl,prio,disabled,ordername,auth) SELECT domain_id,name,type,content,ttl,prio,disabled,ordername,auth FROM records WHERE name='twosoas.com' AND type='SOA'"
+cleandig twosoas.com MX

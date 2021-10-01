@@ -251,6 +251,8 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
   int hits=0;
 
   while(this->get(rr)) {
+    if(hits>0)
+      throw PDNSException("Got more than one SOA from backend");
     if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
     fillSOAData(rr.content, sd);
