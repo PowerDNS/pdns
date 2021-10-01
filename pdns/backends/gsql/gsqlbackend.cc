@@ -1443,10 +1443,15 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
         }
       }
 
-      if(!row[2].empty()) {
+      if (!row[2].empty()) {
         SOAData sd;
-        fillSOAData(row[2], sd);
-        di.serial = sd.serial;
+        try {
+          fillSOAData(row[2], sd);
+          di.serial = sd.serial;
+        }
+        catch (const PDNSException& e) {
+          di.serial = 0;
+        }
       }
       try {
         di.notified_serial = pdns_stou(row[5]);
