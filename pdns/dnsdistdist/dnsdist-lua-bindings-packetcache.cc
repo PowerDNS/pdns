@@ -28,10 +28,12 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 
+#include <boost/lexical_cast.hpp>
+
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t, std::vector<std::pair<int, uint16_t>>>>> vars) {
 
       bool keepStaleData = false;
       size_t maxTTL = 86400;
@@ -44,6 +46,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       bool deferrableInsertLock = true;
       bool ecsParsing = false;
       bool cookieHashing = false;
+      std::unordered_set<uint16_t> optionsToSkip{};
 
       if (vars) {
 
@@ -90,6 +93,11 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         if (vars->count("cookieHashing")) {
           cookieHashing = boost::get<bool>((*vars)["cookieHashing"]);
         }
+        if (vars->count("skipOptions")) {
+          for (auto option: boost::get<std::vector<std::pair<int, uint16_t>>>(vars->at("skipOptions"))) {
+            optionsToSkip.insert(option.second);
+          }
+        }
       }
 
       if (maxEntries < numberOfShards) {
@@ -107,6 +115,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 
       res->setKeepStaleData(keepStaleData);
       res->setCookieHashing(cookieHashing);
+      res->skipOptions(optionsToSkip);
 
       return res;
     });

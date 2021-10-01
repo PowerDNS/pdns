@@ -28,6 +28,7 @@
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
+#include "ednsoptions.hh"
 
 struct DNSQuestion;
 
@@ -54,9 +55,11 @@ public:
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
+  bool isCookieHashingEnabled() const;
+  void setCookieHashing(bool hashing);
+  void skipOptions(const std::unordered_set<uint16_t>& optionsToSkip);
 
   bool isECSParsingEnabled() const { return d_parseECS; }
-  bool isCookieHashingEnabled() const { return d_cookieHashing; }
 
   bool keepStaleData() const
   {
@@ -67,10 +70,6 @@ public:
     d_keepStaleData = keep;
   }
 
-  void setCookieHashing(bool hashing)
-  {
-    d_cookieHashing = hashing;
-  }
 
   void setECSParsingEnabled(bool enabled)
   {
@@ -144,5 +143,5 @@ private:
   bool d_deferrableInsertLock;
   bool d_parseECS;
   bool d_keepStaleData{false};
-  bool d_cookieHashing{false};
+  std::unordered_set<uint16_t> d_optionsToSkip{EDNSOptionCode::COOKIE};
 };
