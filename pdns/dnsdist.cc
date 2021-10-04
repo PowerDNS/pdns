@@ -1336,7 +1336,7 @@ public:
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-    if (!processResponse(response.d_buffer, localRespRuleActions, dr, false, false)) {
+    if (!processResponse(response.d_buffer, localRespRuleActions, dr, false, true)) {
       return;
     }
 

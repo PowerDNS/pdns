@@ -1323,8 +1323,8 @@ void tcpAcceptorThread(ClientState* cs)
         continue;
       }
 
-      if (concurrentConnections > cs->tcpMaxConcurrentConnections) {
-        cs->tcpMaxConcurrentConnections = concurrentConnections;
+      if (concurrentConnections > cs->tcpMaxConcurrentConnections.load()) {
+        cs->tcpMaxConcurrentConnections.store(concurrentConnections);
       }
 
       if (ci->fd < 0) {
