@@ -46,27 +46,27 @@
 void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 {
   bool hasQueuedItem=false;
-  set<string> nsset, ips;
+  set<string> ips;
+  set<DNSName> nsset;
   DNSZoneRecord rr;
   FindNS fns;
-
 
   try {
   if (d_onlyNotify.size()) {
     B->lookup(QType(QType::NS), di.zone, di.id);
     while(B->get(rr))
-      nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
+      nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
 
-    for(const auto & j : nsset) {
-      vector<string> nsips=fns.lookup(DNSName(j), B);
+    for(const auto & ns : nsset) {
+      vector<string> nsips=fns.lookup(ns, B);
       if(nsips.empty())
-        g_log<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
+        g_log<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"' to nameserver '"<<ns<<"': nameserver does not resolve!"<<endl;
       else
         for(const auto & nsip : nsips) {
           const ComboAddress caIp(nsip, 53);
           if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
             if(!d_onlyNotify.match(&caIp))
-              g_log<<Logger::Notice<<"Skipped notification of domain '"<<di.zone<<"' to "<<j<<" because it does not match only-notify."<<endl;
+              g_log<<Logger::Notice<<"Skipped notification of domain '"<<di.zone<<"' to "<<ns<<" because "<<caIp<<" does not match only-notify."<<endl;
             else
               ips.insert(caIp.toStringWithPort());
           }
