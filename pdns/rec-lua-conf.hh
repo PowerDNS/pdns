@@ -26,6 +26,7 @@
 #include "sortlist.hh"
 #include "filterpo.hh"
 #include "validate.hh"
+#include "rec-zonetocache.hh"
 
 struct ProtobufExportConfig
 {
@@ -72,7 +73,6 @@ public:
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
-
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
      remote loggers */
@@ -87,6 +87,7 @@ struct luaConfigDelayedThreads
 {
   // Please make sure that the tuple below only contains value types since they are used as parameters in a thread ct
   std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string> > rpzPrimaryThreads;
+  std::vector<RecZoneToCache::Config> ztcConfigs;
 };
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);

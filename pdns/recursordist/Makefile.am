@@ -164,6 +164,7 @@ pdns_recursor_SOURCES = \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
         rec-tcpout.cc rec-tcpout.hh \
+        rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
@@ -276,6 +277,7 @@ testrunner_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	resolver.hh resolver.cc \
@@ -313,6 +315,7 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
+	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
 	test-rpzloader_cc.cc \
@@ -447,6 +450,13 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 pdns_recursor_LDADD += $(GNUTLS_LIBS)
 endif
 endif
+if HAVE_LIBCURL
+pdns_recursor_SOURCES += minicurl.cc minicurl.hh
+pdns_recursor_LDADD += $(LIBCURL)
+testrunner_SOURCES += minicurl.cc minicurl.hh
+testrunner_LDADD += $(LIBCURL)
+endif
+
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \

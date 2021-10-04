@@ -398,6 +398,63 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
 
+  typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
+
+  Lua.writeFunction("zoneToCache", [&delayedThreads](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
+    try {
+      RecZoneToCache::Config conf;
+      DNSName validZoneName(zoneName);
+      conf.d_zone = zoneName;
+      const set<string> methods = {"axfr", "url", "file"};
+      if (methods.count(method) == 0) {
+        throw std::runtime_error("unknwon method '" + method + "'");
+      }
+      conf.d_method = method;
+      if (srcs.type() == typeid(std::string)) {
+        conf.d_sources.push_back(boost::get<std::string>(srcs));
+      }
+      else {
+        for (const auto& src : boost::get<std::vector<std::pair<int, std::string>>>(srcs)) {
+          conf.d_sources.push_back(src.second);
+        }
+      }
+      if (conf.d_sources.size() == 0) {
+        throw std::runtime_error("at least one source required");
+      }
+      if (options) {
+        auto& have = *options;
+        if (have.count("timeout")) {
+          conf.d_timeout = boost::get<uint32_t>(have.at("timeout"));
+        }
+        if (have.count("tsigname")) {
+          conf.d_tt.name = DNSName(toLower(boost::get<string>(have.at("tsigname"))));
+          conf.d_tt.algo = DNSName(toLower(boost::get<string>(have.at("tsigalgo"))));
+          if (B64Decode(boost::get<string>(have.at("tsigsecret")), conf.d_tt.secret)) {
+            throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
+          }
+        }
+        if (have.count("maxReceivedMBytes")) {
+          conf.d_maxReceivedBytes = static_cast<size_t>(boost::get<uint32_t>(have.at("maxReceivedMBytes")));
+          conf.d_maxReceivedBytes *= 1024 * 1024;
+        }
+        if (have.count("localAddress")) {
+          conf.d_local = ComboAddress(boost::get<string>(have.at("localAddress")));
+        }
+        if (have.count("refreshPeriod")) {
+          conf.d_refreshPeriod = boost::get<uint32_t>(have.at("refreshPeriod"));
+        }
+        if (have.count("retryOnErrorPeriod")) {
+          conf.d_retryOnError = boost::get<uint32_t>(have.at("retryOnErrorPeriod"));
+        }
+      }
+
+      delayedThreads.ztcConfigs.push_back(conf);
+    }
+    catch (const std::exception& e) {
+      g_log<<Logger::Error<<"Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl;
+    }
+  });
+
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
   Lua.writeFunction("addSortList", 
 		    [&lci](const std::string& formask_, 
@@ -633,11 +690,26 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     }
     catch(const std::exception& e) {
       g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
-      exit(1);  // FIXME proper exit code?
+      exit(1);
     }
     catch(const PDNSException& e) {
       g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
-      exit(1);  // FIXME proper exit code?
+      exit(1);
+    }
+  }
+
+  for (const auto& ztcConfig: delayedThreads.ztcConfigs) {
+    try {
+      std::thread t(RecZoneToCache::ZoneToCache, ztcConfig, generation);
+      t.detach();
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Error<<"Problem starting zoneToCache thread: "<<e.what()<<endl;
+      exit(1);
+    }
+    catch(const PDNSException& e) {
+      g_log<<Logger::Error<<"Problem starting zoneToCache thread: "<<e.reason<<endl;
+      exit(1);
     }
   }
 }
