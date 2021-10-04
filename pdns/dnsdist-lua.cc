@@ -1392,26 +1392,33 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
 			   gettime(&now);
-			   until=now;
+			   until = now;
                            int actualSeconds = seconds ? *seconds : 10;
 			   until.tv_sec += actualSeconds;
-			   for(const auto& capair : m) {
+			   for (const auto& capair : m) {
 			     unsigned int count = 0;
-                             auto got = slow.lookup(Netmask(capair.first));
-                             bool expired=false;
-			     if(got) {
-			       if(until < got->second.until) // had a longer policy
+                             AddressAndPortRange requestor(capair.first, capair.first.isIPv4() ? 32 : 128, 0);
+                             auto got = slow.lookup(requestor);
+                             bool expired = false;
+			     if (got) {
+			       if (until < got->second.until) {
+                                 // had a longer policy
 				 continue;
-			       if(now < got->second.until) // only inherit count on fresh query we are extending
-				 count=got->second.blocks;
-                               else
-                                 expired=true;
+                               }
+			       if (now < got->second.until) {
+                                 // only inherit count on fresh query we are extending
+				 count = got->second.blocks;
+                               }
+                               else {
+                                 expired = true;
+                               }
 			     }
-			     DynBlock db{msg,until,DNSName(),(action ? *action : DNSAction::Action::None)};
-			     db.blocks=count;
-                             if(!got || expired)
+			     DynBlock db{msg, until, DNSName(), (action ? *action : DNSAction::Action::None)};
+			     db.blocks = count;
+                             if (!got || expired) {
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
-			     slow.insert(Netmask(capair.first)).second=db;
+                             }
+			     slow.insert(requestor).second = db;
 			   }
 			   g_dynblockNMG.setState(slow);
 			 });

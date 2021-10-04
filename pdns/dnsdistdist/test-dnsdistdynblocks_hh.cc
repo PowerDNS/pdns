@@ -9,7 +9,7 @@
 #include "dnsdist-rings.hh"
 
 Rings g_rings;
-GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
+GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -151,6 +151,204 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6) {
+  /* Check that we correctly group IPv6 addresses from the same /64 subnet into the same
+     dynamic block entry, if instructed to do so */
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("2001:db8::1");
+  ComboAddress backend("2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+  unsigned int responseTime = 0;
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+  dbrg.setMasks(32, 64, 0);
+
+  /* block above 50 qps for numberOfSeconds seconds, no warning */
+  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+
+  {
+    /* insert 45 qps from a given client in the last 10s
+       this should not trigger the rule */
+    size_t numberOfQueries = 45 * numberOfSeconds;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
+      /* we do not care about the response during that test, but we want to make sure
+         these do not interfere with the computation */
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(requestor1, 128, 16)) == nullptr);
+  }
+
+  {
+    /* insert just above 50 qps from several clients in the same /64 IPv6 range in the last 10s,
+       this should trigger the rule this time */
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      ComboAddress requestor("2001:db8::" + std::to_string(idx));
+      g_rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
+      g_rings.insertResponse(now, requestor, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    {
+      /* beginning of the range should be blocked */
+      const auto& block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(requestor1, 128, 16))->second;
+      BOOST_CHECK_EQUAL(block.reason, reason);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+      BOOST_CHECK(block.domain.empty());
+      BOOST_CHECK(block.action == action);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
+      BOOST_CHECK_EQUAL(block.warning, false);
+    }
+
+    {
+      /* end of the range should be blocked as well */
+      ComboAddress end("2001:0db8:0000:0000:ffff:ffff:ffff:ffff");
+      const auto& block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(end, 128, 16))->second;
+      BOOST_CHECK_EQUAL(block.reason, reason);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+      BOOST_CHECK(block.domain.empty());
+      BOOST_CHECK(block.action == action);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
+      BOOST_CHECK_EQUAL(block.warning, false);
+    }
+
+    {
+      /* outside of the range should NOT */
+      ComboAddress out("2001:0db8:0000:0001::0");
+      BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(out, 128, 16)) == nullptr);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
+  /* Check that we correctly split IPv4 addresses based on port ranges, when instructed to do so */
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1:42");
+  ComboAddress backend("192.0.2.254");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  unsigned int responseTime = 0;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+  /* split v4 by ports using a  /2 (0 - 16383, 16384 - 32767, 32768 - 49151, 49152 - 65535) */
+  dbrg.setMasks(32, 128, 2);
+
+  /* block above 50 qps for numberOfSeconds seconds, no warning */
+  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+
+  {
+    /* insert 45 qps from a given client in the last 10s
+       this should not trigger the rule */
+    size_t numberOfQueries = 45 * numberOfSeconds;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
+      /* we do not care about the response during that test, but we want to make sure
+         these do not interfere with the computation */
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(requestor1, 128, 16)) == nullptr);
+  }
+
+  {
+    /* insert just above 50 qps from several clients in the same IPv4 port range in the last 10s,
+       this should trigger the rule this time */
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      ComboAddress requestor("192.0.2.1:" + std::to_string(idx));
+      g_rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
+      g_rings.insertResponse(now, requestor, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    {
+      /* beginning of the port range should be blocked */
+      const auto& block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16))->second;
+      BOOST_CHECK_EQUAL(block.reason, reason);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+      BOOST_CHECK(block.domain.empty());
+      BOOST_CHECK(block.action == action);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
+      BOOST_CHECK_EQUAL(block.warning, false);
+    }
+
+    {
+      /* end of the range should be blocked as well */
+      const auto& block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:16383"), 32, 16))->second;
+      BOOST_CHECK_EQUAL(block.reason, reason);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+      BOOST_CHECK(block.domain.empty());
+      BOOST_CHECK(block.action == action);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
+      BOOST_CHECK_EQUAL(block.warning, false);
+    }
+
+    {
+      /* outside of the range should not */
+      BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:16384"), 32, 16)) == nullptr);
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   /* check that the responses are not accounted as queries when a
      rcode rate rule is defined (sounds very specific but actually happened) */
@@ -167,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   /* 100k entries, one shard */
   g_rings.setCapacity(1000000, 1);
@@ -224,7 +422,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
   dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -313,7 +511,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -405,7 +603,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   time_t numberOfSeconds = 10;
   unsigned int blockDuration = 60;
@@ -523,7 +721,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -594,7 +792,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -753,7 +951,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
   dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -809,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
-  NetmaskTree<DynBlock> emptyNMG;
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
   SuffixMatchTree<DynBlock> emptySMT;
 
   size_t numberOfSeconds = 10;
@@ -1078,6 +1276,170 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
   }
 #endif
+}
+
+BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
+  NetmaskTree<int, AddressAndPortRange> nmt;
+  BOOST_CHECK_EQUAL(nmt.empty(), true);
+  BOOST_CHECK_EQUAL(nmt.size(), 0U);
+  nmt.insert(AddressAndPortRange(ComboAddress("130.161.252.0"), 24, 0)).second = 0;
+  BOOST_CHECK_EQUAL(nmt.empty(), false);
+  BOOST_CHECK_EQUAL(nmt.size(), 1U);
+  nmt.insert(AddressAndPortRange(ComboAddress("130.161.0.0"), 16, 0)).second = 1;
+  BOOST_CHECK_EQUAL(nmt.size(), 2U);
+  nmt.insert(AddressAndPortRange(ComboAddress("130.0.0.0"), 8, 0)).second = 2;
+  BOOST_CHECK_EQUAL(nmt.size(), 3U);
+
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("213.244.168.210")), nullptr);
+  auto found = nmt.lookup(ComboAddress("130.161.252.29"));
+  BOOST_REQUIRE(found);
+  BOOST_CHECK_EQUAL(found->second, 0);
+  found = nmt.lookup(ComboAddress("130.161.180.1"));
+  BOOST_CHECK(found);
+  BOOST_CHECK_EQUAL(found->second, 1);
+
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.255.255.255"))->second, 2);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.252.255"))->second, 0);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255"))->second, 1);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.255.255.255"), 32, 16))->second, 2);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.255"), 32, 16))->second, 0);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.253.255"), 32, 16))->second, 1);
+
+  found = nmt.lookup(ComboAddress("130.145.180.1"));
+  BOOST_CHECK(found);
+  BOOST_CHECK_EQUAL(found->second, 2);
+
+  nmt.insert(AddressAndPortRange(ComboAddress("0.0.0.0"), 0, 0)).second = 3;
+  BOOST_CHECK_EQUAL(nmt.size(), 4U);
+  nmt.insert(AddressAndPortRange(ComboAddress("0.0.0.0"), 7, 0)).second = 4;
+  BOOST_CHECK_EQUAL(nmt.size(), 5U);
+  nmt.insert(AddressAndPortRange(ComboAddress("0.0.0.0"), 15, 0)).second = 5;
+  BOOST_CHECK_EQUAL(nmt.size(), 6U);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("0.0.0.0"), 0, 0))->second, 3);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("0.0.0.0"), 7, 0))->second, 4);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("0.0.0.0"), 15, 0))->second, 5);
+  BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("0.0.0.0"), 32, 0))->second, 5);
+
+  nmt.clear();
+  BOOST_CHECK_EQUAL(nmt.empty(), true);
+  BOOST_CHECK_EQUAL(nmt.size(), 0U);
+  BOOST_CHECK(!nmt.lookup(ComboAddress("130.161.180.1")));
+
+  nmt.insert(AddressAndPortRange(ComboAddress("::1"), 128, 0)).second = 1;
+  BOOST_CHECK_EQUAL(nmt.empty(), false);
+  BOOST_CHECK_EQUAL(nmt.size(), 1U);
+  nmt.insert(AddressAndPortRange(ComboAddress("::"), 0, 0)).second = 0;
+  BOOST_CHECK_EQUAL(nmt.size(), 2U);
+  nmt.insert(AddressAndPortRange(ComboAddress("fe80::"), 16, 0)).second = 2;
+  BOOST_CHECK_EQUAL(nmt.size(), 3U);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255")), nullptr);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::2"))->second, 0);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::ffff"))->second, 0);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::1"))->second, 1);
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("fe80::1"))->second, 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
+  {
+    /* exact port matching */
+    NetmaskTree<int, AddressAndPortRange> nmt;
+    BOOST_CHECK_EQUAL(nmt.empty(), true);
+    BOOST_CHECK_EQUAL(nmt.size(), 0U);
+    nmt.insert(AddressAndPortRange(ComboAddress("130.161.252.42:65534"), 32, 16)).second = 0;
+    BOOST_CHECK_EQUAL(nmt.empty(), false);
+    BOOST_CHECK_EQUAL(nmt.size(), 1U);
+
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+
+    auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65534"), 32, 16));
+    BOOST_CHECK(found != nullptr);
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65533"), 32, 16)), nullptr);
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65535"), 32, 16)), nullptr);
+  }
+
+  {
+    /* /15 port matching */
+    NetmaskTree<int, AddressAndPortRange> nmt;
+    BOOST_CHECK_EQUAL(nmt.empty(), true);
+    BOOST_CHECK_EQUAL(nmt.size(), 0U);
+    nmt.insert(AddressAndPortRange(ComboAddress("130.161.252.42:0"), 32, 15)).second = 0;
+    BOOST_CHECK_EQUAL(nmt.empty(), false);
+    BOOST_CHECK_EQUAL(nmt.size(), 1U);
+
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+
+    auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:0"), 32, 16));
+    BOOST_CHECK(found != nullptr);
+
+    found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:1"), 32, 16));
+    BOOST_CHECK(found != nullptr);
+
+    /* everything else should be a miss */
+    for (size_t idx = 2; idx <= 65535; idx++) {
+      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+    }
+
+    nmt.clear();
+    BOOST_CHECK_EQUAL(nmt.empty(), true);
+    BOOST_CHECK_EQUAL(nmt.size(), 0U);
+    nmt.insert(AddressAndPortRange(ComboAddress("130.161.252.42:65535"), 32, 15)).second = 0;
+    BOOST_CHECK_EQUAL(nmt.empty(), false);
+    BOOST_CHECK_EQUAL(nmt.size(), 1U);
+
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+
+    /* everything else should be a miss */
+    for (size_t idx = 0; idx <= 65533; idx++) {
+      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+    }
+    found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65534"), 32, 16));
+    BOOST_CHECK(found != nullptr);
+    found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65535"), 32, 16));
+    BOOST_CHECK(found != nullptr);
+  }
+
+  {
+    /* /1 port matching */
+    NetmaskTree<int, AddressAndPortRange> nmt;
+    BOOST_CHECK_EQUAL(nmt.empty(), true);
+    BOOST_CHECK_EQUAL(nmt.size(), 0U);
+    nmt.insert(AddressAndPortRange(ComboAddress("130.161.252.42:0"), 32, 1)).second = 0;
+    BOOST_CHECK_EQUAL(nmt.empty(), false);
+    BOOST_CHECK_EQUAL(nmt.size(), 1U);
+
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+
+    for (size_t idx = 0; idx <= 32767; idx++) {
+      auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16));
+      BOOST_CHECK(found != nullptr);
+    }
+
+    /* everything else should be a miss */
+    for (size_t idx = 32768; idx <= 65535; idx++) {
+      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+    }
+  }
+
+  {
+    /* Check that the port matching does not apply to IPv6, where it does not make sense */
+
+    /* /1 port matching */
+    NetmaskTree<int, AddressAndPortRange> nmt;
+    BOOST_CHECK_EQUAL(nmt.empty(), true);
+    BOOST_CHECK_EQUAL(nmt.size(), 0U);
+    nmt.insert(AddressAndPortRange(ComboAddress("[2001:db8::1]:0"), 128, 1)).second = 0;
+    BOOST_CHECK_EQUAL(nmt.empty(), false);
+    BOOST_CHECK_EQUAL(nmt.size(), 1U);
+
+    /* different IP, no match */
+    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("[2001:db8::2]:0"), 128, 16)), nullptr);
+
+    /* all ports should match */
+    for (size_t idx = 1; idx <= 65535; idx++) {
+      auto found = nmt.lookup(AddressAndPortRange(ComboAddress("[2001:db8::1]:" + std::to_string(idx)), 128, 16));
+      BOOST_CHECK(found != nullptr);
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
