@@ -42,9 +42,14 @@ struct ZoneData
   ZoneData(shared_ptr<Logr::Logger>& log) :
     d_log(log) {}
 
+  // Potentially the two fields below could be merged into a single map. ATM it is not clear to me
+  // if that would make the code easier to read.
   std::map<pair<DNSName, QType>, vector<DNSRecord>> d_all;
   std::map<pair<DNSName, QType>, vector<shared_ptr<RRSIGRecordContent>>> d_sigs;
+
+  // Maybe use a SuffixMatchTree?
   std::set<DNSName> d_delegations;
+
   time_t d_now;
   DNSName d_zone;
   shared_ptr<Logr::Logger>& d_log;

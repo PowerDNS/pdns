@@ -315,9 +315,9 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
+	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
-	test-rec-zonetocache.cc \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \
