@@ -256,27 +256,10 @@ The stored format is:
 
 ::
 
-     primary hostmaster serial refresh retry expire default_ttl
+     primary hostmaster serial refresh retry expire minimum
 
 Besides the primary and the hostmaster, all fields are numerical.
-PowerDNS has a set of default values:
-
--  primary: :ref:`setting-default-soa-name`
-   configuration option
--  hostmaster: ``hostmaster@domain-name``
--  serial: 0
--  refresh: 10800 (3 hours)
--  retry: 3600 (1 hour)
--  expire: 604800 (1 week)
--  default_ttl: 3600 (1 hour)
-
-The fields have complicated and sometimes controversial meanings. The
-'serial' field is special. If left at 0, the default, PowerDNS will
-perform an internal list of the domain to determine highest change_date
-field of all records within the zone, and use that as the zone serial
-number. This means that the serial number is always raised when changes
-are made to the zone, as long as the change_date field is being set.
-Make sure to check whether your backend of choice supports Autoserial.
+The fields have complicated and sometimes controversial meanings.
 
 .. _types-spf:
 

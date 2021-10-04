@@ -5,7 +5,6 @@ Remote Backend
 * Master: Yes\*
 * Slave: Yes\*
 * Superslave: Yes\*
-* Autoserial: Yes\*
 * DNSSEC: Yes\*
 * Zone caching: Yes\*
 * Multiple instances: Yes
