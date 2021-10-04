@@ -49,13 +49,13 @@ struct ZoneData
   DNSName d_zone;
   shared_ptr<Logr::Logger>& d_log;
 
-  bool isRRSetAuth(const DNSName& qname, QType qtype);
+  bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
   void getByAXFR(const RecZoneToCache::Config&);
-  void ZoneToCache(const RecZoneToCache::Config& config);
+  void ZoneToCache(const RecZoneToCache::Config& config, uint64_t gen);
 };
 
-bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype)
+bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype) const
 {
   DNSName delegatedZone(qname);
   if (qtype == QType::DS) {
@@ -141,18 +141,18 @@ void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
     }
     axfrNow = time(nullptr);
     if (axfrNow < axfrStart || axfrNow - axfrStart > axfrTimeout) {
-      throw PDNSException("Total AXFR time for zoneToCache exceeded!");
+      throw std::runtime_error("Total AXFR time for zoneToCache exceeded!");
     }
   }
 }
 
-static std::vector<std::string> getLinesFromFile(const RecZoneToCache::Config& config)
+static std::vector<std::string> getLinesFromFile(const std::string& file)
 {
 
   std::vector<std::string> lines;
-  std::ifstream stream(config.d_sources.at(0));
+  std::ifstream stream(file);
   if (!stream) {
-    throw PDNSException("Cannot read file: " + config.d_sources.at(0));
+    throw std::runtime_error("Cannot read file: " + file);
   }
   std::string line;
   while (std::getline(stream, line)) {
@@ -170,7 +170,7 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   std::string reply = mc.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, config.d_timeout, false, true);
   if (config.d_maxReceivedBytes > 0 && reply.size() > config.d_maxReceivedBytes) {
     // We should actually detect this *during* the GET
-    throw PDNSException("Retrieved data exceeds maxReceivedBytes");
+    throw std::runtime_error("Retrieved data exceeds maxReceivedBytes");
   }
   std::istringstream stream(reply);
   string line;
@@ -181,7 +181,7 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
-void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
+void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t configGeneration)
 {
   if (config.d_sources.size() > 1) {
     d_log->info("Multiple sources not yet supported, using first");
@@ -206,16 +206,22 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     }
     else if (config.d_method == "file") {
       d_log->info("Getting zone from file");
-      lines = getLinesFromFile(config);
+      lines = getLinesFromFile(config.d_sources.at(0));
     }
     DNSResourceRecord drr;
     ZoneParserTNG zpt(lines, d_zone);
-    zpt.setMaxGenerateSteps(0);
+    zpt.setMaxGenerateSteps(1);
 
     while (zpt.get(drr)) {
       DNSRecord dr(drr);
       parseDRForCache(dr);
     }
+  }
+
+  // Extra check before we are touching the cache
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  if (luaconfsLocal->generation != configGeneration) {
+    return;
   }
 
   // Rerun, now inserting the rrsets into the cache with associated sigs
@@ -232,9 +238,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
       vector<shared_ptr<RRSIGRecordContent>> sigsrr;
       auto it = d_sigs.find(key);
       if (it != d_sigs.end()) {
-        for (const auto& sig : it->second) {
-          sigsrr.push_back(sig);
-        }
+        sigsrr = it->second;
       }
       bool auth = isRRSetAuth(qname, qtype);
       // Same decision as updateCacheFromRecords() (we do not test for NSEC since we skip those completely)
@@ -267,7 +271,11 @@ void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configG
     time_t refresh = config.d_retryOnError;
     try {
       ZoneData data(log);
-      data.ZoneToCache(config);
+      data.ZoneToCache(config, configGeneration);
+      if (luaconfsLocal->generation != configGeneration) {
+        log->info("A more recent configuration has been found, stopping the old update thread");
+        return;
+      }
       refresh = config.d_refreshPeriod;
       log->info("Loaded zone into cache", "refresh", Logging::Loggable(refresh));
     }
