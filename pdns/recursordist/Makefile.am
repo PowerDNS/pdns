@@ -277,6 +277,7 @@ testrunner_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	resolver.hh resolver.cc \
@@ -316,6 +317,7 @@ testrunner_SOURCES = \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-rec-zonetocache.cc \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \
