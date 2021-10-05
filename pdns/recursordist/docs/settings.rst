@@ -1414,6 +1414,7 @@ Maximum number of seconds to cache an item in the packet cache, no matter what t
 -  Default: 60
 
 Maximum number of seconds to cache a 'server failure' and other answers signalling an error in the packet cache.
+Before version 4.6.0 only ``ServFail`` answers were considered an error. Starting with 4.6.0, any answer without answers records and rcode other than ``NoError`` and ``NXDomain`` are considered errors.
 
 .. versionchanged:: 4.0.0
 

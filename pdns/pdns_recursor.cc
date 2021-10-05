@@ -2300,7 +2300,7 @@ static void startDoResolve(void *p)
     }
     if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
       const auto& hdr = pw.getHeader();
-      if (hdr->ancount == 0 && hdr->rcode != RCode::NoError) {
+      if (hdr->ancount == 0 && hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) {
         minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
       }
       minTTL = min(minTTL, SyncRes::s_packetcachettl);
