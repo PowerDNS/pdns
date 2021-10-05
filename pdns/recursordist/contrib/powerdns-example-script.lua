@@ -18,37 +18,37 @@ magicMetric = getMetric("magic")
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
 function preresolve(dq)
-	print("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
+	pdnslog("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
 
         local ednssubnet=dq:getEDNSSubnet()
 	if(ednssubnet) then
-        	print("Packet EDNS subnet source: "..ednssubnet:toString()..", "..ednssubnet:getNetwork():toString())
+			pdnslog("Packet EDNS subnet source: "..ednssubnet:toString()..", "..ednssubnet:getNetwork():toString())
         end
-                                        
+
 
 	local a=dq:getEDNSOption(3)
 	if(a) then
-		print("There is an EDNS option 3 present: "..a)
+		pdnslog("There is an EDNS option 3 present: "..a)
 	end
 
 	loc = newCA("127.0.0.1")
 	if(dq.remoteaddr:equal(loc))
 	then
-		print("Query from loopback")
+		pdnslog("Query from loopback")
 	end
 
 	-- note that the comparisons below are CaSe InSensiTivE and you don't have to worry about trailing dots
 	if(dq.qname:equal("magic.com"))
 	then
 		magicMetric:inc()
-		print("Magic!")
+		pdnslog("Magic!")
 	else
-		print("not magic..")
+		pdnslog("not magic..")
 	end
 
 	if(dq.qname:__eq(magic2)) -- we hope to improve this syntax
 	then
-		print("Faster magic") -- compares against existing DNSName
+		pdnslog("Faster magic") -- compares against existing DNSName
 	end                           -- sadly, dq.qname == magic2 won't work yet
         
         if blockset:check(dq.qname) then
@@ -103,22 +103,22 @@ badips:addMask("127.1.0.0/16")
 
 -- this check is applied before any packet parsing is done
 function ipfilter(rem, loc, dh)
-	print("ipfilter called, rem: ", rem:toStringWithPort(), "loc: ",loc:toStringWithPort(),"match:", badips:match(rem))
-	print("id: ",dh:getID(), "aa: ", dh:getAA(), "ad: ", dh:getAD(), "arcount: ", dh:getARCOUNT())
-	print("ports: ",rem:getPort(),loc:getPort())
+	pdnslog("ipfilter called, rem: "..rem:toStringWithPort().."loc: "..loc:toStringWithPort().."match:"..badips:match(rem))
+	pdnslog("id: "..dh:getID().."aa: "..dh:getAA().."ad: "..dh:getAD().."arcount: "..dh:getARCOUNT())
+	pdnslog("ports: "..rem:getPort()..loc:getPort())
 	return badips:match(rem)
 end
 
 -- postresolve runs after the packet has been answered, and can be used to change things
 -- or still drop
 function postresolve(dq)
-	print("postresolve called for ",dq.qname:toString())
+	pdnslog("postresolve called for "..dq.qname:toString())
 	local records = dq:getRecords()
 	for k,v in pairs(records) do
-		print(k, v.name:toString(), v:getContent())
+		pdnslog(k, v.name:toString()..v:getContent())
 		if v.type == pdns.A and v:getContent() == "185.31.17.73"
 		then
-			print("Changing content!")
+			pdnslog("Changing content!")
 			v:changeContent("130.161.252.29")
 			v.ttl=1
 		end
@@ -130,7 +130,7 @@ end
 nxdomainsuffix=newDN("com")
 
 function nxdomain(dq)
-	print("Hooking: ",dq.qname:toString())
+	pdnslog("Hooking: "..dq.qname:toString())
 	if dq.qname:isPartOf(nxdomainsuffix)
 	then
 		dq.rcode=0 -- make it a normal answer
