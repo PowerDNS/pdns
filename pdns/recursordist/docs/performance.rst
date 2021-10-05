@@ -134,6 +134,30 @@ If you operate an anycast pool of machines, make them share the TCP Fast Open Ke
 To determine a good value for the :ref:`setting-tcp-fast-open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.
 
+Running with a local root zone 
+-----------------------------
+Running with a local root zone as described in :rfc:`8806` can help reduce traffic to the root servers and reduce response times for clients.
+Since 4.6.0 PowerDNS Recursor supports two ways of doing this.
+
+Running a local Authoritative Server for the root zone
+
+- The first method is to have a local Authoritative Server that has a copy of the root zone and forward queries to it.
+  Setting up an PowerDNS Authoritative Server to serve a copy of the root zone looks like:
+
+      pdnsutil create-secondary-zone . ip1 ip2
+
+  where ``ip1`` and  ``ip2`` are servers willing to serve an AXFR for the root zone; :rfc:`8806` contains a list of candidates in appendix A. The Authoritative Server will periodically make sure its copy of the root zone is up-to-date.
+  The next step is to configure a forward zone to the IP ``ip`` of the Authoritative Server in the settings file or the Recursor:
+
+    forward-zones=.=ip
+
+  The Recursor will use the Authoritative Server to ask questions about the root zone, but if it learns about delegations still follow those.
+  Multiple Recursors can use this Authoritative Server.
+
+- The second method is to cache the root zone as described in :ref:`ztc`.
+  Here each Recursor will download and fill its cache with the contents of the root zone.
+  Depending on the ``timeout`` parameter,  this will be done once or periodically.
+  Refer to :ref:`ztc` for details.
 
 Recursor Caches
 ---------------

@@ -39,8 +39,10 @@
 
 struct ZoneData
 {
-  ZoneData(shared_ptr<Logr::Logger>& log) :
-    d_log(log) {}
+  ZoneData(shared_ptr<Logr::Logger>& log, const std::string& zone) :
+    d_log(log),
+    d_zone(zone),
+    d_now(time(nullptr)) {}
 
   // Potentially the two fields below could be merged into a single map. ATM it is not clear to me
   // if that would make the code easier to read.
@@ -50,9 +52,9 @@ struct ZoneData
   // Maybe use a SuffixMatchTree?
   std::set<DNSName> d_delegations;
 
-  time_t d_now;
-  DNSName d_zone;
   shared_ptr<Logr::Logger>& d_log;
+  DNSName d_zone;
+  time_t d_now;
 
   bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
@@ -182,6 +184,8 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   while (std::getline(stream, line)) {
     lines.push_back(line);
   }
+#else
+  throw std::runtime_error("url method configured but libcurl not compiled in");
 #endif
   return lines;
 }
@@ -191,8 +195,6 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
   if (config.d_sources.size() > 1) {
     d_log->info("Multiple sources not yet supported, using first");
   }
-  d_zone = DNSName(config.d_zone);
-  d_now = time(nullptr);
 
   // We do not do validation, it will happen on-demand if an Indeterminate record is encountered when the caches are queried
   // First scan all records collecting info about delegations ans sigs
@@ -275,7 +277,7 @@ void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configG
 
     time_t refresh = config.d_retryOnError;
     try {
-      ZoneData data(log);
+      ZoneData data(log, config.d_zone);
       data.ZoneToCache(config, configGeneration);
       if (luaconfsLocal->generation != configGeneration) {
         log->info("A more recent configuration has been found, stopping the old update thread");
