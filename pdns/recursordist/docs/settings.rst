@@ -1413,7 +1413,7 @@ Maximum number of seconds to cache an item in the packet cache, no matter what t
 -  Integer
 -  Default: 60
 
-Maximum number of seconds to cache a 'server failure' answer in the packet cache.
+Maximum number of seconds to cache a 'server failure' and other answers signalling an error in the packet cache.
 
 .. versionchanged:: 4.0.0
 

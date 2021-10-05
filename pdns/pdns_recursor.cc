@@ -2299,8 +2299,11 @@ static void startDoResolve(void *p)
       g_stats.variableResponses++;
     }
     if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
-      minTTL = min(minTTL, pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
-                   SyncRes::s_packetcachettl);
+      const auto& hdr = pw.getHeader();
+      if (hdr->ancount == 0 && hdr->rcode != RCode::NoError) {
+        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
+      }
+      minTTL = min(minTTL, SyncRes::s_packetcachettl);
       t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),
