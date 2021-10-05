@@ -69,12 +69,8 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
   BOOST_REQUIRE(written == zone.length());
   BOOST_REQUIRE(fclose(fp) == 0);
 
-  RecZoneToCache::Config config
-    = {
-      .d_zone = ".",
-      .d_method = "file",
-      .d_sources = {temp},
-      .d_refreshPeriod = 0};
+  RecZoneToCache::Config config{".", "file", {temp}, ComboAddress(), TSIGTriplet()};
+  config.d_refreshPeriod = 0;
 
   // Start with a new, empty cache
   g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
