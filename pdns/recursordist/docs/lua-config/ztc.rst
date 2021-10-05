@@ -3,9 +3,9 @@
 Zone to Cache
 -------------
 
-Zone to Cache is a function to load a zone to the Recursor cache periodically or once at startup.
+Zone to Cache is a function to load a zone into the Recursor cache periodically, or every time the Lua configuration is loaded, at startup and whenever ``rec_control reload-lua-config`` is issued.
 This allows the Recursor to have an always hot cache for these zones.
-The zone to cache can be retrieved via zone transfer (AXFR format) or read from a zone file retrieved via http, https or a local file.
+The zone content to cache can be retrieved via zone transfer (AXFR format) or read from a zone file retrieved via http, https or a local file.
 
 Example
 ^^^^^^^
@@ -41,16 +41,16 @@ Default is 20 seconds.
 
 tsigname
 ~~~~~~~~
-The name of the TSIG key to authenticate to the server when using the ``axfr`` method
+The name of the TSIG key to authenticate to the server and validate the zone content with when using the ``axfr`` method.
 When this is set, `tsigalgo`_ and `tsigsecret`_ must also be set.
 
 tsigalgo
 ~~~~~~~~
-The name of the TSIG algorithm (like 'hmac-md5') used
+The name of the TSIG algorithm (like 'hmac-md5') used.
 
 tsigsecret
 ~~~~~~~~~~
-Base64 encoded TSIG secret
+Base64 encoded TSIG secret.
 
 refreshPeriod
 ~~~~~~~~~~~~~
