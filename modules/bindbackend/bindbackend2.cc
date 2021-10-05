@@ -574,8 +574,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
         ret << *i << ": [missing]\n";
       else
         ret << *i << ": " << (bbd.d_wasRejectedLastReload ? "[rejected]" : "") << "\t" << bbd.d_status << "\n";
-      purgeAuthCaches(zone.toString() + "$");
-      DNSSECKeeper::clearMetaCache(zone);
+      purgeAuthCacheForZone(zone);
     }
     else
       ret << *i << " no such domain\n";

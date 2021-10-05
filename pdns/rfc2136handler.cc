@@ -949,11 +949,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
 
       S.deposit("dnsupdate-changes", changedRecords);
 
-      d_dk.clearMetaCache(di.zone);
       // Purge the records!
-      string zone(di.zone.toString());
-      zone.append("$");
-      purgeAuthCaches(zone);
+      purgeAuthCacheForZone(di.zone);
 
       // Notify slaves
       if (di.kind == DomainInfo::Master) {
