@@ -50,31 +50,31 @@ function preresolve(dq)
 	then
 		pdnslog("Faster magic") -- compares against existing DNSName
 	end                           -- sadly, dq.qname == magic2 won't work yet
-        
+
         if blockset:check(dq.qname) then
                 dq.variable = true  -- disable packet cache in any case
                 if dq.qtype == pdns.A then
 	        	dq:addAnswer(pdns.A, "1.2.3.4")
-        		dq:addAnswer(pdns.TXT, "\"Hello!\"", 3601) -- ttl    	
+        		dq:addAnswer(pdns.TXT, "\"Hello!\"", 3601) -- ttl
         		return true;
         	end
         end
-        
+
         if dropset:check(dq.qname) then
-        	dq.rcode = pdns.DROP  
+        	dq.rcode = pdns.DROP
         	return true;
         end
 
-	        
-        
+
+
         if malwareset:check(dq.qname) then
 		dq:addAnswer(pdns.CNAME, "xs.powerdns.com.")
         	dq.rcode = 0
         	dq.followupFunction="followCNAMERecords"    -- this makes PowerDNS lookup your CNAME
         	return true;
-        end        
-        
-	return false; 
+        end
+
+	return false;
 end
 
 
@@ -87,13 +87,13 @@ function nodata(dq)
         	dq.followupPrefix="fe80::"
         	return true
         end
-        
+
         if dq.qtype == pdns.PTR then
         	dq.followupFunction="getFakePTRRecords"
         	dq.followupName=dq.qname
         	dq.followupPrefix="fe80::"
         	return true
-        end        
+        end
 	return false
 end
 
