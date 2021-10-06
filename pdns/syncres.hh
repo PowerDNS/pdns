@@ -974,7 +974,7 @@ struct PacketID
     if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return tie(fd, id, domain) < tie(b.fd, b.id, b.domain);
+    return tie(domain, fd, id) < tie(b.domain, b.fd, b.id);
   }
 };
 
