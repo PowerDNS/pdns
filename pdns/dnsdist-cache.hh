@@ -123,6 +123,7 @@ private:
   void insertLocked(CacheShard& shard, std::unordered_map<uint32_t,CacheValue>& map, uint32_t key, CacheValue& newValue);
 
   std::vector<CacheShard> d_shards;
+  std::unordered_set<uint16_t> d_optionsToSkip{EDNSOptionCode::COOKIE};
 
   pdns::stat_t d_deferredLookups{0};
   pdns::stat_t d_deferredInserts{0};
@@ -143,5 +144,4 @@ private:
   bool d_deferrableInsertLock;
   bool d_parseECS;
   bool d_keepStaleData{false};
-  std::unordered_set<uint16_t> d_optionsToSkip{EDNSOptionCode::COOKIE};
 };
