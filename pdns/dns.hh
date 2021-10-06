@@ -243,5 +243,3 @@ struct TSIGTriplet
   DNSName name, algo;
   string secret;
 };
-
-string &attodot(string &str);  //!< for when you need to insert an email address in the SOA

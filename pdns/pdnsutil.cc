@@ -379,6 +379,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         cout << "[Info] SOA autocomplete is deprecated, missing field(s) in SOA content: " << rr.qname << " IN " << rr.qtype.toString() << " '" << rr.content << "'" << endl;
       }
 
+      if(parts.size() >= 2) {
+        if(parts[1].find('@') != string::npos) {
+          cout<<"[Warning] Found @-sign in SOA RNAME, should probably be a dot (.): "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
+          numwarnings++;
+        }
+      }
+
       ostringstream o;
       o<<rr.content;
       for(int pleft=parts.size(); pleft < 7; ++pleft) {
