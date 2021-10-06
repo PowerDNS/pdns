@@ -2,6 +2,31 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.6
+  :released: 8th of October 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10802
+    :tickets: 10768
+
+    Use the correct RPZ policy name for statistics when loading via XFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10654
+    :tickets: 10643
+
+    NS from the cache could be a forwarder, take that into account for throttling decision.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10628
+    :tickets: 10627
+
+    Check in more places if the policy has been updated before using or modifying it.
+
+.. changelog::
   :version: 4.4.5
   :released: 30th of July 2021
 
