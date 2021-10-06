@@ -96,6 +96,7 @@ bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGr
   /* on TCP we have not read the actual query yet */
   if (!isTCP && query.size() < sizeof(struct dnsheader)) {
     ++g_stats.nonCompliantQueries;
+    vinfolog("UDP Query with proxy protocol from %s dropped because it is too small (%d)", realRemote.toStringWithPort(), query.size());
     return false;
   }
 

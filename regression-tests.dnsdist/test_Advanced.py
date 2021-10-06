@@ -1035,11 +1035,11 @@ class TestAdvancedIncludeDir(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             print(receivedResponse)
+            print(self.sendConsoleCommand('grepq("")'))
+            print(self.sendConsoleCommand('showRules()'))
+            print(self.sendConsoleCommand('showBinds()'))
             self.assertEqual(receivedResponse, expectedResponse)
 
-        print(self.sendConsoleCommand('grepq("")'))
-        print(self.sendConsoleCommand('showRules()'))
-        print(self.sendConsoleCommand('showBinds()'))
 
 class TestAdvancedLuaDO(DNSDistTest):
 

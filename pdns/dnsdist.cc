@@ -1437,6 +1437,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     std::unique_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
     auto dnsCryptResponse = checkDNSCryptQuery(cs, query, dnsCryptQuery, queryRealTime.tv_sec, false);
     if (dnsCryptResponse) {
+      vinfolog("DNSCrypt query from %s is self-answered", remote.toStringWithPort());
       sendUDPResponse(cs.udpFD, query, 0, dest, remote);
       return;
     }
@@ -1447,6 +1448,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       queryId = ntohs(dh->id);
 
       if (!checkQueryHeaders(dh)) {
+        vinfolog("Query from %s is dropped because it is invalid (headers)", remote.toStringWithPort());
         return;
       }
 
@@ -1472,6 +1474,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     auto result = processQuery(dq, cs, holders, ss);
 
     if (result == ProcessQueryResult::Drop) {
+      vinfolog("Query from %s is dropped of rules", remote.toStringWithPort());
       return;
     }
 
@@ -1492,6 +1495,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     if (result != ProcessQueryResult::PassToBackend || ss == nullptr) {
+      vinfolog("Query from %s is dropped, result was %d and backend is %d", remote.toStringWithPort(), static_cast<int>(result), ss != nullptr);
       return;
     }
 
