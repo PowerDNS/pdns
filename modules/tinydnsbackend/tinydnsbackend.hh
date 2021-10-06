@@ -70,7 +70,7 @@ public:
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
-  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   //Master mode operation
   void getUpdatedMasters(vector<DomainInfo>* domains) override;

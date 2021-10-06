@@ -982,7 +982,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
-void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled)
 {
   domains->clear();
   auto txn = d_tdomains->getROTransaction();

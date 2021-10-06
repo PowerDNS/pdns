@@ -363,7 +363,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>* changedDomains)
   }
 }
 
-void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   SOAData soadata;
 
@@ -384,17 +384,19 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool include_disab
     };
   }
 
-  for (DomainInfo& di : *domains) {
-    // do not corrupt di if domain supplied by another backend.
-    if (di.backend != this)
-      continue;
-    try {
-      this->getSOA(di.zone, soadata);
+  if (getSerial) {
+    for (DomainInfo& di : *domains) {
+      // do not corrupt di if domain supplied by another backend.
+      if (di.backend != this)
+        continue;
+      try {
+        this->getSOA(di.zone, soadata);
+      }
+      catch (...) {
+        continue;
+      }
+      di.serial = soadata.serial;
     }
-    catch (...) {
-      continue;
-    }
-    di.serial = soadata.serial;
   }
 }
 

@@ -1397,7 +1397,7 @@ bool GSQLBackend::deleteDomain(const DNSName &domain)
   return true;
 }
 
-void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
+void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
   DLOG(g_log<<"GSQLBackend retrieving all domains."<<endl);
 
@@ -1443,21 +1443,28 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
         }
       }
 
-      if(!row[2].empty()) {
+      if (getSerial && !row[2].empty()) {
         SOAData sd;
-        fillSOAData(row[2], sd);
-        di.serial = sd.serial;
+        try {
+          fillSOAData(row[2], sd);
+          di.serial = sd.serial;
+        }
+        catch (const PDNSException& e) {
+          di.serial = 0;
+        }
       }
+
       try {
         di.notified_serial = pdns_stou(row[5]);
         di.last_check = pdns_stou(row[6]);
       } catch(...) {
         continue;
       }
+
       di.account = row[7];
 
       di.backend = this;
-  
+
       domains->push_back(di);
     }
     d_getAllDomainsQuery_stmt->reset();

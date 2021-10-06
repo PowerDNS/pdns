@@ -230,7 +230,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   vector<DomainInfo> domainInfo;
   bool result = true;
 
-  B.getAllDomains(&domainInfo);
+  B.getAllDomains(&domainInfo, false, false);
   for(const DomainInfo& di :  domainInfo) {
     if (!quiet) {
       cerr<<"Rectifying "<<di.zone<<": ";
@@ -251,7 +251,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   DomainInfo di;
   try {
-    if (!B.getDomainInfo(zone, di)) {
+    if (!B.getDomainInfo(zone, di, false)) {
       cout << "[Error] Unable to get zone information for zone '" << zone << "'" << endl;
       return 1;
     }
@@ -263,11 +263,20 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   SOAData sd;
-  if(!B.getSOAUncached(zone, sd)) {
-    cout<<"[Error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
+  try {
+    if (!B.getSOAUncached(zone, sd)) {
+      cout << "[Error] No SOA record present, or active, in zone '" << zone << "'" << endl;
+      numerrors++;
+      cout << "Checked 0 records of '" << zone << "', " << numerrors << " errors, 0 warnings." << endl;
+      return 1;
+    }
+  }
+  catch (const PDNSException& e) {
+    cout << "[Error] SOA lookup failed: " << e.reason << endl;
     numerrors++;
-    cout<<"Checked 0 records of '"<<zone<<"', "<<numerrors<<" errors, 0 warnings."<<endl;
-    return 1;
+    if (!sd.db) {
+      return 1;
+    }
   }
 
   NSEC3PARAMRecordContent ns3pr;
@@ -367,7 +376,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       stringtok(parts, rr.content);
 
       if(parts.size() < 7) {
-        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
+        cout << "[Info] SOA autocomplete is deprecated, missing field(s) in SOA content: " << rr.qname << " IN " << rr.qtype.toString() << " '" << rr.content << "'" << endl;
       }
 
       ostringstream o;
@@ -846,7 +855,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
   auto& seenNames = seenInfos.get<0>();
   auto& seenIds = seenInfos.get<1>();
 
-  B.getAllDomains(&domainInfo, true);
+  B.getAllDomains(&domainInfo, true, true);
   int errors=0;
   for(auto di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
@@ -1031,7 +1040,7 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
     listKey(di, dk);
   } else {
     vector<DomainInfo> domainInfo;
-    B.getAllDomains(&domainInfo, g_verbose);
+    B.getAllDomains(&domainInfo, false, g_verbose);
     bool printHeader = true;
     for (const auto& di : domainInfo) {
       listKey(di, dk, printHeader);
@@ -1636,7 +1645,7 @@ static int listAllZones(const string &type="") {
   UeberBackend B("default");
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains, g_verbose);
+  B.getAllDomains(&domains, false, g_verbose);
 
   int count = 0;
   for (const auto& di: domains) {
@@ -2948,7 +2957,7 @@ try
     UeberBackend B("default");
 
     vector<DomainInfo> domainInfo;
-    B.getAllDomains(&domainInfo);
+    B.getAllDomains(&domainInfo, false, false);
 
     unsigned int zonesSecured=0, zoneErrors=0;
     for(const DomainInfo& di :  domainInfo) {
@@ -3724,11 +3733,11 @@ try
 
     vector<DomainInfo> domains;
 
-    tgt->getAllDomains(&domains, true);
+    tgt->getAllDomains(&domains, false, true);
     if (domains.size()>0)
       throw PDNSException("Target backend has zone(s), please clean it first");
 
-    src->getAllDomains(&domains, true);
+    src->getAllDomains(&domains, false, true);
     // iterate zones
     for(const DomainInfo& di: domains) {
       size_t nr,nc,nm,nk;

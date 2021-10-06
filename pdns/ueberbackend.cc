@@ -284,7 +284,7 @@ void UeberBackend::updateZoneCache() {
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     vector<DomainInfo> zones;
-    (*i)->getAllDomains(&zones, true);
+    (*i)->getAllDomains(&zones, false, true);
     for(auto& di: zones) {
       zone_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
     }
@@ -665,10 +665,11 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
   d_handle.parent=this;
 }
 
-void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
+void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
+{
   for (auto & backend : backends)
   {
-    backend->getAllDomains(domains, include_disabled);
+    backend->getAllDomains(domains, getSerial, include_disabled);
   }
 }
 

@@ -194,7 +194,7 @@ public:
   void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
   bool list(const DNSName& target, int id, bool include_disabled = false) override;
   bool get(DNSResourceRecord&) override;
-  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled = false) override;
 
   static DNSBackend* maker();
   static std::mutex s_startup_lock;

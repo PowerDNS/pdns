@@ -323,7 +323,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   if (parts[1] == "*") {
     vector<DomainInfo> domains;
-    B.getAllDomains(&domains);
+    B.getAllDomains(&domains, true, false);
 
     int total = 0;
     int notified = 0;
@@ -380,7 +380,7 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   g_log<<Logger::Notice<<"Received request to list zones."<<endl;
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains);
+  B.getAllDomains(&domains, false, false);
   ostringstream ret;
   int kindFilter = -1;
   if (parts.size() > 1) {

@@ -1773,7 +1773,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
   } else {
     try {
-      B.getAllDomains(&domains, true); // incl. disabled
+      B.getAllDomains(&domains, true, true); // incl. serial and disabled
     } catch(const PDNSException &e) {
       throw HttpInternalServerErrorException("Could not retrieve all domain information: " + e.reason);
     }
@@ -2190,7 +2190,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   map<int,DomainInfo>::iterator val;
   Json::array doc;
 
-  B.getAllDomains(&domains, true);
+  B.getAllDomains(&domains, false, true);
 
   for(const DomainInfo& di: domains)
   {

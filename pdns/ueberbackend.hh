@@ -101,7 +101,7 @@ public:
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const DNSName &domain, SOAData &sd);
   bool get(DNSZoneRecord &r);
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
+  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
