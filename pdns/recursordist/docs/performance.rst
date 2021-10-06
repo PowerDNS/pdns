@@ -135,7 +135,7 @@ To determine a good value for the :ref:`setting-tcp-fast-open` setting, watch th
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.
 
 Running with a local root zone 
------------------------------
+------------------------------
 Running with a local root zone as described in :rfc:`8806` can help reduce traffic to the root servers and reduce response times for clients.
 Since 4.6.0 PowerDNS Recursor supports two ways of doing this.
 
