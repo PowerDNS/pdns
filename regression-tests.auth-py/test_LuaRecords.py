@@ -8,7 +8,7 @@ import clientsubnetoption
 
 from authtests import AuthTest
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class FakeHTTPServer(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -19,9 +19,9 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
     def do_GET(self):
         self._set_headers()
         if (self.path == '/ping.json'):
-            self.wfile.write('{"ping":"pong"}')
+            self.wfile.write(bytes('{"ping":"pong"}', 'utf-8'))
         else:
-            self.wfile.write("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>")
+            self.wfile.write(bytes("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>", "utf-8"))
 
     def log_message(self, format, *args):
         return

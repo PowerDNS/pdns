@@ -2087,7 +2087,7 @@ versionchanged
 versionmodified
 vh
 viewcode
-virtualenv
+venv
 virtualized
 visitedlinkcolor
 vixie

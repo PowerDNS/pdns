@@ -59,7 +59,7 @@ man_MANS = $(MANPAGES_INSTALL)
 
 EXTRA_DIST = $(MANPAGES_DIST)
 
-if HAVE_VIRTUALENV
+if HAVE_VENV
 if !HAVE_MANPAGES
 $(MANPAGES_DIST): %: mans/.complete manpages/%.rst
 	mv "$(<D)/$@" "$@" && rm -f "$<"
@@ -73,8 +73,8 @@ mans/.complete: .venv
 	rm -rf "$(@D).tmp"
 
 .venv: requirements.txt
-	virtualenv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git
+	$(PYTHON) -m venv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git wheel
 	.venv/bin/pip install -r requirements.txt
 
 .NOTPARALLEL: \
@@ -109,17 +109,17 @@ upload-docs: all-docs
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html-docs.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./PowerDNS-Authoritative.pdf web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
 
-else # if HAVE_VIRTUALENV
+else # if HAVE_VENV
 $(MANPAGES_DIST):
-	echo "You need virtualenv to generate the manpages"
+	@echo "You need Python 3 and the 'venv' module to generate the manpages"
 	exit 1
 
 PowerDNS-Authoritative.pdf:
-	echo "You need virtualenv to generate the PDF"
+	@echo "You need Python 3 and the 'venv' module to generate the PDF"
 	exit 1
 
 html-docs:
-	echo "You need virtualenv to generate the HTML docs"
+	@echo "You need Python 3 and the 'venv' module to generate the HTML docs"
 	exit 1
 endif
 

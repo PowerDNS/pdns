@@ -138,7 +138,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
     def test_put_broken_key(self):
         name, payload, data = self.create_tsig_key()
         payload = {
-            'key': 'f\u0333oobar1======'
+            'key': 'f\\u0333oobar1======'
         }
         r = self.session.put(self.url("/api/v1/servers/localhost/tsigkeys/" + data['id']),
                              data=json.dumps(payload))
@@ -170,7 +170,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
     def test_post_broken_key_name(self):
         payload = {
             'name': unique_tsigkey_name(),
-            'key': 'f\u0333oobar1======',
+            'key': 'f\\u0333oobar1======',
             'algorithm': 'hmac-md5'
         }
         r = self.session.post(self.url("/api/v1/servers/localhost/tsigkeys"),

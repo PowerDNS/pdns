@@ -927,8 +927,8 @@ distributor-threads={threads}""".format(confdir=confdir,
                 raise TypeError("rcode is neither a str nor int")
 
         if msg.rcode() != rcode:
-            msgRcode = dns.rcode._by_value[msg.rcode()]
-            wantedRcode = dns.rcode._by_value[rcode]
+            msgRcode = dns.rcode.to_text(msg.rcode())
+            wantedRcode = dns.rcode.to_text(rcode)
 
             raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
 

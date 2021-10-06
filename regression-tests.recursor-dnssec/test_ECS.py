@@ -633,6 +633,6 @@ class UDPECSResponder(DatagramProtocol):
             response.additional.append(additional)
 
         if ecso:
-            response.options = [ecso]
+            response.use_edns(options = [ecso])
 
         self.transport.write(response.to_wire(), address)
