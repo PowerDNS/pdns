@@ -1409,6 +1409,7 @@ private:
 
 static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
+  vinfolog("Processing UDP query from %s", remote.toStringWithPort());
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
   ComboAddress proxiedRemote = remote;
@@ -1485,6 +1486,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
+      vinfolog("Sending self-generated answer for UDP query from %s", remote.toStringWithPort());
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
       return;
     }

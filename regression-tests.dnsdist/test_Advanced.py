@@ -979,7 +979,12 @@ class TestAdvancedWireLengthRule(DNSDistTest):
 
 class TestAdvancedIncludeDir(DNSDistTest):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
     -- this directory contains a file allowing includedir.advanced.tests.powerdns.com.
     includeDirectory('test-include-dir')
     newServer{address="127.0.0.1:%s"}
@@ -1029,6 +1034,10 @@ class TestAdvancedIncludeDir(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             print(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
+
+        print(self.sendConsoleCommand('grepq("")'))
+        print(self.sendConsoleCommand('showRules()'))
+        print(self.sendConsoleCommand('showBinds()'))
 
 class TestAdvancedLuaDO(DNSDistTest):
 
