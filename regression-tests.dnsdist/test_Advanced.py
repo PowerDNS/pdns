@@ -162,7 +162,6 @@ class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
     addAction("setcd.advanced.tests.powerdns.com.", SetDisableValidationAction())
-    addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), SetDisableValidationAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -174,35 +173,6 @@ class TestAdvancedAddCD(DNSDistTest):
         check that dnsdist set the CD flag.
         """
         name = 'setcd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery.flags |= dns.flags.CD
-
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-        response.answer.append(rrset)
-
-        for method in ("sendUDPQuery", "sendTCPQuery"):
-            sender = getattr(self, method)
-            (receivedQuery, receivedResponse) = sender(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = expectedQuery.id
-            self.assertEqual(expectedQuery, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-    def testAdvancedSetCDViaAction(self):
-        """
-        Advanced: Set CD via Action
-
-        Send a query with CD cleared,
-        check that dnsdist set the CD flag.
-        """
-        name = 'setcdviaaction.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         expectedQuery = dns.message.make_query(name, 'A', 'IN')
         expectedQuery.flags |= dns.flags.CD
@@ -255,7 +225,6 @@ class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
     addAction("clearrd.advanced.tests.powerdns.com.", SetNoRecurseAction())
-    addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), SetNoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -267,35 +236,6 @@ class TestAdvancedClearRD(DNSDistTest):
         check that dnsdist clears the RD flag.
         """
         name = 'clearrd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery.flags &= ~dns.flags.RD
-
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-        response.answer.append(rrset)
-
-        for method in ("sendUDPQuery", "sendTCPQuery"):
-            sender = getattr(self, method)
-            (receivedQuery, receivedResponse) = sender(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = expectedQuery.id
-            self.assertEqual(expectedQuery, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-    def testAdvancedClearRDViaAction(self):
-        """
-        Advanced: Clear RD via Action
-
-        Send a query with RD set,
-        check that dnsdist clears the RD flag.
-        """
-        name = 'clearrdviaaction.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         expectedQuery = dns.message.make_query(name, 'A', 'IN')
         expectedQuery.flags &= ~dns.flags.RD
