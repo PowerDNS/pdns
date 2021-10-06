@@ -237,10 +237,9 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEquals(msg.response.rcode, 65536)
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
-        print(msg)
-        self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
-        self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
-        self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))
+        self.assertTrue(msg.HasField('requestorId'))
+        self.assertTrue(msg.HasField('deviceId'))
+        self.assertTrue(msg.HasField('deviceName'))
         self.assertEquals(msg.requestorId, requestorId)
         self.assertEquals(msg.deviceId, deviceId)
         self.assertEquals(msg.deviceName, deviceName)
