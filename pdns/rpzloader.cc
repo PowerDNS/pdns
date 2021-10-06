@@ -365,7 +365,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
 
   time_t refresh;
   DNSName zoneName = oldZone->getDomain();
-  std::string polName = oldZone->getName().empty() ? oldZone->getName() : zoneName.toString();
+  std::string polName = !oldZone->getName().empty() ? oldZone->getName() : zoneName.toStringNoDot();
 
   while (!sr) {
     /* if we received an empty sr, the zone was not really preloaded */
