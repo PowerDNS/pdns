@@ -45,8 +45,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       bool dontAge = false;
       bool deferrableInsertLock = true;
       bool ecsParsing = false;
-      bool cookieHashing = false;
-      std::unordered_set<uint16_t> optionsToSkip{};
+      std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE};
 
       if (vars) {
 
@@ -91,7 +90,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         }
 
         if (vars->count("cookieHashing")) {
-          cookieHashing = boost::get<bool>((*vars)["cookieHashing"]);
+          if (boost::get<bool>((*vars)["cookieHashing"])) {
+            optionsToSkip.erase(EDNSOptionCode::COOKIE);
+          }
         }
         if (vars->count("skipOptions")) {
           for (auto option: boost::get<std::vector<std::pair<int, uint16_t>>>(vars->at("skipOptions"))) {
@@ -114,8 +115,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
-      res->setCookieHashing(cookieHashing);
-      res->skipOptions(optionsToSkip);
+      res->setSkippedOptions(optionsToSkip);
 
       return res;
     });

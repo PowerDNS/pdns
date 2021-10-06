@@ -797,7 +797,7 @@ See :doc:`../guides/cache` for a how to.
   * ``staleTTL=60``: int - When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned.
   * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..
   * ``cookieHashing=false``: bool - Whether EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie.
-  * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (see ``cookieHashing`` above).
+  * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will already be added to this list).
 
 .. class:: PacketCache
 

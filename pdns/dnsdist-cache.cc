@@ -480,23 +480,7 @@ uint64_t DNSDistPacketCache::dump(int fd)
   return count;
 }
 
-bool DNSDistPacketCache::isCookieHashingEnabled() const
+void DNSDistPacketCache::setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip)
 {
-  return d_optionsToSkip.count(EDNSOptionCode::COOKIE) == 0;
-}
-
-void DNSDistPacketCache::setCookieHashing(bool hashing)
-{
-  if (hashing) {
-    d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
-  } else {
-    d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
-  }
-}
-
-void DNSDistPacketCache::skipOptions(const std::unordered_set<uint16_t>& optionsToSkip)
-{
-  bool cookieHasingEnabled = isCookieHashingEnabled();
   d_optionsToSkip = optionsToSkip;
-  setCookieHashing(cookieHasingEnabled);
 }

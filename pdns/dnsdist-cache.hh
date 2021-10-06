@@ -55,9 +55,7 @@ public:
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
-  bool isCookieHashingEnabled() const;
-  void setCookieHashing(bool hashing);
-  void skipOptions(const std::unordered_set<uint16_t>& optionsToSkip);
+  void setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip);
 
   bool isECSParsingEnabled() const { return d_parseECS; }
 
