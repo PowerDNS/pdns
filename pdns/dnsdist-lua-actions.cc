@@ -927,6 +927,8 @@ public:
     auto& data = dq->getMutableData();
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
       dq->getHeader()->arcount = htons(1);
+      // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+      dq->ednsAdded = true;
     }
 
     return Action::None;
@@ -959,6 +961,8 @@ public:
     auto& data = dq->getMutableData();
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
       dq->getHeader()->arcount = htons(1);
+      // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+      dq->ednsAdded = true;
     }
 
     return Action::None;

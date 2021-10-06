@@ -2335,5 +2335,5 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedQuery.id = expectedQuery.id
             self.assertEqual(expectedQuery, receivedQuery)
-            self.assertEqual(response, receivedResponse)
+            self.checkResponseNoEDNS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
