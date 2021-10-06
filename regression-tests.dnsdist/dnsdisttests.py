@@ -730,8 +730,18 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         self.compareOptions(expected.options, received.options)
         self.assertTrue(hasECS)
 
+    def checkMessageEDNS(self, expected, received):
+        self.assertEqual(expected, received)
+        self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.payload, received.payload)
+        self.assertEqual(len(expected.options), len(received.options))
+        self.compareOptions(expected.options, received.options)
+
     def checkQueryEDNSWithECS(self, expected, received, additionalOptions=0):
         self.checkMessageEDNSWithECS(expected, received, additionalOptions)
+
+    def checkQueryEDNS(self, expected, received):
+        self.checkMessageEDNS(expected, received)
 
     def checkResponseEDNSWithECS(self, expected, received, additionalOptions=0):
         self.checkMessageEDNSWithECS(expected, received, additionalOptions)

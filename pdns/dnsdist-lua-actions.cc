@@ -939,6 +939,41 @@ private:
   uint16_t d_code{3};
 };
 
+
+class SetEDNSOptionAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  SetEDNSOptionAction(uint16_t code, const std::string& data) : d_code(code), d_data(data)
+  {}
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (dq->getHeader()->arcount) {
+      return Action::None;
+    }
+
+    std::string optRData;
+    generateEDNSOption(d_code, d_data, optRData);
+
+    auto& data = dq->getMutableData();
+    if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+      dq->getHeader()->arcount = htons(1);
+    }
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "add EDNS Option (code="+std::to_string(d_code)+")";
+  }
+
+private:
+  uint16_t d_code;
+  std::string d_data;
+};
+
 class SetNoRecurseAction : public DNSAction
 {
 public:
@@ -2031,6 +2066,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SetMacAddrAction", [](int code) {
       return std::shared_ptr<DNSAction>(new SetMacAddrAction(code));
+    });
+
+  luaCtx.writeFunction("SetEDNSOptionAction", [](int code, const std::string& data) {
+      return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
     });
 
   luaCtx.writeFunction("MacAddrAction", [](int code) {

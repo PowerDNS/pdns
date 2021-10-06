@@ -6,6 +6,7 @@ import string
 import time
 import dns
 import clientsubnetoption
+import cookiesoption
 from dnsdisttests import DNSDistTest
 
 class TestAdvancedAllow(DNSDistTest):
@@ -2301,3 +2302,38 @@ class TestProtocols(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
+
+class TestAdvancedSetEDNSOptionAction(DNSDistTest):
+
+    _config_template = """
+    addAction("setednsoption.advanced.tests.powerdns.com.", SetEDNSOptionAction(10, "deadbeefdeadc0de"))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedSetEDNSOption(self):
+        """
+        Advanced: Set EDNS Option
+        """
+        name = 'setednsoption.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[eco])
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.checkQueryEDNS(expectedQuery, receivedQuery)
