@@ -4529,19 +4529,22 @@ void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
   }
 }
 
-int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret)
+// used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_recursor.cc
+int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl)
 {
-  return directResolve(qname, qtype, qclass, ret, SyncRes::s_qnameminimization);
+  return directResolve(qname, qtype, qclass, ret, pdl, SyncRes::s_qnameminimization);
 }
 
-// used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_recursor.cc
-int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, bool qm)
+int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm)
 {
   struct timeval now;
   gettimeofday(&now, 0);
 
   SyncRes sr(now);
   sr.setQNameMinimization(qm);
+  if (pdl) {
+    sr.setLuaEngine(pdl);
+  }
 
   int res = -1;
   try {

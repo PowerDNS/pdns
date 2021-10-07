@@ -1130,8 +1130,8 @@ typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
-int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret);
-int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, bool qm);
+int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl);
+int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm);
 int followCNAMERecords(std::vector<DNSRecord>& ret, const QType qtype, int oldret);
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret);
 int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);
