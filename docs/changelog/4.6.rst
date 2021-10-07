@@ -1,0 +1,112 @@
+Changelogs for 4.6.x
+====================
+
+.. changelog::
+  :version: 4.6.0-alpha1
+  :released: 7th of October 2021
+
+  This is version 4.6.0-alpha1 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.5, and a couple of user visible changes.
+
+  New features:
+  
+  * support for incoming PROXY headers
+  * support for EDNS Cookies
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq:  10727
+
+    SVCB: Accept known SVCParams in generic format
+
+  .. change::
+    :tags: New Features
+    :pullreq:  10289
+
+    Implement EDNS cookies
+
+  .. change::
+    :tags: Improvements
+    :pullreq:  10653
+
+    Convert locks to LockGuarded
+
+  .. change::
+    :tags: Improvements
+    :pullreq:  10157
+
+    Move to hashed passwords for the web interface
+
+  .. change::
+    :tags: New Features
+    :pullreq:  10660
+
+    incoming PROXY support
+
+  .. change::
+    :tags: Improvements
+    :pullreq:  10484
+
+    remove randombackend (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq:  10672
+
+    lmdb-safe: resizing while there might be open transactions is unsafe
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq:  10642
+
+    checkKey: handle NULL error string from OpenSSL more gracefully
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10780
+
+    remove attodot feature; fixes #10254
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10788
+
+    improve SOA parse exception handling (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10562
+
+    auth NOTIFY: log names of NSes we could not resolve
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10779
+
+    pdns_control man page: fix copy+paste for decrypt (Josh Soref)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10748
+
+    try to reload rejected zones in bind-backend (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10231
+
+    send YXDOMAIN for too long DNAME synth
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10770
+
+    Gracefully handle uncaught exceptions in the UDP path
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10749
+
+    add cookie counters (Kees Monshouwer)
