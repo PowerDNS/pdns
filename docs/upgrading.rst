@@ -19,6 +19,7 @@ However, this feature interacts badly with handling of presigned zones.
 In version 4.5.0, this feature was accidentally broken in the implementation of the zone cache.
 In 4.6.0, this automatic conversion is fully removed.
 If you still have ``@`` signs in any SOA RNAMEs, 4.6.0 will serve those out literally.
+You can find any stray ``@`` signs by running ``pdnsutil check-all-zones``.
 
 4.4.x to 4.5.0
 --------------
