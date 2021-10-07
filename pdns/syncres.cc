@@ -2837,6 +2837,13 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
         state = vState::BogusSelfSignedDS;
         dsFailed = true;
       }
+      else if (qtype == QType::DS && signer == qname && !signer.isRoot() && (type == QType::SOA || type == QType::NSEC || type == QType::NSEC3)) {
+        /* if we are trying to validate the DS or more likely NSEC(3)s proving that it does not exist, we have a problem.
+           In that case let's go Bogus (we will check later if we missed a cut)
+        */
+        state = vState::BogusSelfSignedDS;
+        dsFailed = true;
+      }
       else if (qtype == QType::DNSKEY && signer == qname) {
         /* that actually does happen when a server returns NS records in authority
            along with the DNSKEY, leading us to trying to validate the RRSIGs for

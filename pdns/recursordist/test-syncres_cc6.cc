@@ -125,6 +125,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure)
 
 BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
 {
+  /* the DS for www.powerdns.com. is signed by www.powerdns.com. */
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
@@ -236,6 +237,89 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusSelfSignedDS);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 8U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_ds_denial_loop)
+{
+  /* The denial of the DS sub.insecure.powerdns comes from the child zone, so is signed by sub.insecure.powerdns.
+     but sub.insecure.powerdns. is actually insecure (no DS for insecure.powerdns.), both sub.insecure.powerdns AND
+     insecure.powerdns are hosted on the same server but because of a misconfiguration, the server serves DS queries
+     for the sub.insecure.powerdns from the _child_ side.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("sub.insecure.powerdns.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("sub.insecure.powerdns."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (type == QType::DNSKEY || (type == QType::DS && domain != target)) {
+      DNSName auth(domain);
+      return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, true);
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        addDS(DNSName("powerdns."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "insecure.powerdns.", QType::NS, "ns1.insecure.powerdns.", DNSResourceRecord::AUTHORITY, 3600);
+        /* no DS */
+        addNSECRecordToLW(domain, DNSName("z.powerdns."), {QType::NS}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns."), 300);
+        addRecordToLW(res, "ns1.insecure.powerdns.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (type == QType::DS && domain == target) {
+          /* in that case we return a NODATA signed by the DNSKEY of the child zone */
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, DNSName("sub.insecure.powerdns."), QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          addRRSIG(keys, res->d_records, DNSName("sub.insecure.powerdns."), 300);
+          addNSECRecordToLW(domain, DNSName("+") + domain, {QType::RRSIG, QType::NS, QType::SOA, QType::A}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("sub.insecure.powerdns."), 300);
+          return LWResult::Result::Success;
+        }
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
