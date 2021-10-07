@@ -39,7 +39,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   try {
     static const std::unordered_set<uint16_t> optionsToIgnore{ EDNSOptionCode::COOKIE };
 
-    PacketCache::canHashPacket(input, false);
+    PacketCache::canHashPacket(input, optionsToIgnore);
     DNSName qname(input.data(), input.size(), sizeof(dnsheader), false);
     PacketCache::queryMatches(input, input, qname, optionsToIgnore);
   }
@@ -52,7 +52,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   try {
     static const std::unordered_set<uint16_t> optionsToIgnore{ EDNSOptionCode::COOKIE, EDNSOptionCode::ECS };
 
-    PacketCache::canHashPacket(input, true);
+    PacketCache::canHashPacket(input, optionsToIgnore);
     DNSName qname(input.data(), input.size(), sizeof(dnsheader), false);
     PacketCache::queryMatches(input, input, qname, optionsToIgnore);
   }

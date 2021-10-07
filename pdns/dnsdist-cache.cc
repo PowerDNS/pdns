@@ -26,7 +26,6 @@
 #include "dnsparser.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-ecs.hh"
-#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "packetcache.hh"
 
@@ -417,9 +416,9 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
   if (packet.size() > ((sizeof(dnsheader) + qnameWireLength))) {
-    if (!d_cookieHashing) {
-      /* skip EDNS Cookie options if any */
-      result = PacketCache::hashAfterQname(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, false);
+    if (!d_optionsToSkip.empty()) {
+      /* skip EDNS options if any */
+      result = PacketCache::hashAfterQname(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_optionsToSkip);
     }
     else {
       result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);
@@ -479,4 +478,9 @@ uint64_t DNSDistPacketCache::dump(int fd)
   }
 
   return count;
+}
+
+void DNSDistPacketCache::setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip)
+{
+  d_optionsToSkip = optionsToSkip;
 }

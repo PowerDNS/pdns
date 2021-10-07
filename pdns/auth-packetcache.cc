@@ -58,7 +58,8 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
 
   cleanupIfNeeded();
 
-  uint32_t hash = canHashPacket(p.getString(), /* don't skip ECS */ false);
+  static const std::unordered_set<uint16_t> optionsToSkip{ EDNSOptionCode::COOKIE};
+  uint32_t hash = canHashPacket(p.getString(), /* don't skip ECS */optionsToSkip);
   p.setHash(hash);
 
   string value;
