@@ -1936,6 +1936,110 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure)
   BOOST_CHECK_EQUAL(ret[4].d_name, cnameTarget);
 }
 
+BOOST_AUTO_TEST_CASE(test_dname_plus_ns_dnssec_secure)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+
+  const DNSName dnameOwner("powerdns");
+  const DNSName dnameTarget("example");
+
+  const DNSName target("dname.powerdns");
+  const DNSName cnameTarget("dname.example");
+
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(dnameTarget, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queries = 0;
+
+  sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, keys, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queries++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+    }
+
+    if (domain.isPartOf(dnameOwner)) {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, dnameOwner, QType::DNAME, dnameTarget.toString());
+      addRRSIG(keys, res->d_records, DNSName("."), 300);
+      addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString()); // CNAME from a DNAME is not signed
+
+      addRecordToLW(res, dnameTarget, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addDS(dnameTarget, 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("."), 300);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else if (domain == cnameTarget) {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.42");
+      addRRSIG(keys, res->d_records, dnameTarget, 300);
+      return LWResult::Result::Success;
+    }
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
+
+  BOOST_CHECK_EQUAL(queries, 4U);
+
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_REQUIRE(ret[1].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[1].d_name, dnameOwner);
+
+  BOOST_CHECK(ret[2].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[2].d_name, target);
+
+  BOOST_CHECK(ret[3].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[3].d_name, cnameTarget);
+
+  BOOST_CHECK(ret[4].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[4].d_name, cnameTarget);
+
+  // And the cache
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
+
+  BOOST_CHECK_EQUAL(queries, 4U);
+
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[1].d_name, dnameOwner);
+
+  BOOST_CHECK(ret[2].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[2].d_name, target);
+
+  BOOST_CHECK(ret[3].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[3].d_name, cnameTarget);
+
+  BOOST_CHECK(ret[4].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[4].d_name, cnameTarget);
+}
+
 BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure)
 {
   /*
