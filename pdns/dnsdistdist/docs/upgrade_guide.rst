@@ -10,6 +10,8 @@ Truncated responses received over UDP for DoH clients will now be retried over T
 
 Unless set via :func:`setMaxTCPClientThreads` the number of TCP workers now defaults to 10, instead of the number of TCP binds.
 
+Plain-text API keys and passwords for web server authentication are now strongly discouraged. The :func:`hashPassword` method can be used to generate a hashed and salted version of passwords and API keys instead, so that the plain-text version can no longer be found in either the configuration file or the memory of the running process.
+
 1.5.x to 1.6.0
 --------------
 
