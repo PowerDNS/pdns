@@ -546,6 +546,8 @@ struct TLSContextParameters
   std::string d_ciphers13;
   std::string d_caStore;
   bool d_validateCertificates{true};
+  bool d_releaseBuffers{true};
+  bool d_enableRenegotiation{false};
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
