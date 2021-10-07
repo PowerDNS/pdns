@@ -170,7 +170,7 @@ void RemoteLogger::queueData(const std::string& data)
   }
 
   runtime->d_writer.write(data);
-  ++d_queued;
+  ++d_processed;
 }
 
 void RemoteLogger::maintenanceThread() 
