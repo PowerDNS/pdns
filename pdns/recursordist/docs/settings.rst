@@ -1457,6 +1457,8 @@ Queries that are not prefixed with such a header will not be accepted from clien
 
 Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against the `allow-from`_ ACL.
 
+The dnsdist docs have `more information about the PROXY protocol <https://dnsdist.org/advanced/passing-source-address.html#proxy-protocol>`_.
+
 .. _setting-proxy-protocol-maximum-size:
 
 ``proxy-protocol-maximum-size``

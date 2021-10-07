@@ -1286,6 +1286,8 @@ Queries that are not prefixed with such a header will not be accepted from clien
 Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against primary addresses sending NOTIFYs, and the ACLs for any client requesting AXFRs.
 When using this setting combined with :ref:`setting-trusted-notification-proxy`, please be aware that the trusted address will also be checked against the source address in the PROXY header.
 
+The dnsdist docs have `more information about the PROXY protocol <https://dnsdist.org/advanced/passing-source-address.html#proxy-protocol>`_.
+
 .. _setting-proxy-protocol-maximum-size:
 
 ``proxy-protocol-maximum-size``
