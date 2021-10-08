@@ -13,7 +13,7 @@ To load the root zone from Internic into the recursor once at startup and when t
 
 .. code-block:: Lua
 
-     zoneToCache(".", "url", 'https://www.internic.net/domain/root.zone', { refreshPeriod = 0 })
+     zoneToCache(".", "url", "https://www.internic.net/domain/root.zone", { refreshPeriod = 0 })
 
 Configuration
 ^^^^^^^^^^^^^
