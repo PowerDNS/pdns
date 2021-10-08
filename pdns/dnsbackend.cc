@@ -246,25 +246,31 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
   S.inc("backend-queries");
 
   DNSResourceRecord rr;
-  rr.auth = true;
-
   int hits=0;
 
-  while(this->get(rr)) {
-    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
-    hits++;
-    fillSOAData(rr.content, sd);
-    sd.domain_id=rr.domain_id;
-    sd.ttl=rr.ttl;
+  sd.db = nullptr;
+
+  try {
+    while (this->get(rr)) {
+      if (rr.qtype != QType::SOA) {
+        throw PDNSException("Got non-SOA record when asking for SOA, zone: '" + domain.toLogString() + "'");
+      }
+      hits++;
+      sd.qname = domain;
+      sd.ttl = rr.ttl;
+      sd.db = this;
+      sd.domain_id = rr.domain_id;
+      fillSOAData(rr.content, sd);
+    }
+  }
+  catch (const PDNSException& e) {
+    while (this->get(rr)) {
+      ;
+    }
+    throw;
   }
 
-  if(!hits)
-    return false;
-
-  sd.qname = domain;
-  sd.db=this;
-
-  return true;
+  return hits;
 }
 
 bool DNSBackend::get(DNSZoneRecord& dzr)
@@ -348,6 +354,6 @@ void fillSOAData(const string &content, SOAData &data)
     data.minimum = pdns_stou(parts.at(6).c_str());
   }
   catch(const std::out_of_range& oor) {
-    throw PDNSException("Out of range exception parsing "+content);
+    throw PDNSException("Out of range exception parsing '" + content + "'");
   }
 }

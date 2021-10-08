@@ -173,17 +173,23 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_dis
 
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA && dupcheck.insert(rr.qname).second) {
-      SOAData sd;
-      fillSOAData(rr.content, sd);
-
       DomainInfo di;
       di.id = -1; //TODO: Check if this is ok.
       di.backend = this;
       di.zone = rr.qname;
-      di.serial = sd.serial;
-      di.notified_serial = sd.serial;
       di.kind = DomainInfo::Master;
       di.last_check = time(0);
+
+      SOAData sd;
+      try {
+        fillSOAData(rr.content, sd);
+        di.serial = sd.serial;
+      }
+      catch (const PDNSException& e) {
+        di.serial = 0;
+      }
+
+      di.notified_serial = di.serial;
       domains->push_back(di);
     }
   }
