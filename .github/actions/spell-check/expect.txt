@@ -739,6 +739,7 @@ innodb
 inode
 installable
 Internic
+internic
 interop
 interoperability
 interoperation
