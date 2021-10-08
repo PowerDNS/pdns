@@ -77,6 +77,8 @@ Please also note that the maximum size of a Proxy Protocol header dnsdist is wil
 
 dnsdist 1.5.0 only supports outgoing Proxy Protocol. Support for parsing incoming Proxy Protocol headers has been implemented in 1.6.0, except for DoH where it does not make sense anyway, since HTTP headers already provide a mechanism for that.
 
+Both the PowerDNS Authoritative Server and the Recursor can parse PROXYv2 headers, if configured to do so with their `proxy-protocol-from` setting.
+
 Influence on caching
 --------------------
 
