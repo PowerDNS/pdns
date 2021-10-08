@@ -704,6 +704,17 @@ void mainthread()
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
 
+  try {
+    UeberBackend B;
+    B.updateZoneCache();
+  }
+  catch(PDNSException &e) {
+    g_log<<Logger::Error<<"PDNSException while updating zone cache: "<<e.reason<<endl;
+  }
+  catch(std::exception &e) {
+    g_log<<Logger::Error<<"STL Exception while updating zone cache: "<<e.what()<<endl;
+  }
+
   // NOW SAFE TO CREATE THREADS!
   dl->go();
 
