@@ -1,6 +1,7 @@
 #!/bin/sh
 set -ex
 cp -f ../regression-tests/zones/test.dyndns.orig ../regression-tests/zones/test.dyndns
+cp -f ../regression-tests/zones/sub.test.dyndns.orig ../regression-tests/zones/sub.test.dyndns
 export testsdir=$(pwd)
 ../regression-tests/runtests $1
 ../regression-tests/toxml
@@ -11,7 +12,7 @@ then
 	exit 0;
 else
 	for t in `cat failed_tests`; do
-		cat $t/diff
+		cat $t/diff || true
 	done
 
 	exit 1;

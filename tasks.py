@@ -70,6 +70,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'curl',
     'default-jre-headless',
     'dnsutils',
+    'faketime',
     'gawk',
     'ldnsutils',
     'libboost-serialization1.71.0',
@@ -90,7 +91,6 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libsystemd0',
     'libyaml-cpp0.6',
     'libzmq3-dev',
-    'pdns-recursor',
     'ruby-bundler',
     'ruby-dev',
     'socat',
@@ -134,7 +134,8 @@ auth_backend_test_deps = dict(
     bind=[],
     geoip=[],
     lua2=[],
-    tinydns=[]
+    tinydns=[],
+    authpy=[]
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
@@ -151,8 +152,8 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     #               rm jdnssec-tools-0.14.tar.gz
     #          fi
     #          echo 'export PATH=$HOME/jdnssec-tools-0.14/bin:$PATH' >> $BASH_ENV''')  # FIXME: why did this fail with no error?
-    c.run('touch regression-tests/tests/verify-dnssec-zone/allow-missing') # FIXME: can this go?
-    # FIXME we need to start a background recursor here for some tests
+    c.run('touch regression-tests/tests/verify-dnssec-zone/allow-missing regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
+    # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
 
 @task
@@ -303,8 +304,8 @@ def ci_auth_install_remotebackend_ruby_deps(c):
 def ci_auth_run_unit_tests(c):
     res = c.run('make check', warn=True)
     if res.exited != 0:
-      c.run('cat pdns/test-suite.log')
-      c.run('cat modules/remotebackend/test-suite.log')
+      c.run('cat pdns/test-suite.log', warn=True)
+      c.run('cat modules/remotebackend/test-suite.log', warn=True)
       raise UnexpectedExit(res)
 
 @task
@@ -401,12 +402,23 @@ def test_auth_backend(c, backend):
     if backend == 'remote':
         ci_auth_install_remotebackend_ruby_deps(c)
 
+    if backend == 'authpy':
+        with c.cd('regression-tests.auth-py'):
+            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests')
+        return
+
     with c.cd('regression-tests'):
         if backend == 'lua2':
             c.run('touch trustedkeys')  # avoid silly error during cleanup
         for variant in backend_regress_tests[backend]:
             # FIXME this long line is terrible
-            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {variant}')
+            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {variant}')
+
+    if backend == 'gsqlite3':
+        with c.cd('regression-tests.nobackend'):
+            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests')
+        c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
+        return
 
 @task
 def test_ixfrdist(c):
