@@ -761,6 +761,19 @@ These ``DNSRule``\ s be one of the following items:
 
   :param string poolname: Pool to check
 
+.. function:: PoolOutstandingRule(poolname, limit)
+
+  Check whether a pool has total outstanding queries above limit
+
+  .. code-block:: Lua
+
+    --- Send queries to spill over pool if default pool is under pressure
+    addAction(PoolOutstandingRule("", 5000), PoolAction("spillover"))
+
+  :param string poolname: Pool to check
+  :param int limit: Total outstanding limit
+
+
 Combining Rules
 ~~~~~~~~~~~~~~~
 
