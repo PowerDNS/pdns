@@ -1332,9 +1332,12 @@ faster than the existing rules.
 
     .. versionadded:: 1.4.0
 
+    .. versionchanged:: 1.7.0
+      This visitor function can now optionally return an additional string which will be set as the ``reason`` for the dynamic block.
+
     Set a Lua visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `StatNode` object representing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
     Note that this function will not be called if a FFI version has been set using :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`
-    If the function returns true, the current label will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters.
+    If the function returns true, the current label will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters. Since 1.7.0, the function can return an additional string, in addition to the boolean, which will be set as the ``reason`` for the dynamic block.
     Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup:excludeDomains` method.
 
     This replaces the existing :func:`addDynBlockSMT` function.

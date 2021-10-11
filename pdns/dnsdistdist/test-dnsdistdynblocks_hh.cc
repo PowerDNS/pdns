@@ -869,9 +869,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return true;
+        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
       }
-      return false;
+      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
     });
 
     /* insert one fake response for 255 DNS names */
@@ -915,6 +915,62 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     BOOST_CHECK(g_dynblockSMT.getLocal()->getNodes().empty());
   }
 
+  {
+    /* === reset everything for SMT, this time we will check that we can override the 'reason' via the visitor function === */
+    DynBlockRulesGroup dbrg;
+    dbrg.setQuiet(true);
+    g_rings.clear();
+    g_dynblockNMG.setState(emptyNMG);
+    g_dynblockSMT.setState(emptySMT);
+
+    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+      if (self.queries > 0) {
+        return std::tuple<bool, boost::optional<std::string>>(true, "blocked for a different reason");
+      }
+      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+    });
+
+    /* insert one fake response for 255 DNS names */
+    const ComboAddress requestor("192.0.2.1");
+    for (size_t idx = 0; idx < 256; idx++) {
+      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+    }
+
+    /* we apply the rules, all suffixes should be blocked */
+    dbrg.apply(now);
+
+    for (size_t idx = 0; idx < 256; idx++) {
+      const DNSName name(DNSName(std::to_string(idx)) + qname);
+      const auto* block = g_dynblockSMT.getLocal()->lookup(name);
+      BOOST_REQUIRE(block != nullptr);
+      /* simulate that:
+         - 1.rings.powerdns.com. got 1 query
+         ...
+         - 255. does 255 queries
+      */
+      block->blocks = idx;
+    }
+
+    /* now we ask for the top 20 offenders for each reason */
+    StopWatch sw;
+    sw.start();
+    auto top = DynBlockMaintenance::getTopSuffixes(20);
+    BOOST_REQUIRE_EQUAL(top.size(), 1U);
+    auto suffixes = top.at("blocked for a different reason");
+    BOOST_REQUIRE_EQUAL(suffixes.size(), 20U);
+    auto it = suffixes.begin();
+    for (size_t idx = 236; idx < 256; idx++) {
+      BOOST_CHECK_EQUAL(it->first, (DNSName(std::to_string(idx)) + qname));
+      BOOST_CHECK_EQUAL(it->second, idx);
+      ++it;
+    }
+
+    struct timespec expired = now;
+    expired.tv_sec += blockDuration + 1;
+    DynBlockMaintenance::purgeExpired(expired);
+    BOOST_CHECK(g_dynblockSMT.getLocal()->getNodes().empty());
+  }
+
 #ifdef BENCH_DYNBLOCKS
   {
     /* now insert 1M names */
@@ -926,9 +982,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return true;
+        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
       }
-      return false;
+      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
     });
 
     bool done = false;
@@ -955,12 +1011,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     sw.start();
     auto top = DynBlockMaintenance::getTopSuffixes(20);
     cerr<<"scanned 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+    BOOST_CHECK_EQUAL(top.at(reason).size(), 20U);
+    BOOST_CHECK_EQUAL(top.size(), 1U);
 
     struct timespec expired = now;
     expired.tv_sec += blockDuration + 1;
     sw.start();
     DynBlockMaintenance::purgeExpired(expired);
     cerr<<"removed 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+    BOOST_CHECK_EQUAL(g_dynblockSMT.getLocal()->getNodes().size(), 0U);
   }
 #endif
 
