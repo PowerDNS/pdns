@@ -74,7 +74,7 @@ bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string
 }
 
 static map<string, const uint32_t*> d_get32bitpointers;
-static map<string, const std::atomic<uint64_t>*> d_getatomics;
+static map<string, const pdns::stat_t*> d_getatomics;
 static map<string, std::function<uint64_t()>>  d_get64bitmembers;
 static map<string, std::function<StatsMap()>> d_getmultimembers;
 
@@ -112,7 +112,7 @@ static void addGetStat(const string& name, const uint32_t* place)
   d_get32bitpointers[name] = place;
 }
 
-static void addGetStat(const string& name, const std::atomic<uint64_t>* place)
+static void addGetStat(const string& name, const pdns::stat_t* place)
 {
   d_getatomics[name] = place;
 }
@@ -1164,7 +1164,7 @@ static StatsMap toCPUStatsMap(const string& name)
   return entries;
 }
 
-static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map<std::string, std::atomic<uint64_t>>>& map)
+static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map<std::string, pdns::stat_t>>& map)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
