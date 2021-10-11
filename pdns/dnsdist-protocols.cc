@@ -21,6 +21,7 @@
  */
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "dnsdist-protocols.hh"
 
@@ -42,42 +43,38 @@ static const std::vector<std::string> prettyNames = {
   "DNS over TLS",
   "DNS over HTTPS"};
 
-Protocol::Protocol(uint8_t protocol) :
+Protocol::Protocol(Protocol::typeenum protocol) :
   d_protocol(protocol)
 {
+  if (protocol >= names.size()) {
+    throw std::runtime_error("Unknown protocol: '" + std::to_string(protocol) + "'");
+  }
 }
-Protocol& Protocol::operator=(const char* s)
-{
-  std::string str(s);
-  d_protocol = Protocol::fromString(str);
 
-  return *this;
-}
-Protocol& Protocol::operator=(const std::string& s)
-{
-  d_protocol = Protocol::fromString(s);
-
-  return *this;
-}
-Protocol::operator uint8_t() const
-{
-  return d_protocol;
-}
-const std::string& Protocol::toString() const
-{
-  return names.at(static_cast<int>(d_protocol));
-}
-const std::string& Protocol::toPrettyString() const
-{
-  return prettyNames.at(static_cast<int>(d_protocol));
-}
-uint8_t Protocol::fromString(const std::string& s)
+Protocol::Protocol(const std::string& s)
 {
   const auto& it = std::find(names.begin(), names.end(), s);
-  if (it != names.end()) {
-    return std::distance(names.begin(), it);
+  if (it == names.end()) {
+    throw std::runtime_error("Unknown protocol name: '" + s + "'");
   }
 
-  return 0;
+  auto index = std::distance(names.begin(), it);
+  d_protocol = static_cast<Protocol::typeenum>(index);
 }
+
+bool Protocol::operator==(Protocol::typeenum type) const
+{
+  return d_protocol == type;
+}
+
+const std::string& Protocol::toString() const
+{
+  return names.at(static_cast<uint8_t>(d_protocol));
+}
+
+const std::string& Protocol::toPrettyString() const
+{
+  return prettyNames.at(static_cast<uint8_t>(d_protocol));
+}
+
 }

@@ -138,9 +138,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
 
     ComboAddress from(parts.at(idx++));
     ComboAddress to;
-    dnsdist::Protocol protocol;
-
-    protocol = parts.at(idx++);
+    dnsdist::Protocol protocol(parts.at(idx++));
     if (isResponse) {
       to = ComboAddress(parts.at(idx++));
     }

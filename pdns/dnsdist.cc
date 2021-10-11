@@ -551,7 +551,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
   (*state->mplexer.lock())->getAvailableFDs(ready, 1000);
 }
 
-void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, uint8_t protocol)
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
 {
   struct timespec ts;
   gettime(&ts);

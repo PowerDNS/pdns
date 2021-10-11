@@ -30,8 +30,8 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   ComboAddress requestor2("192.0.2.2");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
 
@@ -201,8 +201,8 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   unsigned int latency = 100;
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
 
   Rings rings(numberOfEntries, numberOfShards, lockAttempts, true);
   Rings::Query query({requestor, qname, now, dh, size, qtype, protocol});

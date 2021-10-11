@@ -29,13 +29,6 @@ namespace dnsdist
 class Protocol
 {
 public:
-  Protocol(uint8_t protocol = 0);
-  Protocol& operator=(const char*);
-  Protocol& operator=(const std::string&);
-  operator uint8_t() const;
-  const std::string& toString() const;
-  const std::string& toPrettyString() const;
-
   enum typeenum : uint8_t
   {
     DoUDP,
@@ -46,8 +39,15 @@ public:
     DoH
   };
 
+  Protocol(typeenum protocol = DoUDP);
+  explicit Protocol(const std::string& protocol);
+
+  bool operator==(typeenum) const;
+
+  const std::string& toString() const;
+  const std::string& toPrettyString() const;
+
 private:
-  static uint8_t fromString(const std::string& s);
-  uint8_t d_protocol;
+  typeenum d_protocol;
 };
 }
