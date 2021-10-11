@@ -2,6 +2,73 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.6
+  :released: 11th of October 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10806
+    :tickets: 10565
+
+    Do not use DNSKEYs found below an apex for validation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10807
+    :tickets: 10622
+
+    Detect a loop when the denial of the DS comes from the child zone.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10809
+    :tickets: 10632
+
+    Match ordering of PacketID using the Birthday vs non-Birthday comparator.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10811
+    :tickets: 10633
+
+    Pass the Lua context to follow up queries (follow CNAME, dns64).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10813
+    :tickets: 10718
+
+    Only the DNAME records are authoritative in DNAME answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10803
+    :tickets: 10768
+
+    Use the correct RPZ policy name for statistics when loading via XFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10717
+    :tickets: 10701
+
+    Fix the aggressive cache returning duplicated NSEC3 records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10655
+    :tickets: 10643
+
+    NS from the cache could be a forwarder, take that into account for throttling decision.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10629
+    :tickets: 10627
+
+    Check in more places if the policy has been updated before using or modifying it.
+
+.. changelog::
   :version: 4.5.5
   :released: 30th of July 2021
 
