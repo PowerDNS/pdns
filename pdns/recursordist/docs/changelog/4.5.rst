@@ -24,7 +24,7 @@ Changelogs for 4.5.X
     :pullreq: 10809
     :tickets: 10632
 
-    Match ordering of PacketID using the Birthday vs non-Birthday comparator used to detect spoofing attempts.
+    Match ordering of PacketID using the Birthday vs non-Birthday comparator.
 
   .. change::
     :tags: Bug Fixes
