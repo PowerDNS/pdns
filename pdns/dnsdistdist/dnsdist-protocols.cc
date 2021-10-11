@@ -19,13 +19,65 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <algorithm>
+
 #include "dnsdist-protocols.hh"
 
 namespace dnsdist
 {
-const std::string& ProtocolToString(Protocol proto)
+static const std::vector<std::string> names = {
+  "DoUDP",
+  "DoTCP",
+  "DNSCryptUDP",
+  "DNSCryptTCP",
+  "DoT",
+  "DoH"};
+
+static const std::vector<std::string> prettyNames = {
+  "Do53 UDP",
+  "Do53 TCP",
+  "DNSCrypt UDP",
+  "DNSCrypt TCP",
+  "DNS over TLS",
+  "DNS over HTTPS"};
+
+Protocol::Protocol(uint8_t protocol) :
+  d_protocol(protocol)
 {
-  static const std::vector<std::string> values = {"Do53 UDP", "Do53 TCP", "DNSCrypt UDP", "DNSCrypt TCP", "DNS over TLS", "DNS over HTTPS"};
-  return values.at(static_cast<int>(proto));
+}
+Protocol& Protocol::operator=(const char* s)
+{
+  std::string str(s);
+  d_protocol = Protocol::fromString(str);
+
+  return *this;
+}
+Protocol& Protocol::operator=(const std::string& s)
+{
+  d_protocol = Protocol::fromString(s);
+
+  return *this;
+}
+Protocol::operator uint8_t() const
+{
+  return d_protocol;
+}
+const std::string& Protocol::toString() const
+{
+  return names.at(static_cast<int>(d_protocol));
+}
+const std::string& Protocol::toPrettyString() const
+{
+  return prettyNames.at(static_cast<int>(d_protocol));
+}
+uint8_t Protocol::fromString(const std::string& s)
+{
+  const auto& it = std::find(names.begin(), names.end(), s);
+  if (it != names.end()) {
+    return std::distance(names.begin(), it);
+  }
+
+  return 0;
 }
 }

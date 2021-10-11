@@ -865,7 +865,19 @@ struct DownstreamState
   }
 
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
-
+  dnsdist::Protocol getProtocol() const
+  {
+    if (isDoH()) {
+      return dnsdist::Protocol::DoH;
+    }
+    if (d_tlsCtx != nullptr) {
+      return dnsdist::Protocol::DoT;
+    }
+    if (isTCPOnly()) {
+      return dnsdist::Protocol::DoTCP;
+    }
+    return dnsdist::Protocol::DoUDP;
+  }
 private:
   std::string name;
   std::string nameWithAddr;
@@ -1060,6 +1072,6 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
 int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
-void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH);
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, uint8_t protocol);
 
 void carbonDumpThread();

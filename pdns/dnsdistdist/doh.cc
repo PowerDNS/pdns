@@ -465,7 +465,7 @@ public:
     double udiff = du->ids.sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH);
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
 
     ++g_stats.responses;
     if (du->ids.cs) {
@@ -1655,7 +1655,7 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
     double udiff = ids.sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", downstream->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(ids, udiff, *dr.remote, downstream->remote, response.size(), cleartextDH);
+    handleResponseSent(ids, udiff, *dr.remote, downstream->remote, response.size(), cleartextDH, downstream->getProtocol());
 
     ++g_stats.responses;
     if (ids.cs) {
