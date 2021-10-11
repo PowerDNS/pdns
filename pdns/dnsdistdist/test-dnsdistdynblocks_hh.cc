@@ -24,8 +24,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
@@ -162,8 +162,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
   ComboAddress requestor2("192.0.2.2");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -309,7 +309,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -519,7 +519,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 100;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -591,7 +591,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   ComboAddress requestor2("192.0.2.2");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -750,7 +750,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
   ComboAddress requestor2("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -805,8 +805,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
   DNSName qname("rings.powerdns.com.");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
-  uint8_t protocol = dnsdist::Protocol::DoUDP;
-  uint8_t outgoingProtocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;

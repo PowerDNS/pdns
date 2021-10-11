@@ -61,7 +61,7 @@ uint64_t getLatencyCount(const std::string&)
   return 0;
 }
 
-void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, uint8_t protocol)
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
 {
 }
 
