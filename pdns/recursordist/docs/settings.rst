@@ -1864,6 +1864,17 @@ Can be read out using ``rec_control top-remotes``.
 
 A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
 
+.. _setting-structured-loggin:
+
+``structured-logging``
+---------------------
+.. versionadded:: 4.6.0
+
+- Boolean
+- Default: yes
+
+Prefer structured logging when both an old style and a structured log messages is available.
+
 .. _setting-tcp-fast-open:
 
 ``tcp-fast-open``

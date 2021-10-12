@@ -117,21 +117,21 @@ private:
 
 extern std::shared_ptr<Logging::Logger> g_slog;
 
-// The list of subsystem names that use structured logging
-extern bool g_slogOldStyle;
+// Prefer structured logging?
+extern bool g_slogStructured;
 
-// A helper macro to switch between odl-style logging and new-style (structured logging)
+// A helper macro to switch between old-style logging and new-style (structured logging)
 // A typical use:
 //
 // SLOG(g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl,
 //      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
 //
-#define SLOG(oldStyle, slogCall)  \
-  do {                            \
-    if (!g_slogOldStyle) {        \
-      slogCall;                   \
-    }                             \
-    else {                        \
-      oldStyle;                   \
-    }                             \
+#define SLOG(oldStyle, slogCall) \
+  do {                           \
+    if (g_slogStructured) {      \
+      slogCall;                  \
+    }                            \
+    else {                       \
+      oldStyle;                  \
+    }                            \
   } while (0);

@@ -4770,6 +4770,8 @@ static int serviceMain(int argc, char*argv[])
 {
   int ret = EXIT_SUCCESS;
 
+  g_slogStructured = ::arg().mustDo("structured-logging");
+
   g_log.setName(s_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
@@ -5697,6 +5699,7 @@ static void loggerBackend(const Logging::Entry& entry) {
   g_log << u << buf.str() << endl;
 }
 
+
 int main(int argc, char **argv)
 {
   g_argc = argc;
@@ -5946,6 +5949,7 @@ int main(int argc, char **argv)
     ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
+    ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

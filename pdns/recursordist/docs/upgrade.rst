@@ -11,14 +11,18 @@ Offensive language
 ^^^^^^^^^^^^^^^^^^
 Using the settings mentioned in :ref:`upgrade-offensive` now generates a warning. Please start using the new names.
 
-Deprecated and changed settings
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
--  The :ref:`setting-api-key` and :ref:`setting-webserver-password` settings now accept a hashed and salted version (if the support is available in the openssl library used).
+New settings
+^^^^^^^^^^^^
 - The :ref:`setting-dot-to-auth-names` setting to list nameservers that should be contacted over DoT has been introduced.
 - The :ref:`setting-dot-to-port-853` setting to specify that nameservers or forwarders using port 853 should be contacted over DoT has been introduced.
 - The :ref:`setting-ignore-unknown-settings` setting has been introduced to make it easier to switch between recursor versions supporting different settings.
 - The :ref:`setting-webserver-hash-plaintext-credentials` has been introduced to avoid keeping cleartext sensitive information in memory.
 - The :ref:`setting-tcp-out-max-idle-ms`, :ref:`setting-tcp-out-max-idle-per-auth`, :ref:`setting-tcp-out-max-queries` and :ref:`setting-tcp-out-max-idle-per-thread` settings have been introduced to control the new TCP/DoT outgoing connections pooling. This mechanism keeps connections to authoritative servers or forwarders open for later re-use.
+- The :ref:`setting-structured-logging` setting has been introduced to prefer structured logging when both an old style and a structured log messages is available.
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-  The :ref:`setting-api-key` and :ref:`setting-webserver-password` settings now accept a hashed and salted version (if the support is available in the openssl library used).
 
 
 4.5.1 to 4.5.2
