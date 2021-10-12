@@ -465,6 +465,7 @@ ecs
 ECSDA
 ecswho
 edb
+EDE
 editline
 edns
 ednsbufsiz
@@ -738,7 +739,6 @@ Inno
 innodb
 inode
 installable
-Internic
 internic
 interop
 interoperability
