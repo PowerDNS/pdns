@@ -177,3 +177,4 @@ Logger::~Logger()
 };
 
 std::shared_ptr<Logging::Logger> g_slog{nullptr};
+bool g_slogStructured = true;

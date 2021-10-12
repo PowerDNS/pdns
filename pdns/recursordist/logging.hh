@@ -116,3 +116,22 @@ private:
 }
 
 extern std::shared_ptr<Logging::Logger> g_slog;
+
+// Prefer structured logging?
+extern bool g_slogStructured;
+
+// A helper macro to switch between old-style logging and new-style (structured logging)
+// A typical use:
+//
+// SLOG(g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl,
+//      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
+//
+#define SLOG(oldStyle, slogCall) \
+  do {                           \
+    if (g_slogStructured) {      \
+      slogCall;                  \
+    }                            \
+    else {                       \
+      oldStyle;                  \
+    }                            \
+  } while (0);

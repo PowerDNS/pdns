@@ -4770,6 +4770,8 @@ static int serviceMain(int argc, char*argv[])
 {
   int ret = EXIT_SUCCESS;
 
+  g_slogStructured = ::arg().mustDo("structured-logging");
+
   g_log.setName(s_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
@@ -5947,6 +5949,7 @@ int main(int argc, char **argv)
     ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
+    ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
@@ -5995,13 +5998,15 @@ int main(int argc, char **argv)
     auto startupLog = g_slog->withName("startup");
 
     if(!::arg().file(configname.c_str())) {
-      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
+      SLOG(g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl,
+           startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname)));
     }
 
     ::arg().parse(argc,argv);
 
     if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() ) {
-      startupLog->info("Cannot use chroot and enable the API at the same time");
+      SLOG(g_log<<Logger::Error<<"Using chroot and enabling the API is not possible"<<endl,
+           startupLog->info("Cannot use chroot and enable the API at the same time"));
       exit(EXIT_FAILURE);
     }
 
@@ -6014,13 +6019,15 @@ int main(int argc, char **argv)
 
     if(::arg().asNum("threads")==1) {
       if (::arg().mustDo("pdns-distributes-queries")) {
-        startupLog->v(1)->info("Only one thread, no need to distribute queries ourselves");
+        SLOG(g_log<<Logger::Warning<<"Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"<<endl,
+             startupLog->v(1)->info("Only one thread, no need to distribute queries ourselves"));
         ::arg().set("pdns-distributes-queries")="no";
       }
     }
 
     if(::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") <= 0) {
-      startupLog->v(1)->info("Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1");
+      SLOG(g_log<<Logger::Warning<<"Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"<<endl,
+           startupLog->v(1)->info("Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"));
       ::arg().set("distributor-threads")="1";
     }
 
