@@ -1177,13 +1177,16 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     gettime(&now);
 
     if (!applyRulesToQuery(holders, dq, now)) {
+      vinfolog("Dropping query after applying rules");
       return ProcessQueryResult::Drop;
     }
 
     if (dq.getHeader()->qr) { // something turned it into a response
+      vinfolog("Rules turned the query into a response");
       fixUpQueryTurnedResponse(dq, dq.origFlags);
 
       if (!prepareOutgoingResponse(holders, cs, dq, false)) {
+        vinfolog("Dropping outgoing response after trying to prepare it");
         return ProcessQueryResult::Drop;
       }
 
@@ -1472,6 +1475,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     dq.hopLocal = &dest;
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
+    vinfolog("Result from processQuery is %d", (int)result);
 
     if (result == ProcessQueryResult::Drop) {
       vinfolog("Query from %s is dropped of rules", remote.toStringWithPort());
@@ -1481,6 +1485,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     // the buffer might have been invalidated by now (resized)
     struct dnsheader* dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
+      vinfolog("Sending answer");
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
