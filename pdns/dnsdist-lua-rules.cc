@@ -568,6 +568,10 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new PoolAvailableRule(poolname));
   });
 
+  luaCtx.writeFunction("PoolOutstandingRule", [](std::string poolname, size_t limit) {
+    return std::shared_ptr<DNSRule>(new PoolOutstandingRule(poolname, limit));
+  });
+
   luaCtx.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("clear", [](std::shared_ptr<TimedIPSetRule> tisr) {
       tisr->clear();
     });

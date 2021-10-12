@@ -541,7 +541,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "OrRule", true, "selectors", "Matches the traffic if one or more of the the selectors rules does match" },
   { "PoolAction", true, "poolname", "set the packet into the specified pool" },
   { "PoolAvailableRule", true, "poolname", "Check whether a pool has any servers available to handle queries" },
-  { "PoolOutstandingRule", true, "poolname, limit", "Check weather a pool has outstanding queries above limit" },
+  { "PoolOutstandingRule", true, "poolname, limit", "Check whether a pool has outstanding queries above limit" },
   { "printDNSCryptProviderFingerprint", true, "\"/path/to/providerPublic.key\"", "display the fingerprint of the provided resolver public key" },
   { "ProbaRule", true, "probability", "Matches queries with a given probability. 1.0 means always" },
   { "ProxyProtocolValueRule", true, "type [, value]", "matches queries with a specified Proxy Protocol TLV value of that type, optionally matching the content of the option as well" },

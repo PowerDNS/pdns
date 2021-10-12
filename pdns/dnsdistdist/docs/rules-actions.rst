@@ -763,6 +763,8 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: PoolOutstandingRule(poolname, limit)
 
+  .. versionadded:: 1.7.0
+
   Check whether a pool has total outstanding queries above limit
 
   .. code-block:: Lua
