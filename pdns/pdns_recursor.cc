@@ -98,6 +98,7 @@
 #include "shuffle.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
+#include "logging.hh"
 #endif /* NOD_ENABLED */
 #include "query-local-address.hh"
 #include "rec-tcpout.hh"
@@ -1388,7 +1389,7 @@ static bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLoc
 #endif /* HAVE_FSTRM */
 
 #ifdef NOD_ENABLED
-static bool nodCheckNewDomain(const DNSName& dname)
+static bool nodCheckNewDomain(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname)
 {
   bool ret = false;
   // First check the (sub)domain isn't ignored for NOD purposes
@@ -1397,7 +1398,8 @@ static bool nodCheckNewDomain(const DNSName& dname)
     if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
       if (g_nodLog) {
         // This should probably log to a dedicated log file
-        g_log<<Logger::Notice<<"Newly observed domain nod="<<dname<<endl;
+        SLOG(g_log<<Logger::Notice<<"Newly observed domain nod="<<dname<<endl,
+             nodlogger->info(Logr::Notice, "New domain observed"));
       }
       ret = true;
     }
@@ -1405,7 +1407,7 @@ static bool nodCheckNewDomain(const DNSName& dname)
   return ret;
 }
 
-static void sendNODLookup(const DNSName& dname)
+static void sendNODLookup(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname)
 {
   if (!(g_nodLookupDomain.isRoot())) {
     // Send a DNS A query to <domain>.g_nodLookupDomain
@@ -1414,15 +1416,17 @@ static void sendNODLookup(const DNSName& dname)
       qname = dname + g_nodLookupDomain;
     }
     catch(const std::range_error &e) {
+      nodlogger->v(10)->error(Logr::Error, "DNSName too long", "Unable to send NOD lookup");
       ++g_stats.nodLookupsDroppedOversize;
       return;
     }
+    nodlogger->v(10)->info(Logr::Debug, "Sending NOD lookup", "nodqname", Logging::Loggable(qname));
     vector<DNSRecord> dummy;
     directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false);
   }
 }
 
-static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const DNSRecord& record)
+static bool udrCheckUniqueDNSRecord(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname, uint16_t qtype, const DNSRecord& record)
 {
   bool ret = false;
   if (record.d_place == DNSResourceRecord::ANSWER ||
@@ -1432,8 +1436,15 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
     ss << dname.toDNSStringLC() << ":" << qtype <<  ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.d_content->getZoneRepresentation();
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
       if (g_udrLog) {  
-        // This should also probably log to a dedicated file. 
-        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype)<< " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+        // This should also probably log to a dedicated file.
+        SLOG(g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype)<< " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl,
+             nodlogger->info(Logr::Debug, "New response observed",
+                             "qtype", Logging::Loggable(qtype),
+                             "rrtype", Logging::Loggable(QType(record.d_type)),
+                             "rrname", Logging::Loggable(record.d_name),
+                             "rrcontent", Logging::Loggable(record.d_content->getZoneRepresentation())
+               );
+          );
       }
       ret = true;
     }
@@ -1595,6 +1606,7 @@ static void startDoResolve(void *p)
     bool addPaddingToResponse = false;
 #ifdef NOD_ENABLED
     bool hasUDR = false;
+    auto nodlogger = g_slog->withName("nod")->v(1)->withValues("qname", Logging::Loggable(dc->d_mdp.d_qname));
 #endif /* NOD_ENABLED */
     DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
     uint8_t ednsExtRCode = 0;
@@ -2080,7 +2092,7 @@ static void startDoResolve(void *p)
 	bool udr = false;
 #ifdef NOD_ENABLED
 	if (g_udrEnabled) {
-	  udr = udrCheckUniqueDNSRecord(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
+	  udr = udrCheckUniqueDNSRecord(nodlogger, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
           if (!hasUDR && udr)
             hasUDR = true;
 	}
@@ -2224,7 +2236,7 @@ static void startDoResolve(void *p)
 #ifdef NOD_ENABLED
     bool nod = false;
     if (g_nodEnabled) {
-      if (nodCheckNewDomain(dc->d_mdp.d_qname)) {
+      if (nodCheckNewDomain(nodlogger, dc->d_mdp.d_qname)) {
         nod = true;
       }
     }
@@ -2370,7 +2382,7 @@ static void startDoResolve(void *p)
 
 #ifdef NOD_ENABLED
     if (nod) {
-      sendNODLookup(dc->d_mdp.d_qname);
+      sendNODLookup(nodlogger, dc->d_mdp.d_qname);
     }
 #endif /* NOD_ENABLED */
 
