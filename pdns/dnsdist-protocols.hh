@@ -26,15 +26,28 @@
 
 namespace dnsdist
 {
-enum class Protocol : uint8_t
+class Protocol
 {
-  DoUDP,
-  DoTCP,
-  DNSCryptUDP,
-  DNSCryptTCP,
-  DoT,
-  DoH
-};
+public:
+  enum typeenum : uint8_t
+  {
+    DoUDP,
+    DoTCP,
+    DNSCryptUDP,
+    DNSCryptTCP,
+    DoT,
+    DoH
+  };
 
-const std::string& ProtocolToString(Protocol proto);
+  Protocol(typeenum protocol = DoUDP);
+  explicit Protocol(const std::string& protocol);
+
+  bool operator==(typeenum) const;
+
+  const std::string& toString() const;
+  const std::string& toPrettyString() const;
+
+private:
+  typeenum d_protocol;
+};
 }

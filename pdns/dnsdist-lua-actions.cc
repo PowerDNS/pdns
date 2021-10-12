@@ -1320,25 +1320,19 @@ private:
 
 static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
-  DnstapMessage::ProtocolType result;
-  switch (protocol) {
-  default:
-  case dnsdist::Protocol::DoUDP:
-  case dnsdist::Protocol::DNSCryptUDP:
-    result = DnstapMessage::ProtocolType::DoUDP;
-    break;
-  case dnsdist::Protocol::DoTCP:
-  case dnsdist::Protocol::DNSCryptTCP:
-    result = DnstapMessage::ProtocolType::DoTCP;
-    break;
-  case dnsdist::Protocol::DoT:
-    result = DnstapMessage::ProtocolType::DoT;
-    break;
-  case dnsdist::Protocol::DoH:
-    result = DnstapMessage::ProtocolType::DoH;
-    break;
+  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
+    return DnstapMessage::ProtocolType::DoUDP;
   }
-  return result;
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
+    return DnstapMessage::ProtocolType::DoTCP;
+  }
+  else if (protocol == dnsdist::Protocol::DoT) {
+    return DnstapMessage::ProtocolType::DoT;
+  }
+  else if (protocol == dnsdist::Protocol::DoH) {
+    return DnstapMessage::ProtocolType::DoH;
+  }
+  throw std::runtime_error("Unhandled protocol for dnstap: " + protocol.toPrettyString());
 }
 
 class DnstapLogAction : public DNSAction, public boost::noncopyable

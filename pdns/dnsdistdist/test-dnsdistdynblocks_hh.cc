@@ -24,6 +24,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
@@ -49,10 +51,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
       /* we do not care about the response during that test, but we want to make sure
          these do not interfere with the computation */
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries);
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
@@ -71,8 +73,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -103,8 +105,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
       for (size_t idx = 0; idx < numberOfQueries; idx++) {
         struct timespec when = now;
         when.tv_sec -= (9 - timeIdx);
-        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh);
-        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend);
+        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh, protocol);
+        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
       }
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * numberOfSeconds);
@@ -160,6 +162,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 0;
   struct timespec now;
   gettime(&now);
@@ -195,10 +199,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
       struct timespec when = now;
       when.tv_sec -= (99 - timeIdx);
       for (size_t idx = 0; idx < numberOfQueries; idx++) {
-        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh);
+        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh, protocol);
         /* we do not care about the response during that test, but we want to make sure
            these do not interfere with the computation */
-        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend);
+        g_rings.insertResponse(when, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
       }
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfQueries * 100);
@@ -217,6 +221,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
   ComboAddress requestor2("192.0.2.2");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -241,7 +246,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -259,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, QType::A, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, QType::A, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -277,7 +282,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -304,6 +309,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -331,7 +337,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < numberOfResponses; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
@@ -349,7 +355,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
     dh.rcode = RCode::FormErr;
     for (size_t idx = 0; idx < numberOfResponses; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
@@ -368,7 +374,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < numberOfResponses; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
@@ -395,6 +401,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -421,11 +428,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < 20; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     dh.rcode = RCode::NoError;
     for (size_t idx = 0; idx < 80; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
 
@@ -442,7 +449,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
     dh.rcode = RCode::FormErr;
     for (size_t idx = 0; idx < 50; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50U);
 
@@ -460,11 +467,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < 21; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     dh.rcode = RCode::NoError;
     for (size_t idx = 0; idx < 79; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
 
@@ -490,11 +497,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < 11; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     dh.rcode = RCode::NoError;
     for (size_t idx = 0; idx < 39; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50U);
 
@@ -512,6 +519,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   ComboAddress backend("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 100;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
   struct timespec now;
   gettime(&now);
@@ -539,7 +547,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < numberOfResponses; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
@@ -557,7 +565,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
 
     dh.rcode = rcode;
     for (size_t idx = 0; idx < numberOfResponses; idx++) {
-      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
@@ -583,6 +591,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   ComboAddress requestor2("192.0.2.2");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -607,7 +616,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -625,7 +634,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -653,7 +662,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -682,7 +691,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -713,7 +722,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
@@ -741,6 +750,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
   ComboAddress requestor2("192.0.2.42");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -769,8 +779,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
-      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
-      g_rings.insertQuery(now, requestor2, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
+      g_rings.insertQuery(now, requestor2, qname, qtype, size, dh, protocol);
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * 2);
 
@@ -795,6 +805,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
   DNSName qname("rings.powerdns.com.");
   uint16_t qtype = QType::AAAA;
   uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   struct timespec now;
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
@@ -821,7 +833,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
      */
     for (size_t idx = 0; idx < 256; idx++) {
       const ComboAddress requestor("192.0.2." + std::to_string(idx));
-      g_rings.insertQuery(now, requestor, qname, qtype, size, dh);
+      g_rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
     }
 
     /* we apply the rules, all clients should be blocked */
@@ -877,7 +889,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* insert one fake response for 255 DNS names */
     const ComboAddress requestor("192.0.2.1");
     for (size_t idx = 0; idx < 256; idx++) {
-      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */, outgoingProtocol);
     }
 
     /* we apply the rules, all suffixes should be blocked */
@@ -937,7 +949,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
       for (size_t idxC = 0; !done && idxC < 256; idxC++) {
         for (size_t idxD = 0; !done && idxD < 256; idxD++) {
           const DNSName victim(std::to_string(idxB) + "." + std::to_string(idxC) + "." + std::to_string(idxD) + qname.toString());
-          g_rings.insertResponse(now, requestor, victim, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+          g_rings.insertResponse(now, requestor, victim, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */, outgoingProtocol);
           if (g_rings.getNumberOfQueryEntries() == 1000000) {
             done = true;
             break;
@@ -979,7 +991,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
       for (size_t idxC = 0; !done && idxC < 256; idxC++) {
         for (size_t idxD = 0; !done && idxD < 256; idxD++) {
           const ComboAddress requestor("192." + std::to_string(idxB) + "." + std::to_string(idxC) + "." + std::to_string(idxD));
-          g_rings.insertQuery(now, requestor, qname, qtype, size, dh);
+          g_rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
           if (g_rings.getNumberOfQueryEntries() == 1000000) {
             done = true;
             break;

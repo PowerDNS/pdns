@@ -108,9 +108,9 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     vector<string> parts;
     stringtok(parts, line, " \t,");
 
-    if (parts.size() == 7) {
+    if (parts.size() == 8) {
     }
-    else if (parts.size() >= 10 && parts.size() <= 12) {
+    else if (parts.size() >= 11 && parts.size() <= 13) {
       isResponse = true;
     }
     else {
@@ -138,7 +138,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
 
     ComboAddress from(parts.at(idx++));
     ComboAddress to;
-
+    dnsdist::Protocol protocol(parts.at(idx++));
     if (isResponse) {
       to = ComboAddress(parts.at(idx++));
     }
@@ -148,10 +148,10 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     QType qtype(QType::chartocode(parts.at(idx++).c_str()));
 
     if (isResponse) {
-      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dh, to);
+      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dh, to, protocol);
     }
     else {
-      insertQuery(when, from, qname, qtype.getCode(), 0, dh);
+      insertQuery(when, from, qname, qtype.getCode(), 0, dh, protocol);
     }
     ++inserted;
   }

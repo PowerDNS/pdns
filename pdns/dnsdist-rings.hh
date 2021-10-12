@@ -31,7 +31,7 @@
 #include "iputils.hh"
 #include "lock.hh"
 #include "stat_t.hh"
-
+#include "dnsdist-protocols.hh"
 
 struct Rings {
   struct Query
@@ -42,6 +42,8 @@ struct Rings {
     struct dnsheader dh;
     uint16_t size;
     uint16_t qtype;
+    // incoming protocol
+    dnsdist::Protocol protocol;
   };
   struct Response
   {
@@ -53,6 +55,8 @@ struct Rings {
     unsigned int usec;
     unsigned int size;
     uint16_t qtype;
+    // outgoing protocol
+    dnsdist::Protocol protocol;
   };
 
   struct Shard
@@ -114,13 +118,13 @@ struct Rings {
     return d_nbResponseEntries;
   }
 
-  void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh)
+  void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
       auto lock = shard->queryRing.try_lock();
       if (lock.owns_lock()) {
-        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh);
+        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
         return;
       }
       if (d_keepLockingStats) {
@@ -134,16 +138,16 @@ struct Rings {
     }
     auto& shard = getOneShard();
     auto lock = shard->queryRing.lock();
-    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh);
+    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
   }
 
-  void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
+  void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
       auto lock = shard->respRing.try_lock();
       if (lock.owns_lock()) {
-        insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend);
+        insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend, protocol);
         return;
       }
       if (d_keepLockingStats) {
@@ -157,7 +161,7 @@ struct Rings {
     }
     auto& shard = getOneShard();
     auto lock = shard->respRing.lock();
-    insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend);
+    insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend, protocol);
   }
 
   void clear()
@@ -197,20 +201,20 @@ private:
     return d_shards[getShardId()];
   }
 
-  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh)
+  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
     if (!ring.full()) {
       d_nbQueryEntries++;
     }
-    ring.push_back({requestor, name, when, dh, size, qtype});
+    ring.push_back({requestor, name, when, dh, size, qtype, protocol});
   }
 
-  void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
+  void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
     if (!ring.full()) {
       d_nbResponseEntries++;
     }
-    ring.push_back({requestor, backend, name, when, dh, usec, size, qtype});
+    ring.push_back({requestor, backend, name, when, dh, usec, size, qtype, protocol});
   }
 
   std::atomic<size_t> d_nbQueryEntries;
