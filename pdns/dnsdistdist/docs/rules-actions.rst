@@ -1289,6 +1289,16 @@ The following actions exist.
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
 
+.. function:: SetEDNSOptionAction(option)
+
+  .. versionadded:: 1.7.0
+
+  Add arbitrary EDNS option and data to the query.
+  Subsequent rules are processed after this action.
+
+  :param int option: The EDNS option number
+  :param string data: The EDNS0 option raw content
+
 .. function:: SetMacAddrAction(option)
 
   .. versionadded:: 1.6.0
