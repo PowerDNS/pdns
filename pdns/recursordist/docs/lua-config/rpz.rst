@@ -70,7 +70,25 @@ As of version 4.2.0, the first parameter of :func:`rpzPrimary` can be a list of 
 In the example above, two addresses are specified and will be tried one after another until a response is obtained. The first address uses the default port (53) while the second one uses port 5301.
 (If no optional port is set, the default port 53 is used)
 
+Extended Errors
+^^^^^^^^^^^^^^^
+DNS messages can include extended error codes and text in the EDNS part of a reply.
+If set, the Recursor will add the extended error code and text if resolving a name leads to an RPZ hit.
+This information is then sent to the client, which can inspect the extended information for diagnosis and other purposes.
+As an example consider
 
+.. code-block:: Lua
+
+    rpzPrimary("192.0.2.4","policy.rpz", {extendedErrorCode = 15, extendedErrorExtra = "Blocked by policy"})
+
+Resolving a name blocked by this policy will produce ``dig`` output containing the following line:
+
+   ; EDE: 15 (Blocked): 42 6c 6f 63 6b 65 64 20 62 79 20 70 6f 6c 69 63 79 ("Blocked by policy")
+
+Check :rfc:`8914` for other ``extendedErrorCodes``.
+
+RPZ Configuration Functions
+---------------------------
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
