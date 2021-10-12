@@ -158,7 +158,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.checkPacketCacheMetrics(6, 7)
 
-        # We peek into the cache to check TTLs and allow TTLs te be one lower than inserted since the clock might have ticked
+        # We peek into the cache to check TTLs and allow TTLs to be one lower than inserted since the clock might have ticked
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache', '-']
