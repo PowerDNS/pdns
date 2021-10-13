@@ -109,6 +109,133 @@ BOOST_AUTO_TEST_CASE(test_no_data_qmin)
   test_no_data_f(true);
 }
 
+BOOST_AUTO_TEST_CASE(test_extra_answers)
+{
+  // Test extra records in the answer section
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("www.powerdns.com.");
+  const DNSName target2("www2.powerdns.com."); // in bailiwick, but not asked for
+  const DNSName target3("www.random.net."); // out of bailiwick and not asked for
+
+  sr->setAsyncCallback([target, target2, target3](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    setLWResult(res, 0, true, false, true);
+    addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 10);
+    addRecordToLW(res, target2, QType::A, "192.0.2.3", DNSResourceRecord::ANSWER, 10);
+    addRecordToLW(res, target3, QType::A, "192.0.2.4", DNSResourceRecord::ANSWER, 10);
+
+    return LWResult::Result::Success;
+  });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  // we should only see a single record for the question we asked
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
+
+  // Also check the cache
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
+
+  // The cache should also have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+
+  // But the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), true, &cached, who), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
+{
+  // Test extra records in the answer section
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("www.powerdns.com.");
+  const DNSName target2("www2.powerdns.com."); // in bailiwick, but not asked for
+  const DNSName target3("www.random.net."); // out of bailiwick and not asked for
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com"), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  sr->setAsyncCallback([target, target2, target3, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+    }
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRRSIG(keys, res->d_records, DNSName("."), 300);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    setLWResult(res, 0, true, false, true);
+    addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 10);
+    addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+    addRecordToLW(res, target2, QType::A, "192.0.2.3", DNSResourceRecord::ANSWER, 10);
+    addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+    addRecordToLW(res, target3, QType::A, "192.0.2.4", DNSResourceRecord::ANSWER, 10);
+
+    return LWResult::Result::Success;
+  });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  // we should only see a single record for the question we asked
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
+
+  // Also check the cache
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
+
+  // The cache should also have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+
+  // But the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), true, &cached, who), 0);
+}
+
 BOOST_AUTO_TEST_CASE(test_skip_opt_any)
 {
   std::unique_ptr<SyncRes> sr;
