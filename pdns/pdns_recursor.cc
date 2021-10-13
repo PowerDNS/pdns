@@ -2240,6 +2240,32 @@ static void startDoResolve(void *p)
     if (variableAnswer || sr.wasVariable()) {
       g_stats.variableResponses++;
     }
+
+    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
+      // Start constructing embedded DNSResponse object
+      pbMessage.setResponseCode(pw.getHeader()->rcode);
+      if (!appliedPolicy.getName().empty()) {
+        pbMessage.setAppliedPolicy(appliedPolicy.getName());
+        pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
+        pbMessage.setAppliedPolicyTrigger(appliedPolicy.d_trigger);
+        pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
+        pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
+      }
+      pbMessage.addPolicyTags(dc->d_policyTags);
+      pbMessage.setInBytes(packet.size());
+      pbMessage.setValidationState(sr.getValidationState());
+
+      // Take s snap of the current protobuf buffer state to store in the PC
+      pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
+        pbMessage.getMessageBuf(),
+        pbMessage.getResponseBuf(),
+        !appliedPolicy.getName().empty() || !dc->d_policyTags.empty()});
+#ifdef NOD_ENABLED
+      // if (g_udrEnabled) ??
+      pbMessage.clearUDR(pbDataForCache->d_response);
+#endif
+    }
+
     if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
       minTTL = min(minTTL, pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                    SyncRes::s_packetcachettl);
@@ -2275,29 +2301,8 @@ static void startDoResolve(void *p)
 
     sr.d_eventTrace.add(RecEventTrace::AnswerSent);
 
+    // Now do the per query changing part ot the protobuf message
     if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
-      // Start constructing embedded DNSResponse object
-      pbMessage.setResponseCode(pw.getHeader()->rcode);
-      if (!appliedPolicy.getName().empty()) {
-        pbMessage.setAppliedPolicy(appliedPolicy.getName());
-        pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
-        pbMessage.setAppliedPolicyTrigger(appliedPolicy.d_trigger);
-        pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
-        pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
-      }
-      pbMessage.addPolicyTags(dc->d_policyTags);
-      pbMessage.setInBytes(packet.size());
-      pbMessage.setValidationState(sr.getValidationState());
-
-      // Take s snap of the current protobuf buffer state to store in the PC
-      pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
-        pbMessage.getMessageBuf(),
-        pbMessage.getResponseBuf(),
-        !appliedPolicy.getName().empty() || !dc->d_policyTags.empty()});
-#ifdef NOD_ENABLED
-      // if (g_udrEnabled) ??
-      pbMessage.clearUDR(pbDataForCache->d_response);
-#endif
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
         pbMessage.setQueryTime(dc->d_kernelTimestamp.tv_sec, dc->d_kernelTimestamp.tv_usec);
