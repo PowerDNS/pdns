@@ -30,7 +30,6 @@
 #include <bitset>
 #include "pdnsexception.hh"
 #include "misc.hh"
-#include <sys/socket.h>
 #include <netdb.h>
 #include <sstream>
 #include <boost/tuple/tuple.hpp>
