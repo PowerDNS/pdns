@@ -68,6 +68,8 @@ public:
     d_healthCheckQuery = h;
   }
 
+  void stopIO();
+
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
@@ -93,9 +95,8 @@ private:
     bool d_finished{false};
   };
   void addToIOState(IOState state, FDMultiplexer::callbackfunc_t callback);
-  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback);
-  void stopIO();
-
+  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD=false);
+  void watchForRemoteHostClosingConnection();
   void handleResponse(PendingRequest&& request);
   void handleResponseError(PendingRequest&& request, const struct timeval& now);
   void handleIOError();
@@ -440,6 +441,7 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
       if (newState == IOState::Done) {
         if (conn->getConcurrentStreamsCount() == 0) {
           conn->stopIO();
+          conn->watchForRemoteHostClosingConnection();
           ioGuard.release();
           break;
         }
@@ -486,6 +488,9 @@ void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::fun
       if (conn->getConcurrentStreamsCount() > 0) {
         conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
       }
+      else {
+        conn->watchForRemoteHostClosingConnection();
+      }
     }
     ioGuard.release();
   }
@@ -508,23 +513,25 @@ void DoHConnectionToBackend::stopIO()
   }
 }
 
-void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback)
+void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD)
 {
   struct timeval now;
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
-  if (d_healthCheckQuery) {
-    ttd = getBackendHealthCheckTTD(now);
-  }
-  else if (newState == IOState::NeedRead) {
-    ttd = getBackendReadTTD(now);
-  }
-  else if (isFresh() && d_firstWrite) {
-    /* first write just after the non-blocking connect */
-    ttd = getBackendConnectTTD(now);
-  }
-  else {
-    ttd = getBackendWriteTTD(now);
+  if (!noTTD) {
+    if (d_healthCheckQuery) {
+      ttd = getBackendHealthCheckTTD(now);
+    }
+    else if (newState == IOState::NeedRead) {
+      ttd = getBackendReadTTD(now);
+    }
+    else if (isFresh() && d_firstWrite) {
+      /* first write just after the non-blocking connect */
+      ttd = getBackendConnectTTD(now);
+    }
+    else {
+      ttd = getBackendWriteTTD(now);
+    }
   }
 
   auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
@@ -535,6 +542,13 @@ void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackf
     else if (newState == IOState::NeedWrite) {
       d_ioState->update(newState, callback, shared, ttd);
     }
+  }
+}
+
+void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
+{
+  if (willBeReusable() && !d_healthCheckQuery) {
+    updateIO(IOState::NeedRead, handleReadableIOCallback, false);
   }
 }
 
@@ -589,6 +603,9 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
         if (conn->getConcurrentStreamsCount() > 0) {
           conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
         }
+        else {
+          conn->watchForRemoteHostClosingConnection();
+        }
       }
       else {
         conn->updateIO(state, handleWritableIOCallback);
@@ -632,6 +649,10 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   }
 #endif
 
+  if (frame->hd.type == NGHTTP2_GOAWAY) {
+    conn->d_connectionDied = true;
+  }
+
   /* is this the last frame for this stream? */
   if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
     auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
@@ -652,8 +673,10 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
 
         conn->handleResponseError(std::move(request), now);
       }
+
       if (conn->getConcurrentStreamsCount() == 0) {
         conn->stopIO();
+        conn->watchForRemoteHostClosingConnection();
       }
     }
     else {
@@ -687,8 +710,8 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 
   stream->second.d_buffer.insert(stream->second.d_buffer.end(), data, data + len);
   if (stream->second.d_finished) {
-    //cerr<<"we now have the full response!"<<endl;
-    //cerr<<std::string(reinterpret_cast<const char*>(data), len)<<endl;
+    // cerr<<"we now have the full response!"<<endl;
+    // cerr<<std::string(reinterpret_cast<const char*>(data), len)<<endl;
 
     auto request = std::move(stream->second);
     conn->d_currentStreams.erase(stream->first);
@@ -704,10 +727,8 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
     }
     if (conn->getConcurrentStreamsCount() == 0) {
       conn->stopIO();
+      conn->watchForRemoteHostClosingConnection();
     }
-  }
-  else {
-    //cerr<<"but the stream is not finished yet"<<endl;
   }
 
   return 0;
@@ -751,7 +772,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   if (conn->getConcurrentStreamsCount() == 0) {
     //cerr<<"stopping IO"<<endl;
     conn->stopIO();
-    //cerr<<"our current refcnt is now "<<conn->getUsageCount()<<endl;
+    conn->watchForRemoteHostClosingConnection();
   }
 
   return 0;
@@ -864,6 +885,9 @@ size_t DownstreamDoHConnectionsManager::clear()
   size_t result = 0;
   for (const auto& backend : t_downstreamConnections) {
     result += backend.second.size();
+    for (auto& conn : backend.second) {
+      conn->stopIO();
+    }
   }
   t_downstreamConnections.clear();
   return result;
@@ -890,9 +914,11 @@ bool DownstreamDoHConnectionsManager::removeDownstreamConnection(std::shared_ptr
 
 void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval now)
 {
+  //cerr<<"cleanup interval is "<<s_cleanupInterval<<", next cleanup is "<<t_nextCleanup<<", now is "<<now.tv_sec<<endl;
   if (s_cleanupInterval <= 0 || (t_nextCleanup > 0 && t_nextCleanup > now.tv_sec)) {
     return;
   }
+
   t_nextCleanup = now.tv_sec + s_cleanupInterval;
 
   struct timeval freshCutOff = now;
