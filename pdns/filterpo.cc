@@ -53,27 +53,30 @@ bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEng
   return findExactNamedPolicy(d_propolName, qname, pol);
 }
 
-bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const
 {
   if (const auto fnd = d_propolNSAddr.lookup(addr)) {
+    key = fnd->first;
     pol = fnd->second;
     return true;
   }
   return false;
 }
 
-bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const
 {
   if (const auto fnd = d_postpolAddr.lookup(addr)) {
+    key = fnd->first;
     pol = fnd->second;
     return true;
   }
   return false;
 }
 
-bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const
 {
   if (const auto fnd = d_qpolAddr.lookup(addr)) {
+    key = fnd->first;
     pol = fnd->second;
     return true;
   }
@@ -212,10 +215,10 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
       continue;
     }
 
-    if(z->findNSIPPolicy(address, pol)) {
+    Netmask key;
+    if(z->findNSIPPolicy(address, key, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
-      // XXX should use ns RPZ
-      pol.d_trigger = Zone::maskToRPZ(address);
+      pol.d_trigger = Zone::maskToRPZ(key);
       pol.d_trigger.appendRawLabel(rpzNSIPName);
       pol.d_hit = address.toString();
       return true;
@@ -236,7 +239,8 @@ bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unorder
       continue;
     }
 
-    if (z->findClientPolicy(ca, pol)) {
+    Netmask key;
+    if (z->findClientPolicy(ca, key, pol)) {
       // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
       return true;
     }
@@ -355,8 +359,9 @@ bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordere
       return false;
     }
 
-    if (z->findResponsePolicy(ca, pol)) {
-      pol.d_trigger = Zone::maskToRPZ(ca);
+    Netmask key;
+    if (z->findResponsePolicy(ca, key, pol)) {
+      pol.d_trigger = Zone::maskToRPZ(key);
       pol.d_trigger.appendRawLabel(rpzIPName);
       pol.d_hit = ca.toString();
       return true;
