@@ -925,6 +925,7 @@ struct ServerPool
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
+  size_t poolLoad();
   size_t countServers(bool upOnly);
   const std::shared_ptr<ServerPolicy::NumberedServerVector> getServers();
   void addServer(shared_ptr<DownstreamState>& server);

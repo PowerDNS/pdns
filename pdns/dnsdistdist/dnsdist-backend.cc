@@ -218,6 +218,17 @@ size_t ServerPool::countServers(bool upOnly)
   return count;
 }
 
+size_t ServerPool::poolLoad()
+{
+  size_t load = 0;
+  auto servers = d_servers.read_lock();
+  for (const auto& server : **servers) {
+    size_t serverOutstanding = std::get<1>(server)->outstanding.load();
+    load += serverOutstanding;
+  }
+  return load;
+}
+
 const std::shared_ptr<ServerPolicy::NumberedServerVector> ServerPool::getServers()
 {
   std::shared_ptr<ServerPolicy::NumberedServerVector> result;
