@@ -90,7 +90,7 @@ public:
   void queueData(const std::string& data) override;
   std::string toString() const override
   {
-    return d_remote.toStringWithPort() + " (" + std::to_string(d_queued) + " queued, " + std::to_string(d_drops) + " dropped)";
+    return d_remote.toStringWithPort() + " (" + std::to_string(d_processed) + " processed, " + std::to_string(d_drops) + " dropped)";
   }
   void stop()
   {
@@ -109,7 +109,7 @@ private:
 
   ComboAddress d_remote;
   std::atomic<uint64_t> d_drops{0};
-  std::atomic<uint64_t> d_queued{0};
+  std::atomic<uint64_t> d_processed{0};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
