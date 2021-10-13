@@ -5,6 +5,13 @@ Changelog
   :version: 1.7.0-alpha1
   :released: 23rd of September 2021
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 10157
+    :tickets: 7937
+
+    Move to hashed passwords for the web interface
+
  .. change::
     :tags: Improvements
     :pullreq: 10381
