@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <atomic>
+
 #define CPU_LEVEL1_DCACHE_LINESIZE 64 // Until we know better via configure/getconf
 
 namespace pdns {

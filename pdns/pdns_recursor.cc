@@ -199,7 +199,7 @@ enum class PaddingMode { Always, PaddedQueries };
 
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism (without actually using sendfromto())
-static AtomicCounter counter;
+static std::atomic<uint32_t> counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static NetmaskGroup g_XPFAcl;
@@ -854,7 +854,7 @@ TCPConnection::~TCPConnection()
   --s_currentConnections;
 }
 
-AtomicCounter TCPConnection::s_currentConnections;
+std::atomic<uint32_t> TCPConnection::s_currentConnections;
 
 static void terminateTCPConnection(int fd)
 {

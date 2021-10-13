@@ -52,6 +52,7 @@
 #include "proxy-protocol.hh"
 #include "sholder.hh"
 #include "histogram.hh"
+#include "stat_t.hh"
 #include "tcpiohandler.hh"
 
 #ifdef HAVE_CONFIG_H
@@ -734,22 +735,22 @@ public:
 
   static thread_local ThreadLocalStorage t_sstorage;
 
-  static std::atomic<uint64_t> s_queries;
-  static std::atomic<uint64_t> s_outgoingtimeouts;
-  static std::atomic<uint64_t> s_outgoing4timeouts;
-  static std::atomic<uint64_t> s_outgoing6timeouts;
-  static std::atomic<uint64_t> s_throttledqueries;
-  static std::atomic<uint64_t> s_dontqueries;
-  static std::atomic<uint64_t> s_qnameminfallbacksuccess;
-  static std::atomic<uint64_t> s_authzonequeries;
-  static std::atomic<uint64_t> s_outqueries;
-  static std::atomic<uint64_t> s_tcpoutqueries;
-  static std::atomic<uint64_t> s_dotoutqueries;
-  static std::atomic<uint64_t> s_unreachables;
-  static std::atomic<uint64_t> s_ecsqueries;
-  static std::atomic<uint64_t> s_ecsresponses;
-  static std::map<uint8_t, std::atomic<uint64_t>> s_ecsResponsesBySubnetSize4;
-  static std::map<uint8_t, std::atomic<uint64_t>> s_ecsResponsesBySubnetSize6;
+  static pdns::stat_t s_queries;
+  static pdns::stat_t s_outgoingtimeouts;
+  static pdns::stat_t s_outgoing4timeouts;
+  static pdns::stat_t s_outgoing6timeouts;
+  static pdns::stat_t s_throttledqueries;
+  static pdns::stat_t s_dontqueries;
+  static pdns::stat_t s_qnameminfallbacksuccess;
+  static pdns::stat_t s_authzonequeries;
+  static pdns::stat_t s_outqueries;
+  static pdns::stat_t s_tcpoutqueries;
+  static pdns::stat_t s_dotoutqueries;
+  static pdns::stat_t s_unreachables;
+  static pdns::stat_t s_ecsqueries;
+  static pdns::stat_t s_ecsresponses;
+  static std::map<uint8_t, pdns::stat_t> s_ecsResponsesBySubnetSize4;
+  static std::map<uint8_t, pdns::stat_t> s_ecsResponsesBySubnetSize6;
 
   static string s_serverID;
   static unsigned int s_minimumTTL;
@@ -1023,9 +1024,9 @@ MT_t* getMT();
 
 struct RecursorStats
 {
-  std::atomic<uint64_t> servFails;
-  std::atomic<uint64_t> nxDomains;
-  std::atomic<uint64_t> noErrors;
+  pdns::stat_t servFails;
+  pdns::stat_t nxDomains;
+  pdns::stat_t noErrors;
   pdns::AtomicHistogram answers;
   pdns::AtomicHistogram auth4Answers;
   pdns::AtomicHistogram auth6Answers;
@@ -1033,50 +1034,50 @@ struct RecursorStats
   pdns::AtomicHistogram cumulativeAnswers;
   pdns::AtomicHistogram cumulativeAuth4Answers;
   pdns::AtomicHistogram cumulativeAuth6Answers;
-  std::atomic<double> avgLatencyUsec;
-  std::atomic<double> avgLatencyOursUsec;
-  std::atomic<uint64_t> qcounter;     // not increased for unauth packets
-  std::atomic<uint64_t> ipv6qcounter;
-  std::atomic<uint64_t> tcpqcounter;
-  std::atomic<uint64_t> unauthorizedUDP;  // when this is increased, qcounter isn't
-  std::atomic<uint64_t> unauthorizedTCP;  // when this is increased, qcounter isn't
-  std::atomic<uint64_t> policyDrops;
-  std::atomic<uint64_t> tcpClientOverflow;
-  std::atomic<uint64_t> clientParseError;
-  std::atomic<uint64_t> serverParseError;
-  std::atomic<uint64_t> tooOldDrops;
-  std::atomic<uint64_t> truncatedDrops;
-  std::atomic<uint64_t> queryPipeFullDrops;
-  std::atomic<uint64_t> unexpectedCount;
-  std::atomic<uint64_t> caseMismatchCount;
-  std::atomic<uint64_t> spoofCount;
-  std::atomic<uint64_t> resourceLimits;
-  std::atomic<uint64_t> overCapacityDrops;
-  std::atomic<uint64_t> ipv6queries;
-  std::atomic<uint64_t> chainResends;
-  std::atomic<uint64_t> nsSetInvalidations;
-  std::atomic<uint64_t> ednsPingMatches;
-  std::atomic<uint64_t> ednsPingMismatches;
-  std::atomic<uint64_t> noPingOutQueries, noEdnsOutQueries;
-  std::atomic<uint64_t> packetCacheHits;
-  std::atomic<uint64_t> noPacketError;
-  std::atomic<uint64_t> ignoredCount;
-  std::atomic<uint64_t> emptyQueriesCount;
+  pdns::stat_t_trait<double> avgLatencyUsec;
+  pdns::stat_t_trait<double> avgLatencyOursUsec;
+  pdns::stat_t qcounter;     // not increased for unauth packets
+  pdns::stat_t ipv6qcounter;
+  pdns::stat_t tcpqcounter;
+  pdns::stat_t unauthorizedUDP;  // when this is increased, qcounter isn't
+  pdns::stat_t unauthorizedTCP;  // when this is increased, qcounter isn't
+  pdns::stat_t policyDrops;
+  pdns::stat_t tcpClientOverflow;
+  pdns::stat_t clientParseError;
+  pdns::stat_t serverParseError;
+  pdns::stat_t tooOldDrops;
+  pdns::stat_t truncatedDrops;
+  pdns::stat_t queryPipeFullDrops;
+  pdns::stat_t unexpectedCount;
+  pdns::stat_t caseMismatchCount;
+  pdns::stat_t spoofCount;
+  pdns::stat_t resourceLimits;
+  pdns::stat_t overCapacityDrops;
+  pdns::stat_t ipv6queries;
+  pdns::stat_t chainResends;
+  pdns::stat_t nsSetInvalidations;
+  pdns::stat_t ednsPingMatches;
+  pdns::stat_t ednsPingMismatches;
+  pdns::stat_t noPingOutQueries, noEdnsOutQueries;
+  pdns::stat_t packetCacheHits;
+  pdns::stat_t noPacketError;
+  pdns::stat_t ignoredCount;
+  pdns::stat_t emptyQueriesCount;
   time_t startupTime;
-  std::atomic<uint64_t> dnssecQueries;
-  std::atomic<uint64_t> dnssecAuthenticDataQueries;
-  std::atomic<uint64_t> dnssecCheckDisabledQueries;
-  std::atomic<uint64_t> variableResponses;
-  std::atomic<uint64_t> maxMThreadStackUsage;
-  std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
-  std::map<vState, std::atomic<uint64_t> > dnssecResults;
-  std::map<vState, std::atomic<uint64_t> > xdnssecResults;
-  std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
-  LockGuarded<std::unordered_map<std::string, std::atomic<uint64_t>>> policyHits;
-  std::atomic<uint64_t> rebalancedQueries{0};
-  std::atomic<uint64_t> proxyProtocolInvalidCount{0};
-  std::atomic<uint64_t> nodLookupsDroppedOversize{0};
-  std::atomic<uint64_t> dns64prefixanswers{0};
+  pdns::stat_t dnssecQueries;
+  pdns::stat_t dnssecAuthenticDataQueries;
+  pdns::stat_t dnssecCheckDisabledQueries;
+  pdns::stat_t variableResponses;
+  pdns::stat_t maxMThreadStackUsage;
+  pdns::stat_t dnssecValidations; // should be the sum of all dnssecResult* stats
+  std::map<vState, pdns::stat_t > dnssecResults;
+  std::map<vState, pdns::stat_t > xdnssecResults;
+  std::map<DNSFilterEngine::PolicyKind, pdns::stat_t > policyResults;
+  LockGuarded<std::unordered_map<std::string, pdns::stat_t>> policyHits;
+  pdns::stat_t rebalancedQueries{0};
+  pdns::stat_t proxyProtocolInvalidCount{0};
+  pdns::stat_t nodLookupsDroppedOversize{0};
+  pdns::stat_t dns64prefixanswers{0};
 
   RecursorStats() :
     answers("answers", { 1000, 10000, 100000, 1000000 }),
@@ -1120,7 +1121,7 @@ public:
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
   const int d_fd;
-  static AtomicCounter s_currentConnections; //!< total number of current TCP connections
+  static std::atomic<uint32_t> s_currentConnections; //!< total number of current TCP connections
 };
 
 class ImmediateServFailException

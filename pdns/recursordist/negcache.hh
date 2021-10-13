@@ -29,6 +29,7 @@
 #include "dnsname.hh"
 #include "dns.hh"
 #include "lock.hh"
+#include "stat_t.hh"
 #include "validate.hh"
 
 using namespace ::boost::multi_index;
@@ -113,7 +114,7 @@ private:
       uint64_t d_acquired_count{0};
       void invalidate() {}
     };
-    std::atomic<uint64_t> d_entriesCount{0};
+    pdns::stat_t d_entriesCount{0};
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
     {

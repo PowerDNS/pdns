@@ -38,6 +38,7 @@
 #include <boost/version.hpp>
 #include "iputils.hh"
 #include "lock.hh"
+#include "stat_t.hh"
 #include "validate.hh"
 #undef max
 
@@ -67,7 +68,7 @@ public:
   bool doAgeCache(time_t now, const DNSName& name, QType qtype, uint32_t newTTL);
   bool updateValidationStatus(time_t now, const DNSName &qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
-  std::atomic<uint64_t> cacheHits{0}, cacheMisses{0};
+  pdns::stat_t cacheHits{0}, cacheMisses{0};
 
 private:
 
@@ -224,7 +225,7 @@ private:
       }
     };
 
-    std::atomic<uint64_t> d_entriesCount{0};
+    pdns::stat_t d_entriesCount{0};
 
     LockGuardedTryHolder<LockedContent> lock()
     {

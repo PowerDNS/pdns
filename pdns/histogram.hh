@@ -22,11 +22,12 @@
 #pragma once
 
 #include <algorithm>
-#include <atomic>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include "stat_t.hh"
 
 namespace pdns
 {
@@ -50,7 +51,7 @@ struct AtomicBucket
 
   const std::string d_name;
   const uint64_t d_boundary{0};
-  mutable std::atomic<uint64_t> d_count{0};
+  mutable stat_t d_count{0};
 };
 
 template <class B, class SumType>
@@ -178,6 +179,6 @@ private:
 
 using Histogram = BaseHistogram<Bucket, uint64_t>;
 
-using AtomicHistogram = BaseHistogram<AtomicBucket, std::atomic<uint64_t>>;
+using AtomicHistogram = BaseHistogram<AtomicBucket, pdns::stat_t>;
 
 } // namespace pdns
