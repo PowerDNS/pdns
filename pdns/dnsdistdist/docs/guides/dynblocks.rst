@@ -1,6 +1,12 @@
 Dynamic Rule Generation
 =======================
 
+Dynamic Blocks can be seen are short-lived rules, automatically inserted based on configurable thresholds and the analysis of recently received traffic, and automatically removed after a configurable amount of time.
+
+The analyzed traffic is the one kept by dnsdist in its in-memory ring buffers. The number of entries kept in these ring buffers can be set via the :func:`setRingBuffersSize` directive, and the impact in terms of CPU and memory consumption is described in :doc:`../advanced/tuning`.
+
+That number of entries is crucial for the rate-based rules, like :func:`DynBlockRulesGroup:setQueryRate`, as they will never match if the number of entries in the ring buffer is too small for the required rate, as explained in more details below.
+
 To set dynamic rules, based on recent traffic, define a function called :func:`maintenance` in Lua.
 It will get called every second, and from this function you can set rules to block traffic based on statistics.
 More exactly, the thread handling the :func:`maintenance` function will sleep for one second between each invocation, so if the function takes several seconds to complete it will not be invoked exactly every second.
@@ -86,3 +92,22 @@ action is applied.
   dbr:setQueryRate(300, 10, "Exceeded query rate", 60, DNSAction.Drop, 100)
 
 Since 1.6.0, if a default eBPF filter has been set via :func:`setDefaultBPFFilter` dnsdist will automatically try to use it when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`. eBPF blocks are applied in kernel space and are much more efficient than user space ones. Note that a regular block is also inserted so that any failure will result in a regular block being used instead of the eBPF one.
+
+Rate rules and size of the ring buffers
+---------------------------------------
+
+As explained in the introduction, the whole dynamic block feature is based on analyzing the recent traffic kept in dnsdist's in-memory ring buffers, whose content can be inspected via :func:`grepq`.
+
+The sizing of the buffers, in addition to having performance impacts explained in :doc:`../advanced/tuning`, directly impacts some of the dynamic block rules, like the rate and ratio-based ones.
+
+For example, if :func:`DynBlockRulesGroup:setQueryRate` is used to request the blocking for 60s of any client exceeding 1000 qps over 10s, like this:
+
+.. code-block:: lua
+
+  dbr:setQueryRate(1000, 10, "Exceeded query rate", 60, DNSAction.Drop)
+
+For this rule to trigger, dnsdist will need to scan the ring buffers and find 1000 * 10 = 10000 queries, not older than 10s, from that client. Since a ring buffer has a fixed size, and new entries override the oldest ones when the buffer is full, that only works if there are enough entries in the buffer.
+
+This is even more obvious for the ratio-based rules, when they have a minimum number of responses set, because in that case they clearly require that number of responses to fit in the buffer.
+
+That requirement could be lifted a bit by the use of sampling, meaning that only one query out of 10 would be recorded, for example, and the total amount would be inferred from the queries present in the buffer. As of 1.7.0, sampling as unfortunately not been implemented yet.
