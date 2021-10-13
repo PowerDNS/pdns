@@ -31,6 +31,10 @@ struct ConnectionInfo
     cs(cs_), fd(-1)
   {
   }
+  ConnectionInfo(ClientState* cs_, const ComboAddress remote_) :
+    remote(remote_), cs(cs_), fd(-1)
+  {
+  }
   ConnectionInfo(ConnectionInfo&& rhs) :
     remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
   {

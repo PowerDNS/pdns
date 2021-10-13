@@ -29,6 +29,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-nghttp2.hh"
+#include "sstuff.hh"
 
 #ifdef HAVE_NGHTTP2
 #include <nghttp2/nghttp2.h>
@@ -627,6 +628,34 @@ public:
   bool d_error{false};
 };
 
+static bool isIPv6Supported()
+{
+  try {
+    ComboAddress addr("[2001:db8:53::1]:53");
+    auto socket = std::make_unique<Socket>(addr.sin4.sin_family, SOCK_STREAM, 0);
+    socket->setNonBlocking();
+    int res = SConnectWithTimeout(socket->getHandle(), addr, timeval{0, 0});
+    if (res == 0 || res == EINPROGRESS) {
+      return true;
+    }
+    return false;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
+}
+
+static ComboAddress getBackendAddress(const std::string& lastDigit, uint16_t port)
+{
+  static const bool useV6 = isIPv6Supported();
+
+  if (useV6) {
+    return ComboAddress("2001:db8:53::" + lastDigit, port);
+  }
+
+  return ComboAddress("192.0.2." + lastDigit, port);
+}
+
 static std::unique_ptr<FDMultiplexer> s_mplexer;
 
 struct TestFixture
@@ -648,7 +677,7 @@ struct TestFixture
 
 BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -675,7 +704,7 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 
   s_responses[counter] = {query, response};
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -717,7 +746,7 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -725,7 +754,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -802,7 +831,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -810,7 +839,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -901,7 +930,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -930,7 +959,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
   response.resize(11);
   s_responses[counter] = {query, response};
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -978,7 +1007,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -986,7 +1015,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1065,7 +1094,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1073,7 +1102,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1152,7 +1181,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1160,7 +1189,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1234,7 +1263,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1242,7 +1271,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1323,7 +1352,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1331,7 +1360,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1409,7 +1438,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1417,7 +1446,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1498,7 +1527,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1506,7 +1535,7 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1609,7 +1638,7 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1617,7 +1646,7 @@ BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1697,7 +1726,7 @@ BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
@@ -1705,7 +1734,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
@@ -1797,7 +1826,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
 {
-  ComboAddress local("192.0.2.1:80");
+  auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   tlsCtx->d_needProxyProtocol = true;
@@ -1806,7 +1835,7 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
   struct timeval now;
   gettimeofday(&now, nullptr);
 
-  auto backend = std::make_shared<DownstreamState>(ComboAddress("192.0.2.42:53"), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
   backend->d_tlsCtx = tlsCtx;
   backend->d_tlsSubjectName = "backend.powerdns.com";
   backend->d_dohPath = "/dns-query";
