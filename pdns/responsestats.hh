@@ -23,6 +23,7 @@
 
 #include <array>
 #include "histogram.hh"
+#include "stat_t.hh"
 
 #include "dnspacket.hh"
 
@@ -42,7 +43,7 @@ public:
 private:
   struct Counter
   {
-    mutable std::atomic<uint64_t> value;
+    mutable pdns::stat_t value;
   };
 
   std::array<Counter, 65536> d_qtypecounters;

@@ -1034,8 +1034,8 @@ struct RecursorStats
   pdns::AtomicHistogram cumulativeAnswers;
   pdns::AtomicHistogram cumulativeAuth4Answers;
   pdns::AtomicHistogram cumulativeAuth6Answers;
-  std::atomic<double> avgLatencyUsec;
-  std::atomic<double> avgLatencyOursUsec;
+  pdns::stat_t_trait<double> avgLatencyUsec;
+  pdns::stat_t_trait<double> avgLatencyOursUsec;
   pdns::stat_t qcounter;     // not increased for unauth packets
   pdns::stat_t ipv6qcounter;
   pdns::stat_t tcpqcounter;
@@ -1121,7 +1121,7 @@ public:
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
   const int d_fd;
-  static AtomicCounter s_currentConnections; //!< total number of current TCP connections
+  static std::atomic<uint32_t> s_currentConnections; //!< total number of current TCP connections
 };
 
 class ImmediateServFailException
