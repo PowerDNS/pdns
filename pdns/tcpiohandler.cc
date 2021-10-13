@@ -545,6 +545,13 @@ public:
       SSL_OP_SINGLE_DH_USE |
       SSL_OP_SINGLE_ECDH_USE |
       SSL_OP_CIPHER_SERVER_PREFERENCE;
+    if (!params.d_enableRenegotiation) {
+#ifdef SSL_OP_NO_RENEGOTIATION
+      sslOptions |= SSL_OP_NO_RENEGOTIATION;
+#elif defined(SSL_OP_NO_CLIENT_RENEGOTIATION)
+      sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
+#endif
+    }
 
     registerOpenSSLUser();
 
@@ -599,6 +606,12 @@ public:
        but we don't want OpenSSL to cache the session itself so we set SSL_SESS_CACHE_NO_INTERNAL_STORE as well */
     SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::newTicketFromServerCb);
+
+#ifdef SSL_MODE_RELEASE_BUFFERS
+    if (params.d_releaseBuffers) {
+      SSL_CTX_set_mode(d_tlsCtx.get(), SSL_MODE_RELEASE_BUFFERS);
+    }
+#endif
   }
 
   ~OpenSSLTLSIOCtx() override

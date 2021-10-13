@@ -524,6 +524,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (vars.count("validateCertificates")) {
           tlsParams.d_validateCertificates = boost::get<bool>(vars.at("validateCertificates"));
         }
+        if (vars.count("releaseBuffers")) {
+          tlsParams.d_releaseBuffers = boost::get<bool>(vars.at("releaseBuffers"));
+        }
+        if (vars.count("enableRenegotiation")) {
+          tlsParams.d_enableRenegotiation = boost::get<bool>(vars.at("enableRenegotiation"));
+        }
+
+
         if (vars.count("subjectName")) {
           ret->d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
         }
