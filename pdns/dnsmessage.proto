@@ -1,25 +1,36 @@
 /*
  * This file describes the message format used by the protobuf logging feature in PowerDNS and dnsdist.
  *
- * Written by PowerDNS.COM B.V. and its contributors.
+ * MIT License
  * 
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this file to the public
- * domain worldwide. This file is distributed without any warranty.
- *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this file. If not, see:
- *
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Copyright (c) 2016-now PowerDNS.COM B.V. and its contributors.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 syntax = "proto2";
 
 message PBDNSMessage {
   enum Type {
-    DNSQueryType = 1;
-    DNSResponseType = 2;
-    DNSOutgoingQueryType = 3;
-    DNSIncomingResponseType = 4;
+    DNSQueryType = 1;                           // Query received by the service
+    DNSResponseType = 2;                        // Response returned by the service
+    DNSOutgoingQueryType = 3;                   // Query sent out by the service to a remote server
+    DNSIncomingResponseType = 4;                // Response returned by the remote server
   }
   enum SocketFamily {
     INET = 1;                                   // IPv4 (RFC 791)
@@ -30,7 +41,7 @@ message PBDNSMessage {
     TCP = 2;                                    // Transmission Control Protocol (RFC 793)
   }
   enum PolicyType {
-    UNKNOWN = 1;                                // No policy applied, or unknown type
+    UNKNOWN = 1;                                // No RPZ policy applied, or unknown type
     QNAME = 2;                                  // Policy matched on the QName
     CLIENTIP = 3;                               // Policy matched on the client IP
     RESPONSEIP = 4;                             // Policy matched on one of the IPs contained in the answer
@@ -65,38 +76,40 @@ message PBDNSMessage {
     BogusRevokedDNSKEY = 17;
     BogusInvalidDNSKEYProtocol = 18;
   }
-  required Type type = 1;
+  required Type type = 1;                       // Type of event
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
   optional bytes serverIdentity = 3;            // ID of the server emitting the protobuf message
   optional SocketFamily socketFamily = 4;
   optional SocketProtocol socketProtocol = 5;
-  optional bytes from = 6;                      // DNS requestor (client)
-  optional bytes to = 7;                        // DNS responder (server)
+  optional bytes from = 6;                      // DNS requestor (client) as 4 (IPv4) or 16 (IPv6) raw bytes in network byte order
+  optional bytes to = 7;                        // DNS responder (server) as 4 (IPv4) or 16 (IPv6) raw bytes in network byte order
   optional uint64 inBytes = 8;                  // Size of the query or response on the wire
   optional uint32 timeSec = 9;                  // Time of message reception (seconds since epoch)
   optional uint32 timeUsec = 10;                // Time of message reception (additional micro-seconds)
   optional uint32 id = 11;                      // ID of the query/response as found in the DNS header
 
   message DNSQuestion {
-    optional string qName = 1;
-    optional uint32 qType = 2;
-    optional uint32 qClass = 3;
+    optional string qName = 1;                  // Fully qualified DNS name (with trailing dot)
+    optional uint32 qType = 2;                  // https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
+    optional uint32 qClass = 3;                 // Typically 1 (IN), see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
   }
-  optional DNSQuestion question = 12;
+  optional DNSQuestion question = 12;           // DNS query received from client
 
   message DNSResponse {
+    // See exportTypes in https://docs.powerdns.com/recursor/lua-config/protobuf.html#protobufServer
+    // for the list of supported resource record types.
     message DNSRR {
-      optional string name = 1;
-      optional uint32 type = 2;
-      optional uint32 class = 3;
-      optional uint32 ttl = 4;
-      optional bytes rdata = 5;
+      optional string name = 1;                 // Fully qualified DNS name (with trailing dot)
+      optional uint32 type = 2;                 // https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
+      optional uint32 class = 3;                // Typically 1 (IN), see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
+      optional uint32 ttl = 4;                  // TTL in seconds
+      optional bytes rdata = 5;                 // raw address bytes in network byte order for A & AAAA; text representation for others, with fully qualified (trailing dot) domain names
       optional bool  udr = 6;                   // True if this is the first time this RR has been seen for this question
     }
     optional uint32 rcode = 1;                  // DNS Response code, or 65536 for a network error including a timeout
-    repeated DNSRR rrs = 2;
+    repeated DNSRR rrs = 2;                     // DNS resource records in response
     optional string appliedPolicy = 3;          // Filtering policy (RPZ or Lua) applied
-    repeated string tags = 4;                   // Additional tags
+    repeated string tags = 4;                   // Additional tags applied
     optional uint32 queryTimeSec = 5;           // Time of the corresponding query reception (seconds since epoch)
     optional uint32 queryTimeUsec = 6;          // Time of the corresponding query reception (additional micro-seconds)
     optional PolicyType appliedPolicyType = 7;  // Type of the filtering policy (RPZ or Lua) applied
@@ -107,10 +120,10 @@ message PBDNSMessage {
   }
 
   optional DNSResponse response = 13;
-  optional bytes originalRequestorSubnet = 14;  // EDNS Client Subnet value
+  optional bytes originalRequestorSubnet = 14;  // EDNS Client Subnet value (4 or 16 raw bytes in network byte order)
   optional string requestorId = 15;             // Username of the requestor
   optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
-  optional bytes deviceId = 17;                 // Device ID of the requestor (could be mac address IP address or e.g. IMEI)
+  optional bytes deviceId = 17;                 // Device ID of the requestor (could be mac address IP address or e.g. IMEI, format implementation dependent)
   optional bool  newlyObservedDomain = 18;      // True if the domain has not been seen before
   optional string deviceName = 19;              // Device name of the requestor
   optional uint32 fromPort = 20;                // Source port of the DNS query (client)
