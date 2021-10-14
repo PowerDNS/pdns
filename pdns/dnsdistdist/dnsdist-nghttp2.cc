@@ -95,7 +95,7 @@ private:
     bool d_finished{false};
   };
   void addToIOState(IOState state, FDMultiplexer::callbackfunc_t callback);
-  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD=false);
+  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD = false);
   void watchForRemoteHostClosingConnection();
   void handleResponse(PendingRequest&& request);
   void handleResponseError(PendingRequest&& request, const struct timeval& now);
