@@ -390,7 +390,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
 }
 
 #ifdef HAVE_DNSCRYPT
-static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
+static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
 {
   if (dnsCryptQuery) {
     int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
@@ -1063,14 +1063,14 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   return true;
 }
 
-bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
+bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {
   if (cs.dnscryptCtx) {
 #ifdef HAVE_DNSCRYPT
     PacketBuffer response;
-    dnsCryptQuery = std::make_shared<DNSCryptQuery>(cs.dnscryptCtx);
+    dnsCryptQuery = std::make_unique<DNSCryptQuery>(cs.dnscryptCtx);
 
-    bool decrypted = handleDNSCryptQuery(query, dnsCryptQuery, tcp, now, response);
+    bool decrypted = handleDNSCryptQuery(query, *dnsCryptQuery, tcp, now, response);
 
     if (!decrypted) {
       if (response.size() > 0) {
@@ -1126,7 +1126,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
   DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, dq.getMutableData(), dq.protocol, dq.queryTime);
 
   dr.uniqueId = dq.uniqueId;
-  dr.qTag = dq.qTag;
+  dr.qTag = std::move(dq.qTag);
   dr.delayMsec = dq.delayMsec;
 
   if (!applyRulesToResponse(cacheHit ? holders.cacheHitRespRuleactions : holders.selfAnsweredRespRuleactions, dr)) {
@@ -1432,7 +1432,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     struct timespec queryRealTime;
     gettime(&queryRealTime, true);
 
-    std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
+    std::unique_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
     auto dnsCryptResponse = checkDNSCryptQuery(cs, query, dnsCryptQuery, queryRealTime.tv_sec, false);
     if (dnsCryptResponse) {
       sendUDPResponse(cs.udpFD, query, 0, dest, remote);

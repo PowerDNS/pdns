@@ -607,7 +607,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
 
-  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
+  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
   auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, dnsCryptQuery, queryRealTime.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;

@@ -10,7 +10,7 @@
 class TCPConnectionToBackend : public std::enable_shared_from_this<TCPConnectionToBackend>
 {
 public:
-  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_responseBuffer(s_maxPacketCacheEntrySize), d_mplexer(mplexer), d_ds(ds), d_connectionStartTime(now), d_lastDataReceivedTime(now), d_enableFastOpen(ds->tcpFastOpen)
+  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_connectionStartTime(now), d_lastDataReceivedTime(now), d_ds(ds), d_responseBuffer(s_maxPacketCacheEntrySize), d_mplexer(mplexer), d_enableFastOpen(ds->tcpFastOpen)
   {
     reconnect();
   }
@@ -206,18 +206,18 @@ protected:
     return res;
   }
 
-  PacketBuffer d_responseBuffer;
+  TCPQuery d_currentQuery;
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
+  struct timeval d_connectionStartTime;
+  struct timeval d_lastDataReceivedTime;
+  std::shared_ptr<DownstreamState> d_ds{nullptr};
+  std::shared_ptr<TCPQuerySender> d_sender{nullptr};
+  PacketBuffer d_responseBuffer;
   std::unique_ptr<FDMultiplexer>& d_mplexer;
   std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
   std::unique_ptr<TCPIOHandler> d_handler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
-  std::shared_ptr<DownstreamState> d_ds{nullptr};
-  std::shared_ptr<TCPQuerySender> d_sender{nullptr};
-  TCPQuery d_currentQuery;
-  struct timeval d_connectionStartTime;
-  struct timeval d_lastDataReceivedTime;
   size_t d_currentPos{0};
   uint64_t d_queries{0};
   uint64_t d_downstreamFailures{0};

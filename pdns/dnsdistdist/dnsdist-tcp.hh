@@ -84,7 +84,7 @@ struct InternalQuery
   }
 
   InternalQuery(InternalQuery&& rhs) :
-    d_idstate(std::move(rhs.d_idstate)), d_buffer(std::move(rhs.d_buffer)), d_proxyProtocolPayload(std::move(rhs.d_proxyProtocolPayload)), d_xfrMasterSerial(rhs.d_xfrMasterSerial), d_xfrSerialCount(rhs.d_xfrSerialCount), d_downstreamFailures(rhs.d_downstreamFailures), d_xfrMasterSerialCount(rhs.d_xfrMasterSerialCount), d_proxyProtocolPayloadAdded(rhs.d_proxyProtocolPayloadAdded)
+    d_idstate(std::move(rhs.d_idstate)), d_proxyProtocolPayload(std::move(rhs.d_proxyProtocolPayload)), d_buffer(std::move(rhs.d_buffer)), d_xfrMasterSerial(rhs.d_xfrMasterSerial), d_xfrSerialCount(rhs.d_xfrSerialCount), d_downstreamFailures(rhs.d_downstreamFailures), d_xfrMasterSerialCount(rhs.d_xfrMasterSerialCount), d_proxyProtocolPayloadAdded(rhs.d_proxyProtocolPayloadAdded)
   {
   }
   InternalQuery& operator=(InternalQuery&& rhs)
@@ -109,8 +109,8 @@ struct InternalQuery
   }
 
   IDState d_idstate;
-  PacketBuffer d_buffer;
   std::string d_proxyProtocolPayload;
+  PacketBuffer d_buffer;
   uint32_t d_xfrMasterSerial{0};
   uint32_t d_xfrSerialCount{0};
   uint32_t d_downstreamFailures{0};
