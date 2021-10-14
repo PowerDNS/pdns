@@ -2267,8 +2267,12 @@ static void startDoResolve(void *p)
     }
 
     if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
-      minTTL = min(minTTL, pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
-                   SyncRes::s_packetcachettl);
+      const auto& hdr = pw.getHeader();
+      if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) ||
+          (hdr->ancount == 0 && hdr->nscount == 0)) {
+        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
+      }
+      minTTL = min(minTTL, SyncRes::s_packetcachettl);
       t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),
@@ -2341,7 +2345,7 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
-      if (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
+      if (sr.d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
         pbMessage.addEvents(sr.d_eventTrace);
       }
       if (dc->d_logResponse) {
