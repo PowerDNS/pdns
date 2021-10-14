@@ -12,3 +12,4 @@ void setWebserverMaxConcurrentConnections(size_t);
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 
 void registerBuiltInWebHandlers();
+void clearWebHandlers();

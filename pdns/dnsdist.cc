@@ -2176,8 +2176,22 @@ static void usage()
 }
 
 #ifdef COVERAGE
+static void cleanupLuaObjects()
+{
+  /* when our coverage mode is enabled, we need to make
+     that the Lua objects destroyed before the Lua contexts. */
+  g_ruleactions.setState({});
+  g_respruleactions.setState({});
+  g_cachehitrespruleactions.setState({});
+  g_selfansweredrespruleactions.setState({});
+  g_dstates.setState({});
+  g_policy.setState(ServerPolicy());
+  clearWebHandlers();
+}
+
 static void sighandler(int sig)
 {
+  cleanupLuaObjects();
   exit(EXIT_SUCCESS);
 }
 #endif
@@ -2408,6 +2422,7 @@ int main(int argc, char** argv)
       // No exception was thrown
       infolog("Configuration '%s' OK!", g_cmdLine.config);
 #ifdef COVERAGE
+      cleanupLuaObjects();
       exit(EXIT_SUCCESS);
 #else
       _exit(EXIT_SUCCESS);
@@ -2661,6 +2676,7 @@ int main(int argc, char** argv)
       doConsole();
     }
 #ifdef COVERAGE
+    cleanupLuaObjects();
     exit(EXIT_SUCCESS);
 #else
     _exit(EXIT_SUCCESS);

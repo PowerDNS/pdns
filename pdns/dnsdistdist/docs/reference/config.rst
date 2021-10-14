@@ -503,7 +503,7 @@ Servers
     Added ``maxInFlight`` to server_table.
 
   .. versionchanged:: 1.7.0
-    Added ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
+    Added ``addXForwardedHeaders``, ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -560,6 +560,7 @@ Servers
       subjectName=STRING,       -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
       validateCertificates=BOOL,-- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
       dohPath=STRING,           -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
+      addXForwardedHeaders=BOOL,-- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
       releaseBuffers=BOOL,      -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
       enableRenegotiation=BOOL  -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
     })
