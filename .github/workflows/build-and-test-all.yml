@@ -201,6 +201,8 @@ jobs:
             image: mariadb:10
           - backend: gpgsql
             image: postgres:9
+          - backend: gsqlite3  # this also runs regression-tests.nobackend and pdnsutil test-algorithms
+            image: coscale/docker-sleep
           - backend: lmdb
             image: coscale/docker-sleep
           - backend: bind
@@ -210,6 +212,8 @@ jobs:
           - backend: lua2
             image: coscale/docker-sleep
           - backend: tinydns
+            image: coscale/docker-sleep
+          - backend: authpy
             image: coscale/docker-sleep
       fail-fast: false
     services:
@@ -261,7 +265,7 @@ jobs:
           path: /opt/pdns-auth
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
-      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
+      - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
 
   test-recursor-api:
