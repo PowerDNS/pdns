@@ -565,6 +565,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
 
+      if (ret->isTCPOnly()) {
+        /* no need to keep the UDP states, then */
+        ret->idStates.clear();
+      }
+
       /* this needs to be done _AFTER_ the order has been set,
          since the server are kept ordered inside the pool */
       auto localPools = g_pools.getCopy();
