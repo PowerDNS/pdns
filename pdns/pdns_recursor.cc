@@ -115,6 +115,7 @@
 #include "rec-protozero.hh"
 
 #include "xpf.hh"
+#include "rec-eventtrace.hh"
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
@@ -337,6 +338,7 @@ struct DNSComboWriter {
      d_local holds our own. */
   ComboAddress d_local;
   ComboAddress d_destination;
+  RecEventTrace d_eventTrace;
   boost::uuids::uuid d_uuid;
   string d_requestorId;
   string d_deviceId;
@@ -1064,7 +1066,8 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
                                 bool tcp, const ComboAddress& source, const ComboAddress& destination,
                                 const EDNSSubnetOpts& ednssubnet,
                                 const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
-                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
+                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
+                                const RecEventTrace& eventTrace)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
   // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
@@ -1106,6 +1109,9 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
     pbMessage.setNewlyObservedDomain(false);
   }
 #endif
+  if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
+    pbMessage.addEvents(eventTrace);
+  }
   protobufLogResponse(pbMessage);
 }
 
@@ -1683,6 +1689,7 @@ static void startDoResolve(void *p)
     uint32_t minTTL = dc->d_ttlCap;
 
     SyncRes sr(dc->d_now);
+    sr.d_eventTrace = std::move(dc->d_eventTrace);
     sr.setId(MT->getTid());
 
     bool DNSSECOK=false;
@@ -1781,7 +1788,7 @@ static void startDoResolve(void *p)
     }
 
     if (t_pdl) {
-      t_pdl->prerpz(dq, res);
+      t_pdl->prerpz(dq, res, sr.d_eventTrace);
     }
 
     // Check if the client has a policy attached to it
@@ -1828,7 +1835,7 @@ static void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if (!t_pdl || !t_pdl->preresolve(dq, res)) {
+    if (!t_pdl || !t_pdl->preresolve(dq, res, sr.d_eventTrace)) {
 
       if (!g_dns64PrefixReverse.empty() && dq.qtype == QType::PTR && dq.qname.isPartOf(g_dns64PrefixReverse)) {
         res = getFakePTRRecords(dq.qname, ret);
@@ -1917,7 +1924,7 @@ static void startDoResolve(void *p)
       if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (t_pdl && t_pdl->nodata(dq, res)) {
+            if (t_pdl && t_pdl->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
               auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
               if (policyResult == PolicyResult::HaveAnswer) {
@@ -1933,7 +1940,7 @@ static void startDoResolve(void *p)
             }
           }
 	}
-	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res)) {
+	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           if (policyResult == PolicyResult::HaveAnswer) {
@@ -1944,7 +1951,7 @@ static void startDoResolve(void *p)
           }
         }
 
-	if (t_pdl && t_pdl->postresolve(dq, res)) {
+	if (t_pdl && t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           // haveAnswer case redundant
@@ -2229,6 +2236,11 @@ static void startDoResolve(void *p)
       }
     }
 #endif /* NOD_ENABLED */
+
+    if (variableAnswer || sr.wasVariable()) {
+      g_stats.variableResponses++;
+    }
+
     if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Start constructing embedded DNSResponse object
       pbMessage.setResponseCode(pw.getHeader()->rcode);
@@ -2252,6 +2264,49 @@ static void startDoResolve(void *p)
       // if (g_udrEnabled) ??
       pbMessage.clearUDR(pbDataForCache->d_response);
 #endif
+    }
+
+    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
+      const auto& hdr = pw.getHeader();
+      if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) ||
+          (hdr->ancount == 0 && hdr->nscount == 0)) {
+        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
+      }
+      minTTL = min(minTTL, SyncRes::s_packetcachettl);
+      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
+                                          dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
+                                          string((const char*)&*packet.begin(), packet.size()),
+                                          g_now.tv_sec,
+                                          minTTL,
+                                          dq.validationState,
+                                          std::move(pbDataForCache), dc->d_tcp);
+    }
+    if (!dc->d_tcp) {
+      struct msghdr msgh;
+      struct iovec iov;
+      cmsgbuf_aligned cbuf;
+      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
+      msgh.msg_control=NULL;
+
+      if(g_fromtosockets.count(dc->d_socket)) {
+        addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
+      }
+      int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
+      if (sendErr && g_logCommonErrors) {
+        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
+              << strerror(sendErr) << endl;
+      }
+
+    }
+    else {
+      bool hadError = sendResponseOverTCP(dc, packet);
+      finishTCPReply(dc, hadError, true);
+    }
+
+    sr.d_eventTrace.add(RecEventTrace::AnswerSent);
+
+    // Now do the per query changing part ot the protobuf message
+    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
         pbMessage.setQueryTime(dc->d_kernelTimestamp.tv_sec, dc->d_kernelTimestamp.tv_usec);
@@ -2290,49 +2345,16 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
+      if (sr.d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
+        pbMessage.addEvents(sr.d_eventTrace);
+      }
       if (dc->d_logResponse) {
         protobufLogResponse(pbMessage);
       }
     }
 
-    if (variableAnswer || sr.wasVariable()) {
-      g_stats.variableResponses++;
-    }
-    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
-      const auto& hdr = pw.getHeader();
-      if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) ||
-          (hdr->ancount == 0 && hdr->nscount == 0)) {
-        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
-      }
-      minTTL = min(minTTL, SyncRes::s_packetcachettl);
-      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
-                                          dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
-                                          string((const char*)&*packet.begin(), packet.size()),
-                                          g_now.tv_sec,
-                                          minTTL,
-                                          dq.validationState,
-                                          std::move(pbDataForCache), dc->d_tcp);
-    }
-    if (!dc->d_tcp) {
-      struct msghdr msgh;
-      struct iovec iov;
-      cmsgbuf_aligned cbuf;
-      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
-      msgh.msg_control=NULL;
-
-      if(g_fromtosockets.count(dc->d_socket)) {
-        addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
-      }
-      int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
-      if (sendErr && g_logCommonErrors) {
-        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
-              << strerror(sendErr) << endl;
-      }
-
-    }
-    else {
-      bool hadError = sendResponseOverTCP(dc, packet);
-      finishTCPReply(dc, hadError, true);
+    if (sr.d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
+      g_log << Logger::Info << sr.d_eventTrace.toString() << endl;
     }
 
     // Originally this code used a mix of floats, doubles, uint64_t with different units.
@@ -2736,6 +2758,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool logQuery = false;
       bool qnameParsed = false;
 
+      dc->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
+      dc->d_eventTrace.add(RecEventTrace::ReqRecv);
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
@@ -2763,10 +2787,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             try {
               if (t_pdl->d_gettag_ffi) {
                 RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled, dc->d_meta);
+                dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
                 dc->d_tag = t_pdl->gettag_ffi(params);
+                dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, dc->d_tag, false);
               }
               else if (t_pdl->d_gettag) {
+                dc->d_eventTrace.add(RecEventTrace::LuaGetTag);
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_proxyProtocolValues);
+                dc->d_eventTrace.add(RecEventTrace::LuaGetTag, dc->d_tag, false);
               }
             }
             catch(const std::exception& e)  {
@@ -2812,7 +2840,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       if (t_pdl) {
-        if (t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
+        dc->d_eventTrace.add(RecEventTrace::LuaIPFilter);
+        bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh);
+        dc->d_eventTrace.add(RecEventTrace::LuaIPFilter, ipf, false);
+        if (ipf) {
           if (!g_quiet) {
             g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
           }
@@ -2857,13 +2888,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
            but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
            as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+        dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
         bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
+        dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
         if (cacheHit) {
-          if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-            struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
-          }
 
           if (!g_quiet) {
             g_log<<Logger::Notice<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
@@ -2875,6 +2904,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           Utility::gettimeofday(&now, nullptr);
           uint64_t spentUsec = uSec(now - start);
           g_stats.cumulativeAnswers(spentUsec);
+          dc->d_eventTrace.add(RecEventTrace::AnswerSent);
+
+          if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+            struct timeval tv{0, 0};
+            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
+          }
+
+          if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
+            g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
+          }
         } else {
           // No cache hit, setup for startDoResolve() in an mthread
           ++conn->d_requestsInFlight;
@@ -2970,7 +3009,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
 
-static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues)
+static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
 {
   gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
@@ -3062,10 +3101,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
             if (t_pdl->d_gettag_ffi) {
               RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
+              eventTrace.add(RecEventTrace::LuaGetTagFFI);
               ctag = t_pdl->gettag_ffi(params);
+              eventTrace.add(RecEventTrace::LuaGetTagFFI, ctag, false);
             }
             else if (t_pdl->d_gettag) {
+              eventTrace.add(RecEventTrace::LuaGetTag);
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
+              eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
             }
           }
           catch (const std::exception& e)  {
@@ -3096,12 +3139,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+    eventTrace.add(RecEventTrace::PCacheCheck);
     bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
+    eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
     if (cacheHit) {
-      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta);
-      }
-
       if (!g_quiet) {
         g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
       }
@@ -3115,6 +3156,15 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
       }
       int sendErr = sendOnNBSocket(fd, &msgh);
+      eventTrace.add(RecEventTrace::AnswerSent);
+
+      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+      }
+
+      if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
+        g_log << Logger::Info << eventTrace.toString() << endl;
+      }
       if (sendErr && g_logCommonErrors) {
         g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
@@ -3135,7 +3185,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
 
   if (t_pdl) {
-    if (t_pdl->ipfilter(source, destination, *dh)) {
+    eventTrace.add(RecEventTrace::LuaIPFilter);
+    bool ipf = t_pdl->ipfilter(source, destination, *dh);
+    eventTrace.add(RecEventTrace::LuaIPFilter, ipf, false);
+    if (ipf) {
       if (!g_quiet) {
 	g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
       }
@@ -3183,7 +3236,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_responsePaddingDisabled = responsePaddingDisabled;
   dc->d_meta = std::move(meta);
 
+  dc->d_eventTrace = std::move(eventTrace);
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
+
   return 0;
 }
 
@@ -3201,6 +3256,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   cmsgbuf_aligned cbuf;
   bool firstQuery = true;
   std::vector<ProxyProtocolValue> proxyProtocolValues;
+  RecEventTrace eventTrace;
 
   for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
     bool proxyProto = false;
@@ -3210,6 +3266,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
+      eventTrace.clear();
+      eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
+      eventTrace.add(RecEventTrace::ReqRecv);
 
       firstQuery = false;
 
@@ -3335,12 +3394,13 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if(g_weDistributeQueries) {
             std::string localdata = data;
-            distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues]() mutable
-              { return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues); });
+            distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace]() mutable {
+              return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
+            });
           }
           else {
             ++s_threadInfos[t_id].numberOfDistributedQueries;
-            doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues);
+            doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
           }
         }
       }
@@ -4930,6 +4990,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
+  SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
@@ -5948,6 +6009,7 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
     ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
+    ::arg().set("event-trace-enabled", "If set, event traces are collected and send out via protobuf logging (1), logfile (2) or both(3)")="0";
 
     ::arg().set("tcp-out-max-idle-ms", "Time TCP/DoT connections are left idle in milliseconds or 0 if no limit") = "10000";
     ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";

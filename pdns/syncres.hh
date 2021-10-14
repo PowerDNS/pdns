@@ -54,6 +54,7 @@
 #include "histogram.hh"
 #include "stat_t.hh"
 #include "tcpiohandler.hh"
+#include "rec-eventtrace.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -789,11 +790,16 @@ public:
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
   static bool s_dot_to_port_853;
-  
+
+  static const int event_trace_to_pb = 1;
+  static const int event_trace_to_log = 2;
+  static int s_event_trace_enabled;
+
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
   boost::optional<string> d_routingTag;
+  RecEventTrace d_eventTrace;
 
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;

@@ -24,6 +24,7 @@
 #include "protozero.hh"
 
 #include "filterpo.hh"
+#include "rec-eventtrace.hh"
 #include "validate.hh"
 
 namespace pdns
@@ -98,6 +99,8 @@ namespace ProtoZero
       }
       return std::move(d_msgbuf);
     }
+
+    void addEvents(const RecEventTrace& trace);
 
     // DNSResponse related fields below
 

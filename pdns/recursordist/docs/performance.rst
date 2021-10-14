@@ -193,3 +193,108 @@ Measuring performance
 ---------------------
 
 The PowerDNS Recursor exposes many :doc:`metrics <metrics>` that can be graphed and monitored.
+
+Event Tracing
+-------------
+Event tracing is an experimental feature introduced in version 4.6.0 that allows following the internals of processing queries in more detail.
+
+In certain spots in the resolving process event records are created that contain an identification of the event, a timestamp, potentially a value and an indication if this was the start or the end of an event. This is relevant for events that describe stages in the resolving process.
+
+At this point in time event logs of queries can be exported using a protobuf log or they can be written to the log file.
+
+Note that this is an experimental feature that will change in upcoming releases.
+
+Currently, an event protobuf message has the following definition:
+
+.. code-block:: protobuf
+
+    enum EventType {
+                                                  // Range 0..99: Generic events
+      CustomEvent = 0;                            // A custom event
+      ReqRecv = 1;                                // A request was received
+      PCacheCheck = 2;                            // A packet cache check was initiated or completed; value: bool cacheHit
+      AnswerSent = 3;                             // An answer was sent to the client
+
+                                                  // Range 100: Recursor events
+      SyncRes = 100;                              // Recursor Syncres main function has started or completed; value: int rcode
+      LuaGetTag = 101;                            // Events below mark start or end of Lua hook calls; value: return value of hook
+      LuaGetTagFFI = 102;
+      LuaIPFilter = 103;
+      LuaPreRPZ = 104;
+      LuaPreResolve = 105;
+      LuaPreOutQuery = 106;
+      LuaPostResolve = 107;
+      LuaNoData = 108;
+      LuaNXDomain = 109;
+  }
+
+.. code-block:: protobuf
+
+    message Event {
+      required uint64 ts = 1;
+      required EventType event = 2;
+      required bool start = 3;
+      optional bool boolVal = 4;
+      optional int64 intVal = 5;
+      optional string stringVal = 6;
+      optional bytes bytesVal = 7;
+      optional string custom = 8;
+    }
+    repeated Event trace = 23;
+
+Event traces can be enabled by either setting :ref:`setting-event-trace-enabled` or by using the :doc:`rec_control <manpages/rec_control.1>` subcommand ``set-event-trace-enabled``.
+
+An example of a trace (timestamps are relative in nanoseconds) as shown  in the logfile:
+
+.. code-block:: C
+
+    - ReqRecv(70);
+    - PCacheCheck(411964);
+    - PCacheCheck(416783,0,done);
+    - SyncRes(441811);
+    - SyncRes(337233971,0,done);
+     -AnswerSent(337266453)
+
+The packet cache check event has two events.
+The first signals the start of packet cache lookup, and the second the completion of the packet cache lookup with result 0 (not found).
+The SynRec event also has two entries. The value (0) is the return value of the SyncRes function.
+
+An example of a trace with a packet cache hit):
+
+.. code-block:: C
+
+    - ReqRecv(60);
+    - PCacheCheck(22913);
+    - PCacheCheck(113255,1,done);
+    - AnswerSent(117493)
+
+Here it can be seen that packet cache returns 1 (found).
+
+An example where various Lua related events can be seen:
+
+.. code-block:: C
+
+    ReqRecv(150);
+    PCacheCheck(26912);
+    PCacheCheck(51308,0,done);
+    LuaIPFilter(56868);
+    LuaIPFilter(57149,0,done);
+    LuaPreRPZ(82728);
+    LuaPreRPZ(82918,0,done);
+    LuaPreResolve(83479);
+    LuaPreResolve(210621,0,done);
+    SyncRes(217424);
+    LuaPreOutQuery(292868);
+    LuaPreOutQuery(292938,0,done);
+    LuaPreOutQuery(24702079);
+    LuaPreOutQuery(24702349,0,done);
+    LuaPreOutQuery(43055303);
+    LuaPreOutQuery(43055634,0,done);
+    SyncRes(80470320,0,done);
+    LuaPostResolve(80476592);
+    LuaPostResolve(80476772,0,done);
+    AnswerSent(80500247)
+
+There is no packet cache hit, so SyncRes is called which does a couple of outgoing queries.
+
+

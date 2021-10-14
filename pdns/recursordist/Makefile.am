@@ -159,6 +159,7 @@ pdns_recursor_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
+	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
@@ -277,6 +278,7 @@ testrunner_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
