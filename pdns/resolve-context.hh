@@ -12,9 +12,10 @@ struct ResolveContext {
 
   ResolveContext(const ResolveContext& ctx) = delete;
   ResolveContext & operator=(const ResolveContext&) = delete;
-  
+
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #ifdef HAVE_FSTRM
   boost::optional<const DNSName&> d_auth;
 #endif
+  bool d_fire_and_forget{false};
 };

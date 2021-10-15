@@ -1428,7 +1428,7 @@ static void sendNODLookup(const shared_ptr<Logr::Logger>& nodlogger, const DNSNa
     }
     nodlogger->v(10)->info(Logr::Debug, "Sending NOD lookup", "nodqname", Logging::Loggable(qname));
     vector<DNSRecord> dummy;
-    directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false);
+    directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false, true);
   }
 }
 

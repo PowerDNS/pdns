@@ -124,7 +124,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth)
+int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth, bool fire_and_forget)
 {
   d_eventTrace.add(RecEventTrace::SyncRes);
   vState state = vState::Indeterminate;
@@ -157,7 +157,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
   }
 
   set<GetBestNSAnswer> beenthere;
-  int res=doResolve(qname, qtype, ret, depth, beenthere, state);
+  int res = doResolve(qname, qtype, ret, depth, beenthere, state, fire_and_forget);
   d_queryValidationState = state;
 
   if (shouldValidate()) {
@@ -578,7 +578,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const
+LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, bool faf) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -613,6 +613,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
   ctx.d_initialRequestId = d_initialRequestId;
+  ctx.d_fire_and_forget = faf;
 #ifdef HAVE_FSTRM
   ctx.d_auth = auth;
 #endif
@@ -677,7 +678,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
-int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
+int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool faf) {
 
   string prefix = d_prefix;
   prefix.append(depth, ' ');
@@ -699,8 +700,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
   initZoneCutsFromTA(qname);
 
   // In the auth or recursive forward case, it does not make sense to do qname-minimization
-  if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
-    return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
+  if (!getQNameMinimization() || faf || isRecursiveForwardOrAuth(qname)) {
+    return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state, faf);
   }
 
   // The qname minimization algorithm is a simplified version of the one in RFC 7816 (bis).
@@ -730,7 +731,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
   // For cache peeking, we tell doResolveNoQNameMinimization not to consider the (non-recursive) forward case.
   // Otherwise all queries in a forward domain will be forwarded, while we want to consult the cache.
   // The out-of-band cases for doResolveNoQNameMinimization() should be reconsidered and redone some day.
-  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, &fromCache, nullptr, false);
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, false, &fromCache, nullptr, false);
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
@@ -813,7 +814,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
       d_followCNAME = false;
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
-      res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, nullptr, &stopAtDelegation);
+      res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, false, nullptr, &stopAtDelegation);
       d_followCNAME = oldFollowCNAME;
       QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
       if (stopAtDelegation == Stopped) {
@@ -856,7 +857,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation, bool considerforwards)
+int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool faf, bool *fromCache, StopAtDelegation *stopAtDelegation, bool considerforwards)
 {
   string prefix;
   if(doLog()) {
@@ -895,7 +896,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
           boost::optional<Netmask> nm;
           bool chained = false;
-          auto resolveRet = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained);
+          auto resolveRet = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained, faf);
 
           d_totUsec += lwr.d_usec;
           accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
@@ -1035,7 +1036,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
   }
 
-  res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
+  res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, faf);
 
   /* Apply Post filtering policies */
   if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
@@ -3907,7 +3908,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, bool faf)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3945,7 +3946,10 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       s_ecsqueries++;
     }
     resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
-                                     doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained);    // <- we go out on the wire!
+                                     doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, faf);    // <- we go out on the wire!
+    if (faf) {
+      return true;
+    }
     if(ednsmask) {
       s_ecsresponses++;
       LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
@@ -4287,7 +4291,8 @@ bool SyncRes::doDoTtoAuth(const DNSName& ns) const
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType qtype,
                          vector<DNSRecord>&ret,
-                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation)
+                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
+                         bool faf)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -4440,14 +4445,16 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, false, false, truncated, spoofed);
+                                          tns->first, *remoteIP, false, false, truncated, spoofed, faf);
           }
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed);
+                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed, faf);
           }
-
+          if (faf) {
+            return RCode::NoError;
+          }
           if (!gotAnswer) {
             continue;
           }
@@ -4570,7 +4577,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   return directResolve(qname, qtype, qclass, ret, pdl, SyncRes::s_qnameminimization);
 }
 
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm, bool faf)
 {
   struct timeval now;
   gettimeofday(&now, 0);
@@ -4583,7 +4590,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
 
   int res = -1;
   try {
-    res = sr.beginResolve(qname, qtype, qclass, ret, 0);
+    res = sr.beginResolve(qname, qtype, qclass, ret, 0, faf);
   }
   catch(const PDNSException& e) {
     g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got pdns exception: "<<e.reason<<endl;

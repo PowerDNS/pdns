@@ -283,7 +283,8 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
 }
 
 static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
-                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf)
+                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
+                                    bool faf = false)
 {
   socklen_t slen = ip.getSocklen();
   uint16_t tlen = htons(vpacket.size());
@@ -298,10 +299,9 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   packet.insert(packet.end(), vpacket.begin(), vpacket.end());
 
   LWResult::Result ret = asendtcp(packet, connection.d_handler);
-  if (ret != LWResult::Result::Success) {
+  if (ret != LWResult::Result::Success || faf) {
     return ret;
   }
-
   ret = arecvtcp(packet, 2, connection.d_handler, false);
   if (ret != LWResult::Result::Success) {
     return ret;
@@ -409,7 +409,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
     ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
 
-    if (ret != LWResult::Result::Success) {
+    if (ret != LWResult::Result::Success || (context && context->d_fire_and_forget)) {
       return ret;
     }
 
