@@ -4826,7 +4826,7 @@ static void checkSocketDir(void)
   } else {
     return;
   }
-  g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0-or-master" << endl;
+  g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl;
   _exit(1);
 }
 
