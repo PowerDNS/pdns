@@ -1847,7 +1847,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return;
       }
 
-      g_included = true;
       struct stat st;
       if (stat(dirname.c_str(), &st)) {
         errlog("The included directory %s does not exist!", dirname.c_str());
@@ -1890,6 +1889,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       closedir(dirp);
       files.sort();
 
+      g_included = true;
+
       for (auto file = files.begin(); file != files.end(); ++file) {
         std::ifstream ifs(*file);
         if (!ifs) {
@@ -1898,7 +1899,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           vinfolog("Read configuration from '%s'", *file);
         }
 
-        luaCtx.executeCode(ifs);
+        try {
+          luaCtx.executeCode(ifs);
+        }
+        catch (...) {
+          g_included = false;
+          throw;
+        }
       }
 
       g_included = false;
