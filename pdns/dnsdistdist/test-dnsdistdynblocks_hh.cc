@@ -945,7 +945,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* insert one fake response for 255 DNS names */
     const ComboAddress requestor("192.0.2.1");
     for (size_t idx = 0; idx < 256; idx++) {
-      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */, dnsdist::Protocol::DoUDP);
     }
 
     /* we apply the rules, all suffixes should be blocked */
