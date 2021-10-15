@@ -115,6 +115,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(zone->findNSIPPolicy(nsIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.0.2.0.192.rpz-nsip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, nsIP.toString());
   }
 
   {
@@ -173,6 +174,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(zone->findClientPolicy(clientIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.128.2.0.192.rpz-client-ip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, clientIP.toString());
   }
 
   {
@@ -196,6 +198,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(zone->findResponsePolicy(responseIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.254.2.0.192.rpz-ip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, responseIP.toString());
   }
 
   {
