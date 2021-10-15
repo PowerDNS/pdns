@@ -53,7 +53,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.ednsAdded = dq.ednsAdded;
   ids.ecsAdded = dq.ecsAdded;
   ids.useZeroScope = dq.useZeroScope;
-  ids.qTag = dq.qTag;
+  ids.qTag = std::move(dq.qTag);
   ids.dnssecOK = dq.dnssecOK;
   ids.uniqueId = std::move(dq.uniqueId);
 

@@ -24,17 +24,17 @@
 #include "dnscrypt.hh"
 
 #ifdef HAVE_DNSCRYPT
-int handleDNSCryptQuery(PacketBuffer& packet, std::shared_ptr<DNSCryptQuery>& query, bool tcp, time_t now, PacketBuffer& response)
+int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
 {
-  query->parsePacket(packet, tcp, now);
+  query.parsePacket(packet, tcp, now);
 
-  if (query->isValid() == false) {
+  if (query.isValid() == false) {
     vinfolog("Dropping DNSCrypt invalid query");
     return false;
   }
 
-  if (query->isEncrypted() == false) {
-    query->getCertificateResponse(now, response);
+  if (query.isEncrypted() == false) {
+    query.getCertificateResponse(now, response);
 
     return false;
   }

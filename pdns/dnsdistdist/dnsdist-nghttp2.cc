@@ -109,11 +109,11 @@ private:
 
   static const std::unordered_map<std::string, std::string> s_constants;
 
-  std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)> d_session{nullptr, nghttp2_session_del};
   std::unordered_map<int32_t, PendingRequest> d_currentStreams;
+  std::string d_proxyProtocolPayload;
   PacketBuffer d_out;
   PacketBuffer d_in;
-  std::string d_proxyProtocolPayload;
+  std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)> d_session{nullptr, nghttp2_session_del};
   size_t d_outPos{0};
   size_t d_inPos{0};
   uint32_t d_highestStreamID{0};

@@ -554,7 +554,7 @@ static int processDOHQuery(DOHUnit* du)
       // outside of the main DoH thread
       return -1;
     }
-    remote = du->remote;
+    remote = du->ids.origRemote;
     DOHServerConfig* dsc = du->dsc;
     auto& holders = dsc->holders;
     ClientState& cs = *dsc->cs;
@@ -599,8 +599,8 @@ static int processDOHQuery(DOHUnit* du)
     uint16_t qtype, qclass;
     unsigned int qnameWireLength = 0;
     DNSName qname(reinterpret_cast<const char*>(du->query.data()), du->query.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-    DNSQuestion dq(&qname, qtype, qclass, &du->dest, &du->remote, du->query, dnsdist::Protocol::DoH, &queryRealTime);
-    dq.ednsAdded = du->ednsAdded;
+    DNSQuestion dq(&qname, qtype, qclass, &du->ids.origDest, &du->ids.origRemote, du->query, dnsdist::Protocol::DoH, &queryRealTime);
+    dq.ednsAdded = du->ids.ednsAdded;
     dq.du = du;
     dq.sni = std::move(du->sni);
 
@@ -657,7 +657,7 @@ static int processDOHQuery(DOHUnit* du)
       }
     }
 
-    ComboAddress dest = du->dest;
+    ComboAddress dest = du->ids.origDest;
     unsigned int idOffset = (du->downstream->idOffset++) % du->downstream->idStates.size();
     IDState* ids = &du->downstream->idStates[idOffset];
     ids->age = 0;
@@ -826,8 +826,8 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
     du->dsc = dsc;
     du->req = req;
-    du->dest = local;
-    du->remote = remote;
+    du->ids.origDest = local;
+    du->ids.origRemote = remote;
     du->rsock = dsc->dohresponsepair[0];
     du->query = std::move(query);
     du->path = std::move(path);
@@ -1260,7 +1260,7 @@ static void dnsdistclient(int qsock)
         if (generateOptRR(std::string(), du->query, 4096, 4096, 0, false)) {
           dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
           dh->arcount = htons(1);
-          du->ednsAdded = true;
+          du->ids.ednsAdded = true;
         }
       }
       else {
