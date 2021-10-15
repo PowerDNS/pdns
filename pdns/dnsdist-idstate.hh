@@ -79,6 +79,7 @@ struct StopWatch
   {
     0, 0
   };
+
 private:
   bool d_needRealTime;
 };
