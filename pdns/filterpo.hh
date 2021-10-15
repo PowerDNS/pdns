@@ -263,9 +263,9 @@ public:
 
     bool findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
-    bool findNSIPPolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const;
-    bool findResponsePolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const;
-    bool findClientPolicy(const ComboAddress& addr, Netmask& key, DNSFilterEngine::Policy& pol) const;
+    bool findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
+    bool findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
+    bool findClientPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
 
     bool hasClientPolicies() const
     {
