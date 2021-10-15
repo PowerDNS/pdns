@@ -24,6 +24,7 @@ class TestTCPOnly(DNSDistTest):
         expectedResponse.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+        receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, expectedResponse)
 
@@ -47,6 +48,7 @@ class TestTCPOnly(DNSDistTest):
         expectedResponse.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
+        receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, expectedResponse)
         if 'UDP Responder' in self._responsesCounter:

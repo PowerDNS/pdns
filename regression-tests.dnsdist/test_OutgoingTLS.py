@@ -52,6 +52,7 @@ class OutgoingTLSTests(object):
         numberOfUDPQueries = 10
         for _ in range(numberOfUDPQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+            receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, expectedResponse)
 
@@ -82,6 +83,7 @@ class OutgoingTLSTests(object):
         expectedResponse.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
+        receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, expectedResponse)
         self.checkOnlyTLSResponderHit()

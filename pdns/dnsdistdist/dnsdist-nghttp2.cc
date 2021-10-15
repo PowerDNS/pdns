@@ -43,7 +43,7 @@ std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
 std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 
 #ifdef HAVE_NGHTTP2
-class DoHConnectionToBackend : public TCPConnectionToBackend
+class DoHConnectionToBackend : public ConnectionToBackend
 {
 public:
   DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload);
@@ -58,17 +58,14 @@ public:
     return o.str();
   }
 
-  bool reachedMaxStreamID() const;
-  bool canBeReused() const override;
-  /* full now but will become usable later */
-  bool willBeReusable() const;
-
   void setHealthCheck(bool h)
   {
     d_healthCheckQuery = h;
   }
 
   void stopIO();
+  bool reachedMaxConcurrentQueries() const override;
+  bool reachedMaxStreamID() const override;
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
@@ -79,7 +76,6 @@ private:
   static int on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data);
   static void handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void handleWritableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static void handleIO(std::shared_ptr<DoHConnectionToBackend>& conn, const struct timeval& now);
 
   static void addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey);
   static void addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& value);
@@ -117,7 +113,6 @@ private:
   std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)> d_session{nullptr, nghttp2_session_del};
   size_t d_outPos{0};
   size_t d_inPos{0};
-  uint32_t d_highestStreamID{0};
   bool d_healthCheckQuery{false};
   bool d_firstWrite{true};
 };
@@ -213,34 +208,12 @@ bool DoHConnectionToBackend::reachedMaxStreamID() const
   return d_highestStreamID == maximumStreamID;
 }
 
-bool DoHConnectionToBackend::canBeReused() const
+bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
 {
-  if (d_connectionDied) {
-    return false;
-  }
-
-  if (!d_proxyProtocolPayload.empty()) {
-    return false;
-  }
-
-  if (reachedMaxStreamID()) {
-    return false;
-  }
-
   //cerr<<"Got "<<getConcurrentStreamsCount()<<" concurrent streams, max is "<<nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS)<<endl;
   if (nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS) <= getConcurrentStreamsCount()) {
-    return false;
-  }
-
-  return true;
-}
-
-bool DoHConnectionToBackend::willBeReusable() const
-{
-  if (!d_connectionDied && d_proxyProtocolPayload.empty() && !reachedMaxStreamID()) {
     return true;
   }
-
   return false;
 }
 
@@ -399,10 +372,6 @@ public:
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
 };
 
-void DoHConnectionToBackend::handleIO(std::shared_ptr<DoHConnectionToBackend>& conn, const struct timeval& now)
-{
-}
-
 void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param)
 {
   auto conn = boost::any_cast<std::shared_ptr<DoHConnectionToBackend>>(param);
@@ -505,7 +474,7 @@ void DoHConnectionToBackend::stopIO()
 {
   d_ioState->reset();
 
-  if (d_connectionDied) {
+  if (!willBeReusable(false)) {
     /* remove ourselves from the connection cache, this might mean that our
        reference count drops to zero after that, so we need to be careful */
     auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
@@ -547,7 +516,7 @@ void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackf
 
 void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 {
-  if (willBeReusable() && !d_healthCheckQuery) {
+  if (willBeReusable(false) && !d_healthCheckQuery) {
     updateIO(IOState::NeedRead, handleReadableIOCallback, false);
   }
 }
@@ -820,9 +789,9 @@ int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_
 }
 
 DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload) :
-  TCPConnectionToBackend(ds, mplexer, now), d_proxyProtocolPayload(std::move(proxyProtocolPayload))
+  ConnectionToBackend(ds, mplexer, now), d_proxyProtocolPayload(std::move(proxyProtocolPayload))
 {
-  // inherit most of the stuff from the TCPConnectionToBackend()
+  // inherit most of the stuff from the ConnectionToBackend()
   d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
 
   nghttp2_session_callbacks* cbs = nullptr;
@@ -973,7 +942,7 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
       for (auto listIt = list.begin(); listIt != list.end();) {
         auto& entry = *listIt;
         if (!entry->canBeReused()) {
-          if (!entry->willBeReusable()) {
+          if (!entry->willBeReusable(false)) {
             listIt = list.erase(listIt);
           }
           else {
@@ -1003,7 +972,7 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
 
   auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(proxyProtocolPayload));
   if (!haveProxyProtocol) {
-    t_downstreamConnections[backendId].push_back(newConnection);
+    t_downstreamConnections[backendId].push_front(newConnection);
   }
   return newConnection;
 }

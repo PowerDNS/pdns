@@ -113,12 +113,14 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
 {
   std::shared_ptr<TCPConnectionToBackend> downstream{nullptr};
 
-  downstream = getActiveDownstreamConnection(ds, tlvs);
+  downstream = getOwnedDownstreamConnection(ds, tlvs);
 
   if (!downstream) {
-    /* we don't have a connection to this backend active yet, let's get one (it might not be a fresh one, though) */
+    /* we don't have a connection to this backend owned yet, let's get one (it might not be a fresh one, though) */
     downstream = DownstreamConnectionsManager::getConnectionToDownstream(d_threadData.mplexer, ds, now);
-    registerActiveDownstreamConnection(downstream);
+    if (ds->useProxyProtocol) {
+      registerOwnedDownstreamConnection(downstream);
+    }
   }
 
   return downstream;
@@ -307,17 +309,17 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_state = State::waitingForQuery;
 }
 
-std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
+std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getOwnedDownstreamConnection(const std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
 {
-  auto it = d_activeConnectionsToBackend.find(ds);
-  if (it == d_activeConnectionsToBackend.end()) {
-    DEBUGLOG("no active connection found for "<<ds->getName());
+  auto it = d_ownedConnectionsToBackend.find(ds);
+  if (it == d_ownedConnectionsToBackend.end()) {
+    DEBUGLOG("no owned connection found for "<<ds->getName());
     return nullptr;
   }
 
   for (auto& conn : it->second) {
-    if (conn->canAcceptNewQueries() && conn->matchesTLVs(tlvs)) {
-      DEBUGLOG("Got one active connection accepting more for "<<ds->getName());
+    if (conn->canBeReused(true) && conn->matchesTLVs(tlvs)) {
+      DEBUGLOG("Got one owned connection accepting more for "<<ds->getName());
       conn->setReused();
       return conn;
     }
@@ -327,9 +329,9 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDow
   return nullptr;
 }
 
-void IncomingTCPConnectionState::registerActiveDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn)
+void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
-  d_activeConnectionsToBackend[conn->getDS()].push_front(conn);
+  d_ownedConnectionsToBackend[conn->getDS()].push_front(conn);
 }
 
 /* called when the buffer has been set and the rules have been processed, and only from handleIO (sometimes indirectly via handleQuery) */
@@ -375,7 +377,12 @@ void IncomingTCPConnectionState::terminateClientConnection()
   d_queuedResponses.clear();
   /* we have already released idle connections that could be reused,
      we don't care about the ones still waiting for responses */
-  d_activeConnectionsToBackend.clear();
+  for (auto& backend : d_ownedConnectionsToBackend) {
+    for (auto& conn : backend.second) {
+      conn->release();
+    }
+  }
+  d_ownedConnectionsToBackend.clear();
   /* meaning we will no longer be 'active' when the backend
      response or timeout comes in */
   d_ioState.reset();
@@ -419,18 +426,18 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 {
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
 
-  if (response.d_connection && response.d_connection->isIdle()) {
-    // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool yet, no one else will be able to use it anyway
-    if (response.d_connection->canBeReused()) {
-      const auto connIt = state->d_activeConnectionsToBackend.find(response.d_connection->getDS());
-      if (connIt != state->d_activeConnectionsToBackend.end()) {
+  if (response.d_connection && response.d_connection->getDS() && response.d_connection->getDS()->useProxyProtocol) {
+    // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool as no one else will be able to use it anyway
+    if (!response.d_connection->willBeReusable(true)) {
+      // if it can't be reused even by us, well
+      const auto connIt = state->d_ownedConnectionsToBackend.find(response.d_connection->getDS());
+      if (connIt != state->d_ownedConnectionsToBackend.end()) {
         auto& list = connIt->second;
 
         for (auto it = list.begin(); it != list.end(); ++it) {
           if (*it == response.d_connection) {
             try {
               response.d_connection->release();
-              DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
             }
             catch (const std::exception& e) {
               vinfolog("Error releasing connection: %s", e.what());
@@ -1056,7 +1063,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
 {
   vinfolog("Timeout while %s TCP client %s", (write ? "writing to" : "reading from"), state->d_ci.remote.toStringWithPort());
   DEBUGLOG("client timeout");
-  DEBUGLOG("Processed "<<state->d_queriesCount<<" queries, current count is "<<state->d_currentQueriesCount<<", "<<state->d_activeConnectionsToBackend.size()<<" active connections, "<<state->d_queuedResponses.size()<<" response queued");
+  DEBUGLOG("Processed "<<state->d_queriesCount<<" queries, current count is "<<state->d_currentQueriesCount<<", "<<state->d_ownedConnectionsToBackend.size()<<" owned connections, "<<state->d_queuedResponses.size()<<" response queued");
 
   if (write || state->d_currentQueriesCount == 0) {
     ++state->d_ci.cs->tcpClientTimeouts;
@@ -1067,14 +1074,6 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
     /* we still have some queries in flight, let's just stop reading for now */
     state->d_state = IncomingTCPConnectionState::State::idle;
     state->d_ioState->update(IOState::Done, handleIOCallback, state);
-
-#ifdef DEBUGLOG_ENABLED
-    for (const auto& active : state->d_activeConnectionsToBackend) {
-      for (const auto& conn: active.second) {
-        DEBUGLOG("Connection to "<<active.first->getName()<<" is "<<(conn->isIdle() ? "idle" : "not idle"));
-      }
-    }
-#endif
   }
 }
 
