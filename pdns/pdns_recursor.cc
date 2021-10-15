@@ -1606,7 +1606,10 @@ static void startDoResolve(void *p)
     bool addPaddingToResponse = false;
 #ifdef NOD_ENABLED
     bool hasUDR = false;
-    auto nodlogger = g_slog->withName("nod")->v(1)->withValues("qname", Logging::Loggable(dc->d_mdp.d_qname));
+    std::shared_ptr<Logr::Logger> nodlogger{nullptr};
+    if (g_udrEnabled || g_nodEnabled) {
+      nodlogger = g_slog->withName("nod")->v(1)->withValues("qname", Logging::Loggable(dc->d_mdp.d_qname));
+    }
 #endif /* NOD_ENABLED */
     DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
     uint8_t ednsExtRCode = 0;
