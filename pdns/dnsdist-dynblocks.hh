@@ -45,13 +45,14 @@ typedef std::function<bool(dnsdist_ffi_stat_node_t*)> dnsdist_ffi_stat_node_visi
 
 struct dnsdist_ffi_stat_node_t
 {
-  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_): node(node_), self(self_), children(children_)
+  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_, std::optional<std::string>& reason_): node(node_), self(self_), children(children_), reason(reason_)
   {
   }
 
   const StatNode& node;
   const StatNode::Stat& self;
   const StatNode::Stat& children;
+  std::optional<std::string>& reason;
 };
 
 class DynBlockRulesGroup
@@ -247,7 +248,7 @@ public:
     entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  typedef std::function<bool(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> smtVisitor_t;
+  typedef std::function<std::tuple<bool, boost::optional<std::string>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> smtVisitor_t;
 
   void setSuffixMatchRule(unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action, smtVisitor_t visitor)
   {

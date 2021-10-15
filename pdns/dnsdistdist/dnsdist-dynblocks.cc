@@ -104,20 +104,27 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
 
   if (!statNodeRoot.empty()) {
     StatNode::Stat node;
-    std::unordered_set<DNSName> namesToBlock;
+    std::unordered_map<DNSName, std::optional<std::string>> namesToBlock;
     statNodeRoot.visit([this,&namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
                          bool block = false;
+                         std::optional<std::string> reason;
 
                          if (d_smtVisitorFFI) {
-                           dnsdist_ffi_stat_node_t tmp(*node_, self, children);
+                           dnsdist_ffi_stat_node_t tmp(*node_, self, children, reason);
                            block = d_smtVisitorFFI(&tmp);
                          }
                          else {
-                           block = d_smtVisitor(*node_, self, children);
+                           auto ret = d_smtVisitor(*node_, self, children);
+                           block = std::get<0>(ret);
+                           if (block) {
+                             if (boost::optional<std::string> tmp = std::get<1>(ret)) {
+                               reason = std::move(*tmp);
+                             }
+                           }
                          }
 
                          if (block) {
-                           namesToBlock.insert(DNSName(node_->fullname));
+                           namesToBlock.insert({DNSName(node_->fullname), std::move(reason)});
                          }
                        },
       node);
@@ -125,8 +132,15 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
     if (!namesToBlock.empty()) {
       updated = false;
       SuffixMatchTree<DynBlock> smtBlocks = g_dynblockSMT.getCopy();
-      for (const auto& name : namesToBlock) {
-        addOrRefreshBlockSMT(smtBlocks, now, name, d_suffixMatchRule, updated);
+      for (auto& [name, reason] : namesToBlock) {
+        if (reason) {
+          DynBlockRule rule(d_suffixMatchRule);
+          rule.d_blockReason = std::move(*reason);
+          addOrRefreshBlockSMT(smtBlocks, now, std::move(name), std::move(rule), updated);
+        }
+        else {
+          addOrRefreshBlockSMT(smtBlocks, now, std::move(name), d_suffixMatchRule, updated);
+        }
       }
       if (updated) {
         g_dynblockSMT.setState(std::move(smtBlocks));
