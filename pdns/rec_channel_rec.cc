@@ -1669,7 +1669,7 @@ static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSNam
   unsigned int total=0;
   for(const query_t& q :  queries) {
     total++;
-    counts[make_pair(filter(q.first),q.second)]++;
+    counts[pair(filter(q.first),q.second)]++;
   }
 
   typedef std::multimap<int, query_t> rcounts_t;

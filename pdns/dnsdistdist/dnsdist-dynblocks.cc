@@ -458,7 +458,7 @@ std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaint
     }
 
     if (topsForReason.size() < topN || topsForReason.front().second < value) {
-      auto newEntry = std::make_pair(entry.first, value);
+      auto newEntry = std::pair(entry.first, value);
 
       if (topsForReason.size() >= topN) {
         topsForReason.pop_front();
@@ -485,7 +485,7 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
   blocks->visit([&results, topN](const SuffixMatchTree<DynBlock>& node) {
     auto& topsForReason = results[node.d_value.reason];
     if (topsForReason.size() < topN || topsForReason.front().second < node.d_value.blocks) {
-      auto newEntry = std::make_pair(node.d_value.domain, node.d_value.blocks.load());
+      auto newEntry = std::pair(node.d_value.domain, node.d_value.blocks.load());
 
       if (topsForReason.size() >= topN) {
         topsForReason.pop_front();

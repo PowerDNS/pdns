@@ -233,17 +233,17 @@ public:
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
     if(f)
-      getTypemap()[make_pair(cl,ty)]=f;
+      getTypemap()[pair(cl,ty)]=f;
     if(z)
-      getZmakermap()[make_pair(cl,ty)]=z;
+      getZmakermap()[pair(cl,ty)]=z;
 
-    getT2Namemap().emplace(make_pair(cl, ty), name);
-    getN2Typemap().emplace(name, make_pair(cl, ty));
+    getT2Namemap().emplace(pair(cl, ty), name);
+    getN2Typemap().emplace(name, pair(cl, ty));
   }
 
   static void unregist(uint16_t cl, uint16_t ty) 
   {
-    auto key = make_pair(cl, ty);
+    auto key = pair(cl, ty);
     getTypemap().erase(key);
     getZmakermap().erase(key);
   }
@@ -267,7 +267,7 @@ public:
 
   static const string NumberToType(uint16_t num, uint16_t classnum=1)
   {
-    auto iter = getT2Namemap().find(make_pair(classnum, num));
+    auto iter = getT2Namemap().find(pair(classnum, num));
     if(iter == getT2Namemap().end()) 
       return "TYPE" + std::to_string(num);
       //      throw runtime_error("Unknown DNS type with numerical id "+std::to_string(num));

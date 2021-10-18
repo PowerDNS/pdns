@@ -57,7 +57,7 @@ public:
 
   bool operator<(const BindDomainInfo& b) const
   {
-    return make_pair(d_dev, d_ino) < make_pair(b.d_dev, b.d_ino);
+    return pair(d_dev, d_ino) < pair(b.d_dev, b.d_ino);
   }
 };
 

@@ -78,12 +78,12 @@ void DNSDistProtoBufMessage::setBytes(size_t bytes)
 
 void DNSDistProtoBufMessage::setTime(time_t sec, uint32_t usec)
 {
-  d_time = std::make_pair(sec, usec);
+  d_time = std::pair(sec, usec);
 }
 
 void DNSDistProtoBufMessage::setQueryTime(time_t sec, uint32_t usec)
 {
-  d_queryTime = std::make_pair(sec, usec);
+  d_queryTime = std::pair(sec, usec);
 }
 
 void DNSDistProtoBufMessage::setQuestion(const DNSName& name, uint16_t qtype, uint16_t qclass)

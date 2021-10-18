@@ -1333,9 +1333,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     cspmap_t validrrsets;
     validateWithKeySet(cspmap, validrrsets, validkeys);
 
-    LOG("got "<<cspmap.count(make_pair(*(zoneCutIter+1),QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(*(zoneCutIter+1),QType::DS))<<" valid "<<endl);
+    LOG("got "<<cspmap.count(pair(*(zoneCutIter+1),QType::DS))<<" records for DS query of which "<<validrrsets.count(pair(*(zoneCutIter+1),QType::DS))<<" valid "<<endl);
 
-    auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
+    auto r = validrrsets.equal_range(pair(*(zoneCutIter+1), QType::DS));
     if(r.first == r.second) {
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
       dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true, true);

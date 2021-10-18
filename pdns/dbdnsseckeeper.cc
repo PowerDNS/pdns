@@ -156,8 +156,8 @@ bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int6
 
 static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, const DNSSECKeeper::keyset_t::value_type& b)
 {
-  return make_pair(!a.second.keyType, a.second.id) <
-         make_pair(!b.second.keyType, b.second.id);
+  return pair(!a.second.keyType, a.second.id) <
+         pair(!b.second.keyType, b.second.id);
 }
 
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)

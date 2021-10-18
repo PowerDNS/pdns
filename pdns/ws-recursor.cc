@@ -1188,9 +1188,9 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(const query_t& q :  queries) {
       total++;
       if(filter)
-	counts[make_pair(getRegisteredName(q.first), q.second)]++;
+	counts[pair(getRegisteredName(q.first), q.second)]++;
       else
-	counts[make_pair(q.first, q.second)]++;
+	counts[pair(q.first, q.second)]++;
     }
 
     typedef std::multimap<int, query_t> rcounts_t;
