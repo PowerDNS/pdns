@@ -11,6 +11,7 @@ ExecStartPre=@bindir@/dnsdist --check-config
 ExecStart=@bindir@/dnsdist --supervised --disable-syslog
 User=@service_user@
 Group=@service_group@
+SyslogIdentifier=dnsdist
 Type=notify
 Restart=on-failure
 RestartSec=2
