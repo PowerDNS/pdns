@@ -1879,10 +1879,10 @@ Can be read out using ``rec_control top-remotes``.
 
 A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
 
-.. _setting-structured-loggin:
+.. _setting-structured-logging:
 
 ``structured-logging``
----------------------
+----------------------
 .. versionadded:: 4.6.0
 
 - Boolean
