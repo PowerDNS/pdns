@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_poolOutstandingRule) {
   sp.addServer(ds1);
   sp.addServer(ds2);
 
-  BOOST_CHECK_EQUAL(sp.poolLoad(), 400+30);
+  BOOST_CHECK_EQUAL(sp.poolLoad(), 400U + 30U);
 
   auto localPool = g_pools.getCopy();
   addServerToPool(localPool, "test", ds1);
