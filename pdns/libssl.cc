@@ -804,21 +804,21 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 }
 
 /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-void libssl_set_npn_select_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
+void libssl_set_npn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
 {
 #ifdef HAVE_SSL_CTX_SET_NEXT_PROTO_SELECT_CB
-  SSL_CTX_set_next_proto_select_cb(ctx.get(), cb, arg);
+  SSL_CTX_set_next_proto_select_cb(ctx, cb, arg);
 #endif
 }
 
-void libssl_set_alpn_select_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
+void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
 {
 #ifdef HAVE_SSL_CTX_SET_ALPN_SELECT_CB
-  SSL_CTX_set_alpn_select_cb(ctx.get(), cb, arg);
+  SSL_CTX_set_alpn_select_cb(ctx, cb, arg);
 #endif
 }
 
-bool libssl_set_alpn_protos(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::vector<std::vector<uint8_t>>& protos)
+bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos)
 {
 #ifdef HAVE_SSL_CTX_SET_ALPN_PROTOS
   std::vector<uint8_t> wire;
@@ -830,7 +830,7 @@ bool libssl_set_alpn_protos(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, co
     wire.push_back(length);
     wire.insert(wire.end(), proto.begin(), proto.end());
   }
-  return SSL_CTX_set_alpn_protos(ctx.get(), wire.data(), wire.size()) == 0;
+  return SSL_CTX_set_alpn_protos(ctx, wire.data(), wire.size()) == 0;
 #else
   return false;
 #endif

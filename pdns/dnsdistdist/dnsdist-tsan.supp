@@ -11,3 +11,4 @@ race:DownstreamState::setDown
 race:DownstreamState::setUp
 race:DownstreamState::setAuto
 race:updateHealthCheckResult
+race:carbonDumpThread
