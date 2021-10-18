@@ -198,6 +198,11 @@ bool ZoneParserTNG::getTemplateLine()
         if (extracted < 1) {
           throw PDNSException("Unable to parse offset, width and radix for $GENERATE's lhs from '"+spec+"' "+getLineOfFile());
         }
+        if (width < 0) {
+          throw PDNSException("Invalid width ("+std::to_string(width)+") for $GENERATE's lhs from '"+spec+"' "+getLineOfFile());
+        }
+        /* a width larger than the output buffer does not make any sense */
+        width = std::min(width, 80);
 
         char tmp[80];
         switch (radix) {
