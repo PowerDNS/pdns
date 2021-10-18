@@ -258,6 +258,7 @@ pdns_server_SOURCES = \
 	signingpipe.cc signingpipe.hh \
 	sillyrecords.cc \
 	slavecommunicator.cc \
+	stat_t.hh \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	svc-records.cc svc-records.hh \
@@ -1359,9 +1360,10 @@ testrunner_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats-auth.cc \
-	responsestats.cc \
+	responsestats.cc responsestats.hh \
 	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
+	stat_t.hh \
 	statbag.cc \
 	stubresolver.hh stubresolver.cc \
 	svc-records.cc svc-records.hh \
