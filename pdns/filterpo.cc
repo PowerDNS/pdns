@@ -199,7 +199,7 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
     for (const auto& wc : wcNames) {
       if (z->findExactNSPolicy(wc, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
-        // Hit is not arg to findExactNSPolicy!
+        // Hit is not the wildcard passed to findExactQNamePolicy but the actual qname!
         pol.d_hit = qname.toStringNoDot();
         return true;
       }
@@ -222,7 +222,6 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
       continue;
     }
 
-    Netmask key;
     if(z->findNSIPPolicy(address, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
       return true;
@@ -243,7 +242,6 @@ bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unorder
       continue;
     }
 
-    Netmask key;
     if (z->findClientPolicy(ca, pol)) {
       // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
       return true;
@@ -308,7 +306,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
     for (const auto& wc : wcNames) {
       if (z->findExactQNamePolicy(wc, pol)) {
         // cerr<<"Had a hit on the name of the query"<<endl;
-        // Hit is not arg to findExactQNamePolicy!
+        // Hit is not the wildcard passed to findExactQNamePolicy but the actual qname!
         pol.d_hit = qname.toStringNoDot();
         return true;
       }
@@ -361,7 +359,6 @@ bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordere
       return false;
     }
 
-    Netmask key;
     if (z->findResponsePolicy(ca, pol)) {
       return true;
     }
