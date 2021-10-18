@@ -201,10 +201,12 @@ bool ZoneParserTNG::getTemplateLine()
         if (width < 0) {
           throw PDNSException("Invalid width ("+std::to_string(width)+") for $GENERATE's lhs from '"+spec+"' "+getLineOfFile());
         }
-        /* a width larger than the output buffer does not make any sense */
-        width = std::min(width, 80);
 
         char tmp[80];
+
+        /* a width larger than the output buffer does not make any sense */
+        width = std::min(width, static_cast<int>(sizeof(tmp)));
+
         switch (radix) {
         case 'o':
           snprintf(tmp, sizeof(tmp), "%0*o", width, d_templatecounter + offset);
