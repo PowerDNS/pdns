@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(test_ctor)
 
   eco = EDNSCookiesOpt("\x12\x34\x56\x78\x90\xab\xcd\xef");
   BOOST_CHECK(eco.isWellFormed());
-  BOOST_CHECK_EQUAL(8, eco.makeOptString().length());
+  BOOST_CHECK_EQUAL(8U, eco.makeOptString().length());
 }
 
 #ifdef HAVE_CRYPTO_SHORTHASH
