@@ -1844,7 +1844,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       }
     }
     else if(di.kind == DomainInfo::Slave) {
-      cout << "Primary" << addS(di.masters) << ": ";
+      cout << "Primar" << addS(di.masters, "y", "ies") << ": ";
       for(const auto& m : di.masters)
         cout<<m.toStringWithPort()<<" ";
       cout<<endl;

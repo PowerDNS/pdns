@@ -591,18 +591,21 @@ T valueOrEmpty(const P val) {
 
 
 // I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
-template <typename Integer>
-const char* addS(Integer siz, typename std::enable_if<std::is_integral<Integer>::value>::type*P=0)
+template <typename Integer,
+typename std::enable_if_t<std::is_integral<Integer>::value, bool> = true>
+const char* addS(Integer siz, const char* singular = "", const char *plural = "s")
 {
-  if(!siz || siz > 1)
-    return "s";
-  else return "";
+  if (siz == 1) {
+    return singular;
+  }
+  return plural;
 }
 
-template<typename C>
-const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::type*P=0)
+template <typename C,
+typename std::enable_if_t<std::is_class<C>::value, bool> = true>
+const char* addS(const C& c, const char* singular = "", const char *plural = "s")
 {
-  return addS(c.size());
+  return addS(c.size(), singular, plural);
 }
 
 template<typename C>
