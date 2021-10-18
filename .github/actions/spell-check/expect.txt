@@ -1584,6 +1584,7 @@ srv
 sshfp
 ssi
 ssl
+SSLKEYLOGFILE
 sslmode
 sslrootcert
 SSQ
