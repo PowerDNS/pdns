@@ -3,7 +3,7 @@ ConfigSetting
 
 .. json:object:: ConfigSetting
 
-  Represents a configuration item (as found in :doc:'../settings')
+  Represents a configuration item (as found in :doc:`../../settings`)
 
   :property string type: set to "ConfigSetting"
   :property string name: The name of this setting (e.g. 'webserver-port')
