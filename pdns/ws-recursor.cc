@@ -1149,20 +1149,19 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->bind();
 
   // legacy dispatch
-  d_ws->registerApiHandler(
-    "/jsonstat", [this](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", &apiServerRPZStats);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
-  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail, true);
-  d_ws->registerApiHandler("/api/v1/servers", &apiServer);
-  d_ws->registerApiHandler("/api/v1", &apiDiscoveryV1);
-  d_ws->registerApiHandler("/api", &apiDiscovery);
+  d_ws->registerApiHandler("/jsonstat", [this](HttpRequest* req, HttpResponse* resp){jsonstat(req, resp);}, true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones);
+  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, true);
+  d_ws->registerApiHandler("/api/v1/servers", apiServer);
+  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
+  d_ws->registerApiHandler("/api", apiDiscovery);
 
   for (const auto& u : g_urlmap) {
     d_ws->registerWebHandler("/" + u.first, serveStuff);
