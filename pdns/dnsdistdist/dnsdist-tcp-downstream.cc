@@ -152,12 +152,43 @@ static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyPro
   memcpy(&payload.at(startOfHeaderOffset), &dh, sizeof(dh));
 }
 
+enum class QueryState : uint8_t {
+  hasSizePrepended,
+  noSize
+};
+
+enum class ConnectionState : uint8_t {
+  needProxy,
+  proxySent
+};
+
+static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState queryState, ConnectionState connectionState)
+{
+  if (connectionState == ConnectionState::needProxy) {
+    if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
+      query.d_buffer.insert(query.d_buffer.begin(), query.d_proxyProtocolPayload.begin(), query.d_proxyProtocolPayload.end());
+      query.d_proxyProtocolPayloadAdded = true;
+    }
+  }
+  else if (connectionState == ConnectionState::proxySent) {
+    if (query.d_proxyProtocolPayloadAdded) {
+      if (query.d_buffer.size() < query.d_proxyProtocolPayload.size()) {
+        throw std::runtime_error("Trying to remove a proxy protocol payload of size " + std::to_string(query.d_proxyProtocolPayload.size()) + " from a buffer of size " + std::to_string(query.d_buffer.size()));
+      }
+      query.d_buffer.erase(query.d_buffer.begin(), query.d_buffer.begin() + query.d_proxyProtocolPayload.size());
+      query.d_proxyProtocolPayloadAdded = false;
+    }
+  }
+
+  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayload.size() : 0, true);
+}
+
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
 
   uint16_t id = conn->d_highestStreamID;
-  editPayloadID(conn->d_currentQuery.d_query.d_buffer, id, conn->d_currentQuery.d_query.d_proxyProtocolPayloadAdded ? conn->d_currentQuery.d_query.d_proxyProtocolPayload.size() : 0, true);
+  prepareQueryForSending(conn->d_currentQuery.d_query, id, QueryState::hasSizePrepended, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
   conn->d_pendingQueries.pop_front();
   conn->d_state = State::sendingQueryToBackend;
@@ -318,9 +349,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             if (conn->d_state == State::sendingQueryToBackend) {
               /* we need to edit this query so it has the correct ID */
               auto query = std::move(conn->d_currentQuery);
-
               uint16_t id = conn->d_highestStreamID;
-              editPayloadID(query.d_query.d_buffer, id, query.d_query.d_proxyProtocolPayloadAdded ? query.d_query.d_proxyProtocolPayload.size() : 0, true);
+              prepareQueryForSending(query.d_query, id, QueryState::hasSizePrepended, ConnectionState::needProxy);
               conn->d_currentQuery = std::move(query);
             }
 
@@ -357,11 +387,6 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
               }
 
               iostate = queueNextQuery(conn);
-            }
-
-            if (conn->needProxyProtocolPayload() && !conn->d_currentQuery.d_query.d_proxyProtocolPayloadAdded && !conn->d_currentQuery.d_query.d_proxyProtocolPayload.empty()) {
-              conn->d_currentQuery.d_query.d_buffer.insert(conn->d_currentQuery.d_query.d_buffer.begin(), conn->d_currentQuery.d_query.d_proxyProtocolPayload.begin(), conn->d_currentQuery.d_query.d_proxyProtocolPayload.end());
-              conn->d_currentQuery.d_query.d_proxyProtocolPayloadAdded = true;
             }
 
             reconnected = true;
@@ -422,6 +447,7 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
 
 void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
+  cerr<<"in "<<__PRETTY_FUNCTION__<<" for a query with a buffer of size "<<query.d_buffer.size()<<" and a proxy protocol payload size of "<<query.d_proxyProtocolPayload.size()<<" which has been added: "<<query.d_proxyProtocolPayloadAdded<<endl;
   if (!d_ioState) {
     d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
   }
@@ -434,14 +460,9 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     d_currentPos = 0;
 
     uint16_t id = d_highestStreamID;
-    editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayload.size() : 0, true);
 
     d_currentQuery = PendingRequest({sender, std::move(query)});
-
-    if (needProxyProtocolPayload() && !d_currentQuery.d_query.d_proxyProtocolPayloadAdded && !d_currentQuery.d_query.d_proxyProtocolPayload.empty()) {
-      d_currentQuery.d_query.d_buffer.insert(d_currentQuery.d_query.d_buffer.begin(), d_currentQuery.d_query.d_proxyProtocolPayload.begin(), d_currentQuery.d_query.d_proxyProtocolPayload.end());
-      d_currentQuery.d_query.d_proxyProtocolPayloadAdded = true;
-    }
+    prepareQueryForSending(d_currentQuery.d_query, id, QueryState::hasSizePrepended, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
     struct timeval now;
     gettimeofday(&now, 0);

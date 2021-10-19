@@ -723,8 +723,6 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
 
-  bool proxyProtocolPayloadAdded = false;
-
   if (ds->useProxyProtocol) {
     /* if we ever sent a TLV over a connection, we can never go back */
     if (!state->d_proxyProtocolPayloadHasTLV) {
@@ -732,11 +730,6 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     }
 
     proxyProtocolPayload = getProxyProtocolPayload(dq);
-    if (state->d_proxyProtocolPayloadHasTLV && downstreamConnection->isFresh()) {
-      /* we will not be able to reuse an existing connection anyway so let's add the payload right now */
-      addProxyProtocol(state->d_buffer, proxyProtocolPayload);
-      proxyProtocolPayloadAdded = true;
-    }
   }
 
   if (dq.proxyProtocolValues) {
@@ -744,12 +737,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   }
 
   TCPQuery query(std::move(state->d_buffer), std::move(ids));
-  if (proxyProtocolPayloadAdded) {
-    query.d_proxyProtocolPayloadAdded = true;
-  }
-  else {
-    query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
-  }
+  query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
   vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
   std::shared_ptr<TCPQuerySender> incoming = state;

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import copy
 import dns
 import socket
 import struct
@@ -110,7 +111,7 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
 
           toQueue.put([payload, data], True, 2.0)
 
-          response = fromQueue.get(True, 2.0)
+          response = copy.deepcopy(fromQueue.get(True, 2.0))
           if not response:
             conn.close()
             break
@@ -160,6 +161,7 @@ class TestProxyProtocol(ProxyProtocolTest):
     addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
     """
     _config_params = ['_proxyResponderPort']
+    _verboseMode = True
 
     def testProxyUDP(self):
         """
@@ -553,7 +555,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
@@ -600,7 +601,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         destPort = 9999
         srcAddr = "2001:db8::8"
         srcPort = 8888
-        response = dns.message.make_response(query)
 
         tcpPayload = ProxyProtocol.getPayload(False, True, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
 
@@ -650,7 +650,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
           receivedQuery = dns.message.from_wire(receivedDNSData)
           receivedQuery.id = query.id
-          receivedResponse.id = response.id
           self.assertEqual(receivedQuery, query)
           self.assertEqual(receivedResponse, response)
           self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
