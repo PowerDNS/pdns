@@ -192,6 +192,8 @@ void initSR(bool debug)
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0U);
   SyncRes::clearNonResolvingNS();
   BOOST_CHECK_EQUAL(SyncRes::getNonResolvingNSSize(), 0U);
+  SyncRes::clearSaveParentsNSSets();
+  BOOST_CHECK_EQUAL(SyncRes::getSaveParentsNSSetsSize(), 0U);
 
   SyncRes::clearECSStats();
 

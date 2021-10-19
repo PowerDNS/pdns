@@ -377,6 +377,11 @@ static uint64_t* pleaseDumpFailedServers(int fd)
   return new uint64_t(SyncRes::doDumpFailedServers(fd));
 }
 
+static uint64_t* pleaseDumpSavedParentNSSets(int fd)
+{
+  return new uint64_t(SyncRes::doDumpSavedParentNSSets(fd));
+}
+
 static uint64_t* pleaseDumpNonResolvingNS(int fd)
 {
   return new uint64_t(SyncRes::doDumpNonResolvingNS(fd));
@@ -1904,6 +1909,8 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
             "dump-failedservers <filename>    dump the failed servers to the named file\n"
             "dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
             "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
+            "dump-saved-parent-ns-sets <filename>\n"
+            "                                 dump saved parent ns sets that were used successfully as fallback\n"
             "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
             "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
             "get [key1] [key2] ..             get specific statistics\n"
@@ -1979,6 +1986,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "dump-failedservers") {
     return doDumpToFile(s, pleaseDumpFailedServers, cmd, false);
+  }
+  if (cmd == "dump-saved-parent-ns-sets") {
+    return doDumpToFile(s, pleaseDumpSavedParentNSSets, cmd, false);
   }
   if (cmd == "dump-rpz") {
     return doDumpRPZ(s, begin, end);

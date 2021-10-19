@@ -407,8 +407,48 @@ public:
 
   };
 
+  struct SavedParentEntry
+  {
+    SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
+      : d_domain(name), d_nsAddresses(nsAddresses), d_ttd(ttd)
+    {
+    }
+    DNSName d_domain;
+    map<DNSName, vector<ComboAddress>> d_nsAddresses;
+    time_t d_ttd;
+    mutable uint64_t d_count{0};
+  };
+
+  typedef multi_index_container<
+    SavedParentEntry,
+    indexed_by<ordered_unique<tag<DNSName>, member<SavedParentEntry, DNSName, &SavedParentEntry::d_domain>>,
+               ordered_non_unique<tag<time_t>, member<SavedParentEntry, time_t, &SavedParentEntry::d_ttd>>
+               >> SavedParentNSSetBase;
+
+  class SavedParentNSSet : public SavedParentNSSetBase
+  {
+  public:
+    void prune(time_t now)
+    {
+      auto &ind = get<time_t>();
+      ind.erase(ind.begin(), ind.upper_bound(now));
+    }
+    void inc(const DNSName& name)
+    {
+      auto it = find(name);
+      if (it != end()) {
+        ++(*it).d_count;
+      }
+    }
+    SavedParentNSSet getMapCopy() const
+    {
+      return *this;
+    }
+  };
+
   static LockGuarded<fails_t<ComboAddress>> s_fails;
   static LockGuarded<fails_t<DNSName>> s_nonresolving;
+  static LockGuarded <SavedParentNSSet> s_savedParentNSSet;
 
   struct ThreadLocalStorage {
     nsspeeds_t nsSpeeds;
@@ -426,6 +466,8 @@ public:
   static uint64_t doDumpThrottleMap(int fd);
   static uint64_t doDumpFailedServers(int fd);
   static uint64_t doDumpNonResolvingNS(int fd);
+  static uint64_t doDumpSavedParentNSSets(int fd);
+
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
   static void addDontQuery(const std::string& mask)
   {
@@ -569,6 +611,18 @@ public:
   static void pruneNonResolving(time_t cutoff)
   {
     s_nonresolving.lock()->prune(cutoff);
+  }
+  static void clearSaveParentsNSSets()
+  {
+    s_savedParentNSSet.lock()->clear();
+  }
+  static size_t getSaveParentsNSSetsSize()
+  {
+    return s_savedParentNSSet.lock()->size();
+  }
+  static void pruneSaveParentsNSSets(time_t now)
+  {
+    s_savedParentNSSet.lock()->prune(now);
   }
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
@@ -857,7 +911,8 @@ private:
 
   bool doDoTtoAuth(const DNSName& ns) const;
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, QType qtype, vector<DNSRecord>&ret,
-                  unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation);
+                  unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
+                  std::map<DNSName, std::vector<ComboAddress>>* fallback);
   bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed);
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP);
 
@@ -888,6 +943,7 @@ private:
 /* This function will check whether the answer should have the AA bit set, and will set if it should be set and isn't.
    This is unfortunately needed to deal with very crappy so-called DNS servers */
   void fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
+  void rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSRecord>& newRecords, unsigned int depth);
   RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery, const ComboAddress& remoteIP);
   bool processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherwildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth);
 

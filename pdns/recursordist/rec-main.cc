@@ -881,7 +881,10 @@ static void doStats(void)
           << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
           << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize) << ", failed ns: "
           << SyncRes::getFailedServersSize() << ", ednsmap: "
-          << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << endl;
+          << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "
+          << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
+          << SyncRes::getSaveParentsNSSetsSize()
+          << endl;
     g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries) << "%";
     g_log << Logger::Notice << ", " << ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries) << "% throttled" << endl;
     g_log << Logger::Notice << "stats: " << SyncRes::s_tcpoutqueries << "/" << SyncRes::s_dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, " << broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries) << " queries running, " << SyncRes::s_outgoingtimeouts << " outgoing timeouts " << endl;
@@ -1922,6 +1925,11 @@ static void houseKeeping(void*)
       static PeriodicTask pruneNonResolvingTask{"pruneNonResolvingTask", 5};
       pruneNonResolvingTask.runIfDue(now, [now]() {
         SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
+      });
+
+      static PeriodicTask pruneSaveParentSetTask{"pruneSaveParentSetTask", 60};
+      pruneSaveParentSetTask.runIfDue(now, [now]() {
+        SyncRes::pruneSaveParentsNSSets(now.tv_sec);
       });
 
       // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
