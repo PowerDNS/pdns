@@ -50,13 +50,21 @@ bool DNSFilterEngine::Zone::findExactQNamePolicy(const DNSName& qname, DNSFilter
 
 bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
 {
-  return findExactNamedPolicy(d_propolName, qname, pol);
+  if (findExactNamedPolicy(d_propolName, qname, pol)) {
+    pol.d_trigger = qname;
+    pol.d_trigger.appendRawLabel(rpzNSDnameName);
+    return true;
+  }
+  return false;
 }
 
 bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
 {
   if (const auto fnd = d_propolNSAddr.lookup(addr)) {
     pol = fnd->second;
+    pol.d_trigger = Zone::maskToRPZ(fnd->first);
+    pol.d_trigger.appendRawLabel(rpzNSIPName);
+    pol.d_hit = addr.toString();
     return true;
   }
   return false;
@@ -66,6 +74,9 @@ bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, DNSFilt
 {
   if (const auto fnd = d_postpolAddr.lookup(addr)) {
     pol = fnd->second;
+    pol.d_trigger = Zone::maskToRPZ(fnd->first);
+    pol.d_trigger.appendRawLabel(rpzIPName);
+    pol.d_hit = addr.toString();
     return true;
   }
   return false;
@@ -75,6 +86,9 @@ bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, DNSFilter
 {
   if (const auto fnd = d_qpolAddr.lookup(addr)) {
     pol = fnd->second;
+    pol.d_trigger = Zone::maskToRPZ(fnd->first);
+    pol.d_trigger.appendRawLabel(rpzClientIPName);
+    pol.d_hit = addr.toString();
     return true;
   }
   return false;
@@ -179,17 +193,13 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
     }
     if (z->findExactNSPolicy(qname, pol)) {
       // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
-      pol.d_trigger = qname;
-      pol.d_trigger.appendRawLabel(rpzNSDnameName);
-      pol.d_hit = qname.toStringNoDot();
       return true;
     }
 
     for (const auto& wc : wcNames) {
       if (z->findExactNSPolicy(wc, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
-        pol.d_trigger = wc;
-        pol.d_trigger.appendRawLabel(rpzNSDnameName);
+        // Hit is not the wildcard passed to findExactQNamePolicy but the actual qname!
         pol.d_hit = qname.toStringNoDot();
         return true;
       }
@@ -214,10 +224,6 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
 
     if(z->findNSIPPolicy(address, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
-      // XXX should use ns RPZ
-      pol.d_trigger = Zone::maskToRPZ(address);
-      pol.d_trigger.appendRawLabel(rpzNSIPName);
-      pol.d_hit = address.toString();
       return true;
     }
   }
@@ -294,15 +300,13 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
 
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
-      pol.d_trigger = qname;
-      pol.d_hit = qname.toStringNoDot();
       return true;
     }
 
     for (const auto& wc : wcNames) {
       if (z->findExactQNamePolicy(wc, pol)) {
         // cerr<<"Had a hit on the name of the query"<<endl;
-        pol.d_trigger = wc;
+        // Hit is not the wildcard passed to findExactQNamePolicy but the actual qname!
         pol.d_hit = qname.toStringNoDot();
         return true;
       }
@@ -356,9 +360,6 @@ bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordere
     }
 
     if (z->findResponsePolicy(ca, pol)) {
-      pol.d_trigger = Zone::maskToRPZ(ca);
-      pol.d_trigger.appendRawLabel(rpzIPName);
-      pol.d_hit = ca.toString();
       return true;
     }
   }

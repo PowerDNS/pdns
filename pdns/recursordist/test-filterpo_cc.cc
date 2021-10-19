@@ -33,19 +33,19 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
   const DNSName blockedWildcardName("*.wildcard-blocked.");
   const ComboAddress responseIP("192.0.2.254");
   BOOST_CHECK_EQUAL(zone->size(), 0U);
-  zone->addClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
+  zone->addClientTrigger(Netmask(clientIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
   BOOST_CHECK_EQUAL(zone->size(), 1U);
   zone->addQNameTrigger(blockedName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
   BOOST_CHECK_EQUAL(zone->size(), 2U);
   zone->addQNameTrigger(blockedWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
   BOOST_CHECK_EQUAL(zone->size(), 3U);
-  zone->addNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
+  zone->addNSIPTrigger(Netmask(nsIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
   BOOST_CHECK_EQUAL(zone->size(), 4U);
   zone->addNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
   BOOST_CHECK_EQUAL(zone->size(), 5U);
   zone->addNSTrigger(nsWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
   BOOST_CHECK_EQUAL(zone->size(), 6U);
-  zone->addResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
+  zone->addResponseTrigger(Netmask(responseIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
   BOOST_CHECK_EQUAL(zone->size(), 7U);
 
   size_t zoneIdx = dfe.addZone(zone);
@@ -81,6 +81,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("sub.sub.wildcard.wolf."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSDName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
+    BOOST_CHECK_EQUAL(matchingPolicy.d_trigger, DNSName("*.wildcard.wolf.rpz-nsdname"));
+    BOOST_CHECK_EQUAL(matchingPolicy.d_hit, "sub.sub.wildcard.wolf");
 
     /* looking for wildcard.wolf. should not match *.wildcard-blocked. */
     const auto notMatchingPolicy = dfe.getProcessingPolicy(DNSName("wildcard.wolf."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
@@ -92,6 +94,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     /* except if we look exactly for the wildcard */
     BOOST_CHECK(zone->findExactNSPolicy(nsWildcardName, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("*.wildcard.wolf.rpz-nsdname"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, nsWildcardName.toStringNoDot());
   }
 
   {
@@ -110,6 +114,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findNSIPPolicy(nsIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.0.2.0.192.rpz-nsip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, nsIP.toString());
   }
 
   {
@@ -128,6 +134,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findExactQNamePolicy(blockedName, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, blockedName);
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, blockedName.toStringNoDot());
 
     /* but a subdomain should not be blocked (not a wildcard, and this is not suffix domain matching */
     matchingPolicy = dfe.getQueryPolicy(DNSName("sub") + blockedName, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
@@ -140,6 +148,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     const auto matchingPolicy = dfe.getQueryPolicy(DNSName("sub.sub.wildcard-blocked."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
+    BOOST_CHECK_EQUAL(matchingPolicy.d_trigger, blockedWildcardName);
+    BOOST_CHECK_EQUAL(matchingPolicy.d_hit, "sub.sub.wildcard-blocked");
 
     /* looking for wildcard-blocked. should not match *.wildcard-blocked. */
     const auto notMatchingPolicy = dfe.getQueryPolicy(DNSName("wildcard-blocked."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
@@ -151,6 +161,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     /* except if we look exactly for the wildcard */
     BOOST_CHECK(zone->findExactQNamePolicy(blockedWildcardName, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, blockedWildcardName);
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, blockedWildcardName.toStringNoDot());
   }
 
   {
@@ -161,6 +173,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findClientPolicy(clientIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.128.2.0.192.rpz-client-ip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, clientIP.toString());
   }
 
   {
@@ -183,6 +197,8 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findResponsePolicy(responseIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
+    BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.254.2.0.192.rpz-ip"));
+    BOOST_CHECK_EQUAL(zonePolicy.d_hit, responseIP.toString());
   }
 
   {
@@ -197,19 +213,19 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
   }
 
   BOOST_CHECK_EQUAL(zone->size(), 7U);
-  zone->rmClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
+  zone->rmClientTrigger(Netmask(clientIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
   BOOST_CHECK_EQUAL(zone->size(), 6U);
   zone->rmQNameTrigger(blockedName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
   BOOST_CHECK_EQUAL(zone->size(), 5U);
   zone->rmQNameTrigger(blockedWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
   BOOST_CHECK_EQUAL(zone->size(), 4U);
-  zone->rmNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
+  zone->rmNSIPTrigger(Netmask(nsIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
   BOOST_CHECK_EQUAL(zone->size(), 3U);
   zone->rmNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
   BOOST_CHECK_EQUAL(zone->size(), 2U);
   zone->rmNSTrigger(nsWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
   BOOST_CHECK_EQUAL(zone->size(), 1U);
-  zone->rmResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
+  zone->rmResponseTrigger(Netmask(responseIP, 31), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
   BOOST_CHECK_EQUAL(zone->size(), 0U);
 
   /* DNSFilterEngine::clear() calls clear() on all zones, but keeps the zones */
