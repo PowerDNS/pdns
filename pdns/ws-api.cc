@@ -117,6 +117,20 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(doc);
 }
 
+void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  Json version1 = Json::object {
+    { "server_url", "/api/v1/servers{/server}" },
+    { "api_features", Json::array {} }
+  };
+  Json doc = Json::array { version1 };
+
+  resp->setJsonBody(doc);
+
+}
+
 void apiServer(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();

@@ -2354,6 +2354,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
       d_ws->registerApiHandler("/api/v1/servers", &apiServer);
+      d_ws->registerApiHandler("/api/v1", &apiDiscoveryV1);
       d_ws->registerApiHandler("/api/docs", &apiDocs);
       d_ws->registerApiHandler("/api", &apiDiscovery);
     }

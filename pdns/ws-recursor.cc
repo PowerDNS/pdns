@@ -1161,6 +1161,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
   d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail, true);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
+  d_ws->registerApiHandler("/api/v1", &apiDiscoveryV1);
   d_ws->registerApiHandler("/api", &apiDiscovery);
 
   for (const auto& u : g_urlmap) {
