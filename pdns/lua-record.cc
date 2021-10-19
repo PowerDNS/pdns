@@ -326,7 +326,7 @@ static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
   vector<pair<int, ComboAddress> > pick;
   for(auto& i : wips) {
     sum += i.first;
-    pick.push_back({sum, i.second});
+    pick.emplace_back(sum, i.second);
   }
   int r = dns_random(sum);
   auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });

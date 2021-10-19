@@ -972,17 +972,14 @@ int PKCS11DNSCryptoKeyEngine::getBits() const {
 };
 
 DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() const {
-  storvector_t storvect;
-  typedef std::vector<std::pair<std::string, std::string> > outputs_t;
-  outputs_t outputs;
-
-  boost::assign::push_back(storvect)
-   (make_pair("Algorithm", std::to_string(d_algorithm)))
-   (make_pair("Engine", d_module))
-   (make_pair("Slot", d_slot_id))
-   (make_pair("PIN", d_pin))
-   (make_pair("Label", d_label))
-   (make_pair("PubLabel", d_pub_label));
+  auto storvect = storvector_t{
+    {"Algorithm", std::to_string(d_algorithm)},
+    {"Engine", d_module},
+    {"Slot", d_slot_id},
+    {"PIN", d_pin},
+    {"Label", d_label},
+    {"PubLabel", d_pub_label},
+  };
   return storvect;
 };
 

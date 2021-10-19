@@ -177,10 +177,10 @@ try
       }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
-      nsec3s.insert(make_pair(toLower(i->first.d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash)));
+      nsec3s.emplace(toLower(i->first.d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash));
       nsec3salt = r->d_salt;
       nsec3iters = r->d_iterations;
-      nsec3t.insert(make_pair(toLower(i->first.d_name.getRawLabel(0)), r->numberOfTypesSet()));
+      nsec3t.emplace(toLower(i->first.d_name.getRawLabel(0)), r->numberOfTypesSet());
     }
     else
     {

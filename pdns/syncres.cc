@@ -204,16 +204,16 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, con
       qclass == QClass::IN) {
     handled = true;
     if (qtype == QType::PTR || qtype == QType::ANY)
-      answers.push_back({QType::PTR, "localhost."});
+      answers.emplace_back(QType::PTR, "localhost.");
   }
 
   if (qname.isPartOf(localhost) &&
       qclass == QClass::IN) {
     handled = true;
     if (qtype == QType::A || qtype == QType::ANY)
-      answers.push_back({QType::A, "127.0.0.1"});
+      answers.emplace_back(QType::A, "127.0.0.1");
     if (qtype == QType::AAAA || qtype == QType::ANY)
-      answers.push_back({QType::AAAA, "::1"});
+      answers.emplace_back(QType::AAAA, "::1");
   }
 
   if ((qname == versionbind || qname == idserver || qname == versionpdns) &&
@@ -221,9 +221,9 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, con
     handled = true;
     if (qtype == QType::TXT || qtype == QType::ANY) {
       if(qname == versionbind || qname == versionpdns)
-        answers.push_back({QType::TXT, "\""+::arg()["version-string"]+"\""});
+        answers.emplace_back(QType::TXT, "\"" + ::arg()["version-string"] + "\"");
       else if (s_serverID != "disabled")
-        answers.push_back({QType::TXT, "\""+s_serverID+"\""});
+        answers.emplace_back(QType::TXT, "\"" + s_serverID + "\"");
     }
   }
 
@@ -241,7 +241,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, con
           ans<<dsRecord.d_tag;
         }
         ans << "\"";
-        answers.push_back({QType::TXT, ans.str()});
+        answers.emplace_back(QType::TXT, ans.str());
       }
     }
   }
@@ -258,7 +258,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, con
         if (negAnchor.second.length())
           ans<<" "<<negAnchor.second;
         ans << "\"";
-        answers.push_back({QType::TXT, ans.str()});
+        answers.emplace_back(QType::TXT, ans.str());
       }
     }
   }
@@ -1262,7 +1262,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
 	answer.qtype=qtype.getCode();
 	for(const auto& dr : bestns) {
           if (auto nsContent = getRR<NSRecordContent>(dr)) {
-            answer.bestns.insert(make_pair(dr.d_name, nsContent->getNS()));
+            answer.bestns.emplace(dr.d_name, nsContent->getNS());
           }
         }
 
@@ -1976,7 +1976,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
   rnameservers.reserve(tnameservers.size());
   for(const auto& tns: tnameservers) {
     float speed = t_sstorage.nsSpeeds[tns.first].get(d_now);
-    rnameservers.push_back({tns.first, speed});
+    rnameservers.emplace_back(tns.first, speed);
     if(tns.first.empty()) // this was an authoritative OOB zone, don't pollute the nsSpeeds with that
       return rnameservers;
   }

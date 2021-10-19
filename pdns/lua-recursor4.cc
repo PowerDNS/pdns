@@ -490,9 +490,9 @@ void RecursorLua4::getFeatures(Features& features)
 {
   // Add key-values pairs below.
   // Make sure you add string values explicitly converted to string.
-  // e.g. features.push_back(make_pair("somekey", string("stringvalue"));
+  // e.g. features.emplace_back("somekey", string("stringvalue");
   // Both int and double end up as a lua number type.
-  features.push_back(make_pair("PR8001_devicename", true));
+  features.emplace_back("PR8001_devicename", true);
 }
 
 void RecursorLua4::maintenance() const

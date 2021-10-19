@@ -387,7 +387,7 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     v4Key = nextV4Key;
     if (bpf_lookup_elem(maps->d_v4map.getHandle(), &v4Key, &value) == 0) {
       v4Addr.sin_addr.s_addr = ntohl(v4Key);
-      result.push_back(make_pair(ComboAddress(&v4Addr), value));
+      result.emplace_back(ComboAddress(&v4Addr), value);
     }
 
     res = bpf_get_next_key(maps->d_v4map.getHandle(), &v4Key, &nextV4Key);
@@ -399,7 +399,7 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     if (bpf_lookup_elem(maps->d_v6map.getHandle(), &nextV6Key, &value) == 0) {
       memcpy(&v6Addr.sin6_addr.s6_addr, &nextV6Key, sizeof(nextV6Key));
 
-      result.push_back(make_pair(ComboAddress(&v6Addr), value));
+      result.emplace_back(ComboAddress(&v6Addr), value);
     }
 
     res = bpf_get_next_key(maps->d_v6map.getHandle(), &nextV6Key, &nextV6Key);

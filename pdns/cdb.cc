@@ -123,7 +123,7 @@ bool CDB::readNext(pair<string, string> &value) {
       throw std::runtime_error("Error while reading value for key '" + key + "' from CDB database: " + std::to_string(ret));
     }
 
-    value = make_pair(std::move(key), std::move(val));
+    value = {std::move(key), std::move(val)};
     return true;
   }
 

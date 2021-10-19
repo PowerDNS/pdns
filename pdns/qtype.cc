@@ -101,7 +101,7 @@ static map<uint16_t, const string> swapElements(const map<const string, uint16_t
   map<uint16_t, const string> ret;
 
   for (const auto& n : names) {
-    ret.insert(make_pair(n.second, n.first));
+    ret.emplace(n.second, n.first);
   }
   return ret;
 }

@@ -190,7 +190,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 
     string field(d_data.c_str() + pos, len);
     pos+=len;
-    options.push_back(make_pair(code, std::move(field)));
+    options.emplace_back(code, std::move(field));
   }
 }
 

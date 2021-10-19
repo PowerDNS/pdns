@@ -995,7 +995,7 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
     if(t_servfailremotes) {
       t_servfailremotes->push_back(remote);
       if(query && t_servfailqueryring) // packet cache
-	t_servfailqueryring->push_back(make_pair(*query, qtype));
+        t_servfailqueryring->push_back({*query, qtype});
     }
     g_stats.servFails++;
     break;
@@ -1601,7 +1601,7 @@ static void startDoResolve(void *p)
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
   try {
     if (t_queryring)
-      t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+      t_queryring->push_back({dc->d_mdp.d_qname, dc->d_mdp.d_qtype});
 
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
@@ -1648,7 +1648,7 @@ static void startDoResolve(void *p)
           const static string mode_server_id = ::arg()["server-id"];
           if (mode_server_id != "disabled" && !mode_server_id.empty() &&
               maxanswersize > (EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size())) {
-            returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+            returnedEdnsOptions.emplace_back(EDNSOptionCode::NSID, mode_server_id);
             variableAnswer = true; // Can't packetcache an answer with NSID
             maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
@@ -2041,7 +2041,7 @@ static void startDoResolve(void *p)
             if(t_bogusremotes)
               t_bogusremotes->push_back(dc->d_source);
             if(t_bogusqueryring)
-              t_bogusqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+              t_bogusqueryring->push_back({dc->d_mdp.d_qname, dc->d_mdp.d_qtype});
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
                g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype)<<x_marker<<" for "<<dc->getRemote()<<" validates as "<<vStateToString(state)<<endl;
             }
@@ -2132,7 +2132,7 @@ static void startDoResolve(void *p)
 
         maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size();
 
-        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+        returnedEdnsOptions.emplace_back(EDNSOptionCode::ECS, std::move(ecsPayload));
       }
     }
 
@@ -2156,7 +2156,7 @@ static void startDoResolve(void *p)
         if (modulo > 0) {
           padSize = std::min(blockSize - modulo, remaining);
         }
-        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize)));
+        returnedEdnsOptions.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
       }
     }
 
@@ -2227,7 +2227,7 @@ static void startDoResolve(void *p)
         eee.extraText = std::move(extra);
 
         if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(eee.infoCode) + eee.extraText.size())) {
-          returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
+          returnedEdnsOptions.emplace_back(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee));
         }
       }
 
@@ -2585,7 +2585,7 @@ static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& d
         t_bogusremotes->push_back(source);
       }
       if (t_bogusqueryring) {
-        t_bogusqueryring->push_back(make_pair(qname, qtype));
+        t_bogusqueryring->push_back({qname, qtype});
       }
     }
 
@@ -3564,7 +3564,7 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
     setNonBlocking(fd);
     setSocketSendBuffer(fd, 65000);
     listen(fd, 128);
-    deferredAdds.push_back(make_pair(fd, handleNewTCPQuestion));
+    deferredAdds.emplace_back(fd, handleNewTCPQuestion);
     tcpSockets.insert(fd);
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
@@ -3661,7 +3661,7 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
     setNonBlocking(fd);
 
-    deferredAdds.push_back(make_pair(fd, handleNewUDPQuestion));
+    deferredAdds.emplace_back(fd, handleNewUDPQuestion);
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET)
       g_log<<Logger::Info<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;

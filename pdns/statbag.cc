@@ -268,12 +268,12 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
     typedef pair<SComboAddress, unsigned int> stor_t;
     vector<stor_t> raw =d_comboRings[name].lock()->get();
     for(const stor_t& stor :  raw) {
-      ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
+      ret.emplace_back(stor.first.ca.toString(), stor.second);
     }
   } else if (d_dnsnameqtyperings.count(name)) {
     auto raw = d_dnsnameqtyperings[name].lock()->get();
     for (auto const &e : raw) {
-      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second));
+      ret.emplace_back(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second);
     }
   }
   return ret;

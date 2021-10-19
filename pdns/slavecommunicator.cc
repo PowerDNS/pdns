@@ -1056,7 +1056,7 @@ vector<pair<DNSName, ComboAddress> > CommunicatorClass::getSuckRequests() {
   auto data = d_data.lock();
   ret.reserve(data->d_suckdomains.size());
   for (auto const &d : data->d_suckdomains) {
-    ret.push_back(make_pair(d.domain, d.master));
+    ret.emplace_back(d.domain, d.master);
   }
   return ret;
 }

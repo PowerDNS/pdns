@@ -205,7 +205,7 @@ vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
   vector<pair<uint8_t, string>> ret;
   for (auto const& value : getMakers()) {
     auto dcke = value.second(value.first);
-    ret.push_back(make_pair(value.first, dcke->getName()));
+    ret.emplace_back(value.first, dcke->getName());
   }
   return ret;
 }

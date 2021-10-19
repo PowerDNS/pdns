@@ -318,7 +318,7 @@ void DNSPacket::wrapup()
   if(d_wantsnsid) {
     const static string mode_server_id=::arg()["server-id"];
     if(mode_server_id != "disabled") {
-      opts.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+      opts.emplace_back(EDNSOptionCode::NSID, mode_server_id);
       optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + mode_server_id.size();
     }
   }
@@ -373,12 +373,12 @@ void DNSPacket::wrapup()
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     
         string opt = makeEDNSSubnetOptsString(eso);
-        opts.push_back(make_pair(8, opt)); // 'EDNS SUBNET'
+        opts.emplace_back(8, opt); // 'EDNS SUBNET'
       }
 
       if (d_haveednscookie && d_eco.isWellFormed()) {
         d_eco.makeServerCookie(s_EDNSCookieKey, getInnerRemote());
-        opts.push_back(make_pair(EDNSOptionCode::COOKIE, d_eco.makeOptString()));
+        opts.emplace_back(EDNSOptionCode::COOKIE, d_eco.makeOptString());
       }
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)

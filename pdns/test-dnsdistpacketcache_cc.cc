@@ -569,7 +569,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.59.220/32");
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
@@ -612,7 +612,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.167.48/32");
-    ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
@@ -649,11 +649,11 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
           pwFQ.getHeader()->id = 0x42;
           opt.source = Netmask("10." + std::to_string(idxA) + "." + std::to_string(idxB) + "." + std::to_string(idxC) + "/32");
           ednsOptions.clear();
-          ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+          ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
           pwFQ.addOpt(512, 0, 0, ednsOptions);
           pwFQ.commit();
           secondKey = pc.getKey(qname.toDNSString(), qname.wirelength(), secondQuery, false);
-          auto pair = colMap.insert(std::make_pair(secondKey, opt.source));
+          auto pair = colMap.emplace(secondKey, opt.source);
           total++;
           if (!pair.second) {
             collisions++;

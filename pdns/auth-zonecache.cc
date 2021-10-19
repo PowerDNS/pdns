@@ -131,7 +131,7 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
   {
     auto pending = d_pending.lock();
     if (pending->d_replacePending) {
-      pending->d_pendingAdds.push_back({zone, zoneId});
+      pending->d_pendingAdds.emplace_back(zone, zoneId);
     }
   }
 

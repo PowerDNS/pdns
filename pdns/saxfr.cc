@@ -183,7 +183,7 @@ try
         o<<"\t"<<i->first.d_content->getZoneRepresentation();
       }
 
-      records.push_back(make_pair(i->first.d_name,o.str()));
+      records.emplace_back(i->first.d_name, o.str());
 
       DNSName shorter(i->first.d_name);
       do {
