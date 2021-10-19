@@ -2,6 +2,109 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0-alpha2
+  :released: 19th of October 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10760
+
+    Don't create SSLKEYLOGFILE files with wide permissions
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10767
+
+    Update existing tags when calling setTagAction and setTagResponseAction
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 10772
+    :tickets: 10771
+
+    Better handling of outgoing DoH workers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10775
+    :tickets: 10403
+
+    Fix the unit tests to handle v4-only or v6-only connectivity
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10782
+
+    Improve the coverage of the outgoing DoH code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10787
+
+    Properly cache UDP queries passed to a TCP/DoT/DoH backend
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10791
+
+    Allow skipping arbitrary EDNS options when computing packet hash
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10814
+
+    Add lua support for SetEDNSOptionAction
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 10823
+
+    Disable TLS renegotiation, release buffers for outgoing TLS
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10832
+
+    Rule for basing decisions on outstanding queries in a pool (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10833
+
+    Add incoming and outgoing protocols to grepq
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10835
+    :tickets: 10559
+
+    Allow setting the block reason from the SMT callback
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10841
+
+    Use per-thread credentials for GnuTLS client connections
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10844
+
+    Clear the UDP states of TCP-only backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10846
+
+    Replace shared by unique ptrs, reduce structs size
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10848
+
+    Only set recursion protection once we know we do not return
+
+.. changelog::
   :version: 1.7.0-alpha1
   :released: 23rd of September 2021
 
@@ -2339,7 +2442,7 @@ Changelog
     :pullreq: 7481
     :tickets: 6242
 
-    Add support for encrypting ip addresses #gdpr 
+    Add support for encrypting ip addresses #gdpr
 
   .. change::
     :tags: Improvements
