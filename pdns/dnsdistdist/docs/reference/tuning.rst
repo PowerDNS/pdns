@@ -1,6 +1,29 @@
 Tuning related functions
 ========================
 
+.. function:: setDoHDownstreamCleanupInterval(interval)
+
+  .. versionadded:: 1.7.0
+
+  Set how often, in seconds, the outgoing DoH connections to backends of a given worker thread are scanned to expunge the ones that are no longer usable. The default is 60 so once per minute and per worker thread.
+  :param int interval: The interval in seconds.
+
+.. function:: setDoHDownstreamMaxIdleTime(max)
+
+  .. versionadded:: 1.7.0
+
+  Set how long, in seconds, an outgoing DoH connection to a backend might stay idle before being closed. The default is 300 so 5 minutes.
+
+  :param int max: The maximum time in seconds.
+
+.. function:: setMaxCachedDoHConnectionsPerDownstream(max)
+
+  .. versionadded:: 1.7.0
+
+  Set the maximum number of inactive DoH connections to a backend cached by each DoH worker thread. These connections can be reused when a new query comes in, instead of having to establish a new connection. dnsdist regularly checks whether the other end has closed any cached connection, closing them in that case.
+
+  :param int max: The maximum number of inactive connections to keep. Default is 10, so 10 connections per backend and per DoH worker thread.
+
 .. function:: setMaxCachedTCPConnectionsPerDownstream(max)
 
   .. versionadded:: 1.6.0
@@ -83,6 +106,23 @@ Tuning related functions
   Allows using cache entries expired for at most n seconds when no backend available to answer for a query
 
   :param int num:
+
+.. function:: setTCPDownstreamCleanupInterval(interval)
+
+  .. versionadded:: 1.6.0
+
+  Set how often, in seconds, the outgoing TCP connections to backends of a given worker thread are scanned to expunge the ones that are no longer usable. The default is 60 so once per minute and per worker thread.
+
+  :param int interval: The interval in seconds.
+
+.. function:: setDoHDownstreamMaxIdleTime(max)
+
+  .. versionadded:: 1.7.0
+
+  Set how long, in seconds, an outgoing DoH connection to a backend might stay idle before being closed. The default is 300 so 5 minutes.
+
+  :param int max: The maximum time in seconds.
+
 
 .. function:: setTCPInternalPipeBufferSize(size)
 

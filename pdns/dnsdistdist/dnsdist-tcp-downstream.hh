@@ -26,6 +26,16 @@ public:
     return d_handler->getDescriptor();
   }
 
+  /* whether the underlying socket has been closed under our feet, basically */
+  bool isUsable() const
+  {
+    if (!d_handler) {
+      return false;
+    }
+
+    return d_handler->isUsable();
+  }
+
   const std::shared_ptr<DownstreamState>& getDS() const
   {
     return d_ds;
@@ -104,6 +114,7 @@ public:
 
   virtual bool reachedMaxStreamID() const = 0;
   virtual bool reachedMaxConcurrentQueries() const = 0;
+  virtual bool isIdle() const = 0;
   virtual void release()
   {
   }
@@ -214,7 +225,7 @@ public:
 
   virtual ~TCPConnectionToBackend();
 
-  bool isIdle() const
+  bool isIdle() const override
   {
     return d_state == State::idle && d_pendingQueries.size() == 0 && d_pendingResponses.size() == 0;
   }
@@ -303,9 +314,15 @@ public:
     s_cleanupInterval = interval;
   }
 
+  static void setMaxIdleTime(uint16_t max)
+  {
+    s_maxIdleTime = max;
+  }
+
 private:
   static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
   static thread_local time_t t_nextCleanup;
   static size_t s_maxCachedConnectionsPerDownstream;
   static uint16_t s_cleanupInterval;
+  static uint16_t s_maxIdleTime;
 };

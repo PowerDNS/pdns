@@ -410,6 +410,11 @@ public:
     return false;
   }
 
+  bool isUsable() const override
+  {
+    return true;
+  }
+
   std::string getServerNameIndication() const override
   {
     return "";

@@ -66,6 +66,7 @@ public:
   void stopIO();
   bool reachedMaxConcurrentQueries() const override;
   bool reachedMaxStreamID() const override;
+  bool isIdle() const override;
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
@@ -136,11 +137,17 @@ public:
     s_cleanupInterval = interval;
   }
 
+  static void setMaxIdleTime(uint16_t max)
+  {
+    s_maxIdleTime = max;
+  }
+
 private:
   static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> t_downstreamConnections;
   static thread_local time_t t_nextCleanup;
   static size_t s_maxCachedConnectionsPerDownstream;
   static uint16_t s_cleanupInterval;
+  static uint16_t s_maxIdleTime;
 };
 
 uint32_t DoHConnectionToBackend::getConcurrentStreamsCount() const
@@ -215,6 +222,11 @@ bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
     return true;
   }
   return false;
+}
+
+bool DoHConnectionToBackend::isIdle() const
+{
+  return getConcurrentStreamsCount() == 0;
 }
 
 const std::unordered_map<std::string, std::string> DoHConnectionToBackend::s_constants = {
@@ -848,6 +860,7 @@ thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToB
 thread_local time_t DownstreamDoHConnectionsManager::t_nextCleanup{0};
 size_t DownstreamDoHConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 uint16_t DownstreamDoHConnectionsManager::s_cleanupInterval{60};
+uint16_t DownstreamDoHConnectionsManager::s_maxIdleTime{300};
 
 size_t DownstreamDoHConnectionsManager::clear()
 {
@@ -892,6 +905,8 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
 
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
+  struct timeval idleCutOff = now;
+  idleCutOff.tv_sec -= s_maxIdleTime;
 
   for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end();) {
     for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end();) {
@@ -906,7 +921,13 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
         continue;
       }
 
-      if (isTCPSocketUsable((*connIt)->getHandle())) {
+      if ((*connIt)->isIdle() && (*connIt)->getLastDataReceivedTime() < idleCutOff) {
+        /* idle for too long */
+        connIt = dsIt->second.erase(connIt);
+        continue;
+      }
+
+      if ((*connIt)->isUsable()) {
         ++connIt;
       }
       else {
@@ -1325,4 +1346,19 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
   }
 #endif /* HAVE_NGHTTP2 */
   return got;
+}
+
+void setDoHDownstreamCleanupInterval(uint16_t max)
+{
+  DownstreamDoHConnectionsManager::setCleanupInterval(max);
+}
+
+void setDoHDownstreamMaxIdleTime(uint16_t max)
+{
+  DownstreamDoHConnectionsManager::setMaxIdleTime(max);
+}
+
+void setDoHDownstreamMaxConnectionsPerBackend(size_t max)
+{
+  DownstreamDoHConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
 }

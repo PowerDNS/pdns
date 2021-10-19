@@ -447,7 +447,6 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
 
 void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
-  cerr<<"in "<<__PRETTY_FUNCTION__<<" for a query with a buffer of size "<<query.d_buffer.size()<<" and a proxy protocol payload size of "<<query.d_proxyProtocolPayload.size()<<" which has been added: "<<query.d_proxyProtocolPayloadAdded<<endl;
   if (!d_ioState) {
     d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
   }
@@ -803,7 +802,7 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
           return entry;
         }
 
-        if (isTCPSocketUsable(entry->getHandle())) {
+        if (entry->isUsable()) {
           ++ds->tcpReusedConnections;
           return entry;
         }
@@ -835,6 +834,8 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
 
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
+  struct timeval idleCutOff = now;
+  idleCutOff.tv_sec -= s_maxIdleTime;
 
   for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
     for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
@@ -849,7 +850,13 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
         continue;
       }
 
-      if (isTCPSocketUsable((*connIt)->getHandle())) {
+      if ((*connIt)->isIdle() && (*connIt)->getLastDataReceivedTime() < idleCutOff) {
+        /* idle for too long */
+        connIt = dsIt->second.erase(connIt);
+        continue;
+      }
+
+      if ((*connIt)->isUsable()) {
         ++connIt;
       }
       else {
@@ -878,12 +885,8 @@ size_t DownstreamConnectionsManager::clear()
   return count;
 }
 
-void setMaxCachedTCPConnectionsPerDownstream(size_t max)
-{
-  DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
-}
-
 thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
 thread_local time_t DownstreamConnectionsManager::t_nextCleanup{0};
 size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 uint16_t DownstreamConnectionsManager::s_cleanupInterval{60};
+uint16_t DownstreamConnectionsManager::s_maxIdleTime{300};
