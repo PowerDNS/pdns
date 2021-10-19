@@ -19,6 +19,7 @@ jobs:
           - oraclelinux-8
           - centos-8-stream
           - debian-bullseye
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2.3.4
         with:
