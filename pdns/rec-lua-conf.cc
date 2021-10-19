@@ -53,7 +53,7 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>> > > rpzOptions_t;
 
-static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
+static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, std::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
 {
   if (have.count("policyName")) {
     polName = boost::get<std::string>(have["policyName"]);
@@ -111,7 +111,7 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > protobufOptions_t;
 
-static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
+static void parseProtobufOptions(std::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
 {
   if (!vars) {
     return;
@@ -171,7 +171,7 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
 #ifdef HAVE_FSTRM
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > frameStreamOptions_t;
 
-static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, FrameStreamExportConfig& config)
+static void parseFrameStreamOptions(std::optional<frameStreamOptions_t> vars, FrameStreamExportConfig& config)
 {
   if (!vars) {
     return;
@@ -205,9 +205,9 @@ static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, 
 }
 #endif /* HAVE_FSTRM */
 
-static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThreads, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options)
+static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThreads, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, std::optional<rpzOptions_t> options)
 {
-  boost::optional<DNSFilterEngine::Policy> defpol;
+  std::optional<DNSFilterEngine::Policy> defpol;
   bool defpolOverrideLocal = true;
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   TSIGTriplet tt;
@@ -337,7 +337,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   lci.generation = luaconfsLocal->generation + 1;
 
   // pdnslog here is compatible with pdnslog in lua-base4.cc.
-  Lua.writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  Lua.writeFunction("pdnslog", [](const std::string& msg, std::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.value_or(Logger::Warning) << msg<<endl; });
   std::unordered_map<string, std::unordered_map<string, int>> pdns_table;
   pdns_table["loglevels"] = std::unordered_map<string, int>{
     {"Alert", LOG_ALERT},
@@ -368,9 +368,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   };
   Lua.writeVariable("Policy", pmap);
 
-  Lua.writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
+  Lua.writeFunction("rpzFile", [&lci](const string& filename, std::optional<rpzOptions_t> options) {
       try {
-        boost::optional<DNSFilterEngine::Policy> defpol;
+        std::optional<DNSFilterEngine::Policy> defpol;
         bool defpolOverrideLocal = true;
         std::string polName("rpzFile");
         std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
@@ -390,17 +390,17 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, std::optional<rpzOptions_t> options) {
     g_log<<Logger::Warning<<"'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead"<< endl;
     rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
-  Lua.writeFunction("rpzPrimary", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua.writeFunction("rpzPrimary", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& primaries_, const string& zoneName, std::optional<rpzOptions_t> options) {
     rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
       });
 
   typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
 
-  Lua.writeFunction("zoneToCache", [&delayedThreads](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
+  Lua.writeFunction("zoneToCache", [&delayedThreads](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, std::optional<zoneToCacheOptions_t> options) {
     try {
       RecZoneToCache::Config conf;
       DNSName validZoneName(zoneName);
@@ -459,7 +459,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   Lua.writeFunction("addSortList", 
 		    [&lci](const std::string& formask_, 
 		       const boost::variant<string, argvec_t>& masks,
-		       boost::optional<int> order_) 
+		       std::optional<int> order_) 
 		    {
 		      try {
 			Netmask formask(formask_);
@@ -494,7 +494,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.dsAnchors[zone].insert(*ds);
   });
 
-  Lua.writeFunction("clearTA", [&lci](boost::optional<string> who) {
+  Lua.writeFunction("clearTA", [&lci](std::optional<string> who) {
       warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearTA), but dnssec is set to 'off'!");
       if(who)
         lci.dsAnchors.erase(DNSName(*who));
@@ -512,7 +512,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   });
 
   /* Remove in 4.3 */
-  Lua.writeFunction("clearDS", [&lci](boost::optional<string> who) {
+  Lua.writeFunction("clearDS", [&lci](std::optional<string> who) {
       g_log<<Logger::Warning<<"clearDS is deprecated and will be removed in the future, switch to clearTA"<<endl;
       warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearDS), but dnssec is set to 'off'!");
       if(who)
@@ -521,7 +521,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.dsAnchors.clear();
     });
 
-  Lua.writeFunction("addNTA", [&lci](const std::string& who, const boost::optional<std::string> why) {
+  Lua.writeFunction("addNTA", [&lci](const std::string& who, const std::optional<std::string> why) {
       warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC (addNTA), but dnssec is set to 'off'!");
       if(why)
         lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
@@ -529,7 +529,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.negAnchors[DNSName(who)] = "";
     });
 
-  Lua.writeFunction("clearNTA", [&lci](boost::optional<string> who) {
+  Lua.writeFunction("clearNTA", [&lci](std::optional<string> who) {
       warnIfDNSSECDisabled("Warning: removing Negative Trust Anchor for DNSSEC (clearNTA), but dnssec is set to 'off'!");
       if(who)
         lci.negAnchors.erase(DNSName(*who));
@@ -537,7 +537,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.negAnchors.clear();
     });
 
-  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, const boost::optional<uint32_t> interval) {
+  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, const std::optional<uint32_t> interval) {
       uint32_t realInterval = 24;
       if (interval) {
         realInterval = static_cast<uint32_t>(*interval);
@@ -553,7 +553,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.protobufMaskV6 = maskV6;
     });
 
-  Lua.writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua.writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<protobufOptions_t> vars) {
         if (!lci.protobufExportConfig.enabled) {
 
           lci.protobufExportConfig.enabled = true;
@@ -585,7 +585,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
     });
 
-  Lua.writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua.writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<protobufOptions_t> vars) {
       if (!lci.outgoingProtobufExportConfig.enabled) {
 
         lci.outgoingProtobufExportConfig.enabled = true;
@@ -618,7 +618,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     });
 
 #ifdef HAVE_FSTRM
-  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<frameStreamOptions_t> vars) {
       if (!lci.frameStreamExportConfig.enabled) {
 
         lci.frameStreamExportConfig.enabled = true;

@@ -948,7 +948,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
   size_t queriesCount = 0;
   const time_t fixedNow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([target, &queriesCount, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     DNSName auth = domain;
@@ -1016,7 +1016,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   size_t queriesCount = 0;
   const time_t fixedNow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([&queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([&queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     DNSName auth = domain;
@@ -1088,7 +1088,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
   size_t queriesCount = 0;
   const time_t tnow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys, tnow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys, tnow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     DNSName auth = domain;
@@ -1156,7 +1156,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1222,7 +1222,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1288,7 +1288,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1376,7 +1376,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, std::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {

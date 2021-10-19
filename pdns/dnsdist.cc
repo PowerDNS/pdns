@@ -1740,7 +1740,7 @@ uint16_t getRandomDNSID()
 #endif
 }
 
-boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
+std::optional<uint64_t> g_maxTCPClientThreads{boost::none};
 pdns::stat16_t g_cacheCleaningDelay{60};
 pdns::stat16_t g_cacheCleaningPercentage{100};
 
@@ -1756,7 +1756,7 @@ static void maintThread()
 
     {
       auto lua = g_lua.lock();
-      auto f = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
+      auto f = lua->readVariable<std::optional<std::function<void()> > >("maintenance");
       if (f) {
         try {
           (*f)();

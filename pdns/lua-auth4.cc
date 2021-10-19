@@ -87,9 +87,9 @@ void AuthLua4::postPrepareContext() {
 }
 
 void AuthLua4::postLoad() {
-  d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(nullptr);
-  d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(nullptr);
-  d_prequery = d_lw->readVariable<boost::optional<luacall_prequery_t>>("prequery").get_value_or(nullptr);
+  d_update_policy = d_lw->readVariable<std::optional<luacall_update_policy_t>>("updatepolicy").value_or(nullptr);
+  d_axfr_filter = d_lw->readVariable<std::optional<luacall_axfr_filter_t>>("axfrfilter").value_or(nullptr);
+  d_prequery = d_lw->readVariable<std::optional<luacall_prequery_t>>("prequery").value_or(nullptr);
 }
 
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) {

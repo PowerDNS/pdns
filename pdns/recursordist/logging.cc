@@ -47,12 +47,12 @@ void Logger::info(Logr::Priority p, const std::string& msg) const
   logMessage(msg, p, boost::none);
 }
 
-void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
+void Logger::logMessage(const std::string& msg, std::optional<const std::string> err) const
 {
   return logMessage(msg, Logr::Absent, err);
 }
 
-void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const
+void Logger::logMessage(const std::string& msg, Logr::Priority p, std::optional<const std::string> err) const
 {
   if (!enabled(p)) {
     return;
@@ -162,11 +162,11 @@ Logger::Logger(EntryLogger callback) :
   _callback(callback)
 {
 }
-Logger::Logger(EntryLogger callback, boost::optional<std::string> name) :
+Logger::Logger(EntryLogger callback, std::optional<std::string> name) :
   _callback(callback), _name(name)
 {
 }
-Logger::Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
+Logger::Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
   _parent(parent), _callback(callback), _name(name), _level(lvl), _verbosity(verbosity)
 {
 }

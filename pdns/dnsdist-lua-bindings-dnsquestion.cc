@@ -43,11 +43,11 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
   luaCtx.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
-  luaCtx.registerMember<boost::optional<uint32_t> (DNSQuestion::*)>("tempFailureTTL",
-      [](const DNSQuestion& dq) -> boost::optional<uint32_t> {
+  luaCtx.registerMember<std::optional<uint32_t> (DNSQuestion::*)>("tempFailureTTL",
+      [](const DNSQuestion& dq) -> std::optional<uint32_t> {
         return dq.tempFailureTTL;
       },
-      [](DNSQuestion& dq, boost::optional<uint32_t> newValue) {
+      [](DNSQuestion& dq, std::optional<uint32_t> newValue) {
         dq.tempFailureTTL = newValue;
       }
     );
@@ -77,7 +77,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dq.getProtocol().toPrettyString();
   });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
         g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
@@ -241,7 +241,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dr.getProtocol().toPrettyString();
   });
 
-  luaCtx.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
         g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
@@ -285,7 +285,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return dq.du->getHTTPHeaders();
     });
 
-    luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
+    luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, const std::string& body, const std::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, const std::string& body, const std::optional<std::string> contentType) {
       if (dq.du == nullptr) {
         return;
       }

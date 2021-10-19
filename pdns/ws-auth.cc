@@ -500,14 +500,14 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
-boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
     // ::read() calls ::exists() which throws a PDNSException when the key does not exist
     return S.read(name);
   }
   catch(...) {
-    return boost::none;
+    return std::nullopt;
   }
 }
 
@@ -599,11 +599,11 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, std::optional<DomainInfo::DomainKind>& kind, std::optional<vector<ComboAddress>>& masters, std::optional<string>& account) {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
-    kind = boost::none;
+    kind = std::nullopt;
   }
 
   if (document["masters"].is_array()) {
@@ -619,20 +619,20 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
       }
     }
   } else {
-    masters = boost::none;
+    masters = std::nullopt;
   }
 
   if (document["account"].is_string()) {
     account = document["account"].string_value();
   } else {
-    account = boost::none;
+    account = std::nullopt;
   }
 }
 
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
-  boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> masters;
-  boost::optional<string> account;
+  std::optional<DomainInfo::DomainKind> kind;
+  std::optional<vector<ComboAddress>> masters;
+  std::optional<string> account;
 
   extractDomainInfoFromDocument(document, kind, masters, account);
 
@@ -1718,13 +1718,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
-    boost::optional<DomainInfo::DomainKind> kind;
-    boost::optional<vector<ComboAddress>> masters;
-    boost::optional<string> account;
+    std::optional<DomainInfo::DomainKind> kind;
+    std::optional<vector<ComboAddress>> masters;
+    std::optional<string> account;
     extractDomainInfoFromDocument(document, kind, masters, account);
 
     // no going back after this
-    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
+    if(!B.createDomain(zonename, kind.value_or(DomainInfo::Native), masters.value_or(vector<ComboAddress>()), account.value_or("")))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
 
     if(!B.getDomainInfo(zonename, di))

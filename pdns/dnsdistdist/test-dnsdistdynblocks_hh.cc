@@ -881,9 +881,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
+        return std::tuple<bool, std::optional<std::string>>(true, boost::none);
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, std::optional<std::string>>(false, boost::none);
     });
 
     /* insert one fake response for 255 DNS names */
@@ -937,9 +937,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, "blocked for a different reason");
+        return std::tuple<bool, std::optional<std::string>>(true, "blocked for a different reason");
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, std::optional<std::string>>(false, boost::none);
     });
 
     /* insert one fake response for 255 DNS names */
@@ -994,9 +994,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
+        return std::tuple<bool, std::optional<std::string>>(true, boost::none);
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, std::optional<std::string>>(false, boost::none);
     });
 
     bool done = false;

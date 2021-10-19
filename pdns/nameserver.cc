@@ -227,7 +227,7 @@ void UDPNameserver::send(DNSPacket& p)
 
   msgh.msg_control=nullptr;
   if(p.d_anyLocal) {
-    addCMsgSrcAddr(&msgh, &cbuf, p.d_anyLocal.get_ptr(), 0);
+    addCMsgSrcAddr(&msgh, &cbuf, &(*p.d_anyLocal), 0);
   }
   DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p.getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p.getMaxReplyLen()) {

@@ -1339,7 +1339,7 @@ public:
     tree.insert(nm).second=positive;
   }
 
-  void addMasks(const NetmaskGroup& group, boost::optional<bool> positive)
+  void addMasks(const NetmaskGroup& group, std::optional<bool> positive)
   {
     for (const auto& entry : group.tree) {
       addMask(entry.first, positive ? *positive : entry.second);

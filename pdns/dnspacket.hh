@@ -77,7 +77,7 @@ public:
   string getRemoteString() const;
   string getRemoteStringWithPort() const;
 
-  boost::optional<ComboAddress> d_anyLocal;
+  std::optional<ComboAddress> d_anyLocal;
 
   Utility::sock_t getSocket() const
   {

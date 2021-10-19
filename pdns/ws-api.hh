@@ -38,4 +38,4 @@ DNSName apiNameToDNSName(const string& name);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);
-boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name);
+std::optional<uint64_t> productServerStatisticsFetch(const std::string& name);

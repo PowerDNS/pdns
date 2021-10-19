@@ -207,7 +207,7 @@ static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to 
 static NetmaskGroup g_XPFAcl;
 static NetmaskGroup g_proxyProtocolACL;
 static NetmaskGroup g_paddingFrom;
-static boost::optional<ComboAddress> g_dns64Prefix{boost::none};
+static std::optional<ComboAddress> g_dns64Prefix{boost::none};
 static DNSName g_dns64PrefixReverse;
 static size_t g_proxyProtocolMaximumSize;
 static size_t g_tcpMaxQueriesPerConn;
@@ -352,9 +352,9 @@ struct DNSComboWriter {
   LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
-  boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+  std::optional<uint16_t> d_extendedErrorCode{boost::none};
   string d_extendedErrorExtra;
-  boost::optional<int> d_rcode{boost::none};
+  std::optional<int> d_rcode{boost::none};
   int d_socket{-1};
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
@@ -1745,7 +1745,7 @@ static void startDoResolve(void *p)
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
-    sr.setQuerySource(dc->d_source, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
+    sr.setQuerySource(dc->d_source, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? std::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
     sr.setQueryReceivedOverTCP(dc->d_tcp);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
@@ -3074,8 +3074,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool ecsParsed = false;
   std::vector<DNSRecord> records;
   std::string extendedErrorExtra;
-  boost::optional<int> rcode = boost::none;
-  boost::optional<uint16_t> extendedErrorCode{boost::none};
+  std::optional<int> rcode = boost::none;
+  std::optional<uint16_t> extendedErrorCode{boost::none};
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;

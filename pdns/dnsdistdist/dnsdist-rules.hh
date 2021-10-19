@@ -1030,7 +1030,7 @@ private:
 class TagRule : public DNSRule
 {
 public:
-  TagRule(const std::string& tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
+  TagRule(const std::string& tag, std::optional<std::string> value) : d_value(value), d_tag(tag)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -1057,7 +1057,7 @@ public:
   }
 
 private:
-  boost::optional<std::string> d_value;
+  std::optional<std::string> d_value;
   std::string d_tag;
 };
 
@@ -1279,7 +1279,7 @@ private:
 class ProxyProtocolValueRule : public DNSRule
 {
 public:
-  ProxyProtocolValueRule(uint8_t type, boost::optional<std::string> value): d_value(value), d_type(type)
+  ProxyProtocolValueRule(uint8_t type, std::optional<std::string> value): d_value(value), d_type(type)
   {
   }
 
@@ -1307,6 +1307,6 @@ public:
   }
 
 private:
-  boost::optional<std::string> d_value;
+  std::optional<std::string> d_value;
   uint8_t d_type;
 };

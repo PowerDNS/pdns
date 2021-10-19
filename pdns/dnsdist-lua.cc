@@ -67,7 +67,7 @@
 
 using std::thread;
 
-static boost::optional<std::vector<std::function<void(void)>>> g_launchWork = boost::none;
+static std::optional<std::vector<std::function<void(void)>>> g_launchWork = boost::none;
 
 boost::tribool g_noLuaSideEffect;
 static bool g_included{false};
@@ -102,7 +102,7 @@ void resetLuaSideEffect()
 
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, size_t& maxInFlightQueriesPerConnection, size_t& tcpMaxConcurrentConnections)
+static void parseLocalBindVars(std::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, size_t& maxInFlightQueriesPerConnection, size_t& tcpMaxConcurrentConnections)
 {
   if (vars) {
     if (vars->count("reusePort")) {
@@ -165,7 +165,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
   return true;
 }
 
-static void parseTLSConfig(TLSConfig& config, const std::string& context, boost::optional<localbind_t> vars)
+static void parseTLSConfig(TLSConfig& config, const std::string& context, std::optional<localbind_t> vars)
 {
   if (vars->count("ciphers")) {
     config.d_ciphers = boost::get<const string>((*vars)["ciphers"]);
@@ -253,7 +253,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("newServer",
-                      [client, configCheck](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
+                      [client, configCheck](boost::variant<string,newserver_t> pvars, std::optional<int> qps) {
       setLuaSideEffect();
 
       std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, !(client || configCheck));
@@ -669,7 +669,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_ACL.modify([netmask](NetmaskGroup& nmg) { nmg.deleteMask(netmask); });
   });
 
-  luaCtx.writeFunction("setLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("setLocal", [client](const std::string& addr, std::optional<localbind_t> vars) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -719,7 +719,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("addLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addLocal", [client](const std::string& addr, std::optional<localbind_t> vars) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -824,7 +824,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   typedef std::unordered_map<std::string, boost::variant<bool, std::string> > showserversopts_t;
 
-  luaCtx.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
+  luaCtx.writeFunction("showServers", [](std::optional<showserversopts_t> vars) {
       setLuaNoSideEffect();
       bool showUUIDs = false;
       if (vars) {
@@ -922,9 +922,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return std::shared_ptr<DownstreamState>(nullptr);
     });
 
-  luaCtx.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
-					 boost::optional<unsigned int> interval, boost::optional<string> namespace_name,
-                                         boost::optional<string> instance_name) {
+  luaCtx.writeFunction("carbonServer", [](const std::string& address, std::optional<string> ourName,
+					 std::optional<unsigned int> interval, std::optional<string> namespace_name,
+                                         std::optional<string> instance_name) {
       setLuaSideEffect();
       auto ours = g_carbon.getCopy();
       ours.push_back({
@@ -937,7 +937,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_carbon.setState(ours);
   });
 
-  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, boost::optional<std::string> password, boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
+  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, std::optional<std::string> password, std::optional<std::string> apiKey, const std::optional<std::map<std::string, std::string> > customHeaders, const std::optional<std::string> acl) {
       setLuaSideEffect();
       ComboAddress local;
       try {
@@ -1001,7 +1001,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, std::map<std::string, std::string>> > webserveropts_t;
 
-  luaCtx.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
+  luaCtx.writeFunction("setWebserverConfig", [](std::optional<webserveropts_t> vars) {
       setLuaSideEffect();
 
       if (!vars) {
@@ -1040,7 +1040,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (vars->count("customHeaders")) {
-        const boost::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
+        const std::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
 
         setWebserverCustomHeaders(headers);
       }
@@ -1054,7 +1054,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("hashPassword", [](const std::string& password, boost::optional<uint64_t> workFactor) {
+  luaCtx.writeFunction("hashPassword", [](const std::string& password, std::optional<uint64_t> workFactor) {
     if (workFactor) {
       return hashPassword(password, *workFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
     }
@@ -1157,7 +1157,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = (fmt % size).str();
     });
 
-  luaCtx.writeFunction("getQueryCounters", [](boost::optional<unsigned int> optMax) {
+  luaCtx.writeFunction("getQueryCounters", [](std::optional<unsigned int> optMax) {
       setLuaNoSideEffect();
       auto records = g_qcount.records.read_lock();
       g_outputBuffer = "query counting is currently: ";
@@ -1205,7 +1205,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       clearConsoleHistory();
     });
 
-  luaCtx.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
+  luaCtx.writeFunction("testCrypto", [](std::optional<string> optTestMsg)
    {
      setLuaNoSideEffect();
 #ifdef HAVE_LIBSODIUM
@@ -1384,7 +1384,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
   luaCtx.writeFunction("addDynBlocks",
-                      [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                      [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, const std::string& msg, std::optional<int> seconds, std::optional<DNSAction::Action> action) {
                            if (m.empty()) {
                              return;
                            }
@@ -1417,7 +1417,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 			 });
 
   luaCtx.writeFunction("addDynBlockSMT",
-                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, std::optional<int> seconds, std::optional<DNSAction::Action> action) {
                            if (names.empty()) {
                              return;
                            }
@@ -1471,7 +1471,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;
   });
 
-  luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, std::optional<localbind_t> vars) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
@@ -1650,7 +1650,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
 #ifdef HAVE_DNSCRYPT
-  luaCtx.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+  luaCtx.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, std::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
       if (client) {
         return;
@@ -1752,7 +1752,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return g_frontends.size();
     });
 
-  luaCtx.writeFunction("help", [](boost::optional<std::string> command) {
+  luaCtx.writeFunction("help", [](std::optional<std::string> command) {
       setLuaNoSideEffect();
       g_outputBuffer = "";
       for (const auto& keyword : g_consoleKeywords) {
@@ -1805,7 +1805,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("addBPFFilterDynBlocks", [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
+  luaCtx.writeFunction("addBPFFilterDynBlocks", [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, std::shared_ptr<DynBPFFilter> dynbpf, std::optional<int> seconds, std::optional<std::string> msg) {
       if (!dynbpf) {
         return;
       }
@@ -1911,7 +1911,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_included = false;
     });
 
-  luaCtx.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
+  luaCtx.writeFunction("setAPIWritable", [](bool writable, std::optional<std::string> apiConfigDir) {
       setLuaSideEffect();
       g_apiReadWrite = writable;
       if (apiConfigDir) {
@@ -1959,7 +1959,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("setRingBuffersSize", [client](size_t capacity, boost::optional<size_t> numberOfShards) {
+  luaCtx.writeFunction("setRingBuffersSize", [client](size_t capacity, std::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
         errlog("setRingBuffersSize() cannot be used at runtime!");
@@ -1986,7 +1986,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
 
-  luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
+  luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, std::optional<std::string> daemonSocket) {
       if(client || configCheck)
         return;
 #ifdef HAVE_NET_SNMP
@@ -2251,7 +2251,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, std::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> certFiles, std::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> keyFiles, std::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, std::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2479,7 +2479,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       });
 
-  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, std::optional<localbind_t> vars) {
         if (client) {
           return;
         }

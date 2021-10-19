@@ -512,7 +512,7 @@ void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackf
 {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  boost::optional<struct timeval> ttd{boost::none};
+  std::optional<struct timeval> ttd{boost::none};
   if (d_healthCheckQuery) {
     ttd = getBackendHealthCheckTTD(now);
   }
@@ -542,7 +542,7 @@ void DoHConnectionToBackend::addToIOState(IOState state, FDMultiplexer::callback
 {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  boost::optional<struct timeval> ttd{boost::none};
+  std::optional<struct timeval> ttd{boost::none};
   if (state == IOState::NeedRead) {
     ttd = getBackendReadTTD(now);
   }

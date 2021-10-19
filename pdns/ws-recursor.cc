@@ -58,7 +58,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   out.swap(ret);
 }
 
-boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   return getStatByName(name);
 }

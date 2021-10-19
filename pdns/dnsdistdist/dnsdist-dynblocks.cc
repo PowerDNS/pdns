@@ -23,7 +23,7 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
     return;
   }
 
-  boost::optional<NetmaskTree<DynBlock> > blocks;
+  std::optional<NetmaskTree<DynBlock> > blocks;
   bool updated = false;
 
   for (const auto& entry : counts) {
@@ -117,7 +117,7 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
                            auto ret = d_smtVisitor(*node_, self, children);
                            block = std::get<0>(ret);
                            if (block) {
-                             if (boost::optional<std::string> tmp = std::get<1>(ret)) {
+                             if (std::optional<std::string> tmp = std::get<1>(ret)) {
                                reason = std::move(*tmp);
                              }
                            }
@@ -174,7 +174,7 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
   return false;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+void DynBlockRulesGroup::addOrRefreshBlock(std::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
   if (d_excludedSubnets.match(requestor)) {
     /* do not add a block for excluded subnets */

@@ -15,6 +15,6 @@ struct ResolveContext {
   
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #ifdef HAVE_FSTRM
-  boost::optional<const DNSName&> d_auth;
+  std::optional<const DNSName&> d_auth;
 #endif
 };

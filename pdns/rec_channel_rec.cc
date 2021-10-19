@@ -155,9 +155,9 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   return ret.d_ptr;
 }
 
-static boost::optional<uint64_t> get(const string& name)
+static std::optional<uint64_t> get(const string& name)
 {
-  boost::optional<uint64_t> ret;
+  std::optional<uint64_t> ret;
 
   if(d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
@@ -185,7 +185,7 @@ static boost::optional<uint64_t> get(const string& name)
   return ret;
 }
 
-boost::optional<uint64_t> getStatByName(const std::string& name)
+std::optional<uint64_t> getStatByName(const std::string& name)
 {
   return get(name);
 }
@@ -245,7 +245,7 @@ static string doGet(T begin, T end)
   string ret;
 
   for(T i=begin; i != end; ++i) {
-    boost::optional<uint64_t> num=get(*i);
+    std::optional<uint64_t> num=get(*i);
     if(num)
       ret+=std::to_string(*num)+"\n";
     else

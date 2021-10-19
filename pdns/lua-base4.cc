@@ -77,7 +77,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
 
   // DNSResourceRecord
-  d_lw->writeFunction("newDRR", [](const DNSName& qname, const string& qtype, const unsigned int ttl, const string& content, boost::optional<int> domain_id, boost::optional<int> auth){
+  d_lw->writeFunction("newDRR", [](const DNSName& qname, const string& qtype, const unsigned int ttl, const string& content, std::optional<int> domain_id, std::optional<int> auth){
     auto drr = DNSResourceRecord();
     drr.qname = qname;
     drr.qtype = qtype;
@@ -125,7 +125,7 @@ void BaseLua4::prepareContext() {
     } );
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
-  d_lw->writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
+  d_lw->writeFunction("newCAFromRaw", [](const std::string& raw, std::optional<uint16_t> port) {
                                         if (raw.size() == 4) {
                                           struct sockaddr_in sin4;
                                           memset(&sin4, 0, sizeof(sin4));
@@ -194,7 +194,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerToStringFunction(&Netmask::toString);
 
   // NetmaskGroup
-  d_lw->writeFunction("newNMG", [](boost::optional<vector<pair<unsigned int, std::string>>> masks) {
+  d_lw->writeFunction("newNMG", [](std::optional<vector<pair<unsigned int, std::string>>> masks) {
     auto nmg = NetmaskGroup();
 
     if (masks) {
@@ -217,8 +217,8 @@ void BaseLua4::prepareContext() {
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
   d_lw->registerMember("place", &DNSRecord::d_place);
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
-  d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) {
-      boost::optional<ComboAddress> ret;
+  d_lw->registerFunction<std::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) {
+      std::optional<ComboAddress> ret;
 
       if(auto arec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
         ret=arec->getCA(53);
@@ -229,8 +229,8 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
 
   // pdnsload
-  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
-  d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
+  d_lw->writeFunction("pdnslog", [](const std::string& msg, std::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.value_or(Logger::Warning) << msg<<endl; });
+  d_lw->writeFunction("pdnsrandom", [](std::optional<uint32_t> maximum) { return dns_random(maximum.value_or(0xffffffff)); });
 
   // certain constants
 

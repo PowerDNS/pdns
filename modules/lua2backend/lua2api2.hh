@@ -94,27 +94,27 @@ public:
 
   virtual void postLoad() override
   {
-    f_lookup = d_lw->readVariable<boost::optional<lookup_call_t>>("dns_lookup").get_value_or(0);
-    f_list = d_lw->readVariable<boost::optional<list_call_t>>("dns_list").get_value_or(0);
-    f_get_all_domains = d_lw->readVariable<boost::optional<get_all_domains_call_t>>("dns_get_all_domains").get_value_or(0);
-    f_get_domaininfo = d_lw->readVariable<boost::optional<get_domaininfo_call_t>>("dns_get_domaininfo").get_value_or(0);
-    f_get_domain_metadata = d_lw->readVariable<boost::optional<get_domain_metadata_call_t>>("dns_get_domain_metadata").get_value_or(0);
-    f_get_all_domain_metadata = d_lw->readVariable<boost::optional<get_all_domain_metadata_call_t>>("dns_get_all_domain_metadata").get_value_or(0);
-    f_get_domain_keys = d_lw->readVariable<boost::optional<get_domain_keys_call_t>>("dns_get_domain_keys").get_value_or(0);
-    f_get_before_and_after_names_absolute = d_lw->readVariable<boost::optional<get_before_and_after_names_absolute_call_t>>("dns_get_before_and_after_names_absolute").get_value_or(0);
-    f_set_notified = d_lw->readVariable<boost::optional<set_notified_call_t>>("dns_set_notified").get_value_or(0);
+    f_lookup = d_lw->readVariable<std::optional<lookup_call_t>>("dns_lookup").value_or(0);
+    f_list = d_lw->readVariable<std::optional<list_call_t>>("dns_list").value_or(0);
+    f_get_all_domains = d_lw->readVariable<std::optional<get_all_domains_call_t>>("dns_get_all_domains").value_or(0);
+    f_get_domaininfo = d_lw->readVariable<std::optional<get_domaininfo_call_t>>("dns_get_domaininfo").value_or(0);
+    f_get_domain_metadata = d_lw->readVariable<std::optional<get_domain_metadata_call_t>>("dns_get_domain_metadata").value_or(0);
+    f_get_all_domain_metadata = d_lw->readVariable<std::optional<get_all_domain_metadata_call_t>>("dns_get_all_domain_metadata").value_or(0);
+    f_get_domain_keys = d_lw->readVariable<std::optional<get_domain_keys_call_t>>("dns_get_domain_keys").value_or(0);
+    f_get_before_and_after_names_absolute = d_lw->readVariable<std::optional<get_before_and_after_names_absolute_call_t>>("dns_get_before_and_after_names_absolute").value_or(0);
+    f_set_notified = d_lw->readVariable<std::optional<set_notified_call_t>>("dns_set_notified").value_or(0);
 
-    auto init = d_lw->readVariable<boost::optional<init_call_t>>("dns_init").get_value_or(0);
+    auto init = d_lw->readVariable<std::optional<init_call_t>>("dns_init").value_or(0);
     if (init)
       init();
 
-    f_deinit = d_lw->readVariable<boost::optional<deinit_call_t>>("dns_deinit").get_value_or(0);
+    f_deinit = d_lw->readVariable<std::optional<deinit_call_t>>("dns_deinit").value_or(0);
 
     if (f_lookup == nullptr)
       throw PDNSException("dns_lookup missing");
 
     /* see if dnssec support is wanted */
-    d_dnssec = d_lw->readVariable<boost::optional<bool>>("dns_dnssec").get_value_or(false);
+    d_dnssec = d_lw->readVariable<std::optional<bool>>("dns_dnssec").value_or(false);
     if (d_dnssec) {
       if (f_get_domain_metadata == nullptr)
         throw PDNSException("dns_dnssec is true but dns_get_domain_metadata is missing");
@@ -231,7 +231,7 @@ public:
       cmd = querystr.substr(0, pos);
       par = querystr.substr(pos + 1);
     }
-    direct_backend_cmd_call_t f = d_lw->readVariable<boost::optional<direct_backend_cmd_call_t>>(cmd).get_value_or(0);
+    direct_backend_cmd_call_t f = d_lw->readVariable<std::optional<direct_backend_cmd_call_t>>(cmd).value_or(0);
     if (f == nullptr) {
       return cmd + "not found";
     }

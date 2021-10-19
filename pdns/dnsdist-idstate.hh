@@ -229,7 +229,7 @@ struct IDState
      wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
      when the state is unused and the value of our counter otherwise.
   */
-  boost::optional<Netmask> subnet{boost::none}; // 40
+  std::optional<Netmask> subnet{boost::none}; // 40
   ComboAddress origRemote; // 28
   ComboAddress origDest; // 28
   ComboAddress hopRemote;
@@ -239,7 +239,7 @@ struct IDState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
-  boost::optional<uint32_t> tempFailureTTL; // 8
+  std::optional<uint32_t> tempFailureTTL; // 8
   const ClientState* cs{nullptr}; // 8
   DOHUnit* du{nullptr}; // 8
   std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8

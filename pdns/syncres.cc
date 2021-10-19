@@ -578,7 +578,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const
+LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, std::optional<Netmask>& srcmask, LWResult* res, bool* chained) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -893,7 +893,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
-          boost::optional<Netmask> nm;
+          std::optional<Netmask> nm;
           bool chained = false;
           auto resolveRet = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained);
 
@@ -1203,7 +1203,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const std::optional<DNSName>& cutOffDomain)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -1721,7 +1721,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
   }
   if (state != vState::Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
-    boost::optional<time_t> capTTD = boost::none;
+    std::optional<time_t> capTTD = boost::none;
     if (vStateIsBogus(state)) {
       capTTD = d_now.tv_sec + s_maxbogusttl;
     }
@@ -3155,7 +3155,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   }
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const std::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
@@ -3907,7 +3907,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, std::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -4145,7 +4145,7 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(state, cnameState);
 }
 
-bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP)
+bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const std::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP)
 {
   string prefix;
   if(doLog()) {
@@ -4354,7 +4354,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       remoteIPs_t::iterator remoteIP;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
-      boost::optional<Netmask> ednsmask;
+      std::optional<Netmask> ednsmask;
       LWResult lwr;
       const bool wasForwarded = tns->first.empty() && (!nameservers[tns->first].first.empty());
       int rcode = RCode::NoError;
@@ -4491,7 +4491,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   return -1;
 }
 
-void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS)
+void SyncRes::setQuerySource(const ComboAddress& requestor, std::optional<const EDNSSubnetOpts&> incomingECS)
 {
   d_requestor = requestor;
 
@@ -4500,7 +4500,7 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<cons
     uint8_t bits = std::min(incomingECS->source.getBits(), (incomingECS->source.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
     ComboAddress trunc = incomingECS->source.getNetwork();
     trunc.truncate(bits);
-    d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
+    d_outgoingECSNetwork = std::optional<Netmask>(Netmask(trunc, bits));
   } else {
     d_cacheRemote = d_requestor;
     if(!incomingECS && s_ednslocalsubnets.match(d_requestor)) {
@@ -4508,7 +4508,7 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<cons
       uint8_t bits = d_requestor.isIPv4() ? 32 : 128;
       bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
       trunc.truncate(bits);
-      d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
+      d_outgoingECSNetwork = std::optional<Netmask>(Netmask(trunc, bits));
     } else if (s_ecsScopeZero.source.getBits() > 0) {
       /* RFC7871 says we MUST NOT send any ECS if the source scope is 0.
          But using an empty ECS in that case would mean inserting
@@ -4524,7 +4524,7 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<cons
          indicator of the applicable scope.  Subsequent Stub Resolver queries
          for /0 can then be answered from this cached response.
       */
-      d_outgoingECSNetwork = boost::optional<Netmask>(s_ecsScopeZero.source.getMaskedNetwork());
+      d_outgoingECSNetwork = std::optional<Netmask>(s_ecsScopeZero.source.getMaskedNetwork());
       d_cacheRemote = s_ecsScopeZero.source.getNetwork();
     } else {
       // ECS disabled because no scope-zero address could be derived.
@@ -4533,7 +4533,7 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<cons
   }
 }
 
-boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const DNSName& dn, const ComboAddress& rem)
+std::optional<Netmask> SyncRes::getEDNSSubnetMask(const DNSName& dn, const ComboAddress& rem)
 {
   if(d_outgoingECSNetwork && (s_ednsdomains.check(dn) || s_ednsremotesubnets.match(rem))) {
     return d_outgoingECSNetwork;

@@ -102,7 +102,7 @@ static void simple(time_t now)
     // insert a subnet specific entry
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, std::optional<Netmask>("192.0.2.1/25"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // subnet specific should be returned for a matching subnet
@@ -132,7 +132,7 @@ static void simple(time_t now)
     // insert a subnet specific entry for the same name but a different QType
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, authZone, std::optional<Netmask>("192.0.2.1/25"));
     // we should not have replaced the existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
@@ -304,7 +304,7 @@ static void simple(time_t now)
     // insert an entry for 192.0.0.1/8
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.0.1/8"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, std::optional<Netmask>("192.0.0.1/8"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     /* same as dr2 except for the actual IP */
@@ -320,14 +320,14 @@ static void simple(time_t now)
     // insert another entry but for 192.168.0.1/31
     records.clear();
     records.push_back(dr4);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.168.0.1/31"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, std::optional<Netmask>("192.168.0.1/31"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // insert the same than the first one but for 192.168.0.2/32
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.168.0.2/32"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, authZone, std::optional<Netmask>("192.168.0.2/32"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 3U);
 
@@ -344,7 +344,7 @@ static void simple(time_t now)
     // insert an entry for 192.0.0.1/8, non auth
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::optional<Netmask>("192.0.0.1/8"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, std::optional<Netmask>("192.0.0.1/8"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // we should not get it when we need authoritative data
@@ -1038,7 +1038,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     // Now insert some tagged entries
     for (counter = 0; counter < 50; ++counter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
-      MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, authZone, boost::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
+      MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, authZone, std::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
     }
     BOOST_CHECK_EQUAL(MRC.size(), 150U);
 
@@ -1115,7 +1115,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     rset3.push_back(dr3);
 
     // insert a tagged entry
-    MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.2.0/24"), string("mytag"));
+    MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, authZone, std::optional<Netmask>("192.0.2.0/24"), string("mytag"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // tagged specific should be returned for a matching tag
@@ -1128,7 +1128,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // insert a new  entry without tag
-    MRC.replace(now, power, QType(QType::A), rset2, signatures, authRecords, true, authZone, boost::optional<Netmask>("192.0.3.0/24"), boost::none);
+    MRC.replace(now, power, QType(QType::A), rset2, signatures, authRecords, true, authZone, std::optional<Netmask>("192.0.3.0/24"), boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // tagged specific should be returned for a matching tag

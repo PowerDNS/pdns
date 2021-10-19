@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       pwR.commit();
 
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (found == true) {
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
         matches++;
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
       pwR.commit();
 
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
         matches++;
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
     {
       /* UDP */
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
     {
       /* same but over TCP */
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoTCP, &queryTime);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
@@ -315,20 +315,20 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     pwR.commit();
 
     uint32_t key = 0;
-    boost::optional<Netmask> subnet;
+    std::optional<Netmask> subnet;
     DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL of 0 (-> should not enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, boost::optional<uint32_t>(0));
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, std::optional<uint32_t>(0));
     found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL non-zero (-> should enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, boost::optional<uint32_t>(300));
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::ServFail, std::optional<uint32_t>(300));
     found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     pwR.commit();
 
     uint32_t key = 0;
-    boost::optional<Netmask> subnet;
+    std::optional<Netmask> subnet;
     DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
@@ -420,7 +420,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     pwR.commit();
 
     uint32_t key = 0;
-    boost::optional<Netmask> subnet;
+    std::optional<Netmask> subnet;
     DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
@@ -469,7 +469,7 @@ static void threadMangler(unsigned int offset)
       pwR.commit();
 
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
 
@@ -499,7 +499,7 @@ static void threadReader(unsigned int offset)
       pwQ.getHeader()->rd = 1;
 
       uint32_t key = 0;
-      boost::optional<Netmask> subnet;
+      std::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
       bool found = g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (!found) {
@@ -556,7 +556,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   uint16_t qid = 0x42;
   uint32_t key;
   uint32_t secondKey;
-  boost::optional<Netmask> subnetOut;
+  std::optional<Netmask> subnetOut;
   bool dnssecOK = false;
 
   /* lookup for a query with a first ECS value,
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
   uint16_t qtype = QType::AAAA;
   uint16_t qid = 0x42;
   uint32_t key;
-  boost::optional<Netmask> subnetOut;
+  std::optional<Netmask> subnetOut;
 
   /* lookup for a query with DNSSEC OK,
      insert a corresponding response with DO set,

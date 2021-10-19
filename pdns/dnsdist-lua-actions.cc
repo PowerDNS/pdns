@@ -465,7 +465,7 @@ public:
 class LuaAction : public DNSAction
 {
 public:
-  typedef std::function<std::tuple<int, boost::optional<string> >(DNSQuestion* dq)> func_t;
+  typedef std::function<std::tuple<int, std::optional<string> >(DNSQuestion* dq)> func_t;
   LuaAction(const LuaAction::func_t& func) : d_func(func)
   {}
 
@@ -475,7 +475,7 @@ public:
     try {
       auto ret = d_func(dq);
       if (ruleresult) {
-        if (boost::optional<std::string> rule = std::get<1>(ret)) {
+        if (std::optional<std::string> rule = std::get<1>(ret)) {
           *ruleresult = *rule;
         }
         else {
@@ -503,7 +503,7 @@ private:
 class LuaResponseAction : public DNSResponseAction
 {
 public:
-  typedef std::function<std::tuple<int, boost::optional<string> >(DNSResponse* dr)> func_t;
+  typedef std::function<std::tuple<int, std::optional<string> >(DNSResponse* dr)> func_t;
   LuaResponseAction(const LuaResponseAction::func_t& func) : d_func(func)
   {}
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -512,7 +512,7 @@ public:
     try {
       auto ret = d_func(dr);
       if (ruleresult) {
-        if (boost::optional<std::string> rule = std::get<1>(ret)) {
+        if (std::optional<std::string> rule = std::get<1>(ret)) {
           *ruleresult = *rule;
         }
         else {
@@ -1378,7 +1378,7 @@ class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, std::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
@@ -1406,14 +1406,14 @@ public:
 private:
   std::string d_identity;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > d_alterFunc;
+  std::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > d_alterFunc;
 };
 
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, std::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
@@ -1452,7 +1452,7 @@ public:
   }
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > d_alterFunc;
   std::string d_serverID;
   std::string d_ipEncryptKey;
 };
@@ -1506,7 +1506,7 @@ class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, std::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -1536,14 +1536,14 @@ public:
 private:
   std::string d_identity;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > d_alterFunc;
+  std::optional<std::function<void(DNSResponse*, DnstapMessage*)> > d_alterFunc;
 };
 
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, std::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -1582,7 +1582,7 @@ public:
   }
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > d_alterFunc;
   std::string d_serverID;
   std::string d_ipEncryptKey;
   bool d_includeCNAME;
@@ -1915,7 +1915,7 @@ private:
 };
 
 template<typename T, typename ActionT>
-static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
+static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, std::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
 
   std::string name;
@@ -1931,7 +1931,7 @@ static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luad
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t> > responseParams_t;
 
-static void parseResponseConfig(boost::optional<responseParams_t> vars, ResponseConfig& config)
+static void parseResponseConfig(std::optional<responseParams_t> vars, ResponseConfig& config)
 {
   if (vars) {
     if (vars->count("ttl")) {
@@ -1970,7 +1970,7 @@ void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config)
 
 void setupLuaActions(LuaContext& luaCtx)
 {
-  luaCtx.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, std::optional<luaruleparams_t> params) {
       boost::uuids::uuid uuid;
       uint64_t creationOrder;
       std::string name;
@@ -1981,7 +1981,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::make_shared<DNSDistRuleAction>(ra);
     });
 
-  luaCtx.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, std::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSAction>)) {
         throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
       }
@@ -1989,7 +1989,7 @@ void setupLuaActions(LuaContext& luaCtx)
       addAction(&g_ruleactions, var, boost::get<std::shared_ptr<DNSAction> >(era), params);
     });
 
-  luaCtx.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, std::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
@@ -1997,7 +1997,7 @@ void setupLuaActions(LuaContext& luaCtx)
       addAction(&g_respruleactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
-  luaCtx.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, std::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error("addCacheHitResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
@@ -2005,7 +2005,7 @@ void setupLuaActions(LuaContext& luaCtx)
       addAction(&g_cachehitrespruleactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
-  luaCtx.writeFunction("addSelfAnsweredResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("addSelfAnsweredResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, std::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error("addSelfAnsweredResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
@@ -2027,7 +2027,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("getAction", [](unsigned int num) {
       setLuaNoSideEffect();
-      boost::optional<std::shared_ptr<DNSAction>> ret;
+      std::optional<std::shared_ptr<DNSAction>> ret;
       auto ruleactions = g_ruleactions.getCopy();
       if(num < ruleactions.size())
         ret=ruleactions[num].d_action;
@@ -2087,7 +2087,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, std::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp)) {
         addrs.push_back(ComboAddress(*s));
@@ -2104,21 +2104,21 @@ void setupLuaActions(LuaContext& luaCtx)
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofSVCAction", [](const std::vector<std::pair<int, SVCRecordParameters>>& parameters, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofSVCAction", [](const std::vector<std::pair<int, SVCRecordParameters>>& parameters, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new SpoofSVCAction(parameters));
       auto sa = std::dynamic_pointer_cast<SpoofSVCAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& a, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& a, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(DNSName(a)));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofRawAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofRawAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, std::optional<responseParams_t> vars) {
       vector<string> raws;
       if(auto s = boost::get<std::string>(&inp)) {
         raws.push_back(*s);
@@ -2164,22 +2164,22 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
   });
 
-  luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
+  luaCtx.writeFunction("LogAction", [](std::optional<std::string> fname, std::optional<bool> binary, std::optional<bool> append, std::optional<bool> buffered, std::optional<bool> verboseOnly, std::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSAction>(new LogAction(fname ? *fname : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
 
-  luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> fname, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
+  luaCtx.writeFunction("LogResponseAction", [](std::optional<std::string> fname, std::optional<bool> append, std::optional<bool> buffered, std::optional<bool> verboseOnly, std::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
 
-  luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode));
       auto rca = std::dynamic_pointer_cast<RCodeAction>(ret);
       parseResponseConfig(vars, rca->d_responseConfig);
       return ret;
     });
 
-  luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
       auto erca = std::dynamic_pointer_cast<ERCodeAction>(ret);
       parseResponseConfig(vars, erca->d_responseConfig);
@@ -2235,7 +2235,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
     });
 
-  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
+  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, std::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, std::optional<std::unordered_map<std::string, std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
         RemoteLoggerInterface& rl = *logger.get();
@@ -2259,7 +2259,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey));
     });
 
-  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
+  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, std::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, std::optional<bool> includeCNAME, std::optional<std::unordered_map<std::string, std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
         RemoteLoggerInterface& rl = *logger.get();
@@ -2283,15 +2283,15 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false));
     });
 
-  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
+  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
       return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
     });
 
-  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
+  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
       return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
     });
 
-  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
+  luaCtx.writeFunction("TeeAction", [](const std::string& remote, std::optional<bool> addECS) {
       return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), addECS ? *addECS : false));
     });
 
@@ -2322,14 +2322,14 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetDisableECSAction());
     });
 
-  luaCtx.writeFunction("SetECSAction", [](const std::string v4, boost::optional<std::string> v6) {
+  luaCtx.writeFunction("SetECSAction", [](const std::string v4, std::optional<std::string> v6) {
       if (v6) {
         return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4), Netmask(*v6)));
       }
       return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4)));
     });
 
-  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
+  luaCtx.writeFunction("SNMPTrapAction", [](std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
 #else
@@ -2337,7 +2337,7 @@ void setupLuaActions(LuaContext& luaCtx)
 #endif /* HAVE_NET_SNMP */
     });
 
-  luaCtx.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
+  luaCtx.writeFunction("SNMPTrapResponseAction", [](std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
 #else
@@ -2368,7 +2368,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, std::optional<std::string> contentType, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : ""));
       auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
       parseResponseConfig(vars, hsa->d_responseConfig);
@@ -2384,14 +2384,14 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag));
     });
 
-  luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, std::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
       auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
       parseResponseConfig(vars, action->d_responseConfig);
       return ret;
     });
 
-  luaCtx.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, std::optional<responseParams_t> vars) {
       warnlog("access to SetNegativeAndSOAAction is deprecated and will be removed in a future version, please use NegativeAndSOAAction instead");
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
       auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);

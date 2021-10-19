@@ -110,7 +110,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
-  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
+  luaCtx.registerFunction<void(DownstreamState::*)(std::optional<bool> newStatus)>("setAuto", [](DownstreamState& s, std::optional<bool> newStatus) {
       if (newStatus) {
         s.setUpStatus(*newStatus);
       }
@@ -179,7 +179,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   /* ComboAddress */
   luaCtx.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
-  luaCtx.writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
+  luaCtx.writeFunction("newCAFromRaw", [](const std::string& raw, std::optional<uint16_t> port) {
                                         if (raw.size() == 4) {
                                           struct sockaddr_in sin4;
                                           memset(&sin4, 0, sizeof(sin4));
@@ -299,7 +299,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   /* Netmask */
-  luaCtx.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, boost::optional<uint8_t> bits) {
+  luaCtx.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, std::optional<uint8_t> bits) {
     if (s.type() == typeid(ComboAddress)) {
       auto ca = boost::get<ComboAddress>(s);
       if (bits) {
@@ -410,7 +410,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
+  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, std::optional<uint16_t> qtype)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, std::optional<uint16_t> qtype) {
       if (bpf) {
         return bpf->block(qname, qtype ? *qtype : 255);
       }
@@ -422,7 +422,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("unblockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
+  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, std::optional<uint16_t> qtype)>("unblockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, std::optional<uint16_t> qtype) {
       if (bpf) {
         return bpf->unblock(qname, qtype ? *qtype : 255);
       }
@@ -465,7 +465,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         return std::make_shared<DynBPFFilter>(bpf);
       });
 
-    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(const ComboAddress& addr, boost::optional<int> seconds)>("block", [](std::shared_ptr<DynBPFFilter> dbpf, const ComboAddress& addr, boost::optional<int> seconds) {
+    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(const ComboAddress& addr, std::optional<int> seconds)>("block", [](std::shared_ptr<DynBPFFilter> dbpf, const ComboAddress& addr, std::optional<int> seconds) {
         if (dbpf) {
           struct timespec until;
           clock_gettime(CLOCK_MONOTONIC, &until);
@@ -525,8 +525,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     return values;
   });
 
-  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content, boost::optional<std::map<std::string, std::string>> customHeaders) {
-    boost::optional<std::vector<std::pair<std::string, std::string>>> headers{boost::none};
+  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content, std::optional<std::map<std::string, std::string>> customHeaders) {
+    std::optional<std::vector<std::pair<std::string, std::string>>> headers{boost::none};
     if (customHeaders) {
       headers = std::vector<std::pair<std::string, std::string>>();
       for (const auto& header : *customHeaders) {
@@ -536,7 +536,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     return std::make_shared<DOHResponseMapEntry>(regex, status, PacketBuffer(content.begin(), content.end()), headers);
   });
 
-  luaCtx.writeFunction("newSVCRecordParameters", [](uint16_t priority, const std::string& target, boost::optional<svcParamsLua_t> additionalParameters)
+  luaCtx.writeFunction("newSVCRecordParameters", [](uint16_t priority, const std::string& target, std::optional<svcParamsLua_t> additionalParameters)
   {
     SVCRecordParameters parameters;
     if (additionalParameters) {

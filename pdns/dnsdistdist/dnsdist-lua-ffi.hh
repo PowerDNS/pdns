@@ -52,11 +52,11 @@ struct dnsdist_ffi_dnsquestion_t
   std::unordered_map<std::string, std::string> httpHeaders;
   std::string trailingData;
   ComboAddress maskedRemote;
-  boost::optional<std::string> result{boost::none};
-  boost::optional<std::string> httpPath{boost::none};
-  boost::optional<std::string> httpQueryString{boost::none};
-  boost::optional<std::string> httpHost{boost::none};
-  boost::optional<std::string> httpScheme{boost::none};
+  std::optional<std::string> result{boost::none};
+  std::optional<std::string> httpPath{boost::none};
+  std::optional<std::string> httpQueryString{boost::none};
+  std::optional<std::string> httpHost{boost::none};
+  std::optional<std::string> httpScheme{boost::none};
 };
 
 // dnsdist_ffi_server_t is a lightuserdata

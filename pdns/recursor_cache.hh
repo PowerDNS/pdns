@@ -55,18 +55,18 @@ public:
   pair<uint64_t,uint64_t> stats();
   size_t ecsIndexSize();
 
-  typedef boost::optional<std::string> OptTag;
+  typedef std::optional<std::string> OptTag;
 
   time_t get(time_t, const DNSName &qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh = false, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr, DNSName* fromAuthZone=nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask=boost::none, const OptTag& routingTag = boost::none, vState state=vState::Indeterminate, boost::optional<ComboAddress> from=boost::none);
+  void replace(time_t, const DNSName &qname, const QType qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, std::optional<Netmask> ednsmask=boost::none, const OptTag& routingTag = boost::none, vState state=vState::Indeterminate, std::optional<ComboAddress> from=boost::none);
 
   void doPrune(size_t keep);
   uint64_t doDump(int fd);
 
   size_t doWipeCache(const DNSName& name, bool sub, QType qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, QType qtype, uint32_t newTTL);
-  bool updateValidationStatus(time_t now, const DNSName &qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
+  bool updateValidationStatus(time_t now, const DNSName &qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, std::optional<time_t> capTTD);
 
   pdns::stat_t cacheHits{0}, cacheMisses{0};
 
@@ -254,7 +254,7 @@ private:
   Entries getEntries(MapCombo::LockedContent& content, const DNSName &qname, const QType qt, const OptTag& rtag);
   cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName &qname, QType qtype, bool requireAuth, const ComboAddress& who);
 
-  time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
+  time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* authZone);
 
 public:
   void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)

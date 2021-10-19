@@ -57,7 +57,7 @@ public:
   std::string fullname;
   uint8_t labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
+  void submit(const DNSName& domain, int rcode, unsigned int bytes, std::optional<const ComboAddress&> remote);
 
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
@@ -70,5 +70,5 @@ public:
   children_t children;
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, std::optional<const ComboAddress&> remote, unsigned int count);
 };

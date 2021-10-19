@@ -284,7 +284,7 @@ void DNSProxy::mainloop()
         msgh.msg_control=nullptr;
 
         if(i->second.anyLocal) {
-          addCMsgSrcAddr(&msgh, &cbuf, i->second.anyLocal.get_ptr(), 0);
+          addCMsgSrcAddr(&msgh, &cbuf, &(*i->second.anyLocal), 0);
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0) {
           int err = errno;

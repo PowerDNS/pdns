@@ -457,7 +457,7 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   return ret;
 }
 
-static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
+static std::string getOptionValue(const std::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
 {
   string selector=defaultValue;
   if(options) {
@@ -573,7 +573,7 @@ static void setupLuaRecords()
     });
 
 
-  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, std::optional<std::unordered_map<string,string>> e){
       try {
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
@@ -674,7 +674,7 @@ static void setupLuaRecords()
 
       return std::string("::");
     });
-  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](string format, std::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -729,7 +729,7 @@ static void setupLuaRecords()
       return std::string("unknown");
     });
 
-  lua.writeFunction("filterForward", [](string address, NetmaskGroup& nmg, boost::optional<string> fallback) {
+  lua.writeFunction("filterForward", [](string address, NetmaskGroup& nmg, std::optional<string> fallback) {
       ComboAddress ca(address);
 
       if (nmg.match(ComboAddress(address))) {
@@ -755,7 +755,7 @@ static void setupLuaRecords()
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips, const std::optional<std::unordered_map<string,string>> options) {
       vector<ComboAddress> candidates, unavailables;
       opts_t opts;
       vector<ComboAddress > conv;
@@ -787,7 +787,7 @@ static void setupLuaRecords()
 
   lua.writeFunction("ifurlup", [](const std::string& url,
                                           const boost::variant<iplist_t, ipunitlist_t>& ips,
-                                          boost::optional<opts_t> options) {
+                                          std::optional<opts_t> options) {
       vector<vector<ComboAddress> > candidates;
       opts_t opts;
       if(options)
@@ -874,7 +874,7 @@ static void setupLuaRecords()
       lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
   }
 
-  lua.writeFunction("report", [](string event, boost::optional<string> line){
+  lua.writeFunction("report", [](string event, std::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
 

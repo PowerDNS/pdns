@@ -43,7 +43,7 @@ public:
 
   void resetForNewQuery();
 
-  boost::optional<struct timeval> getClientReadTTD(struct timeval now) const
+  std::optional<struct timeval> getClientReadTTD(struct timeval now) const
   {
     if (g_maxTCPConnectionDuration == 0 && g_tcpRecvTimeout == 0) {
       return boost::none;
@@ -65,7 +65,7 @@ public:
     return now;
   }
 
-  boost::optional<struct timeval> getClientWriteTTD(const struct timeval& now) const
+  std::optional<struct timeval> getClientWriteTTD(const struct timeval& now) const
   {
     if (g_maxTCPConnectionDuration == 0 && g_tcpSendTimeout == 0) {
       return boost::none;

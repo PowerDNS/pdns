@@ -57,7 +57,7 @@ static const string nameForClass(QClass qclass, uint16_t qtype)
 static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
-                       bool dnssec, const boost::optional<Netmask> ednsnm,
+                       bool dnssec, const std::optional<Netmask> ednsnm,
                        bool recurse, uint16_t xpfcode, uint16_t xpfversion,
                        uint64_t xpfproto, char* xpfsrc, char* xpfdst,
                        QClass qclass, uint8_t opcode, uint16_t qid)
@@ -207,7 +207,7 @@ try {
   bool fastOpen = false;
   bool insecureDoT = false;
   bool fromstdin = false;
-  boost::optional<Netmask> ednsnm;
+  std::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
   QClass qclass = QClass::IN;

@@ -33,7 +33,7 @@
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t, std::vector<std::pair<int, uint16_t>>>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, std::optional<std::unordered_map<std::string, boost::variant<bool, size_t, std::vector<std::pair<int, uint16_t>>>>> vars) {
 
       bool keepStaleData = false;
       size_t maxTTL = 86400;
@@ -145,11 +145,11 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       }
       return static_cast<size_t>(0);
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch)>("expungeByName", [](
               std::shared_ptr<DNSDistPacketCache>& cache,
               const boost::variant<DNSName, string>& dname,
-              boost::optional<uint16_t> qtype,
-              boost::optional<bool> suffixMatch) {
+              std::optional<uint16_t> qtype,
+              std::optional<bool> suffixMatch) {
                 DNSName qname;
                 if (dname.type() == typeid(DNSName)) {
                   qname = boost::get<DNSName>(dname);

@@ -67,7 +67,7 @@ size_t MemRecursorCache::bytes()
   return ret;
 }
 
-static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state, const vState stateUpdate)
+static void updateDNSSECValidationStateFromCache(std::optional<vState>& state, const vState stateUpdate)
 {
   // if there was no state it's easy */
   if (state == boost::none) {
@@ -99,7 +99,7 @@ static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state,
   }
 }
 
-time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone)
+time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   time_t ttd = entry->d_ttd;
@@ -259,7 +259,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 // returns -1 for no hits
 time_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone)
 {
-  boost::optional<vState> cachedState{boost::none};
+  std::optional<vState> cachedState{boost::none};
   uint32_t origTTL;
 
   if(res) {
@@ -386,7 +386,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType qt, b
   return -1;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, std::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, std::optional<ComboAddress> from)
 {
   auto& mc = getMap(qname);
   auto map = mc.lock();
@@ -578,7 +578,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType q
   return false;
 }
 
-bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
+bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, std::optional<time_t> capTTD)
 {
   uint16_t qtype = qt.getCode();
   if (qtype == QType::ANY) {

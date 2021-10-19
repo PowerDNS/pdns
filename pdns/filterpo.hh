@@ -80,7 +80,7 @@ public:
     std::unordered_set<std::string> d_tags;
     std::string d_name;
     std::string d_extendedErrorExtra;
-    boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+    std::optional<uint16_t> d_extendedErrorCode{boost::none};
     Priority d_priority{maximumPriority};
     bool d_policyOverridesGettag{true};
   };

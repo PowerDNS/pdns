@@ -60,7 +60,7 @@ private:
   struct ConntrackEntry
   {
     time_t created;
-    boost::optional<ComboAddress> anyLocal;
+    std::optional<ComboAddress> anyLocal;
     DNSName qname;
     std::unique_ptr<DNSPacket> complete;
     DNSName aname;

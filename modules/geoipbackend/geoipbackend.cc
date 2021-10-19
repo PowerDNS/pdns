@@ -586,7 +586,7 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
       break;
     case GeoIPInterface::Location:
       double lat = 0, lon = 0;
-      boost::optional<int> alt, prec;
+      std::optional<int> alt, prec;
       if (addr.isIPv6())
         found = gi->queryLocationV6(gl, ip, lat, lon, alt, prec);
       else
@@ -629,7 +629,7 @@ string getGeoForLua(const std::string& ip, int qaint)
 }
 
 static bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat, double& lon,
-                             boost::optional<int>& alt, boost::optional<int>& prec)
+                             std::optional<int>& alt, std::optional<int>& prec)
 {
   for (auto const& gi : s_geoip_files) {
     string val;
@@ -646,7 +646,7 @@ static bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat,
 string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom)
 {
   string::size_type cur, last;
-  boost::optional<int> alt, prec;
+  std::optional<int> alt, prec;
   double lat, lon;
   time_t t = time((time_t*)NULL);
   GeoIPNetmask tmp_gl; // largest wins

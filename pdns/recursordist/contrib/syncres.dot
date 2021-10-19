@@ -151,7 +151,7 @@ digraph {
   }
 
   subgraph cluster_asyncresolveWrapper {
-    label="SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res\nWraps asyncresolve() from lwres.cc to do EDNS probing.";
+    label="SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, std::optional<Netmask>& srcmask, LWResult* res\nWraps asyncresolve() from lwres.cc to do EDNS probing.";
 
     {rank=min; "Get current EDNSStatus for ip"}
 

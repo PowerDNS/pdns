@@ -21,7 +21,7 @@ namespace DnstapMessageFields {
   enum : protozero::pbf_tag_type { type = 1, socket_family = 2, socket_protocol = 3, query_address = 4, response_address = 5, query_port = 6, response_port = 7, query_time_sec = 8, query_time_nsec = 9, query_message = 10, query_zone = 11, response_time_sec = 12, response_time_nsec = 13, response_message = 14 };
 }
 
-DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth): d_buffer(buffer)
+DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, std::optional<const DNSName&> auth): d_buffer(buffer)
 {
   protozero::pbf_writer pbf{d_buffer};
 

@@ -1,4 +1,4 @@
-/*
+a/*
  * This file is part of PowerDNS or dnsdist.
  * Copyright -- PowerDNS.COM B.V. and its contributors
  *
@@ -56,7 +56,7 @@ public:
     std::string d_response;
     bool d_tagged;
   };
-  typedef boost::optional<PBData> OptPBData;
+  typedef std::optional<PBData> OptPBData;
 
   RecursorPacketCache();
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);

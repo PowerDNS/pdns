@@ -25,9 +25,9 @@
 
 struct ResponseConfig
 {
-  boost::optional<bool> setAA{boost::none};
-  boost::optional<bool> setAD{boost::none};
-  boost::optional<bool> setRA{boost::none};
+  std::optional<bool> setAA{boost::none};
+  std::optional<bool> setAD{boost::none};
+  std::optional<bool> setRA{boost::none};
   uint32_t ttl{60};
 };
 void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config);
@@ -90,7 +90,7 @@ private:
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
 typedef std::unordered_map<std::string, boost::variant<std::string> > luaruleparams_t;
-void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
+void parseRuleParams(std::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
 
 typedef NetmaskTree<DynBlock> nmts_t;
 

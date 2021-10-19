@@ -34,11 +34,11 @@
 
 RecursorLua4::RecursorLua4() { prepareContext(); }
 
-boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
+std::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
   if (dh)
     return *dh;
-  return boost::optional<dnsheader>();
+  return std::optional<dnsheader>();
 }
 
 vector<string> RecursorLua4::DNSQuestion::getEDNSFlags() const
@@ -68,17 +68,17 @@ vector<pair<uint16_t, string>> RecursorLua4::DNSQuestion::getEDNSOptions() const
     return vector<pair<uint16_t, string>>();
 }
 
-boost::optional<string> RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code) const
+std::optional<string> RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code) const
 {
   if (ednsOptions)
     for (const auto& o : *ednsOptions)
       if (o.first == code)
         return o.second;
 
-  return boost::optional<string>();
+  return std::optional<string>();
 }
 
-boost::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
+std::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
 {
   if (ednsOptions) {
     for (const auto& o : *ednsOptions) {
@@ -91,7 +91,7 @@ boost::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
       }
     }
   }
-  return boost::optional<Netmask>();
+  return std::optional<Netmask>();
 }
 
 std::vector<std::pair<int, ProxyProtocolValue>> RecursorLua4::DNSQuestion::getProxyProtocolValues() const
@@ -126,18 +126,18 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord>>& r
   }
 }
 
-void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, std::optional<string> name)
 {
   DNSRecord dr;
   dr.d_name = name ? DNSName(*name) : qname;
-  dr.d_ttl = ttl.get_value_or(3600);
+  dr.d_ttl = ttl.value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
   dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, content);
   records.push_back(dr);
 }
 
-void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, std::optional<string> name)
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
@@ -280,8 +280,8 @@ void RecursorLua4::postPrepareContext()
       return std::string(option.values.at(0).content, option.values.at(0).size); });
 
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
-  d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
-      boost::optional<ComboAddress> ret;
+  d_lw->registerFunction<std::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
+      std::optional<ComboAddress> ret;
 
       if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
         ret=rec->getCA(53);
@@ -402,7 +402,7 @@ void RecursorLua4::postPrepareContext()
 
   d_pd.push_back({"now", &g_now});
 
-  d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
+  d_lw->writeFunction("getMetric", [](const std::string& str, std::optional<std::string> prometheusName) {
     return DynMetric{getDynMetric(str, prometheusName ? *prometheusName : "")};
     });
 
@@ -413,7 +413,7 @@ void RecursorLua4::postPrepareContext()
 
   d_lw->writeFunction("getStat", [](const std::string& str) {
       uint64_t result = 0;
-      boost::optional<uint64_t> value = getStatByName(str);
+      std::optional<uint64_t> value = getStatByName(str);
       if (value) {
         result = *value;
       }
@@ -471,19 +471,19 @@ void RecursorLua4::postPrepareContext()
 
 void RecursorLua4::postLoad()
 {
-  d_prerpz = d_lw->readVariable<boost::optional<luacall_t>>("prerpz").get_value_or(0);
-  d_preresolve = d_lw->readVariable<boost::optional<luacall_t>>("preresolve").get_value_or(0);
-  d_nodata = d_lw->readVariable<boost::optional<luacall_t>>("nodata").get_value_or(0);
-  d_nxdomain = d_lw->readVariable<boost::optional<luacall_t>>("nxdomain").get_value_or(0);
-  d_postresolve = d_lw->readVariable<boost::optional<luacall_t>>("postresolve").get_value_or(0);
-  d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(0);
-  d_maintenance = d_lw->readVariable<boost::optional<luamaintenance_t>>("maintenance").get_value_or(0);
+  d_prerpz = d_lw->readVariable<std::optional<luacall_t>>("prerpz").value_or(0);
+  d_preresolve = d_lw->readVariable<std::optional<luacall_t>>("preresolve").value_or(0);
+  d_nodata = d_lw->readVariable<std::optional<luacall_t>>("nodata").value_or(0);
+  d_nxdomain = d_lw->readVariable<std::optional<luacall_t>>("nxdomain").value_or(0);
+  d_postresolve = d_lw->readVariable<std::optional<luacall_t>>("postresolve").value_or(0);
+  d_preoutquery = d_lw->readVariable<std::optional<luacall_t>>("preoutquery").value_or(0);
+  d_maintenance = d_lw->readVariable<std::optional<luamaintenance_t>>("maintenance").value_or(0);
 
-  d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
-  d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
-  d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
+  d_ipfilter = d_lw->readVariable<std::optional<ipfilter_t>>("ipfilter").value_or(0);
+  d_gettag = d_lw->readVariable<std::optional<gettag_t>>("gettag").value_or(0);
+  d_gettag_ffi = d_lw->readVariable<std::optional<gettag_ffi_t>>("gettag_ffi").value_or(0);
 
-  d_policyHitEventFilter = d_lw->readVariable<boost::optional<policyEventFilter_t>>("policyEventFilter").get_value_or(0);
+  d_policyHitEventFilter = d_lw->readVariable<std::optional<policyEventFilter_t>>("policyEventFilter").value_or(0);
 }
 
 void RecursorLua4::getFeatures(Features& features)
@@ -702,7 +702,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) con
       else if (dq.followupFunction == "udpQueryResponse") {
         PacketBuffer p = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         dq.udpAnswer = std::string(reinterpret_cast<const char*>(p.data()), p.size());
-        auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
+        auto cbFunc = d_lw->readVariable<std::optional<luacall_t>>(dq.udpCallback).value_or(0);
         if (!cbFunc) {
           g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl;
           return false;

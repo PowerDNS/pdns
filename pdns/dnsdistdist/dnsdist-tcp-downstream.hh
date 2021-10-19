@@ -146,7 +146,7 @@ protected:
     return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
   }
 
-  boost::optional<struct timeval> getBackendHealthCheckTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendHealthCheckTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
@@ -161,7 +161,7 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
@@ -176,7 +176,7 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendWriteTTD() called without any backend selected");
@@ -191,7 +191,7 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendConnectTTD() called without any backend selected");

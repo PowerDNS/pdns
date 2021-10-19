@@ -141,7 +141,7 @@ protected:
 public:
   boost::optional<boost::uuids::uuid> uniqueId;
   Netmask ecs;
-  boost::optional<Netmask> subnet;
+  std::optional<Netmask> subnet;
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
   std::string poolname;
   mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
@@ -160,7 +160,7 @@ public:
   const struct timespec* queryTime{nullptr};
   struct DOHUnit* du{nullptr};
   int delayMsec{0};
-  boost::optional<uint32_t> tempFailureTTL;
+  std::optional<uint32_t> tempFailureTTL;
   uint32_t cacheKeyNoECS{0};
   uint32_t cacheKey{0};
   /* for DoH */
@@ -995,7 +995,7 @@ extern int g_tcpSendTimeout;
 extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
-extern boost::optional<uint64_t> g_maxTCPClientThreads;
+extern std::optional<uint64_t> g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
 extern size_t g_maxTCPQueriesPerConn;
 extern size_t g_maxTCPConnectionDuration;
