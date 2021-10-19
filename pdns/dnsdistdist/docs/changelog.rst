@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.7.0-alpha2
-  :released: 18th of October 2021
+  :released: 19th of October 2021
 
   .. change::
     :tags: Improvements
