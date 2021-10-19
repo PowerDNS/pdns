@@ -138,12 +138,27 @@ void TCPConnectionToBackend::release()
   }
 }
 
+static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyProtocolPayloadSize, bool sizePrepended)
+{
+  /* we cannot do a direct cast as the alignment might be off (the size of the payload might have been prepended, which is bad enough,
+     but we might also have a proxy protocol payload */
+  size_t startOfHeaderOffset = (sizePrepended ? sizeof(uint16_t) : 0) + proxyProtocolPayloadSize;
+  if (payload.size() < startOfHeaderOffset + sizeof(dnsheader)) {
+    throw std::runtime_error("Invalid buffer for outgoing TCP query (size " + std::to_string(payload.size()));
+  }
+  dnsheader dh;
+  memcpy(&dh, &payload.at(startOfHeaderOffset), sizeof(dh));
+  dh.id = htons(newId);
+  memcpy(&payload.at(startOfHeaderOffset), &dh, sizeof(dh));
+}
+
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
-  dnsheader* dh = reinterpret_cast<dnsheader*>(&conn->d_currentQuery.d_query.d_buffer.at(sizeof(uint16_t) + (conn->d_currentQuery.d_query.d_proxyProtocolPayloadAdded ? conn->d_currentQuery.d_query.d_proxyProtocolPayload.size() : 0)));
+
   uint16_t id = conn->d_highestStreamID;
-  dh->id = htons(id);
+  editPayloadID(conn->d_currentQuery.d_query.d_buffer, id, conn->d_currentQuery.d_query.d_proxyProtocolPayloadAdded ? conn->d_currentQuery.d_query.d_proxyProtocolPayload.size() : 0, true);
+
   conn->d_pendingQueries.pop_front();
   conn->d_state = State::sendingQueryToBackend;
   conn->d_currentPos = 0;
@@ -303,9 +318,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             if (conn->d_state == State::sendingQueryToBackend) {
               /* we need to edit this query so it has the correct ID */
               auto query = std::move(conn->d_currentQuery);
-              dnsheader* dh = reinterpret_cast<dnsheader*>(&query.d_query.d_buffer.at(sizeof(uint16_t) + (query.d_query.d_proxyProtocolPayloadAdded ? query.d_query.d_proxyProtocolPayload.size() : 0)));
+
               uint16_t id = conn->d_highestStreamID;
-              dh->id = htons(id);
+              editPayloadID(query.d_query.d_buffer, id, query.d_query.d_proxyProtocolPayloadAdded ? query.d_query.d_proxyProtocolPayload.size() : 0, true);
               conn->d_currentQuery = std::move(query);
             }
 
@@ -417,9 +432,10 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     DEBUGLOG("Sending new query to backend right away, with ID "<<d_highestStreamID);
     d_state = State::sendingQueryToBackend;
     d_currentPos = 0;
-    dnsheader* dh = reinterpret_cast<dnsheader*>(&query.d_buffer.at(sizeof(uint16_t) + (query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayload.size() : 0)));
+
     uint16_t id = d_highestStreamID;
-    dh->id = htons(id);
+    editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayload.size() : 0, true);
+
     d_currentQuery = PendingRequest({sender, std::move(query)});
 
     if (needProxyProtocolPayload() && !d_currentQuery.d_query.d_proxyProtocolPayloadAdded && !d_currentQuery.d_query.d_proxyProtocolPayload.empty()) {
@@ -573,8 +589,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     return IOState::Done;
   }
 
-  auto dh = reinterpret_cast<dnsheader*>(d_responseBuffer.data());
-  dh->id = it->second.d_query.d_idstate.origID;
+  editPayloadID(d_responseBuffer, ntohs(it->second.d_query.d_idstate.origID), 0, false);
 
   auto sender = it->second.d_sender;
 

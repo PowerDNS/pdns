@@ -422,16 +422,20 @@ static ComboAddress getBackendAddress(const std::string& lastDigit, uint16_t por
 static void appendPayloadEditingID(PacketBuffer& buffer, const PacketBuffer& payload, uint16_t newID)
 {
   PacketBuffer newPayload(payload);
-  auto dh = reinterpret_cast<dnsheader*>(&newPayload.at(sizeof(uint16_t)));
-  dh->id = htons(newID);
+  dnsheader dh;
+  memcpy(&dh, &newPayload.at(sizeof(uint16_t)), sizeof(dh));
+  dh.id = htons(newID);
+  memcpy(&newPayload.at(sizeof(uint16_t)), &dh, sizeof(dh));
   buffer.insert(buffer.end(), newPayload.begin(), newPayload.end());
 }
 
 static void prependPayloadEditingID(PacketBuffer& buffer, const PacketBuffer& payload, uint16_t newID)
 {
   PacketBuffer newPayload(payload);
-  auto dh = reinterpret_cast<dnsheader*>(&newPayload.at(sizeof(uint16_t)));
-  dh->id = htons(newID);
+  dnsheader dh;
+  memcpy(&dh, &newPayload.at(sizeof(uint16_t)), sizeof(dh));
+  dh.id = htons(newID);
+  memcpy(&newPayload.at(sizeof(uint16_t)), &dh, sizeof(dh));
   buffer.insert(buffer.begin(), newPayload.begin(), newPayload.end());
 }
 
