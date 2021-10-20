@@ -489,11 +489,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
             print("UDP: Got from queue")
             print(receivedQuery)
-            return (receivedQuery, message)
-
         if data:
-            print("UDP: Received data");
-            print(data);
+            print("UDP: Received data")
+            print(data)
             message = dns.message.from_wire(data)
         return (receivedQuery, message)
 
