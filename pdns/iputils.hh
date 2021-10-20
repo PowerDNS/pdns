@@ -1127,113 +1127,18 @@ public:
 
   //<! Returns "best match" for key_type, which might not be value
   const node_type* lookup(const key_type& value) const {
-    TreeNode *node = nullptr;
-
     uint8_t max_bits = value.getBits();
-
-    if (value.isIPv4())
-      node = d_root->left.get();
-    else if (value.isIPv6())
-      node = d_root->right.get();
-    else
-      throw NetmaskException("invalid address family");
-    if (node == nullptr) return nullptr;
-
-    node_type *ret = nullptr;
-
-    int bits = 0;
-    for(; bits < max_bits; bits++) {
-      bool vall = value.getBit(-1-bits);
-      if (bits >= node->d_bits) {
-        // the end of the current node is reached; continue with the next
-        // (we keep track of last assigned node)
-        if (node->assigned && bits == node->node.first.getBits())
-          ret = &node->node;
-        if (vall) {
-          if (!node->right)
-            break;
-          node = node->right.get();
-        } else {
-          if (!node->left)
-            break;
-          node = node->left.get();
-        }
-        continue;
-      }
-      if (bits >= node->node.first.getBits()) {
-        // the matching branch ends here
-        break;
-      }
-      bool valr = node->node.first.getBit(-1-bits);
-      if (vall != valr) {
-        // the branch matches just upto this point, yet continues in a different
-        // direction
-        break;
-      }
-    }
-    // needed if we did not find one in loop
-    if (node->assigned && bits == node->node.first.getBits())
-      ret = &node->node;
-
-    // this can be nullptr.
-    return ret;
-
+    return lookupImpl(value, max_bits);
   }
 
   //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
-    TreeNode *node = nullptr;
-
     uint8_t addr_bits = value.getBits();
-    if (max_bits < 0 || max_bits > addr_bits)
+    if (max_bits < 0 || max_bits > addr_bits) {
       max_bits = addr_bits;
-
-    if (value.isIPv4())
-      node = d_root->left.get();
-    else if (value.isIPv6())
-      node = d_root->right.get();
-    else
-      throw NetmaskException("invalid address family");
-    if (node == nullptr) return nullptr;
-
-    node_type *ret = nullptr;
-
-    int bits = 0;
-    for(; bits < max_bits; bits++) {
-      bool vall = value.getBit(-1-bits);
-      if (bits >= node->d_bits) {
-        // the end of the current node is reached; continue with the next
-        // (we keep track of last assigned node)
-        if (node->assigned && bits == node->node.first.getBits())
-          ret = &node->node;
-        if (vall) {
-          if (!node->right)
-            break;
-          node = node->right.get();
-        } else {
-          if (!node->left)
-            break;
-          node = node->left.get();
-        }
-        continue;
-      }
-      if (bits >= node->node.first.getBits()) {
-        // the matching branch ends here
-        break;
-      }
-      bool valr = node->node.first.getBit(-1-bits);
-      if (vall != valr) {
-        // the branch matches just upto this point, yet continues in a different
-        // direction
-        break;
-      }
     }
-    // needed if we did not find one in loop
-    if (node->assigned && bits == node->node.first.getBits())
-      ret = &node->node;
 
-    // this can be nullptr.
-    return ret;
+    return lookupImpl(key_type(value, max_bits), max_bits);
   }
 
   //<! Removes key from TreeMap.
@@ -1329,6 +1234,58 @@ public:
   }
 
 private:
+
+  const node_type* lookupImpl(const key_type& value, uint8_t max_bits) const {
+    TreeNode *node = nullptr;
+
+    if (value.isIPv4())
+      node = d_root->left.get();
+    else if (value.isIPv6())
+      node = d_root->right.get();
+    else
+      throw NetmaskException("invalid address family");
+    if (node == nullptr) return nullptr;
+
+    node_type *ret = nullptr;
+
+    int bits = 0;
+    for(; bits < max_bits; bits++) {
+      bool vall = value.getBit(-1-bits);
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        // (we keep track of last assigned node)
+        if (node->assigned && bits == node->node.first.getBits())
+          ret = &node->node;
+        if (vall) {
+          if (!node->right)
+            break;
+          node = node->right.get();
+        } else {
+          if (!node->left)
+            break;
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node.first.getBits()) {
+        // the matching branch ends here
+        break;
+      }
+      bool valr = node->node.first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction
+        break;
+      }
+    }
+    // needed if we did not find one in loop
+    if (node->assigned && bits == node->node.first.getBits())
+      ret = &node->node;
+
+    // this can be nullptr.
+    return ret;
+  }
+
   unique_ptr<TreeNode> d_root; //<! Root of our tree
   TreeNode *d_left;
   size_type d_size;
@@ -1489,7 +1446,7 @@ public:
     d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
   }
 
-  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
+  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
   {
     if (!d_addr.isIPv4()) {
       d_portMask = 0;
