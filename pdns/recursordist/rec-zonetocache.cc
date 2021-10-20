@@ -83,7 +83,7 @@ bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype) const
 
 void ZoneData::parseDRForCache(DNSRecord& dr)
 {
-  const auto key = make_pair(dr.d_name, dr.d_type);
+  const auto key = pair(dr.d_name, dr.d_type);
 
   dr.d_ttl += d_now;
 
@@ -93,7 +93,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
     break;
   case QType::RRSIG: {
     const auto& rr = getRR<RRSIGRecordContent>(dr);
-    const auto sigkey = make_pair(key.first, rr->d_type);
+    const auto sigkey = pair(key.first, rr->d_type);
     auto found = d_sigs.find(sigkey);
     if (found != d_sigs.end()) {
       found->second.push_back(rr);

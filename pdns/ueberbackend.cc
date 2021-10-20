@@ -345,7 +345,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   bool found = false;
   int cstat;
   DNSName shorter(target);
-  vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
+  vector<pair<size_t, SOAData> > bestmatch (backends.size(), pair(target.wirelength()+1, SOAData()));
   do {
     int zoneId{-1};
     if(cachedOk && g_zoneCache.isEnabled()) {

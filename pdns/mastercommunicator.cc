@@ -281,13 +281,13 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
 
 void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
 {
-  (*d_holes.lock())[make_pair(domain,ip)]=time(nullptr);
+  (*d_holes.lock())[pair(domain,ip)]=time(nullptr);
 }
 
 bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 {
   auto holes = d_holes.lock();
-  auto it = holes->find(make_pair(domain,ip));
+  auto it = holes->find(pair(domain,ip));
   if (it == holes->end()) {
     // no hole
     return false;

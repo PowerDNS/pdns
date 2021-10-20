@@ -2311,8 +2311,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (vars->count("customResponseHeaders")) {
         for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
-          auto headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
-          frontend->d_customResponseHeaders.push_back(std::move(headerResponse));
+          frontend->d_customResponseHeaders.emplace_back(boost::to_lower_copy(headerMap.first), headerMap.second);
         }
       }
 
