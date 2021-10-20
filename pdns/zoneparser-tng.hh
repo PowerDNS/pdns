@@ -79,4 +79,5 @@ private:
   bool d_fromfile;
   bool d_generateEnabled{true};
   bool d_upgradeContent;
+  bool d_templateCounterWrapped{false};
 };

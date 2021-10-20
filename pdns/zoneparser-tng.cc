@@ -139,8 +139,10 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
 
 bool ZoneParserTNG::getTemplateLine()
 {
-  if(d_templateparts.empty() || d_templatecounter > d_templatestop) // no template, or done with
+  if (d_templateparts.empty() || d_templateCounterWrapped || d_templatecounter > d_templatestop) {
+    // no template, or done with
     return false;
+  }
 
   string retline;
   for(parts_t::const_iterator iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
@@ -229,7 +231,13 @@ bool ZoneParserTNG::getTemplateLine()
     }
     retline+=outpart;
   }
-  d_templatecounter+=d_templatestep;
+
+  if ((d_templatestop - d_templatecounter) < d_templatestep) {
+    d_templateCounterWrapped = true;
+  }
+  else {
+    d_templatecounter += d_templatestep;
+  }
 
   d_line = retline;
   return true;
@@ -340,31 +348,86 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       // The range part can be one of two forms: start-stop or start-stop/step. If the first
       // form is used, then step is set to 1. start, stop and step must be positive
       // integers between 0 and (2^31)-1. start must not be larger than stop.
-      string range=makeString(d_line, d_parts[1]);
-      d_templatestep=1;
-      d_templatestop=0;
-      int extracted = sscanf(range.c_str(),"%" SCNu32 "-%" SCNu32 "/%" SCNu32, &d_templatecounter, &d_templatestop, &d_templatestep);
-      if (extracted == 2) {
-        d_templatestep=1;
+      // http://www.zytrax.com/books/dns/ch8/generate.html
+      string range = makeString(d_line, d_parts.at(1));
+
+      auto splitOnOnlyOneSeparator = [range](const std::string& input, std::vector<std::string>& output, char separator) {
+        output.clear();
+
+        auto pos = input.find(separator);
+        if (pos == string::npos) {
+          output.emplace_back(input);
+          return;
+        }
+        if (pos == (input.size()-1)) {
+          /* ends on a separator!? */
+          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+        }
+        auto next = input.find(separator, pos + 1);
+        if (next != string::npos) {
+          /* more than one separator */
+          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+        }
+        output.emplace_back(input.substr(0, pos));
+        output.emplace_back(input.substr(pos + 1));
+      };
+
+      std::vector<std::string> fields;
+      splitOnOnlyOneSeparator(range, fields, '-');
+      if (fields.size() != 2) {
+        throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
       }
-      else if (extracted != 3) {
-        throw exception("Invalid range from $GENERATE parameters '" + range + "'");
+
+      auto parseValue = [](const std::string& parameters, const std::string& name, const std::string& str, uint32_t& value) {
+        try {
+          auto got = std::stoul(str);
+          if (got > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "'");
+          }
+          value = static_cast<uint32_t>(got);
+        }
+        catch (const std::exception& e) {
+          throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "': " + e.what());
+        }
+      };
+
+      parseValue(range, "start", fields.at(0), d_templatecounter);
+
+      /* now the remaining part(s) */
+      range = std::move(fields.at(1));
+      splitOnOnlyOneSeparator(range, fields, '/');
+
+      if (fields.size() > 2) {
+        throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
       }
+
+      parseValue(range, "stop", fields.at(0), d_templatestop);
+
+      if (fields.size() == 2) {
+        parseValue(range, "step", fields.at(1), d_templatestep);
+      }
+      else {
+        d_templatestep = 1;
+      }
+
       if (d_templatestep < 1 ||
           d_templatestop < d_templatecounter) {
-        throw exception("Invalid $GENERATE parameters");
+        throw std::runtime_error("Invalid $GENERATE parameters");
       }
       if (d_maxGenerateSteps != 0) {
         size_t numberOfSteps = (d_templatestop - d_templatecounter) / d_templatestep;
         if (numberOfSteps > d_maxGenerateSteps) {
-          throw exception("The number of $GENERATE steps (" + std::to_string(numberOfSteps) + ") is too high, the maximum is set to " + std::to_string(d_maxGenerateSteps));
+          throw std::runtime_error("The number of $GENERATE steps (" + std::to_string(numberOfSteps) + ") is too high, the maximum is set to " + std::to_string(d_maxGenerateSteps));
         }
       }
-      d_templateline=d_line;
+
+      d_templateline = d_line;
       d_parts.pop_front();
       d_parts.pop_front();
 
-      d_templateparts=d_parts;
+      d_templateparts = d_parts;
+      d_templateCounterWrapped = false;
+
       goto retry;
     }
     else
