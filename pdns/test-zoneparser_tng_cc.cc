@@ -166,16 +166,29 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     BOOST_CHECK_THROW(zp.get(rr), std::exception);
   }
 
-   {
+  {
     /* test invalid generate parameters: negative counter */
     ZoneParserTNG zp(std::vector<std::string>({"$GENERATE -1-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
     DNSResourceRecord rr;
     BOOST_CHECK_THROW(zp.get(rr), std::exception);
   }
+  {
+    /* test invalid generate parameters: counter out of bounds */
+    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 4294967296-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    DNSResourceRecord rr;
+    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+  }
 
-   {
+  {
     /* test invalid generate parameters: negative stop */
     ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0--4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    DNSResourceRecord rr;
+    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+  }
+
+  {
+    /* test invalid generate parameters: stop out of bounds */
+    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4294967296/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
     DNSResourceRecord rr;
     BOOST_CHECK_THROW(zp.get(rr), std::exception);
   }

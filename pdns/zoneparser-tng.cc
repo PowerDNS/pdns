@@ -36,8 +36,9 @@
 #include <boost/algorithm/string.hpp>
 #include <system_error>
 #include <cinttypes>
+#include <sys/stat.h>
 
-static string g_INstr("IN");
+const static string g_INstr("IN");
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir, bool upgradeContent):
   d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600), 
@@ -57,10 +58,34 @@ ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, boo
 
 void ZoneParserTNG::stackFile(const std::string& fname)
 {
-  FILE *fp=fopen(fname.c_str(), "r");
-  if(!fp) {
-    std::error_code ec (errno,std::generic_category());
-    throw std::system_error(ec, "Unable to open file '"+fname+"': "+stringerror());
+  if (d_filestates.size() >= d_maxIncludes) {
+    std::error_code ec (0, std::generic_category());
+    throw std::system_error(ec, "Include limit reached");
+  }
+  int fd = open(fname.c_str(), O_RDONLY, 0);
+  if (fd == -1) {
+    int err = errno;
+    std::error_code ec (err, std::generic_category());
+    throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
+  }
+  struct stat st;
+  if (fstat(fd, &st) == -1) {
+    int err = errno;
+    close(fd);
+    std::error_code ec (err, std::generic_category());
+    throw std::system_error(ec, "Unable to stat file '" + fname + "': " + stringerror(err));
+  }
+  if (!S_ISREG(st.st_mode)) {
+    close(fd);
+    std::error_code ec (0, std::generic_category());
+    throw std::system_error(ec, "File '" + fname + "': not a regular file");
+  }
+  FILE *fp = fdopen(fd, "r");
+  if (!fp) {
+    int err = errno;
+    close(fd);
+    std::error_code ec (err, std::generic_category());
+    throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
   }
 
   filestate fs(fp, fname);

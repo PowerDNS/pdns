@@ -51,6 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     ZoneParserTNG zpt(lines, g_rootdnsname);
     /* limit the number of steps for '$GENERATE' entries */
     zpt.setMaxGenerateSteps(10000);
+    zpt.setMaxIncludes(20);
     DNSResourceRecord drr;
     while (zpt.get(drr)) {
     }

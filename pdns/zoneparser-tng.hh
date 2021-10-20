@@ -49,6 +49,10 @@ public:
   {
     d_maxGenerateSteps = max;
   }
+  void setMaxIncludes(size_t max)
+  {
+    d_maxIncludes = max;
+  }
 private:
   bool getLine();
   bool getTemplateLine();
@@ -73,6 +77,7 @@ private:
   std::stack<filestate> d_filestates;
   parts_t d_templateparts;
   size_t d_maxGenerateSteps{0};
+  size_t d_maxIncludes{20};
   int d_defaultttl;
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
   bool d_havedollarttl;

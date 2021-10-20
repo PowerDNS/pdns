@@ -249,6 +249,7 @@ int main( int argc, char* argv[] )
                 args.set( "domainid", "Domain ID of the first domain found (incremented afterwards)" ) = "1";
                 args.set( "metadata-dn", "DN under which to store the domain metadata" ) = "";
                 args.set( "max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
+                args.set( "max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
 
                 args.parse( argc, argv );
 
@@ -318,6 +319,7 @@ int main( int argc, char* argv[] )
                                                 g_zonename = i.name;
                                                 ZoneParserTNG zpt(i.filename, i.name, BP.getDirectory());
                                                 zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
+                                                zpt.setMaxIncludes(args.asNum("max-include-depth"));
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr)) {
                                                         callback(g_domainid, rr.qname, rr.qtype.toString(), encode_non_ascii(rr.content), rr.ttl);

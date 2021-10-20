@@ -503,6 +503,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   auto records = std::make_shared<recordstorage_t>();
   ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory, d_upgradeContent);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord rr;
   string hashed;
   while (zpt.get(rr)) {
