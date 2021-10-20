@@ -798,6 +798,15 @@ void setupLuaInspection(LuaContext& luaCtx)
     });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, uint8_t, uint8_t)>("setMasks", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t v4, uint8_t v6, uint8_t port) {
       if (group) {
+        if (v4 > 32) {
+          throw std::runtime_error("Trying to set an invalid IPv4 mask (" + std::to_string(v4) + ") to a Dynamic Block object");
+        }
+        if (v6 > 128) {
+          throw std::runtime_error("Trying to set an invalid IPv6 mask (" + std::to_string(v6) + ") to a Dynamic Block object");
+        }
+        if (port > 16) {
+          throw std::runtime_error("Trying to set an invalid port mask (" + std::to_string(port) + ") to a Dynamic Block object");
+        }
         if (port > 0 && v4 != 32) {
           throw std::runtime_error("Setting a non-zero port mask for Dynamic Blocks while only considering parts of IPv4 addresses does not make sense");
         }
