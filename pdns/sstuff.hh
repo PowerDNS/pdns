@@ -99,7 +99,7 @@ public:
       throw NetworkError("Accepting a connection: "+stringerror());
     }
 
-    return std::unique_ptr<Socket>(new Socket(s));
+    return std::make_unique<Socket>(s);
   }
 
   //! Get remote address

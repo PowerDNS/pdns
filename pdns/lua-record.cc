@@ -229,7 +229,7 @@ private:
 bool IsUpOracle::isUp(const CheckDesc& cd)
 {
   if (!d_checkerThread) {
-    d_checkerThread = std::unique_ptr<std::thread>(new std::thread(&IsUpOracle::checkThread, this));
+    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
   }
   time_t now = time(nullptr);
   {
@@ -248,7 +248,7 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
     auto statuses = d_statuses.write_lock();
     // Make sure we don't insert new entry twice now we have the lock
     if (statuses->find(cd) == statuses->end()) {
-      (*statuses)[cd] = std::unique_ptr<CheckState>(new CheckState{now});
+      (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
   }
   return false;
@@ -972,7 +972,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
   LuaContext& lua = *s_LUA->getLua();
 
-  s_lua_record_ctx = std::unique_ptr<lua_record_ctx_t>(new lua_record_ctx_t());
+  s_lua_record_ctx = std::make_unique<lua_record_ctx_t>();
   s_lua_record_ctx->qname = query;
   s_lua_record_ctx->zone = zone;
   s_lua_record_ctx->zoneid = zoneid;

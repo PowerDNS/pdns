@@ -79,7 +79,7 @@ void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
   if (privateKey.length() != crypto_sign_ed25519_SEEDBYTES)
     throw runtime_error("Seed size mismatch in ISCMap, SodiumED25519 class");
 
-  std::unique_ptr<unsigned char[]> seed(new unsigned char[crypto_sign_ed25519_SEEDBYTES]);
+  auto seed = std::make_unique<unsigned char[]>(crypto_sign_ed25519_SEEDBYTES);
 
   memcpy(seed.get(), privateKey.c_str(), crypto_sign_ed25519_SEEDBYTES);
   crypto_sign_ed25519_seed_keypair(d_pubkey, d_seckey, seed.get());
@@ -106,7 +106,7 @@ void SodiumED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string& inp
 std::string SodiumED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
+  auto sm = std::make_unique<unsigned char[]>(smlen);
 
   crypto_sign_ed25519(sm.get(), &smlen, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
 
@@ -119,12 +119,12 @@ bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::
     return false;
 
   unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
+  auto sm = std::make_unique<unsigned char[]>(smlen);
 
   memcpy(sm.get(), signature.c_str(), crypto_sign_ed25519_BYTES);
   memcpy(sm.get() + crypto_sign_ed25519_BYTES, msg.c_str(), msg.length());
 
-  std::unique_ptr<unsigned char[]> m(new unsigned char[smlen]);
+  auto m = std::make_unique<unsigned char[]>(smlen);
 
   return crypto_sign_ed25519_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
 }

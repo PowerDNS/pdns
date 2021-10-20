@@ -385,7 +385,7 @@ int HTTPConnector::send_message(const Json& input)
 
     while (gAddrPtr) {
       try {
-        d_socket = std::unique_ptr<Socket>(new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol));
+        d_socket = std::make_unique<Socket>(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
         d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
         d_socket->connect(d_addr);
         d_socket->setNonBlocking();

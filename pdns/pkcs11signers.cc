@@ -151,7 +151,7 @@ public:
 // this bit is used for getting attribute from object
 // we provide a pointer for GetAttributeValue to write to
   CK_BYTE_PTR allocate(CK_ULONG amount) {
-    buffer = std::unique_ptr<unsigned char[]>(new unsigned char[amount]);
+    buffer = std::make_unique<unsigned char[]>(amount);
     buflen = amount;
     return buffer.get();
   }
@@ -249,7 +249,7 @@ class Pkcs11Slot {
     bool Login(const std::string& pin) {
       if (d_logged_in) return true;
 
-      std::unique_ptr<unsigned char[]> uPin(new unsigned char[pin.size()]);
+      auto uPin = std::make_unique<unsigned char[]>(pin.size());
       memcpy(uPin.get(), pin.c_str(), pin.size());
       d_err = d_functions->C_Login(this->d_session, CKU_USER, uPin.get(), pin.size());
       memset(uPin.get(), 0, pin.size());
@@ -415,8 +415,8 @@ class Pkcs11Token {
       auto slot = d_slot->lock();
 
       size_t k;
-      std::unique_ptr<CK_ATTRIBUTE[]> pubAttr(new CK_ATTRIBUTE[pubAttributes.size()]);
-      std::unique_ptr<CK_ATTRIBUTE[]> privAttr(new CK_ATTRIBUTE[privAttributes.size()]);
+      auto pubAttr = std::make_unique<CK_ATTRIBUTE[]>(pubAttributes.size());
+      auto privAttr = std::make_unique<CK_ATTRIBUTE[]>(pubAttributes.size());
 
       k = 0;
       for(P11KitAttribute& attribute :  pubAttributes) {
@@ -530,8 +530,8 @@ class Pkcs11Token {
       size_t k;
       unsigned long count;
 
-      std::unique_ptr<CK_OBJECT_HANDLE[]> handles(new CK_OBJECT_HANDLE[maxobjects]);
-      std::unique_ptr<CK_ATTRIBUTE[]> attr(new CK_ATTRIBUTE[attributes.size()]);
+      auto handles = std::make_unique<CK_OBJECT_HANDLE[]>(maxobjects);
+      auto attr = std::make_unique<CK_ATTRIBUTE[]>(attributes.size());
 
       k = 0;
       for(const P11KitAttribute& attribute :  attributes) {
@@ -568,7 +568,7 @@ class Pkcs11Token {
     int GetAttributeValue2(Pkcs11Slot& slot, const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes)
     {
       size_t k;
-      std::unique_ptr<CK_ATTRIBUTE[]> attr(new CK_ATTRIBUTE[attributes.size()]);
+      auto attr = std::make_unique<CK_ATTRIBUTE[]>(attributes.size());
 
       k = 0;
       for(P11KitAttribute &attribute :  attributes) {

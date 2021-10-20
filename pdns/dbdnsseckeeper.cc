@@ -741,7 +741,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
     }
     // We don't have a *full* Ueberbackend, just a key-only one.
     // Let's create one and use it
-    b = std::unique_ptr<UeberBackend>(new UeberBackend());
+    b = std::make_unique<UeberBackend>();
     B = b.get();
   }
 

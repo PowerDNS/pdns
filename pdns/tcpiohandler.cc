@@ -478,7 +478,7 @@ public:
 
   void addNewTicket(SSL_SESSION* session)
   {
-    d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free))));
+    d_tlsSessions.push_back(std::make_unique<OpenSSLSession>(std::unique_ptr<SSL_SESSION, void (*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
   }
 
   static int s_tlsConnIndex;
@@ -1019,7 +1019,7 @@ public:
     if (ret != GNUTLS_E_SUCCESS || sess.size <= 4) {
       throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
     }
-    conn->d_tlsSessions.push_back(std::unique_ptr<TLSSession>(new GnuTLSSession(sess)));
+    conn->d_tlsSessions.push_back(std::make_unique<GnuTLSSession>(sess));
     return 0;
   }
 

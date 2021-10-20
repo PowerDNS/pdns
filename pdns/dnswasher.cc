@@ -73,7 +73,7 @@ public:
 
   static std::unique_ptr<IPObfuscator> make()
   {
-    return std::unique_ptr<IPObfuscator>(new IPSeqObfuscator());
+    return std::make_unique<IPSeqObfuscator>();
   }
 
   uint32_t obf4(uint32_t orig) override
@@ -133,7 +133,7 @@ public:
   {}
   static std::unique_ptr<IPObfuscator> make(std::string key, bool decrypt)
   {
-    return std::unique_ptr<IPObfuscator>(new IPCipherObfuscator(key, decrypt));
+    return std::make_unique<IPCipherObfuscator>(key, decrypt);
   }
 
   uint32_t obf4(uint32_t orig) override

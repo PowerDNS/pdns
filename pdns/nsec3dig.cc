@@ -142,7 +142,7 @@ try
     throw PDNSException("tcp read failed");
 
   len=ntohs(len);
-  std::unique_ptr<char[]> creply(new char[len]);
+  auto creply = std::make_unique<char[]>(len);
   int n=0;
   int numread;
   while(n<len) {

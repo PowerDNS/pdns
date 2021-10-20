@@ -647,7 +647,7 @@ void mainthread()
   Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("resolver")){
-    DP=std::unique_ptr<DNSProxy>(new DNSProxy(::arg()["resolver"]));
+    DP = std::make_unique<DNSProxy>(::arg()["resolver"]);
     DP->go();
   }
 

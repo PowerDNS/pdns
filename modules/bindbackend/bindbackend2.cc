@@ -224,7 +224,7 @@ bool Bind2Backend::startTransaction(const DNSName& qname, int id)
       return false;
     }
 
-    d_of = std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
+    d_of = std::make_unique<ofstream>(d_transaction_tmpname);
     if (!*d_of) {
       unlink(d_transaction_tmpname.c_str());
       close(fd);

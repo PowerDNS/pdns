@@ -664,7 +664,7 @@ struct TestFixture
   {
     s_steps.clear();
     s_responses.clear();
-    s_mplexer = std::unique_ptr<FDMultiplexer>(new MockupFDMultiplexer());
+    s_mplexer = std::make_unique<MockupFDMultiplexer>();
   }
   ~TestFixture()
   {

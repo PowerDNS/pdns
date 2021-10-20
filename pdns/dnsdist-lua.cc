@@ -700,8 +700,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
 
         // only works pre-startup, so no sync necessary
-        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        auto tcpCS = std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
         if (tcpListenQueueSize > 0) {
           tcpCS->tcpListenQueueSize = tcpListenQueueSize;
         }
@@ -740,8 +740,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       try {
 	ComboAddress loc(addr, 53);
         // only works pre-startup, so no sync necessary
-        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        auto tcpCS = std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
         if (tcpListenQueueSize > 0) {
           tcpCS->tcpListenQueueSize = tcpListenQueueSize;
         }
@@ -1517,13 +1517,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
 
         /* UDP */
-        auto cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        auto cs = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus);
         cs->dnscryptCtx = ctx;
         g_dnsCryptLocals.push_back(ctx);
         g_frontends.push_back(std::move(cs));
 
         /* TCP */
-        cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        cs = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus);
         cs->dnscryptCtx = ctx;
         if (tcpListenQueueSize > 0) {
           cs->tcpListenQueueSize = tcpListenQueueSize;
@@ -2335,7 +2335,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);
-    auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+    auto cs = std::make_unique<ClientState>(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
     cs->dohFrontend = frontend;
     if (tcpListenQueueSize > 0) {
       cs->tcpListenQueueSize = tcpListenQueueSize;
@@ -2527,7 +2527,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
           }
           // only works pre-startup, so no sync necessary
-          auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+          auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
           cs->tlsFrontend = frontend;
           if (tcpListenQueueSize > 0) {
             cs->tcpListenQueueSize = tcpListenQueueSize;

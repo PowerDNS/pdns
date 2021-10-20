@@ -476,7 +476,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string& fname,
   const auto& opt = opts.find("mode");
   if (opt != opts.end())
     mode = opt->second;
-  return unique_ptr<GeoIPInterface>(new GeoIPInterfaceDAT(fname, mode));
+  return std::make_unique<GeoIPInterfaceDAT>(fname, mode);
 }
 
 #else

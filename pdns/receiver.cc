@@ -583,8 +583,8 @@ int main(int argc, char **argv)
       if(::arg().mustDo("control-console"))
         dl=make_unique<DynListener>();
       else
-        dl=std::unique_ptr<DynListener>(new DynListener(s_programname));
-      
+        dl = std::make_unique<DynListener>(s_programname);
+
       writePid();
     }
     DynListener::registerFunc("SHOW",&DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");

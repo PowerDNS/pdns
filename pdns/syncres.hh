@@ -428,14 +428,14 @@ public:
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery)
-      s_dontQuery = std::unique_ptr<NetmaskGroup>(new NetmaskGroup());
+      s_dontQuery = std::make_unique<NetmaskGroup>();
 
     s_dontQuery->addMask(mask);
   }
   static void addDontQuery(const Netmask& mask)
   {
     if (!s_dontQuery)
-      s_dontQuery = std::unique_ptr<NetmaskGroup>(new NetmaskGroup());
+      s_dontQuery = std::make_unique<NetmaskGroup>();
 
     s_dontQuery->addMask(mask);
   }
@@ -906,8 +906,8 @@ private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   boost::optional<Netmask> d_outgoingECSNetwork;
-  std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers{nullptr};
-  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers{nullptr};
+  std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers;
+  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers;
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
   asyncresolve_t d_asyncResolve{nullptr};
   struct timeval d_now;

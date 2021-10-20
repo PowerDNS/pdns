@@ -552,7 +552,7 @@ SSqlException SMySQL::sPerrorException(const string& reason)
 
 std::unique_ptr<SSqlStatement> SMySQL::prepare(const string& query, int nparams)
 {
-  return std::unique_ptr<SSqlStatement>(new SMySQLStatement(query, s_dolog, nparams, &d_db));
+  return std::make_unique<SMySQLStatement>(query, s_dolog, nparams, &d_db);
 }
 
 void SMySQL::execute(const string& query)
