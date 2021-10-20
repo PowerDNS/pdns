@@ -255,7 +255,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        [client, configCheck](boost::variant<string, newserver_t> pvars, boost::optional<int> qps) {
                          setLuaSideEffect();
 
-                         std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, !(client || configCheck));
                          newserver_t vars;
 
                          ComboAddress serverAddr;
@@ -277,18 +276,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          catch (const PDNSException& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.reason);
                            errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
-                         catch (std::exception& e) {
+                         catch (const std::exception& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.what());
                            errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
 
                          if (IsAnyAddress(serverAddr)) {
                            g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
                            errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
 
                          ComboAddress sourceAddr;
@@ -299,12 +298,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          if (vars.count("source")) {
                            /* handle source in the following forms:
-           - v4 address ("192.0.2.1")
-           - v6 address ("2001:DB8::1")
-           - interface name ("eth0")
-           - v4 address and interface name ("192.0.2.1@eth0")
-           - v6 address and interface name ("2001:DB8::1@eth0")
-        */
+                              - v4 address ("192.0.2.1")
+                              - v6 address ("2001:DB8::1")
+                              - interface name ("eth0")
+                              - v4 address and interface name ("192.0.2.1@eth0")
+                              - v6 address and interface name ("2001:DB8::1@eth0")
+                           */
                            const string source = boost::get<string>(vars["source"]);
                            bool parsed = false;
                            std::string::size_type pos = source.find("@");
@@ -353,7 +352,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          // create but don't connect the socket in client or check-config modes
-                         ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
+                         auto ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
                          if (!(client || configCheck)) {
                            infolog("Added downstream server %s", serverAddr.toStringWithPort());
                          }
@@ -378,7 +377,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                              ret->setWeight(weightVal);
                            }
-                           catch (std::exception& e) {
+                           catch (const std::exception& e) {
                              // std::stoi will throw an exception if the string isn't in a value int range
                              errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
                              return ret;
@@ -560,9 +559,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (ret->isTCPOnly()) {
-                           /* no need to keep the UDP states, then */
-                           ret->idStates.clear();
+                         if (!ret->isTCPOnly() && !(client || configCheck)) {
+                           ret->idStates.resize(g_maxOutstanding);
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
@@ -812,6 +810,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         frontend->cleanup();
       }
       g_tlslocals.clear();
+      g_rings.clear();
 #endif /* 0 */
     _exit(0);
   });
