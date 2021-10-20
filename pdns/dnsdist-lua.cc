@@ -1392,6 +1392,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          until.tv_sec += actualSeconds;
                          for (const auto& capair : m) {
                            unsigned int count = 0;
+                           /* this legacy interface does not support ranges or ports, use DynBlockRulesGroup instead */
                            AddressAndPortRange requestor(capair.first, capair.first.isIPv4() ? 32 : 128, 0);
                            auto got = slow.lookup(requestor);
                            bool expired = false;

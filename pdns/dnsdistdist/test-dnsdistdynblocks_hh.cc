@@ -346,6 +346,39 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
       /* outside of the range should not */
       BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:16384"), 32, 16)) == nullptr);
     }
+
+    /* we (again) insert just above 50 qps from several clients the same IPv4 port range, this should update the block which will
+       check by looking at the blocked counter */
+    {
+      auto block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
+      BOOST_REQUIRE(block != nullptr);
+      BOOST_CHECK_EQUAL(block->second.blocks, 0U);
+      block->second.blocks = 42U;
+    }
+
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      ComboAddress requestor("192.0.2.1:" + std::to_string(idx));
+      g_rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
+      g_rings.insertResponse(now, requestor, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+    {
+      /* previous address/port should still be blocked */
+      auto block = g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
+      BOOST_REQUIRE(block != nullptr);
+      BOOST_CHECK_EQUAL(block->second.blocks, 42U);
+    }
+
+    /* but not a different one */
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(AddressAndPortRange(ComboAddress("192.0.2.1:16384"), 32, 16)) == nullptr);
+
   }
 }
 

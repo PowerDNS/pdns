@@ -861,6 +861,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     }
   }
 
+  /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
   if (auto got = holders.dynNMGBlock->lookup(AddressAndPortRange(*dq.remote, dq.remote->isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
       ++g_stats.dynBlocked;

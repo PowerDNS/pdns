@@ -176,6 +176,7 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
 
 void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
+  /* network exclusions are address-based only (no port) */
   if (d_excludedSubnets.match(requestor.getNetwork())) {
     /* do not add a block for excluded subnets */
     return;
@@ -187,7 +188,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks->lookup(requestor.getNetwork());
+  const auto& got = blocks->lookup(requestor);
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
@@ -226,6 +227,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     if (db.action == DNSAction::Action::Drop && g_defaultBPFFilter &&
         ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128))) {
       try {
+        /* the current BPF filter implementation only supports full addresses (/32 or /128) and no port */
         g_defaultBPFFilter->block(requestor.getNetwork());
         bpf = true;
       }
