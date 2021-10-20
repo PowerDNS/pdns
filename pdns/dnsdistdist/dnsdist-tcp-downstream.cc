@@ -57,6 +57,7 @@ bool ConnectionToBackend::reconnect()
     }
     d_handler->close();
     d_ioState.reset();
+    d_handler.reset();
     --d_ds->tcpCurrentConnections;
   }
 
