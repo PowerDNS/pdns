@@ -204,8 +204,16 @@ class PDNSPBConnHandler(object):
 
         if msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.UDP:
             protostr = 'UDP'
-        else:
+        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.TCP:
             protostr = 'TCP'
+        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DOT:
+            protostr = 'DoT'
+        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DOH:
+            protostr = 'DoH'
+        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DNSCryptUDP:
+            protostr = 'DNSCrypt UDP'
+        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DNSCryptTCP:
+            protostr = 'DNSCrypt TCP'
 
         if msg.HasField('fromPort'):
             fromportstr = ':' + str(msg.fromPort) + ' '

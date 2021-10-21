@@ -41,6 +41,7 @@ namespace pdns {
       enum class QuestionField : protozero::pbf_tag_type { qName = 1, qType = 2, qClass = 3 };
       enum class ResponseField : protozero::pbf_tag_type { rcode = 1, rrs = 2, appliedPolicy = 3, tags = 4, queryTimeSec = 5, queryTimeUsec = 6, appliedPolicyType = 7, appliedPolicyTrigger = 8, appliedPolicyHit = 9, appliedPolicyKind = 10, validationState = 11 };
       enum class RRField : protozero::pbf_tag_type { name = 1, type = 2, class_ = 3, ttl = 4, rdata = 5, udr = 6 };
+      enum class TransportProtocol : protozero::pbf_tag_type { UDP = 1, TCP = 2, DoT = 3, DoH = 4, DNSCryptUDP = 5, DNSCryptTCP = 6 };
 
       Message(std::string& buffer): d_buffer(buffer), d_message{d_buffer}
       {
@@ -51,7 +52,7 @@ namespace pdns {
       Message& operator=(const Message&) = delete;
       Message& operator=(Message&&) = delete;
 
-      void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len);
+      void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, TransportProtocol proto, size_t len);
       void setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass);
 
       void setType(MessageType mtype)
@@ -74,9 +75,9 @@ namespace pdns {
         add_enum(d_message, Field::socketFamily, family == AF_INET ? 1 : 2);
       }
 
-      void setSocketProtocol(bool tcp)
+      void setSocketProtocol(TransportProtocol proto)
       {
-        add_enum(d_message, Field::socketProtocol, tcp ? 2 : 1);
+        add_enum(d_message, Field::socketProtocol, static_cast<int32_t>(proto));
       }
 
       void setFrom(const ComboAddress& ca)

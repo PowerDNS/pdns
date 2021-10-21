@@ -1359,10 +1359,10 @@ private:
 
 static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
-  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
+  if (protocol == dnsdist::Protocol::DoUDP) {
     return DnstapMessage::ProtocolType::DoUDP;
   }
-  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
+  else if (protocol == dnsdist::Protocol::DoTCP) {
     return DnstapMessage::ProtocolType::DoTCP;
   }
   else if (protocol == dnsdist::Protocol::DoT) {
@@ -1370,6 +1370,12 @@ static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
   }
   else if (protocol == dnsdist::Protocol::DoH) {
     return DnstapMessage::ProtocolType::DoH;
+  }
+  else if (protocol == dnsdist::Protocol::DNSCryptUDP) {
+    return DnstapMessage::ProtocolType::DNSCryptUDP;
+  }
+  else if (protocol == dnsdist::Protocol::DNSCryptTCP) {
+    return DnstapMessage::ProtocolType::DNSCryptTCP;
   }
   throw std::runtime_error("Unhandled protocol for dnstap: " + protocol.toPrettyString());
 }

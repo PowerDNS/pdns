@@ -1030,7 +1030,7 @@ static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, co
 
   pdns::ProtoZero::RecMessage m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
   m.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-  m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
+  m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, len);
   m.setServerIdentity(SyncRes::s_serverID);
   m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   m.setRequestorId(requestorId);
@@ -1092,7 +1092,7 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
   pbMessage.setMessageIdentity(uniqueId);
   pbMessage.setFrom(requestor);
   pbMessage.setTo(destination);
-  pbMessage.setSocketProtocol(tcp);
+  pbMessage.setSocketProtocol(tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP);
   pbMessage.setId(dh->id);
 
   pbMessage.setTime();
@@ -2331,7 +2331,7 @@ static void startDoResolve(void *p)
       }
       pbMessage.setMessageIdentity(dc->d_uuid);
       pbMessage.setSocketFamily(dc->d_source.sin4.sin_family);
-      pbMessage.setSocketProtocol(dc->d_tcp);
+      pbMessage.setSocketProtocol(dc->d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP);
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       ComboAddress requestor = requestorNM.getMaskedNetwork();
       pbMessage.setFrom(requestor);
