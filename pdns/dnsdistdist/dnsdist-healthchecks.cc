@@ -296,11 +296,13 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     ioGuard.release();
   }
   catch (const std::exception& e) {
+    updateHealthCheckResult(data->d_ds, data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
     }
   }
   catch (...) {
+    updateHealthCheckResult(data->d_ds, data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", data->d_ds->getNameWithAddr());
     }
