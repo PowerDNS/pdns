@@ -2,6 +2,7 @@
 import base64
 import json
 import requests
+import socket
 import time
 import dns
 from dnsdisttests import DNSDistTest
@@ -1263,3 +1264,76 @@ class TestDynBlockGroupWarning(DynBlocksTest):
         self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', self._dynBlockDuration - 4, self._dynBlockDuration, 0, sent)
 
         self.doTestQRate(name)
+
+class TestDynBlockGroupPort(DNSDistTest):
+
+    _dynBlockQPS = 20
+    _dynBlockPeriod = 2
+    _dynBlockDuration = 5
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setQueryRate(%d, %d, "Exceeded query rate", %d, DNSAction.Drop)
+    -- take the exact port into account
+    dbr:setMasks(32, 128, 16)
+
+    function maintenance()
+	    dbr:apply()
+    end
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testPort(self):
+        """
+        Dyn Blocks (group): Exact port matching
+        """
+        name = 'port.group.dynblocks.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        allowed = 0
+        sent = 0
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we might be already blocked, but we should have been able to send
+        # at least self._dynBlockQPS queries
+        self.assertGreaterEqual(allowed, self._dynBlockQPS)
+
+        if allowed == sent:
+            # wait for the maintenance function to run
+            time.sleep(2)
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, None)
+
+        # use a new socket, so a new port
+        self._toResponderQueue.put(response, True, 1.0)
+        newsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        newsock.settimeout(1.0)
+        newsock.connect(("127.0.0.1", self._dnsDistPort))
+        newsock.send(query.to_wire())
+        receivedResponse = newsock.recv(4096)
+        if receivedResponse:
+            receivedResponse = dns.message.from_wire(receivedResponse)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
