@@ -1012,6 +1012,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     /* the responses map can be updated at runtime, so we need to take a copy of
        the shared pointer, increasing the reference counter */
     auto responsesMap = dsc->df->d_responsesMap;
+    /* 1 byte for the root label, 2 type, 2 class, 4 TTL (fake), 2 record length, 2 option length, 2 option code, 2 family, 1 source, 1 scope, 16 max for a full v6 */
+    const size_t maxAdditionalSizeForEDNS = 35U;
     if (responsesMap) {
       for (const auto& entry : *responsesMap) {
         if (entry->matches(path)) {
@@ -1030,9 +1032,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         ++dsc->df->d_http1Stats.d_nbQueries;
 
       PacketBuffer query;
-      /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
-         at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
-      query.reserve(std::max(req->entity.len + 512, s_maxPacketCacheEntrySize));
+      /* We reserve a few additional bytes to be able to add EDNS later */
+      query.reserve(req->entity.len + maxAdditionalSizeForEDNS);
       query.resize(req->entity.len);
       memcpy(query.data(), req->entity.base, req->entity.len);
       doh_dispatch_query(dsc, self, req, std::move(query), local, remote, std::move(path));
@@ -1059,10 +1060,9 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         PacketBuffer decoded;
 
         /* rough estimate so we hopefully don't need a new allocation later */
-        /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
-           at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
+        /* We reserve at few additional bytes to be able to add EDNS later */
         const size_t estimate = ((sdns.size() * 3) / 4);
-        decoded.reserve(std::max(estimate + 512, s_maxPacketCacheEntrySize));
+        decoded.reserve(estimate + maxAdditionalSizeForEDNS);
         if(B64Decode(sdns, decoded) < 0) {
           h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
           ++dsc->df->d_badrequests;
