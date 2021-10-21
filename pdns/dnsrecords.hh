@@ -595,7 +595,7 @@ public:
   NSECBitmap(const NSECBitmap& rhs): d_set(rhs.d_set)
   {
     if (rhs.d_bitset) {
-      d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>(*(rhs.d_bitset)));
+      d_bitset = std::make_unique<std::bitset<nbTypes>>(*(rhs.d_bitset));
     }
   }
   NSECBitmap& operator=(const NSECBitmap& rhs)
@@ -603,7 +603,7 @@ public:
     d_set = rhs.d_set;
 
     if (rhs.d_bitset) {
-      d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>(*(rhs.d_bitset)));
+      d_bitset = std::make_unique<std::bitset<nbTypes>>(*(rhs.d_bitset));
     }
 
     return *this;
@@ -652,7 +652,7 @@ private:
 
   void migrateToBitSet()
   {
-    d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>());
+    d_bitset = std::make_unique<std::bitset<nbTypes>>();
     for (const auto& type : d_set) {
       d_bitset->set(type);
     }

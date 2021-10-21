@@ -190,7 +190,7 @@ CDBKVStore::~CDBKVStore() {
 
 bool CDBKVStore::reload(const struct stat& st)
 {
-  auto newCDB = std::unique_ptr<CDB>(new CDB(d_fname));
+  auto newCDB = std::make_unique<CDB>(d_fname);
   {
     *(d_cdb.write_lock()) = std::move(newCDB);
   }

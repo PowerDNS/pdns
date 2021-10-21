@@ -728,7 +728,7 @@ RecursorLua4::~RecursorLua4() {}
 const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref)
 {
   if (!ref->qnameStr) {
-    ref->qnameStr = std::unique_ptr<std::string>(new std::string(ref->params.qname.toStringNoDot()));
+    ref->qnameStr = std::make_unique<std::string>(ref->params.qname.toStringNoDot());
   }
 
   return ref->qnameStr->c_str();
@@ -749,7 +749,7 @@ uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref)
 const char* pdns_ffi_param_get_remote(pdns_ffi_param_t* ref)
 {
   if (!ref->remoteStr) {
-    ref->remoteStr = std::unique_ptr<std::string>(new std::string(ref->params.remote.toString()));
+    ref->remoteStr = std::make_unique<std::string>(ref->params.remote.toString());
   }
 
   return ref->remoteStr->c_str();
@@ -780,7 +780,7 @@ uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref)
 const char* pdns_ffi_param_get_local(pdns_ffi_param_t* ref)
 {
   if (!ref->localStr) {
-    ref->localStr = std::unique_ptr<std::string>(new std::string(ref->params.local.toString()));
+    ref->localStr = std::make_unique<std::string>(ref->params.local.toString());
   }
 
   return ref->localStr->c_str();
@@ -803,7 +803,7 @@ const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref)
   }
 
   if (!ref->ednssubnetStr) {
-    ref->ednssubnetStr = std::unique_ptr<std::string>(new std::string(ref->params.ednssubnet.toStringNoMask()));
+    ref->ednssubnetStr = std::make_unique<std::string>(ref->params.ednssubnet.toStringNoMask());
   }
 
   return ref->ednssubnetStr->c_str();

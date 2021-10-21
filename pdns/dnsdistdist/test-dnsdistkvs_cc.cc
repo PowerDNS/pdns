@@ -354,11 +354,11 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     transaction->commit();
   }
 
-  auto lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "db-name"));
+  std::unique_ptr<KeyValueStore> lmdb = std::make_unique<LMDBKVStore>(dbPath, "db-name");
   doKVSChecks(lmdb, lc, rem, dq, plaintextDomain);
   lmdb.reset();
 
-  lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "range-db-name"));
+  lmdb = std::make_unique<LMDBKVStore>(dbPath, "range-db-name");
   doKVSRangeChecks(lmdb);
   /*
   std::string value;
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     writer.close();
   }
 
-  auto cdb = std::unique_ptr<KeyValueStore>(new CDBKVStore(db, 0));
+  std::unique_ptr<KeyValueStore> cdb = std::make_unique<CDBKVStore>(db, 0);
   doKVSChecks(cdb, lc, rem, dq, plaintextDomain);
 
   /*

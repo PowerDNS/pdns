@@ -823,7 +823,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     uint16_t qtype;
     DNSName qname(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &qtype);
 
-    auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
+    auto du = std::make_unique<DOHUnit>();
     du->dsc = dsc;
     du->req = req;
     du->ids.origDest = local;
@@ -1440,7 +1440,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
   auto ctx = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
 
   if (tlsConfig.d_enableTickets && tlsConfig.d_numberOfTicketsKeys > 0) {
-    acceptCtx.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(tlsConfig.d_numberOfTicketsKeys));
+    acceptCtx.d_ticketKeys = std::make_unique<OpenSSLTLSTicketKeysRing>(tlsConfig.d_numberOfTicketsKeys);
     SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
     libssl_set_ticket_key_callback_data(ctx.get(), &acceptCtx);
   }

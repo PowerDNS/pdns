@@ -2733,7 +2733,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state = TCPConnection::BYTE0;
       std::unique_ptr<DNSComboWriter> dc;
       try {
-        dc=std::unique_ptr<DNSComboWriter>(new DNSComboWriter(conn->data, g_now));
+        dc = std::make_unique<DNSComboWriter>(conn->data, g_now);
       }
       catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
@@ -3220,7 +3220,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  auto dc = std::unique_ptr<DNSComboWriter>(new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data), std::move(records)));
+  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), std::move(data), std::move(records));
   dc->setSocket(fd);
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
@@ -5525,8 +5525,8 @@ try
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;
-  t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
-  t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());
+  t_udpclientsocks = std::make_unique<UDPClientSocks>();
+  t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
 
   if (threadInfo.isHandler) {
     if (!primeHints()) {
@@ -5538,8 +5538,7 @@ try
     g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
   }
 
-  t_packetCache = std::unique_ptr<RecursorPacketCache>(new RecursorPacketCache());
-
+  t_packetCache = std::make_unique<RecursorPacketCache>();
 
 #ifdef NOD_ENABLED
   if (threadInfo.isWorker)
@@ -5563,25 +5562,25 @@ try
 
   unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
   if(ringsize) {
-    t_remotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_remotes = std::make_unique<addrringbuf_t>();
     if(g_weDistributeQueries)
       t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / g_numDistributorThreads);
     else
       t_remotes->set_capacity(ringsize);
-    t_servfailremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_servfailremotes = std::make_unique<addrringbuf_t>();
     t_servfailremotes->set_capacity(ringsize);
-    t_bogusremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_bogusremotes = std::make_unique<addrringbuf_t>();
     t_bogusremotes->set_capacity(ringsize);
-    t_largeanswerremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_largeanswerremotes = std::make_unique<addrringbuf_t>();
     t_largeanswerremotes->set_capacity(ringsize);
-    t_timeouts = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_timeouts = std::make_unique<addrringbuf_t>();
     t_timeouts->set_capacity(ringsize);
 
-    t_queryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_queryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
     t_queryring->set_capacity(ringsize);
-    t_servfailqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_servfailqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
     t_servfailqueryring->set_capacity(ringsize);
-    t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
     t_bogusqueryring->set_capacity(ringsize);
   }
   MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
@@ -6121,8 +6120,8 @@ int main(int argc, char **argv)
       cout<<::arg().helpstring(::arg()["help"])<<endl;
       exit(0);
     }
-    g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
-    g_negCache = std::unique_ptr<NegCache>(new NegCache(::arg().asNum("record-cache-shards")));
+    g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
+    g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards"));
 
     g_quiet=::arg().mustDo("quiet");
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");

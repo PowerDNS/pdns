@@ -66,10 +66,10 @@ void CoWrapper::launch()
     throw ArgException("pipe-command is not specified");
 
   if (isUnixSocket(d_command)) {
-    d_cp = std::unique_ptr<CoRemote>(new UnixRemote(d_command, d_timeout));
+    d_cp = std::make_unique<UnixRemote>(d_command, d_timeout);
   }
   else {
-    auto coprocess = std::unique_ptr<CoProcess>(new CoProcess(d_command, d_timeout));
+    auto coprocess = std::make_unique<CoProcess>(d_command, d_timeout);
     coprocess->launch();
     d_cp = std::move(coprocess);
   }
@@ -130,11 +130,11 @@ void PipeBackend::launch()
 
   try {
     if (!getArg("regex").empty()) {
-      d_regex = std::unique_ptr<Regex>(new Regex(getArg("regex")));
+      d_regex = std::make_unique<Regex>(getArg("regex"));
     }
     d_regexstr = getArg("regex");
     d_abiVersion = getArgAsNum("abi-version");
-    d_coproc = unique_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version")));
+    d_coproc = std::make_unique<CoWrapper>(getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version"));
   }
 
   catch (const ArgException& A) {

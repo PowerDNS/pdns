@@ -37,7 +37,7 @@ void BaseLua4::loadString(const std::string &script) {
 void BaseLua4::getFeatures(Features &) { }
 
 void BaseLua4::prepareContext() {
-  d_lw = std::unique_ptr<LuaContext>(new LuaContext);
+  d_lw = std::make_unique<LuaContext>();
 
   // lua features available
   Features features;

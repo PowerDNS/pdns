@@ -375,7 +375,7 @@ void SPgSQL::execute(const string& query)
 std::unique_ptr<SSqlStatement> SPgSQL::prepare(const string& query, int nparams)
 {
   d_nstatements++;
-  return std::unique_ptr<SSqlStatement>(new SPgSQLStatement(query, s_dolog, nparams, this, d_nstatements));
+  return std::make_unique<SPgSQLStatement>(query, s_dolog, nparams, this, d_nstatements);
 }
 
 void SPgSQL::startTransaction()

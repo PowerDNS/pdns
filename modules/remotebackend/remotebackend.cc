@@ -165,20 +165,20 @@ int RemoteBackend::build()
 
   // connectors know what they are doing
   if (type == "unix") {
-    this->connector = std::unique_ptr<Connector>(new UnixsocketConnector(options));
+    this->connector = std::make_unique<UnixsocketConnector>(options);
   }
   else if (type == "http") {
-    this->connector = std::unique_ptr<Connector>(new HTTPConnector(options));
+    this->connector = std::make_unique<HTTPConnector>(options);
   }
   else if (type == "zeromq") {
 #ifdef REMOTEBACKEND_ZEROMQ
-    this->connector = std::unique_ptr<Connector>(new ZeroMQConnector(options));
+    this->connector = std::make_unique<ZeroMQConnector>(options);
 #else
     throw PDNSException("Invalid connection string: zeromq connector support not enabled. Recompile with --enable-remotebackend-zeromq");
 #endif
   }
   else if (type == "pipe") {
-    this->connector = std::unique_ptr<Connector>(new PipeConnector(options));
+    this->connector = std::make_unique<PipeConnector>(options);
   }
   else {
     throw PDNSException("Invalid connection string: unknown connector");

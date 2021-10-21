@@ -1594,9 +1594,9 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   };
   const size_t vectSize = g_udpVectorSize;
 
-  auto recvData = std::unique_ptr<MMReceiver[]>(new MMReceiver[vectSize]);
-  auto msgVec = std::unique_ptr<struct mmsghdr[]>(new struct mmsghdr[vectSize]);
-  auto outMsgVec = std::unique_ptr<struct mmsghdr[]>(new struct mmsghdr[vectSize]);
+  auto recvData = std::make_unique<MMReceiver[]>(vectSize);
+  auto msgVec = std::make_unique<struct mmsghdr[]>(vectSize);
+  auto outMsgVec = std::make_unique<struct mmsghdr[]>(vectSize);
 
   /* the actual buffer is larger because:
      - we may have to add EDNS and/or ECS

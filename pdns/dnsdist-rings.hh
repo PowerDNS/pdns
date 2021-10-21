@@ -84,7 +84,7 @@ struct Rings {
 
     /* resize all the rings */
     for (auto& shard : d_shards) {
-      shard = std::unique_ptr<Shard>(new Shard());
+      shard = std::make_unique<Shard>();
       shard->queryRing.lock()->set_capacity(newCapacity / numberOfShards);
       shard->respRing.lock()->set_capacity(newCapacity / numberOfShards);
     }

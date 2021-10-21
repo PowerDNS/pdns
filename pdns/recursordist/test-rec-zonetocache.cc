@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
   config.d_refreshPeriod = 0;
 
   // Start with a new, empty cache
-  g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  g_recCache = std::make_unique<MemRecursorCache>();
   BOOST_CHECK_EQUAL(g_recCache->size(), 0U);
   RecZoneToCache::ZoneToCache(config, 0);
   unlink(temp);

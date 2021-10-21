@@ -429,7 +429,7 @@ try
   }
   else if(mode=="scan-ns") {
     ifstream ns(string(argv[2])+".nameservers");
-    g_powerdns = std::unique_ptr<ofstream>(new ofstream(string(argv[2])+".powerdns"));
+    g_powerdns = std::make_unique<std::ofstream>(string(argv[2]) + ".powerdns");
     string line;
     int count=0;
     vector<string> parts;
