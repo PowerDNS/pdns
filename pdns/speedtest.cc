@@ -1287,10 +1287,11 @@ try
 #endif
 
   doRun(BurtleHashTest("a string of chars"));
+#ifdef HAVE_LIBSODIUM
   doRun(SipHashTest("a string of chars"));
+#endif
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
-
 }
 catch(std::exception &e)
 {
