@@ -58,10 +58,12 @@ enum SocketFamily {
 
 // SocketProtocol: the protocol used to transport a DNS message.
 enum SocketProtocol {
-    UDP = 1;    // DNS over UDP transport (RFC 1035 section 4.2.1)
-    TCP = 2;    // DNS over TCP transport (RFC 1035 section 4.2.2)
-    DOT = 3;    // DNS over TLS (RFC 7858)
-    DOH = 4;    // DNS over HTTPS (RFC 8484)
+    UDP = 1;         // DNS over UDP transport (RFC 1035 section 4.2.1)
+    TCP = 2;         // DNS over TCP transport (RFC 1035 section 4.2.2)
+    DOT = 3;         // DNS over TLS (RFC 7858)
+    DOH = 4;         // DNS over HTTPS (RFC 8484)
+    DNSCryptUDP = 5; // DNSCrypt over UDP (https://dnscrypt.info/protocol)
+    DNSCryptTCP = 6; // DNSCrypt over TCP (https://dnscrypt.info/protocol)
 }
 
 // Policy: information about any name server operator policy
