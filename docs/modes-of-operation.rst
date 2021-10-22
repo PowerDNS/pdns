@@ -12,9 +12,9 @@ Native replication
 
 Native replication is the default, unless other operation is
 specifically configured. Native replication basically means that
-PowerDNS will not send out DNS update notifications, nor will react to
-them. PowerDNS assumes that the backend is taking care of replication
-unaided.
+PowerDNS will not send out DNS update notifications, nor will it react
+to them. PowerDNS assumes that the backend is taking care of
+replication unaided.
 
 MySQL replication has proven to be very robust and well suited, even
 over transatlantic connections between badly peering ISPs.
