@@ -7,21 +7,9 @@ Changelogs for 4.6.X
 
   .. change::
     :tags: Improvements
-    :pullreq: 10870
+    :pullreq: 10646,10868,10870
 
-    Use make_unique instead of new (Rosen Penev).
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 10868
-
-    Get rid of make_pair (Rosen Penev).
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 10646
-
-    Convert make_pair to emplace (Rosen Penev).
+    Move to modern C++ constructs (Rosen Penev).
 
   .. change::
     :tags: Bug Fixes
@@ -46,7 +34,7 @@ Changelogs for 4.6.X
     :pullreq: 10567
     :tickets: 7558,7420
 
-    Introduce experimental Event Trace function to more detailed view the work done by the Recursor.
+    Introduce experimental Event Trace function to get a more detailed view the work done by the Recursor.
 
   .. change::
     :tags: Improvements
