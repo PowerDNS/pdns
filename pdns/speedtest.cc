@@ -15,6 +15,10 @@
 #include "dns_random.hh"
 #include "arguments.hh"
 
+#if defined(HAVE_LIBSODIUM)
+#include <sodium.h>
+#endif
+
 #ifndef RECURSOR
 #include "statbag.hh"
 #include "base64.hh"
@@ -1090,6 +1094,51 @@ private:
   const std::string d_password{"test password"};
 };
 
+struct BurtleHashTest
+{
+  explicit BurtleHashTest(const string& str) : d_name(str) {}
+
+  string getName() const
+  {
+    return "BurtleHash";
+  }
+
+  void operator()() const
+  {
+    burtle(reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), 0);
+
+  }
+
+private:
+  const string d_name;
+};
+
+
+#if defined(HAVE_LIBSODIUM)
+struct SipHashTest
+{
+  explicit SipHashTest(const string& str) : d_name(str)
+  {
+    crypto_shorthash_keygen(d_key);
+  }
+
+  string getName() const
+  {
+    return "SipHash";
+  }
+
+  void operator()() const
+  {
+    unsigned char out[crypto_shorthash_BYTES];
+    crypto_shorthash(out, reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), d_key);
+  }
+
+private:
+  const string d_name;
+  unsigned char d_key[crypto_shorthash_KEYBYTES];
+};
+#endif
+
 int main(int argc, char** argv)
 try
 {
@@ -1237,8 +1286,12 @@ try
   doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 
-  cerr<<"Total runs: " << g_totalRuns<<endl;
+  doRun(BurtleHashTest("a string of chars"));
+#ifdef HAVE_LIBSODIUM
+  doRun(SipHashTest("a string of chars"));
+#endif
 
+  cerr<<"Total runs: " << g_totalRuns<<endl;
 }
 catch(std::exception &e)
 {
