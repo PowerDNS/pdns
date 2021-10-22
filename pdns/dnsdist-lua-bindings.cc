@@ -397,11 +397,34 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   /* BPF Filter */
 #ifdef HAVE_EBPF
-  luaCtx.writeFunction("newBPFFilter", [client](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+  using bpfFilterMapParams = boost::variant<uint32_t, std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>;
+  luaCtx.writeFunction("newBPFFilter", [client](bpfFilterMapParams v4Params, bpfFilterMapParams v6Params, bpfFilterMapParams qnameParams) {
       if (client) {
         return std::shared_ptr<BPFFilter>(nullptr);
       }
-      return std::make_shared<BPFFilter>(maxV4, maxV6, maxQNames);
+      BPFFilter::MapConfiguration v4Config, v6Config, qnameConfig;
+
+      auto convertParamsToConfig = [](bpfFilterMapParams& params, BPFFilter::MapType type, BPFFilter::MapConfiguration& config) {
+        config.d_type = type;
+        if (params.type() == typeid(uint32_t)) {
+          config.d_maxItems = boost::get<uint32_t>(params);
+        }
+        else if (params.type() == typeid(std::unordered_map<std::string, boost::variant<uint32_t, std::string>>)) {
+          auto map = boost::get<std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>(params);
+          if (map.count("maxItems")) {
+            config.d_maxItems = boost::get<uint32_t>(map.at("maxItems"));
+          }
+          if (map.count("pinnedPath")) {
+            config.d_pinnedPath = boost::get<std::string>(map.at("pinnedPath"));
+          }
+        }
+      };
+
+      convertParamsToConfig(v4Params, BPFFilter::MapType::IPv4, v4Config);
+      convertParamsToConfig(v6Params, BPFFilter::MapType::IPv6, v6Config);
+      convertParamsToConfig(qnameParams, BPFFilter::MapType::QNames, qnameConfig);
+
+      return std::make_shared<BPFFilter>(v4Config, v6Config, qnameConfig);
     });
 
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const ComboAddress& ca)>("block", [](std::shared_ptr<BPFFilter> bpf, const ComboAddress& ca) {

@@ -28,34 +28,67 @@
 class BPFFilter
 {
 public:
-  BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames);
+  enum class MapType : uint8_t {
+    IPv4,
+    IPv6,
+    QNames,
+    Filters
+  };
+
+  struct MapConfiguration
+  {
+    std::string d_pinnedPath;
+    uint32_t d_maxItems{0};
+    MapType d_type;
+  };
+
+  BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::MapConfiguration& v6, const BPFFilter::MapConfiguration& qnames);
+  BPFFilter(const BPFFilter&) = delete;
+  BPFFilter(BPFFilter&&) = delete;
+  BPFFilter& operator=(const BPFFilter&) = delete;
+  BPFFilter& operator=(BPFFilter&&) = delete;
+
   void addSocket(int sock);
   void removeSocket(int sock);
   void block(const ComboAddress& addr);
   void block(const DNSName& qname, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
   void unblock(const DNSName& qname, uint16_t qtype=255);
+
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
+
   uint64_t getHits(const ComboAddress& requestor);
 
 private:
 #ifdef HAVE_EBPF
+  struct Map
+  {
+    Map()
+    {
+    }
+    Map(const MapConfiguration&);
+    MapConfiguration d_config;
+    uint32_t d_count{0};
+    FDWrapper d_fd;
+  };
+
   struct Maps
   {
-    FDWrapper d_v4map;
-    FDWrapper d_v6map;
-    FDWrapper d_qnamemap;
-    FDWrapper d_filtermap;
-    uint32_t d_v4Count{0};
-    uint32_t d_v6Count{0};
-    uint32_t d_qNamesCount{0};
+    Map d_v4;
+    Map d_v6;
+    Map d_qnames;
+    /* The qname filter program held in d_qnamefilter is
+       stored in an eBPF map, so we can call it from the
+       main filter. This is the only entry in that map. */
+    Map d_filters;
   };
+
   LockGuarded<Maps> d_maps;
+
+  /* main eBPF program */
   FDWrapper d_mainfilter;
+  /* qname filtering program */
   FDWrapper d_qnamefilter;
-  uint32_t d_maxV4;
-  uint32_t d_maxV6;
-  uint32_t d_maxQNames;
 #endif /* HAVE_EBPF */
 };
