@@ -103,6 +103,11 @@ class PDNSPBConnHandler(object):
         descr =  dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
         return descr.EnumValueName('EventType', event);
 
+    @staticmethod
+    def getTransportAsString(transport):
+        descr =  dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
+        return descr.EnumValueName('SocketProtocol', transport);
+
     def printResponse(self, message):
         if message.trace:
             print("- Event Trace:")
@@ -202,18 +207,7 @@ class PDNSPBConnHandler(object):
             if msg.HasField('to'):
                 iptostr = '[' + socket.inet_ntop(socket.AF_INET6, msg.to) + ']'
 
-        if msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.UDP:
-            protostr = 'UDP'
-        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.TCP:
-            protostr = 'TCP'
-        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DOT:
-            protostr = 'DoT'
-        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DOH:
-            protostr = 'DoH'
-        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DNSCryptUDP:
-            protostr = 'DNSCrypt UDP'
-        elif msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.DNSCryptTCP:
-            protostr = 'DNSCrypt TCP'
+        protostr = self.getTransportAsString(msg.socketProtocol)
 
         if msg.HasField('fromPort'):
             fromportstr = ':' + str(msg.fromPort) + ' '
