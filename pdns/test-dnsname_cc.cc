@@ -388,28 +388,28 @@ BOOST_AUTO_TEST_CASE(test_hashContainer) {
 
 
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
-  vector<unsigned char> packet;
+  vector<unsigned char> packet(sizeof(dnsheader));
   reportBasicTypes();
 
   // A return init case
   BOOST_CHECK_EQUAL(hashQuestion(packet.data(), sizeof(dnsheader), 0xffU), 0xffU);
 
   // We subtract 4 from the packet sizes since DNSPacketWriter adds a type and a class
-  // W eexcpect the hash of the root to bne unequal to the burtle init value
+  // We expect the hash of the root to be unequal to the burtle init value
   DNSPacketWriter dpw0(packet, DNSName("."), QType::AAAA);
   BOOST_CHECK(hashQuestion(packet.data(), packet.size() - 4, 0xffU) != 0xffU);
 
-  // A truncated buffer
+  // A truncated buffer should return the init value
   DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
   BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 5, 0xffU), 0xffU);
 
   DNSPacketWriter dpw2(packet, DNSName("www.ds9a.nl."), QType::AAAA);
-  // Let's make an invalid name by overwriting the length of the second label just outside
+  // Let's make an invalid name by overwriting the length of the second label just outside the buffer
   packet[sizeof(dnsheader) + 4] = 8;
   BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 4, 0xffU), 0xffU);
 
   DNSPacketWriter dpw3(packet, DNSName("www.ds9a.nl."), QType::AAAA);
-  // Let's make an invalid name by overwriting the length of the second label way outside
+  // Let's make an invalid name by overwriting the length of the second label way outside the buffer
   packet[sizeof(dnsheader) + 4] = 0xff;
   BOOST_CHECK_EQUAL(hashQuestion(packet.data(), packet.size() - 4, 0xffU), 0xffU);
 
