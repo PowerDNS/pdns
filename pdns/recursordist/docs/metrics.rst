@@ -487,6 +487,10 @@ failed-host-entries
 ^^^^^^^^^^^^^^^^^^^
 number of servers that failed to resolve
 
+fd-usage
+^^^^^^^^
+Number of currently used file descriptors.
+
 ignored-packets
 ^^^^^^^^^^^^^^^
 counts the number of non-query packets received   on server sockets that should only get query packets
