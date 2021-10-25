@@ -1296,7 +1296,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   /* we want to read as many responses from the pipe as possible before
      giving up. Even if we are overloaded and fighting with the DoH connections
      for the CPU, the first thing we need to do is to send responses to free slots
-     anyway. */
+     anyway, otherwise queries and responses are piling up in our pipes, consuming
+     memory and likely coming up too late after the client has gone away */
   while (true) {
     DOHUnit *du = nullptr;
     DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
@@ -1304,11 +1305,12 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
     if (got < 0) {
       if (errno != EWOULDBLOCK && errno != EAGAIN) {
-        warnlog("Error reading a DOH internal response: %s", strerror(errno));
+        errlog("Error reading a DOH internal response: %s", strerror(errno));
       }
       return;
     }
     else if (static_cast<size_t>(got) != sizeof(du)) {
+      errlog("Error reading a DoH internal response, got %d bytes instead of the expected %d", got, sizeof(du));
       return;
     }
 
@@ -1334,6 +1336,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       }
       else {
         du->release();
+        vinfolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP");
         continue;
       }
     }
