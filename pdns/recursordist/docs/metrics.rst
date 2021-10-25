@@ -574,6 +574,7 @@ questions dropped because over maximum   concurrent query limit (since 3.2)
 packetcache-bytes
 ^^^^^^^^^^^^^^^^^
 size of the packet cache in bytes (since 3.3.1) (disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
+This metric is a rough estimate and takes a long time to compute, and is therefore not enabled in default outputs.
 
 packetcache-entries
 ^^^^^^^^^^^^^^^^^^^
