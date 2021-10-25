@@ -407,9 +407,10 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       g_stats.ipv6queries++;
     }
 
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
+    const bool faf = context && context->d_fire_and_forget;
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd, faf);
 
-    if (ret != LWResult::Result::Success || (context && context->d_fire_and_forget)) {
+    if (ret != LWResult::Result::Success || faf) {
       return ret;
     }
 

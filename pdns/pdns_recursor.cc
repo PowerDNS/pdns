@@ -150,6 +150,7 @@ thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
 typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
+thread_local static std::map<ComboAddress, int> t_fafSockets;
 
 // for communicating with our threads
 // effectively readonly after startup
@@ -730,9 +731,21 @@ private:
 
 static thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
+static void handleFAFResponse(int fd, FDMultiplexer::funcparam_t& var)
+{
+  ssize_t len;
+  PacketBuffer packet;
+  packet.resize(g_outgoingEDNSBufsize);
+  ComboAddress fromaddr;
+  socklen_t addrlen = sizeof(fromaddr);
+
+  len = recvfrom(fd, &packet.at(0), packet.size(), 0, (sockaddr *)&fromaddr, &addrlen);
+  cerr << "Got a FAF response of length " << len << endl;
+}
+
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const char *data, size_t len, int flags,
-                         const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd)
+                         const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd, bool faf)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -755,20 +768,38 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
     }
   }
 
-  auto ret = t_udpclientsocks->getSocket(toaddr, fd);
-  if (ret != LWResult::Result::Success) {
-    return ret;
+  if (faf) {
+    const auto found = t_fafSockets.find(toaddr);
+    if (found != t_fafSockets.end()) {
+      *fd = found->second;
+    }
+    else {
+      auto ret = t_udpclientsocks->getSocket(toaddr, fd);
+      if (ret != LWResult::Result::Success) {
+        return ret;
+      }
+      t_fdm->addReadFD(*fd, handleFAFResponse, nullptr);
+      t_fafSockets.emplace(toaddr, *fd);
+    }
+  }
+  else {
+    auto ret = t_udpclientsocks->getSocket(toaddr, fd);
+    if (ret != LWResult::Result::Success) {
+      return ret;
+    }
   }
 
   pident->fd=*fd;
   pident->id=id;
 
-  t_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
+  if (!faf) {
+    t_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
+  }
   ssize_t sent = send(*fd, data, len, 0);
 
   int tmp = errno;
 
-  if (sent < 0) {
+  if (sent < 0 && !faf) {
     t_udpclientsocks->returnSocket(*fd);
     errno = tmp; // this is for logging purposes only
     return LWResult::Result::PermanentError;
