@@ -1323,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   nmt.insert(AddressAndPortRange(ComboAddress("130.0.0.0"), 8, 0)).second = 2;
   BOOST_CHECK_EQUAL(nmt.size(), 3U);
 
-  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("213.244.168.210")), nullptr);
+  BOOST_CHECK(nmt.lookup(ComboAddress("213.244.168.210")) == nullptr);
   auto found = nmt.lookup(ComboAddress("130.161.252.29"));
   BOOST_REQUIRE(found);
   BOOST_CHECK_EQUAL(found->second, 0);
@@ -1365,7 +1365,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK_EQUAL(nmt.size(), 2U);
   nmt.insert(AddressAndPortRange(ComboAddress("fe80::"), 16, 0)).second = 2;
   BOOST_CHECK_EQUAL(nmt.size(), 3U);
-  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255")), nullptr);
+  BOOST_CHECK(nmt.lookup(ComboAddress("130.161.253.255")) == nullptr);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::2"))->second, 0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::ffff"))->second, 0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::1"))->second, 1);
@@ -1382,12 +1382,12 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
     BOOST_CHECK_EQUAL(nmt.empty(), false);
     BOOST_CHECK_EQUAL(nmt.size(), 1U);
 
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)) == nullptr);
 
     auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65534"), 32, 16));
     BOOST_CHECK(found != nullptr);
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65533"), 32, 16)), nullptr);
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65535"), 32, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65533"), 32, 16)) == nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65535"), 32, 16)) == nullptr);
   }
 
   {
@@ -1399,7 +1399,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
     BOOST_CHECK_EQUAL(nmt.empty(), false);
     BOOST_CHECK_EQUAL(nmt.size(), 1U);
 
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)) == nullptr);
 
     auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:0"), 32, 16));
     BOOST_CHECK(found != nullptr);
@@ -1409,7 +1409,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
 
     /* everything else should be a miss */
     for (size_t idx = 2; idx <= 65535; idx++) {
-      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+      BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)) == nullptr);
     }
 
     nmt.clear();
@@ -1419,11 +1419,11 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
     BOOST_CHECK_EQUAL(nmt.empty(), false);
     BOOST_CHECK_EQUAL(nmt.size(), 1U);
 
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)) == nullptr);
 
     /* everything else should be a miss */
     for (size_t idx = 0; idx <= 65533; idx++) {
-      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+      BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)) == nullptr);
     }
     found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:65534"), 32, 16));
     BOOST_CHECK(found != nullptr);
@@ -1440,7 +1440,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
     BOOST_CHECK_EQUAL(nmt.empty(), false);
     BOOST_CHECK_EQUAL(nmt.size(), 1U);
 
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("213.244.168.210"), 32, 16)) == nullptr);
 
     for (size_t idx = 0; idx <= 32767; idx++) {
       auto found = nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16));
@@ -1449,7 +1449,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
 
     /* everything else should be a miss */
     for (size_t idx = 32768; idx <= 65535; idx++) {
-      BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)), nullptr);
+      BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("130.161.252.42:" + std::to_string(idx)), 32, 16)) == nullptr);
     }
   }
 
@@ -1465,7 +1465,7 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
     BOOST_CHECK_EQUAL(nmt.size(), 1U);
 
     /* different IP, no match */
-    BOOST_CHECK_EQUAL(nmt.lookup(AddressAndPortRange(ComboAddress("[2001:db8::2]:0"), 128, 16)), nullptr);
+    BOOST_CHECK(nmt.lookup(AddressAndPortRange(ComboAddress("[2001:db8::2]:0"), 128, 16)) == nullptr);
 
     /* all ports should match */
     for (size_t idx = 1; idx <= 65535; idx++) {
