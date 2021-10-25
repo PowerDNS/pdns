@@ -2,6 +2,74 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.0-alpha2
+  :released: 25th of October 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10646,10868,10870
+
+    Move to modern C++ constructs (Rosen Penev).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10842
+
+    Correct appliedPolicyTrigger value for IP matches.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10843
+
+    NOD - use structured logging API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10847
+
+    Sync dnsmessage.proto.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10567
+    :tickets: 7558,7420
+
+    Introduce experimental Event Trace function to get a more detailed view the work done by the Recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10797
+    :tickets: 9135
+
+    Use packetcache-servfail-ttl for all packet cache entries considered an error reply.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10505,10794,10799
+
+    Add a periodic zones-to-cache function.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10768
+
+    Use the correct RPZ policy name when loading via XFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10760
+
+    Don't create file with wide permissions.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10757
+
+    Update the stats (serial, number of records, timestamp) for RPZ files.
+
+
+             
+.. changelog::
   :version: 4.6.0-alpha1
   :released: 29th of September 2021
 
@@ -139,3 +207,8 @@ Changelogs for 4.6.X
 
     Move to hashed passwords for the web interface.
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 10491
+
+    Rec: Add bindings to set arbitrary key-value metadata in logged messages
