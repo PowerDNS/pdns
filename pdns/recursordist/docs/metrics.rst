@@ -238,7 +238,7 @@ counts the number of queries to locally hosted authoritative zones (:ref:`settin
 
 cache-bytes
 ^^^^^^^^^^^
-size of the cache in bytes
+size of the cache in bytes (disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
 
 cache-entries
 ^^^^^^^^^^^^^
@@ -290,6 +290,7 @@ cumul-authanswers-x
 .. versionadded:: 4.6
 
 Cumulative counts of answer times of authoritative servers in buckets less than x microseconds.
+(disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
 These metrics are useful for Prometheus and not listed in other outputs by default.
 
 cumul-clientanswers-x
@@ -465,15 +466,17 @@ number of responses received from authoritative servers with an EDNS Client Subn
 
 ecs-v4-response-bits-*
 ^^^^^^^^^^^^^^^^^^^^^^
-.. versionadded:: 4.2.0
+.. versionadded:: 4.2.0  
 
 number of responses received from authoritative servers with an IPv4 EDNS Client Subnet option we used, of this subnet size (1 to 32).
+(disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
 
 ecs-v6-response-bits-*
 ^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.2.0
 
 number of responses received from authoritative servers with an IPv6 EDNS Client Subnet option we used, of this subnet size (1 to 128).
+(disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
 
 edns-ping-matches
 ^^^^^^^^^^^^^^^^^
@@ -569,7 +572,7 @@ questions dropped because over maximum   concurrent query limit (since 3.2)
 
 packetcache-bytes
 ^^^^^^^^^^^^^^^^^
-size of the packet cache in bytes (since   3.3.1)
+size of the packet cache in bytes (since 3.3.1) (disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
 
 packetcache-entries
 ^^^^^^^^^^^^^^^^^^^
