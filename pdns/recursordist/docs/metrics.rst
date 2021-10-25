@@ -491,6 +491,8 @@ failed-host-entries
 ^^^^^^^^^^^^^^^^^^^
 number of servers that failed to resolve
 
+.. _stat-fd-usage:
+
 fd-usage
 ^^^^^^^^
 Number of currently used file descriptors.
@@ -666,7 +668,10 @@ number of contended record cache lock acquisitions
 
 resource-limits
 ^^^^^^^^^^^^^^^
-counts number of queries that could not be   performed because of resource limits
+Counts the number of queries that could not be performed because of resource limits. 
+This counter is increased when Recursor encounters a network issue that does not seem to be caused by the remote end. 
+For example when it runs out of file descriptors (monitor :ref:`stat-fd-usage`) or when there is no route to a
+given IP address.
 
 security-status
 ^^^^^^^^^^^^^^^
