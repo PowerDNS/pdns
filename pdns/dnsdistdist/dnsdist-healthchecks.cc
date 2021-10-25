@@ -85,7 +85,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
       dss->currentCheckFailures++;
       if (dss->currentCheckFailures < dss->maxCheckFailures) {
         /* we need more than one failure to be marked as down,
-           and we did not reach the threshold yet, let's stay down */
+           and we did not reach the threshold yet, let's stay up */
         newState = true;
       }
     }
