@@ -466,7 +466,7 @@ number of responses received from authoritative servers with an EDNS Client Subn
 
 ecs-v4-response-bits-*
 ^^^^^^^^^^^^^^^^^^^^^^
-.. versionadded:: 4.2.0  
+.. versionadded:: 4.2.0
 
 number of responses received from authoritative servers with an IPv4 EDNS Client Subnet option we used, of this subnet size (1 to 32).
 (disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
