@@ -85,7 +85,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
       dss->currentCheckFailures++;
       if (dss->currentCheckFailures < dss->maxCheckFailures) {
         /* we need more than one failure to be marked as down,
-           and we did not reach the threshold yet, let's stay down */
+           and we did not reach the threshold yet, let's stay up */
         newState = true;
       }
     }
@@ -296,11 +296,13 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     ioGuard.release();
   }
   catch (const std::exception& e) {
+    updateHealthCheckResult(data->d_ds, data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
     }
   }
   catch (...) {
+    updateHealthCheckResult(data->d_ds, data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", data->d_ds->getNameWithAddr());
     }
