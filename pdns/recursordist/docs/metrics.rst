@@ -239,6 +239,7 @@ counts the number of queries to locally hosted authoritative zones (:ref:`settin
 cache-bytes
 ^^^^^^^^^^^
 size of the cache in bytes (disabled by default, see :ref:`setting-stats-rec-control-disabled-list`)
+This metric is a rough estimate and takes a long time to compute, and is therefore not enabled in default outputs.
 
 cache-entries
 ^^^^^^^^^^^^^
