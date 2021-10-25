@@ -15,7 +15,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: '! egrep -v \'^(@|;|$)\' docs/secpoll.zone | egrep -v \'(auth|recursor|dnsdist)-[0-9]\.[0-9]\.[0-9](-(alpha|beta|rc)[0-9]+)?[-_a-z0-9\.]*\.security-status +60 IN TXT "[1-3] .*"\''
+      - run: sh docs/secpoll-check.sh docs/secpoll.zone
       - run: echo 'deb [arch=amd64] http://repo.powerdns.com/ubuntu focal-auth-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
       - run: "echo -ne 'Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 600\n' | sudo tee /etc/apt/preferences.d/pdns"
       - run: sudo curl https://repo.powerdns.com/CBC8B383-pub.asc -o /etc/apt/trusted.gpg.d/CBC8B383-pub.asc
