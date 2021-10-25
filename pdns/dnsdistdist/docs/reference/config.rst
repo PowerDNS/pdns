@@ -1258,6 +1258,21 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
+  .. method:: DynBlockRulesGroup:setMasks(v4, v6, port)
+
+    .. versionadded:: 1.7.0
+
+    Set the number of bits to keep in the IP address when inserting a block. The default is 32 for IPv4 and 128 for IPv6, meaning
+    that only the exact address is blocked, but in some scenarios it might make sense to block a whole /64 IPv6 range instead of a
+    single address, for example.
+    It is also possible to take the IPv4 UDP and TCP ports into account, for CGNAT deployments, by setting the number of bits of the port
+    to consider. For example passing 2 as the last parameter, which only makes sense if the previous parameters are respectively 32
+    and 128, will split a given IP address into four port ranges: 0-16383, 16384-32767, 32768-49151 and 49152-65535.
+
+    :param int v4: Number of bits to keep for IPv4 addresses. Default is 32
+    :param int v6: Number of bits to keep for IPv6 addresses. Default is 128
+    :param int port: Number of bits of port to consider over IPv4. Default is 0 meaning that the port is not taken into account
+
   .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
 
     Adds a query rate-limiting rule, equivalent to:

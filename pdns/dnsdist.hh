@@ -323,7 +323,7 @@ struct DynBlock
   bool bpf{false};
 };
 
-extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
+extern GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 
 extern vector<pair<struct timeval, std::string> > g_confDelta;
 
@@ -1025,7 +1025,7 @@ struct LocalHolders
   LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRuleactions;
   LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRuleactions;
   LocalStateHolder<servers_t> servers;
-  LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
+  LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange> > dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
   LocalStateHolder<pools_t> pools;
 };
