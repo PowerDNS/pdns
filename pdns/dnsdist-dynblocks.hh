@@ -212,7 +212,7 @@ private:
     double d_warningRatio{0.0};
   };
 
-  typedef std::unordered_map<ComboAddress, Counts, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
+  typedef std::unordered_map<AddressAndPortRange, Counts, AddressAndPortRange::hash> counts_t;
 
 public:
   DynBlockRulesGroup()
@@ -260,6 +260,13 @@ public:
   {
     d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
     d_smtVisitorFFI = visitor;
+  }
+
+  void setMasks(uint8_t v4, uint8_t v6, uint8_t port)
+  {
+    d_v4Mask = v4;
+    d_v6Mask = v6;
+    d_portMask = port;
   }
 
   void apply()
@@ -330,15 +337,15 @@ private:
 
   bool checkIfQueryTypeMatches(const Rings::Query& query);
   bool checkIfResponseCodeMatches(const Rings::Response& response);
-  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning);
+  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
   void addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
 
-  void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  void addBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
   }
 
-  void handleWarning(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  void handleWarning(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }
@@ -376,6 +383,9 @@ private:
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;
   dnsdist_ffi_stat_node_visitor_t d_smtVisitorFFI;
+  uint8_t d_v6Mask{128};
+  uint8_t d_v4Mask{32};
+  uint8_t d_portMask{0};
   bool d_beQuiet{false};
 };
 
@@ -385,11 +395,11 @@ public:
   static void run();
 
   /* return the (cached) number of hits per second for the top offenders, averaged over 60s */
-  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getHitsForTopNetmasks();
+  static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getHitsForTopNetmasks();
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getHitsForTopSuffixes();
 
   /* get the the top offenders based on the current value of the counters */
-  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks(size_t topN);
+  static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getTopNetmasks(size_t topN);
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes(size_t topN);
   static void purgeExpired(const struct timespec& now);
 
@@ -401,13 +411,13 @@ private:
 
   struct MetricsSnapshot
   {
-    std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> nmgData;
+    std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> nmgData;
     std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> smtData;
   };
 
   struct Tops
   {
-    std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> topNMGsByReason;
+    std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> topNMGsByReason;
     std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> topSMTsByReason;
   };
 

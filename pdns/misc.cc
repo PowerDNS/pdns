@@ -1301,6 +1301,9 @@ uint64_t getOpenFileDescriptors(const std::string&)
   closedir(dirhdl);
   return ret;
 
+#elif defined(__OpenBSD__)
+  // FreeBSD also has this in libopenbsd, but I don't know if that's available always
+  return getdtablecount();
 #else
   return 0;
 #endif

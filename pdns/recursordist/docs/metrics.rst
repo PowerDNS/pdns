@@ -487,6 +487,11 @@ failed-host-entries
 ^^^^^^^^^^^^^^^^^^^
 number of servers that failed to resolve
 
+fd-usage
+^^^^^^^^
+Number of currently used file descriptors.
+Currently, this metric is available on Linux and OpenBSD only.
+
 ignored-packets
 ^^^^^^^^^^^^^^^
 counts the number of non-query packets received   on server sockets that should only get query packets

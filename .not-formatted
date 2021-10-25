@@ -68,7 +68,6 @@
 ./pdns/dnsdist-lua-inspection.cc
 ./pdns/dnsdist-lua-rules.cc
 ./pdns/dnsdist-lua-vars.cc
-./pdns/dnsdist-lua.cc
 ./pdns/dnsdist-lua.hh
 ./pdns/dnsdist-protobuf.cc
 ./pdns/dnsdist-protobuf.hh

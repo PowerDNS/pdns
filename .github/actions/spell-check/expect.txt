@@ -217,6 +217,7 @@ certusage
 cfea
 CFLAGS
 cgi
+CGNAT
 changelog
 changeme
 changeset
