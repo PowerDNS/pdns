@@ -654,7 +654,7 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   }
 
   /* is this the last frame for this stream? */
-  if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+  else if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
     auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
     if (stream != conn->d_currentStreams.end()) {
       // cerr<<"Stream "<<frame->hd.stream_id<<" is now finished"<<endl;
