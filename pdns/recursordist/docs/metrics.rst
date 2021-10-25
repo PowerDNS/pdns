@@ -490,7 +490,7 @@ number of servers that failed to resolve
 fd-usage
 ^^^^^^^^
 Number of currently used file descriptors.
-This metric is available on Linux only.
+Currently, this metric is available on Linux and OpenBSD only.
 
 ignored-packets
 ^^^^^^^^^^^^^^^
