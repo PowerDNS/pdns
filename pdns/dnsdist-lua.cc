@@ -240,6 +240,13 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
+static void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max())
+{
+  if (value > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The value passed to " + parameter + " is too large, the maximum is " + std::to_string(max));
+  }
+}
+
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string>>, DownstreamState::checkfunc_t>> newserver_t;
@@ -1244,8 +1251,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout = timeout; });
 
-  luaCtx.writeFunction("setMaxUDPOutstanding", [](uint16_t max) {
+  luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
     if (!g_configurationDone) {
+      checkParameterBound("setMaxUDPOutstanding", max);
       g_maxOutstanding = max;
     }
     else {
@@ -1315,7 +1323,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint64_t max) {
     if (g_configurationDone) {
       g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketsPerBackend() cannot be called at runtime!\n";
       return;
@@ -1339,7 +1347,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     TLSSessionCache::setSessionValidity(validity);
   });
 
-  luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+  luaCtx.writeFunction("setCacheCleaningDelay", [](uint64_t delay) {
+    checkParameterBound("setCacheCleaningDelay", delay, std::numeric_limits<uint32_t>::max());
+    g_cacheCleaningDelay = delay;
+  });
 
   luaCtx.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
 
@@ -1732,7 +1743,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
-  luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
+  luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {
+    checkParameterBound("setStaleCacheEntriesTTL", ttl, std::numeric_limits<uint32_t>::max());
+    g_staleCacheEntriesTTL = ttl;
+  });
 
   luaCtx.writeFunction("showBinds", []() {
     setLuaNoSideEffect();
@@ -1999,9 +2013,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_rings.setNumberOfLockRetries(retries);
   });
 
-  luaCtx.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+  luaCtx.writeFunction("setWHashedPertubation", [](uint64_t perturb) {
     setLuaSideEffect();
-    g_hashperturb = pertub;
+    checkParameterBound("setWHashedPertubation", perturb, std::numeric_limits<uint32_t>::max());
+    g_hashperturb = perturb;
   });
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
@@ -2104,23 +2119,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
+  luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
+    checkParameterBound("setTCPDownstreamCleanupInterval", interval);
     DownstreamConnectionsManager::setCleanupInterval(interval);
   });
 
-  luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint16_t interval) {
+  luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
+    checkParameterBound("setDoHDownstreamCleanupInterval", interval);
     setDoHDownstreamCleanupInterval(interval);
   });
 
-  luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint16_t max) {
+  luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint64_t max) {
     setLuaSideEffect();
+    checkParameterBound("setTCPDownstreamMaxIdleTime", max);
     DownstreamConnectionsManager::setMaxIdleTime(max);
   });
 
-  luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint16_t max) {
+  luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint64_t max) {
     setLuaSideEffect();
+    checkParameterBound("setDoHDownstreamMaxIdleTime", max);
     setDoHDownstreamMaxIdleTime(max);
   });
 
@@ -2128,7 +2147,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_logConsoleConnections = enabled;
   });
 
-  luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
+  luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint64_t size) {
+    checkParameterBound("setConsoleOutputMaxMsgSize", size, std::numeric_limits<uint32_t>::max());
     g_consoleOutputMsgMaxSize = size;
   });
 
