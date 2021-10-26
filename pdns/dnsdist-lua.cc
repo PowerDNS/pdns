@@ -2111,12 +2111,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setDoHDownstreamCleanupInterval(interval);
   });
 
-  luaCtx.writeFunction("setTCPDownstreamMaxIdeTime", [](uint16_t max) {
+  luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint16_t max) {
     setLuaSideEffect();
     DownstreamConnectionsManager::setMaxIdleTime(max);
   });
 
-  luaCtx.writeFunction("setDoHDownstreamMaxIdeTime", [](uint16_t max) {
+  luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint16_t max) {
     setLuaSideEffect();
     setDoHDownstreamMaxIdleTime(max);
   });
