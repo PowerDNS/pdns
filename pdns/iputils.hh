@@ -705,7 +705,7 @@ private:
     explicit TreeNode() noexcept :
       parent(nullptr), node(), assigned(false), d_bits(0) {
     }
-    explicit TreeNode(const key_type& key) noexcept :
+    explicit TreeNode(const key_type& key) :
       parent(nullptr), node({key.getNormalized(), value_type()}),
       assigned(false), d_bits(key.getFullBits()) {
     }
