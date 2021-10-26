@@ -147,10 +147,8 @@ static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyPro
   if (payload.size() < startOfHeaderOffset + sizeof(dnsheader)) {
     throw std::runtime_error("Invalid buffer for outgoing TCP query (size " + std::to_string(payload.size()));
   }
-  dnsheader dh;
-  memcpy(&dh, &payload.at(startOfHeaderOffset), sizeof(dh));
-  dh.id = htons(newId);
-  memcpy(&payload.at(startOfHeaderOffset), &dh, sizeof(dh));
+  uint16_t id = htons(newId);
+  memcpy(&payload.at(startOfHeaderOffset), &id, sizeof(id));
 }
 
 enum class QueryState : uint8_t {
@@ -689,9 +687,9 @@ uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
     throw std::runtime_error("Unable to get query ID in a too small (" + std::to_string(d_responseBuffer.size()) + ") response from " + d_ds->getNameWithAddr());
   }
 
-  dnsheader dh;
-  memcpy(&dh, &d_responseBuffer.at(0), sizeof(dh));
-  return ntohs(dh.id);
+  uint16_t id;
+  memcpy(&id, &d_responseBuffer.at(0), sizeof(id));
+  return ntohs(id);
 }
 
 void TCPConnectionToBackend::setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent)
