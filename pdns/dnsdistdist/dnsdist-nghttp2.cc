@@ -67,6 +67,9 @@ public:
   bool reachedMaxConcurrentQueries() const override;
   bool reachedMaxStreamID() const override;
   bool isIdle() const override;
+  void release() override
+  {
+  }
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);

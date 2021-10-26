@@ -115,9 +115,7 @@ public:
   virtual bool reachedMaxStreamID() const = 0;
   virtual bool reachedMaxConcurrentQueries() const = 0;
   virtual bool isIdle() const = 0;
-  virtual void release()
-  {
-  }
+  virtual void release() = 0;
 
   bool matches(const std::shared_ptr<DownstreamState>& ds) const
   {
