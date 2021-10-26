@@ -352,7 +352,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          // create but don't connect the socket in client or check-config modes
-                         auto ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
+                         auto ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName);
                          if (!(client || configCheck)) {
                            infolog("Added downstream server %s", serverAddr.toStringWithPort());
                          }
@@ -561,6 +561,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          if (!ret->isTCPOnly() && !(client || configCheck)) {
                            ret->idStates.resize(g_maxOutstanding);
+                           if (!IsAnyAddress(ret->remote)) {
+                             ret->connectUDPSockets(numberOfSockets);
+                           }
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
@@ -896,7 +899,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getServer", [client](boost::variant<unsigned int, std::string> i) {
     if (client) {
-      return std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, false);
+      return std::make_shared<DownstreamState>(ComboAddress());
     }
     auto states = g_dstates.getCopy();
     if (auto str = boost::get<std::string>(&i)) {

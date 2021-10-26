@@ -872,7 +872,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
   query.insert(query.begin(), sizeBytes, sizeBytes + 2);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
 
   {
@@ -1720,7 +1720,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   ConnectionInfo connInfo(&localCS);
   connInfo.remote = getBackendAddress("84", 4242);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* enable out-of-order on the backend side as well */
   backend->d_maxInFlightQueriesPerConn = 65536;
@@ -3122,7 +3122,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
-    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
     proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
@@ -3249,7 +3249,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
-    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
     proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
@@ -3431,7 +3431,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(4).begin(), responses.at(4).end());
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(3).begin(), responses.at(3).end());
 
-    auto backend1 = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    auto backend1 = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     backend1->d_tlsCtx = tlsCtx;
     /* only two queries in flight! */
     backend1->d_maxInFlightQueriesPerConn = 2;
@@ -3683,7 +3683,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* shorter than the client one */
   backend->tcpRecvTimeout = 1;
