@@ -174,6 +174,7 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
 
 void DownstreamState::connectUDPSockets(size_t numberOfSockets)
 {
+  idStates.resize(g_maxOutstanding);
   sockets.resize(numberOfSockets);
 
   if (sockets.size() > 1) {

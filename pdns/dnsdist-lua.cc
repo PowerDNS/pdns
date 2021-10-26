@@ -567,7 +567,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (!ret->isTCPOnly() && !(client || configCheck)) {
-                           ret->idStates.resize(g_maxOutstanding);
                            if (!IsAnyAddress(ret->remote)) {
                              ret->connectUDPSockets(numberOfSockets);
                            }
