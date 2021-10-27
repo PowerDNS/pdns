@@ -153,6 +153,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "udp-recvbuf-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp RcvbufErrors") },
   { "udp-sndbuf-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp SndbufErrors") },
   { "udp-csum-errors",        MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp InCsumErrors") },
+  { "udp6-in-errors",         MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp6 Udp6InErrors") },
+  { "udp6-recvbuf-errors",    MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp6 Udp6RcvbufErrors") },
+  { "udp6-sndbuf-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp6 Udp6SndbufErrors") },
+  { "udp6-noport-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp6 Udp6NoPorts") },
+  { "udp6-in-csum-errors",    MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp6 Udp6InCsumErrors") },
   { "tcp-listen-overflows",   MetricDefinition(PrometheusMetricType::counter, "From /proc/net/netstat ListenOverflows") },
   { "proxy-protocol-invalid", MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
