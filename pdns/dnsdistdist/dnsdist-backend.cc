@@ -164,22 +164,28 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect): remote(remote_), sourceAddr(sourceAddr_), sourceItfName(sourceItfName_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort()), idStates(connect ? g_maxOutstanding : 0), sourceItf(sourceItf_)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_): remote(remote_), sourceAddr(sourceAddr_), sourceItfName(sourceItfName_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort()), sourceItf(sourceItf_)
 {
   id = getUniqueID();
   threadStarted.clear();
 
-  *(mplexer.lock()) = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+  sw.start();
+}
 
+void DownstreamState::connectUDPSockets(size_t numberOfSockets)
+{
+  idStates.resize(g_maxOutstanding);
   sockets.resize(numberOfSockets);
+
+  if (sockets.size() > 1) {
+    *(mplexer.lock()) = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+  }
+
   for (auto& fd : sockets) {
     fd = -1;
   }
 
-  if (connect && !IsAnyAddress(remote)) {
-    reconnect();
-    sw.start();
-  }
+  reconnect();
 }
 
 DownstreamState::~DownstreamState()

@@ -13,6 +13,7 @@ class TestAXFR(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     """
+
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
@@ -20,7 +21,7 @@ class TestAXFR(DNSDistTest):
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._UDPResponder.setDaemon(True)
         cls._UDPResponder.start()
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, True])
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, True, None, None, True])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 

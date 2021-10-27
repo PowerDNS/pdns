@@ -686,9 +686,10 @@ struct DownstreamState
 {
    typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
 
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName, size_t numberOfSockets, bool connect);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string(), 1, true) {}
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string()) {}
   ~DownstreamState();
+  void connectUDPSockets(size_t numberOfSockets);
 
   stat_t sendErrors{0};
   stat_t outstanding{0};
@@ -1033,7 +1034,6 @@ struct LocalHolders
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
 void tcpAcceptorThread(ClientState* p);
-void setMaxCachedTCPConnectionsPerDownstream(size_t max);
 
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);

@@ -121,7 +121,7 @@ struct InternalQuery
 
 using TCPQuery = InternalQuery;
 
-class TCPConnectionToBackend;
+class ConnectionToBackend;
 
 struct TCPResponse : public TCPQuery
 {
@@ -131,13 +131,13 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn) :
+  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<ConnectionToBackend> conn) :
     TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  std::shared_ptr<TCPConnectionToBackend> d_connection{nullptr};
+  std::shared_ptr<ConnectionToBackend> d_connection{nullptr};
   dnsheader d_cleartextDH;
   bool d_selfGenerated{false};
 };

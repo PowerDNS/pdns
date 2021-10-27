@@ -222,6 +222,11 @@ public:
     return false;
   }
 
+  bool isUsable() const override
+  {
+    return true;
+  }
+
   std::string getServerNameIndication() const override
   {
     return "";
@@ -419,9 +424,29 @@ static ComboAddress getBackendAddress(const std::string& lastDigit, uint16_t por
   return ComboAddress("192.0.2." + lastDigit, port);
 }
 
+static void appendPayloadEditingID(PacketBuffer& buffer, const PacketBuffer& payload, uint16_t newID)
+{
+  PacketBuffer newPayload(payload);
+  dnsheader dh;
+  memcpy(&dh, &newPayload.at(sizeof(uint16_t)), sizeof(dh));
+  dh.id = htons(newID);
+  memcpy(&newPayload.at(sizeof(uint16_t)), &dh, sizeof(dh));
+  buffer.insert(buffer.end(), newPayload.begin(), newPayload.end());
+}
+
+static void prependPayloadEditingID(PacketBuffer& buffer, const PacketBuffer& payload, uint16_t newID)
+{
+  PacketBuffer newPayload(payload);
+  dnsheader dh;
+  memcpy(&dh, &newPayload.at(sizeof(uint16_t)), sizeof(dh));
+  dh.id = htons(newID);
+  memcpy(&newPayload.at(sizeof(uint16_t)), &dh, sizeof(dh));
+  buffer.insert(buffer.begin(), newPayload.begin(), newPayload.end());
+}
+
 static void testInit(const std::string& name, TCPClientThreadData& threadData)
 {
-#if 0
+#ifdef DEBUGLOG_ENABLED
   cerr<<name<<endl;
 #else
   (void) name;
@@ -435,6 +460,7 @@ static void testInit(const std::string& name, TCPClientThreadData& threadData)
 
   g_proxyProtocolACL.clear();
   g_verbose = false;
+  IncomingTCPConnectionState::clearAllDownstreamConnections();
 
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
 }
@@ -786,8 +812,6 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
     s_readBuffer = query;
     // preprend the proxy protocol payload
     s_readBuffer.insert(s_readBuffer.begin(), proxyPayload.begin(), proxyPayload.end());
-    // append a second query
-    s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
 
     s_steps = {
       { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -836,6 +860,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   PacketBuffer query;
   GenericDNSPacketWriter<PacketBuffer> pwQ(query, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
   pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = 0;
 
   auto shortQuery = query;
   shortQuery.resize(sizeof(dnsheader) - 1);
@@ -847,7 +872,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
   query.insert(query.begin(), sizeBytes, sizeBytes + 2);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
 
   {
@@ -1083,11 +1108,11 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     TEST_INIT("=> Short read and write to backend");
     s_readBuffer = query;
     // append a second query
-    s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
+    appendPayloadEditingID(s_readBuffer, query, 1);
 
     s_backendReadBuffer = query;
     // append a second query
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), query.begin(), query.end());
+    appendPayloadEditingID(s_backendReadBuffer, query, 1);
 
     s_steps = {
       { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -1629,8 +1654,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     s_readBuffer = query;
 
     for (size_t idx = 0; idx < count; idx++) {
-      s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
-      s_backendReadBuffer.insert(s_backendReadBuffer.end(), query.begin(), query.end());
+      appendPayloadEditingID(s_readBuffer, query, idx);
+      appendPayloadEditingID(s_backendReadBuffer, query, idx);
     }
 
     s_steps = { { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -1695,7 +1720,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   ConnectionInfo connInfo(&localCS);
   connInfo.remote = getBackendAddress("84", 4242);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* enable out-of-order on the backend side as well */
   backend->d_maxInFlightQueriesPerConn = 65536;
@@ -1716,7 +1741,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   for (auto& query : queries) {
     GenericDNSPacketWriter<PacketBuffer> pwQ(query, DNSName("powerdns" + std::to_string(counter) + ".com."), QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
-    pwQ.getHeader()->id = counter;
+    pwQ.getHeader()->id = htons(counter);
     uint16_t querySize = static_cast<uint16_t>(query.size());
     const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
     query.insert(query.begin(), sizeBytes, sizeBytes + 2);
@@ -1732,7 +1757,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     pwR.getHeader()->qr = 1;
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 1;
-    pwR.getHeader()->id = counter;
+    pwR.getHeader()->id = htons(counter);
     pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
     pwR.xfr32BitInt(0x01020304);
     pwR.commit();
@@ -1749,16 +1774,18 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
 
+    uint16_t backendCounter = 0;
     for (const auto& query : queries) {
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
+      appendPayloadEditingID(expectedBackendWriteBuffer, query, backendCounter++);
     }
-    expectedBackendWriteBuffer = s_readBuffer;
 
+    backendCounter = 0;
     for (const auto& response : responses) {
       /* reverse order */
-      s_backendReadBuffer.insert(s_backendReadBuffer.begin(), response.begin(), response.end());
+      prependPayloadEditingID(s_backendReadBuffer, response, backendCounter++);
+      expectedWriteBuffer.insert(expectedWriteBuffer.begin(), response.begin(), response.end());
     }
-    expectedWriteBuffer = s_backendReadBuffer;
 
     s_steps = {
       { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -1884,20 +1911,20 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
     }
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(4).begin(), responses.at(4).end());
+    uint16_t backendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(4), backendCounter++);
+
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(4), 3);
 
     /* self-answered */
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(3).begin(), responses.at(3).end());
     /* from backend */
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(0).begin(), responses.at(0).end());
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(4).begin(), responses.at(4).end());
-
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(4).begin(), queries.at(4).end());
-
 
     bool timeout = false;
     s_steps = {
@@ -2027,13 +2054,24 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     for (const auto& query : queries) {
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
     }
-    expectedBackendWriteBuffer = s_readBuffer;
-
     for (const auto& response : responses) {
       expectedWriteBuffer.insert(expectedWriteBuffer.end(), response.begin(), response.end());
     }
 
-    s_backendReadBuffer = expectedWriteBuffer;
+    uint16_t backendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), backendCounter);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), backendCounter);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(1), backendCounter++);
+
+    // new connection
+    backendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), backendCounter);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(2), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(3), backendCounter);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(3), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(4), backendCounter);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(4), backendCounter++);
 
     bool timeout = false;
     int backendDesc;
@@ -2341,15 +2379,18 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(4).begin(), queries.at(4).end());
 
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(4).begin(), queries.at(4).end());
+    uint16_t backendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(4), backendCounter++);
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(1).begin(), responses.at(1).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(4).begin(), responses.at(4).end());
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(1), 1);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(4), 2);
 
-    expectedWriteBuffer = s_backendReadBuffer;
+    appendPayloadEditingID(expectedWriteBuffer, responses.at(1), 1);
+    appendPayloadEditingID(expectedWriteBuffer, responses.at(0), 0);
+    appendPayloadEditingID(expectedWriteBuffer, responses.at(4), 4);
 
     /* make sure that the backend's timeout is longer than the client's */
     backend->tcpRecvTimeout = 30;
@@ -2713,14 +2754,16 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer = axfrQuery;
     s_readBuffer.insert(s_readBuffer.end(), secondQuery.begin(), secondQuery.end());
 
-    expectedBackendWriteBuffer = s_readBuffer;
+    uint16_t backendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, axfrQuery, backendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, secondQuery, backendCounter++);
 
     for (const auto& response : axfrResponses) {
-      s_backendReadBuffer.insert(s_backendReadBuffer.end(), response.begin(), response.end());
+      appendPayloadEditingID(s_backendReadBuffer, response, 0);
+      expectedWriteBuffer.insert(expectedWriteBuffer.end(), response.begin(), response.end());
     }
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), secondResponse.begin(), secondResponse.end());
-
-    expectedWriteBuffer = s_backendReadBuffer;
+    appendPayloadEditingID(s_backendReadBuffer, secondResponse, 1);
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), secondResponse.begin(), secondResponse.end());
 
     bool timeout = false;
     s_steps = {
@@ -2973,15 +3016,18 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), ixfrQuery.begin(), ixfrQuery.end());
     s_readBuffer.insert(s_readBuffer.end(), secondQuery.begin(), secondQuery.end());
 
-    expectedBackendWriteBuffer = s_readBuffer;
+    appendPayloadEditingID(expectedBackendWriteBuffer, firstQuery, 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, ixfrQuery, 1);
+    appendPayloadEditingID(expectedBackendWriteBuffer, secondQuery, 2);
 
-    s_backendReadBuffer = firstResponse;
+    appendPayloadEditingID(s_backendReadBuffer, firstResponse, 0);
+    expectedWriteBuffer.insert(expectedWriteBuffer.begin(), firstResponse.begin(), firstResponse.end());
     for (const auto& response : ixfrResponses) {
-      s_backendReadBuffer.insert(s_backendReadBuffer.end(), response.begin(), response.end());
+      appendPayloadEditingID(s_backendReadBuffer, response, 1);
+      expectedWriteBuffer.insert(expectedWriteBuffer.end(), response.begin(), response.end());
     }
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), secondResponse.begin(), secondResponse.end());
-
-    expectedWriteBuffer = s_backendReadBuffer;
+    appendPayloadEditingID(s_backendReadBuffer, secondResponse, 2);
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), secondResponse.begin(), secondResponse.end());
 
     bool timeout = false;
     s_steps = {
@@ -3076,26 +3122,29 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
-    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
     proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
     proxyEnabledBackend->useProxyProtocol = true;
 
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), 1);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), 2);
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
     /* we are using an unordered_map, so all bets are off here :-/ */
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), 1);
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(1).begin(), responses.at(1).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(2).begin(), responses.at(2).end());
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 0);
+    /* after the reconnection */
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(1), 1);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(2), 0);
 
-    expectedWriteBuffer = s_backendReadBuffer;
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(0).begin(), responses.at(0).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(1).begin(), responses.at(1).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(2).begin(), responses.at(2).end());
 
     s_steps = {
       { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -3200,20 +3249,16 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
-    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
     proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
-    proxyEnabledBackend-> useProxyProtocol = true;
+    proxyEnabledBackend->useProxyProtocol = true;
 
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
-
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
-    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());
-    //s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(2).begin(), responses.at(2).end());
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), 1);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), 2);
 
     s_steps = {
       { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
@@ -3245,31 +3290,10 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       }},
       /* client closes the connection */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
-      /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
-      /* try to read response from backend, connection has been closed */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      //{ ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() },
       /* closing the backend connection */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(2).size() },
-      /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3371,8 +3395,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     g_tcpRecvTimeout = 2;
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
-    /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
+    /* we have one connection to clear, no proxy protocol */
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 1U);
   }
 
   {
@@ -3383,17 +3407,31 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     for (const auto& query : queries) {
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
     }
-    expectedBackendWriteBuffer = s_readBuffer;
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(1).begin(), responses.at(1).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(2).begin(), responses.at(2).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(4).begin(), responses.at(4).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(3).begin(), responses.at(3).end());
+    /* queries 0, 1 and 4 are sent to the first backend, 2 and 3 to the second */
+    uint16_t firstBackendCounter = 0;
+    uint16_t secondBackendCounter = 0;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), firstBackendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), firstBackendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), secondBackendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(3), secondBackendCounter++);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(4), firstBackendCounter++);
 
-    expectedWriteBuffer = s_backendReadBuffer;
+    firstBackendCounter = 0;
+    secondBackendCounter = 0;
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), firstBackendCounter++);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(1), firstBackendCounter++);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(2), secondBackendCounter++);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(4), firstBackendCounter++);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(3), secondBackendCounter++);
 
-    auto backend1 = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(0).begin(), responses.at(0).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(1).begin(), responses.at(1).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(2).begin(), responses.at(2).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(4).begin(), responses.at(4).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(3).begin(), responses.at(3).end());
+
+    auto backend1 = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     backend1->d_tlsCtx = tlsCtx;
     /* only two queries in flight! */
     backend1->d_maxInFlightQueriesPerConn = 2;
@@ -3539,17 +3577,21 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   }
 
   {
-    TEST_INIT("=> 2 OOOR queries to the backend with duplicated IDs, backend responds to only one of them");
+    TEST_INIT("=> 2 OOOR queries to the backend with duplicated IDs");
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
 
     s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
     s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
 
-    expectedBackendWriteBuffer = s_readBuffer;
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 1);
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.begin(), responses.at(0).begin(), responses.at(0).end());
-    expectedWriteBuffer = s_backendReadBuffer;
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 1);
+
+    appendPayloadEditingID(expectedWriteBuffer, responses.at(0), 0);
+    appendPayloadEditingID(expectedWriteBuffer, responses.at(0), 0);
 
     bool timeout = false;
     s_steps = {
@@ -3575,7 +3617,12 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       /* nothing more from the client either */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
 
-      /* reading a response from the backend */
+      /* reading response (1) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size()},
+      /* sending it to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
+      /* reading response (2) from the backend */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc, const ExpectedStep& step) {
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
@@ -3636,7 +3683,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
-  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53), ComboAddress("0.0.0.0:0"), 0, std::string(), 1, false);
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* shorter than the client one */
   backend->tcpRecvTimeout = 1;
@@ -3691,15 +3738,24 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
     for (const auto& query : queries) {
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
     }
-    expectedBackendWriteBuffer = s_readBuffer;
 
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(2).begin(), responses.at(2).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(1).begin(), responses.at(1).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(4).begin(), responses.at(4).end());
-    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(3).begin(), responses.at(3).end());
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(1), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(3), 0);
+    appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(4), 0);
 
-    expectedWriteBuffer = s_backendReadBuffer;
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(0), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(2), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(1), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(4), 0);
+    appendPayloadEditingID(s_backendReadBuffer, responses.at(3), 0);
+
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(0).begin(), responses.at(0).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(2).begin(), responses.at(2).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(1).begin(), responses.at(1).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(4).begin(), responses.at(4).end());
+    expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(3).begin(), responses.at(3).end());
 
     std::vector<int> backendDescriptors = { -1, -1, -1, -1, -1 };
 

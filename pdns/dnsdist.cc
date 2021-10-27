@@ -2593,9 +2593,10 @@ int main(int argc, char** argv)
     localPools = g_pools.getCopy();
     /* create the default pool no matter what */
     createPoolIfNotExists(localPools, "");
-    if(g_cmdLine.remotes.size()) {
-      for(const auto& address : g_cmdLine.remotes) {
-        auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
+    if (g_cmdLine.remotes.size()) {
+      for (const auto& address : g_cmdLine.remotes) {
+        auto ret = std::make_shared<DownstreamState>(ComboAddress(address, 53));
+        ret->connectUDPSockets(1);
         addServerToPool(localPools, "", ret);
         if (ret->connected && !ret->threadStarted.test_and_set()) {
           ret->tid = thread(responderThread, ret);
@@ -2605,7 +2606,7 @@ int main(int argc, char** argv)
     }
     g_pools.setState(localPools);
 
-    if(g_dstates.getLocal()->empty()) {
+    if (g_dstates.getLocal()->empty()) {
       errlog("No downstream servers defined: all packets will get dropped");
       // you might define them later, but you need to know
     }

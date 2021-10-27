@@ -38,6 +38,7 @@ public:
   virtual bool hasSessionBeenResumed() const = 0;
   virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
+  virtual bool isUsable() const = 0;
   virtual void close() = 0;
 
   void setUnknownTicketKey()
@@ -528,6 +529,14 @@ public:
     }
 
     return d_conn->getSessions();
+  }
+
+  bool isUsable() const
+  {
+    if (!d_conn) {
+      return isTCPSocketUsable(d_socket);
+    }
+    return d_conn->isUsable();
   }
 
 private:

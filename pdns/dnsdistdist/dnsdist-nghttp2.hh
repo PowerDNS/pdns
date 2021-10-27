@@ -69,3 +69,7 @@ bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);
 bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck);
 size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now);
 size_t clearH2Connections();
+
+void setDoHDownstreamCleanupInterval(uint16_t max);
+void setDoHDownstreamMaxIdleTime(uint16_t max);
+void setDoHDownstreamMaxConnectionsPerBackend(size_t max);

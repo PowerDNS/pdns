@@ -388,6 +388,28 @@ public:
     return false;
   }
 
+  bool isUsable() const override
+  {
+    if (!d_conn) {
+      return false;
+    }
+
+    char buf;
+    int res = SSL_peek(d_conn.get(), &buf, sizeof(buf));
+    if (res > 0) {
+      return true;
+    }
+    try {
+      convertIORequestToIOState(res);
+      return true;
+    }
+    catch (...) {
+      return false;
+    }
+
+    return false;
+  }
+
   void close() override
   {
     if (d_conn) {
@@ -1312,6 +1334,16 @@ public:
     }
 
     return false;
+  }
+
+  bool isUsable() const override
+  {
+    if (!d_conn) {
+      return false;
+    }
+
+    /* as far as I can tell we can't peek so we cannot do better */
+    return isTCPSocketUsable(d_socket);
   }
 
   std::string getServerNameIndication() const override

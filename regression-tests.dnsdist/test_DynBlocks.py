@@ -780,6 +780,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         # check over TCP, which should not be truncated
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
 
+        receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
 
@@ -798,6 +799,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
+            receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, response)
             receivedQuery.id = query.id

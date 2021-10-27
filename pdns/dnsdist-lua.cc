@@ -240,6 +240,13 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
+static void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max())
+{
+  if (value > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The value passed to " + parameter + " is too large, the maximum is " + std::to_string(max));
+  }
+}
+
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string>>, DownstreamState::checkfunc_t>> newserver_t;
@@ -255,7 +262,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        [client, configCheck](boost::variant<string, newserver_t> pvars, boost::optional<int> qps) {
                          setLuaSideEffect();
 
-                         std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, !(client || configCheck));
                          newserver_t vars;
 
                          ComboAddress serverAddr;
@@ -277,18 +283,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          catch (const PDNSException& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.reason);
                            errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
-                         catch (std::exception& e) {
+                         catch (const std::exception& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.what());
                            errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
 
                          if (IsAnyAddress(serverAddr)) {
                            g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
                            errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
-                           return ret;
+                           return std::shared_ptr<DownstreamState>();
                          }
 
                          ComboAddress sourceAddr;
@@ -299,12 +305,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          if (vars.count("source")) {
                            /* handle source in the following forms:
-           - v4 address ("192.0.2.1")
-           - v6 address ("2001:DB8::1")
-           - interface name ("eth0")
-           - v4 address and interface name ("192.0.2.1@eth0")
-           - v6 address and interface name ("2001:DB8::1@eth0")
-        */
+                              - v4 address ("192.0.2.1")
+                              - v6 address ("2001:DB8::1")
+                              - interface name ("eth0")
+                              - v4 address and interface name ("192.0.2.1@eth0")
+                              - v6 address and interface name ("2001:DB8::1@eth0")
+                           */
                            const string source = boost::get<string>(vars["source"]);
                            bool parsed = false;
                            std::string::size_type pos = source.find("@");
@@ -353,7 +359,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          // create but don't connect the socket in client or check-config modes
-                         ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
+                         auto ret = std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName);
                          if (!(client || configCheck)) {
                            infolog("Added downstream server %s", serverAddr.toStringWithPort());
                          }
@@ -378,7 +384,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                              ret->setWeight(weightVal);
                            }
-                           catch (std::exception& e) {
+                           catch (const std::exception& e) {
                              // std::stoi will throw an exception if the string isn't in a value int range
                              errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
                              return ret;
@@ -560,9 +566,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (ret->isTCPOnly()) {
-                           /* no need to keep the UDP states, then */
-                           ret->idStates.clear();
+                         if (!ret->isTCPOnly() && !(client || configCheck)) {
+                           if (!IsAnyAddress(ret->remote)) {
+                             ret->connectUDPSockets(numberOfSockets);
+                           }
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
@@ -812,6 +819,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         frontend->cleanup();
       }
       g_tlslocals.clear();
+      g_rings.clear();
 #endif /* 0 */
     _exit(0);
   });
@@ -897,7 +905,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getServer", [client](boost::variant<unsigned int, std::string> i) {
     if (client) {
-      return std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, false);
+      return std::make_shared<DownstreamState>(ComboAddress());
     }
     auto states = g_dstates.getCopy();
     if (auto str = boost::get<std::string>(&i)) {
@@ -1242,8 +1250,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout = timeout; });
 
-  luaCtx.writeFunction("setMaxUDPOutstanding", [](uint16_t max) {
+  luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
     if (!g_configurationDone) {
+      checkParameterBound("setMaxUDPOutstanding", max);
       g_maxOutstanding = max;
     }
     else {
@@ -1297,7 +1306,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
-    setMaxCachedTCPConnectionsPerDownstream(max);
+    DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+  });
+
+  luaCtx.writeFunction("setMaxCachedDoHConnectionsPerDownstream", [](size_t max) {
+    setDoHDownstreamMaxConnectionsPerBackend(max);
   });
 
   luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
@@ -1309,7 +1322,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint64_t max) {
     if (g_configurationDone) {
       g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketsPerBackend() cannot be called at runtime!\n";
       return;
@@ -1333,7 +1346,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     TLSSessionCache::setSessionValidity(validity);
   });
 
-  luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+  luaCtx.writeFunction("setCacheCleaningDelay", [](uint64_t delay) {
+    checkParameterBound("setCacheCleaningDelay", delay, std::numeric_limits<uint32_t>::max());
+    g_cacheCleaningDelay = delay;
+  });
 
   luaCtx.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
 
@@ -1726,7 +1742,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
-  luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
+  luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {
+    checkParameterBound("setStaleCacheEntriesTTL", ttl, std::numeric_limits<uint32_t>::max());
+    g_staleCacheEntriesTTL = ttl;
+  });
 
   luaCtx.writeFunction("showBinds", []() {
     setLuaNoSideEffect();
@@ -1993,9 +2012,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_rings.setNumberOfLockRetries(retries);
   });
 
-  luaCtx.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+  luaCtx.writeFunction("setWHashedPertubation", [](uint64_t perturb) {
     setLuaSideEffect();
-    g_hashperturb = pertub;
+    checkParameterBound("setWHashedPertubation", perturb, std::numeric_limits<uint32_t>::max());
+    g_hashperturb = perturb;
   });
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
@@ -2098,16 +2118,36 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
+  luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
+    checkParameterBound("setTCPDownstreamCleanupInterval", interval);
     DownstreamConnectionsManager::setCleanupInterval(interval);
+  });
+
+  luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint64_t interval) {
+    setLuaSideEffect();
+    checkParameterBound("setDoHDownstreamCleanupInterval", interval);
+    setDoHDownstreamCleanupInterval(interval);
+  });
+
+  luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint64_t max) {
+    setLuaSideEffect();
+    checkParameterBound("setTCPDownstreamMaxIdleTime", max);
+    DownstreamConnectionsManager::setMaxIdleTime(max);
+  });
+
+  luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint64_t max) {
+    setLuaSideEffect();
+    checkParameterBound("setDoHDownstreamMaxIdleTime", max);
+    setDoHDownstreamMaxIdleTime(max);
   });
 
   luaCtx.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
     g_logConsoleConnections = enabled;
   });
 
-  luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
+  luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint64_t size) {
+    checkParameterBound("setConsoleOutputMaxMsgSize", size, std::numeric_limits<uint32_t>::max());
     g_consoleOutputMsgMaxSize = size;
   });
 
