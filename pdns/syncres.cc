@@ -2585,10 +2585,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
     /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
      * digests if DS RRs with SHA-256 digests are present in the DS RRset."
-     * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
+     * We interpret that as: do not use SHA-1 if SHA-256 or SHA-384 is available
      */
     for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
-      if (dsrec->d_digesttype != bestDigestType) {
+      if (dsrec->d_digesttype == DNSSECKeeper::DIGEST_SHA1 && dsrec->d_digesttype != bestDigestType) {
         dsrec = ds.erase(dsrec);
       }
       else {
