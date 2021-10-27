@@ -1790,7 +1790,13 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doWipeCache(begin, end, 0xffff);
 
   if(cmd=="wipe-cache-typed") {
+    if (begin == end) {
+      return "Need a qtype\n";
+    }
     uint16_t qtype = QType::chartocode(begin->c_str());
+    if (qtype == 0) {
+      return "Unknown qtype " + *begin + "\n";
+    }
     ++begin;
     return doWipeCache(begin, end, qtype);
   }
