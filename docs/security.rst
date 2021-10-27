@@ -60,3 +60,19 @@ Separation will enhance your database security highly. Recommended.
 .. _securitypolling:
 
 .. include:: common/secpoll.rst
+
+Trusting zone files
+-------------------
+In some scenarios the PowerDNS server must handle zone files coming from an untrusted third party.
+For these cases, it is recommended to take extra protective measures in addition to the measures above:
+
+- Set :ref:`setting-max-generate-steps` to a low number, this will limit the amount of resources used by rogue ``$GENERATE`` templates.
+- Set :ref:`setting-max-include-depth` to ``0``, this will disallow the ``$INCLUDE`` directive, avoiding problems with include loops and related issues.
+- Set :ref:`setting-enable-lua-records` to ``no``, this will disable :ref:`Lua Records<lua-details-security>`.
+
+Depending on your specific requirements, it might be good perform checks on zone files before loading the zone into PowerDNS to:
+
+- Enforce reasonable ``TTL`` values.
+- Enforce reasonable values in the ``SOA`` records.
+- Validate delegations.
+
