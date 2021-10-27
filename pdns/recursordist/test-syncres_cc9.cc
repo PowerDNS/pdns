@@ -819,9 +819,9 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_all_sha)
   dsmap_t ds;
   auto state = sr->getDSRecords(target, ds, false, 0, false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 1U);
+  BOOST_REQUIRE_EQUAL(ds.size(), 2U);
   for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::DIGEST_SHA384);
+    BOOST_CHECK(i.d_digesttype == DNSSECKeeper::DIGEST_SHA384 || i.d_digesttype == DNSSECKeeper::DIGEST_SHA256);
   }
 }
 
