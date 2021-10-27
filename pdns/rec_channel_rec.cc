@@ -2017,7 +2017,13 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, doWipeCache(begin, end, 0xffff)};
   }
   if (cmd == "wipe-cache-typed") {
+    if (begin == end) {
+      return {1, "Need a qtype\n"};
+    }
     uint16_t qtype = QType::chartocode(begin->c_str());
+    if (qtype == 0) {
+      return {1, "Unknown qtype " + *begin + "\n"};
+    }
     ++begin;
     return {0, doWipeCache(begin, end, qtype)};
   }
