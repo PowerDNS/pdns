@@ -473,11 +473,41 @@ udp6-answers
 ^^^^^^^^^^^^
 Number of answers sent out over UDPv6
 
+.. _stat-udp6-in-csum-errors:
+
+udp6-in-csum-errors
+^^^^^^^^^^^^^^^^^^^
+Number of IPv6 UDP packets received with an invalid checksum
+
+.. _stat-udp6-in-errors:
+
+udp6-in-errors
+^^^^^^^^^^^^^^
+Number of IPv6 UDP packets received faster than the OS could process them
+
+.. _stat-udp6-noport-errors:
+
+udp6-noport-errors
+^^^^^^^^^^^^^^^^^^
+Number of IPv6 UDP packets where an ICMP response was received that the remote port was not listening
+
 .. _stat-udp6-queries:
 
 udp6-queries
 ^^^^^^^^^^^^
 Number of questions received over UDPv6
+
+.. _stat-udp6-recvbuf-errors:
+
+udp6-recvbuf-errors
+^^^^^^^^^^^^^^^^^^^
+Number of errors caused in the IPv6 UDP receive buffer
+
+.. _stat-udp6-sndbuf-errors:
+
+udp6-sndbuf-errors
+^^^^^^^^^^^^^^^^^^
+Number of errors caused in the IPv6 UDP send buffer
 
 .. _stat-uptime:
 

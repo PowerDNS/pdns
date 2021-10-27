@@ -371,6 +371,11 @@ void declareStats()
   S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats, StatType::counter);
   S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats, StatType::counter);
   S.declare("udp-in-csum-errors", "UDP 'in checksum' errors", udpErrorStats, StatType::counter);
+  S.declare("udp6-in-errors", "UDP 'in' errors over IPv6", udp6ErrorStats, StatType::counter);
+  S.declare("udp6-recvbuf-errors", "UDP 'recvbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
+  S.declare("udp6-sndbuf-errors", "UDP 'sndbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
+  S.declare("udp6-noport-errors", "UDP 'noport' errors over IPv6", udp6ErrorStats, StatType::counter);
+  S.declare("udp6-in-csum-errors", "UDP 'in checksum' errors over IPv6", udp6ErrorStats, StatType::counter);
 #endif
 
   S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec, StatType::counter);
