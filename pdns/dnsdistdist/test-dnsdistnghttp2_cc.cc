@@ -51,12 +51,12 @@ public:
     closeBackend
   };
 
-  ExpectedStep(ExpectedRequest r, IOState n, size_t b = 0, std::function<void(int descriptor, const ExpectedStep& step)> fn = nullptr) :
+  ExpectedStep(ExpectedRequest r, IOState n, size_t b = 0, std::function<void(int descriptor)> fn = nullptr) :
     cb(fn), request(r), nextState(n), bytes(b)
   {
   }
 
-  std::function<void(int descriptor, const ExpectedStep& step)> cb{nullptr};
+  std::function<void(int descriptor)> cb{nullptr};
   ExpectedRequest request;
   IOState nextState;
   size_t bytes{0};
@@ -471,7 +471,7 @@ private:
     s_steps.pop_front();
 
     if (step.cb) {
-      step.cb(d_descriptor, step);
+      step.cb(d_descriptor);
     }
 
     return step;
@@ -736,17 +736,17 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and response from the server */
-    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as NOT ready anymore */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setNotReady(desc);
      }},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        s_connectionBuffers.at(desc)->submitGoAway();
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -816,21 +816,21 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and responses from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        s_connectionBuffers.at(desc)->submitGoAway();
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -906,28 +906,28 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and responses from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&firstQueryDone](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&firstQueryDone](int desc) {
        firstQueryDone = true;
      }},
     /* headers */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
      }},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and responses from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* later the backend sends a go away frame */
-    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        s_connectionBuffers.at(desc)->submitGoAway();
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
@@ -1017,7 +1017,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1026,7 +1026,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
     /* acknowledge settings */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* try to read, the backend says to go away */
-    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        s_connectionBuffers.at(desc)->submitGoAway();
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
@@ -1099,7 +1099,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, std::numeric_limits<size_t>::max(), [&timeout](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, std::numeric_limits<size_t>::max(), [&timeout](int desc) {
        timeout = true;
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
@@ -1186,7 +1186,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&timeout](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&timeout](int desc) {
        /* set the timeout flag now, since the timeout occurs while waiting for the descriptor to become readable */
        timeout = true;
      }},
@@ -1265,7 +1265,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
     /* opening */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 2, [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 2, [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1278,7 +1278,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
     /* read settings, headers and responses from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc) {
        /* mark backend as not ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setNotReady(desc);
        done = true;
@@ -1356,14 +1356,14 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1372,7 +1372,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
     /* read settings, headers and responses (second attempt) */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc) {
        /* mark backend as not ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setNotReady(desc);
        done = true;
@@ -1449,14 +1449,14 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1544,14 +1544,14 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and response from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc) {
        /* mark backend as not ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setNotReady(desc);
        done = true;
@@ -1631,14 +1631,14 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1652,14 +1652,14 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1741,21 +1741,21 @@ BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* read settings, headers and responses from the server */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&done](int desc) {
        /* mark backend as not ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setNotReady(desc);
        done = true;
@@ -1834,14 +1834,14 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1850,7 +1850,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
     /* acknowledge settings */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* read ends up as a time out since nghttp2 filters the frame with the wrong stream ID */
-    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&timeout](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&timeout](int desc) {
        /* set the timeout flag now, since the timeout occurs while waiting for the descriptor to become readable */
        timeout = true;
      }},
@@ -1937,7 +1937,7 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
@@ -1949,7 +1949,7 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
-    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc, const ExpectedStep& step) {
+    {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        /* set the outgoing descriptor (backend connection) as ready */
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
