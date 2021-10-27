@@ -30,7 +30,7 @@
 
 struct ProtobufExportConfig
 {
-  std::set<uint16_t> exportTypes = { QType::A, QType::AAAA, QType::CNAME };
+  std::set<uint16_t> exportTypes = {QType::A, QType::AAAA, QType::CNAME};
   std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
@@ -56,20 +56,21 @@ struct FrameStreamExportConfig
   unsigned reopenInterval{0};
 };
 
-struct TrustAnchorFileInfo {
+struct TrustAnchorFileInfo
+{
   uint32_t interval{24};
   std::string fname;
 };
 
-class LuaConfigItems 
+class LuaConfigItems
 {
 public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
-  map<DNSName,dsmap_t> dsAnchors;
-  map<DNSName,std::string> negAnchors;
+  map<DNSName, dsmap_t> dsAnchors;
+  map<DNSName, std::string> negAnchors;
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
@@ -86,10 +87,9 @@ extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 struct luaConfigDelayedThreads
 {
   // Please make sure that the tuple below only contains value types since they are used as parameters in a thread ct
-  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string> > rpzPrimaryThreads;
+  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string>> rpzPrimaryThreads;
   std::vector<RecZoneToCache::Config> ztcConfigs;
 };
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);
 void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation);
-

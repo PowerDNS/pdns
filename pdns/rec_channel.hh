@@ -81,16 +81,22 @@ public:
   RecursorControlParser()
   {
   }
-  static void nop(void){}
+  static void nop(void) {}
   typedef void func_t(void);
 
   RecursorControlChannel::Answer getAnswer(int s, const std::string& question, func_t** func);
 };
 
+enum class StatComponent
+{
+  API,
+  Carbon,
+  RecControl,
+  SNMP
+};
 
-enum class StatComponent { API, Carbon, RecControl, SNMP };
-
-struct StatsMapEntry {
+struct StatsMapEntry
+{
   std::string d_prometheusName;
   std::string d_value;
 };
@@ -99,6 +105,7 @@ class PrefixDashNumberCompare
 {
 private:
   static std::pair<std::string, std::string> prefixAndTrailingNum(const std::string& a);
+
 public:
   bool operator()(const std::string& a, const std::string& b) const;
 };
@@ -117,9 +124,9 @@ struct CarbonConfig
 
 extern GlobalStateHolder<CarbonConfig> g_carbonConfig;
 
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetServfailQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetBogusQueryRing();
 std::vector<ComboAddress>* pleaseGetRemotes();
 std::vector<ComboAddress>* pleaseGetServfailRemotes();
 std::vector<ComboAddress>* pleaseGetBogusRemotes();

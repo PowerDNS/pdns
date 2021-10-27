@@ -52,29 +52,28 @@ public:
 
   size_t size() const;
   size_t bytes();
-  pair<uint64_t,uint64_t> stats();
+  pair<uint64_t, uint64_t> stats();
   size_t ecsIndexSize();
 
   typedef boost::optional<std::string> OptTag;
 
-  time_t get(time_t, const DNSName &qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh = false, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr, DNSName* fromAuthZone=nullptr);
+  time_t get(time_t, const DNSName& qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh = false, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask=boost::none, const OptTag& routingTag = boost::none, vState state=vState::Indeterminate, boost::optional<ComboAddress> from=boost::none);
+  void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none);
 
   void doPrune(size_t keep);
   uint64_t doDump(int fd);
 
-  size_t doWipeCache(const DNSName& name, bool sub, QType qtype=0xffff);
+  size_t doWipeCache(const DNSName& name, bool sub, QType qtype = 0xffff);
   bool doAgeCache(time_t now, const DNSName& name, QType qtype, uint32_t newTTL);
-  bool updateValidationStatus(time_t now, const DNSName &qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
+  bool updateValidationStatus(time_t now, const DNSName& qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
   pdns::stat_t cacheHits{0}, cacheMisses{0};
 
 private:
-
   struct CacheEntry
   {
-    CacheEntry(const boost::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth):
+    CacheEntry(const boost::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
       d_qname(key.get<0>()), d_netmask(key.get<3>().getNormalized()), d_rtag(key.get<2>()), d_state(vState::Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth), d_submitted(false)
     {
     }
@@ -98,7 +97,7 @@ private:
     uint32_t d_orig_ttl;
     QType d_qtype;
     bool d_auth;
-    mutable bool d_submitted;     // whether this entry has been queued for refetch
+    mutable bool d_submitted; // whether this entry has been queued for refetch
   };
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
@@ -114,7 +113,8 @@ private:
   class ECSIndexEntry
   {
   public:
-    ECSIndexEntry(const DNSName& qname, QType qtype): d_nmt(), d_qname(qname), d_qtype(qtype)
+    ECSIndexEntry(const DNSName& qname, QType qtype) :
+      d_nmt(), d_qname(qname), d_qtype(qtype)
     {
     }
 
@@ -148,66 +148,64 @@ private:
     QType d_qtype;
   };
 
-  struct HashedTag {};
-  struct SequencedTag {};
-  struct NameAndRTagOnlyHashedTag {};
-  struct OrderedTag {};
+  struct HashedTag
+  {
+  };
+  struct SequencedTag
+  {
+  };
+  struct NameAndRTagOnlyHashedTag
+  {
+  };
+  struct OrderedTag
+  {
+  };
 
   typedef multi_index_container<
     CacheEntry,
-    indexed_by <
-                ordered_unique<tag<OrderedTag>,
+    indexed_by<
+      ordered_unique<tag<OrderedTag>,
+                     composite_key<
+                       CacheEntry,
+                       member<CacheEntry, DNSName, &CacheEntry::d_qname>,
+                       member<CacheEntry, QType, &CacheEntry::d_qtype>,
+                       member<CacheEntry, OptTag, &CacheEntry::d_rtag>,
+                       member<CacheEntry, Netmask, &CacheEntry::d_netmask>>,
+                     composite_key_compare<CanonDNSNameCompare, std::less<QType>, std::less<OptTag>, std::less<Netmask>>>,
+      sequenced<tag<SequencedTag>>,
+      hashed_non_unique<tag<NameAndRTagOnlyHashedTag>,
                         composite_key<
-                                CacheEntry,
-                                member<CacheEntry,DNSName,&CacheEntry::d_qname>,
-                                member<CacheEntry,QType,&CacheEntry::d_qtype>,
-                                member<CacheEntry,OptTag,&CacheEntry::d_rtag>,
-                                member<CacheEntry,Netmask,&CacheEntry::d_netmask>
-                          >,
-                               composite_key_compare<CanonDNSNameCompare, std::less<QType>, std::less<OptTag>, std::less<Netmask> >
-                >,
-                sequenced<tag<SequencedTag> >,
-                hashed_non_unique<tag<NameAndRTagOnlyHashedTag>,
-                    composite_key<
-                      CacheEntry,
-                      member<CacheEntry,DNSName,&CacheEntry::d_qname>,
-                      member<CacheEntry,OptTag,&CacheEntry::d_rtag>
-                    >
-                >
-               >
-  > cache_t;
+                          CacheEntry,
+                          member<CacheEntry, DNSName, &CacheEntry::d_qname>,
+                          member<CacheEntry, OptTag, &CacheEntry::d_rtag>>>>>
+    cache_t;
 
   typedef MemRecursorCache::cache_t::index<MemRecursorCache::OrderedTag>::type::iterator OrderedTagIterator_t;
   typedef MemRecursorCache::cache_t::index<MemRecursorCache::NameAndRTagOnlyHashedTag>::type::iterator NameAndRTagOnlyHashedTagIterator_t;
 
   typedef multi_index_container<
     ECSIndexEntry,
-    indexed_by <
-      hashed_unique <tag<HashedTag>,
-        composite_key<
-          ECSIndexEntry,
-          member<ECSIndexEntry,DNSName,&ECSIndexEntry::d_qname>,
-          member<ECSIndexEntry,QType,&ECSIndexEntry::d_qtype>
-        >
-      >,
+    indexed_by<
+      hashed_unique<tag<HashedTag>,
+                    composite_key<
+                      ECSIndexEntry,
+                      member<ECSIndexEntry, DNSName, &ECSIndexEntry::d_qname>,
+                      member<ECSIndexEntry, QType, &ECSIndexEntry::d_qtype>>>,
       ordered_unique<tag<OrderedTag>,
-        composite_key<
-          ECSIndexEntry,
-          member<ECSIndexEntry,DNSName,&ECSIndexEntry::d_qname>,
-          member<ECSIndexEntry,QType,&ECSIndexEntry::d_qtype>
-        >,
-        composite_key_compare<CanonDNSNameCompare, std::less<QType> >
-      >
-    >
-  > ecsIndex_t;
+                     composite_key<
+                       ECSIndexEntry,
+                       member<ECSIndexEntry, DNSName, &ECSIndexEntry::d_qname>,
+                       member<ECSIndexEntry, QType, &ECSIndexEntry::d_qtype>>,
+                     composite_key_compare<CanonDNSNameCompare, std::less<QType>>>>>
+    ecsIndex_t;
 
   typedef std::pair<NameAndRTagOnlyHashedTagIterator_t, NameAndRTagOnlyHashedTagIterator_t> Entries;
 
   struct MapCombo
   {
     MapCombo() {}
-    MapCombo(const MapCombo &) = delete;
-    MapCombo & operator=(const MapCombo &) = delete;
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
     struct LockedContent
     {
       cache_t d_map;
@@ -243,7 +241,7 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  MapCombo& getMap(const DNSName &qname)
+  MapCombo& getMap(const DNSName& qname)
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }
@@ -251,8 +249,8 @@ private:
   static time_t fakeTTD(OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh);
 
   bool entryMatches(OrderedTagIterator_t& entry, QType qt, bool requireAuth, const ComboAddress& who);
-  Entries getEntries(MapCombo::LockedContent& content, const DNSName &qname, const QType qt, const OptTag& rtag);
-  cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName &qname, QType qtype, bool requireAuth, const ComboAddress& who);
+  Entries getEntries(MapCombo::LockedContent& content, const DNSName& qname, const QType qt, const OptTag& rtag);
+  cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who);
 
   time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
 
@@ -274,6 +272,7 @@ public:
   }
 };
 
-namespace boost {
-  size_t hash_value(const MemRecursorCache::OptTag& rtag);
+namespace boost
+{
+size_t hash_value(const MemRecursorCache::OptTag& rtag);
 }
