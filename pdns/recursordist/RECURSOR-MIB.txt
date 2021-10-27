@@ -40,7 +40,7 @@ rec MODULE-IDENTITY
     DESCRIPTION "Added almost expired task metrics."
 
     REVISION "202110270000Z"
-    DESCRIPTION "Added udpInCsumErrors metric."
+    DESCRIPTION "Added more UDP errors metric."
 
     ::= { powerdns 2 }
 
@@ -992,6 +992,46 @@ udpInCsumErrors OBJECT-TYPE
         "Number of UDP in checksum errors (Linux only)"
     ::= { stats 118 }
 
+udp6RecvbufErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP6 recvbuf errors (Linux only)"
+    ::= { stats 119 }
+
+udp6SndbufErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP6 sndbuf errors (Linux only)"
+    ::= { stats 120 }
+
+udp6NoportErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP6 noport errors (Linux only)"
+    ::= { stats 121 }
+
+udp6inErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP6 in errors (Linux only)"
+    ::= { stats 122 }
+
+udp6InCsumErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP6 in checksum errors (Linux only)"
+    ::= { stats 123 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1157,7 +1197,12 @@ recGroup OBJECT-GROUP
         almostExpiredPushed,
         almostExpiredRun,
         almostExpiredExceptions,
-        udpInCsumErrors
+        udpInCsumErrors,
+        udp6RecvbufErrors,
+        udp6SndbufErrors,
+        udp6NoportErrors,
+        udp6inErrors,
+        udp6InCsumErrors
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

@@ -1304,6 +1304,11 @@ static void registerAllStats1()
   addGetStat("udp-noport-errors", [] { return udpErrorStats("udp-noport-errors"); });
   addGetStat("udp-in-errors", [] { return udpErrorStats("udp-in-errors"); });
   addGetStat("udp-in-csum-errors", [] { return udpErrorStats("udp-in-csum-errors"); });
+  addGetStat("udp6-recvbuf-errors", [] { return udp6ErrorStats("udp6-recvbuf-errors"); });
+  addGetStat("udp6-sndbuf-errors", [] { return udp6ErrorStats("udp6-sndbuf-errors"); });
+  addGetStat("udp6-noport-errors", [] { return udp6ErrorStats("udp6-noport-errors"); });
+  addGetStat("udp6-in-errors", [] { return udp6ErrorStats("udp6-in-errors"); });
+  addGetStat("udp6-in-csum-errors", [] { return udp6ErrorStats("udp6-in-csum-errors"); });
 #endif
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
