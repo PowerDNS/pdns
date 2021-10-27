@@ -1303,6 +1303,7 @@ static void registerAllStats1()
   addGetStat("udp-sndbuf-errors", [] { return udpErrorStats("udp-sndbuf-errors"); });
   addGetStat("udp-noport-errors", [] { return udpErrorStats("udp-noport-errors"); });
   addGetStat("udp-in-errors", [] { return udpErrorStats("udp-in-errors"); });
+  addGetStat("udp-in-csum-errors", [] { return udpErrorStats("udp-in-csum-errors"); });
 #endif
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);

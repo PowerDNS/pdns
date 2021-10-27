@@ -135,6 +135,9 @@ static const oid dns64PrefixAnswers[] = {RECURSOR_STATS_OID, 114};
 static const oid almostExpiredPushed[] = {RECURSOR_STATS_OID, 115};
 static const oid almostExpiredRun[] = {RECURSOR_STATS_OID, 116};
 static const oid almostExpiredExceptions[] = {RECURSOR_STATS_OID, 117};
+#ifdef __linux__
+static const oid udpInCsumErrorsOID[] = {RECURSOR_STATS_OID, 118};
+#endif /* __linux__ */
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -317,6 +320,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("udp-sndbuf-errors", udpSndbufErrorsOID, OID_LENGTH(udpSndbufErrorsOID));
   registerCounter64Stat("udp-noport-errors", udpNoportErrorsOID, OID_LENGTH(udpNoportErrorsOID));
   registerCounter64Stat("udp-in-errors", udpinErrorsOID, OID_LENGTH(udpinErrorsOID));
+  registerCounter64Stat("udp-in-csums-errors", udpInCsumErrorsOID, OID_LENGTH(udpInCsumErrorsOID));
 #endif /* __linux__ */
   registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID));
   registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID));

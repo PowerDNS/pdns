@@ -39,6 +39,9 @@ rec MODULE-IDENTITY
     REVISION "202107200000Z"
     DESCRIPTION "Added almost expired task metrics."
 
+    REVISION "202110270000Z"
+    DESCRIPTION "Added udpInCsumErrors metric."
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -981,6 +984,14 @@ almostExpiredExceptions OBJECT-TYPE
         "Number of almost-expired tasks that caused an exception"
     ::= { stats 117 }
 
+udpInCsumErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of UDP in checksum errors (Linux only)"
+    ::= { stats 118 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1142,7 +1153,11 @@ recGroup OBJECT-GROUP
         aggressiveNSECCacheNSECWcHits,
         aggressiveNSECCacheNSEC3WcHits,
         dotOutqueries,
-        dns64PrefixAnswers
+        dns64PrefixAnswers,
+        almostExpiredPushed,
+        almostExpiredRun,
+        almostExpiredExceptions,
+        udpInCsumErrors
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

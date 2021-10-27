@@ -896,6 +896,9 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"udp-sndbuf-errors",
    MetricDefinition(PrometheusMetricType::counter,
                     "From /proc/net/snmp SndbufErrors")},
+  {"udp-in-csum-errors",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "From /proc/net/snmp InCsumErrors")},
 
   {"cpu-iowait",
    MetricDefinition(PrometheusMetricType::counter,
