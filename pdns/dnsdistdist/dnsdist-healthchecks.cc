@@ -94,7 +94,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
   if (newState != dss->upStatus) {
     warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 
-    if (newState && (!dss->connected || dss->reconnectOnUp)) {
+    if (newState && !dss->isTCPOnly() && (!dss->connected || dss->reconnectOnUp)) {
       newState = dss->reconnect();
 
       if (dss->connected && !dss->threadStarted.test_and_set()) {
