@@ -237,6 +237,12 @@ trunc-failures
 --------------
 Number of errors encountered while truncating an answer.
 
+udp-in-csum-errors
+------------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp InErrors.
+
 udp-in-errors
 -------------
 .. versionadded:: 1.5.0
@@ -260,6 +266,36 @@ udp-sndbuf-errors
 .. versionadded:: 1.5.0
 
 From /proc/net/snmp SndbufErrors.
+
+udp6-in-csum-errors
+-------------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp6 InErrors.
+
+udp6-in-errors
+--------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp6 InErrors.
+
+udp6-noport-errors
+------------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp6 NoPorts.
+
+udp6-recvbuf-errors
+-------------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp6 RcvbufErrors.
+
+udp6-sndbuf-errors
+------------------
+.. versionadded:: 1.7.0
+
+From /proc/net/snmp6 SndbufErrors.
 
 uptime
 ------
