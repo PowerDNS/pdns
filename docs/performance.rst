@@ -407,11 +407,17 @@ udp-do-queries
 ^^^^^^^^^^^^^^
 Number of queries received with the DO (DNSSEC OK) bit set
 
+.. _stat-udp-in-csum-errors:
+
+udp-in-csum-errors
+^^^^^^^^^^^^^^^^^^
+Number of UDP packets received with an invalid checksum
+
 .. _stat-udp-in-errors:
 
 udp-in-errors
 ^^^^^^^^^^^^^
-Number of packets, received faster than the OS could process them
+Number of packets received faster than the OS could process them
 
 .. _stat-udp-noport-errors:
 
