@@ -2246,7 +2246,7 @@ class TestProtocols(DNSDistTest):
 class TestAdvancedSetEDNSOptionAction(DNSDistTest):
 
     _config_template = """
-    addAction("setednsoption.advanced.tests.powerdns.com.", SetEDNSOptionAction(10, "deadbeefdeadc0de"))
+    addAction(AllRule(), SetEDNSOptionAction(10, "deadbeefdeadc0de"))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -2259,6 +2259,35 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
 
         eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[eco])
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(response, receivedResponse)
+            self.checkQueryEDNS(expectedQuery, receivedQuery)
+
+    def testAdvancedSetEDNSOptionOverwrite(self):
+        """
+        Advanced: Set EDNS Option overwrites an existing option
+        """
+        name = 'setednsoption-overwrite.advanced.tests.powerdns.com.'
+        initialECO = cookiesoption.CookiesOption(b'aaaaaaaa', b'bbbbbbbb')
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        overWrittenECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[overWrittenECO])
 
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
