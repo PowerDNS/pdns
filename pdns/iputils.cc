@@ -437,7 +437,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
   return 0;
 }
 
-template class NetmaskTree<bool>;
+template class NetmaskTree<bool, Netmask>;
 
 /* requires a non-blocking socket.
    On Linux, we could use MSG_DONTWAIT on a blocking socket
