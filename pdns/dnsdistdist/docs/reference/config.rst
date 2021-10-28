@@ -37,6 +37,15 @@ The ``.`` means ``order`` is a data member, while the ``:`` means ``addPool`` is
 Global configuration
 --------------------
 
+.. function:: addCapabilitiesToRetain(capabilities)
+
+  .. versionadded:: 1.7.0
+
+  Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
+  Keeping ``CAP_BPF`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
+  Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
+  Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities.
+
 .. function:: includeDirectory(path)
 
   Include configuration files from ``path``.
