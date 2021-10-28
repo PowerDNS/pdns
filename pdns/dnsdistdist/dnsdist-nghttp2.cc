@@ -933,9 +933,8 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
       if ((*connIt)->isUsable()) {
         ++connIt;
       }
-      else {
-        connIt = dsIt->second.erase(connIt);
-      }
+
+      connIt = dsIt->second.erase(connIt);
     }
 
     if (!dsIt->second.empty()) {
@@ -988,8 +987,7 @@ std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConn
           return entry;
         }
 
-        /* otherwise let's try the next one, if any */
-        ++listIt;
+        listIt = list.erase(listIt);
       }
     }
   }

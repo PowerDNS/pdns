@@ -805,13 +805,8 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
           ++ds->tcpReusedConnections;
           return entry;
         }
-        else {
-          listIt = list.erase(listIt);
-          continue;
-        }
 
-        /* otherwise let's try the next one, if any */
-        ++listIt;
+        listIt = list.erase(listIt);
       }
     }
   }
@@ -858,9 +853,8 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
       if ((*connIt)->isUsable()) {
         ++connIt;
       }
-      else {
-        connIt = dsIt->second.erase(connIt);
-      }
+
+      connIt = dsIt->second.erase(connIt);
     }
 
     if (!dsIt->second.empty()) {
