@@ -1353,15 +1353,21 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
 
 void setDoHDownstreamCleanupInterval(uint16_t max)
 {
+#ifdef HAVE_NGHTTP2
   DownstreamDoHConnectionsManager::setCleanupInterval(max);
+#endif /* HAVE_NGHTTP2 */
 }
 
 void setDoHDownstreamMaxIdleTime(uint16_t max)
 {
+#ifdef HAVE_NGHTTP2
   DownstreamDoHConnectionsManager::setMaxIdleTime(max);
+#endif /* HAVE_NGHTTP2 */
 }
 
 void setDoHDownstreamMaxConnectionsPerBackend(size_t max)
 {
+#ifdef HAVE_NGHTTP2
   DownstreamDoHConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+#endif /* HAVE_NGHTTP2 */
 }
