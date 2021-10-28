@@ -224,12 +224,16 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
   db.blocks = count;
   db.warning = warning;
   if (!got || expired || wasWarning) {
-    if (db.action == DNSAction::Action::Drop && g_defaultBPFFilter &&
-        ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128))) {
+    if (g_defaultBPFFilter &&
+        ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128)) &&
+        (db.action == DNSAction::Action::Drop || db.action == DNSAction::Action::Truncate)) {
       try {
-        /* the current BPF filter implementation only supports full addresses (/32 or /128) and no port */
-        g_defaultBPFFilter->block(requestor.getNetwork());
-        bpf = true;
+        BPFFilter::MatchAction action = db.action == DNSAction::Action::Drop ? BPFFilter::MatchAction::Drop : BPFFilter::MatchAction::Truncate;
+        if (g_defaultBPFFilter->supportsMatchAction(action)) {
+          /* the current BPF filter implementation only supports full addresses (/32 or /128) and no port */
+          g_defaultBPFFilter->block(requestor.getNetwork(), action);
+          bpf = true;
+        }
       }
       catch (const std::exception& e) {
         vinfolog("Unable to insert eBPF dynamic block for %s, falling back to regular dynamic block: %s", requestor.toString(), e.what());

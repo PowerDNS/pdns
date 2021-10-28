@@ -38,7 +38,7 @@ bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
     }
   }
   else {
-    data->d_bpf->block(addr);
+    data->d_bpf->block(addr, BPFFilter::MatchAction::Drop);
     data->d_entries.insert(BlockEntry(addr, until));
     inserted = true;
   }

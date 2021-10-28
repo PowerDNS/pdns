@@ -35,6 +35,17 @@ public:
     Filters
   };
 
+  enum class MapFormat : uint8_t {
+    Legacy = 0,
+    WithActions = 1
+  };
+
+  enum class MatchAction : uint32_t {
+    Pass = 0,
+    Drop = 1,
+    Truncate = 2
+  };
+
   struct MapConfiguration
   {
     std::string d_pinnedPath;
@@ -42,7 +53,8 @@ public:
     MapType d_type;
   };
 
-  BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::MapConfiguration& v6, const BPFFilter::MapConfiguration& qnames);
+
+  BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::MapConfiguration& v6, const BPFFilter::MapConfiguration& qnames, BPFFilter::MapFormat format, bool external);
   BPFFilter(const BPFFilter&) = delete;
   BPFFilter(BPFFilter&&) = delete;
   BPFFilter& operator=(const BPFFilter&) = delete;
@@ -50,8 +62,8 @@ public:
 
   void addSocket(int sock);
   void removeSocket(int sock);
-  void block(const ComboAddress& addr);
-  void block(const DNSName& qname, uint16_t qtype=255);
+  void block(const ComboAddress& addr, MatchAction action);
+  void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
   void unblock(const DNSName& qname, uint16_t qtype=255);
 
@@ -60,6 +72,9 @@ public:
 
   uint64_t getHits(const ComboAddress& requestor);
 
+  bool supportsMatchAction(MatchAction action) const;
+  bool isExternal() const;
+
 private:
 #ifdef HAVE_EBPF
   struct Map
@@ -67,7 +82,7 @@ private:
     Map()
     {
     }
-    Map(const MapConfiguration&);
+    Map(const MapConfiguration&, MapFormat);
     MapConfiguration d_config;
     uint32_t d_count{0};
     FDWrapper d_fd;
@@ -90,5 +105,20 @@ private:
   FDWrapper d_mainfilter;
   /* qname filtering program */
   FDWrapper d_qnamefilter;
+
+  /* whether the maps are in the 'old' format, which we need
+     to keep to prevent going over the 4k instructions per eBPF
+     program limit in kernels < 5.2, as well as the complexity limit:
+     - 32k in Linux 3.18
+     - 64k in Linux 4.7
+     - 96k in Linux 4.12
+     - 128k in Linux 4.14,
+     - 1M in Linux 5.2 */
+  MapFormat d_mapFormat;
+
+  /* whether the filter is internal, using our own eBPF programs,
+     or external where we only update the maps but the filtering is
+     done by an external program. */
+  bool d_external;
 #endif /* HAVE_EBPF */
 };
