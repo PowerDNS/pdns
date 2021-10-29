@@ -9,11 +9,14 @@ SVCRecordParameters
 
   .. code-block:: Lua
 
-    -- reply to SVCB queries for resolver.powerdns.com. indicating DoT on port 853 of dot.powerdns.com. (192.0.2.1/2001:db8::1), DoH on https://doh.powerdns.com/dns-query (192.0.2.2/2001:db8::2)
+    -- reply to SVCB queries for _dns.resolver.arpa. indicating DoT on port 853 of dot.powerdns.com. (192.0.2.1/2001:db8::1), DoH on https://doh.powerdns.com/dns-query (192.0.2.2/2001:db8::2)
     local svc = { newSVCRecordParameters(1, "dot.powerdns.com.", { mandatory={"port"}, alpn={ "dot" }, noDefaultAlpn=true, port=853, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" } }),
                   newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={ "h2" }, port=443, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }, key42 = "/dns-query{?dns}" })
                 }
-    addAction(AndRule{QTypeRule(64), QNameRule('resolver.powerdns.com.')}, SpoofSVCAction(svc))
+    addAction(AndRule{QTypeRule(64), QNameRule('_dns.resolver.arpa.')}, SpoofSVCAction(svc))
+    -- reply with NODATA (NXDOMAIN would deny all types at that name and below, including SVC) for other types
+    addAction(QNameRule('_dns.resolver.arpa.'), NegativeAndSOAAction(false, '_dns.resolver.arpa.', 3600, 'fake.resolver.arpa.', 'fake.resolver.arpa.', 1, 1800, 900, 604800, 86400))
+
 
   :param int priority: The priority of this record. if more than one record is returned, they all should have different priorities. A priority of 0 indicates Alias mode and no other record should be present in the RRSet.
   :param str target: A domain name indicating the target name.
