@@ -1154,26 +1154,26 @@ uint64_t udpErrorStats(const std::string& str)
       stringtok(parts, line, " \n\t\r");
 
       if (parts.size() < 7) {
-	break;
+        break;
       }
 
       if (str == "udp-rcvbuf-errors") {
-	return std::stoull(parts.at(5));
+        return std::stoull(parts.at(5));
       }
       else if (str == "udp-sndbuf-errors") {
-	return std::stoull(parts.at(6));
+        return std::stoull(parts.at(6));
       }
       else if (str == "udp-noport-errors") {
-	return std::stoull(parts.at(2));
+        return std::stoull(parts.at(2));
       }
       else if (str == "udp-in-errors") {
-	return std::stoull(parts.at(3));
+        return std::stoull(parts.at(3));
       }
       else if (parts.size() >= 8 && str == "udp-in-csum-errors") {
         return std::stoull(parts.at(7));
       }
       else {
-	return 0;
+        return 0;
       }
     }
   }
@@ -1209,7 +1209,6 @@ uint64_t udp6ErrorStats(const std::string& str)
     }
 
     std::vector<std::string> parts;
-    parts.clear();
     stringtok(parts, line, " \n\t\r");
 
     if (parts.size() != 2) {
