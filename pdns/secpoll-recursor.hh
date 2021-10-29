@@ -24,6 +24,6 @@
 #include "namespaces.hh"
 #include <stdint.h>
 
-void doSecPoll(time_t* );
+void doSecPoll(time_t*);
 extern uint32_t g_security_status;
 extern std::string g_security_message;
