@@ -401,7 +401,7 @@ struct DNSDistStats
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"special-memory-usage", getSpecialMemoryUsage},
-    {"udp-in-errors", boost::bind(udpErrorStats, "udp-in-errors")},
+    {"udp-in-errors", std::bind(udpErrorStats, "udp-in-errors")},
     {"udp-noport-errors", std::bind(udpErrorStats, "udp-noport-errors")},
     {"udp-recvbuf-errors", std::bind(udpErrorStats, "udp-recvbuf-errors")},
     {"udp-sndbuf-errors", std::bind(udpErrorStats, "udp-sndbuf-errors")},
