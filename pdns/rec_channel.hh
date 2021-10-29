@@ -65,8 +65,8 @@ public:
     std::string d_str;
   };
 
-  void send(const Answer&, const std::string* remote = nullptr, unsigned int timeout = 5, int fd = -1);
-  RecursorControlChannel::Answer recv(std::string* remote = nullptr, unsigned int timeout = 5);
+  void send(int remote, const Answer&, unsigned int timeout = 5, int fd_to_pass = -1);
+  RecursorControlChannel::Answer recv(int fd, unsigned int timeout = 5);
 
   int d_fd;
   static std::atomic<bool> stop;

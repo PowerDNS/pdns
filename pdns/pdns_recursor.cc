@@ -4206,22 +4206,20 @@ template ThreadTimes broadcastAccFunction(const boost::function<ThreadTimes*()>&
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
+  int clientfd;
   try {
-    string remote;
-    string msg = s_rcc.recv(&remote).d_str;
+    clientfd = accept(fd, nullptr, nullptr);
+    if (clientfd == -1) {
+      throw PDNSException("accept failed");
+    }
+    string msg = s_rcc.recv(clientfd).d_str;
+    g_log << Logger::Info << "Received rec_control command '" << msg << "' via controlsocket" << endl;
+
     RecursorControlParser rcp;
     RecursorControlParser::func_t* command;
+    auto answer = rcp.getAnswer(clientfd, msg, &command);
 
-    g_log << Logger::Info << "Received rec_control command '" << msg << "' from control socket" << endl;
-    auto answer = rcp.getAnswer(fd, msg, &command);
-
-    // If we are inside a chroot, we need to strip
-    if (!arg()["chroot"].empty()) {
-      size_t len = arg()["chroot"].length();
-      remote = remote.substr(len);
-    }
-
-    s_rcc.send(answer, &remote);
+    s_rcc.send(clientfd, answer);
     command();
   }
   catch(const std::exception& e) {
@@ -4229,6 +4227,9 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   }
   catch(const PDNSException& ae) {
     g_log<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
+  }
+  if (clientfd != -1) {
+    close(clientfd);
   }
 }
 
