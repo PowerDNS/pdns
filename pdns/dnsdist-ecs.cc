@@ -154,9 +154,6 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
 
-  optionAdded = false;
-  ednsAdded = true;
-
   if (ntohs(dh->qdcount) == 0) {
     return false;
   }
@@ -164,6 +161,9 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   if (ntohs(dh->ancount) == 0 && ntohs(dh->nscount) == 0 && ntohs(dh->arcount) == 0) {
     throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " should not be called for queries that have no records");
   }
+
+  optionAdded = false;
+  ednsAdded = true;
 
   PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
@@ -589,8 +589,6 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     newContent.reserve(packet.size());
 
     if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::ECS, ecsAdded, overrideExisting, newECSOption)) {
-      ednsAdded = false;
-      ecsAdded = false;
       return false;
     }
 
