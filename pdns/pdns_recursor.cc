@@ -5214,7 +5214,7 @@ static int serviceMain(int argc, char*argv[])
   {
     CarbonConfig config;
     stringtok(config.servers, arg()["carbon-server"], ", ");
-    config.hostname = arg()["carbon-server"];
+    config.hostname = arg()["carbon-ourname"];
     config.instance_name = arg()["carbon-instance"];
     config.namespace_name = arg()["carbon-namespace"];
     g_carbonConfig.setState(std::move(config));
