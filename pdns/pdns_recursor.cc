@@ -4206,9 +4206,8 @@ template ThreadTimes broadcastAccFunction(const boost::function<ThreadTimes*()>&
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
-  int clientfd;
   try {
-    clientfd = accept(fd, nullptr, nullptr);
+    FDWrapper clientfd = accept(fd, nullptr, nullptr);
     if (clientfd == -1) {
       throw PDNSException("accept failed");
     }
@@ -4227,9 +4226,6 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   }
   catch(const PDNSException& ae) {
     g_log<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
-  }
-  if (clientfd != -1) {
-    close(clientfd);
   }
 }
 
