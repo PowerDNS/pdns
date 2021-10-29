@@ -852,6 +852,7 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
 
       if ((*connIt)->isUsable()) {
         ++connIt;
+        continue;
       }
 
       connIt = dsIt->second.erase(connIt);

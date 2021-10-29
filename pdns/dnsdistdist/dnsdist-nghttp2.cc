@@ -932,6 +932,7 @@ void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval no
 
       if ((*connIt)->isUsable()) {
         ++connIt;
+        continue;
       }
 
       connIt = dsIt->second.erase(connIt);
