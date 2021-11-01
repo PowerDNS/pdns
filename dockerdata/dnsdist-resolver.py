@@ -40,5 +40,4 @@ if __name__ == '__main__':
     lt.fname = '/tmp/dnsdist-resolver.out'
     lt.start()
     for line in sys.stdin:
-        print(line.split())
         lt.targets=line.split()
