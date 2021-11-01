@@ -75,4 +75,5 @@ Depending on your specific requirements, it might be good perform checks on zone
 - Enforce reasonable ``TTL`` values.
 - Enforce reasonable values in the ``SOA`` records.
 - Validate delegations.
-
+- Enforce a reasonable maximum for the total number of records.
+- Enforce a reasonbale maximum for the number of records per record set.
