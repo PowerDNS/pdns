@@ -475,9 +475,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if not rawQuery:
                 query = query.to_wire()
             cls._sock.send(query)
+            starttime = time.monotonic()
             data = cls._sock.recv(4096)
         except socket.timeout:
-            print("UDP timeout")
+            print("UDP timeout: ", time.monotonic() - starttime)
             data = None
         finally:
             if timeout:

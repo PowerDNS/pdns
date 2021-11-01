@@ -1033,7 +1033,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             print("notincludedir " + method)
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=5.0)
             print(receivedResponse)
             print(self.sendConsoleCommand('grepq("")'))
             print(self.sendConsoleCommand('showRules()'))
