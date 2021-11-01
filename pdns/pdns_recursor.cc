@@ -150,7 +150,33 @@ thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
 typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
-thread_local static std::map<ComboAddress, int> t_fafSockets;
+
+
+// For fire-and-forget. we keep a set of connected  UDP sockets open for a while
+class FafFDCache
+{
+public:
+  struct Item
+  {
+    time_t d_last_used;
+    FDWrapper d_data;
+  };
+  std::map<ComboAddress, Item> d_map;
+
+  void cleanup(time_t now, time_t age)
+  {
+    for (auto it = d_map.begin(); it != d_map.end(); ) {
+      if (now - it->second.d_last_used > age) {
+        t_fdm->removeReadFD(it->second.d_data);
+        it = d_map.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+};
+
+thread_local static FafFDCache t_fafSockets;
 
 // for communicating with our threads
 // effectively readonly after startup
@@ -740,12 +766,11 @@ static void handleFAFResponse(int fd, FDMultiplexer::funcparam_t& var)
   socklen_t addrlen = sizeof(fromaddr);
 
   len = recvfrom(fd, &packet.at(0), packet.size(), 0, (sockaddr *)&fromaddr, &addrlen);
-  cerr << "Got a FAF response of length " << len << endl;
+  g_log << Logger::Debug << "Received a packet of length " << len << " on FAF socket " << fd << endl;
 }
 
 /* these two functions are used by LWRes */
-LWResult::Result asendto(const char *data, size_t len, int flags,
-                         const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd, bool faf)
+LWResult::Result asendto(const char *data, size_t len, int flags, const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd, bool faf, time_t now)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -769,9 +794,10 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
   }
 
   if (faf) {
-    const auto found = t_fafSockets.find(toaddr);
-    if (found != t_fafSockets.end()) {
-      *fd = found->second;
+    auto found = t_fafSockets.d_map.find(toaddr);
+    if (found != t_fafSockets.d_map.end()) {
+      found->second.d_last_used = now;
+      *fd = found->second.d_data;
     }
     else {
       auto ret = t_udpclientsocks->getSocket(toaddr, fd);
@@ -779,7 +805,7 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
         return ret;
       }
       t_fdm->addReadFD(*fd, handleFAFResponse, nullptr);
-      t_fafSockets.emplace(toaddr, *fd);
+      t_fafSockets.d_map.emplace(toaddr, FafFDCache::Item{now, *fd});
     }
   }
   else {
@@ -3846,6 +3872,7 @@ static void houseKeeping(void *)
       SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
       Utility::gettimeofday(&last_prune, nullptr);
       t_tcp_manager.cleanup(now);
+      t_fafSockets.cleanup(now.tv_sec, (g_networkTimeoutMsec + 500) / 1000);
     }
 
     if(isHandlerThread()) {

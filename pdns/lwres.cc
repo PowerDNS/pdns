@@ -408,7 +408,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     }
 
     const bool faf = context && context->d_fire_and_forget;
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd, faf);
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd, faf, now->tv_sec);
 
     if (ret != LWResult::Result::Success || faf) {
       return ret;

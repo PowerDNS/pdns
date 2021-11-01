@@ -67,7 +67,7 @@ public:
 };
 
 LWResult::Result asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
-                         const DNSName& domain, uint16_t qtype, int* fd, bool faf);
+                         const DNSName& domain, uint16_t qtype, int* fd, bool faf, time_t);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
                            const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now);
 
