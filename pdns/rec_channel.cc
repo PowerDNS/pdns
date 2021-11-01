@@ -171,7 +171,8 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
   str.reserve(len);
   while (str.length() < len) {
     char buffer[1024];
-    ssize_t recvd = ::recv(fd, buffer, sizeof(buffer), 0);
+    size_t toRead = std::min(len - str.length(), sizeof(buffer));
+    ssize_t recvd = ::recv(fd, buffer, toRead, 0);
     if (recvd <= 0) {
       // EOF means we have a length error
       throw PDNSException("Unable to receive message over control channel: " + stringerror());
