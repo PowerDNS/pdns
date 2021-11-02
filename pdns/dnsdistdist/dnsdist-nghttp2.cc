@@ -46,7 +46,7 @@ std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 class DoHConnectionToBackend : public ConnectionToBackend
 {
 public:
-  DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload);
+  DoHConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload);
 
   void handleTimeout(const struct timeval& now, bool write) override;
   void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query) override;
@@ -63,7 +63,7 @@ public:
     d_healthCheckQuery = h;
   }
 
-  void stopIO();
+  void stopIO() override;
   bool reachedMaxConcurrentQueries() const override;
   bool reachedMaxStreamID() const override;
   bool isIdle() const override;
@@ -121,37 +121,8 @@ private:
   bool d_firstWrite{true};
 };
 
-class DownstreamDoHConnectionsManager
-{
-public:
-  static std::shared_ptr<DoHConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload);
-  static void releaseDownstreamConnection(std::shared_ptr<DoHConnectionToBackend>&& conn);
-  static bool removeDownstreamConnection(std::shared_ptr<DoHConnectionToBackend>& conn);
-  static void cleanupClosedConnections(struct timeval now);
-  static size_t clear();
-
-  static void setMaxCachedConnectionsPerDownstream(size_t max)
-  {
-    s_maxCachedConnectionsPerDownstream = max;
-  }
-
-  static void setCleanupInterval(uint16_t interval)
-  {
-    s_cleanupInterval = interval;
-  }
-
-  static void setMaxIdleTime(uint16_t max)
-  {
-    s_maxIdleTime = max;
-  }
-
-private:
-  static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> t_downstreamConnections;
-  static thread_local time_t t_nextCleanup;
-  static size_t s_maxCachedConnectionsPerDownstream;
-  static uint16_t s_cleanupInterval;
-  static uint16_t s_maxIdleTime;
-};
+using DownstreamDoHConnectionsManager = DownstreamConnectionsManager<DoHConnectionToBackend>;
+thread_local DownstreamDoHConnectionsManager t_downstreamDoHConnectionsManager;
 
 uint32_t DoHConnectionToBackend::getConcurrentStreamsCount() const
 {
@@ -493,7 +464,7 @@ void DoHConnectionToBackend::stopIO()
     /* remove ourselves from the connection cache, this might mean that our
        reference count drops to zero after that, so we need to be careful */
     auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
-    DownstreamDoHConnectionsManager::removeDownstreamConnection(shared);
+    t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
   }
 }
 
@@ -745,7 +716,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   if (request.d_query.d_downstreamFailures < conn->d_ds->d_retries) {
     // cerr<<"in "<<__PRETTY_FUNCTION__<<", looking for a connection to send a query of size "<<request.d_query.d_buffer.size()<<endl;
     ++request.d_query.d_downstreamFailures;
-    auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
+    auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
     downstream->queueQuery(request.d_sender, std::move(request.d_query));
   }
   else {
@@ -803,7 +774,7 @@ int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_
   return 0;
 }
 
-DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload) :
+DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload) :
   ConnectionToBackend(ds, mplexer, now), d_proxyProtocolPayload(std::move(proxyProtocolPayload))
 {
   // inherit most of the stuff from the ConnectionToBackend()
@@ -859,147 +830,6 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
   }
 }
 
-thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<DoHConnectionToBackend>>> DownstreamDoHConnectionsManager::t_downstreamConnections;
-thread_local time_t DownstreamDoHConnectionsManager::t_nextCleanup{0};
-size_t DownstreamDoHConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
-uint16_t DownstreamDoHConnectionsManager::s_cleanupInterval{60};
-uint16_t DownstreamDoHConnectionsManager::s_maxIdleTime{300};
-
-size_t DownstreamDoHConnectionsManager::clear()
-{
-  size_t result = 0;
-  for (const auto& backend : t_downstreamConnections) {
-    result += backend.second.size();
-    for (auto& conn : backend.second) {
-      conn->stopIO();
-    }
-  }
-  t_downstreamConnections.clear();
-  return result;
-}
-
-bool DownstreamDoHConnectionsManager::removeDownstreamConnection(std::shared_ptr<DoHConnectionToBackend>& conn)
-{
-  bool found = false;
-  auto backendIt = t_downstreamConnections.find(conn->getDS()->getID());
-  if (backendIt == t_downstreamConnections.end()) {
-    return found;
-  }
-
-  for (auto connIt = backendIt->second.begin(); connIt != backendIt->second.end(); ++connIt) {
-    if (*connIt == conn) {
-      backendIt->second.erase(connIt);
-      found = true;
-      break;
-    }
-  }
-
-  return found;
-}
-
-void DownstreamDoHConnectionsManager::cleanupClosedConnections(struct timeval now)
-{
-  //cerr<<"cleanup interval is "<<s_cleanupInterval<<", next cleanup is "<<t_nextCleanup<<", now is "<<now.tv_sec<<endl;
-  if (s_cleanupInterval <= 0 || (t_nextCleanup > 0 && t_nextCleanup > now.tv_sec)) {
-    return;
-  }
-
-  t_nextCleanup = now.tv_sec + s_cleanupInterval;
-
-  struct timeval freshCutOff = now;
-  freshCutOff.tv_sec -= 1;
-  struct timeval idleCutOff = now;
-  idleCutOff.tv_sec -= s_maxIdleTime;
-
-  for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end();) {
-    for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end();) {
-      if (!(*connIt)) {
-        connIt = dsIt->second.erase(connIt);
-        continue;
-      }
-
-      /* don't bother checking freshly used connections */
-      if (freshCutOff < (*connIt)->getLastDataReceivedTime()) {
-        ++connIt;
-        continue;
-      }
-
-      if ((*connIt)->isIdle() && (*connIt)->getLastDataReceivedTime() < idleCutOff) {
-        /* idle for too long */
-        connIt = dsIt->second.erase(connIt);
-        continue;
-      }
-
-      if ((*connIt)->isUsable()) {
-        ++connIt;
-        continue;
-      }
-
-      connIt = dsIt->second.erase(connIt);
-    }
-
-    if (!dsIt->second.empty()) {
-      ++dsIt;
-    }
-    else {
-      dsIt = t_downstreamConnections.erase(dsIt);
-    }
-  }
-}
-
-std::shared_ptr<DoHConnectionToBackend> DownstreamDoHConnectionsManager::getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload)
-{
-  std::shared_ptr<DoHConnectionToBackend> result;
-  struct timeval freshCutOff = now;
-  freshCutOff.tv_sec -= 1;
-
-  auto backendId = ds->getID();
-
-  cleanupClosedConnections(now);
-
-  const bool haveProxyProtocol = !proxyProtocolPayload.empty();
-  if (!haveProxyProtocol) {
-    //cerr<<"looking for existing connection"<<endl;
-    const auto& it = t_downstreamConnections.find(backendId);
-    if (it != t_downstreamConnections.end()) {
-      auto& list = it->second;
-      for (auto listIt = list.begin(); listIt != list.end();) {
-        auto& entry = *listIt;
-        if (!entry->canBeReused()) {
-          if (!entry->willBeReusable(false)) {
-            listIt = list.erase(listIt);
-          }
-          else {
-            ++listIt;
-          }
-          continue;
-        }
-        entry->setReused();
-        /* for connections that have not been used very recently,
-           check whether they have been closed in the meantime */
-        if (freshCutOff < entry->getLastDataReceivedTime()) {
-          /* used recently enough, skip the check */
-          ++ds->tcpReusedConnections;
-          return entry;
-        }
-
-        if (isTCPSocketUsable(entry->getHandle())) {
-          ++ds->tcpReusedConnections;
-          return entry;
-        }
-
-        listIt = list.erase(listIt);
-      }
-    }
-  }
-
-  auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(proxyProtocolPayload));
-  if (!haveProxyProtocol) {
-    t_downstreamConnections[backendId].push_front(newConnection);
-  }
-  return newConnection;
-}
-
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
   auto threadData = boost::any_cast<DoHClientThreadData*>(param);
@@ -1030,7 +860,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     tmp = nullptr;
 
     try {
-      auto downstream = DownstreamDoHConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now, std::move(query.d_proxyProtocolPayload));
+      auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(threadData->mplexer, downstreamServer, now, std::move(query.d_proxyProtocolPayload));
       downstream->queueQuery(tqs, std::move(query));
     }
     catch (...) {
@@ -1062,7 +892,7 @@ static void dohClientThread(int crossProtocolPipeFD)
         lastTimeoutScan = now.tv_sec;
 
         try {
-          DownstreamDoHConnectionsManager::cleanupClosedConnections(now);
+          t_downstreamDoHConnectionsManager.cleanupClosedConnections(now);
           handleH2Timeouts(*data.mplexer, now);
 
           if (g_dohStatesDumpRequested > 0) {
@@ -1304,7 +1134,7 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
-    auto connection = DownstreamDoHConnectionsManager::getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
+    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
     connection->queueQuery(sender, std::move(query));
   }
 
@@ -1318,7 +1148,7 @@ size_t clearH2Connections()
 {
   size_t cleared = 0;
 #ifdef HAVE_NGHTTP2
-  cleared = DownstreamDoHConnectionsManager::clear();
+  cleared = t_downstreamDoHConnectionsManager.clear();
 #endif /* HAVE_NGHTTP2 */
   return cleared;
 }

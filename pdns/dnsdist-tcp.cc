@@ -106,7 +106,7 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
 
 size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
 {
-  return DownstreamConnectionsManager::clear();
+  return t_downstreamTCPConnectionsManager.clear();
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
@@ -117,7 +117,7 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
 
   if (!downstream) {
     /* we don't have a connection to this backend owned yet, let's get one (it might not be a fresh one, though) */
-    downstream = DownstreamConnectionsManager::getConnectionToDownstream(d_threadData.mplexer, ds, now);
+    downstream = t_downstreamTCPConnectionsManager.getConnectionToDownstream(d_threadData.mplexer, ds, now, std::string());
     if (ds->useProxyProtocol) {
       registerOwnedDownstreamConnection(downstream);
     }
@@ -1134,7 +1134,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     tmp = nullptr;
 
     try {
-      auto downstream = DownstreamConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
+      auto downstream = t_downstreamTCPConnectionsManager.getConnectionToDownstream(threadData->mplexer, downstreamServer, now, std::string());
 
       prependSizeToTCPQuery(query.d_buffer, proxyProtocolPayloadSize);
       downstream->queueQuery(tqs, std::move(query));
@@ -1210,7 +1210,7 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
       data.mplexer->run(&now);
 
       try {
-        DownstreamConnectionsManager::cleanupClosedTCPConnections(now);
+        t_downstreamTCPConnectionsManager.cleanupClosedConnections(now);
 
         if (now.tv_sec > lastTimeoutScan) {
           lastTimeoutScan = now.tv_sec;

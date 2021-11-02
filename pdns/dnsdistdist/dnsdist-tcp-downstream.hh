@@ -10,7 +10,7 @@
 class ConnectionToBackend : public std::enable_shared_from_this<ConnectionToBackend>
 {
 public:
-  ConnectionToBackend(std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_connectionStartTime(now), d_lastDataReceivedTime(now), d_ds(ds), d_mplexer(mplexer), d_enableFastOpen(ds->tcpFastOpen)
+  ConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_connectionStartTime(now), d_lastDataReceivedTime(now), d_ds(ds), d_mplexer(mplexer), d_enableFastOpen(ds->tcpFastOpen)
   {
     reconnect();
   }
@@ -116,6 +116,9 @@ public:
   virtual bool reachedMaxConcurrentQueries() const = 0;
   virtual bool isIdle() const = 0;
   virtual void release() = 0;
+  virtual void stopIO()
+  {
+  }
 
   bool matches(const std::shared_ptr<DownstreamState>& ds) const
   {
@@ -200,7 +203,7 @@ protected:
 
   struct timeval d_connectionStartTime;
   struct timeval d_lastDataReceivedTime;
-  std::shared_ptr<DownstreamState> d_ds{nullptr};
+  const std::shared_ptr<DownstreamState> d_ds{nullptr};
   std::shared_ptr<TCPQuerySender> d_sender{nullptr};
   std::unique_ptr<FDMultiplexer>& d_mplexer;
   std::unique_ptr<TCPIOHandler> d_handler{nullptr};
@@ -217,7 +220,7 @@ protected:
 class TCPConnectionToBackend : public ConnectionToBackend
 {
 public:
-  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): ConnectionToBackend(ds, mplexer, now), d_responseBuffer(s_maxPacketCacheEntrySize)
+  TCPConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& /* proxyProtocolPayload*, unused but there to match the HTTP2 connections, so we can use the same templated connections manager class */): ConnectionToBackend(ds, mplexer, now), d_responseBuffer(s_maxPacketCacheEntrySize)
   {
   }
 
@@ -295,13 +298,9 @@ private:
   State d_state{State::idle};
 };
 
-class DownstreamConnectionsManager
+template <class T> class DownstreamConnectionsManager
 {
 public:
-  static std::shared_ptr<TCPConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<DownstreamState>& ds, const struct timeval& now);
-  static void cleanupClosedTCPConnections(struct timeval now);
-  static size_t clear();
-
   static void setMaxCachedConnectionsPerDownstream(size_t max)
   {
     s_maxCachedConnectionsPerDownstream = max;
@@ -317,10 +316,168 @@ public:
     s_maxIdleTime = max;
   }
 
-private:
-  static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
-  static thread_local time_t t_nextCleanup;
+  bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& now, const struct timeval& freshCutOff)
+  {
+    if (!conn->canBeReused()) {
+      return false;
+    }
+
+    /* for connections that have not been used very recently,
+       check whether they have been closed in the meantime */
+    if (freshCutOff < conn->getLastDataReceivedTime()) {
+      /* used recently enough, skip the check */
+      return true;
+    }
+
+    if (conn->isUsable()) {
+      return true;
+    }
+
+    return false;
+  }
+
+  std::shared_ptr<T> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload)
+  {
+    struct timeval freshCutOff = now;
+    freshCutOff.tv_sec -= 1;
+
+    auto backendId = ds->getID();
+
+    cleanupClosedConnections(now);
+
+    const bool haveProxyProtocol = ds->useProxyProtocol || !proxyProtocolPayload.empty();
+    if (!haveProxyProtocol) {
+      const auto& it = d_downstreamConnections.find(backendId);
+      if (it != d_downstreamConnections.end()) {
+        auto& list = it->second;
+        for (auto listIt = list.begin(); listIt != list.end(); ) {
+          if (!(*listIt)) {
+            listIt = list.erase(listIt);
+            continue;
+          }
+
+          auto& entry = *listIt;
+          if (isConnectionUsable(entry, now, freshCutOff)) {
+            entry->setReused();
+            ++ds->tcpReusedConnections;
+            return entry;
+          }
+
+          if (entry->willBeReusable(false)) {
+            ++listIt;
+            continue;
+          }
+
+          listIt = list.erase(listIt);
+        }
+      }
+    }
+
+    auto newConnection = std::make_shared<T>(ds, mplexer, now, std::move(proxyProtocolPayload));
+    if (!haveProxyProtocol) {
+      d_downstreamConnections[backendId].push_front(newConnection);
+    }
+
+    return newConnection;
+  }
+
+  void cleanupClosedConnections(struct timeval now)
+  {
+    if (s_cleanupInterval == 0 || (d_nextCleanup != 0 && d_nextCleanup > now.tv_sec)) {
+      return;
+    }
+
+    d_nextCleanup = now.tv_sec + s_cleanupInterval;
+
+    struct timeval freshCutOff = now;
+    freshCutOff.tv_sec -= 1;
+    struct timeval idleCutOff = now;
+    idleCutOff.tv_sec -= s_maxIdleTime;
+
+    for (auto dsIt = d_downstreamConnections.begin(); dsIt != d_downstreamConnections.end(); ) {
+      for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
+        if (!(*connIt)) {
+          connIt = dsIt->second.erase(connIt);
+          continue;
+        }
+
+        auto& entry = *connIt;
+
+        /* don't bother checking freshly used connections */
+        if (freshCutOff < entry->getLastDataReceivedTime()) {
+          ++connIt;
+          continue;
+        }
+
+        if (entry->isIdle() && entry->getLastDataReceivedTime() < idleCutOff) {
+          /* idle for too long */
+          connIt = dsIt->second.erase(connIt);
+          continue;
+        }
+
+        if (entry->isUsable()) {
+          ++connIt;
+          continue;
+        }
+
+        connIt = dsIt->second.erase(connIt);
+      }
+
+      if (!dsIt->second.empty()) {
+        ++dsIt;
+      }
+      else {
+        dsIt = d_downstreamConnections.erase(dsIt);
+      }
+    }
+  }
+
+  size_t clear()
+  {
+    size_t count = 0;
+    for (const auto& downstream : d_downstreamConnections) {
+      count += downstream.second.size();
+      for (auto& conn : downstream.second) {
+        conn->stopIO();
+      }
+    }
+
+    d_downstreamConnections.clear();
+    return count;
+  }
+
+  bool removeDownstreamConnection(std::shared_ptr<T>& conn)
+  {
+    bool found = false;
+    auto backendIt = d_downstreamConnections.find(conn->getDS()->getID());
+    if (backendIt == d_downstreamConnections.end()) {
+      return found;
+    }
+
+    for (auto connIt = backendIt->second.begin(); connIt != backendIt->second.end(); ++connIt) {
+      if (*connIt == conn) {
+        backendIt->second.erase(connIt);
+        found = true;
+        break;
+      }
+    }
+
+    return found;
+  }
+
+protected:
+
   static size_t s_maxCachedConnectionsPerDownstream;
   static uint16_t s_cleanupInterval;
   static uint16_t s_maxIdleTime;
+
+  std::map<boost::uuids::uuid, std::deque<std::shared_ptr<T>>> d_downstreamConnections;
+  time_t d_nextCleanup{0};
 };
+
+template <class T> size_t DownstreamConnectionsManager<T>::s_maxCachedConnectionsPerDownstream{10};
+template <class T> uint16_t DownstreamConnectionsManager<T>::s_cleanupInterval{60};
+template <class T> uint16_t DownstreamConnectionsManager<T>::s_maxIdleTime{300};
+
+using DownstreamTCPConnectionsManager = DownstreamConnectionsManager<TCPConnectionToBackend>;
+extern thread_local DownstreamTCPConnectionsManager t_downstreamTCPConnectionsManager;
