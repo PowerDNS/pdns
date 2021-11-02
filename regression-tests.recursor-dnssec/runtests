@@ -55,6 +55,12 @@ if ! "$PDNSRECURSOR" --version 2>&1 | grep Features | grep -q dnstap-framestream
   export NODNSTAPTESTS=1
 fi
 
+# libfstrm has a bad interaction with libfaketime on at leas Ubuntu focal
+# to run the test without LIBFAKETIME, we clear the var if it set to /bin/false
+if [ "$LIBFAKETIME" = "/bin/false" ]; then
+  LIBFAKETIME=""
+fi
+
 if [ "${LIBAUTHBIND}" != "" -o "${LIBFAKETIME}" != "" ]; then
 LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND} ${LIBFAKETIME}" nosetests -I test_WellKnown.py --with-xunit $@
 else

@@ -34,6 +34,7 @@ rm -f recursor.pid pdns_recursor.pid
 '         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address="0.0.0.0${QLA6}" --threads=$threads --record-cache-shards=$shards --disable-packetcache --refresh-on-ttl-perc=10 --dnssec=validate > recursor.log 2>&1 &
 sleep 3
 if [ ! -e pdns_recursor.pid ]; then
+        cat recursor.log
 	echo Recursor did not start or did not write pdns_recursor.pid, exiting
 	exit 1
 fi
