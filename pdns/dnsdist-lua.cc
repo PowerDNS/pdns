@@ -1865,7 +1865,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("includeDirectory", [&luaCtx](const std::string& dirname) {
-
     if (g_configurationDone) {
       errlog("includeDirectory() cannot be used at runtime!");
       g_outputBuffer = "includeDirectory() cannot be used at runtime!\n";
