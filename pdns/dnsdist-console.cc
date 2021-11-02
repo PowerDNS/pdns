@@ -242,7 +242,7 @@ void doClient(ComboAddress server, const std::string& command)
     sendMessageToServer(fd, command, readingNonce, writingNonce, false);
 
     close(fd);
-    return; 
+    return;
   }
 
   string histfile = historyFile();
@@ -268,7 +268,7 @@ void doClient(ComboAddress server, const std::string& command)
     }
     lastline=line;
     free(sline);
-    
+
     if(line=="quit")
       break;
     if(line=="help" || line=="?")
@@ -310,7 +310,7 @@ void doConsole()
     }
     lastline=line;
     free(sline);
-    
+
     if(line=="quit")
       break;
     if(line=="help" || line=="?")
@@ -327,7 +327,7 @@ void doConsole()
         auto ret = lua->executeCode<
           boost::optional<
             boost::variant<
-              string, 
+              string,
               shared_ptr<DownstreamState>,
               ClientState*,
               std::unordered_map<string, double>
@@ -357,7 +357,7 @@ void doConsole()
             cout<<out.dump()<<endl;
           }
         }
-        else 
+        else
           cout << g_outputBuffer << std::flush;
         if(!getLuaNoSideEffect())
           feedConfigDelta(line);
@@ -378,7 +378,7 @@ void doConsole()
       if(!strcmp(e.what(),"invalid key to 'next'"))
         std::cerr<<"Error parsing parameters, did you forget parameter name?";
       else
-        std::cerr << e.what(); 
+        std::cerr << e.what();
       try {
         std::rethrow_if_nested(e);
 
@@ -393,7 +393,7 @@ void doConsole()
       }
     }
     catch(const std::exception& e) {
-      std::cerr << e.what() << std::endl;      
+      std::cerr << e.what() << std::endl;
     }
   }
 }
@@ -690,7 +690,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "TCPRule", true, "[tcp]", "Matches question received over TCP if tcp is true, over UDP otherwise" },
   { "TeeAction", true, "remote [, addECS]", "send copy of query to remote, optionally adding ECS info" },
   { "testCrypto", true, "", "test of the crypto all works" },
-  { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"}, 
+  { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"},
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },
   { "topCacheHitResponseRules", true, "[top][, vars]", "show `top` cache-hit response rules" },
   { "topClients", true, "n", "show top-`n` clients sending the most queries over length of ringbuffer" },
@@ -751,6 +751,7 @@ char** my_completion( const char * text , int start,  int end)
 
 static void controlClientThread(ConsoleConnection&& conn)
 {
+  cerr<<"in "<<__PRETTY_FUNCTION__<<endl;
   try
   {
     setThreadName("dnsdist/conscli");
@@ -758,15 +759,23 @@ static void controlClientThread(ConsoleConnection&& conn)
     setTCPNoDelay(conn.getFD());
 
     SodiumNonce theirs, ours, readingNonce, writingNonce;
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     ours.init();
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     readn2(conn.getFD(), (char*)theirs.value, sizeof(theirs.value));
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     writen2(conn.getFD(), (char*)ours.value, sizeof(ours.value));
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     readingNonce.merge(ours, theirs);
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     writingNonce.merge(theirs, ours);
+    cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
 
     for(;;) {
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
       uint32_t len;
       if (!getMsgLen32(conn.getFD(), &len)) {
+        cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
         break;
       }
 
@@ -774,36 +783,43 @@ static void controlClientThread(ConsoleConnection&& conn)
         /* just ACK an empty message
            with an empty response */
         putMsgLen32(conn.getFD(), 0);
+        cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
         continue;
       }
 
       std::string line;
       line.resize(len);
       readn2(conn.getFD(), line.data(), len);
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
 
       line = sodDecryptSym(line, g_consoleKey, readingNonce);
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
+
 
       string response;
       try {
         bool withReturn=true;
       retry:;
         try {
+          cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
           auto lua = g_lua.lock();
-        
+          cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
+
           g_outputBuffer.clear();
           resetLuaSideEffect();
           auto ret = lua->executeCode<
             boost::optional<
               boost::variant<
-                string, 
+                string,
                 shared_ptr<DownstreamState>,
                 ClientState*,
                 std::unordered_map<string, double>
                 >
               >
             >(withReturn ? ("return "+line) : line);
-
-          if(ret) {
+          cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
+          if (ret) {
+            cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
             if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
               if (*dsValue) {
                 response=(*dsValue)->getName()+"\n";
@@ -829,13 +845,19 @@ static void controlClientThread(ConsoleConnection&& conn)
               Json out = o;
               response=out.dump()+"\n";
             }
+            cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
           }
-          else
+          else {
+            cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
             response=g_outputBuffer;
-          if(!getLuaNoSideEffect())
+          }
+          if (!getLuaNoSideEffect()) {
+            cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
             feedConfigDelta(line);
+          }
         }
         catch(const LuaContext::SyntaxErrorException&) {
+          cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
           if(withReturn) {
             withReturn=false;
             goto retry;
@@ -844,10 +866,12 @@ static void controlClientThread(ConsoleConnection&& conn)
         }
       }
       catch(const LuaContext::WrongTypeException& e) {
+        cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
         response = "Command returned an object we can't print: " +std::string(e.what()) + "\n";
         // tried to return something we don't understand
       }
       catch(const LuaContext::ExecutionErrorException& e) {
+        cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
         if(!strcmp(e.what(),"invalid key to 'next'"))
           response = "Error: Parsing function parameters, did you forget parameter name?";
         else
@@ -864,11 +888,15 @@ static void controlClientThread(ConsoleConnection&& conn)
         }
       }
       catch(const LuaContext::SyntaxErrorException& e) {
+        cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
         response = "Error: " + string(e.what()) + ": ";
       }
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
       response = sodEncryptSym(response, g_consoleKey, writingNonce);
       putMsgLen32(conn.getFD(), response.length());
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
       writen2(conn.getFD(), response.c_str(), response.length());
+      cerr<<"in "<<__PRETTY_FUNCTION__<<", line "<<__LINE__<<endl;
     }
     if (g_logConsoleConnections) {
       infolog("Closed control connection from %s", conn.getClient().toStringWithPort());
@@ -878,6 +906,7 @@ static void controlClientThread(ConsoleConnection&& conn)
   {
     errlog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
+  cerr<<"in "<<__PRETTY_FUNCTION__<<endl;
 }
 
 void controlThread(int fd, ComboAddress local)
