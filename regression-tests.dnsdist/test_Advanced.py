@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os
 import string
 import time
+import unittest
 import dns
 import clientsubnetoption
 import cookiesoption
@@ -976,6 +977,7 @@ class TestAdvancedWireLengthRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
+@unittest.skipIf('SKIP_INCLUDEDIR_TESTS' in os.environ, 'IncludeDir tests are disabled')
 class TestAdvancedIncludeDir(DNSDistTest):
 
     _config_template = """
