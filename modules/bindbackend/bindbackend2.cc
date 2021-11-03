@@ -1301,6 +1301,10 @@ bool Bind2Backend::list(const DNSName& target, int id, bool include_disabled)
   d_handle.reset();
   DLOG(g_log << "Bind2Backend constructing handle for list of " << id << endl);
 
+  if (!bbd.d_loaded) {
+    throw PDNSException("zone was not loaded, perhaps because of: " + bbd.d_status);
+  }
+
   d_handle.d_records = bbd.d_records.get(); // give it a copy, which will stay around
   d_handle.d_qname_iter = d_handle.d_records->begin();
   d_handle.d_qname_end = d_handle.d_records->end(); // iter now points to a vector of pointers to vector<BBResourceRecords>
@@ -1434,6 +1438,10 @@ bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<D
     for (const auto& i : s_state) {
       BB2DomainInfo h;
       if (!safeGetBBDomainInfo(i.d_id, &h)) {
+        continue;
+      }
+
+      if (!h.d_loaded) {
         continue;
       }
 
