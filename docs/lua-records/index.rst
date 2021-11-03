@@ -177,6 +177,8 @@ separate records. The full example from above can also be written as::
                                   "return ifurlup('https://www.lua.org/',        "
                                   "{EUips, USAips}, settings)                    " )
 
+.. _lua-details-security:
+
 Details & Security
 ------------------
 LUA records are synthesized on query. They can also be transferred via AXFR
