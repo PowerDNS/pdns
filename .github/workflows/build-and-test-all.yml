@@ -313,6 +313,7 @@ jobs:
       - run: inv test-regression-recursor
 
   test-recursor-bulk:
+    name: 'test rec *mini* bulk'
     needs: build-recursor
     runs-on: ubuntu-20.04
     strategy:
