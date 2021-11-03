@@ -55,8 +55,6 @@ caStore *file*
     when using DoT, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
 tlsProvider *name*
     when using DoT, use TLS provider *name*. Currently supported (if compiled in): `openssl` and `gnutls`. Default is `openssl` if available.
-xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*
-	Send an *XPF* additional with these parameters.
 opcode *OPNUM*
     Use opcode *OPNUM* instead of 0 (Query). For example, ``sdig 192.0.2.1 53 example.com SOA opcode 4`` sends a ``NOTIFY``.
 

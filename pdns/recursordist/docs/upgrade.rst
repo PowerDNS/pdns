@@ -4,8 +4,15 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.5.x to 4.6.0 or master
-------------------------
+4.6.x to master
+---------------
+
+Removed settings
+^^^^^^^^^^^^^^^^
+- ``xpf-allow-from`` and ``xpf-rr-code`` have been removed. Use the Proxy protocol (:ref:`setting-proxy-protocol-from` and :ref:`setting-proxy-protocol-maximum-size`) instead.
+
+4.5.x to 4.6.0
+--------------
 
 Offensive language
 ^^^^^^^^^^^^^^^^^^

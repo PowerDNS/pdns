@@ -505,6 +505,9 @@ Servers
   .. versionchanged:: 1.7.0
     Added ``addXForwardedHeaders``, ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
+  .. versionchanged:: 1.8.0
+    Removed ``addXPF`` from server_table, use ``useProxyProtocol`` instead.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -545,6 +548,7 @@ Servers
                                 --   "address@interface", e.g. "192.0.2.2@eth0"
       addXPF=NUM,               -- Add the client's IP address and port to the query, along with the original destination address and port,
                                 -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
+                                -- XPF support is removed in 1.8.0, use the proxy-protocol instead.
       sockets=NUM,              -- Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`).
       disableZeroScope=BOOL,    -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
       rise=NUM,                 -- Require NUM consecutive successful checks before declaring the backend up, default: 1

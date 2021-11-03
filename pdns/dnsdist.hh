@@ -175,7 +175,6 @@ public:
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
-  bool addXPF{true};
   bool ecsSet{false};
   bool ecsAdded{false};
   bool ednsAdded{false};
@@ -758,7 +757,6 @@ public:
   QType checkType{QType::A};
   uint16_t checkClass{QClass::IN};
   uint16_t d_retries{5};
-  uint16_t xpfRRCode{0};
   uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};
   uint8_t consecutiveSuccessfulChecks{0};

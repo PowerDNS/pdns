@@ -299,11 +299,10 @@ void DNSPacket::wrapup()
   DNSPacketWriter::optvect_t opts;
 
   /* optsize is expected to hold an upper bound of data that will be
-     added after actual record data - i.e. OPT, TSIG, perhaps one day
-     XPF. Because of the way `pw` incrementally writes the packet, we
-     cannot easily 'go back' and remove a few records. So, to prevent
-     going over our maximum size, we keep our (potential) extra data
-     in mind.
+     added after actual record data - i.e. OPT, TSIG. Because of the
+     way `pw` incrementally writes the packet, we cannot easily
+     'go back' and remove a few records. So, to prevent going over
+     our maximum size, we keep our (potential) extra data in mind.
 
      This means that sometimes we'll send TC even if we'd end up with
      a few bytes to spare, but so be it.

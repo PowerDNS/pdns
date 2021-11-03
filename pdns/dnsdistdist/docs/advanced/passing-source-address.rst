@@ -26,7 +26,7 @@ In addition to the global settings, rules and Lua bindings can alter this behavi
 
 In effect this means that for the EDNS Client Subnet option to be added to the request, ``useClientSubnet`` should be set to ``true`` for the backend used (default to ``false``) and ECS should not have been disabled by calling :func:`SetDisableECSAction` or setting ``dq.useECS`` to ``false`` (default to true).
 
-Note that any trailing data present in the incoming query is removed when an OPT (or XPF) record has to be inserted.
+Note that any trailing data present in the incoming query is removed when an OPT record has to be inserted.
 
 In addition to the drawback that it can only pass the source IP address, and the fact that it needs to override any existing ECS option, adding that option requires parsing and editing the query, as well as parsing and editing the response in most cases.
 
@@ -48,6 +48,8 @@ In addition to the drawback that it can only pass the source IP address, and the
 
 X-Proxied-For
 -------------
+.. deprecated:: 1.8.0
+  Support for XPF has been removed
 
 The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
 

@@ -176,7 +176,6 @@ dnsdist_SOURCES = \
 	dnsdist-tcp-upstream.hh \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
 	dnsdist-web.cc dnsdist-web.hh \
-	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.cc dnsdist.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -219,8 +218,7 @@ dnsdist_SOURCES = \
 	tcpiohandler-mplexer.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
-	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh
+	uuid-utils.hh uuid-utils.cc
 
 testrunner_SOURCES = \
 	base64.hh \
@@ -254,7 +252,6 @@ testrunner_SOURCES = \
 	dnsdist-svc.cc dnsdist-svc.hh \
 	dnsdist-tcp-downstream.cc \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
-	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -302,8 +299,7 @@ testrunner_SOURCES = \
 	test-proxy_protocol_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
-	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh
+	uuid-utils.hh uuid-utils.cc
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \

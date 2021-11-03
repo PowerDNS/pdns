@@ -635,7 +635,7 @@ Lower this if you experience timeouts.
 -  Comma separated list of netmasks
 -  Default: (none)
 
-List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
+List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
 
 .. _setting-edns-padding-mode:
 
@@ -2269,6 +2269,8 @@ If a PID file should be written to `socket-dir`_
 ``xpf-allow-from``
 ------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
+   Removed, use the proxy-protocol instead
 
 -  IP addresses or netmasks, separated by commas
 -  Default: empty
@@ -2287,6 +2289,8 @@ should be done on the proxy.
 ``xpf-rr-code``
 ---------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
+   Removed, use the proxy-protocol instead
 
 -  Integer
 -  Default: 0

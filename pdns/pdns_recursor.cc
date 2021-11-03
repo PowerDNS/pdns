@@ -115,7 +115,6 @@
 #include "uuid-utils.hh"
 #include "rec-protozero.hh"
 
-#include "xpf.hh"
 #include "rec-eventtrace.hh"
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
@@ -204,7 +203,6 @@ static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mecha
 static std::atomic<uint32_t> counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
-static NetmaskGroup g_XPFAcl;
 static NetmaskGroup g_proxyProtocolACL;
 static NetmaskGroup g_paddingFrom;
 static boost::optional<ComboAddress> g_dns64Prefix{boost::none};
@@ -221,7 +219,6 @@ static unsigned int g_numWorkerThreads;
 static unsigned int g_paddingTag;
 static int g_tcpTimeout;
 static uint16_t g_udpTruncationThreshold;
-static uint16_t g_xpfRRCode{0};
 static PaddingMode g_paddingMode;
 static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
@@ -328,13 +325,13 @@ struct DNSComboWriter {
   MOADNSParser d_mdp;
   struct timeval d_now;
   /* Remote client, might differ from d_source
-     in case of XPF, in which case d_source holds
+     in case of Proxy, in which case d_source holds
      the IP of the client and d_remote of the proxy
   */
   ComboAddress d_remote;
   ComboAddress d_source;
   /* Destination address, might differ from
-     d_destination in case of XPF, in which case
+     d_destination in case of Proxy, in which case
      d_destination holds the IP of the proxy and
      d_local holds our own. */
   ComboAddress d_local;
@@ -2476,10 +2473,8 @@ static void makeControlChannelSocket(int processNum=-1)
 }
 
 static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                              bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
-                              bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
+                              bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options)
 {
-  const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
   const bool lookForECS = ednssubnet != nullptr;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(question.c_str());
   size_t questionLen = question.length();
@@ -2490,9 +2485,9 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   const size_t headerSize = /* root */ 1 + sizeof(dnsrecordheader);
   const uint16_t arcount = ntohs(dh->arcount);
 
-  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && ((lookForECS && !foundECS) || (lookForXPF && !foundXPF)); arpos++) {
+  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && (lookForECS && !foundECS); arpos++) {
     if (question.at(pos) != 0) {
-      /* not an OPT or a XPF, bye. */
+      /* not an OPT, bye. */
       return;
     }
 
@@ -2534,14 +2529,6 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
         }
       }
     }
-    else if (lookForXPF && ntohs(drh->d_type) == g_xpfRRCode && ntohs(drh->d_class) == QClass::IN && drh->d_ttl == 0) {
-      if ((questionLen - pos) < ntohs(drh->d_clen)) {
-        return;
-      }
-
-      foundXPF = parseXPFPayload(reinterpret_cast<const char*>(&question.at(pos)), ntohs(drh->d_clen), *xpfSource, xpfDest);
-    }
-
     pos += ntohs(drh->d_clen);
   }
 }
@@ -2766,7 +2753,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       uint16_t qtype=0;
       uint16_t qclass=0;
       bool needECS = false;
-      bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
       string deviceName;
@@ -2786,16 +2772,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       checkFrameStreamExport(luaconfsLocal);
 #endif
 
-      if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
+      if(needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
 
         try {
           EDNSOptionViewMap ednsOptions;
-          bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
           getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
-                            xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
+                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
           qnameParsed = true;
 
           if(t_pdl) {
@@ -3046,7 +3030,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   unsigned int ctag=0;
   uint32_t qhash = 0;
   bool needECS = false;
-  bool needXPF = g_XPFAcl.match(fromaddr);
   std::unordered_set<std::string> policyTags;
   std::map<std::string, RecursorLua4::MetaValue> meta;
   LuaContext::LuaObject data;
@@ -3097,16 +3080,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
-    if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
+    if(needECS || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
       try {
         EDNSOptionViewMap ednsOptions;
-        bool xpfFound = false;
 
         ecsFound = false;
 
         getQNameAndSubnet(question, &qname, &qtype, &qclass,
-                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
-                          xpfFound, needXPF ? &source : nullptr, needXPF ? &destination : nullptr);
+                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
 
         qnameParsed = true;
         ecsParsed = true;
@@ -5075,9 +5056,6 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
-  g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
-  g_xpfRRCode = ::arg().asNum("xpf-rr-code");
-
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
@@ -5974,9 +5952,6 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
-    ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
-    ::arg().set("xpf-rr-code","XPF option code to use")="0";
-
     ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets")="";
     ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values")="512";
 
@@ -6017,7 +5992,7 @@ int main(int argc, char **argv)
 
     ::arg().set("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC processing or validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="100000";
 
-    ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies")="";
+    ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies")="";
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources")="padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.")="7830";
 

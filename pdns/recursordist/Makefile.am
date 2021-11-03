@@ -203,7 +203,6 @@ pdns_recursor_SOURCES = \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
-	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
@@ -336,14 +335,12 @@ testrunner_SOURCES = \
 	test-syncres_cc8.cc \
 	test-syncres_cc9.cc \
 	test-tsig.cc \
-	test-xpf_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
-	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \

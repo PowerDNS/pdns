@@ -31,7 +31,6 @@
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
-#include "dnsdist-xpf.hh"
 #include "dnsparser.hh"
 #include "dolog.hh"
 #include "gettime.hh"

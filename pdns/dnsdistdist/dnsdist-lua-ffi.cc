@@ -135,11 +135,6 @@ bool dnsdist_ffi_dnsquestion_get_use_ecs(const dnsdist_ffi_dnsquestion_t* dq)
   return dq->dq->useECS;
 }
 
-bool dnsdist_ffi_dnsquestion_get_add_xpf(const dnsdist_ffi_dnsquestion_t* dq)
-{
-  return dq->dq->addXPF;
-}
-
 bool dnsdist_ffi_dnsquestion_get_ecs_override(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->ecsOverride;

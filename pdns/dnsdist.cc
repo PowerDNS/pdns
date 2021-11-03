@@ -57,7 +57,6 @@
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-web.hh"
-#include "dnsdist-xpf.hh"
 
 #include "base64.hh"
 #include "delaypipe.hh"
@@ -1283,10 +1282,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
     /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
     dq.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader());
-
-    if (dq.addXPF && selectedBackend->xpfRRCode != 0) {
-      addXPF(dq, selectedBackend->xpfRRCode);
-    }
 
     selectedBackend->incQueriesCount();
     return ProcessQueryResult::PassToBackend;

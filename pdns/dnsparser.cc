@@ -282,11 +282,7 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
         dr.d_content=DNSRecordContent::mastermake(dr, pr, d_header.opcode);
       }
 
-      /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:
-         if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG && dr.d_type != QType::XPF)
-      */
       if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG) {
-        /* only XPF records are allowed after a TSIG */
         throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has an unexpected record ("+std::to_string(dr.d_type)+") after a TSIG one.");
       }
 
