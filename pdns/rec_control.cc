@@ -176,9 +176,9 @@ int main(int argc, char** argv)
     auto timeout = arg().asNum("timeout");
     RecursorControlChannel rccS;
     rccS.connect(arg()["socket-dir"], sockname);
-    rccS.send({0, command}, nullptr, timeout, fd);
+    rccS.send(rccS.d_fd, {0, command}, timeout, fd);
 
-    auto receive = rccS.recv(0, timeout);
+    auto receive = rccS.recv(rccS.d_fd, timeout);
     if (receive.d_ret != 0) {
       cerr << receive.d_str;
     }
