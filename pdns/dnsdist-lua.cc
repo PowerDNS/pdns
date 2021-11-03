@@ -2764,6 +2764,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
   });
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
+
+  luaCtx.writeFunction("addCapabilitiesToRetain", [](boost::variant<std::string, std::map<int, std::string>> caps) {
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      g_outputBuffer = "addCapabilitiesToRetain cannot be used at runtime!\n";
+      return;
+    }
+    if (caps.type() == typeid(std::string)) {
+      g_capabilitiesToRetain.insert(boost::get<std::string>(caps));
+    }
+    else if (caps.type() == typeid(std::map<int, std::string>)) {
+      for (const auto& cap : boost::get<std::map<int, std::string>>(caps)) {
+        g_capabilitiesToRetain.insert(cap.second);
+      }
+    }
+  });
 }
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
