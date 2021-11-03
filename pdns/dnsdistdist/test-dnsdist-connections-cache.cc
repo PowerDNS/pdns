@@ -66,7 +66,10 @@ public:
   {
   }
 
-  struct timeval d_lastDataReceivedTime{0, 0};
+  struct timeval d_lastDataReceivedTime
+  {
+    0, 0
+  };
   bool d_reusable{true};
   bool d_usable{true};
   bool d_idle{false};
@@ -151,7 +154,7 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   conn->d_usable = false;
   conn->d_lastDataReceivedTime.tv_sec = 0;
 
-  std::vector<std::shared_ptr<MockupConnection>> conns = { conn };
+  std::vector<std::shared_ptr<MockupConnection>> conns = {conn};
   while (conns.size() < maxConnPerDownstream) {
     auto newConn = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
     newConn->d_usable = false;
