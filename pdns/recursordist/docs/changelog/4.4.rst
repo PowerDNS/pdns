@@ -2,6 +2,24 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.7
+  :released: 5th of November 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10910
+    :tickets: 10908
+
+    A SHA-384 DS should not trump a SHA-256 one, only potentially ignore SHA-1 DS records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10909
+    :tickets: 10905
+
+    rec_control wipe-cache-typed should check if a qtype argument is present and valid.
+
+.. changelog::
   :version: 4.4.6
   :released: 8th of October 2021
 
