@@ -920,7 +920,7 @@ bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig
   return sig->d_siginception - g_signatureInceptionSkew <= now;
 }
 
-static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordContent> sig, const shared_ptr<DNSKEYRecordContent> key, const std::string& msg)
+static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordContent> sig, const shared_ptr<DNSKEYRecordContent> key, const std::string& msg, vState& ede)
 {
   bool result = false;
   try {
@@ -932,13 +932,18 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key->d_algorithm, key->d_key);
       result = dke->verify(msg, sig->d_signature);
       LOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
+      if (!result) {
+        ede = vState::BogusNoValidRRSIG;
+      }
     }
     else {
-      LOG("Signature is "<<((sig->d_siginception - g_signatureInceptionSkew > now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
-    }
+      ede = (sig->d_siginception - g_signatureInceptionSkew > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
+      LOG("Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
+     }
   }
   catch (const std::exception& e) {
     LOG("Could not make a validator for signature: "<<e.what()<<endl);
+    ede = vState::BogusUnsupportedDNSKEYAlgo;
   }
   return result;
 }
@@ -966,7 +971,8 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
 
     string msg = getMessageForRRSET(name, *signature, toSign, true);
     for (const auto& key : keysMatchingTag) {
-      bool signIsValid = checkSignatureWithKey(now, signature, key, msg);
+      vState ede;
+      bool signIsValid = checkSignatureWithKey(now, signature, key, msg, ede);
       foundKey = true;
 
       if (signIsValid) {
@@ -998,9 +1004,11 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     return vState::BogusNoValidRRSIG;
   }
   if (noneIncepted) {
+    // ede should be vState::BogusSignatureNotYetValid
     return vState::BogusSignatureNotYetValid;
   }
   if (allExpired) {
+    // ede should be vState::BogusSignatureExpired);
     return vState::BogusSignatureExpired;
   }
 
@@ -1112,6 +1120,8 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
     }
   }
 
+  vState ede = vState::BogusNoValidDNSKEY;
+
   //    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
   // these counts could be off if we somehow ended up with
   // duplicate keys. Should switch to a type that prevents that.
@@ -1133,7 +1143,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       string msg = getMessageForRRSET(zone, *sig, toSign);
       for (const auto& key : bytag) {
         //          cerr<<"validating : ";
-        bool signIsValid = checkSignatureWithKey(now, sig, key, msg);
+        bool signIsValid = checkSignatureWithKey(now, sig, key, msg, ede);
 
         if (signIsValid)
         {
@@ -1202,7 +1212,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       return vState::BogusInvalidDNSKEYProtocol;
     }
 
-    return vState::BogusNoValidDNSKEY;
+    return ede;
   }
 
   return vState::Secure;
