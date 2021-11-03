@@ -1481,6 +1481,10 @@ pdns_control_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+pdns_control_LDFLAGS = \
+       $(AM_LDFLAGS) \
+       $(LIBCRYPTO_LDFLAGS)
+
 if UNIT_TESTS
 noinst_PROGRAMS = testrunner
 if HAVE_BOOST_GE_148
