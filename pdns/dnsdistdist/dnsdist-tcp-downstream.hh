@@ -316,26 +316,6 @@ public:
     s_maxIdleTime = max;
   }
 
-  bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& now, const struct timeval& freshCutOff)
-  {
-    if (!conn->canBeReused()) {
-      return false;
-    }
-
-    /* for connections that have not been used very recently,
-       check whether they have been closed in the meantime */
-    if (freshCutOff < conn->getLastDataReceivedTime()) {
-      /* used recently enough, skip the check */
-      return true;
-    }
-
-    if (conn->isUsable()) {
-      return true;
-    }
-
-    return false;
-  }
-
   std::shared_ptr<T> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, const struct timeval& now, std::string&& proxyProtocolPayload)
   {
     struct timeval freshCutOff = now;
@@ -375,7 +355,11 @@ public:
 
     auto newConnection = std::make_shared<T>(ds, mplexer, now, std::move(proxyProtocolPayload));
     if (!haveProxyProtocol) {
-      d_downstreamConnections[backendId].push_front(newConnection);
+      auto& list = d_downstreamConnections[backendId];
+      if (list.size() == s_maxCachedConnectionsPerDownstream) {
+        list.pop_back();
+      }
+      list.push_front(newConnection);
     }
 
     return newConnection;
@@ -446,6 +430,15 @@ public:
     return count;
   }
 
+  size_t count() const
+  {
+    size_t count = 0;
+    for (const auto& downstream : d_downstreamConnections) {
+      count += downstream.second.size();
+    }
+    return count;
+  }
+
   bool removeDownstreamConnection(std::shared_ptr<T>& conn)
   {
     bool found = false;
@@ -466,6 +459,26 @@ public:
   }
 
 protected:
+
+  bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& now, const struct timeval& freshCutOff)
+  {
+    if (!conn->canBeReused()) {
+      return false;
+    }
+
+    /* for connections that have not been used very recently,
+       check whether they have been closed in the meantime */
+    if (freshCutOff < conn->getLastDataReceivedTime()) {
+      /* used recently enough, skip the check */
+      return true;
+    }
+
+    if (conn->isUsable()) {
+      return true;
+    }
+
+    return false;
+  }
 
   static size_t s_maxCachedConnectionsPerDownstream;
   static uint16_t s_cleanupInterval;
