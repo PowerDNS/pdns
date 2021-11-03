@@ -1011,6 +1011,17 @@ will generally suffice for most installations.
 Maximum number of empty non-terminals to add to a zone. This is a
 protection measure to avoid database explosion due to long names.
 
+.. _setting-max-include-depth:
+
+``max-include-depth``
+----------------------
+
+-  Integer
+-  Default: 20
+
+Maximum number of nested ``$INCLUDE`` directives while processing a zone file.
+Zero mean no ``$INCLUDE`` directives will be accepted.
+
 .. _setting-max-generate-steps:
 
 ``max-generate-steps``

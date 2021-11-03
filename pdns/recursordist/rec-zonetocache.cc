@@ -218,6 +218,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
     DNSResourceRecord drr;
     ZoneParserTNG zpt(lines, d_zone);
     zpt.setMaxGenerateSteps(1);
+    zpt.setMaxIncludes(0);
 
     while (zpt.get(drr)) {
       DNSRecord dr(drr);

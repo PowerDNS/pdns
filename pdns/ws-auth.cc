@@ -1385,6 +1385,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
 
   ZoneParserTNG zpt(zonedata, zonename);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
 
   bool seenSOA=false;
 

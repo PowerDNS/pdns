@@ -213,6 +213,7 @@ try
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
 
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
+    ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print the version");
@@ -295,6 +296,7 @@ try
             
             ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+            zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
             DNSResourceRecord rr;
             bool seenSOA=false;
             string comment;

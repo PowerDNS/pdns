@@ -286,6 +286,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
   shared_ptr<SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord drr;
   DNSName domain;
   while(zpt.get(drr)) {

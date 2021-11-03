@@ -104,6 +104,7 @@ try
     ::arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
+    ::arg().set("max-include-depth", "Maximum level of nested $INCLUDE depth when loading a zone from a file")="20";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print the version");
@@ -171,6 +172,7 @@ try
             Json::array recs;
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+            zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
             DNSResourceRecord rr;
             obj["name"] = i->name.toString();
 

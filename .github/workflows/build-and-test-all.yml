@@ -12,7 +12,7 @@ jobs:
     name: build auth
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: actions/checkout@v2.3.4
@@ -51,7 +51,7 @@ jobs:
     name: build recursor
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     defaults:
       run:
@@ -96,7 +96,7 @@ jobs:
       matrix:
         sanitizers: [ubsan+asan, tsan]
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
       SANITIZERS: ${{ matrix.sanitizers }}
     defaults:
@@ -139,9 +139,9 @@ jobs:
     needs: build-auth
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: 'halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/pdns/dnsdistdist/dnsdist-tsan.supp'
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
     strategy:
       matrix:
         include:
@@ -188,7 +188,7 @@ jobs:
     needs: build-auth
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     strategy:
       matrix:
@@ -251,7 +251,7 @@ jobs:
     needs: build-auth
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: actions/checkout@v2.3.4
@@ -272,7 +272,7 @@ jobs:
     needs: build-recursor
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: actions/checkout@v2.3.4
@@ -297,9 +297,9 @@ jobs:
       matrix:
         sanitizers: [ubsan+asan, tsan]
     env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: 'halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/pdns/dnsdistdist/dnsdist-tsan.supp'
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
     steps:
       - uses: actions/checkout@v2.3.4
         with:

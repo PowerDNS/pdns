@@ -99,6 +99,7 @@ bool primeHints(time_t ignored)
   else {
     ZoneParserTNG zpt(::arg()["hint-file"]);
     zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+    zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
     DNSResourceRecord rr;
     set<DNSName> seenNS;
     set<DNSName> seenA;
@@ -399,6 +400,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
         g_log << Logger::Error << "Parsing authoritative data for zone '" << headers.first << "' from file '" << headers.second << "'" << endl;
         ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+        zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
         DNSResourceRecord rr;
         DNSRecord dr;
         while (zpt.get(rr)) {

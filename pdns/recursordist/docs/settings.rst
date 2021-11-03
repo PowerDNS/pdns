@@ -1044,6 +1044,17 @@ Maximum number of incoming requests handled concurrently per tcp
 connection. This number must be larger than 0 and smaller than 65536
 and also smaller than `max-mthreads`.
 
+.. _setting-max-include-depth:
+
+``max-include-depth``
+----------------------
+
+-  Integer
+-  Default: 20
+
+Maximum number of nested ``$INCLUDE`` directives while processing a zone file.
+Zero mean no ``$INCLUDE`` directives will be accepted.
+
 .. _setting-max-generate-steps:
 
 ``max-generate-steps``
