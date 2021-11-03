@@ -274,10 +274,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       conn.send(wire)
 
       while multipleResponses:
+        # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
+        # otherwise we might read responses intended for the next connection
         if fromQueue.empty():
           break
 
-        response = fromQueue.get(True, cls._queueTimeout)
+        response = fromQueue.get(False)
         if not response:
           break
 
@@ -627,7 +629,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return (receivedQuery, messages)
 
     def setUp(self):
-        # This function is called before every tests
+        # This function is called before every test
 
         # Clear the responses counters
         self._responsesCounter.clear()
@@ -636,11 +638,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         # Make sure the queues are empty, in case
         # a previous test failed
-        while not self._toResponderQueue.empty():
-            self._toResponderQueue.get(False)
-
-        while not self._fromResponderQueue.empty():
-            self._fromResponderQueue.get(False)
+        self.clearResponderQueues()
 
         super(DNSDistTest, self).setUp()
 
