@@ -315,6 +315,11 @@ jobs:
   test-recursor-bulk:
     needs: build-recursor
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        threads: [1, 2, 3, 4, 8, 16]
+        mthreads: [2048, 4096]
+        shards: [1, 2, 1028]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
@@ -331,7 +336,7 @@ jobs:
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
-      - run: inv test-bulk-recursor
+      - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
 
   test-dnsdist-regression:
     needs: build-dnsdist
@@ -368,6 +373,8 @@ jobs:
       - test-dnsdist-regression
       - test-ixfrdist
       - test-recursor-api
+      - test-recursor-regression
+      - test-recursor-bulk
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.3.4
