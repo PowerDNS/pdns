@@ -51,6 +51,20 @@ rec_build_deps = [
     'libfstrm-dev',
     'libsnmp-dev',
 ]
+rec_bulk_deps = [
+    'curl',
+    'unzip',
+    'moreutils',
+    'pdns-tools',
+    'libluajit-5.1-2',
+    'libboost-all-dev',
+    'libcap2',
+    'libssl1.1',
+    'libsystemd0',
+    'libsodium23',
+    'libfstrm0',
+    'libsnmp35'
+]
 dnsdist_build_deps = [
     'libcap-dev',
     'libcdb-dev',
@@ -157,22 +171,17 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     setup_authbind(c)
 
 @task
+def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
+    c.sudo('apt-get --no-install-recommends -qq -y install ' + ' '.join(rec_bulk_deps))
+    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+
+@task
 def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends install -qq -y \
-              pdns-server curl unzip pdns-backend-bind pdns-tools daemontools \
-              jq libfaketime lua-posix lua-socket moreutils bc authbind \
+    c.sudo('apt-get --no-install-recommends install -qq -y ' + ' '.join(rec_bulk_deps) + ' \
+              pdns-server pdns-backend-bind daemontools \
+              jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
-              libluajit-5.1-2 \
-              libboost-all-dev \
-              libcap2 \
-              libssl1.1 \
-              libsystemd0 \
-              libsodium23 \
-              libfstrm0 \
-              libsnmp35 \
-              protobuf-compiler \
-              snmpd \
-              prometheus')
+              protobuf-compiler snmpd prometheus')
 
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 

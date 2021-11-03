@@ -335,7 +335,7 @@ jobs:
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
-      - run: inv install-rec-test-deps
+      - run: inv install-rec-bulk-deps
       - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
 
   test-dnsdist-regression:
