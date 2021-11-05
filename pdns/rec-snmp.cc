@@ -135,6 +135,14 @@ static const oid dns64PrefixAnswers[] = {RECURSOR_STATS_OID, 114};
 static const oid almostExpiredPushed[] = {RECURSOR_STATS_OID, 115};
 static const oid almostExpiredRun[] = {RECURSOR_STATS_OID, 116};
 static const oid almostExpiredExceptions[] = {RECURSOR_STATS_OID, 117};
+#ifdef __linux__
+static const oid udpInCsumErrorsOID[] = {RECURSOR_STATS_OID, 118};
+static const oid udp6RecvbufErrorsOID[] = {RECURSOR_STATS_OID, 119};
+static const oid udp6SndbufErrorsOID[] = {RECURSOR_STATS_OID, 120};
+static const oid udp6NoportErrorsOID[] = {RECURSOR_STATS_OID, 121};
+static const oid udp6InErrorsOID[] = {RECURSOR_STATS_OID, 122};
+static const oid udp6InCsumErrorsOID[] = {RECURSOR_STATS_OID, 123};
+#endif /* __linux__ */
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -317,6 +325,12 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("udp-sndbuf-errors", udpSndbufErrorsOID, OID_LENGTH(udpSndbufErrorsOID));
   registerCounter64Stat("udp-noport-errors", udpNoportErrorsOID, OID_LENGTH(udpNoportErrorsOID));
   registerCounter64Stat("udp-in-errors", udpinErrorsOID, OID_LENGTH(udpinErrorsOID));
+  registerCounter64Stat("udp-in-csums-errors", udpInCsumErrorsOID, OID_LENGTH(udpInCsumErrorsOID));
+  registerCounter64Stat("udp6-recvbuf-errors", udp6RecvbufErrorsOID, OID_LENGTH(udp6RecvbufErrorsOID));
+  registerCounter64Stat("udp6-sndbuf-errors", udp6SndbufErrorsOID, OID_LENGTH(udp6SndbufErrorsOID));
+  registerCounter64Stat("udp6-noport-errors", udp6NoportErrorsOID, OID_LENGTH(udp6NoportErrorsOID));
+  registerCounter64Stat("udp6-in-errors", udp6InErrorsOID, OID_LENGTH(udp6InErrorsOID));
+  registerCounter64Stat("udp6-in-csums-errors", udp6InCsumErrorsOID, OID_LENGTH(udp6InCsumErrorsOID));
 #endif /* __linux__ */
   registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID));
   registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID));

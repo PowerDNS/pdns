@@ -670,7 +670,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;
 
-      boost::format fmt("%-23s\t%+11s");
+      boost::format fmt("%-35s\t%+11s");
       g_outputBuffer.clear();
       auto entries = g_stats.entries;
       sort(entries.begin(), entries.end(),
@@ -694,7 +694,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
 
       auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
-      boost::format clmn("%|0t|%1% %|39t|%2%\n");
+      boost::format clmn("%|0t|%1% %|51t|%2%\n");
 
       for(;leftiter != leftcolumn.end() || rightiter != rightcolumn.end();) {
 	string lentry, rentry;

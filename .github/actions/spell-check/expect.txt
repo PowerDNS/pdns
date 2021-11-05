@@ -296,6 +296,7 @@ Cryptoki
 cryptopp
 cryptoshop
 css
+csum
 csv
 csync
 ctime

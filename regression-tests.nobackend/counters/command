@@ -36,7 +36,7 @@ $SDIG 127.0.0.1 $port test.com SRV >&2 >/dev/null
 $SDIG 127.0.0.1 $port test.com.invalid MX >&2 >/dev/null
 
 $PDNSCONTROL --config-name= --no-config --socket-dir=./ 'show *' | \
-  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|cpu-iowait|cpu-steal|uptime|udp-noport-errors|udp-in-errors|real-memory-usage|special-memory-usage|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss|fd-usage|latency|backend-queries)' | LC_ALL=C sort
+  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|cpu-iowait|cpu-steal|uptime|udp-noport-errors|udp-in-csum-errors|udp-in-errors|udp-recvbuf-errors|udp-sndbuf-errors|real-memory-usage|special-memory-usage|udp6-recvbuf-errors|udp6-sndbuf-errors|udp6-noport-errors|udp6-in-csum-errors|udp6-in-errors|-hit|-miss|fd-usage|latency|backend-queries)' | LC_ALL=C sort
 
 kill $(cat pdns*.pid)
 rm pdns*.pid

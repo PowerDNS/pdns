@@ -1143,26 +1143,79 @@ uint64_t udpErrorStats(const std::string& str)
 {
 #ifdef __linux__
   ifstream ifs("/proc/net/snmp");
-  if(!ifs)
+  if (!ifs) {
     return 0;
+  }
+
   string line;
-  vector<string> parts;
-  while(getline(ifs,line)) {
-    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
+  while (getline(ifs, line)) {
+    if (boost::starts_with(line, "Udp: ") && isdigit(line.at(5))) {
+      vector<string> parts;
       stringtok(parts, line, " \n\t\r");
-      if(parts.size() < 7)
-	break;
-      if(str=="udp-rcvbuf-errors")
-	return std::stoull(parts[5]);
-      else if(str=="udp-sndbuf-errors")
-	return std::stoull(parts[6]);
-      else if(str=="udp-noport-errors")
-	return std::stoull(parts[2]);
-      else if(str=="udp-in-errors")
-	return std::stoull(parts[3]);
-      else
-	return 0;
+
+      if (parts.size() < 7) {
+        break;
+      }
+
+      if (str == "udp-rcvbuf-errors") {
+        return std::stoull(parts.at(5));
+      }
+      else if (str == "udp-sndbuf-errors") {
+        return std::stoull(parts.at(6));
+      }
+      else if (str == "udp-noport-errors") {
+        return std::stoull(parts.at(2));
+      }
+      else if (str == "udp-in-errors") {
+        return std::stoull(parts.at(3));
+      }
+      else if (parts.size() >= 8 && str == "udp-in-csum-errors") {
+        return std::stoull(parts.at(7));
+      }
+      else {
+        return 0;
+      }
     }
+  }
+#endif
+  return 0;
+}
+
+uint64_t udp6ErrorStats(const std::string& str)
+{
+#ifdef __linux__
+  const std::map<std::string, std::string> keys = {
+    { "udp6-in-errors", "Udp6InErrors" },
+    { "udp6-recvbuf-errors", "Udp6RcvbufErrors" },
+    { "udp6-sndbuf-errors", "Udp6SndbufErrors" },
+    { "udp6-noport-errors", "Udp6NoPorts" },
+    { "udp6-in-csum-errors", "Udp6InCsumErrors" }
+  };
+
+  auto key = keys.find(str);
+  if (key == keys.end()) {
+    return 0;
+  }
+
+  ifstream ifs("/proc/net/snmp6");
+  if (!ifs) {
+    return 0;
+  }
+
+  std::string line;
+  while (getline(ifs, line)) {
+    if (!boost::starts_with(line, key->second)) {
+      continue;
+    }
+
+    std::vector<std::string> parts;
+    stringtok(parts, line, " \n\t\r");
+
+    if (parts.size() != 2) {
+      return 0;
+    }
+
+    return std::stoull(parts.at(1));
   }
 #endif
   return 0;
