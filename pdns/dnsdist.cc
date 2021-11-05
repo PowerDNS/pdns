@@ -2044,7 +2044,7 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     int one=1;
     (void)setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-    if (cs->local.sin4.sin_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
+    if (cs->local.isIPv6() && setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
         !g_warned_ipv6_recvpktinfo) {
         warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
         g_warned_ipv6_recvpktinfo = true;
