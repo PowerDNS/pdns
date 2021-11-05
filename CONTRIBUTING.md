@@ -78,6 +78,7 @@ We have `clang-format` in place, but not for all files yet.
 This is an incremental process.
 If you're adding new code, adhering to the formatting config is appreciated.
 Formatting breakage in already formatted files will be caught by the CI.
+To format all files that are supposed to be formatted, run `make format-code` in the root of the tree.
 
 Additional guidelines:
 
