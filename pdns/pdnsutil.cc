@@ -272,7 +272,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
   catch (const PDNSException& e) {
-    cout << "[Error] SOA lookup failed: " << e.reason << endl;
+    cout << "[Error] SOA lookup failed for zone '" << zone << "': " << e.reason << endl;
+    numerrors++;
+    if (!sd.db) {
+      return 1;
+    }
+  }
+  catch (const std::exception& e) {
+    cout << "[Error] SOA lookup failed for zone '" << zone << "': " << e.what() << endl;
     numerrors++;
     if (!sd.db) {
       return 1;
