@@ -1,5 +1,29 @@
 Changelogs for 4.5.X
 ====================
+.. changelog::
+  :version: 4.5.7
+  :released: 5th of November 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10912
+    :tickets: 10908
+
+    A SHA-384 DS should not trump a SHA-256 one, only potentially ignore SHA-1 DS records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10911
+    :tickets: 10905
+
+    rec_control wipe-cache-typed should check if a qtype arg is present and valid.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10863
+    :tickets: 10842
+
+    Put the correct string into appliedPolicyTrigger for Netmask matching rules.
 
 .. changelog::
   :version: 4.5.6
