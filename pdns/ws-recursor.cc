@@ -1149,7 +1149,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->bind();
 
   // legacy dispatch
-  d_ws->registerApiHandler("/jsonstat", [this](HttpRequest* req, HttpResponse* resp){jsonstat(req, resp);}, true);
+  d_ws->registerApiHandler(
+    "/jsonstat", [this](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
