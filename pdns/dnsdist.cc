@@ -2237,8 +2237,10 @@ int main(int argc, char** argv)
   try {
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
+#ifndef DISABLE_COMPLETION
     rl_attempted_completion_function = my_completion;
     rl_completion_append_character = 0;
+#endif /* DISABLE_COMPLETION */
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);

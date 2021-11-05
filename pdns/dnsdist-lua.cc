@@ -1811,6 +1811,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("help", [](boost::optional<std::string> command) {
     setLuaNoSideEffect();
     g_outputBuffer = "";
+#ifndef DISABLE_COMPLETION
     for (const auto& keyword : g_consoleKeywords) {
       if (!command) {
         g_outputBuffer += keyword.toString() + "\n";
@@ -1820,6 +1821,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return;
       }
     }
+#endif /* DISABLE_COMPLETION */
     if (command) {
       g_outputBuffer = "Nothing found for " + *command + "\n";
     }

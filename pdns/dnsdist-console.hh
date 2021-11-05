@@ -21,6 +21,9 @@
  */
 #pragma once
 
+#include "config.h"
+
+#ifndef DISABLE_COMPLETION
 struct ConsoleKeyword {
   std::string name;
   bool function;
@@ -37,9 +40,14 @@ struct ConsoleKeyword {
     return res;
   }
 };
+extern const std::vector<ConsoleKeyword> g_consoleKeywords;
+extern "C" {
+char** my_completion( const char * text , int start,  int end);
+}
+
+#endif /* DISABLE_COMPLETION */
 
 extern GlobalStateHolder<NetmaskGroup> g_consoleACL;
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
 extern std::string g_consoleKey; // in theory needs locking
 extern bool g_logConsoleConnections;
 extern bool g_consoleEnabled;
@@ -47,9 +55,6 @@ extern uint32_t g_consoleOutputMsgMaxSize;
 
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
-}
 void controlThread(int fd, ComboAddress local);
 void clearConsoleHistory();
 

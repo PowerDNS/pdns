@@ -397,6 +397,8 @@ void doConsole()
     }
   }
 }
+
+#ifndef DISABLE_COMPLETION
 /**** CARGO CULT CODE AHEAD ****/
 const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
@@ -755,6 +757,7 @@ char** my_completion( const char * text , int start,  int end)
   return matches;
 }
 }
+#endif /* DISABLE_COMPLETION */
 
 static void controlClientThread(ConsoleConnection&& conn)
 {
