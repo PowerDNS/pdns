@@ -86,3 +86,4 @@ Additional guidelines:
 * Use spaces instead of tabs
 * Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated
 * Never hesitate to write comments on anything that might not be immediately clear just from reading the code
+* When adding whole new things, consider putting them in a `pdns::X` namespace. Look for `namespace pdns` in the codebase for examples.
