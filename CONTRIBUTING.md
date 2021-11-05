@@ -84,5 +84,5 @@ Additional guidelines:
 
 * Don't have end-of-line whitespace
 * Use spaces instead of tabs
-* Functions and classes must have a [docblock](http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
+* Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated
 * Never hesitate to write comments on anything that might not be immediately clear just from reading the code
