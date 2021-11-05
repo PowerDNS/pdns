@@ -185,7 +185,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_dis
         fillSOAData(rr.content, sd);
         di.serial = sd.serial;
       }
-      catch (const PDNSException& e) {
+      catch (...) {
         di.serial = 0;
       }
 
