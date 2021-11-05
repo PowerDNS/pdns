@@ -128,3 +128,11 @@ double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server) __attr
 void dnsdist_ffi_dnsresponse_set_min_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_proxy_protocol_value {
+  char* value;
+  uint16_t size;
+  uint8_t type;
+} dnsdist_ffi_proxy_protocol_value_t;
+
+size_t dnsdist_ffi_generate_proxy_protocol_payload(size_t addrSize, const void* srcAddr, const void* dstAddr, uint16_t srcPort, uint16_t dstPort, bool tcp, size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, size_t outSize) __attribute__ ((visibility ("default")));
