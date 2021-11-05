@@ -105,11 +105,12 @@ static std::string hashPasswordInternal(const std::string& password, const std::
     throw std::runtime_error("Error intializing the scrypt context to hash the supplied password");
   }
 
-  if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), reinterpret_cast<const unsigned char*>(password.data()), password.size()) <= 0) {
+  // OpenSSL 3.0 changed the string arg to const unsigned char*, other versions use const char *, so cast to const void * to satisfy both
+  if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), reinterpret_cast<const void*>(password.data()), password.size()) <= 0) {
     throw std::runtime_error("Error adding the password to the scrypt context to hash the supplied password");
   }
 
-  if (EVP_PKEY_CTX_set1_scrypt_salt(pctx.get(), salt.data(), salt.size()) <= 0) {
+  if (EVP_PKEY_CTX_set1_scrypt_salt(pctx.get(), reinterpret_cast<const unsigned char*>(salt.data()), salt.size()) <= 0) {
     throw std::runtime_error("Error adding the salt to the scrypt context to hash the supplied password");
   }
 
