@@ -14,8 +14,7 @@ If there is no similar issue, feature request or you're not sure, open a new
 issue.
 
 ## Filing a Feature Request
-When filing a feature request, please start your issue title with "Feature request:",
-this allows for quick distinguishing between issues and these requests.
+When filing a feature request, please use the Feature request template provided.
 
 Please be as elaborate as possible when describing the feature you need. Provide
 at least the following information (if they are relevant):
@@ -40,12 +39,14 @@ information:
 * Observed behavior: what actually happened when following the steps?
 * Relevant logs: Please use code blocks (\`\`\`) to format console output, logs, and code as it's very hard to read otherwise.
 
+We provide convenient templates that make it easy to not forget any of these steps.
+
 If you have already looked deeper into the problem, provide what you found as
 well.
 
 # Filing a Pull Request
 Code contributions are sent as a pull request on [GitHub](https://github.com/PowerDNS/pdns/pulls).
-By submitting a Pull Request you agree to your code become GPLv2 licensed.
+By submitting a Pull Request you agree to your code becoming GPLv2 licensed.
 
 ## Pull Request Guidelines
 A pull request, at the least, should have:
@@ -57,12 +58,13 @@ A pull request, at the least, should have:
 
 And must:
 * Be filed against the master branch before any release branch
-* Pass all tests in Travis
+* Pass all tests in our CI (currently Github Actions and CircleCI)
 
 Information on the tests can be found in the repository at
 [/regression-tests/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests/README.md)
-and
-[/regression-tests.recursor/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests.recursor/README.md).
+,
+[/regression-tests.recursor/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests.recursor/README.md),
+plus various other directories with `regression-tests.*` names.
 
 ## Commit Guidelines
 * Tell why the change does what it does, not how it does it.
@@ -72,10 +74,14 @@ and
 * Do not put whitespace fixes/cleanup and functionality changes in the same commit
 
 # Coding Guidelines
-At the moment there is no established coding guideline, but here are some
-general guidelines:
+We have `clang-format` in place, but not for all files yet.
+This is an incremental process.
+If you're adding new code, adhering to the formatting config is appreciated.
+Formatting breakage in already formatted files will be caught by the CI.
+
+Additional guidelines:
 
 * Don't have end-of-line whitespace
 * Use spaces instead of tabs
-* Stick to the style of the file you're editing
 * Functions and classes must have a [docblock](http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
+* Never hesitate to write comments on anything that might not be immediately clear just from reading the code
