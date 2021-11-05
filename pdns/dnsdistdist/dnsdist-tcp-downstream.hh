@@ -300,10 +300,29 @@ private:
 
 template <class T> class DownstreamConnectionsManager
 {
-public:
-  static void setMaxCachedConnectionsPerDownstream(size_t max)
+  struct SequencedTag {};
+  struct OrderedTag {};
+
+  typedef multi_index_container<
+    std::shared_ptr<T>,
+    indexed_by <
+      ordered_unique<tag<OrderedTag>,
+                     identity<std::shared_ptr<T>>
+                     >,
+      /* new elements are added to the front of the sequence */
+      sequenced<tag<SequencedTag> >
+      >
+  > list_t;
+  struct ConnectionLists
   {
-    s_maxCachedConnectionsPerDownstream = max;
+    list_t d_actives;
+    list_t d_idles;
+  };
+
+public:
+  static void setMaxIdleConnectionsPerDownstream(size_t max)
+  {
+    s_maxIdleConnectionsPerDownstream = max;
   }
 
   static void setCleanupInterval(uint16_t interval)
@@ -329,37 +348,27 @@ public:
     if (!haveProxyProtocol) {
       const auto& it = d_downstreamConnections.find(backendId);
       if (it != d_downstreamConnections.end()) {
-        auto& list = it->second;
-        for (auto listIt = list.begin(); listIt != list.end(); ) {
-          if (!(*listIt)) {
-            listIt = list.erase(listIt);
-            continue;
-          }
+        /* first scan idle connections, more recent first */
+        auto entry = findUsableConnectionInList(now, freshCutOff, it->second.d_idles, true);
+        if (entry) {
+          ++ds->tcpReusedConnections;
+          it->second.d_actives.insert(entry);
+          return entry;
+        }
 
-          auto& entry = *listIt;
-          if (isConnectionUsable(entry, now, freshCutOff)) {
-            entry->setReused();
-            ++ds->tcpReusedConnections;
-            return entry;
-          }
-
-          if (entry->willBeReusable(false)) {
-            ++listIt;
-            continue;
-          }
-
-          listIt = list.erase(listIt);
+        /* then scan actives ones, more recent first as well */
+        entry = findUsableConnectionInList(now, freshCutOff, it->second.d_actives, false);
+        if (entry) {
+          ++ds->tcpReusedConnections;
+          return entry;
         }
       }
     }
 
     auto newConnection = std::make_shared<T>(ds, mplexer, now, std::move(proxyProtocolPayload));
     if (!haveProxyProtocol) {
-      auto& list = d_downstreamConnections[backendId];
-      if (list.size() == s_maxCachedConnectionsPerDownstream) {
-        list.pop_back();
-      }
-      list.push_front(newConnection);
+      auto& list = d_downstreamConnections[backendId].d_actives;
+      list.template get<SequencedTag>().push_front(newConnection);
     }
 
     return newConnection;
@@ -379,39 +388,14 @@ public:
     idleCutOff.tv_sec -= s_maxIdleTime;
 
     for (auto dsIt = d_downstreamConnections.begin(); dsIt != d_downstreamConnections.end(); ) {
-      for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
-        if (!(*connIt)) {
-          connIt = dsIt->second.erase(connIt);
-          continue;
-        }
+      cleanUpList(dsIt->second.d_idles, now, freshCutOff, idleCutOff);
+      cleanUpList(dsIt->second.d_actives, now, freshCutOff, idleCutOff);
 
-        auto& entry = *connIt;
-
-        /* don't bother checking freshly used connections */
-        if (freshCutOff < entry->getLastDataReceivedTime()) {
-          ++connIt;
-          continue;
-        }
-
-        if (entry->isIdle() && entry->getLastDataReceivedTime() < idleCutOff) {
-          /* idle for too long */
-          connIt = dsIt->second.erase(connIt);
-          continue;
-        }
-
-        if (entry->isUsable()) {
-          ++connIt;
-          continue;
-        }
-
-        connIt = dsIt->second.erase(connIt);
-      }
-
-      if (!dsIt->second.empty()) {
-        ++dsIt;
+      if (dsIt->second.d_idles.empty() && dsIt->second.d_actives.empty()) {
+        dsIt = d_downstreamConnections.erase(dsIt);
       }
       else {
-        dsIt = d_downstreamConnections.erase(dsIt);
+        ++dsIt;
       }
     }
   }
@@ -420,8 +404,12 @@ public:
   {
     size_t count = 0;
     for (const auto& downstream : d_downstreamConnections) {
-      count += downstream.second.size();
-      for (auto& conn : downstream.second) {
+      count += downstream.second.d_actives.size();
+      for (auto& conn : downstream.second.d_actives) {
+        conn->stopIO();
+      }
+      count += downstream.second.d_idles.size();
+      for (auto& conn : downstream.second.d_idles) {
         conn->stopIO();
       }
     }
@@ -432,33 +420,140 @@ public:
 
   size_t count() const
   {
+    return getActiveCount() + getIdleCount();
+  }
+
+  size_t getActiveCount() const
+  {
     size_t count = 0;
     for (const auto& downstream : d_downstreamConnections) {
-      count += downstream.second.size();
+      count += downstream.second.d_actives.size();
+    }
+    return count;
+  }
+
+  size_t getIdleCount() const
+  {
+    size_t count = 0;
+    for (const auto& downstream : d_downstreamConnections) {
+      count += downstream.second.d_idles.size();
     }
     return count;
   }
 
   bool removeDownstreamConnection(std::shared_ptr<T>& conn)
   {
-    bool found = false;
     auto backendIt = d_downstreamConnections.find(conn->getDS()->getID());
     if (backendIt == d_downstreamConnections.end()) {
-      return found;
+      return false;
     }
 
-    for (auto connIt = backendIt->second.begin(); connIt != backendIt->second.end(); ++connIt) {
-      if (*connIt == conn) {
-        backendIt->second.erase(connIt);
-        found = true;
-        break;
+    /* idle list first */
+    {
+      auto it = backendIt->second.d_idles.find(conn);
+      if (it != backendIt->second.d_idles.end()) {
+        backendIt->second.d_idles.erase(it);
+        return true;
+      }
+    }
+    /* then active */
+    {
+      auto it = backendIt->second.d_actives.find(conn);
+      if (it != backendIt->second.d_actives.end()) {
+        backendIt->second.d_actives.erase(it);
+        return true;
       }
     }
 
-    return found;
+    return false;
+  }
+
+  bool moveToIdle(std::shared_ptr<T>& conn)
+  {
+    auto backendIt = d_downstreamConnections.find(conn->getDS()->getID());
+    if (backendIt == d_downstreamConnections.end()) {
+      return false;
+    }
+
+    auto it = backendIt->second.d_actives.find(conn);
+    if (it == backendIt->second.d_actives.end()) {
+      return false;
+    }
+
+    backendIt->second.d_actives.erase(it);
+
+    if (backendIt->second.d_idles.size() >= s_maxIdleConnectionsPerDownstream) {
+      backendIt->second.d_idles.template get<SequencedTag>().pop_back();
+    }
+
+    backendIt->second.d_idles.template get<SequencedTag>().push_front(conn);
+    return true;
   }
 
 protected:
+
+  void cleanUpList(list_t& list, const struct timeval& now, const struct timeval& freshCutOff, const struct timeval& idleCutOff)
+  {
+    auto& sidx = list.template get<SequencedTag>();
+    for (auto connIt = sidx.begin(); connIt != sidx.end(); ) {
+      if (!(*connIt)) {
+        connIt = sidx.erase(connIt);
+        continue;
+      }
+
+      auto& entry = *connIt;
+
+      /* don't bother checking freshly used connections */
+      if (freshCutOff < entry->getLastDataReceivedTime()) {
+        ++connIt;
+        continue;
+      }
+
+      if (entry->isIdle() && entry->getLastDataReceivedTime() < idleCutOff) {
+        /* idle for too long */
+        connIt = sidx.erase(connIt);
+        continue;
+      }
+
+      if (entry->isUsable()) {
+        ++connIt;
+        continue;
+      }
+
+      connIt = sidx.erase(connIt);
+    }
+  }
+
+  std::shared_ptr<T> findUsableConnectionInList(const struct timeval& now, struct timeval& freshCutOff, list_t& list, bool removeIfFound)
+  {
+    auto& sidx = list.template get<SequencedTag>();
+    for (auto listIt = sidx.begin(); listIt != sidx.end(); ) {
+      if (!(*listIt)) {
+        listIt = sidx.erase(listIt);
+        continue;
+      }
+
+      auto& entry = *listIt;
+      if (isConnectionUsable(entry, now, freshCutOff)) {
+        entry->setReused();
+        auto result = entry;
+        if (removeIfFound) {
+          sidx.erase(listIt);
+        }
+        return result;
+      }
+
+      if (entry->willBeReusable(false)) {
+        ++listIt;
+        continue;
+      }
+
+      /* that connection will not be usable later, no need to keep it in that list */
+      listIt = sidx.erase(listIt);
+    }
+
+    return nullptr;
+  }
 
   bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& now, const struct timeval& freshCutOff)
   {
@@ -480,15 +575,16 @@ protected:
     return false;
   }
 
-  static size_t s_maxCachedConnectionsPerDownstream;
+  static size_t s_maxIdleConnectionsPerDownstream;
   static uint16_t s_cleanupInterval;
   static uint16_t s_maxIdleTime;
 
-  std::map<boost::uuids::uuid, std::deque<std::shared_ptr<T>>> d_downstreamConnections;
+  std::map<boost::uuids::uuid, ConnectionLists> d_downstreamConnections;
+
   time_t d_nextCleanup{0};
 };
 
-template <class T> size_t DownstreamConnectionsManager<T>::s_maxCachedConnectionsPerDownstream{10};
+template <class T> size_t DownstreamConnectionsManager<T>::s_maxIdleConnectionsPerDownstream{10};
 template <class T> uint16_t DownstreamConnectionsManager<T>::s_cleanupInterval{60};
 template <class T> uint16_t DownstreamConnectionsManager<T>::s_maxIdleTime{300};
 

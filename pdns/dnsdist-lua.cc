@@ -1306,11 +1306,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
-    DownstreamTCPConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+    DownstreamTCPConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
   });
 
-  luaCtx.writeFunction("setMaxCachedDoHConnectionsPerDownstream", [](size_t max) {
-    setDoHDownstreamMaxConnectionsPerBackend(max);
+  luaCtx.writeFunction("setMaxIdleDoHConnectionsPerDownstream", [](size_t max) {
+    setDoHDownstreamMaxIdleConnectionsPerBackend(max);
   });
 
   luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {

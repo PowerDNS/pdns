@@ -394,7 +394,7 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
       }
 
       if (newState == IOState::Done) {
-        if (conn->getConcurrentStreamsCount() == 0) {
+        if (conn->isIdle()) {
           conn->stopIO();
           conn->watchForRemoteHostClosingConnection();
           ioGuard.release();
@@ -440,7 +440,7 @@ void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::fun
       conn->d_out.clear();
       conn->d_outPos = 0;
       conn->stopIO();
-      if (conn->getConcurrentStreamsCount() > 0) {
+      if (!conn->isIdle()) {
         conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
       }
       else {
@@ -460,11 +460,14 @@ void DoHConnectionToBackend::stopIO()
 {
   d_ioState->reset();
 
+  auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
   if (!willBeReusable(false)) {
     /* remove ourselves from the connection cache, this might mean that our
        reference count drops to zero after that, so we need to be careful */
-    auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
     t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
+  }
+  else {
+    t_downstreamDoHConnectionsManager.moveToIdle(shared);
   }
 }
 
@@ -555,7 +558,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
         conn->d_out.clear();
         conn->d_outPos = 0;
         conn->stopIO();
-        if (conn->getConcurrentStreamsCount() > 0) {
+        if (!conn->isIdle()) {
           conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
         }
         else {
@@ -629,7 +632,7 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
         conn->handleResponseError(std::move(request), now);
       }
 
-      if (conn->getConcurrentStreamsCount() == 0) {
+      if (conn->isIdle()) {
         conn->stopIO();
         conn->watchForRemoteHostClosingConnection();
       }
@@ -680,7 +683,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 
       conn->handleResponseError(std::move(request), now);
     }
-    if (conn->getConcurrentStreamsCount() == 0) {
+    if (conn->isIdle()) {
       conn->stopIO();
       conn->watchForRemoteHostClosingConnection();
     }
@@ -724,7 +727,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   }
 
   //cerr<<"we now have "<<conn->getConcurrentStreamsCount()<<" concurrent connections"<<endl;
-  if (conn->getConcurrentStreamsCount() == 0) {
+  if (conn->isIdle()) {
     //cerr<<"stopping IO"<<endl;
     conn->stopIO();
     conn->watchForRemoteHostClosingConnection();
@@ -1194,9 +1197,9 @@ void setDoHDownstreamMaxIdleTime(uint16_t max)
 #endif /* HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxConnectionsPerBackend(size_t max)
+void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max)
 {
 #ifdef HAVE_NGHTTP2
-  DownstreamDoHConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+  DownstreamDoHConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
 #endif /* HAVE_NGHTTP2 */
 }

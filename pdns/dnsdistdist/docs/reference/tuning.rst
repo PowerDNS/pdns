@@ -16,7 +16,7 @@ Tuning related functions
 
   :param int max: The maximum time in seconds.
 
-.. function:: setMaxCachedDoHConnectionsPerDownstream(max)
+.. function:: setMaxIdleDoHConnectionsPerDownstream(max)
 
   .. versionadded:: 1.7.0
 

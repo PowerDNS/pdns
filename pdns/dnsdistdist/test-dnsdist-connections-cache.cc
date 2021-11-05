@@ -29,7 +29,7 @@
 class MockupConnection
 {
 public:
-  MockupConnection(const std::shared_ptr<DownstreamState>&, std::unique_ptr<FDMultiplexer>&, const struct timeval&, std::string&&)
+  MockupConnection(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>&, const struct timeval&, std::string&&): d_ds(ds)
   {
   }
 
@@ -66,6 +66,12 @@ public:
   {
   }
 
+  std::shared_ptr<DownstreamState> getDS() const
+  {
+    return d_ds;
+  }
+
+  std::shared_ptr<DownstreamState> d_ds;
   struct timeval d_lastDataReceivedTime
   {
     0, 0
@@ -80,10 +86,10 @@ BOOST_AUTO_TEST_SUITE(test_dnsdist_connections_cache)
 BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
 {
   DownstreamConnectionsManager<MockupConnection> manager;
-  const size_t maxConnPerDownstream = 5;
+  const size_t maxIdleConnPerDownstream = 5;
   const uint16_t cleanupInterval = 1;
   const uint16_t maxIdleTime = 5;
-  manager.setMaxCachedConnectionsPerDownstream(maxConnPerDownstream);
+  manager.setMaxIdleConnectionsPerDownstream(maxIdleConnPerDownstream);
   manager.setCleanupInterval(cleanupInterval);
   manager.setMaxIdleTime(maxIdleTime);
 
@@ -96,12 +102,15 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   auto conn = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
   BOOST_REQUIRE(conn != nullptr);
   BOOST_CHECK_EQUAL(manager.count(), 1U);
+  BOOST_CHECK_EQUAL(manager.getActiveCount(), 1U);
+  BOOST_CHECK_EQUAL(manager.getIdleCount(), 0U);
 
   /* since the connection can be reused, we should get the same one */
   {
     auto conn1 = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
     BOOST_CHECK(conn.get() == conn1.get());
     BOOST_CHECK_EQUAL(manager.count(), 1U);
+    BOOST_CHECK_EQUAL(manager.getActiveCount(), 1U);
   }
 
   /* if we mark it non-usable, we should get a new one */
@@ -109,12 +118,14 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   auto conn2 = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
   BOOST_CHECK(conn.get() != conn2.get());
   BOOST_CHECK_EQUAL(manager.count(), 2U);
+  BOOST_CHECK_EQUAL(manager.getActiveCount(), 2U);
 
   /* since the second connection can be reused, we should get it */
   {
     auto conn3 = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
     BOOST_CHECK(conn3.get() == conn2.get());
     BOOST_CHECK_EQUAL(manager.count(), 2U);
+    BOOST_CHECK_EQUAL(manager.getActiveCount(), 2U);
   }
 
   /* different downstream so different connection */
@@ -123,11 +134,13 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   BOOST_CHECK(differentConn.get() != conn.get());
   BOOST_CHECK(differentConn.get() != conn2.get());
   BOOST_CHECK_EQUAL(manager.count(), 3U);
+  BOOST_CHECK_EQUAL(manager.getActiveCount(), 3U);
   {
     /* but we should be able to reuse it */
     auto sameConn = manager.getConnectionToDownstream(mplexer, downstream2, now, std::string());
     BOOST_CHECK(sameConn.get() == differentConn.get());
     BOOST_CHECK_EQUAL(manager.count(), 3U);
+    BOOST_CHECK_EQUAL(manager.getActiveCount(), 3U);
   }
 
   struct timeval later = now;
@@ -155,16 +168,16 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   conn->d_lastDataReceivedTime.tv_sec = 0;
 
   std::vector<std::shared_ptr<MockupConnection>> conns = {conn};
-  while (conns.size() < maxConnPerDownstream) {
+  while (conns.size() < maxIdleConnPerDownstream) {
     auto newConn = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
     newConn->d_usable = false;
     conns.push_back(newConn);
     BOOST_CHECK_EQUAL(manager.count(), conns.size());
   }
 
-  /* if we add a new one, the oldest should get expunged */
+  /* if we add a new one, the oldest should NOT get expunged because they are all active ones! */
   auto newConn = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
-  BOOST_CHECK_EQUAL(manager.count(), maxConnPerDownstream);
+  BOOST_CHECK_GT(manager.count(), maxIdleConnPerDownstream);
 
   {
     /* mark all connections as not usable anymore */
@@ -175,7 +188,7 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
     /* except the last one */
     newConn->d_usable = true;
 
-    BOOST_CHECK_EQUAL(manager.count(), maxConnPerDownstream);
+    BOOST_CHECK_EQUAL(manager.count(), conns.size() + 1);
     later.tv_sec += cleanupInterval + 1;
     manager.cleanupClosedConnections(later);
     BOOST_CHECK_EQUAL(manager.count(), 1U);
@@ -184,6 +197,25 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   conns.clear();
   auto cleared = manager.clear();
   BOOST_CHECK_EQUAL(cleared, 1U);
+
+  /* add 10 actives connections */
+  while (conns.size() < 10) {
+    newConn = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
+    newConn->d_usable = false;
+    conns.push_back(newConn);
+    BOOST_CHECK_EQUAL(manager.count(), conns.size());
+    BOOST_CHECK_EQUAL(manager.getActiveCount(), conns.size());
+  }
+  /* now we mark them as idle */
+  for (auto& c : conns) {
+    /* use a different shared_ptr to make sure that the comparison is done on the actual raw pointer */
+    auto shared = c;
+    shared->d_idle = true;
+    BOOST_CHECK(manager.moveToIdle(shared));
+  }
+  BOOST_CHECK_EQUAL(manager.count(), maxIdleConnPerDownstream);
+  BOOST_CHECK_EQUAL(manager.getActiveCount(), 0U);
+  BOOST_CHECK_EQUAL(manager.getIdleCount(), maxIdleConnPerDownstream);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
