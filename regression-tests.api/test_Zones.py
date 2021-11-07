@@ -1409,14 +1409,14 @@ $ORIGIN %NAME%
         self.assertIn('Conflicts with pre-existing RRset', r.json()['error'])
 
     @parameterized.expand([
-        ('SOA', ['ns1.example.org. test@example.org. 10 10800 3600 604800 3600', 'ns2.example.org. test@example.org. 10 10800 3600 604800 3600']),
-        ('CNAME', ['01.example.org.', '02.example.org.']),
+        ('', 'SOA', ['ns1.example.org. test@example.org. 10 10800 3600 604800 3600', 'ns2.example.org. test@example.org. 10 10800 3600 604800 3600']),
+        ('sub.', 'CNAME', ['01.example.org.', '02.example.org.']),
     ])
-    def test_rrset_single_qtypes(self, qtype, contents):
+    def test_rrset_single_qtypes(self, label, qtype, contents):
         name, payload, zone = self.create_zone()
         rrset = {
             'changetype': 'replace',
-            'name': 'sub.'+name,
+            'name': label + name,
             'type': qtype,
             'ttl': 3600,
             'records': [
@@ -1467,6 +1467,103 @@ $ORIGIN %NAME%
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assert_success(r)  # user should be able to create DNAME at APEX as per RFC 6672 section 2.3
+
+    @parameterized.expand([
+        ('SOA', 'ns1.example.org. test@example.org. 10 10800 3600 604800 1800'),
+        ('DNSKEY', '257 3 8 AwEAAb/+pXOZWYQ8mv9WM5dFva8WU9jcIUdDuEjldbyfnkQ/xlrJC5zAEfhYhrea3SmIPmMTDimLqbh3/4SMTNPTUF+9+U1vpNfIRTFadqsmuU9Fddz3JqCcYwEpWbReg6DJOeyu+9oBoIQkPxFyLtIXEPGlQzrynKubn04Cx83I6NfzDTraJT3jLHKeW5PVc1ifqKzHz5TXdHHTA7NkJAa0sPcZCoNE1LpnJI/wcUpRUiuQhoLFeT1E432GuPuZ7y+agElGj0NnBxEgnHrhrnZWUbULpRa/il+Cr5Taj988HqX9Xdm6FjcP4Lbuds/44U7U8du224Q8jTrZ57Yvj4VDQKc='),
+        ('CDNSKEY', '0 3 0 AA=='),
+        ('CDS', '0 0 0 00'),
+    ])
+    def test_only_at_apex(self, qtype, content):
+        name, payload, zone = self.create_zone(soa_edit_api='')
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': qtype,
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": content,
+                    "disabled": False
+                },
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that the new record is there
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        self.assertEqual(get_rrset(data, name, qtype)['records'], rrset['records'])
+
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub.' + name,
+            'type': qtype,
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": content,
+                    "disabled": False
+                },
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assertIn('only allowed at apex', r.json()['error'])
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        self.assertIsNone(get_rrset(data, 'sub.' + name, qtype))
+
+    @parameterized.expand([
+        ('DS', '44030 8 2 d4c3d5552b8679faeebc317e5f048b614b2e5f607dc57f1553182d49ab2179f7'),
+    ])
+    def test_not_allowed_at_apex(self, qtype, content):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': qtype,
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": content,
+                    "disabled": False
+                },
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assertIn('not allowed at apex', r.json()['error'])
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        self.assertIsNone(get_rrset(data, 'sub.' + name, qtype))
+
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub.' + name,
+            'type': qtype,
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": content,
+                    "disabled": False
+                },
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that the new record is there
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        self.assertEqual(get_rrset(data, 'sub.' + name, qtype)['records'], rrset['records'])
 
     def test_rr_svcb(self):
         name, payload, zone = self.create_zone()
