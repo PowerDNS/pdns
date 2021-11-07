@@ -58,6 +58,8 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp);
 static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME, QType::SOA };
 // QTypes that MUST NOT be used with any other QType on the same name.
 static const std::set<uint16_t> exclusiveEntryTypes = { QType::CNAME };
+// QTypes that MUST be at apex.
+static const std::set<uint16_t> atApexTypes = {QType::SOA};
 
 AuthWebServer::AuthWebServer() :
   d_start(time(nullptr)),
@@ -1414,7 +1416,8 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
  *   *) no duplicates for QTypes that can only be present once per RRset
  *   *) hostnames are hostnames
  */
-static void checkNewRecords(vector<DNSResourceRecord>& records) {
+static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& zone)
+{
   sort(records.begin(), records.end(),
     [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
       /* we need _strict_ weak ordering */
@@ -1434,6 +1437,12 @@ static void checkNewRecords(vector<DNSResourceRecord>& records) {
         }
       } else if (exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
         throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString()+": Conflicts with another RRset");
+      }
+    }
+
+    if (rec.qname != zone) {
+      if (atApexTypes.count(rec.qtype.getCode()) != 0) {
+        throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is only allowed at apex");
       }
     }
 
@@ -1704,7 +1713,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
-    checkNewRecords(new_records);
+    checkNewRecords(new_records, zonename);
 
     if (boolFromJson(document, "dnssec", false)) {
       checkDefaultDNSSECAlgos();
@@ -2032,7 +2041,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
             }
           }
-          checkNewRecords(new_records);
+          checkNewRecords(new_records, zonename);
         }
 
         if (replace_comments) {
