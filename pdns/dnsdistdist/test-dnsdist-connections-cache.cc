@@ -29,7 +29,8 @@
 class MockupConnection
 {
 public:
-  MockupConnection(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>&, const struct timeval&, std::string&&): d_ds(ds)
+  MockupConnection(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>&, const struct timeval&, std::string&&) :
+    d_ds(ds)
   {
   }
 
