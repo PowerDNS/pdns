@@ -10,7 +10,8 @@ A configuration to balance DNS queries to several backend servers:
 
 .. code-block:: lua
 
-   newServer({address="2620:fe::fe2620:fe::9", qps=1})
+   newServer({address="2620:fe::fe", qps=1})
+   newServer({address="2620:fe::9", qps=1})
    newServer({address="9.9.9.9", qps=1})
    newServer({address="2001:db8::1", qps=10})
    newServer({address="[2001:db8::2]:5300", name="dns1", qps=10})
