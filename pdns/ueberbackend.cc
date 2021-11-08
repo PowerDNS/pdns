@@ -351,20 +351,32 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     if(cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
         // Zone exists in zone cache, directly look up SOA.
-        // XXX: this code path and the cache lookup below should be merged; but that needs the code path below to also use ANY.
-        // Or it should just also use lookup().
         DNSZoneRecord zr;
         lookup(QType(QType::SOA), shorter, zoneId, nullptr);
         if (!get(zr)) {
-          // zone has somehow vanished
           DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
           continue;
         }
         if (zr.dr.d_name != shorter) {
           throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+zr.dr.d_name.toLogString()+"' is not equal to looked up zone '"+shorter.toLogString()+"'");
         }
+        // fill sd
         sd->qname = zr.dr.d_name;
-        fillSOAData(zr, *sd);
+        try {
+          fillSOAData(zr, *sd);
+        }
+        catch (...) {
+          g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
+          while (get(zr))
+            ;
+          continue;
+        }
+        if (backends.size() == 1) {
+          sd->db = *backends.begin();
+        }
+        else {
+          sd->db = nullptr;
+        }
         // leave database handle in a consistent state
         while (get(zr))
           ;
