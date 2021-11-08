@@ -51,6 +51,20 @@ rec_build_deps = [
     'libfstrm-dev',
     'libsnmp-dev',
 ]
+rec_bulk_deps = [
+    'curl',
+    'libboost-all-dev',
+    'libcap2',
+    'libfstrm0',
+    'libluajit-5.1-2',
+    'libsnmp35',
+    'libsodium23',
+    'libssl1.1',
+    'libsystemd0',
+    'moreutils',
+    'pdns-tools',
+    'unzip'
+]
 dnsdist_build_deps = [
     'libcap-dev',
     'libcdb-dev',
@@ -157,19 +171,26 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     setup_authbind(c)
 
 @task
+def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
+    c.sudo('apt-get --no-install-recommends -qq -y install ' + ' '.join(rec_bulk_deps))
+    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+
+@task
 def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends install -qq -y authbind python3-venv python3-dev default-libmysqlclient-dev libpq-dev pdns-tools libluajit-5.1-2 \
-              libboost-all-dev \
-              libcap2 \
-              libssl1.1 \
-              libsystemd0 \
-              libsodium23 \
-              libfstrm0 \
-              libsnmp35')
+    c.sudo('apt-get --no-install-recommends install -qq -y ' + ' '.join(rec_bulk_deps) + ' \
+              pdns-server pdns-backend-bind daemontools \
+              jq libfaketime lua-posix lua-socket bc authbind \
+              python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
+              protobuf-compiler snmpd prometheus')
 
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
     setup_authbind(c)
+
+    c.run('sed "s/agentxperms 0700 0755 recursor/agentxperms 0777 0755/g" regression-tests.recursor-dnssec/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
+    c.sudo('systemctl restart snmpd')
+    time.sleep(5)
+    c.sudo('chmod 755 /var/agentx')
 
 @task
 def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-get
@@ -432,6 +453,21 @@ def test_dnsdist(c):
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
         c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist ./runtests')
+
+@task
+def test_regression_recursor(c):
+    c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
+    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y LIBFAKETIME=/bin/false ./build-scripts/test-recursor test_RecDnstap.py')
+    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y ./build-scripts/test-recursor -I test_RecDnstap.py')
+
+@task
+def test_bulk_recursor(c, threads, mthreads, shards):
+    # We run an extremely small version of the bulk test, as GH does not seem to be able to handle the UDP load
+    with c.cd('regression-tests'):
+        c.run('curl -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip')
+        c.run('unzip top-1m.csv.zip -d .')
+        c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 100 {threads} {mthreads} {shards}')
 
 # this is run always
 def setup():
