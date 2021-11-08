@@ -38,7 +38,6 @@
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
-#include "htmlfiles.h"
 #include "threadname.hh"
 #include "sodcrypto.hh"
 #include "sstuff.hh"
@@ -1369,6 +1368,9 @@ void clearWebHandlers()
   s_webHandlers.clear();
 }
 
+#ifndef DISABLE_BUILTIN_HTML
+#include "htmlfiles.h"
+
 static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   const string charset = "; charset=utf-8";
@@ -1403,6 +1405,7 @@ static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& res
 
   resp.status = 200;
 }
+#endif /* DISABLE_BUILTIN_HTML */
 
 void registerBuiltInWebHandlers()
 {
@@ -1415,11 +1418,13 @@ void registerBuiltInWebHandlers()
   registerWebHandler("/api/v1/servers/localhost/statistics", handleStatsOnly);
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
+#ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/", redirectToIndex);
 
   for (const auto& path : s_urlmap) {
     registerWebHandler("/" + path.first, handleBuiltInFiles);
   }
+#endif /* DISABLE_BUILTIN_HTML */
 }
 
 static void connectionThread(WebClientConnection&& conn)
