@@ -19,9 +19,9 @@ shards=$5
 
 if [ $IPv6 = 1 ]
 then
-	QLA6=" ::"
+        QLA6=" ::"
 else
-	QLA6=""
+        QLA6=""
 fi
 
 rm -f recursor.pid pdns_recursor.pid
@@ -35,8 +35,8 @@ rm -f recursor.pid pdns_recursor.pid
 sleep 3
 if [ ! -e pdns_recursor.pid ]; then
         cat recursor.log
-	echo Recursor did not start or did not write pdns_recursor.pid, exiting
-	exit 1
+        echo Recursor did not start or did not write pdns_recursor.pid, exiting
+        exit 1
 fi
 
 
@@ -84,11 +84,11 @@ ANANSWER=$[(100*(${DBT_QUEUED}-${DBT_ERRORS}-${DBT_TIMEOUTS}) )/${DBT_QUEUED}]
 
 if [ "$ANANSWER" -ge $THRESHOLD ]
 then
-	echo recursor-bulktest >> passed_tests
-	RETVAL=0
+        echo recursor-bulktest >> passed_tests
+        RETVAL=0
 else
-	echo recursor-bulktest >> failed_tests
-	RETVAL=1
+    echo recursor-bulktest >> failed_tests
+    RETVAL=1
 fi
 
 echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff

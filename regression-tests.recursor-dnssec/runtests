@@ -55,7 +55,7 @@ if ! "$PDNSRECURSOR" --version 2>&1 | grep Features | grep -q dnstap-framestream
   export NODNSTAPTESTS=1
 fi
 
-# libfstrm has a bad interaction with libfaketime on at leas Ubuntu focal
+# libfstrm has a bad interaction with libfaketime on at least Ubuntu Focal.
 # to run the test without LIBFAKETIME, we clear the var if it set to /bin/false
 if [ "$LIBFAKETIME" = "/bin/false" ]; then
   LIBFAKETIME=""

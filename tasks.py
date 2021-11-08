@@ -53,17 +53,17 @@ rec_build_deps = [
 ]
 rec_bulk_deps = [
     'curl',
-    'unzip',
-    'moreutils',
-    'pdns-tools',
-    'libluajit-5.1-2',
     'libboost-all-dev',
     'libcap2',
+    'libfstrm0',
+    'libluajit-5.1-2',
+    'libsnmp35',
+    'libsodium23',
     'libssl1.1',
     'libsystemd0',
-    'libsodium23',
-    'libfstrm0',
-    'libsnmp35'
+    'moreutils',
+    'pdns-tools',
+    'unzip'
 ]
 dnsdist_build_deps = [
     'libcap-dev',
