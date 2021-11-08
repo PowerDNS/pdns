@@ -165,6 +165,22 @@ static void waitForRead(int fd, unsigned int timeout, time_t start)
   }
 }
 
+static size_t getArgMax()
+{
+#if defined(ARG_MAX)
+  return ARG_MAX;
+#endif
+
+#if defined(_SC_ARG_MAX)
+  auto tmp = sysconf(_SC_ARG_MAX);
+  if (tmp != -1) {
+    return tmp;
+  }
+#endif
+  /* _POSIX_ARG_MAX */
+  return 4096;
+}
+
 RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int timeout)
 {
   // timeout covers the operation of all read ops combined
@@ -182,7 +198,7 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
     throw PDNSException("Unable to receive length over control channel: " + stringerror());
   }
 
-  if (len > ARG_MAX) {
+  if (len > getArgMax()) {
     throw PDNSException("Length of control channel message too large");
   }
 
