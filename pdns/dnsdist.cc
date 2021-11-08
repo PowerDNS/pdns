@@ -2390,7 +2390,9 @@ int main(int argc, char** argv)
 #ifdef HAVE_NGHTTP2
         cout<<"outgoing-dns-over-https(nghttp2) ";
 #endif
+#ifndef DISABLE_PROTOBUF
         cout<<"protobuf ";
+#endif
 #ifdef HAVE_RE2
         cout<<"re2 ";
 #endif

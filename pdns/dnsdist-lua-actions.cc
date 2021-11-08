@@ -1391,6 +1391,7 @@ private:
   bool d_hasV6;
 };
 
+#ifndef DISABLE_PROTOBUF
 static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
   if (protocol == dnsdist::Protocol::DoUDP) {
@@ -1497,6 +1498,8 @@ private:
   std::string d_ipEncryptKey;
 };
 
+#endif /* DISABLE_PROTOBUF */
+
 class SNMPTrapAction : public DNSAction
 {
 public:
@@ -1542,6 +1545,7 @@ private:
   std::string d_value;
 };
 
+#ifndef DISABLE_PROTOBUF
 class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
@@ -1627,6 +1631,8 @@ private:
   std::string d_ipEncryptKey;
   bool d_includeCNAME;
 };
+
+#endif /* DISABLE_PROTOBUF */
 
 class DropResponseAction : public DNSResponseAction
 {
@@ -2334,6 +2340,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
     });
 
+#ifndef DISABLE_PROTOBUF
   luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
@@ -2389,6 +2396,7 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
       return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
     });
+#endif /* DISABLE_PROTOBUF */
 
   luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
       return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), addECS ? *addECS : false));

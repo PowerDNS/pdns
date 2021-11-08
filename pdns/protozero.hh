@@ -21,12 +21,15 @@
  */
 #pragma once
 
-#include <protozero/pbf_writer.hpp>
-
 #include "config.h"
+
 #include "iputils.hh"
 #include "gettime.hh"
 #include "uuid-utils.hh"
+
+#ifndef DISABLE_PROTOBUF
+
+#include <protozero/pbf_writer.hpp>
 
 namespace pdns {
   namespace ProtoZero {
@@ -270,3 +273,5 @@ namespace pdns {
     };
   };
 };
+
+#endif /* DISABLE_PROTOBUF */

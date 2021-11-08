@@ -28,6 +28,8 @@
 
 #include "dnsname.hh"
 #include "iputils.hh"
+
+#ifndef DISABLE_PROTOBUF
 #include "protozero.hh"
 
 class DnstapMessage
@@ -43,3 +45,5 @@ public:
 protected:
   std::string& d_buffer;
 };
+
+#endif /* DISABLE_PROTOBUF */

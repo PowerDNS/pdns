@@ -21,6 +21,8 @@
  */
 
 #include "protozero.hh"
+
+#ifndef DISABLE_PROTOBUF
 #include "dnsparser.hh"
 
 void pdns::ProtoZero::Message::encodeComboAddress(const protozero::pbf_tag_type type, const ComboAddress& ca)
@@ -157,3 +159,5 @@ void pdns::ProtoZero::Message::addRR(const DNSName& name, uint16_t uType, uint16
   pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), uTTL);
   pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), blob);
 }
+
+#endif /* DISABLE_PROTOBUF */

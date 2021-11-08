@@ -20,9 +20,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "config.h"
+
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 
+#ifndef DISABLE_PROTOBUF
 #include "dnsdist-protobuf.hh"
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
@@ -163,3 +165,8 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       return std::string();
   });
 }
+#else /* DISABLE_PROTOBUF */
+void setupLuaBindingsProtoBuf(LuaContext&, bool, bool)
+{
+}
+#endif /* DISABLE_PROTOBUF */

@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "config.h"
+
+#ifndef DISABLE_PROTOBUF
 #include "dnsdist.hh"
 #include "dnsdist-protobuf.hh"
 #include "protozero.hh"
@@ -184,3 +186,5 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   m.commitResponse();
 }
+
+#endif /* DISABLE_PROTOBUF */

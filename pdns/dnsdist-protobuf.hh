@@ -23,6 +23,8 @@
 
 #include "dnsdist.hh"
 #include "dnsname.hh"
+
+#ifndef DISABLE_PROTOBUF
 #include "protozero.hh"
 
 class DNSDistProtoBufMessage
@@ -91,3 +93,5 @@ private:
   pdns::ProtoZero::Message::MessageType d_type{pdns::ProtoZero::Message::MessageType::DNSQueryType};
   bool d_includeCNAME{false};
 };
+
+#endif /* DISABLE_PROTOBUF */

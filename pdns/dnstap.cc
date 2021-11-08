@@ -3,6 +3,8 @@
 #include "gettime.hh"
 #include "dnstap.hh"
 
+#ifndef DISABLE_PROTOBUF
+
 #include <protozero/pbf_writer.hpp>
 
 namespace DnstapBaseFields {
@@ -90,3 +92,5 @@ void DnstapMessage::setExtra(const std::string& extra)
   protozero::pbf_writer pbf{d_buffer};
   pbf.add_bytes(DnstapBaseFields::extra, extra);
 }
+
+#endif /* DISABLE_PROTOBUF */
