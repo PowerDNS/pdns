@@ -152,16 +152,30 @@ void RecursorControlChannel::send(int fd, const Answer& msg, unsigned int timeou
   }
 }
 
+static void waitForRead(int fd, unsigned int timeout, time_t start)
+{
+  time_t elapsed = time(nullptr) - start;
+  if (elapsed >= timeout) {
+    throw PDNSException("Timeout waiting for control channel data");
+  }
+  int ret = waitForData(fd, timeout - elapsed, 0);
+  if (ret == 0) {
+    throw PDNSException("Timeout waiting for control channel data");
+  }
+}
+
 RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int timeout)
 {
-  int ret = waitForData(fd, timeout, 0);
-  if (ret == 0) {
-    throw PDNSException("Timeout waiting for answer from control channel");
-  }
+  // timeout covers the operation of all read ops combined
+  const time_t start = time(nullptr);
+
+  waitForRead(fd, timeout, start);
   int err;
   if (::recv(fd, &err, sizeof(err), 0) != sizeof(err)) {
     throw PDNSException("Unable to receive return status over control channel: " + stringerror());
   }
+
+  waitForRead(fd, timeout, start);
   size_t len;
   if (::recv(fd, &len, sizeof(len), 0) != sizeof(len)) {
     throw PDNSException("Unable to receive length over control channel: " + stringerror());
@@ -171,6 +185,7 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
   str.reserve(len);
   while (str.length() < len) {
     char buffer[1024];
+    waitForRead(fd, timeout, start);
     size_t toRead = std::min(len - str.length(), sizeof(buffer));
     ssize_t recvd = ::recv(fd, buffer, toRead, 0);
     if (recvd <= 0) {
