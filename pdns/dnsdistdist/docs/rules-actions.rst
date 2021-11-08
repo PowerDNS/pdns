@@ -72,6 +72,9 @@ The regex is applied case insensitively.
 
 Alternatively, if compiled in, :func:`RE2Rule` provides similar functionality, but against libre2.
 
+Note that to check if a name is in a list of domains, :func:`SuffixMatchNodeRule` is preferred over complex regular expressions or multiple instances of :func:`RegexRule`.
+The :func:`makeRule` convenience function can be used to create a :func:`SuffixMatchNodeRule`.
+
 Rule Generators
 ---------------
 
