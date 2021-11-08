@@ -24,6 +24,7 @@
 #include "webserver.hh"
 
 void apiDiscovery(HttpRequest* req, HttpResponse* resp);
+void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp);
 void apiServer(HttpRequest* req, HttpResponse* resp);
 void apiServerDetail(HttpRequest* req, HttpResponse* resp);
 void apiServerConfig(HttpRequest* req, HttpResponse* resp);

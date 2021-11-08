@@ -2337,26 +2337,27 @@ void AuthWebServer::webThread()
   try {
     setThreadName("pdns/webserver");
     if(::arg().mustDo("api")) {
-      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTSIGKeyDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTSIGKeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", &apiServerZoneExport);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", &apiZoneMetadataKind);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", &apiZoneMetadata);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", &apiServerZoneRectify);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
-      d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
-      d_ws->registerApiHandler("/api/v1/servers", &apiServer);
-      d_ws->registerApiHandler("/api/docs", &apiDocs);
-      d_ws->registerApiHandler("/api", &apiDiscovery);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", apiServerZoneAxfrRetrieve);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", apiServerZoneExport);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", apiZoneMetadataKind);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", apiZoneMetadata);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", apiServerZoneNotify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", apiServerZoneRectify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones);
+      d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail);
+      d_ws->registerApiHandler("/api/v1/servers", apiServer);
+      d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
+      d_ws->registerApiHandler("/api/docs", apiDocs);
+      d_ws->registerApiHandler("/api", apiDiscovery);
     }
     if (::arg().mustDo("webserver")) {
       d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);});
