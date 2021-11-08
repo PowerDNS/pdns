@@ -59,7 +59,7 @@ static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME
 // QTypes that MUST NOT be used with any other QType on the same name.
 static const std::set<uint16_t> exclusiveEntryTypes = { QType::CNAME };
 // QTypes that MUST be at apex.
-static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY, QType::CDNSKEY, QType::CDS};
+static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY};
 // QTypes that are NOT allowed at apex.
 static const std::set<uint16_t> nonApexTypes = {QType::DS};
 

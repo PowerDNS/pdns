@@ -1471,8 +1471,6 @@ $ORIGIN %NAME%
     @parameterized.expand([
         ('SOA', 'ns1.example.org. test@example.org. 10 10800 3600 604800 1800'),
         ('DNSKEY', '257 3 8 AwEAAb/+pXOZWYQ8mv9WM5dFva8WU9jcIUdDuEjldbyfnkQ/xlrJC5zAEfhYhrea3SmIPmMTDimLqbh3/4SMTNPTUF+9+U1vpNfIRTFadqsmuU9Fddz3JqCcYwEpWbReg6DJOeyu+9oBoIQkPxFyLtIXEPGlQzrynKubn04Cx83I6NfzDTraJT3jLHKeW5PVc1ifqKzHz5TXdHHTA7NkJAa0sPcZCoNE1LpnJI/wcUpRUiuQhoLFeT1E432GuPuZ7y+agElGj0NnBxEgnHrhrnZWUbULpRa/il+Cr5Taj988HqX9Xdm6FjcP4Lbuds/44U7U8du224Q8jTrZ57Yvj4VDQKc='),
-        ('CDNSKEY', '0 3 0 AA=='),
-        ('CDS', '0 0 0 00'),
     ])
     def test_only_at_apex(self, qtype, content):
         name, payload, zone = self.create_zone(soa_edit_api='')
