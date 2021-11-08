@@ -2378,7 +2378,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_FSTRM
         cout<<"fstrm ";
 #endif
-#ifdef HAVE_LIBCRYPTO
+#ifdef HAVE_IPCIPHER
         cout<<"ipcipher ";
 #endif
 #ifdef HAVE_LIBSODIUM

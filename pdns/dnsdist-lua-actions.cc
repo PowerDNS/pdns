@@ -39,9 +39,7 @@
 
 #include <boost/optional/optional_io.hpp>
 
-#ifdef HAVE_LIBCRYPTO
 #include "ipcipher.hh"
-#endif /* HAVE_LIBCRYPTO */
 
 class DropAction : public DNSAction
 {
@@ -1469,12 +1467,12 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_LIBCRYPTO
+#if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
       message.setRequestor(encryptCA(*dq->remote, d_ipEncryptKey));
     }
-#endif /* HAVE_LIBCRYPTO */
+#endif /* HAVE_IPCIPHER */
 
     if (d_alterFunc) {
       auto lock = g_lua.lock();
@@ -1599,12 +1597,12 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_LIBCRYPTO
+#if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
       message.setRequestor(encryptCA(*dr->remote, d_ipEncryptKey));
     }
-#endif /* HAVE_LIBCRYPTO */
+#endif /* HAVE_IPCIPHER */
 
     if (d_alterFunc) {
       auto lock = g_lua.lock();

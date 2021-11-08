@@ -505,7 +505,9 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "LuaFFIRule", true, "function", "Invoke a Lua FFI function that filters DNS questions" },
   { "LuaResponseAction", true, "function", "Invoke a Lua function that accepts a DNSResponse" },
   { "LuaRule", true, "function", "Invoke a Lua function that filters DNS questions" },
+#ifdef HAVE_IPCIPHER
   { "makeIPCipherKey", true, "password", "generates a 16-byte key that can be used to pseudonymize IP addresses with IP cipher" },
+#endif /* HAVE_IPCIPHER */
   { "makeKey", true, "", "generate a new server access key, emit configuration line ready for pasting" },
   { "makeRule", true, "rule", "Make a NetmaskGroupRule() or a SuffixMatchNodeRule(), depending on how it is called" }  ,
   { "MaxQPSIPRule", true, "qps, [v4Mask=32 [, v6Mask=64 [, burst=qps [, expiration=300 [, cleanupDelay=60]]]]]", "matches traffic exceeding the qps limit per subnet" },

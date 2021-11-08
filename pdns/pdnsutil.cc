@@ -1344,6 +1344,7 @@ static int editZone(const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
+#ifdef HAVE_IPCIPHER
 static int xcryptIP(const std::string& cmd, const std::string& ip, const std::string& rkey)
 {
 
@@ -1357,7 +1358,7 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
   cout<<ret.toString()<<endl;
   return EXIT_SUCCESS;
 }
-
+#endif /* HAVE_IPCIPHER */
 
 static int loadZone(const DNSName& zone, const string& fname) {
   UeberBackend B;
@@ -2434,6 +2435,7 @@ try
       cerr<<"Syntax: pdnsutil [ipencrypt|ipdecrypt] IP passphrase [key]"<<endl;
       return 0;
     }
+#ifdef HAVE_IPCIPHER
     string key;
     if(cmds.size()==4) {
       if (B64Decode(cmds.at(2), key) < 0) {
@@ -2445,6 +2447,10 @@ try
       key = makeIPCipherKey(cmds.at(2));
     }
     exit(xcryptIP(cmds.at(0), cmds.at(1), key));
+#else
+    cerr<<cmds.at(0)<<" requires ipcipher support which is not available"<<endl;
+    return 0;
+#endif /* HAVE_IPCIPHER */
   }
 
   if (cmds.at(0) == "test-algorithms") {

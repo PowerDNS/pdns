@@ -100,6 +100,7 @@ PDNS_WITH_NGHTTP2
 
 PDNS_CHECK_CDB
 PDNS_CHECK_LMDB
+PDNS_ENABLE_IPCIPHER
 
 AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 
@@ -182,7 +183,7 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
-AS_IF([test "x$LIBCRYPTO_LIBS" != "x"],
+AS_IF([test "x$enable_ipcipher" != "xno"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]
 )

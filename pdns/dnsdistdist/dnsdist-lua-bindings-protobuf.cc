@@ -26,11 +26,8 @@
 #include "dnsdist-protobuf.hh"
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
-#include "remote_logger.hh"
-
-#ifdef HAVE_LIBCRYPTO
 #include "ipcipher.hh"
-#endif /* HAVE_LIBCRYPTO */
+#include "remote_logger.hh"
 
 #ifdef HAVE_FSTRM
 static void parseFSTRMOptions(const boost::optional<std::unordered_map<std::string, unsigned int>>& params, std::unordered_map<string, unsigned int>& options)
@@ -51,7 +48,7 @@ static void parseFSTRMOptions(const boost::optional<std::unordered_map<std::stri
 
 void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 {
-#ifdef HAVE_LIBCRYPTO
+#ifdef HAVE_IPCIPHER
   luaCtx.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)const>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
       return encryptCA(ca, key);
     });
@@ -62,7 +59,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("makeIPCipherKey", [](const std::string& password) {
       return makeIPCipherKey(password);
     });
-#endif /* HAVE_LIBCRYPTO */
+#endif /* HAVE_IPCIPHER */
 
   /* ProtobufMessage */
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {

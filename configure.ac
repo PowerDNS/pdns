@@ -106,6 +106,8 @@ AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   ])
 ])
 
+PDNS_ENABLE_IPCIPHER
+
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
 

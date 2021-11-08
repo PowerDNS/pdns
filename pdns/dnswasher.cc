@@ -37,6 +37,8 @@ otherwise, obfuscate the response IP address
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#ifdef HAVE_IPCIPHER
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "iputils.hh"
@@ -272,3 +274,11 @@ catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
+
+#else
+int main()
+{
+  cerr<<"dnswasher requires ipcipher support, which is not available"<<endl;
+  exit(1);
+}
+#endif /* HAVE_IPCIPHER */
