@@ -98,7 +98,7 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
 
 PDNS_WITH_NGHTTP2
 
-PDNS_CHECK_CDB
+DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
 
