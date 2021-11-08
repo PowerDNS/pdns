@@ -263,7 +263,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
       fillSOAData(rr.content, sd);
     }
   }
-  catch (const PDNSException& e) {
+  catch (...) {
     while (this->get(rr)) {
       ;
     }

@@ -1449,7 +1449,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
           fillSOAData(row[2], sd);
           di.serial = sd.serial;
         }
-        catch (const PDNSException& e) {
+        catch (...) {
           di.serial = 0;
         }
       }
