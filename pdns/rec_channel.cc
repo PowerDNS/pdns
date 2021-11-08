@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <iostream>
+#include <limits.h>
 
 #include "pdnsexception.hh"
 
@@ -179,6 +180,10 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
   size_t len;
   if (::recv(fd, &len, sizeof(len), 0) != sizeof(len)) {
     throw PDNSException("Unable to receive length over control channel: " + stringerror());
+  }
+
+  if (len > ARG_MAX) {
+    throw PDNSException("Length of control channel message too large");
   }
 
   string str;
