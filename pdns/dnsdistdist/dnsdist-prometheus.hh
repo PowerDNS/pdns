@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#ifndef DISABLE_PROMETHEUS
 // Metric types for Prometheus
 enum class PrometheusMetricType: int {
     counter = 1,
@@ -70,3 +71,4 @@ struct MetricDefinitionStorage {
 
   static const std::map<std::string, MetricDefinition> metrics;
 };
+#endif /* DISABLE_PROMETHEUS */

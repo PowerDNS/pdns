@@ -60,7 +60,6 @@ struct WebserverConfig
 bool g_apiReadWrite{false};
 LockGuarded<WebserverConfig> g_webserverConfig;
 std::string g_apiConfigDirectory;
-static const MetricDefinitionStorage s_metricDefinitions;
 
 static ConcurrentConnectionManager s_connManager(100);
 
@@ -131,6 +130,9 @@ private:
   Socket d_socket;
 };
 
+#ifndef DISABLE_PROMETHEUS
+static const MetricDefinitionStorage s_metricDefinitions;
+
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
   { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
@@ -190,6 +192,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "tcp-listen-overflows",   MetricDefinition(PrometheusMetricType::counter, "From /proc/net/netstat ListenOverflows") },
   { "proxy-protocol-invalid", MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
+#endif /* DISABLE_PROMETHEUS */
 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
@@ -407,6 +410,7 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   return responseRules;
 }
 
+#ifndef DISABLE_PROMETHEUS
 template<typename T>
 static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHolder<vector<T> >& rules)
 {
@@ -810,6 +814,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.body = output.str();
   resp.headers["Content-Type"] = "text/plain";
 }
+#endif /* DISABLE_PROMETHEUS */
 
 using namespace json11;
 
@@ -1402,7 +1407,9 @@ static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& res
 void registerBuiltInWebHandlers()
 {
   registerWebHandler("/jsonstat", handleJSONStats);
+#ifndef DISABLE_PROMETHEUS
   registerWebHandler("/metrics", handlePrometheus);
+#endif /* DISABLE_PROMETHEUS */
   registerWebHandler("/api/v1/servers/localhost", handleStats);
   registerWebHandler("/api/v1/servers/localhost/pool", handlePoolStats);
   registerWebHandler("/api/v1/servers/localhost/statistics", handleStatsOnly);
