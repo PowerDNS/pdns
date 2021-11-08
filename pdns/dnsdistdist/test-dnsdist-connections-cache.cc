@@ -216,6 +216,18 @@ BOOST_AUTO_TEST_CASE(test_ConnectionsCache)
   BOOST_CHECK_EQUAL(manager.count(), maxIdleConnPerDownstream);
   BOOST_CHECK_EQUAL(manager.getActiveCount(), 0U);
   BOOST_CHECK_EQUAL(manager.getIdleCount(), maxIdleConnPerDownstream);
+
+  {
+    /* if we ask for a connection, one of these should become active and no longer idle */
+    /* but first we need to mark them as usable again */
+    for (const auto& c : conns) {
+      c->d_usable = true;
+    }
+    auto got = manager.getConnectionToDownstream(mplexer, downstream1, now, std::string());
+    BOOST_CHECK_EQUAL(manager.count(), maxIdleConnPerDownstream);
+    BOOST_CHECK_EQUAL(manager.getActiveCount(), 1U);
+    BOOST_CHECK_EQUAL(manager.getIdleCount(), maxIdleConnPerDownstream - 1U);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END();
