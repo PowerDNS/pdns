@@ -32,6 +32,7 @@
 #include <thread>
 
 #include "dnsdist.hh"
+#include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"

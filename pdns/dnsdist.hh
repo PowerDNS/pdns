@@ -947,15 +947,6 @@ private:
   bool d_useECS{false};
 };
 
-struct CarbonConfig
-{
-  ComboAddress server;
-  std::string namespace_name;
-  std::string ourname;
-  std::string instance_name;
-  unsigned int interval;
-};
-
 enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_NONE = 0,
   EDNS_HEADER_FLAG_DO = 32768
@@ -982,7 +973,6 @@ struct DNSDistResponseRuleAction
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 extern DNSAction::Action g_dynBlockAction;
 
-extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
@@ -1087,4 +1077,3 @@ int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol);
 
-void carbonDumpThread();

@@ -22,12 +22,12 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "iputils.hh"
+
+#include "dnsdist-carbon.hh"
+#include "dnsdist.hh"
+#include "dnsdist-carbon.hh"
 #include "dolog.hh"
 #include "sstuff.hh"
-
-#include "namespaces.hh"
-#include "dnsdist.hh"
 #include "threadname.hh"
 
 GlobalStateHolder<vector<CarbonConfig> > g_carbon;
