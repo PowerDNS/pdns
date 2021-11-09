@@ -95,6 +95,7 @@ They can be matched against netmasks objects:
 Prefixing a mask with ``!`` excludes that mask from matching.
 
 .. function:: newNMG([masks]) -> NetMaskGroup
+
   .. versionchanged:: 4.6.0
     Added the optional ``masks`` parameter.
 
