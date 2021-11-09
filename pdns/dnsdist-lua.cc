@@ -2254,6 +2254,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_PayloadSizeSelfGenAnswers = payloadSize;
   });
 
+#ifndef DISABLE_SECPOLL
   luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
     if (g_configurationDone) {
       g_outputBuffer = "setSecurityPollSuffix() cannot be used at runtime!\n";
@@ -2271,6 +2272,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     g_secPollInterval = newInterval;
   });
+#endif /* DISABLE_SECPOLL */
 
   luaCtx.writeFunction("setSyslogFacility", [](boost::variant<int, std::string> facility) {
     setLuaSideEffect();

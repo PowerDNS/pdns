@@ -21,7 +21,13 @@
  */
 #pragma once
 
+#include "config.h"
+
+#ifndef DISABLE_SECPOLL
+#include <string>
+
 extern std::string g_secPollSuffix;
 extern time_t g_secPollInterval;
 
 void doSecPoll(const std::string& suffix);
+#endif /* DISABLE_SECPOLL */

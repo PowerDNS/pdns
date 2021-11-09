@@ -1840,6 +1840,7 @@ static void dynBlockMaintenanceThread()
   DynBlockMaintenance::run();
 }
 
+#ifndef DISABLE_SECPOLL
 static void secPollThread()
 {
   setThreadName("dnsdist/secpoll");
@@ -1853,6 +1854,7 @@ static void secPollThread()
     sleep(g_secPollInterval);
   }
 }
+#endif /* DISABLE_SECPOLL */
 
 static void healthChecksThread()
 {
@@ -2704,10 +2706,12 @@ int main(int argc, char** argv)
     thread dynBlockMaintThread(dynBlockMaintenanceThread);
     dynBlockMaintThread.detach();
 
+#ifndef DISABLE_SECPOLL
     if (!g_secPollSuffix.empty()) {
       thread secpollthread(secPollThread);
       secpollthread.detach();
     }
+#endif /* DISABLE_SECPOLL */
 
     if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
