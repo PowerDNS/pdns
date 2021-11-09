@@ -21,6 +21,9 @@
  */
 #pragma once
 
+#include "config.h"
+
+#ifndef DISABLE_CARBON
 #include "sholder.hh"
 #include "iputils.hh"
 
@@ -35,3 +38,4 @@ struct CarbonConfig
 
 extern GlobalStateHolder<std::vector<CarbonConfig> > g_carbon;
 void carbonDumpThread();
+#endif /* DISABLE_CARBON */

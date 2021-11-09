@@ -2691,8 +2691,10 @@ int main(int argc, char** argv)
       }
     }
 
+#ifndef DISABLE_CARBON
     thread carbonthread(carbonDumpThread);
     carbonthread.detach();
+#endif /* DISABLE_CARBON */
 
     thread stattid(maintThread);
     stattid.detach();

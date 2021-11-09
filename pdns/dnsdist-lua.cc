@@ -941,6 +941,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return std::shared_ptr<DownstreamState>(nullptr);
   });
 
+#ifndef DISABLE_CARBON
   luaCtx.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName, boost::optional<unsigned int> interval, boost::optional<string> namespace_name, boost::optional<string> instance_name) {
     setLuaSideEffect();
     auto ours = g_carbon.getCopy();
@@ -951,6 +952,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                     interval ? *interval : 30});
     g_carbon.setState(ours);
   });
+#endif /* DISABLE_CARBON */
 
   luaCtx.writeFunction("webserver", [client, configCheck](const std::string& address, boost::optional<std::string> password, boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string>> customHeaders, const boost::optional<std::string> acl) {
     setLuaSideEffect();
