@@ -19,12 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "config.h"
 
 #include <fstream>
 // we need this to get the home directory of the current user
 #include <pwd.h>
 #include <thread>
 
+#ifdef HAVE_LIBEDIT
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 // If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
 #undef __STRICT_ANSI__
@@ -33,6 +35,7 @@
 #else
 #include <editline/readline.h>
 #endif
+#endif /* HAVE_LIBEDIT */
 
 #include "ext/json11/json11.hpp"
 
@@ -108,6 +111,7 @@ static void feedConfigDelta(const std::string& line)
   g_confDelta.emplace_back(now, line);
 }
 
+#ifdef HAVE_LIBEDIT
 static string historyFile(const bool &ignoreHOME = false)
 {
   string ret;
@@ -127,6 +131,7 @@ static string historyFile(const bool &ignoreHOME = false)
   ret.append("/.dnsdist_history");
   return ret;
 }
+#endif /* HAVE_LIBEDIT */
 
 static bool getMsgLen32(int fd, uint32_t* len)
 {
@@ -245,12 +250,14 @@ void doClient(ComboAddress server, const std::string& command)
     return; 
   }
 
+#ifdef HAVE_LIBEDIT
   string histfile = historyFile();
   {
     ifstream history(histfile);
     string line;
-    while(getline(history, line))
+    while (getline(history, line)) {
       add_history(line.c_str());
+    }
   }
   ofstream history(histfile, std::ios_base::app);
   string lastline;
@@ -282,43 +289,79 @@ void doClient(ComboAddress server, const std::string& command)
       break;
     }
   }
+#else
+  errlog("Client mode requested but libedit support is not available");
+#endif /* HAVE_LIBEDIT */
   close(fd);
 }
 
+#ifdef HAVE_LIBEDIT
+static std::optional<std::string> getNextConsoleLine(ofstream& history, std::string& lastline)
+{
+  char* sline = readline("> ");
+  rl_bind_key('\t', rl_complete);
+  if (!sline) {
+    return std::nullopt;
+  }
+
+  string line(sline);
+  if (!line.empty() && line != lastline) {
+    add_history(sline);
+    history << sline <<endl;
+    history.flush();
+  }
+
+  lastline = line;
+  free(sline);
+
+  return line;
+}
+#else /* HAVE_LIBEDIT */
+static std::optional<std::string> getNextConsoleLine()
+{
+  std::string line;
+  if (!std::getline(std::cin, line)) {
+    return std::nullopt;
+  }
+  return line;
+}
+#endif /* HAVE_LIBEDIT */
+
 void doConsole()
 {
+#ifdef HAVE_LIBEDIT
   string histfile = historyFile(true);
   {
     ifstream history(histfile);
     string line;
-    while(getline(history, line))
+    while (getline(history, line)) {
       add_history(line.c_str());
+    }
   }
   ofstream history(histfile, std::ios_base::app);
   string lastline;
-  for(;;) {
-    char* sline = readline("> ");
-    rl_bind_key('\t',rl_complete);
-    if(!sline)
-      break;
+#endif /* HAVE_LIBEDIT */
 
-    string line(sline);
-    if(!line.empty() && line != lastline) {
-      add_history(sline);
-      history << sline <<endl;
-      history.flush();
-    }
-    lastline=line;
-    free(sline);
-    
-    if(line=="quit")
+  for (;;) {
+#ifdef HAVE_LIBEDIT
+    auto line = getNextConsoleLine(history, lastline);
+#else /* HAVE_LIBEDIT */
+    auto line = getNextConsoleLine();
+#endif /* HAVE_LIBEDIT */
+    if (!line) {
       break;
-    if(line=="help" || line=="?")
-      line="help()";
+    }
+
+    if (*line == "quit") {
+      break;
+    }
+    if (*line == "help" || *line == "?") {
+      line = "help()";
+    }
 
     string response;
     try {
-      bool withReturn=true;
+      bool withReturn = true;
     retry:;
       try {
         auto lua = g_lua.lock();
@@ -333,8 +376,8 @@ void doConsole()
               std::unordered_map<string, double>
               >
             >
-          >(withReturn ? ("return "+line) : line);
-        if(ret) {
+          >(withReturn ? ("return "+*line) : *line);
+        if (ret) {
           if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
             if (*dsValue) {
               cout<<(*dsValue)->getName()<<endl;
@@ -348,7 +391,7 @@ void doConsole()
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
           }
-          else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+          else if (const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
             using namespace json11;
             Json::object o;
             for(const auto& v : *um)
@@ -357,42 +400,48 @@ void doConsole()
             cout<<out.dump()<<endl;
           }
         }
-        else 
+        else {
           cout << g_outputBuffer << std::flush;
-        if(!getLuaNoSideEffect())
-          feedConfigDelta(line);
+        }
+
+        if (!getLuaNoSideEffect()) {
+          feedConfigDelta(*line);
+        }
       }
-      catch(const LuaContext::SyntaxErrorException&) {
-        if(withReturn) {
+      catch (const LuaContext::SyntaxErrorException&) {
+        if (withReturn) {
           withReturn=false;
           goto retry;
         }
         throw;
       }
     }
-    catch(const LuaContext::WrongTypeException& e) {
+    catch (const LuaContext::WrongTypeException& e) {
       std::cerr<<"Command returned an object we can't print: "<<std::string(e.what())<<std::endl;
       // tried to return something we don't understand
     }
-    catch(const LuaContext::ExecutionErrorException& e) {
-      if(!strcmp(e.what(),"invalid key to 'next'"))
+    catch (const LuaContext::ExecutionErrorException& e) {
+      if (!strcmp(e.what(), "invalid key to 'next'")) {
         std::cerr<<"Error parsing parameters, did you forget parameter name?";
-      else
-        std::cerr << e.what(); 
+      }
+      else {
+        std::cerr << e.what();
+      }
+
       try {
         std::rethrow_if_nested(e);
 
         std::cerr << std::endl;
-      } catch(const std::exception& ne) {
+      } catch (const std::exception& ne) {
         // ne is the exception that was thrown from inside the lambda
         std::cerr << ": " << ne.what() << std::endl;
       }
-      catch(const PDNSException& ne) {
+      catch (const PDNSException& ne) {
         // ne is the exception that was thrown from inside the lambda
         std::cerr << ": " << ne.reason << std::endl;
       }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       std::cerr << e.what() << std::endl;      
     }
   }
@@ -939,6 +988,8 @@ void controlThread(int fd, ComboAddress local)
 
 void clearConsoleHistory()
 {
+#ifdef HAVE_LIBEDIT
   clear_history();
+#endif /* HAVE_LIBEDIT */
   g_confDelta.clear();
 }

@@ -2240,10 +2240,12 @@ int main(int argc, char** argv)
   try {
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
+#ifdef HAVE_LIBEDIT
 #ifndef DISABLE_COMPLETION
     rl_attempted_completion_function = my_completion;
     rl_completion_append_character = 0;
 #endif /* DISABLE_COMPLETION */
+#endif /* HAVE_LIBEDIT */
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
@@ -2383,6 +2385,9 @@ int main(int argc, char** argv)
 #endif
 #ifdef HAVE_IPCIPHER
         cout<<"ipcipher ";
+#endif
+#ifdef HAVE_LIBEDIT
+        cout<<"libeditr ";
 #endif
 #ifdef HAVE_LIBSODIUM
         cout<<"libsodium ";

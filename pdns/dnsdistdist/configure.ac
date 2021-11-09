@@ -24,7 +24,7 @@ CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarat
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP([auto])
 PDNS_CHECK_RAGEL([dnslabeltext.cc], [www.dnsdist.org])
-PDNS_CHECK_LIBEDIT
+PDNS_WITH_LIBEDIT
 PDNS_CHECK_CLOCK_GETTIME
 
 PDNS_CHECK_OS
@@ -186,6 +186,10 @@ AS_IF([test "x$systemd" != "xn"],
 AS_IF([test "x$enable_ipcipher" != "xno"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]
+)
+AS_IF([test "x$LIBEDIT_LIBS" != "x"],
+  [AC_MSG_NOTICE([libedit: yes])],
+  [AC_MSG_NOTICE([libedit: no])]
 )
 AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
   [AC_MSG_NOTICE([libsodium: yes])],
