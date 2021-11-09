@@ -1044,12 +1044,12 @@ Maximum number of incoming requests handled concurrently per tcp
 connection. This number must be larger than 0 and smaller than 65536
 and also smaller than `max-mthreads`.
 
-.. versionadded:: 4.6.0
-
 .. _setting-max-include-depth:
 
 ``max-include-depth``
 ----------------------
+
+.. versionadded:: 4.6.0
 
 -  Integer
 -  Default: 20
