@@ -1049,6 +1049,8 @@ and also smaller than `max-mthreads`.
 ``max-include-depth``
 ----------------------
 
+.. versionadded:: 4.6.0
+
 -  Integer
 -  Default: 20
 
