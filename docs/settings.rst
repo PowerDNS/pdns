@@ -253,6 +253,8 @@ You may specify an alternate port by appending :port, ex:
 -  Path
 
 If set, chroot to this directory for more security. See :doc:`security`.
+This is not recommended; instead, we recommend containing PowerDNS using operating system features.
+We ship systemd unit files with our packages to make this easy.
 
 Make sure that ``/dev/log`` is available from within the chroot. Logging
 will silently fail over time otherwise (on logrotate).
@@ -263,9 +265,9 @@ set in the configuration are relative to the new root.
 
 When running on a system where systemd manages services, ``chroot`` does
 not work out of the box, as PowerDNS cannot use the ``NOTIFY_SOCKET``.
-Either don't ``chroot`` on these systems or set the 'Type' of the this
+Either don't ``chroot`` on these systems or set the 'Type' of the
 service to 'simple' instead of 'notify' (refer to the systemd
-documentation on how to modify unit-files)
+documentation on how to modify unit-files).
 
 .. _setting-config-dir:
 
