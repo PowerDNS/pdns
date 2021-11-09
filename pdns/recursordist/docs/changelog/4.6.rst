@@ -2,6 +2,54 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.0-beta1
+  :released: 9th of November 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10865
+
+    Return documented reply on /api/v1 access.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10943
+    :tickets: 10938
+
+    Credentials: EVP_PKEY_CTX_set1_scrypt_salt() takes an `unsigned char*`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10919
+    :tickets: 10852
+
+    Add more UDP error metrics (checksum, IPv6).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10930,10965
+
+    Move to a stream based socket for the control channel.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10901
+
+    ZoneParserTNG: Stricter checks when loading a zone file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10926
+
+    Fix regression of carbon-ourname.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10891
+
+    Implement fd-usage metric for OpenBSD.
+
+.. changelog::
   :version: 4.6.0-alpha2
   :released: 25th of October 2021
 
