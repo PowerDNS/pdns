@@ -256,6 +256,7 @@ def ci_auth_configure(c):
         raise UnexpectedExit(res)
 @task
 def ci_rec_configure(c):
+    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
     res = c.run('''            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
@@ -270,9 +271,7 @@ def ci_rec_configure(c):
               --with-lua=luajit \
               --with-libcap \
               --with-net-snmp \
-              --enable-dns-over-tls \
-              --enable-asan \
-              --enable-ubsan''', warn=True)
+              --enable-dns-over-tls ''' + sanitizers, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
