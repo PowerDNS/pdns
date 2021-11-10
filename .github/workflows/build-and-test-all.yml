@@ -333,7 +333,7 @@ jobs:
         sanitizers: [ubsan+asan]
         threads: [1, 2, 3, 4, 8, 16]
         mthreads: [2048, 4096]
-        shards: [1, 2, 1028]
+        shards: [1, 2, 1024]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0

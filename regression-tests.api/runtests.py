@@ -226,11 +226,11 @@ else:
 # Now run pdns and the tests.
 print("Launching server...")
 print(format_call_args(servercmd))
-serverproc = subprocess.Popen(servercmd, close_fds=True)
+serverproc = subprocess.Popen(servercmd, close_fds=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 print("Waiting for webserver port to become available...")
 available = False
-time.sleep(0.5)
+time.sleep(1)
 for try_number in range(0, 10):
     try:
         res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
@@ -240,12 +240,16 @@ for try_number in range(0, 10):
       print(f'HTTP error occurred: {http_err}')
     except Exception as err:
       print(f'Other error occurred: {err}')
-    time.sleep(0.5)
+    time.sleep(1)
 
 if not available:
     print("Webserver port not reachable after 10 tries, giving up.")
     serverproc.terminate()
     serverproc.wait()
+    print("==STDOUT===")
+    print(proc.stdout.read())
+    print("==STDERRR===")
+    print(proc.stderr.read())
     sys.exit(2)
 
 print("Query for example.com/A to create statistic data...")
@@ -284,5 +288,9 @@ finally:
         raw_input()
     serverproc.terminate()
     serverproc.wait()
+    print("==STDOUT===")
+    print(serverproc.stdout.read())
+    print("==STDERRR===")
+    print(serverproc.stderr.read())
 
 sys.exit(returncode)
