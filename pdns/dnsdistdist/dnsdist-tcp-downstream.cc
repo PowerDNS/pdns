@@ -93,6 +93,7 @@ bool ConnectionToBackend::reconnect()
       socket->setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
+      DEBUGLOG("Creating a new handler for "<<socket->getHandle());
       auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
       if (!tlsSession && d_ds->d_tlsCtx) {
         tlsSession = g_sessionCache.getSession(d_ds->getID(), d_connectionStartTime.tv_sec);
@@ -100,6 +101,7 @@ bool ConnectionToBackend::reconnect()
       if (tlsSession) {
         handler->setTLSSession(tlsSession);
       }
+      DEBUGLOG("Trying to connect our socket "<<handler->getDescriptor()<<" to "<<d_ds->remote<<", fast open is "<<(d_ds->tcpFastOpen && isFastOpenEnabled()));
       handler->tryConnect(d_ds->tcpFastOpen && isFastOpenEnabled(), d_ds->remote);
       d_queries = 0;
 
@@ -108,6 +110,7 @@ bool ConnectionToBackend::reconnect()
       return true;
     }
     catch (const std::runtime_error& e) {
+      DEBUGLOG("Connection to downstream server "<<d_ds->getName()<<" failed: "<<e.what());
       vinfolog("Connection to downstream server %s failed: %s", d_ds->getName(), e.what());
       d_downstreamFailures++;
       if (d_downstreamFailures >= d_ds->d_retries) {

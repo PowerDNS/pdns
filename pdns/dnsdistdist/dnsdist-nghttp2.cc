@@ -331,6 +331,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     /* there is a stream ID collision, something is very wrong! */
     d_connectionDied = true;
     nghttp2_session_terminate_session(d_session.get(), NGHTTP2_NO_ERROR);
+    DEBUGLOG("Stream ID collision");
     throw std::runtime_error("Stream ID collision");
   }
 
@@ -362,6 +363,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     d_currentStreams.erase(streamId);
+    DEBUGLOG("Error submitting HTTP request: "<<std::string(nghttp2_strerror(newStreamId)));
     throw std::runtime_error("Error submitting HTTP request:" + std::string(nghttp2_strerror(newStreamId)));
   }
 
@@ -370,6 +372,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     d_currentStreams.erase(streamId);
+    DEBUGLOG("Error in nghttp2_session_send: "<<std::to_string(rv));
     throw std::runtime_error("Error in nghttp2_session_send:" + std::to_string(rv));
   }
 
