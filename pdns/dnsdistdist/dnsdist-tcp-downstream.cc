@@ -101,8 +101,9 @@ bool ConnectionToBackend::reconnect()
       if (tlsSession) {
         handler->setTLSSession(tlsSession);
       }
-      DEBUGLOG("Trying to connect our socket "<<handler->getDescriptor()<<" to "<<d_ds->remote<<", fast open is "<<(d_ds->tcpFastOpen && isFastOpenEnabled()));
+      DEBUGLOG("Trying to connect our socket "<<handler->getDescriptor()<<" to "<<d_ds->remote.toString()<<", fast open is "<<(d_ds->tcpFastOpen && isFastOpenEnabled()));
       handler->tryConnect(d_ds->tcpFastOpen && isFastOpenEnabled(), d_ds->remote);
+      DEBUGLOG("connected");
       d_queries = 0;
 
       d_handler = std::move(handler);
@@ -450,7 +451,9 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
 void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
   if (!d_ioState) {
+    DEBUGLOG("Creating a IOStateHandler");
     d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
+    DEBUGLOG("Created a IOStateHandler");
   }
 
   // if we are not already sending a query or in the middle of reading a response (so idle),

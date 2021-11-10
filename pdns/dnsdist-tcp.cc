@@ -721,7 +721,9 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   prependSizeToTCPQuery(state->d_buffer, 0);
 
+  DEBUGLOG("Getting a downstream connection for "<<ds->getName());
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
+  DEBUGLOG("Got a downstream connection");
 
   if (ds->useProxyProtocol) {
     /* if we ever sent a TLV over a connection, we can never go back */
@@ -739,6 +741,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   TCPQuery query(std::move(state->d_buffer), std::move(ids));
   query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
+  DEBUGLOG("Passing query to downstream connection");
   vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
   std::shared_ptr<TCPQuerySender> incoming = state;
   downstreamConnection->queueQuery(incoming, std::move(query));

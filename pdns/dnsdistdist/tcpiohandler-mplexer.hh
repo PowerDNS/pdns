@@ -4,7 +4,7 @@
 #include "mplexer.hh"
 #include "tcpiohandler.hh"
 
-#if 0
+#if 1
 #define DEBUGLOG_ENABLED
 #define DEBUGLOG(x) cerr<<x<<endl;
 #else

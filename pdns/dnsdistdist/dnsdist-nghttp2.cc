@@ -810,12 +810,15 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
   ConnectionToBackend(ds, mplexer, now), d_proxyProtocolPayload(std::move(proxyProtocolPayload))
 {
   // inherit most of the stuff from the ConnectionToBackend()
+  DEBUGLOG("Creating a IOStateHandler");
   d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
+  DEBUGLOG("Created IOStateHandler");
 
   nghttp2_session_callbacks* cbs = nullptr;
   if (nghttp2_session_callbacks_new(&cbs) != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
+    DEBUGLOG("Unable to create a callback object for a new HTTP/2 session");
     vinfolog("Unable to create a callback object for a new HTTP/2 session");
     return;
   }
@@ -833,7 +836,8 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
   if (nghttp2_session_client_new(&sess, callbacks.get(), this) != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    vinfolog("Coult not allocate a new HTTP/2 session");
+    DEBUGLOG("Could not allocate a new HTTP/2 session");
+    vinfolog("Could not allocate a new HTTP/2 session");
     return;
   }
 
@@ -858,6 +862,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(std::shared_ptr<DownstreamState> 
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     vinfolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv));
+    DEBUGLOG("Could not submit SETTINGS"<<nghttp2_strerror(rv));
     return;
   }
 }
@@ -1308,7 +1313,9 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
+    DEBUGLOG("Received H2 query, getting a downstream connection");
     auto connection = DownstreamDoHConnectionsManager::getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
+    DEBUGLOG("Passing the query to the downstream connection");
     connection->queueQuery(sender, std::move(query));
   }
 
