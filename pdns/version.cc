@@ -135,6 +135,9 @@ void showBuildConfiguration()
 #ifdef HAVE_LIBSODIUM
     "sodium " <<
 #endif
+#ifdef HAVE_LIBCURL
+    "curl " <<
+#endif
 #ifdef VERBOSELOG
     "verboselog" <<
 #endif
