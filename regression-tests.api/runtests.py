@@ -5,6 +5,7 @@
 from __future__ import print_function
 import os
 import requests
+from requests.exceptions import HTTPError
 import shutil
 import subprocess
 import sys
@@ -229,13 +230,17 @@ serverproc = subprocess.Popen(servercmd, close_fds=True)
 
 print("Waiting for webserver port to become available...")
 available = False
+time.sleep(0.5)
 for try_number in range(0, 10):
     try:
         res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
         available = True
         break
-    except:
-        time.sleep(0.5)
+    except HTTPError as http_err:
+      print(f'HTTP error occurred: {http_err}')
+    except Exception as err:
+      print(f'Other error occurred: {err}')
+    time.sleep(0.5)
 
 if not available:
     print("Webserver port not reachable after 10 tries, giving up.")
