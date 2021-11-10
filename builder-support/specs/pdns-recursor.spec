@@ -17,6 +17,7 @@ BuildRequires: openssl-devel
 BuildRequires: net-snmp-devel
 BuildRequires: libsodium-devel
 BuildRequires: fstrm-devel
+BuildRequires: libcurl-devel
 
 %ifarch aarch64
 BuildRequires: lua-devel
