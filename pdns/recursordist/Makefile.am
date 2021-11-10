@@ -447,10 +447,10 @@ AM_CPPFLAGS += $(LIBSSL_CFLAGS)
 pdns_recursor_LDADD += $(LIBSSL_LIBS)
 endif
 
-if HAVE_GNUTLS
-AM_CPPFLAGS += $(GNUTLS_CFLAGS)
-pdns_recursor_LDADD += $(GNUTLS_LIBS)
-endif
+#if HAVE_GNUTLS
+#AM_CPPFLAGS += $(GNUTLS_CFLAGS)
+#pdns_recursor_LDADD += $(GNUTLS_LIBS)
+#endif
 endif
 if HAVE_LIBCURL
 pdns_recursor_SOURCES += minicurl.cc minicurl.hh
