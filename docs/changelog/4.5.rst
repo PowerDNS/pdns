@@ -2,6 +2,50 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.2
+  :released: 10th of November 2021
+
+  This is release 4.5.2 of the Authoritative Server.
+  It contains several robustness fixes for the bindbackend, and for SOA handling.
+  These fixes are especially important for zone cache users.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10968
+
+    bindbackend: skip rejected zones during list and search
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10964
+
+    make the zone cache more robust for bad data and save some SOA queries for DNSSEC zones (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10962
+
+    api, check SOA location (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10952
+
+    improve dnsname exception handling for SOA records (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10792
+
+    improve SOA parse exception handling (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10778
+
+    try to reload rejected zones in bind-backend once every bind-check-interval (Kees Monshouwer)
+
+.. changelog::
   :version: 4.5.1
   :released: 26th of July 2021
 
