@@ -1,0 +1,194 @@
+---
+name: 'Build packages for various distributions'
+
+on:
+  push:
+    tags:
+      - 'auth-*'
+      - 'rec-*'
+      - 'dnsdist-*'
+
+  # To trigger with a dispatch:
+  #   gh workflow -R <REPO> run release-builder.yml --ref <BRANCH|TAG> -f product=<dnsdist|recursor|authoritative>
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Product to build, authoritative, recursor, or dnsdist'
+        required: true
+
+jobs:
+  build:
+    name: build.sh
+    # on a ubuntu-20.04 VM
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os:
+          - centos-7
+          - centos-8
+          - ubuntu-bionic
+          - ubuntu-focal
+          - oraclelinux-8
+          - centos-8-stream
+          - debian-buster
+          - debian-bullseye
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 0  # for correct version numbers
+          submodules: recursive
+      - run: |
+          if [ "${{ github.event.ref_type }}" = "tag" ]; then
+            echo ::set-output name=is_release::YES
+          else
+            echo ::set-output name=is_release::NO
+          fi
+
+          case "${{ github.event.ref }}" in
+            refs/tags/auth-*)
+              echo ::set-output name=product::authoritative
+              PRODUCT=authoritative
+              ;;
+            refs/tags/rec-*)
+              echo ::set-output name=product::recursor
+              PRODUCT=recursor
+              ;;
+            refs/tags/dnsdist-*)
+              echo ::set-output name=product::dnsdist
+              PRODUCT=dnsdist
+              ;;
+            *)
+              echo ::set-output name=product::${{ github.event.inputs.product }}
+              PRODUCT="${{ github.event.inputs.product }}"
+              ;;
+          esac
+
+          case "${PRODUCT}" in
+            recursor)
+              echo ::set-output name=output_name::pdns-recursor
+              ;;
+            authoritative)
+              echo ::set-output name=output_name::pdns
+              ;;
+            *)
+              echo ::set-output name=output_name::$PRODUCT
+              ;;
+          esac
+        id: pkg-vars
+      - run: builder/build.sh -v -m ${{ steps.pkg-vars.outputs.product }} ${{ matrix.os }}
+        env:
+          IS_RELEASE: '${{ steps.getproduct.outputs.is_release }}'
+
+      - name: Get version number
+        run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
+        id: getversion
+
+      - name: Generate provenance directory
+        run: 'mkdir -p provenance'
+
+      - name: Generate build provenance
+        uses: philips-labs/slsa-provenance-action@v0.4.0
+        with:
+          artifact_path: builder/tmp/${{ steps.getversion.outputs.version }}/${{ matrix.os }}/dist/
+          output_path: provenance/${{ steps.pkg-vars.outputs.output_name }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}-provenance.json
+          extra_materials: builder/tmp/${{ steps.getversion.outputs.version }}/${{ matrix.os }}/dist/extra_materials.json
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.pkg-vars.outputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
+          path: built_pkgs/
+          retention-days: 7
+
+      - name: Upload provenance
+        uses: actions/upload-artifact@v2
+        with:
+          name: provenance-${{ steps.pkg-vars.outputs.product }}-${{ steps.getversion.outputs.version }}
+          path: provenance/
+          retention-days: 7
+
+  sign:
+    name: Sign provenance
+    if: ${{ github.repository == "PowerDNS/pdns" && secrets.provenance_key != "" }}
+    needs: build
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os:
+          - centos-7
+          - centos-8
+          - ubuntu-bionic
+          - ubuntu-focal
+          - oraclelinux-8
+          - centos-8-stream
+          - debian-buster
+          - debian-bullseye
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 0  # for correct version numbers
+          submodules: recursive
+      - run: |
+          if [ "${{ github.event.ref_type }}" = "tag" ]; then
+            echo ::set-output name=is_release::YES
+          else
+            echo ::set-output name=is_release::NO
+          fi
+
+          case "${{ github.event.ref }}" in
+            refs/tags/auth-*)
+              echo ::set-output name=product::authoritative
+              PRODUCT=authoritative
+              ;;
+            refs/tags/rec-*)
+              echo ::set-output name=product::recursor
+              PRODUCT=recursor
+              ;;
+            refs/tags/dnsdist-*)
+              echo ::set-output name=product::dnsdist
+              PRODUCT=dnsdist
+              ;;
+            *)
+              echo ::set-output name=product::${{ github.event.inputs.product }}
+              PRODUCT="${{ github.event.inputs.product }}"
+              ;;
+          esac
+
+          case "${PRODUCT}" in
+            recursor)
+              echo ::set-output name=output_name::pdns-recursor
+              ;;
+            authoritative)
+              echo ::set-output name=output_name::pdns
+              ;;
+            *)
+              echo ::set-output name=output_name::$PRODUCT
+              ;;
+          esac
+        id: pkg-vars
+      - name: Get version number
+        run: 'echo ::set-output name=version::$(IS_RELEASE=${{ steps.pkg-vars.outputs.is_release }} BUILDER_MODULES=${{ steps.pkg-vars.outputs.product }} ./builder-support/gen-version)'
+        id: getversion
+      - run: mkdir -p provenance-signed
+      - name: Download provenance
+        uses: actions/download-artifact@v2
+        id: download
+        with:
+          name: provenance-${{ steps.pkg-vars.outputs.product }}-${{ steps.getversion.outputs.version }}
+          path: provenance
+      - name: Sign provenance
+        # TODO replace with philips-labs/slsa-provenance-action once #91 is merged and released
+        uses: pieterlexis/slsa-provenance-action/sign@sign-command
+        with:
+          provenance_path: /github/workspace/provenance/${{ steps.pkg-vars.outputs.output_name }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}-provenance.json
+          output_path: provenance-signed/${{ steps.pkg-vars.outputs.output_name }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}-provenance-signed.json
+          key: ${{ secrets.provenance_key }}
+      - name: Upload signed provenance
+        uses: actions/upload-artifact@v2
+        with:
+          name: provenance-signed-${{ steps.pkg-vars.outputs.product }}-${{ steps.getversion.outputs.version }}
+          # TODO increase this. Or have external service mirror all provenance
+          retention-days: 7
+          path: provenance-signed/

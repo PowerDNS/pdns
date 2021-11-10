@@ -56,3 +56,10 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
 #RUN mv /root/rpmbuild/RPMS/* /dist/
 RUN cp -R /root/rpmbuild/RPMS/* /dist/
 RUN cp -R /root/rpmbuild/SRPMS/* /dist/
+
+# Generate provenance
+RUN if $(grep -q 'release 7' /etc/redhat-release); then \
+      builder/helpers/generate-yum-provenance.py /dist/extra_materials.json; \
+    else \
+      builder/helpers/generate-dnf-provenance.py /dist/extra_materials.json; \
+    fi

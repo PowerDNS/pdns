@@ -20,3 +20,7 @@ RUN builder/helpers/build-debs.sh dnsdist-${BUILDER_VERSION}
 
 RUN mv dnsdist*.deb /dist; mv dnsdist*.ddeb /dist || true
 @ENDIF
+
+# Generate provenance
+RUN apt-get install -y python-apt || apt-get install -y python3-apt
+RUN python builder/helpers/generate-deb-provenance.py /dist/extra_materials.json || python3 builder/helpers/generate-deb-provenance.py /dist/extra_materials.json
