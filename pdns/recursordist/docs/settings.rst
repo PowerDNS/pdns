@@ -802,7 +802,7 @@ The DNSSEC notes from `forward-zones`_ apply here as well.
 
 Like regular `forward-zones`_, but forwarded queries have the 'recursion desired' bit set to 1, meaning that this setting is intended to forward queries to other recursive servers.
 
-The DNSSEC notes from `forward-zones`_ apply here as well.
+See `forward-zones`_ for additional options (such as supplying multiple recursive servers) and an important note about DNSSEC.
 
 .. _setting-gettag-needs-edns-options:
 
