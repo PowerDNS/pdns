@@ -1951,10 +1951,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](uint64_t size) { g_tcpInternalPipeBufferSize = size; });
 
+#ifdef HAVE_NET_SNMP
   luaCtx.writeFunction("snmpAgent", [client, configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
     if (client || configCheck)
       return;
-#ifdef HAVE_NET_SNMP
     if (g_configurationDone) {
       errlog("snmpAgent() cannot be used at runtime!");
       g_outputBuffer = "snmpAgent() cannot be used at runtime!\n";
@@ -1970,10 +1970,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_snmpEnabled = true;
     g_snmpTrapsEnabled = enableTraps;
     g_snmpAgent = new DNSDistSNMPAgent("dnsdist", daemonSocket ? *daemonSocket : std::string());
-#else
-      errlog("NET SNMP support is required to use snmpAgent()");
-      g_outputBuffer = "NET SNMP support is required to use snmpAgent()\n";
-#endif /* HAVE_NET_SNMP */
   });
 
   luaCtx.writeFunction("sendCustomTrap", [](const std::string& str) {
@@ -1981,6 +1977,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_snmpAgent->sendCustomTrap(str);
     }
   });
+#endif /* HAVE_NET_SNMP */
 
   luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy& policy) {
     setLuaSideEffect();
