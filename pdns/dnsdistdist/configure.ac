@@ -57,7 +57,7 @@ AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
 PDNS_WITH_LUA([mandatory])
 AS_IF([test "x$LUAPC" = "xluajit"], [
-  # export all symbols to be able to use the Lua FFI interface
+  # export all symbols with default visibility, to be able to use the Lua FFI interface
   AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
   LDFLAGS="$LDFLAGS -rdynamic"
 ])
