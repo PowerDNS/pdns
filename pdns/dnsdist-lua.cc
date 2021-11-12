@@ -954,7 +954,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* DISABLE_CARBON */
 
-  luaCtx.writeFunction("webserver", [client, configCheck](const std::string& address, boost::optional<std::string> password, boost::optional<std::string> apiKey, const boost::optional<std::unordered_map<std::string, std::string>> customHeaders, const boost::optional<std::string> acl) {
+  luaCtx.writeFunction("webserver", [client, configCheck](const std::string& address) {
     setLuaSideEffect();
     ComboAddress local;
     try {
@@ -968,37 +968,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    if (password || apiKey || customHeaders || acl) {
-      warnlog("Passing additional parameters to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
-    }
-
     try {
       int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
       SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
       SBind(sock, local);
       SListen(sock, 5);
-      auto launch = [sock, local, password, apiKey, customHeaders, acl]() {
-        if (password) {
-          auto holder = make_unique<CredentialsHolder>(std::string(*password), false);
-          if (!holder->wasHashed() && holder->isHashingAvailable()) {
-            infolog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead and consider generating a hashed password using 'hashPassword()'.");
-          }
-
-          setWebserverPassword(std::move(holder));
-        }
-
-        if (apiKey) {
-          auto holder = make_unique<CredentialsHolder>(std::string(*apiKey), false);
-          setWebserverAPIKey(std::move(holder));
-        }
-
-        if (customHeaders) {
-          setWebserverCustomHeaders(customHeaders);
-        }
-
-        if (acl) {
-          setWebserverACL(*acl);
-        }
+      auto launch = [sock, local]() {
         thread t(dnsdistWebserverThread, sock, local);
         t.detach();
       };

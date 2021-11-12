@@ -2129,22 +2129,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetNoRecurseAction);
     });
 
-  luaCtx.writeFunction("NoRecurseAction", []() {
-      warnlog("access to NoRecurseAction is deprecated and will be removed in a future version, please use SetNoRecurseAction instead");
-      return std::shared_ptr<DNSAction>(new SetNoRecurseAction);
-    });
-
   luaCtx.writeFunction("SetMacAddrAction", [](int code) {
       return std::shared_ptr<DNSAction>(new SetMacAddrAction(code));
     });
 
   luaCtx.writeFunction("SetEDNSOptionAction", [](int code, const std::string& data) {
       return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
-    });
-
-  luaCtx.writeFunction("MacAddrAction", [](int code) {
-      warnlog("access to MacAddrAction is deprecated and will be removed in a future version, please use SetMacAddrAction instead");
-      return std::shared_ptr<DNSAction>(new SetMacAddrAction(code));
     });
 
   luaCtx.writeFunction("PoolAction", [](const std::string& a) {
@@ -2239,11 +2229,6 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
     });
 
-  luaCtx.writeFunction("DisableValidationAction", []() {
-      warnlog("access to DisableValidationAction is deprecated and will be removed in a future version, please use SetDisableValidationAction instead");
-      return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
-  });
-
   luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSAction>(new LogAction(fname ? *fname : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
@@ -2295,21 +2280,11 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetSkipCacheAction);
     });
 
-  luaCtx.writeFunction("SkipCacheAction", []() {
-      warnlog("access to SkipCacheAction is deprecated and will be removed in a future version, please use SetSkipCacheAction instead");
-      return std::shared_ptr<DNSAction>(new SetSkipCacheAction);
-    });
-
   luaCtx.writeFunction("SetSkipCacheResponseAction", []() {
       return std::shared_ptr<DNSResponseAction>(new SetSkipCacheResponseAction);
     });
 
   luaCtx.writeFunction("SetTempFailureCacheTTLAction", [](int maxTTL) {
-      return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
-    });
-
-  luaCtx.writeFunction("TempFailureCacheTTLAction", [](int maxTTL) {
-      warnlog("access to TempFailureCacheTTLAction is deprecated and will be removed in a future version, please use SetTempFailureCacheTTLAction instead");
       return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
     });
 
@@ -2406,26 +2381,11 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
     });
 
-  luaCtx.writeFunction("ECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
-      warnlog("access to ECSPrefixLengthAction is deprecated and will be removed in a future version, please use SetECSPrefixLengthAction instead");
-      return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
-    });
-
   luaCtx.writeFunction("SetECSOverrideAction", [](bool ecsOverride) {
       return std::shared_ptr<DNSAction>(new SetECSOverrideAction(ecsOverride));
     });
 
-  luaCtx.writeFunction("ECSOverrideAction", [](bool ecsOverride) {
-      warnlog("access to ECSOverrideAction is deprecated and will be removed in a future version, please use SetECSOverrideAction instead");
-      return std::shared_ptr<DNSAction>(new SetECSOverrideAction(ecsOverride));
-    });
-
   luaCtx.writeFunction("SetDisableECSAction", []() {
-      return std::shared_ptr<DNSAction>(new SetDisableECSAction());
-    });
-
-  luaCtx.writeFunction("DisableECSAction", []() {
-      warnlog("access to DisableECSAction is deprecated and will be removed in a future version, please use SetDisableECSAction instead");
       return std::shared_ptr<DNSAction>(new SetDisableECSAction());
     });
 
@@ -2456,17 +2416,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
     });
 
-  luaCtx.writeFunction("TagAction", [](std::string tag, std::string value) {
-      warnlog("access to TagAction is deprecated and will be removed in a future version, please use SetTagAction instead");
-      return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
-    });
-
   luaCtx.writeFunction("SetTagResponseAction", [](std::string tag, std::string value) {
-      return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
-    });
-
-  luaCtx.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
-      warnlog("access to TagResponseAction is deprecated and will be removed in a future version, please use SetTagResponseAction instead");
       return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
     });
 
@@ -2492,14 +2442,6 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
-      auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
-      auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
-      parseResponseConfig(vars, action->d_responseConfig);
-      return ret;
-    });
-
-  luaCtx.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
-      warnlog("access to SetNegativeAndSOAAction is deprecated and will be removed in a future version, please use NegativeAndSOAAction instead");
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
       auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
       parseResponseConfig(vars, action->d_responseConfig);
