@@ -1638,87 +1638,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return g_dnsCryptLocals.size();
   });
 
-  luaCtx.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
-    setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
-    if (client) {
-      return;
-    }
-    unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-    unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-    sodium_mlock(privateKey, sizeof(privateKey));
-
-    try {
-      DNSCryptContext::generateProviderKeys(publicKey, privateKey);
-
-      ofstream pubKStream(publicKeyFile);
-      pubKStream.write((char*)publicKey, sizeof(publicKey));
-      pubKStream.close();
-
-      ofstream privKStream(privateKeyFile);
-      privKStream.write((char*)privateKey, sizeof(privateKey));
-      privKStream.close();
-
-      g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
-    }
-    catch (std::exception& e) {
-      errlog(e.what());
-      g_outputBuffer = "Error: " + string(e.what()) + "\n";
-    }
-
-    sodium_memzero(privateKey, sizeof(privateKey));
-    sodium_munlock(privateKey, sizeof(privateKey));
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
-  });
-
-  luaCtx.writeFunction("printDNSCryptProviderFingerprint", [](const std::string& publicKeyFile) {
-    setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
-    unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-
-    try {
-      ifstream file(publicKeyFile);
-      file.read((char*)&publicKey, sizeof(publicKey));
-
-      if (file.fail())
-        throw std::runtime_error("Invalid dnscrypt provider public key file " + publicKeyFile);
-
-      file.close();
-      g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
-    }
-    catch (std::exception& e) {
-      errlog(e.what());
-      g_outputBuffer = "Error: " + string(e.what()) + "\n";
-    }
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
-  });
-
-#ifdef HAVE_DNSCRYPT
-  luaCtx.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
-    setLuaNoSideEffect();
-    if (client) {
-      return;
-    }
-    DNSCryptPrivateKey privateKey;
-    DNSCryptCert cert;
-
-    try {
-      if (generateDNSCryptCertificate(providerPrivateKeyFile, serial, begin, end, version ? *version : DNSCryptExchangeVersion::VERSION1, cert, privateKey)) {
-        privateKey.saveToFile(privateKeyFile);
-        DNSCryptContext::saveCertFromFile(cert, certificateFile);
-      }
-    }
-    catch (const std::exception& e) {
-      errlog(e.what());
-      g_outputBuffer = "Error: " + string(e.what()) + "\n";
-    }
-  });
-#endif
-
   luaCtx.writeFunction("showPools", []() {
     setLuaNoSideEffect();
     try {
@@ -2875,7 +2794,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaActions(luaCtx);
   setupLuaConfig(luaCtx, client, configCheck);
   setupLuaBindings(luaCtx, client);
-  setupLuaBindingsDNSCrypt(luaCtx);
+  setupLuaBindingsDNSCrypt(luaCtx, client);
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, client);
   setupLuaBindingsPacketCache(luaCtx, client);

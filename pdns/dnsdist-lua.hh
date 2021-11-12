@@ -139,7 +139,7 @@ typedef NetmaskTree<DynBlock, AddressAndPortRange> nmts_t;
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
 void setupLuaActions(LuaContext& luaCtx);
 void setupLuaBindings(LuaContext& luaCtx, bool client);
-void setupLuaBindingsDNSCrypt(LuaContext& luaCtx);
+void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client);
