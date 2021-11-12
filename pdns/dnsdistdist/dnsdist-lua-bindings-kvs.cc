@@ -25,20 +25,6 @@
 
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
 {
-  /* Key Value Store objects */
-  luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask, boost::optional<bool> includePort) {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask.get_value_or(32), v6Mask.get_value_or(128), includePort.get_value_or(false)));
-  });
-  luaCtx.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));
-  });
-  luaCtx.writeFunction("KeyValueLookupKeySuffix", [](boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true));
-  });
-  luaCtx.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
-  });
-
 #ifdef HAVE_LMDB
   luaCtx.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName, boost::optional<bool> noLock) {
     if (client) {
@@ -56,6 +42,21 @@ void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
     return std::shared_ptr<KeyValueStore>(new CDBKVStore(fname, refreshDelay));
   });
 #endif /* HAVE_CDB */
+
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+  /* Key Value Store objects */
+  luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask, boost::optional<bool> includePort) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask.get_value_or(32), v6Mask.get_value_or(128), includePort.get_value_or(false)));
+  });
+  luaCtx.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));
+  });
+  luaCtx.writeFunction("KeyValueLookupKeySuffix", [](boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true));
+  });
+  luaCtx.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
+  });
 
   luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
     std::string result;
@@ -112,4 +113,5 @@ void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
 
     return kvs->reload();
   });
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 }

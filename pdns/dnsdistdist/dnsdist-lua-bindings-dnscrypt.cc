@@ -171,11 +171,9 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         g_outputBuffer = "Error: " + string(e.what()) + "\n";
       }
     });
-#endif
 
     luaCtx.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
       setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
       if (client) {
         return;
       }
@@ -203,14 +201,10 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
 
       sodium_memzero(privateKey, sizeof(privateKey));
       sodium_munlock(privateKey, sizeof(privateKey));
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
     });
 
     luaCtx.writeFunction("printDNSCryptProviderFingerprint", [](const std::string& publicKeyFile) {
       setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
       unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
 
       try {
@@ -228,8 +222,6 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         errlog(e.what());
         g_outputBuffer = "Error: " + string(e.what()) + "\n";
       }
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
     });
+#endif
 }
