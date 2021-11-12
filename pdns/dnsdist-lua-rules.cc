@@ -75,10 +75,10 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
 
   if (params) {
     if (params->count("uuid")) {
-      uuidStr = boost::get<std::string>((*params)["uuid"]);
+      uuidStr = params->at("uuid");
     }
     if (params->count("name")) {
-      name = boost::get<std::string>((*params)["name"]);
+      name = params->at("name");
     }
   }
 

@@ -594,7 +594,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     return values;
   });
 
-  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content, boost::optional<std::map<std::string, std::string>> customHeaders) {
+  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint64_t status, const std::string& content, boost::optional<std::map<std::string, std::string>> customHeaders) {
+    checkParameterBound("newDOHResponseMapEntry", status, std::numeric_limits<uint16_t>::max());
     boost::optional<std::vector<std::pair<std::string, std::string>>> headers{boost::none};
     if (customHeaders) {
       headers = std::vector<std::pair<std::string, std::string>>();
@@ -605,8 +606,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     return std::make_shared<DOHResponseMapEntry>(regex, status, PacketBuffer(content.begin(), content.end()), headers);
   });
 
-  luaCtx.writeFunction("newSVCRecordParameters", [](uint16_t priority, const std::string& target, boost::optional<svcParamsLua_t> additionalParameters)
+  luaCtx.writeFunction("newSVCRecordParameters", [](uint64_t priority, const std::string& target, boost::optional<svcParamsLua_t> additionalParameters)
   {
+    checkParameterBound("newSVCRecordParameters", priority, std::numeric_limits<uint16_t>::max());
     SVCRecordParameters parameters;
     if (additionalParameters) {
       parameters = parseSVCParameters(*additionalParameters);

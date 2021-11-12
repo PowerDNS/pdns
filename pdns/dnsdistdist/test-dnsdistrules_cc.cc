@@ -7,6 +7,14 @@
 
 #include "dnsdist-rules.hh"
 
+void checkParameterBound(const std::string& parameter, uint64_t value, size_t max);
+void checkParameterBound(const std::string& parameter, uint64_t value, size_t max)
+{
+  if (value > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The value passed to " + parameter + " is too large, the maximum is " + std::to_string(max));
+  }
+}
+
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
   static const DNSName qname("powerdns.com.");

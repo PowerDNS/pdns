@@ -131,8 +131,9 @@ private:
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
-typedef std::unordered_map<std::string, boost::variant<std::string> > luaruleparams_t;
+typedef std::unordered_map<std::string, std::string> luaruleparams_t;
 void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
+void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max());
 
 typedef NetmaskTree<DynBlock, AddressAndPortRange> nmts_t;
 

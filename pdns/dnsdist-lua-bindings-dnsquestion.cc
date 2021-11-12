@@ -114,7 +114,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return *dq.qTag;
     });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(std::vector<std::pair<uint8_t, std::string>>)>("setProxyProtocolValues", [](DNSQuestion& dq, const std::vector<std::pair<uint8_t, std::string>>& values) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(std::vector<std::pair<int, std::string>>)>("setProxyProtocolValues", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string>>& values) {
     if (!dq.proxyProtocolValues) {
       dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
@@ -122,24 +122,26 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     dq.proxyProtocolValues->clear();
     dq.proxyProtocolValues->reserve(values.size());
     for (const auto& value : values) {
-      dq.proxyProtocolValues->push_back({value.second, value.first});
+      checkParameterBound("setProxyProtocolValues", value.first, std::numeric_limits<uint8_t>::max());
+      dq.proxyProtocolValues->push_back({value.second, static_cast<uint8_t>(value.first)});
     }
   });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(uint8_t, std::string)>("addProxyProtocolValue", [](DNSQuestion& dq, uint8_t type, std::string value) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(uint64_t, std::string)>("addProxyProtocolValue", [](DNSQuestion& dq, uint64_t type, std::string value) {
+    checkParameterBound("addProxyProtocolValue", type, std::numeric_limits<uint8_t>::max());
     if (!dq.proxyProtocolValues) {
       dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
 
-    dq.proxyProtocolValues->push_back({value, type});
+    dq.proxyProtocolValues->push_back({value, static_cast<uint8_t>(type)});
   });
 
-  luaCtx.registerFunction<std::vector<std::pair<uint8_t, std::string>>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
+  luaCtx.registerFunction<std::vector<std::pair<int, std::string>>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
     if (!dq.proxyProtocolValues) {
-      return std::vector<std::pair<uint8_t, std::string>>();
+      return std::vector<std::pair<int, std::string>>();
     }
 
-    std::vector<std::pair<uint8_t, std::string>> result;
+    std::vector<std::pair<int, std::string>> result;
     result.resize(dq.proxyProtocolValues->size());
     for (const auto& value : *dq.proxyProtocolValues) {
       result.push_back({ value.type, value.content });
@@ -285,16 +287,23 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return dq.du->getHTTPHeaders();
     });
 
-    luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
+    luaCtx.registerFunction<void(DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
       if (dq.du == nullptr) {
         return;
       }
+      checkParameterBound("DNSQuestion::setHTTPResponse", statusCode, std::numeric_limits<uint16_t>::max());
       PacketBuffer vect(body.begin(), body.end());
       dq.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 
-  luaCtx.registerFunction<bool(DNSQuestion::*)(bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dq, bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum) {
+  luaCtx.registerFunction<bool(DNSQuestion::*)(bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dq, bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum) {
+      checkParameterBound("setNegativeAndAdditionalSOA", ttl, std::numeric_limits<uint32_t>::max());
+      checkParameterBound("setNegativeAndAdditionalSOA", serial, std::numeric_limits<uint32_t>::max());
+      checkParameterBound("setNegativeAndAdditionalSOA", refresh, std::numeric_limits<uint32_t>::max());
+      checkParameterBound("setNegativeAndAdditionalSOA", retry, std::numeric_limits<uint32_t>::max());
+      checkParameterBound("setNegativeAndAdditionalSOA", expire, std::numeric_limits<uint32_t>::max());
+      checkParameterBound("setNegativeAndAdditionalSOA", minimum, std::numeric_limits<uint32_t>::max());
       return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum);
     });
 }

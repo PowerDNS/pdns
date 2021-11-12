@@ -52,7 +52,7 @@ struct WebserverConfig
   NetmaskGroup acl;
   std::unique_ptr<CredentialsHolder> password;
   std::unique_ptr<CredentialsHolder> apiKey;
-  boost::optional<std::map<std::string, std::string> > customHeaders;
+  boost::optional<std::unordered_map<std::string, std::string> > customHeaders;
   bool statsRequireAuthentication{true};
 };
 
@@ -354,7 +354,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string> >& customHeaders)
 {
   static const std::vector<std::pair<std::string, std::string> > headers = {
     { "X-Content-Type-Options", "nosniff" },
@@ -375,7 +375,7 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
   }
 }
 
-static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string> >& customHeaders)
 {
   if (!customHeaders)
     return;
@@ -1537,7 +1537,7 @@ void setWebserverACL(const std::string& acl)
   g_webserverConfig.lock()->acl = std::move(newACL);
 }
 
-void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
+void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string> > customHeaders)
 {
   g_webserverConfig.lock()->customHeaders = customHeaders;
 }
