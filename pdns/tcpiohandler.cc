@@ -5,6 +5,8 @@
 #include "lock.hh"
 #include "tcpiohandler.hh"
 
+const bool TCPIOHandler::s_disableConnectForUnitTests = false;
+
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
@@ -19,6 +21,7 @@
 #include <openssl/x509v3.h>
 
 #include "libssl.hh"
+
 
 class OpenSSLFrontendContext
 {

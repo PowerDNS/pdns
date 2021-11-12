@@ -288,10 +288,14 @@ public:
       d_fastOpen = true;
     }
     else {
-      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+      if (!s_disableConnectForUnitTests) {
+        SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+      }
     }
 #else
-    SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+    if (!s_disableConnectForUnitTests) {
+      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+    }
 #endif /* MSG_FASTOPEN */
 
     if (d_conn) {
@@ -320,10 +324,14 @@ public:
       d_fastOpen = true;
     }
     else {
-      SConnectWithTimeout(d_socket, remote, timeout);
+      if (!s_disableConnectForUnitTests) {
+        SConnectWithTimeout(d_socket, remote, timeout);
+      }
     }
 #else
-    SConnectWithTimeout(d_socket, remote, timeout);
+    if (!s_disableConnectForUnitTests) {
+      SConnectWithTimeout(d_socket, remote, timeout);
+    }
 #endif /* MSG_FASTOPEN */
 
     if (d_conn) {
@@ -538,6 +546,8 @@ public:
     }
     return d_conn->isUsable();
   }
+
+  const static bool s_disableConnectForUnitTests;
 
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
