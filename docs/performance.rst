@@ -1,9 +1,10 @@
 Performance and Tuning
 ======================
 
-In general, best performance is achieved on recent Linux 4.x kernels and
-using MySQL, although many of the largest PowerDNS installations are
-based on PostgreSQL. FreeBSD also performs very well.
+In general, best performance is achieved on recent Linux kernels with
+the bindbackend, or if something more database-like is preferred,
+the LMDB backend. Meanwhile many of the largest PowerDNS installations are
+based on PostgreSQL or MySQL.
 
 Database servers can require configuration to achieve decent
 performance. It is especially worth noting that several vendors ship

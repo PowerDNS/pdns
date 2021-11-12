@@ -25,6 +25,11 @@ Set these parameters immediately if they are not set!
 
 Jailing the process in a chroot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Modern Linux distributions, with systemd for process management, do a better job of constraining PowerDNS than chroot can.
+We strongly suggest using distribution/OS features for process containment instead of the :ref:`setting-chroot` option.
+The text below is kept for those users that have specific reasons to prefer chroot.
+chroot functionality is not actively tested during development and might break during upgrades.
+
 The :ref:`setting-chroot` option secures PowerDNS to its own directory so that even if it should become compromised and under control of external influences, it will have a hard time affecting the rest of the system.
 
 Even though this will hamper hackers a lot, chroot jails have been known to be broken.
@@ -34,7 +39,7 @@ Even though this will hamper hackers a lot, chroot jails have been known to be b
   socket which should live within the chroot. It is often possible to
   hardlink such a socket into the chroot dir.
 
-When running with master or slave support, be aware that many operating
+When running with primary or secondary support, be aware that many operating
 systems need access to specific libraries (often ``/lib/libnss*``) in
 order to support resolution of domain names! You can also hardlink
 these.

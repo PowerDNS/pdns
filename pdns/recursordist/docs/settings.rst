@@ -210,7 +210,8 @@ See :doc:`metrics`.
 -  Path to a Directory
 
 If set, chroot to this directory for more security.
-See :doc:`security`
+This is not recommended; instead, we recommend containing PowerDNS using operating system features.
+We ship systemd unit files with our packages to make this easy.
 
 Make sure that ``/dev/log`` is available from within the chroot.
 Logging will silently fail over time otherwise (on logrotate).
