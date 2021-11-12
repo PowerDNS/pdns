@@ -1195,6 +1195,8 @@ static void registerAllStats1()
 
   addGetStat("unauthorized-udp", &g_stats.unauthorizedUDP);
   addGetStat("unauthorized-tcp", &g_stats.unauthorizedTCP);
+  addGetStat("source-disallowed-notify", &g_stats.sourceDisallowedNotify);
+  addGetStat("zone-disallowed-notify", &g_stats.zoneDisallowedNotify);
   addGetStat("tcp-client-overflow", &g_stats.tcpClientOverflow);
 
   addGetStat("client-parse-errors", &g_stats.clientParseError);
@@ -2108,7 +2110,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
       g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
       return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return {0, reloadAuthAndForwards()};
+    return {0, reloadZoneConfiguration()};
   }
   if (cmd == "set-ecs-minimum-ttl") {
     return {0, setMinimumECSTTL(begin, end)};

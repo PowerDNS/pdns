@@ -295,7 +295,7 @@ static void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newma
   return 0;
 }
 
-string reloadAuthAndForwards()
+string reloadZoneConfiguration()
 {
   std::shared_ptr<SyncRes::domainmap_t> original = SyncRes::getDomainMap();
 
@@ -313,6 +313,8 @@ string reloadAuthAndForwards()
     ::arg().preParseFile(configname.c_str(), "forward-zones-file");
     ::arg().preParseFile(configname.c_str(), "forward-zones-recurse");
     ::arg().preParseFile(configname.c_str(), "auth-zones");
+    ::arg().preParseFile(configname.c_str(), "allow-notify-for");
+    ::arg().preParseFile(configname.c_str(), "allow-notify-for-file");
     ::arg().preParseFile(configname.c_str(), "export-etc-hosts", "off");
     ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
     ::arg().preParseFile(configname.c_str(), "include-dir");
@@ -328,6 +330,8 @@ string reloadAuthAndForwards()
       ::arg().preParseFile(fn.c_str(), "forward-zones-file", ::arg()["forward-zones-file"]);
       ::arg().preParseFile(fn.c_str(), "forward-zones-recurse", ::arg()["forward-zones-recurse"]);
       ::arg().preParseFile(fn.c_str(), "auth-zones", ::arg()["auth-zones"]);
+      ::arg().preParseFile(fn.c_str(), "allow-notify-for", ::arg()["allow-notify-for"]);
+      ::arg().preParseFile(fn.c_str(), "allow-notify-for-file", ::arg()["allow-notify-for-file"]);
       ::arg().preParseFile(fn.c_str(), "export-etc-hosts", ::arg()["export-etc-hosts"]);
       ::arg().preParseFile(fn.c_str(), "serve-rfc1918", ::arg()["serve-rfc1918"]);
     }
@@ -336,10 +340,12 @@ string reloadAuthAndForwards()
     ::arg().preParse(g_argc, g_argv, "forward-zones-file");
     ::arg().preParse(g_argc, g_argv, "forward-zones-recurse");
     ::arg().preParse(g_argc, g_argv, "auth-zones");
+    ::arg().preParse(g_argc, g_argv, "allow-notify-for");
+    ::arg().preParse(g_argc, g_argv, "allow-notify-for-file");
     ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
 
-    std::shared_ptr<SyncRes::domainmap_t> newDomainMap = parseAuthAndForwards();
+    auto [newDomainMap, newNotifySet] = parseZoneConfiguration();
 
     // purge both original and new names
     std::set<DNSName> oldAndNewDomains;
@@ -357,7 +363,11 @@ string reloadAuthAndForwards()
       wipeCaches(i, true, 0xffff);
     }
 
-    broadcastFunction([=] { return pleaseUseNewSDomainsMap(newDomainMap); });
+    // these explicitly-named captures should not be necessary, as lambda
+    // capture of tuple-like structured bindings is permitted, but some
+    // compilers still don't allow it
+    broadcastFunction([dm = newDomainMap] { return pleaseUseNewSDomainsMap(dm); });
+    broadcastFunction([ns = newNotifySet] { return pleaseSupplantAllowNotifyFor(ns); });
     return "ok\n";
   }
   catch (std::exception& e) {
@@ -372,12 +382,13 @@ string reloadAuthAndForwards()
   return "reloading failed, see log\n";
 }
 
-std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
+std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration()
 {
   TXTRecordContent::report();
   OPTRecordContent::report();
 
   auto newMap = std::make_shared<SyncRes::domainmap_t>();
+  auto newSet = std::make_shared<notifyset_t>();
 
   typedef vector<string> parts_t;
   parts_t parts;
@@ -439,7 +450,6 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
 
   if (!::arg()["forward-zones-file"].empty()) {
     g_log << Logger::Warning << "Reading zone forwarding information from '" << ::arg()["forward-zones-file"] << "'" << endl;
-    SyncRes::AuthDomain ad;
     auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(::arg()["forward-zones-file"].c_str(), "r"), fclose);
     if (!fp) {
       throw PDNSException("Error opening forward-zones-file '" + ::arg()["forward-zones-file"] + "': " + stringerror());
@@ -449,6 +459,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
     int linenum = 0;
     uint64_t before = newMap->size();
     while (linenum++, stringfgets(fp.get(), line)) {
+      SyncRes::AuthDomain ad;
       boost::trim(line);
       if (line[0] == '#') // Comment line, skip to the next line
         continue;
@@ -457,15 +468,27 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       instructions = splitField(instructions, '#').first; // Remove EOL comments
       boost::trim(domain);
       boost::trim(instructions);
-      if (domain.empty() && instructions.empty()) { // empty line
-        continue;
+      if (domain.empty()) {
+        if (instructions.empty()) { // empty line
+          continue;
+        }
+        throw PDNSException("Error parsing line " + std::to_string(linenum) + " of " + ::arg()["forward-zones-file"]);
       }
-      if (boost::starts_with(domain, "+")) {
-        domain = domain.c_str() + 1;
-        ad.d_rdForward = true;
+
+      bool allowNotifyFor = false;
+
+      for (; !domain.empty(); domain.erase(0, 1)) {
+        switch (domain[0]) {
+        case '+':
+          ad.d_rdForward = true;
+          continue;
+        case '^':
+          allowNotifyFor = true;
+          continue;
+        }
+        break;
       }
-      else
-        ad.d_rdForward = false;
+
       if (domain.empty()) {
         throw PDNSException("Error parsing line " + std::to_string(linenum) + " of " + ::arg()["forward-zones-file"]);
       }
@@ -479,6 +502,9 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
 
       ad.d_name = DNSName(domain);
       (*newMap)[ad.d_name] = ad;
+      if (allowNotifyFor) {
+        newSet->insert(ad.d_name);
+      }
     }
     g_log << Logger::Warning << "Done parsing " << newMap->size() - before << " forwarding instructions from file '" << ::arg()["forward-zones-file"] << "'" << endl;
   }
@@ -520,6 +546,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       }
     }
   }
+
   if (::arg().mustDo("serve-rfc1918")) {
     g_log << Logger::Warning << "Inserting rfc 1918 private space zones" << endl;
     parts.clear();
@@ -535,5 +562,30 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       makeIPToNamesZone(newMap, parts);
     }
   }
-  return newMap;
+
+  parts.clear();
+  stringtok(parts, ::arg()["allow-notify-for"], " ,\t\n\r");
+  for (parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+    newSet->insert(DNSName(*iter));
+  }
+
+  if (auto anff = ::arg()["allow-notify-for-file"]; !anff.empty()) {
+    g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << anff << "'" << endl;
+    auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(anff.c_str(), "r"), fclose);
+    if (!fp) {
+      throw PDNSException("Error opening allow-notify-for-file '" + anff + "': " + stringerror());
+    }
+
+    string line;
+    uint64_t before = newSet->size();
+    while (stringfgets(fp.get(), line)) {
+      boost::trim(line);
+      if (line[0] == '#') // Comment line, skip to the next line
+        continue;
+      newSet->insert(DNSName(line));
+    }
+    g_log << Logger::Warning << "Done parsing " << newSet->size() - before << " NOTIFY-allowed zones from file '" << anff << "'" << endl;
+  }
+
+  return {newMap, newSet};
 }

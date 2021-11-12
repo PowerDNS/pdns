@@ -79,7 +79,7 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
   ofconf.close();
 }
 
-static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, HttpResponse* resp)
 {
   if (req->method == "PUT") {
     Json document = req->json();
@@ -101,14 +101,14 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     ostringstream ss;
 
-    // Clear allow-from-file if set, so our changes take effect
-    ss << "allow-from-file=" << endl;
+    // Clear <foo>-from-file if set, so our changes take effect
+    ss << aclType << "-file=" << endl;
 
-    // Clear allow-from, and provide a "parent" value
-    ss << "allow-from=" << endl;
-    ss << "allow-from+=" << nmg.toString() << endl;
+    // Clear ACL setting, and provide a "parent" value
+    ss << aclType << "=" << endl;
+    ss << aclType << "+=" << nmg.toString() << endl;
 
-    apiWriteConfigFile("allow-from", ss.str());
+    apiWriteConfigFile(aclType, ss.str());
 
     parseACLs();
 
@@ -120,12 +120,27 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
   // Return currently configured ACLs
   vector<string> entries;
-  t_allowFrom->toStringVector(&entries);
+  if (aclType == "allow-from") {
+    t_allowFrom->toStringVector(&entries);
+  }
+  else if (aclType == "allow-notify-from") {
+    t_allowNotifyFrom->toStringVector(&entries);
+  }
 
   resp->setJsonBody(Json::object{
-    {"name", "allow-from"},
+    {"name", aclType},
     {"value", entries},
   });
+}
+
+static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACL("allow-from", req, resp);
+}
+
+static void apiServerConfigAllowNotifyFrom(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACL("allow-notify-from", req, resp);
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
@@ -277,7 +292,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Zone already exists");
 
     doCreateZone(document);
-    reloadAuthAndForwards();
+    reloadZoneConfiguration();
     fillZone(zonename, resp);
     resp->status = 201;
     return;
@@ -319,7 +334,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 
     doDeleteZone(zonename);
     doCreateZone(document);
-    reloadAuthAndForwards();
+    reloadZoneConfiguration();
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
   }
@@ -328,7 +343,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Deleting domain failed");
     }
 
-    reloadAuthAndForwards();
+    reloadZoneConfiguration();
     // empty body on success
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
@@ -609,6 +624,9 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Number of milliseconds spent in thread n")},
 
+  {"zone-disallowed-notify",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of NOTIFY operations denied because of allow-notify-for restrictions")},
   {"dnssec-authentic-data-queries",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of queries received with the AD bit set")},
@@ -835,6 +853,9 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"unauthorized-udp",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of UDP questions denied because of allow-from restrictions")},
+  {"source-disallowed-notify",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of NOTIFY operations denied because of allow-notify-from restrictions")},
   {"unexpected-packets",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of answers from remote servers that were unexpected (might point to spoofing)")},
@@ -1169,6 +1190,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
     "/jsonstat", [this](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", &apiServerConfigAllowNotifyFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
   d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);

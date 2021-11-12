@@ -42,6 +42,9 @@ rec MODULE-IDENTITY
     REVISION "202110270000Z"
     DESCRIPTION "Added more UDP errors metric."
 
+    REVISION "202111090000Z"
+    DESCRIPTION "Added NOTIFY-related metrics."
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -1032,6 +1035,21 @@ udp6InCsumErrors OBJECT-TYPE
         "Number of UDP6 in checksum errors (Linux only)"
     ::= { stats 123 }
 
+sourceDisallowedNotify OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of NOTIFY operations not authorized by allow-notify-from"
+    ::= { stats 124 }
+
+zoneDisallowedNotify OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of NOTIFY operations not allowed by allow-notify-for"
+    ::= { stats 125 }
 ---
 --- Traps / Notifications
 ---

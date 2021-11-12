@@ -143,6 +143,8 @@ thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
 thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
+thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
+thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;
 #ifdef NOD_ENABLED
 thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
 thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
@@ -204,6 +206,8 @@ static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mecha
 static std::atomic<uint32_t> counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
+static std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
+static std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 static NetmaskGroup g_XPFAcl;
 static NetmaskGroup g_proxyProtocolACL;
 static NetmaskGroup g_paddingFrom;
@@ -1602,6 +1606,21 @@ static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<
   return true;
 }
 
+static bool isAllowNotifyForZone(DNSName qname)
+{
+  if (t_allowNotifyFor->empty()) {
+    return false;
+  }
+
+  notifyset_t::const_iterator ret;
+  do {
+    ret = t_allowNotifyFor->find(qname);
+    if (ret != t_allowNotifyFor->end())
+      return true;
+  } while (qname.chopOff());
+  return false;
+}
+
 static void startDoResolve(void *p)
 {
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1693,7 +1712,7 @@ static void startDoResolve(void *p)
     checkFrameStreamExport(luaconfsLocal);
 #endif
 
-    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.opcode);
 
     pw.getHeader()->aa=0;
     pw.getHeader()->ra=1;
@@ -1779,7 +1798,7 @@ static void startDoResolve(void *p)
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
 
-    if(ednsExtRCode != 0) {
+    if(ednsExtRCode != 0 || dc->d_mdp.d_header.opcode == Opcode::Notify) {
       goto sendit;
     }
 
@@ -2614,6 +2633,27 @@ static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& d
   return cacheHit;
 }
 
+static void* pleaseWipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
+{
+  auto res = wipeCaches(canon, subtree, qtype);
+  g_log<<Logger::Info<<"Wiped caches for "<<canon<<": "<<res.record_count<<" records; "<<res.negative_record_count<<" negative records; "<<res.packet_count<<" packets"<<endl;
+  return nullptr;
+}
+
+static void requestWipeCaches(const DNSName& canon)
+{
+  // send a message to the handler thread asking it
+  // to wipe all of the caches
+  ThreadMSG* tmsg = new ThreadMSG();
+  tmsg->func = [=]{ return pleaseWipeCaches(canon, true, 0xffff); };
+  tmsg->wantAnswer = false;
+  if(write(s_threadInfos[0].pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    delete tmsg;
+
+    unixDie("write to thread pipe returned wrong size or error");
+  }
+}
+
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   shared_ptr<TCPConnection> conn=boost::any_cast<shared_ptr<TCPConnection> >(var);
@@ -2792,7 +2832,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       checkFrameStreamExport(luaconfsLocal);
 #endif
 
-      if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
+      if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
 
         try {
           EDNSOptionViewMap ednsOptions;
@@ -2882,10 +2922,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         terminateTCPConnection(fd);
         return;
       }
-      if (dc->d_mdp.d_header.opcode) {
+      if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
         g_stats.ignoredCount++;
         if (g_logCommonErrors) {
-          g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+          g_log<<Logger::Error<<"Ignoring unsupported opcode "<<Opcode::to_s(dc->d_mdp.d_header.opcode)<<" from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
         sendErrorOverTCP(dc, RCode::NotImp);
         return;
@@ -2903,50 +2943,85 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
 
+        if(dc->d_mdp.d_header.opcode == Opcode::Notify) {
+          if(!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_source)) {
+            if(!g_quiet) {
+              g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP NOTIFY from "<<dc->d_source.toString()<<", address not matched by allow-notify-from"<<endl;
+            }
+
+            g_stats.sourceDisallowedNotify++;
+            return;
+          }
+
+          if(!isAllowNotifyForZone(qname)) {
+            if(!g_quiet) {
+              g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP NOTIFY from "<<dc->d_source.toString()<<", for "<<qname.toLogString()<<", zone not matched by allow-notify-for"<<endl;
+            }
+
+            g_stats.zoneDisallowedNotify++;
+            return;
+          }
+        }
+
         string response;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
-        /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
-           but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
-           as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-        dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
-        bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
-        dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+        if(dc->d_mdp.d_header.opcode == Opcode::Query) {
+          /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
+             but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
+             as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+          dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
+          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
+          dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
-        if (cacheHit) {
+          if (cacheHit) {
+            if (!g_quiet) {
+              g_log<<Logger::Notice<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
+            }
 
+            bool hadError = sendResponseOverTCP(dc, response);
+            finishTCPReply(dc, hadError, false);
+            struct timeval now;
+            Utility::gettimeofday(&now, nullptr);
+            uint64_t spentUsec = uSec(now - start);
+            g_stats.cumulativeAnswers(spentUsec);
+            dc->d_eventTrace.add(RecEventTrace::AnswerSent);
+
+            if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+              struct timeval tv{0, 0};
+              protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
+            }
+
+            if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
+              g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
+            }
+          } // cache hit
+        } // query opcode
+
+        if(dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!g_quiet) {
-            g_log<<Logger::Notice<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
+            g_log<<Logger::Notice<<t_id<< " got NOTIFY for "<<qname.toLogString()<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
           }
 
-          bool hadError = sendResponseOverTCP(dc, response);
-          finishTCPReply(dc, hadError, false);
-          struct timeval now;
-          Utility::gettimeofday(&now, nullptr);
-          uint64_t spentUsec = uSec(now - start);
-          g_stats.cumulativeAnswers(spentUsec);
-          dc->d_eventTrace.add(RecEventTrace::AnswerSent);
+          requestWipeCaches(qname);
 
-          if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-            struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
-          }
+          // the operation will now be treated as a Query, generating
+          // a normal response, as the rest of the code does not
+          // check dh->opcode, but we need to ensure that the response
+          // to this request does not get put into the packet cache
+          dc->d_variable = true;
+        }
 
-          if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-            g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
-          }
+        // setup for startDoResolve() in an mthread
+        ++conn->d_requestsInFlight;
+        if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
+          t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
         } else {
-          // No cache hit, setup for startDoResolve() in an mthread
-          ++conn->d_requestsInFlight;
-          if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
-            t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
-          } else {
-            Utility::gettimeofday(&g_now, nullptr); // needed?
-            struct timeval ttd = g_now;
-            t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
-          }
-          MT->makeThread(startDoResolve, dc.release()); // deletes dc
-        } // Cache hit or not
+          Utility::gettimeofday(&g_now, nullptr); // needed?
+          struct timeval ttd = g_now;
+          t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
+        }
+        MT->makeThread(startDoResolve, dc.release()); // deletes dc
       } // good query
     } // read full query
   } // reading query
@@ -3086,8 +3161,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool variable = false;
   bool followCNAMEs = false;
   bool responsePaddingDisabled = false;
+  DNSName qname;
   try {
-    DNSName qname;
     uint16_t qtype=0;
     uint16_t qclass=0;
     bool qnameParsed=false;
@@ -3103,7 +3178,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
-    if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
+    if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi)) || dh->opcode == Opcode::Notify) {
       try {
         EDNSOptionViewMap ednsOptions;
         bool xpfFound = false;
@@ -3157,45 +3232,48 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     if (ctag == 0 && !responsePaddingDisabled && g_paddingFrom.match(fromaddr)) {
       ctag = g_paddingTag;
     }
-    /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
-       but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
-       as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-    eventTrace.add(RecEventTrace::PCacheCheck);
-    bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
-    eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
-    if (cacheHit) {
-      if (!g_quiet) {
-        g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
-      }
-      struct msghdr msgh;
-      struct iovec iov;
-      cmsgbuf_aligned cbuf;
-      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
-      msgh.msg_control=NULL;
 
-      if(g_fromtosockets.count(fd)) {
-        addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
-      }
-      int sendErr = sendOnNBSocket(fd, &msgh);
-      eventTrace.add(RecEventTrace::AnswerSent);
+    if(dh->opcode == Opcode::Query) {
+      /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
+         but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
+         as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+      eventTrace.add(RecEventTrace::PCacheCheck);
+      bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
+      eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+      if (cacheHit) {
+        if (!g_quiet) {
+          g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
+        }
+        struct msghdr msgh;
+        struct iovec iov;
+        cmsgbuf_aligned cbuf;
+        fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
+        msgh.msg_control=NULL;
 
-      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
-      }
+        if(g_fromtosockets.count(fd)) {
+          addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
+        }
+        int sendErr = sendOnNBSocket(fd, &msgh);
+        eventTrace.add(RecEventTrace::AnswerSent);
 
-      if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-        g_log << Logger::Info << eventTrace.toString() << endl;
+        if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+          protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+        }
+
+        if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
+          g_log << Logger::Info << eventTrace.toString() << endl;
+        }
+        if (sendErr && g_logCommonErrors) {
+          g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
+                << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
+                << strerror(sendErr) << endl;
+        }
+        struct timeval now;
+        Utility::gettimeofday(&now, nullptr);
+        uint64_t spentUsec = uSec(now - tv);
+        g_stats.cumulativeAnswers(spentUsec);
+        return 0;
       }
-      if (sendErr && g_logCommonErrors) {
-        g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
-              << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
-              << strerror(sendErr) << endl;
-      }
-      struct timeval now;
-      Utility::gettimeofday(&now, nullptr);
-      uint64_t spentUsec = uSec(now - tv);
-      g_stats.cumulativeAnswers(spentUsec);
-      return 0;
     }
   }
   catch (const std::exception& e) {
@@ -3211,11 +3289,34 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     eventTrace.add(RecEventTrace::LuaIPFilter, ipf, false);
     if (ipf) {
       if (!g_quiet) {
-	g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+        g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
       }
       g_stats.policyDrops++;
       return 0;
     }
+  }
+
+  if(dh->opcode == Opcode::Notify) {
+    if(!isAllowNotifyForZone(qname)) {
+      if(!g_quiet) {
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP NOTIFY from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<", for "<<qname.toLogString()<<", zone not matched by allow-notify-for"<<endl;
+      }
+
+      g_stats.zoneDisallowedNotify++;
+      return 0;
+    }
+
+    if (!g_quiet) {
+      g_log<<Logger::Notice<<t_id<< " got NOTIFY for "<<qname.toLogString()<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
+    }
+
+    requestWipeCaches(qname);
+
+    // the operation will now be treated as a Query, generating
+    // a normal response, as the rest of the code does not
+    // check dh->opcode, but we need to ensure that the response
+    // to this request does not get put into the packet cache
+    variable = true;
   }
 
   if(MT->numProcesses() > g_maxMThreads) {
@@ -3375,10 +3476,10 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
           }
         }
-        else if(dh->opcode) {
+        else if(dh->opcode != Opcode::Query && dh->opcode != Opcode::Notify) {
           g_stats.ignoredCount++;
           if(g_logCommonErrors) {
-            g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
+            g_log<<Logger::Error<<"Ignoring unsupported opcode "<<Opcode::to_s(dh->opcode)<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
           }
         }
         else if (dh->qdcount == 0) {
@@ -3388,6 +3489,17 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
         else {
+          if(dh->opcode == Opcode::Notify) {
+            if(!t_allowNotifyFrom || !t_allowNotifyFrom->match(&source)) {
+              if(!g_quiet) {
+                g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP NOTIFY from "<<source.toString()<<", address not matched by allow-notify-from"<<endl;
+              }
+
+              g_stats.sourceDisallowedNotify++;
+              return;
+            }
+          }
+
           struct timeval tv={0,0};
           HarvestTimestamp(&msgh, &tv);
           ComboAddress dest;
@@ -4606,14 +4718,71 @@ static void checkOrFixFDS()
 
 static void* recursorThread(unsigned int tid, const string& threadName);
 
-static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
+static void* pleaseSupplantAllowFrom(std::shared_ptr<NetmaskGroup> ng)
 {
   t_allowFrom = ng;
   return nullptr;
 }
 
+static void* pleaseSupplantAllowNotifyFrom(std::shared_ptr<NetmaskGroup> ng)
+{
+  t_allowNotifyFrom = ng;
+  return nullptr;
+}
+
+void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> ns)
+{
+  t_allowNotifyFor = ns;
+  return nullptr;
+}
+
 int g_argc;
 char** g_argv;
+
+static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const std::string& aclSetting)
+{
+  auto result = std::make_shared<NetmaskGroup>();
+
+  if(!::arg()[aclFile].empty()) {
+    string line;
+    ifstream ifs(::arg()[aclFile].c_str());
+    if(!ifs) {
+      throw runtime_error("Could not open '"+::arg()[aclFile]+"': "+stringerror());
+    }
+
+    string::size_type pos;
+    while(getline(ifs,line)) {
+      pos=line.find('#');
+      if(pos!=string::npos)
+        line.resize(pos);
+      boost::trim(line);
+      if(line.empty())
+        continue;
+
+      result->addMask(line);
+    }
+    g_log<<Logger::Info<<"Done parsing "<<result->size()<<" "<<aclSetting<<" ranges from file '"<<::arg()[aclFile]<<"' - overriding '"<<aclSetting<<"' setting"<<endl;
+
+    return result;
+  }
+  else if(!::arg()[aclSetting].empty()) {
+    vector<string> ips;
+    stringtok(ips, ::arg()[aclSetting], ", ");
+
+    g_log<<Logger::Info<<aclSetting<<": ";
+    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
+      result->addMask(*i);
+      if(i!=ips.begin())
+        g_log<<Logger::Info<<", ";
+      g_log<<Logger::Info<<*i;
+    }
+    g_log<<Logger::Info<<endl;
+
+    return result;
+  }
+
+  return nullptr;
+}
 
 void parseACLs()
 {
@@ -4629,6 +4798,11 @@ void parseACLs()
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file"))
       throw runtime_error("Unable to re-parse configuration file '"+configname+"'");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
+
+    if(!::arg().preParseFile(configname.c_str(), "allow-notify-from-file"))
+      throw runtime_error("Unable to re-parse configuration file '"+configname+"'");
+    ::arg().preParseFile(configname.c_str(), "allow-notify-from");
+
     ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
@@ -4638,60 +4812,38 @@ void parseACLs()
 
     for(const std::string& fn : extraConfigs) {
       if(!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
-	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+        throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
       if(!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
-	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+        throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+
+      if(!::arg().preParseFile(fn.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"]))
+        throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+      if(!::arg().preParseFile(fn.c_str(), "allow-notify-from", ::arg()["allow-notify-from"]))
+        throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
     }
 
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
     ::arg().preParse(g_argc, g_argv, "allow-from");
+
+    ::arg().preParse(g_argc, g_argv, "allow-notify-from-file");
+    ::arg().preParse(g_argc, g_argv, "allow-notify-from");
   }
 
-  std::shared_ptr<NetmaskGroup> oldAllowFrom = t_allowFrom;
-  std::shared_ptr<NetmaskGroup> allowFrom = std::make_shared<NetmaskGroup>();
+  auto allowFrom = parseACL("allow-from-file", "allow-from");
 
-  if(!::arg()["allow-from-file"].empty()) {
-    string line;
-    ifstream ifs(::arg()["allow-from-file"].c_str());
-    if(!ifs) {
-      throw runtime_error("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
-    }
-
-    string::size_type pos;
-    while(getline(ifs,line)) {
-      pos=line.find('#');
-      if(pos!=string::npos)
-        line.resize(pos);
-      boost::trim(line);
-      if(line.empty())
-        continue;
-
-      allowFrom->addMask(line);
-    }
-    g_log<<Logger::Warning<<"Done parsing " << allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
-  }
-  else if(!::arg()["allow-from"].empty()) {
-    vector<string> ips;
-    stringtok(ips, ::arg()["allow-from"], ", ");
-
-    g_log<<Logger::Warning<<"Only allowing queries from: ";
-    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
-      allowFrom->addMask(*i);
-      if(i!=ips.begin())
-        g_log<<Logger::Warning<<", ";
-      g_log<<Logger::Warning<<*i;
-    }
-    g_log<<Logger::Warning<<endl;
-  }
-  else {
+  if(allowFrom->size() == 0) {
     if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
       g_log<<Logger::Warning<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
     allowFrom = nullptr;
   }
 
   g_initialAllowFrom = allowFrom;
-  broadcastFunction([=]{ return pleaseSupplantACLs(allowFrom); });
-  oldAllowFrom = nullptr;
+  broadcastFunction([=]{ return pleaseSupplantAllowFrom(allowFrom); });
+
+  auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from");
+
+  g_initialAllowNotifyFrom = allowNotifyFrom;
+  broadcastFunction([=]{ return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
 
   l_initialized = true;
 }
@@ -5129,7 +5281,7 @@ static int serviceMain(int argc, char*argv[])
 
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
-  g_initialDomainMap = parseAuthAndForwards();
+  std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration();
 
   g_latencyStatSize=::arg().asNum("latency-statistic-size");
 
@@ -5551,6 +5703,8 @@ try
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;
+  t_allowNotifyFrom = g_initialAllowNotifyFrom;
+  t_allowNotifyFor = g_initialAllowNotifyFor;
   t_udpclientsocks = std::make_unique<UDPClientSocks>();
   t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
 
@@ -5914,6 +6068,10 @@ int main(int argc, char **argv)
     ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
+    ::arg().set("allow-notify-for", "If set, NOTIFY requests for these zones will be allowed")="";
+    ::arg().set("allow-notify-for-file", "If set, load NOTIFY-allowed zones from this file")="";
+    ::arg().set("allow-notify-from", "If set, NOTIFY requests from these comma separated netmasks will be allowed")="";
+    ::arg().set("allow-notify-from-file", "If set, load NOTIFY-allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY;
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
