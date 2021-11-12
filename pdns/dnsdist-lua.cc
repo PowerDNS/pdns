@@ -698,8 +698,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
-    size_t maxInFlightQueriesPerConn = 0;
-    size_t tcpMaxConcurrentConnections = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
 
@@ -748,8 +748,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
-    size_t maxInFlightQueriesPerConn = 0;
-    size_t tcpMaxConcurrentConnections = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
 
@@ -1501,17 +1501,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;
   });
 
+#ifdef HAVE_DNSCRYPT
   luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
     if (g_configurationDone) {
       g_outputBuffer = "addDNSCryptBind cannot be used at runtime!\n";
       return;
     }
-#ifdef HAVE_DNSCRYPT
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
-    size_t maxInFlightQueriesPerConn = 0;
-    size_t tcpMaxConcurrentConnections = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
     std::vector<DNSCryptContext::CertKeyPaths> certKeys;
@@ -1571,14 +1571,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       errlog(e.what());
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
     }
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
   });
 
   luaCtx.writeFunction("showDNSCryptBinds", []() {
     setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
     ostringstream ret;
     boost::format fmt("%1$-3d %2% %|25t|%3$-20.20s");
     ret << (fmt % "#" % "Address" % "Provider Name") << endl;
@@ -1596,28 +1592,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     g_outputBuffer = ret.str();
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
   });
 
   luaCtx.writeFunction("getDNSCryptBind", [](uint64_t idx) {
     setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
     std::shared_ptr<DNSCryptContext> ret = nullptr;
     if (idx < g_dnsCryptLocals.size()) {
       ret = g_dnsCryptLocals.at(idx);
     }
     return ret;
-#else
-      g_outputBuffer = "Error: DNSCrypt support is not enabled.\n";
-#endif
   });
 
   luaCtx.writeFunction("getDNSCryptBindCount", []() {
     setLuaNoSideEffect();
     return g_dnsCryptLocals.size();
   });
+#endif /* HAVE_DNSCRYPT */
 
   luaCtx.writeFunction("showPools", []() {
     setLuaNoSideEffect();
@@ -1733,11 +1723,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("showVersion", []() {
     setLuaNoSideEffect();
     g_outputBuffer = "dnsdist " + std::string(VERSION) + "\n";
-  });
-
-  luaCtx.writeFunction("showSecurityStatus", []() {
-    setLuaNoSideEffect();
-    g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
   });
 
 #ifdef HAVE_EBPF
@@ -1979,6 +1964,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_NET_SNMP */
 
+#ifndef DISABLE_POLICIES_BINDINGS
   luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy& policy) {
     setLuaSideEffect();
     g_policy.setState(policy);
@@ -2045,6 +2031,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = poolObj->policy->getName() + "\n";
     }
   });
+#endif /* DISABLE_POLICIES_BINDINGS */
 
   luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
@@ -2115,9 +2102,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
     setLuaSideEffect();
-    g_proxyProtocolMaximumSize = std::max(static_cast<size_t>(16), size);
+    g_proxyProtocolMaximumSize = std::max(static_cast<uint64_t>(16), size);
   });
 
+#ifndef DISABLE_RECVMMSG
   luaCtx.writeFunction("setUDPMultipleMessagesVectorSize", [](uint64_t vSize) {
     if (g_configurationDone) {
       errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");
@@ -2132,6 +2120,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "recvmmsg support is not available!\n";
 #endif
   });
+#endif /* DISABLE_RECVMMSG */
 
   luaCtx.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
     g_addEDNSToSelfGeneratedResponses = add;
@@ -2152,6 +2141,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifndef DISABLE_SECPOLL
+  luaCtx.writeFunction("showSecurityStatus", []() {
+    setLuaNoSideEffect();
+    g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
+  });
+
   luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
     if (g_configurationDone) {
       g_outputBuffer = "setSecurityPollSuffix() cannot be used at runtime!\n";
@@ -2297,8 +2291,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
-    size_t maxInFlightQueriesPerConn = 0;
-    size_t tcpMaxConcurrentConnections = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
 
@@ -2500,8 +2494,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
-    size_t maxInFlightQueriesPerConn = 0;
-    size_t tcpMaxConcurrentConns = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConns = 0;
     std::string interface;
     std::set<int> cpus;
 

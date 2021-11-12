@@ -70,7 +70,7 @@ static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGen
        });
 
   std::vector<std::pair<int, vector<boost::variant<string,double>>>> ret;
-  ret.reserve(std::min(rcounts.size(), top + 1U));
+  ret.reserve(std::min(rcounts.size(), static_cast<size_t>(top + 1U)));
   uint64_t count = 1;
   unsigned int rest = 0;
   for(const auto& rc : rcounts) {

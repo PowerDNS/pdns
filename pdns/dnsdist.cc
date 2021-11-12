@@ -1121,6 +1121,7 @@ bool checkQueryHeaders(const struct dnsheader* dh)
   return true;
 }
 
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
 static void queueResponse(const ClientState& cs, const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
@@ -1135,6 +1136,7 @@ static void queueResponse(const ClientState& cs, const PacketBuffer& response, c
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
 
 /* self-generated responses or cache hits */
 static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQuestion& dq, bool cacheHit)
@@ -1492,6 +1494,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     // the buffer might have been invalidated by now (resized)
     struct dnsheader* dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
@@ -1499,6 +1502,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
       return;
@@ -1596,6 +1600,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
   }
 }
 
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
 static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holders)
 {
@@ -1680,6 +1685,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void udpClientThread(ClientState* cs)
@@ -1687,13 +1693,14 @@ static void udpClientThread(ClientState* cs)
   try {
     setThreadName("dnsdist/udpClie");
     LocalHolders holders;
-
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
     if (g_udpVectorSize > 1) {
       MultipleMessagesUDPClientThread(cs, holders);
     }
     else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
     {
       /* the actual buffer is larger because:
          - we may have to add EDNS and/or ECS
@@ -2404,9 +2411,11 @@ int main(int argc, char** argv)
 #ifdef HAVE_RE2
         cout<<"re2 ";
 #endif
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
         cout<<"recvmmsg/sendmmsg ";
 #endif
+#endif /* DISABLE_RECVMMSG */
 #ifdef HAVE_NET_SNMP
         cout<<"snmp ";
 #endif

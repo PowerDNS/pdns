@@ -26,6 +26,7 @@
 
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 {
+#ifndef DISABLE_NON_FFI_DQ_BINDINGS
   /* DNSQuestion */
   /* PowerDNS DNSQuestion compat */
   luaCtx.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });
@@ -306,4 +307,5 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       checkParameterBound("setNegativeAndAdditionalSOA", minimum, std::numeric_limits<uint32_t>::max());
       return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum);
     });
+#endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
