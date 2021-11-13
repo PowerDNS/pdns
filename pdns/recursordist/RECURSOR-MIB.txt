@@ -1040,7 +1040,7 @@ sourceDisallowedNotify OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of NOTIFY operations not authorized by allow-notify-from"
+        "Number of NOTIFY operations not allowed by allow-notify-from"
     ::= { stats 124 }
 
 zoneDisallowedNotify OBJECT-TYPE
