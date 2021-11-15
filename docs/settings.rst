@@ -1784,7 +1784,7 @@ Disable after record contents have been upgraded.
 This option is supported by the bind and Generic SQL backends. 
 
 .. note::
-  When using a generic SQL backend, records with an unknown record type (see :doc:`../appendices/types`) can be identified with the following SQL-Query::
+  When using a generic SQL backend, records with an unknown record type (see :doc:`../appendices/types`) can be identified with the following SQL query::
   
       SELECT * from records where type like 'TYPE%';
 
