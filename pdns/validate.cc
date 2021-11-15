@@ -937,7 +937,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       }
     }
     else {
-      ede = (sig->d_siginception - g_signatureInceptionSkew > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
+      ede = ((sig->d_siginception - g_signatureInceptionSkew) > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
       LOG("Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
      }
   }
