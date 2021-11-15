@@ -1679,6 +1679,7 @@ private:
   int d_msec;
 };
 
+#ifdef HAVE_NET_SNMP
 class SNMPTrapResponseAction : public DNSResponseAction
 {
 public:
@@ -1701,6 +1702,7 @@ public:
 private:
   std::string d_reason;
 };
+#endif /* HAVE_NET_SNMP */
 
 class SetTagResponseAction : public DNSResponseAction
 {
@@ -1819,6 +1821,7 @@ private:
 };
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
 class KeyValueStoreLookupAction : public DNSAction
 {
 public:
@@ -1886,6 +1889,7 @@ private:
   std::shared_ptr<KeyValueLookupKey> d_key;
   std::string d_tag;
 };
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
 class NegativeAndSOAAction: public DNSAction
 {
@@ -2396,21 +2400,15 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4)));
     });
 
-  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
+  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
       return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
-#else
-      throw std::runtime_error("NET SNMP support is required to use SNMPTrapAction()");
-#endif /* HAVE_NET_SNMP */
     });
 
   luaCtx.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
-#ifdef HAVE_NET_SNMP
       return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
-#else
-      throw std::runtime_error("NET SNMP support is required to use SNMPTrapResponseAction()");
-#endif /* HAVE_NET_SNMP */
     });
+#endif /* HAVE_NET_SNMP */
 
   luaCtx.writeFunction("SetTagAction", [](std::string tag, std::string value) {
       return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
@@ -2433,6 +2431,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
     });
@@ -2440,6 +2439,7 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("KeyValueStoreRangeLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag));
     });
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));

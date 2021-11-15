@@ -369,11 +369,11 @@ void setupLuaRules(LuaContext& luaCtx)
     return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
   });
 
-  luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
+  luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<unsigned int> ipv4trunc, boost::optional<unsigned int> ipv6trunc, boost::optional<unsigned int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, burst.get_value_or(qps), ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64), expiration.get_value_or(300), cleanupDelay.get_value_or(60), scanFraction.get_value_or(10)));
     });
 
-  luaCtx.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {
+  luaCtx.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<unsigned int> burst) {
       if(!burst)
         return std::shared_ptr<DNSRule>(new MaxQPSRule(qps));
       else
@@ -414,9 +414,9 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
     });
 
-  luaCtx.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
+  luaCtx.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<unsigned int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();
-      int times = times_.get_value_or(100000);
+      unsigned int times = times_.get_value_or(100000);
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
       struct item {
         PacketBuffer packet;
@@ -442,7 +442,7 @@ void setupLuaRules(LuaContext& luaCtx)
       ComboAddress dummy("127.0.0.1");
       StopWatch sw;
       sw.start();
-      for(int n=0; n < times; ++n) {
+      for(unsigned int n=0; n < times; ++n) {
         item& i = items[n % items.size()];
         DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, dnsdist::Protocol::DoUDP, &sw.d_start);
         if (rule->matches(&dq)) {
@@ -466,25 +466,28 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
     });
 
-  luaCtx.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
+  luaCtx.writeFunction("QTypeRule", [](boost::variant<unsigned int, std::string> str) {
       uint16_t qtype;
-      if(auto dir = boost::get<int>(&str)) {
+      if (auto dir = boost::get<unsigned int>(&str)) {
         qtype = *dir;
       }
       else {
-        string val=boost::get<string>(str);
+        string val = boost::get<string>(str);
         qtype = QType::chartocode(val.c_str());
-        if(!qtype)
+        if (!qtype) {
           throw std::runtime_error("Unable to convert '"+val+"' to a DNS type");
+        }
       }
       return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
     });
 
-  luaCtx.writeFunction("QClassRule", [](int c) {
+  luaCtx.writeFunction("QClassRule", [](uint64_t c) {
+      checkParameterBound("QClassRule", c, std::numeric_limits<uint16_t>::max());
       return std::shared_ptr<DNSRule>(new QClassRule(c));
     });
 
-  luaCtx.writeFunction("OpcodeRule", [](uint8_t code) {
+  luaCtx.writeFunction("OpcodeRule", [](uint64_t code) {
+      checkParameterBound("OpcodeRule", code, std::numeric_limits<uint8_t>::max());
       return std::shared_ptr<DNSRule>(new OpcodeRule(code));
     });
 
@@ -496,7 +499,8 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new OrRule(a));
     });
 
-  luaCtx.writeFunction("DSTPortRule", [](uint16_t port) {
+  luaCtx.writeFunction("DSTPortRule", [](uint64_t port) {
+      checkParameterBound("DSTPortRule", port, std::numeric_limits<uint16_t>::max());
       return std::shared_ptr<DNSRule>(new DSTPortRule(port));
     });
 
@@ -512,11 +516,18 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new NotRule(rule));
     });
 
-  luaCtx.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minCount, uint16_t maxCount) {
+  luaCtx.writeFunction("RecordsCountRule", [](uint64_t section, uint64_t minCount, uint64_t maxCount) {
+      checkParameterBound("RecordsCountRule", section, std::numeric_limits<uint8_t>::max());
+      checkParameterBound("RecordsCountRule", minCount, std::numeric_limits<uint16_t>::max());
+      checkParameterBound("RecordsCountRule", maxCount, std::numeric_limits<uint16_t>::max());
       return std::shared_ptr<DNSRule>(new RecordsCountRule(section, minCount, maxCount));
     });
 
-  luaCtx.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount) {
+  luaCtx.writeFunction("RecordsTypeCountRule", [](uint64_t section, uint64_t type, uint64_t minCount, uint64_t maxCount) {
+      checkParameterBound("RecordsTypeCountRule", section, std::numeric_limits<uint8_t>::max());
+      checkParameterBound("RecordsTypeCountRule", type, std::numeric_limits<uint16_t>::max());
+      checkParameterBound("RecordsTypeCountRule", minCount, std::numeric_limits<uint16_t>::max());
+      checkParameterBound("RecordsTypeCountRule", maxCount, std::numeric_limits<uint16_t>::max());
       return std::shared_ptr<DNSRule>(new RecordsTypeCountRule(section, type, minCount, maxCount));
     });
 
@@ -524,27 +535,33 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new TrailingDataRule());
     });
 
-  luaCtx.writeFunction("QNameLabelsCountRule", [](unsigned int minLabelsCount, unsigned int maxLabelsCount) {
+  luaCtx.writeFunction("QNameLabelsCountRule", [](uint64_t minLabelsCount, uint64_t maxLabelsCount) {
+      checkParameterBound("QNameLabelsCountRule", minLabelsCount, std::numeric_limits<unsigned int>::max());
+      checkParameterBound("QNameLabelsCountRule", maxLabelsCount, std::numeric_limits<unsigned int>::max());
       return std::shared_ptr<DNSRule>(new QNameLabelsCountRule(minLabelsCount, maxLabelsCount));
     });
 
-  luaCtx.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
+  luaCtx.writeFunction("QNameWireLengthRule", [](uint64_t min, uint64_t max) {
       return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
     });
 
-  luaCtx.writeFunction("RCodeRule", [](uint8_t rcode) {
+  luaCtx.writeFunction("RCodeRule", [](uint64_t rcode) {
+      checkParameterBound("RCodeRule", rcode, std::numeric_limits<uint8_t>::max());
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
-  luaCtx.writeFunction("ERCodeRule", [](uint8_t rcode) {
+  luaCtx.writeFunction("ERCodeRule", [](uint64_t rcode) {
+      checkParameterBound("ERCodeRule", rcode, std::numeric_limits<uint8_t>::max());
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
-  luaCtx.writeFunction("EDNSVersionRule", [](uint8_t version) {
+  luaCtx.writeFunction("EDNSVersionRule", [](uint64_t version) {
+      checkParameterBound("EDNSVersionRule", version, std::numeric_limits<uint8_t>::max());
       return std::shared_ptr<DNSRule>(new EDNSVersionRule(version));
     });
 
-  luaCtx.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
+  luaCtx.writeFunction("EDNSOptionRule", [](uint64_t optcode) {
+      checkParameterBound("EDNSOptionRule", optcode, std::numeric_limits<uint16_t>::max());
       return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
     });
 
@@ -568,7 +585,7 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new PoolAvailableRule(poolname));
   });
 
-  luaCtx.writeFunction("PoolOutstandingRule", [](std::string poolname, size_t limit) {
+  luaCtx.writeFunction("PoolOutstandingRule", [](std::string poolname, uint64_t limit) {
     return std::shared_ptr<DNSRule>(new PoolOutstandingRule(poolname, limit));
   });
 
@@ -595,6 +612,7 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new QNameSetRule(names));
     });
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
       return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
     });
@@ -602,6 +620,7 @@ void setupLuaRules(LuaContext& luaCtx)
   luaCtx.writeFunction("KeyValueStoreRangeLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
       return std::shared_ptr<DNSRule>(new KeyValueStoreRangeLookupRule(kvs, lookupKey));
     });
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
   luaCtx.writeFunction("LuaRule", [](LuaRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaRule(func));
