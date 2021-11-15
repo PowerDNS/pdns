@@ -39,7 +39,6 @@
 #include "dolog.hh"
 #include "gettime.hh"
 #include "threadname.hh"
-#include "sodcrypto.hh"
 #include "sstuff.hh"
 
 struct WebserverConfig
@@ -193,6 +192,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
+#ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
   if (!g_apiReadWrite) {
@@ -233,6 +233,7 @@ static void apiSaveACL(const NetmaskGroup& nmg)
   string content = "setACL({" + acl + "})";
   apiWriteConfigFile("acl", content);
 }
+#endif /* DISABLE_WEB_CONFIG */
 
 static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& apiKey)
 {
@@ -817,6 +818,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
 using namespace json11;
 
+#ifndef DISABLE_BUILTIN_HTML
 static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   handleCORS(req, resp);
@@ -915,6 +917,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     resp.status = 404;
   }
 }
+#endif /* DISABLE_BUILTIN_HTML */
 
 static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<DownstreamState>& a)
 {
@@ -1244,6 +1247,7 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.headers["Content-Type"] = "application/json";
 }
 
+#ifndef DISABLE_WEB_CONFIG
 static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   handleCORS(req, resp);
@@ -1353,6 +1357,7 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
     resp.body = my_json.dump();
   }
 }
+#endif /* DISABLE_WEB_CONFIG */
 
 static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
 
@@ -1409,15 +1414,19 @@ static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& res
 
 void registerBuiltInWebHandlers()
 {
+#ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/jsonstat", handleJSONStats);
+#endif /* DISABLE_BUILTIN_HTML */
 #ifndef DISABLE_PROMETHEUS
   registerWebHandler("/metrics", handlePrometheus);
 #endif /* DISABLE_PROMETHEUS */
   registerWebHandler("/api/v1/servers/localhost", handleStats);
   registerWebHandler("/api/v1/servers/localhost/pool", handlePoolStats);
   registerWebHandler("/api/v1/servers/localhost/statistics", handleStatsOnly);
+#ifndef DISABLE_WEB_CONFIG
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
+#endif /* DISABLE_WEB_CONFIG */
 #ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/", redirectToIndex);
 
