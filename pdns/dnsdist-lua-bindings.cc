@@ -478,7 +478,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
             match = BPFFilter::MatchAction::Truncate;
             break;
           default:
-            throw std::runtime_error("Unsupported action for BPFFilter::block");
+            throw std::runtime_error("Unsupported action for BPFFilter::blockQName");
           }
           return bpf->block(qname, match, qtype.value_or(255));
         }

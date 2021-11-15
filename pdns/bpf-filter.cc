@@ -89,7 +89,6 @@ void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expectedValu
   if (info.value_size != expectedValueSize) {
     throw std::runtime_error("Error checking the size of eBPF map: value size mismatch (" + std::to_string(info.value_size) + " VS " + std::to_string(expectedValueSize) + ")");
   }
-
 }
 
 int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
@@ -133,8 +132,8 @@ int bpf_get_next_key(int fd, void *key, void *next_key)
 }
 
 int bpf_prog_load(enum bpf_prog_type prog_type,
-		  const struct bpf_insn *insns, int prog_len,
-		  const char *license, int kern_version)
+                  const struct bpf_insn *insns, int prog_len,
+                  const char *license, int kern_version)
 {
   char log_buf[65535];
   union bpf_attr attr;
@@ -254,38 +253,30 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
 
         if (d_config.d_type == MapType::IPv4) {
           uint32_t key = 0;
-          int res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
-          while (res == 0) {
+          while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
-            res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
           }
         }
         else if (d_config.d_type == MapType::IPv6) {
           KeyV6 key;
           memset(&key, 0, sizeof(key));
-          int res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
-          while (res == 0) {
+          while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
-            res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
           }
         }
         else if (d_config.d_type == MapType::QNames) {
           if (format == MapFormat::Legacy) {
             QNameKey key;
             memset(&key, 0, sizeof(key));
-            int res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
-            while (res == 0) {
+            while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
               ++d_count;
-              res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
             }
           }
           else {
             QNameAndQTypeKey key;
             memset(&key, 0, sizeof(key));
-            int res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
-            while (res == 0) {
+            while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
               ++d_count;
-              res = bpf_get_next_key(d_fd.getHandle(), &key, &key);
             }
           }
         }
