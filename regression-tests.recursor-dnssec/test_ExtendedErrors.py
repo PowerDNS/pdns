@@ -119,6 +119,19 @@ log-common-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
 
+    def testAllExpired(self):
+        qname = 'servfail.nl.'
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query, timeout=5.0)
+            self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+            self.assertEqual(res.edns, 0)
+            self.assertEqual(len(res.options), 1)
+            self.assertEqual(res.options[0].otype, 15)
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
+
     def testBogus(self):
         qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
