@@ -194,8 +194,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         for (auto& i : rrset) {
           string icontent = i.getZoneRepresentation();
           if (lowerCase) icontent = toLower(icontent);
-          if (rrType == i.qtype.getCode() && icontent == content) {
-            foundRecord=true;
+          if (rrType == i.qtype.getCode()) {
+            if (icontent == content) {
+              foundRecord=true;
+            }
             if (i.ttl != rr->d_ttl)  {
               i.ttl = rr->d_ttl;
               updateTTL++;
@@ -204,10 +206,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         }
         if (updateTTL > 0) {
           di->backend->replaceRRSet(di->id, rr->d_name, rrType, rrset);
-          g_log<<Logger::Notice<<msgPrefix<<"Replacing record "<<rr->d_name<<"|"<<rrType.getName()<<endl;
+          g_log<<Logger::Notice<<msgPrefix<<"Updating TTLs for "<<rr->d_name<<"|"<<rrType.getName()<<endl;
           changedRecords += updateTTL;
         } else {
-          g_log<<Logger::Notice<<msgPrefix<<"Replace for record "<<rr->d_name<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
+          g_log<<Logger::Notice<<msgPrefix<<"Replace for recordset "<<rr->d_name<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
         }
       }
 
