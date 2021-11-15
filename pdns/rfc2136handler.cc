@@ -156,7 +156,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;
           changedRecords++;
-          g_log<<Logger::Notice<<msgPrefix<<"Replacing record "<<rr->d_name<<"|"<<rrType.toString()<<endl;
+          g_log<<Logger::Notice<<msgPrefix<<"Replacing SOA record "<<rr->d_name<<"|"<<rrType.toString()<<endl;
         } else {
           g_log<<Logger::Notice<<msgPrefix<<"Provided serial ("<<sdUpdate.serial<<") is older than the current serial ("<<sdOld.serial<<"), ignoring SOA update."<<endl;
         }
@@ -173,10 +173,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         }
         if (changedCNames > 0) {
           di->backend->replaceRRSet(di->id, rr->d_name, rrType, rrset);
-          g_log<<Logger::Notice<<msgPrefix<<"Replacing record "<<rr->d_name<<"|"<<rrType.toString()<<endl;
+          g_log<<Logger::Notice<<msgPrefix<<"Replacing CNAME record "<<rr->d_name<<"|"<<rrType.toString()<<endl;
           changedRecords += changedCNames;
         } else {
-          g_log<<Logger::Notice<<msgPrefix<<"Replace for record "<<rr->d_name<<"|"<<rrType.toString()<<" requested, but no changes made."<<endl;
+          g_log<<Logger::Notice<<msgPrefix<<"Replace for CNAME record "<<rr->d_name<<"|"<<rrType.toString()<<" requested, but no changes made."<<endl;
         }
 
       // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectively means a update of TTL)
