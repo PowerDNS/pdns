@@ -1311,7 +1311,7 @@ The following actions exist.
 
   .. versionadded:: 1.7.0
 
-  Add arbitrary EDNS option and data to the query.
+  Add arbitrary EDNS option and data to the query. Any existing EDNS content with the same option code will be overwritten.
   Subsequent rules are processed after this action.
 
   :param int option: The EDNS option number

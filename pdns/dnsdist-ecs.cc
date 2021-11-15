@@ -128,11 +128,11 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
   return 0;
 }
 
-static bool addOrReplaceECSOption(std::vector<std::pair<uint16_t, std::string>>& options, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
+static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>& options, uint16_t optionCode, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
 {
   for (auto it = options.begin(); it != options.end(); ) {
-    if (it->first == EDNSOptionCode::ECS) {
-      ecsAdded = false;
+    if (it->first == optionCode) {
+      optionAdded = false;
 
       if (!overrideExisting) {
         return false;
@@ -145,25 +145,25 @@ static bool addOrReplaceECSOption(std::vector<std::pair<uint16_t, std::string>>&
     }
   }
 
-  options.emplace_back(EDNSOptionCode::ECS, std::string(&newECSOption.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newECSOption.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)));
+  options.emplace_back(optionCode, std::string(&newOptionContent.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newOptionContent.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)));
   return true;
 }
 
-static bool slowRewriteQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
+bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, uint16_t optionToReplace, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
-
-  ecsAdded = false;
-  ednsAdded = true;
 
   if (ntohs(dh->qdcount) == 0) {
     return false;
   }
 
   if (ntohs(dh->ancount) == 0 && ntohs(dh->nscount) == 0 && ntohs(dh->arcount) == 0) {
-    throw std::runtime_error("slowRewriteQueryWithRecords() should not be called for queries that have no records");
+    throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " should not be called for queries that have no records");
   }
+
+  optionAdded = false;
+  ednsAdded = true;
 
   PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
@@ -244,16 +244,16 @@ static bool slowRewriteQueryWithRecords(const PacketBuffer& initialPacket, Packe
       static_assert(sizeof(edns0) == sizeof(ah.d_ttl), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
       memcpy(&edns0, &ah.d_ttl, sizeof(edns0));
 
-      /* addOrReplaceECSOption will set it to false if there is already an existing option */
-      ecsAdded = true;
-      addOrReplaceECSOption(options, ecsAdded, overrideExisting, newECSOption);
+      /* addOrReplaceEDNSOption will set it to false if there is already an existing option */
+      optionAdded = true;
+      addOrReplaceEDNSOption(options, optionToReplace, optionAdded, overrideExisting, newOptionContent);
       pw.addOpt(ah.d_class, edns0.extRCode, edns0.extFlags, options, edns0.version);
     }
   }
 
   if (ednsAdded) {
-    pw.addOpt(g_EdnsUDPPayloadSize, 0, 0, {{EDNSOptionCode::ECS, std::string(&newECSOption.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newECSOption.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))}}, 0);
-    ecsAdded = true;
+    pw.addOpt(g_EdnsUDPPayloadSize, 0, 0, {{optionToReplace, std::string(&newOptionContent.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newOptionContent.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))}}, 0);
+    optionAdded = true;
   }
 
   pw.commit();
@@ -588,9 +588,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     PacketBuffer newContent;
     newContent.reserve(packet.size());
 
-    if (!slowRewriteQueryWithRecords(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
-      ednsAdded = false;
-      ecsAdded = false;
+    if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::ECS, ecsAdded, overrideExisting, newECSOption)) {
       return false;
     }
 

@@ -909,13 +909,11 @@ class SetMacAddrAction : public DNSAction
 public:
   // this action does not stop the processing
   SetMacAddrAction(uint16_t code) : d_code(code)
-  {}
+  {
+  }
+
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (dq->getHeader()->arcount) {
-      return Action::None;
-    }
-
     std::string mac = getMACAddress(*dq->remote);
     if (mac.empty()) {
       return Action::None;
@@ -923,6 +921,28 @@ public:
 
     std::string optRData;
     generateEDNSOption(d_code, mac, optRData);
+
+    if (dq->getHeader()->arcount) {
+      bool ednsAdded = false;
+      bool optionAdded = false;
+      PacketBuffer newContent;
+      newContent.reserve(dq->getData().size());
+
+      if (!slowRewriteEDNSOptionInQueryWithRecords(dq->getData(), newContent, ednsAdded, d_code, optionAdded, true, optRData)) {
+        return Action::None;
+      }
+
+      if (newContent.size() > dq->getMaximumSize()) {
+        return Action::None;
+      }
+
+      dq->getMutableData() = std::move(newContent);
+      if (!dq->ednsAdded && ednsAdded) {
+        dq->ednsAdded = true;
+      }
+
+      return Action::None;
+    }
 
     auto& data = dq->getMutableData();
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
@@ -935,7 +955,7 @@ public:
   }
   std::string toString() const override
   {
-    return "add EDNS MAC (code="+std::to_string(d_code)+")";
+    return "add EDNS MAC (code=" + std::to_string(d_code) + ")";
   }
 private:
   uint16_t d_code{3};
@@ -947,16 +967,35 @@ class SetEDNSOptionAction : public DNSAction
 public:
   // this action does not stop the processing
   SetEDNSOptionAction(uint16_t code, const std::string& data) : d_code(code), d_data(data)
-  {}
+  {
+  }
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (dq->getHeader()->arcount) {
-      return Action::None;
-    }
-
     std::string optRData;
     generateEDNSOption(d_code, d_data, optRData);
+
+    if (dq->getHeader()->arcount) {
+      bool ednsAdded = false;
+      bool optionAdded = false;
+      PacketBuffer newContent;
+      newContent.reserve(dq->getData().size());
+
+      if (!slowRewriteEDNSOptionInQueryWithRecords(dq->getData(), newContent, ednsAdded, d_code, optionAdded, true, optRData)) {
+        return Action::None;
+      }
+
+      if (newContent.size() > dq->getMaximumSize()) {
+        return Action::None;
+      }
+
+      dq->getMutableData() = std::move(newContent);
+      if (!dq->ednsAdded && ednsAdded) {
+        dq->ednsAdded = true;
+      }
+
+      return Action::None;
+    }
 
     auto& data = dq->getMutableData();
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
@@ -970,7 +1009,7 @@ public:
 
   std::string toString() const override
   {
-    return "add EDNS Option (code="+std::to_string(d_code)+")";
+    return "add EDNS Option (code=" + std::to_string(d_code) + ")";
   }
 
 private:
