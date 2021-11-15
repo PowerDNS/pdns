@@ -1404,6 +1404,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_dynblockSMT.setState(smt);
   });
 
+#ifndef DISABLE_DEPRECATED_DYNBLOCK
   luaCtx.writeFunction("addDynBlocks",
                        [](const std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                          if (m.empty()) {
@@ -1496,6 +1497,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Dynamic blocks action cannot be altered at runtime!\n";
     }
   });
+#endif /* DISABLE_DEPRECATED_DYNBLOCK */
 
   luaCtx.writeFunction("setDynBlocksPurgeInterval", [](uint64_t interval) {
     DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;
@@ -1751,6 +1753,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+#ifndef DISABLE_DEPRECATED_DYNBLOCK
   luaCtx.writeFunction("addBPFFilterDynBlocks", [](const std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
     if (!dynbpf) {
       return;
@@ -1767,6 +1770,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     }
   });
+#endif /* DISABLE_DEPRECATED_DYNBLOCK */
 
 #endif /* HAVE_EBPF */
 
