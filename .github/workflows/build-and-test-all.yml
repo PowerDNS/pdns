@@ -50,9 +50,13 @@ jobs:
   build-recursor:
     name: build recursor
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
+      SANITIZERS: ${{ matrix.sanitizers }}
     defaults:
       run:
         working-directory: ./pdns/recursordist/
@@ -70,8 +74,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: recursor-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-ccache-
+          key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
       - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv apt-fresh
       - run: inv install-clang
@@ -85,7 +89,7 @@ jobs:
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor
+          name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
           retention-days: 1
 
@@ -271,9 +275,13 @@ jobs:
   test-recursor-api:
     needs: build-recursor
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -282,7 +290,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v2
         with:
-          name: pdns-recursor
+          name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv add-auth-repo  # FIXME: do we need this for rec API testing?
@@ -293,9 +301,13 @@ jobs:
   test-recursor-regression:
     needs: build-recursor
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -304,7 +316,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v2
         with:
-          name: pdns-recursor
+          name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv add-auth-repo
@@ -318,12 +330,14 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
+        sanitizers: [ubsan+asan]
         threads: [1, 2, 3, 4, 8, 16]
         mthreads: [2048, 4096]
-        shards: [1, 2, 1028]
+        shards: [1, 2, 1024]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -332,7 +346,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v2
         with:
-          name: pdns-recursor
+          name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
