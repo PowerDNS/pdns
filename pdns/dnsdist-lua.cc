@@ -949,7 +949,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                     (namespace_name && !namespace_name->empty()) ? *namespace_name : "dnsdist",
                     ourName ? *ourName : "",
                     (instance_name && !instance_name->empty()) ? *instance_name : "main",
-                    (interval && *interval < std::numeric_limits<unsigned int>::max())  ? static_cast<unsigned int>(*interval) : 30});
+                    (interval && *interval < std::numeric_limits<unsigned int>::max()) ? static_cast<unsigned int>(*interval) : 30});
     g_carbon.setState(ours);
   });
 #endif /* DISABLE_CARBON */

@@ -36,6 +36,6 @@ struct CarbonConfig
   unsigned int interval;
 };
 
-extern GlobalStateHolder<std::vector<CarbonConfig> > g_carbon;
+extern GlobalStateHolder<std::vector<CarbonConfig>> g_carbon;
 void carbonDumpThread();
 #endif /* DISABLE_CARBON */
