@@ -374,7 +374,7 @@ public:
     return newConnection;
   }
 
-  void cleanupClosedConnections(struct timeval now)
+  void cleanupClosedConnections(const struct timeval& now)
   {
     if (s_cleanupInterval == 0 || (d_nextCleanup != 0 && d_nextCleanup > now.tv_sec)) {
       return;
@@ -524,7 +524,7 @@ protected:
     }
   }
 
-  std::shared_ptr<T> findUsableConnectionInList(const struct timeval& now, struct timeval& freshCutOff, list_t& list, bool removeIfFound)
+  std::shared_ptr<T> findUsableConnectionInList(const struct timeval& now, const struct timeval& freshCutOff, list_t& list, bool removeIfFound)
   {
     auto& sidx = list.template get<SequencedTag>();
     for (auto listIt = sidx.begin(); listIt != sidx.end(); ) {
@@ -536,6 +536,7 @@ protected:
       auto& entry = *listIt;
       if (isConnectionUsable(entry, now, freshCutOff)) {
         entry->setReused();
+        // make a copy since the iterator will be invalidated after erasing
         auto result = entry;
         if (removeIfFound) {
           sidx.erase(listIt);
@@ -568,11 +569,7 @@ protected:
       return true;
     }
 
-    if (conn->isUsable()) {
-      return true;
-    }
-
-    return false;
+    return conn->isUsable();
   }
 
   static size_t s_maxIdleConnectionsPerDownstream;
