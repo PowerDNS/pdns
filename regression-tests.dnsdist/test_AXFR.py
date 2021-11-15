@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import threading
+import time
 import dns
 from dnsdisttests import DNSDistTest
 
@@ -13,6 +14,7 @@ class TestAXFR(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     """
+    _verboseMode = True
 
     @classmethod
     def startResponders(cls):
@@ -24,6 +26,13 @@ class TestAXFR(DNSDistTest):
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, True, None, None, True])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
+
+    def setUp(self):
+        # This function is called before every test
+        super(TestAXFR, self).setUp()
+        # make sure the TCP connection handlers from the previous test
+        # are not going to read our queue
+        time.sleep(1)
 
     def testOneMessageAXFR(self):
         """
@@ -245,7 +254,7 @@ class TestAXFR(DNSDistTest):
                                        dns.rdatatype.SOA,
                                        'ns.' + name + ' hostmaster.' + name + ' 3 3600 3600 3600 60')
 
-        # the final SOA starts the AXFR, with first an update from 1 to 2 (one removal, two additions)
+        # the final SOA starts the IXFR, with first an update from 1 to 2 (one removal, two additions)
         response = dns.message.make_response(query)
         response.answer.append(finalSoa)
         # update from 1 to 2

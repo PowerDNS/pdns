@@ -5,6 +5,8 @@
 
 #include "dnsparser.hh"
 
+thread_local DownstreamTCPConnectionsManager t_downstreamTCPConnectionsManager;
+
 ConnectionToBackend::~ConnectionToBackend()
 {
   if (d_ds && d_handler) {
@@ -631,12 +633,14 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
       --conn->d_ds->outstanding;
       /* marking as idle for now, so we can accept new queries if our queues are empty */
       if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+        t_downstreamTCPConnectionsManager.moveToIdle(conn);
         d_state = State::idle;
       }
     }
 
     sender->handleXFRResponse(now, std::move(response));
     if (done) {
+      t_downstreamTCPConnectionsManager.moveToIdle(conn);
       d_state = State::idle;
       return IOState::Done;
     }
@@ -653,6 +657,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   d_pendingResponses.erase(it);
   /* marking as idle for now, so we can accept new queries if our queues are empty */
   if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+    t_downstreamTCPConnectionsManager.moveToIdle(conn);
     d_state = State::idle;
   }
 
@@ -676,6 +681,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
   else {
     DEBUGLOG("nothing to do, waiting for a new query");
+    t_downstreamTCPConnectionsManager.moveToIdle(conn);
     d_state = State::idle;
     return IOState::Done;
   }
@@ -738,7 +744,6 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         }
         auto raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
-
         ++query.d_xfrSerialCount;
         if (query.d_xfrMasterSerial == 0) {
           // store the first SOA in our client's connection metadata
@@ -766,126 +771,3 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
   }
   return done;
 }
-
-std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<DownstreamState>& ds, const struct timeval& now)
-{
-  struct timeval freshCutOff = now;
-  freshCutOff.tv_sec -= 1;
-
-  auto backendId = ds->getID();
-
-  cleanupClosedTCPConnections(now);
-
-  {
-    const auto& it = t_downstreamConnections.find(backendId);
-    if (it != t_downstreamConnections.end()) {
-      auto& list = it->second;
-      for (auto listIt = list.begin(); listIt != list.end(); ) {
-        auto& entry = *listIt;
-        if (!entry->canBeReused()) {
-          if (!entry->willBeReusable(false)) {
-            listIt = list.erase(listIt);
-          }
-          else {
-            ++listIt;
-          }
-          continue;
-        }
-
-        entry->setReused();
-        /* for connections that have not been used very recently,
-           check whether they have been closed in the meantime */
-        if (freshCutOff < entry->getLastDataReceivedTime()) {
-          /* used recently enough, skip the check */
-          ++ds->tcpReusedConnections;
-          return entry;
-        }
-
-        if (entry->isUsable()) {
-          ++ds->tcpReusedConnections;
-          return entry;
-        }
-        else {
-          listIt = list.erase(listIt);
-          continue;
-        }
-
-        /* otherwise let's try the next one, if any */
-        ++listIt;
-      }
-    }
-  }
-
-  auto newConnection = std::make_shared<TCPConnectionToBackend>(ds, mplexer, now);
-  if (!ds->useProxyProtocol) {
-    t_downstreamConnections[backendId].push_front(newConnection);
-  }
-  return newConnection;
-}
-
-void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval now)
-{
-  if (s_cleanupInterval == 0 || (t_nextCleanup != 0 && t_nextCleanup > now.tv_sec)) {
-    return;
-  }
-
-  t_nextCleanup = now.tv_sec + s_cleanupInterval;
-
-  struct timeval freshCutOff = now;
-  freshCutOff.tv_sec -= 1;
-  struct timeval idleCutOff = now;
-  idleCutOff.tv_sec -= s_maxIdleTime;
-
-  for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
-    for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
-      if (!(*connIt)) {
-        ++connIt;
-        continue;
-      }
-
-      /* don't bother checking freshly used connections */
-      if (freshCutOff < (*connIt)->getLastDataReceivedTime()) {
-        ++connIt;
-        continue;
-      }
-
-      if ((*connIt)->isIdle() && (*connIt)->getLastDataReceivedTime() < idleCutOff) {
-        /* idle for too long */
-        connIt = dsIt->second.erase(connIt);
-        continue;
-      }
-
-      if ((*connIt)->isUsable()) {
-        ++connIt;
-      }
-      else {
-        connIt = dsIt->second.erase(connIt);
-      }
-    }
-
-    if (!dsIt->second.empty()) {
-      ++dsIt;
-    }
-    else {
-      dsIt = t_downstreamConnections.erase(dsIt);
-    }
-  }
-}
-
-size_t DownstreamConnectionsManager::clear()
-{
-  size_t count = 0;
-  for (const auto& downstream : t_downstreamConnections) {
-    count += downstream.second.size();
-  }
-
-  t_downstreamConnections.clear();
-
-  return count;
-}
-
-thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
-thread_local time_t DownstreamConnectionsManager::t_nextCleanup{0};
-size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
-uint16_t DownstreamConnectionsManager::s_cleanupInterval{60};
-uint16_t DownstreamConnectionsManager::s_maxIdleTime{300};

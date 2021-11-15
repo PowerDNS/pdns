@@ -1306,11 +1306,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
-    DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+    DownstreamTCPConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
   });
 
-  luaCtx.writeFunction("setMaxCachedDoHConnectionsPerDownstream", [](size_t max) {
-    setDoHDownstreamMaxConnectionsPerBackend(max);
+  luaCtx.writeFunction("setMaxIdleDoHConnectionsPerDownstream", [](size_t max) {
+    setDoHDownstreamMaxIdleConnectionsPerBackend(max);
   });
 
   luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
@@ -2121,7 +2121,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
     checkParameterBound("setTCPDownstreamCleanupInterval", interval);
-    DownstreamConnectionsManager::setCleanupInterval(interval);
+    DownstreamTCPConnectionsManager::setCleanupInterval(interval);
   });
 
   luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint64_t interval) {
@@ -2133,7 +2133,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint64_t max) {
     setLuaSideEffect();
     checkParameterBound("setTCPDownstreamMaxIdleTime", max);
-    DownstreamConnectionsManager::setMaxIdleTime(max);
+    DownstreamTCPConnectionsManager::setMaxIdleTime(max);
   });
 
   luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint64_t max) {

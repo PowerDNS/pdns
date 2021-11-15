@@ -72,4 +72,4 @@ size_t clearH2Connections();
 
 void setDoHDownstreamCleanupInterval(uint16_t max);
 void setDoHDownstreamMaxIdleTime(uint16_t max);
-void setDoHDownstreamMaxConnectionsPerBackend(size_t max);
+void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max);
