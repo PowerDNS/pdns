@@ -40,7 +40,7 @@ public:
     WithActions = 1
   };
 
-  enum class MatchAction : uint32_t {
+  enum class MatchAction : uint8_t {
     Pass = 0,
     Drop = 1,
     Truncate = 2

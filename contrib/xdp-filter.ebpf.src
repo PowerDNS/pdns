@@ -88,7 +88,7 @@ struct dns_qname
  * DROP: XDP_DROP
  * TC: set TC bit and XDP_TX
  */
-enum dns_action : uint32_t {
+enum dns_action : uint8_t {
   PASS = 0,
   DROP = 1,
   TC = 2
