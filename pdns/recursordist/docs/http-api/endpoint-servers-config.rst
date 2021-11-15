@@ -5,7 +5,7 @@
   Change a single setting
 
   .. note::
-    Only :ref:`setting-allow-from` can be set.
+    Only :ref:`setting-allow-from` and :ref:`setting-allow-notify-from` can be set.
 
   :param server_id: The name of the server
   :param config_setting_name: The name of the setting to change

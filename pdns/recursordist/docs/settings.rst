@@ -58,6 +58,69 @@ Note that specifying an IP address without a netmask uses an implicit netmask of
 Like `allow-from`_, except reading from file.
 Overrides the `allow-from`_ setting. To use this feature, supply one netmask per line, with optional comments preceded by a "#".
 
+.. _setting-allow-notify-for:
+
+``allow-notify-for``
+---------------------
+.. versionadded:: 4.6.0
+
+-  Comma separated list of domain-names
+-  Default: (empty)
+
+Domain names specified in this list are used to permit incoming
+NOTIFY operations to wipe any cache entries that match the domain
+name. If this list is empty, all NOTIFY operations will be ignored.
+
+.. _setting-allow-notify-for-file:
+
+``allow-notify-for-file``
+-------------------------
+.. versionadded:: 4.6.0
+
+-  Path
+
+Like `allow-notify-for`_, except reading from file. To use this
+feature, supply one domain name per line, with optional comments
+preceded by a "#".
+
+.. _setting-allow-notify-from:
+
+``allow-notify-from``
+---------------------
+.. versionadded:: 4.6.0
+
+-  IP addresses or netmasks, separated by commas
+-  Default: unset
+
+Netmasks (both IPv4 and IPv6) that are allowed to issue NOTIFY operations
+to the server.  NOTIFY operations from IP addresses not listed here are
+ignored and do not get an answer.
+
+When the Proxy Protocol is enabled (see `proxy-protocol-from`_), the
+recursor will check the address of the client IP advertised in the
+Proxy Protocol header instead of the one of the proxy.
+
+Note that specifying an IP address without a netmask uses an implicit
+netmask of /32 or /128.
+
+NOTIFY operations received from a client listed in one of these netmasks
+will be accepted and used to wipe any cache entries whose zones match
+the zone specified in the NOTIFY operation, but only if that zone (or
+one of its parents) is included in `allow-notify-for`_,
+`allow-notify-for-file`_, or `forward-zones-file_` with a '^' prefix.
+
+.. _setting-allow-notify-from-file:
+
+``allow-notify-from-file``
+--------------------------
+.. versionadded:: 4.6.0
+
+-  Path
+
+Like `allow-notify-from`_, except reading from file. To use this
+feature, supply one netmask per line, with optional comments preceded
+by a "#".
+
 .. _setting-any-to-tcp:
 
 ``any-to-tcp``
@@ -786,14 +849,20 @@ Same as `forward-zones`_, parsed from a file. Only 1 zone is allowed per line, s
 
     example.org=203.0.113.210, 192.0.2.4:5300
 
-Zones prefixed with a '+' are forwarded with the recursion-desired bit set, for which see `forward-zones-recurse`_.
-Default behaviour without '+' is as with `forward-zones`_.
+Zones prefixed with a '+' are treated as with
+`forward-zones-recurse`_.  Default behaviour without '+' is as with
+`forward-zones`_.
 
 .. versionchanged:: 4.0.0
 
   Comments are allowed, everything behind '#' is ignored.
 
 The DNSSEC notes from `forward-zones`_ apply here as well.
+
+.. versionchanged:: 4.6.0
+
+Zones prefixed with a '^' are added to the `allow-notify-for`_
+list. Both prefix characters can be used if desired, in any order.
 
 .. _setting-forward-zones-recurse:
 

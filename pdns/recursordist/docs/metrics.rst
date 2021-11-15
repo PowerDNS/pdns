@@ -763,6 +763,14 @@ unauthorized-udp
 ^^^^^^^^^^^^^^^^
 number of UDP questions denied because of   allow-from restrictions
 
+source-disallowed-notify
+^^^^^^^^^^^^^^^^^^^^^^^^
+number of NOTIFY operations denied because of allow-notify-from restrictions
+
+zone-disallowed-notify
+^^^^^^^^^^^^^^^^^^^^^^
+number of NOTIFY operations denied because of allow-notify-for restrictions
+
 unexpected-packets
 ^^^^^^^^^^^^^^^^^^
 number of answers from remote servers that   were unexpected (might point to spoofing)

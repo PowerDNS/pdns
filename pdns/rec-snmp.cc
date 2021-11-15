@@ -143,6 +143,8 @@ static const oid udp6NoportErrorsOID[] = {RECURSOR_STATS_OID, 121};
 static const oid udp6InErrorsOID[] = {RECURSOR_STATS_OID, 122};
 static const oid udp6InCsumErrorsOID[] = {RECURSOR_STATS_OID, 123};
 #endif /* __linux__ */
+static const oid sourceDisallowedNotifyOID[] = {RECURSOR_STATS_OID, 124};
+static const oid zoneDisallowedNotifyOID[] = {RECURSOR_STATS_OID, 125};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -267,6 +269,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("noerror-answers", noerrorAnswersOID, OID_LENGTH(noerrorAnswersOID));
   registerCounter64Stat("unauthorized-udp", unauthorizedUdpOID, OID_LENGTH(unauthorizedUdpOID));
   registerCounter64Stat("unauthorized-tcp", unauthorizedTcpOID, OID_LENGTH(unauthorizedTcpOID));
+  registerCounter64Stat("source-disallowed-notify", sourceDisallowedNotifyOID, OID_LENGTH(sourceDisallowedNotifyOID));
+  registerCounter64Stat("zone-disallowed-notify", zoneDisallowedNotifyOID, OID_LENGTH(zoneDisallowedNotifyOID));
   registerCounter64Stat("tcp-client-overflow", tcpClientOverflowOID, OID_LENGTH(tcpClientOverflowOID));
   registerCounter64Stat("client-parse-errors", clientParseErrorsOID, OID_LENGTH(clientParseErrorsOID));
   registerCounter64Stat("server-parse-errors", serverParseErrorsOID, OID_LENGTH(serverParseErrorsOID));

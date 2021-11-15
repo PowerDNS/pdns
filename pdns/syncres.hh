@@ -1047,6 +1047,8 @@ struct RecursorStats
   pdns::stat_t tcpqcounter;
   pdns::stat_t unauthorizedUDP;  // when this is increased, qcounter isn't
   pdns::stat_t unauthorizedTCP;  // when this is increased, qcounter isn't
+  pdns::stat_t sourceDisallowedNotify;  // when this is increased, qcounter is also
+  pdns::stat_t zoneDisallowedNotify;  // when this is increased, qcounter is also
   pdns::stat_t policyDrops;
   pdns::stat_t tcpClientOverflow;
   pdns::stat_t clientParseError;
@@ -1155,6 +1157,7 @@ extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeans
 
 extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
+extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
@@ -1165,7 +1168,7 @@ extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 extern bool g_lowercaseOutgoing;
 
 
-std::string reloadAuthAndForwards();
+std::string reloadZoneConfiguration();
 typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
@@ -1178,7 +1181,10 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
-std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
+typedef std::unordered_set<DNSName> notifyset_t;
+std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration();
+void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> ns);
+
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetFailedServersSize();
 uint64_t* pleaseGetEDNSStatusesSize();
@@ -1186,10 +1192,18 @@ uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
-uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype=0xffff);
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
 void primeRootNSZones(bool, unsigned int depth);
+
+struct WipeCacheResult
+{
+  int record_count = 0;
+  int negative_record_count = 0;
+  int packet_count = 0;
+};
+
+struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype);
 
 extern __thread struct timeval g_now;
 
