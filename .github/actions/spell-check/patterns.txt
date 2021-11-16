@@ -61,5 +61,6 @@ C0FFEE
 DoT
 DoH
 
-# Contributor with a non-ascii character in their name
+# Contributors with non-ascii characters in their name
 Hoffst[^[:ascii:]]+tte
+Gri[^[:ascii:]]
