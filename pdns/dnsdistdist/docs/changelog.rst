@@ -2,6 +2,143 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0-beta1
+  :released: 16th of November 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10646
+
+    Convert make_pair to emplace (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10795
+    :tickets: 10651
+
+    Add syslog identifier to service file
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10815
+    :tickets: 4993
+
+    Add range support for dynamic blocks
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 10845
+
+    Keep watching idle DoH backend connections
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 10862
+
+    Use the same outgoing TCP connection for different clients
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10868
+
+    Get rid of make_pair (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10870
+
+    Use make_unique instead of new (Rosen Penev)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10874
+
+    Properly handle I/O exceptions in the health checker
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, Performance
+    :pullreq: 10875
+
+    Read as many DoH responses as possible before yielding
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, Performance
+    :pullreq: 10876
+
+    Stop over-allocating for DoH queries
+
+  .. change::
+    :tags: Improvements, Protobuf, DNSTAP
+    :pullreq: 10879
+    :tickets: 9103
+
+    Support DoT, DoH and DNSCrypt transports for protobuf and dnstap
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10900
+
+    NetmaskTree: Drop the 'noexcept' qualifier on the TreeNode ctor
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10907
+    :tickets: 4670
+
+    Handle existing EDNS content for SetMacAddrAction/SetEDNSOptionAction
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10917
+    :tickets: 10899
+
+    Remove the useless step parameter in TCP and HTTP/2 unit tests
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 10920
+
+    Remove unreachable code in HTTP/2 connections cleanup
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10922
+
+    Fix build without nghttp2
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10923
+
+    Add the ability to retain select capabilities at runtime
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10935
+
+    Remove debug print line flooding logs (Eugen Mayer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10943
+    :tickets: 10938
+
+    Credentials: EVP_PKEY_CTX_set1_scrypt_salt() takes an `unsigned char*`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10977
+    :tickets: 10976
+
+    Disable the actual connect() in the test_dnsdisttcp_cc_c unit tests.
+
+  .. change::
+    :tags: New Features, Performance
+    :pullreq: 10883, 10498
+
+    Implement filesystem pinning for eBPF maps, drop and truncate via XDP (Pierre Grié)
+
+.. changelog::
   :version: 1.7.0-alpha2
   :released: 19th of October 2021
 
