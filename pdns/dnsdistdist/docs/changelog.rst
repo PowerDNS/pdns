@@ -88,17 +88,10 @@ Changelog
     Handle existing EDNS content for SetMacAddrAction/SetEDNSOptionAction
 
   .. change::
-    :tags: Improvements
-    :pullreq: 10917
-    :tickets: 10899
-
-    Remove the useless step parameter in TCP and HTTP/2 unit tests
-
-  .. change::
     :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
     :pullreq: 10920
 
-    Remove unreachable code in HTTP/2 connections cleanup
+    Fix the cleaning of TCP, DoT and DoH connections to the backend
 
   .. change::
     :tags: Bug Fixes
@@ -124,13 +117,6 @@ Changelog
     :tickets: 10938
 
     Credentials: EVP_PKEY_CTX_set1_scrypt_salt() takes an `unsigned char*`
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 10977
-    :tickets: 10976
-
-    Disable the actual connect() in the test_dnsdisttcp_cc_c unit tests.
 
   .. change::
     :tags: New Features, Performance
