@@ -2,6 +2,30 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.0-beta2
+  :released: 17th of November 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10980
+    :tickets: 10936
+
+    Return the proper extended error code on specific validation failures.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10751
+    :tickets: 7014
+
+    Add support for NOTIFY queries to wipe cache entries (Kevin P. Fleming).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10971
+
+    We need a libcurl dev lib for the zone-to-cache function.
+
+.. changelog::
   :version: 4.6.0-beta1
   :released: 9th of November 2021
 

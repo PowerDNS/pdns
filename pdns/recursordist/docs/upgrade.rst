@@ -20,6 +20,7 @@ New settings
 - The :ref:`setting-tcp-out-max-idle-ms`, :ref:`setting-tcp-out-max-idle-per-auth`, :ref:`setting-tcp-out-max-queries` and :ref:`setting-tcp-out-max-idle-per-thread` settings have been introduced to control the new TCP/DoT outgoing connections pooling. This mechanism keeps connections to authoritative servers or forwarders open for later re-use.
 - The :ref:`setting-structured-logging` setting has been introduced to prefer structured logging (the default) when both an old style and a structured log messages is available.
 - The :ref:`setting-max-include-depth` setting has been introduced to limit the number of nested ``$include`` directives while processing a zone file.
+- The :ref:`setting-allow-notify-for`, :ref:`setting-allow-notify-for-file`, :ref:`setting-allow-notify-from` and :ref:`setting-allow-notify-from-file` settings have been introduced, allowing incoming notify queries to clear cache entries.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
