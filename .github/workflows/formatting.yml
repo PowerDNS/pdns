@@ -1,0 +1,33 @@
+---
+name: 'Verify formatting and Makefile.am sort order'
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: verify formatting and Makefile.am sort order
+    # on a ubuntu-20.04 VM
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: |
+          sudo apt-get update
+          sudo apt-get -qq --no-install-recommends install git clang-12
+      - run: |
+           ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
+           git --no-pager diff
+           exit $(git diff | wc -l)
+      - run: |
+           exitcode=0
+           for f in $(find . -type f -name 'Makefile.am'); do
+             ./build-scripts/test-sources-sorted.py ${f}
+             if [ $? -ne 0 ]; then
+               exitcode=1
+             fi
+           done
+           exit ${exitcode}
