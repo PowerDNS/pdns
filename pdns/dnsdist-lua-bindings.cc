@@ -397,22 +397,91 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   /* BPF Filter */
 #ifdef HAVE_EBPF
-  luaCtx.writeFunction("newBPFFilter", [client](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+  using bpfFilterMapParams = boost::variant<uint32_t, std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>;
+  luaCtx.writeFunction("newBPFFilter", [client](bpfFilterMapParams v4Params, bpfFilterMapParams v6Params, bpfFilterMapParams qnameParams, boost::optional<bool> external) {
       if (client) {
         return std::shared_ptr<BPFFilter>(nullptr);
       }
-      return std::make_shared<BPFFilter>(maxV4, maxV6, maxQNames);
+
+      BPFFilter::MapConfiguration v4Config, v6Config, qnameConfig;
+
+      auto convertParamsToConfig = [](bpfFilterMapParams& params, BPFFilter::MapType type, BPFFilter::MapConfiguration& config) {
+        config.d_type = type;
+        if (params.type() == typeid(uint32_t)) {
+          config.d_maxItems = boost::get<uint32_t>(params);
+        }
+        else if (params.type() == typeid(std::unordered_map<std::string, boost::variant<uint32_t, std::string>>)) {
+          auto map = boost::get<std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>(params);
+          if (map.count("maxItems")) {
+            config.d_maxItems = boost::get<uint32_t>(map.at("maxItems"));
+          }
+          if (map.count("pinnedPath")) {
+            config.d_pinnedPath = boost::get<std::string>(map.at("pinnedPath"));
+          }
+        }
+      };
+
+      convertParamsToConfig(v4Params, BPFFilter::MapType::IPv4, v4Config);
+      convertParamsToConfig(v6Params, BPFFilter::MapType::IPv6, v6Config);
+      convertParamsToConfig(qnameParams, BPFFilter::MapType::QNames, qnameConfig);
+
+      BPFFilter::MapFormat format = BPFFilter::MapFormat::Legacy;
+      if (external && *external) {
+        format = BPFFilter::MapFormat::WithActions;
+      }
+
+      return std::make_shared<BPFFilter>(v4Config, v6Config, qnameConfig, format, external.value_or(false));
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const ComboAddress& ca)>("block", [](std::shared_ptr<BPFFilter> bpf, const ComboAddress& ca) {
+  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const ComboAddress& ca, boost::optional<uint32_t> action)>("block", [](std::shared_ptr<BPFFilter> bpf, const ComboAddress& ca, boost::optional<uint32_t> action) {
       if (bpf) {
-        return bpf->block(ca);
+        if (!action) {
+          return bpf->block(ca, BPFFilter::MatchAction::Drop);
+        }
+        else {
+          BPFFilter::MatchAction match;
+
+          switch (*action) {
+          case 0:
+            match = BPFFilter::MatchAction::Pass;
+            break;
+          case 1:
+            match = BPFFilter::MatchAction::Drop;
+            break;
+          case 2:
+            match = BPFFilter::MatchAction::Truncate;
+            break;
+          default:
+            throw std::runtime_error("Unsupported action for BPFFilter::block");
+          }
+          return bpf->block(ca, match);
+        }
       }
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
+  luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action) {
       if (bpf) {
-        return bpf->block(qname, qtype ? *qtype : 255);
+        if (!action) {
+          return bpf->block(qname, BPFFilter::MatchAction::Drop, qtype.value_or(255));
+        }
+        else {
+          BPFFilter::MatchAction match;
+
+          switch (*action) {
+          case 0:
+            match = BPFFilter::MatchAction::Pass;
+            break;
+          case 1:
+            match = BPFFilter::MatchAction::Drop;
+            break;
+          case 2:
+            match = BPFFilter::MatchAction::Truncate;
+            break;
+          default:
+            throw std::runtime_error("Unsupported action for BPFFilter::blockQName");
+          }
+          return bpf->block(qname, match, qtype.value_or(255));
+        }
       }
     });
 

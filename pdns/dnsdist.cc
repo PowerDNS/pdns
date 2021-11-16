@@ -2088,7 +2088,7 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
   }
 
 #ifdef HAVE_EBPF
-  if (g_defaultBPFFilter) {
+  if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     cs->attachFilter(g_defaultBPFFilter);
     vinfolog("Attaching default BPF Filter to %s frontend %s", (!cs->tcp ? "UDP" : "TCP"), cs->local.toStringWithPort());
   }
