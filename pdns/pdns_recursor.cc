@@ -2412,7 +2412,7 @@ static void startDoResolve(void *p)
       g_log<<endl;
     }
 
-    if (dc->d_mdp.d_header.opcode != Opcode::Notify) {
+    if (dc->d_mdp.d_header.opcode == Opcode::Query) {
       if (sr.d_outqueries || sr.d_authzonequeries) {
         g_recCache->cacheMisses++;
       }
