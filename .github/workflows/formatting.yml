@@ -17,7 +17,7 @@ jobs:
           submodules: recursive
       - run: |
           sudo apt-get update
-          sudo apt-get -qq --no-install-recommends install git clang-12
+          sudo apt-get -qq --no-install-recommends install git clang-11
       - run: |
            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
            git --no-pager diff
