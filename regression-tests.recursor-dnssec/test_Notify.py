@@ -106,7 +106,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
             print(res)
             self.assertEquals(res.question[0].to_text(), 'example. IN SOA')
 
-        self.checkRecordCacheMetrics(5, 1) # FIXME
+        self.checkRecordCacheMetrics(3, 1)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -114,4 +114,4 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
 
-        self.checkRecordCacheMetrics(6, 2)
+        self.checkRecordCacheMetrics(4, 2)
