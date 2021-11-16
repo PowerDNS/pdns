@@ -35,19 +35,8 @@ static __u64 ptr_to_u64(void *ptr)
   return (__u64) (unsigned long) ptr;
 }
 
-int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
-                   int max_entries)
-{
-  union bpf_attr attr;
-  memset(&attr, 0, sizeof(attr));
-  attr.map_type = map_type;
-  attr.key_size = key_size;
-  attr.value_size = value_size;
-  attr.max_entries = max_entries;
-  return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
-}
-
-int bpf_pin_map(int fd, const std::string& path)
+/* these can be static as they are not declared in libbpf.h: */
+static int bpf_pin_map(int fd, const std::string& path)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -56,7 +45,7 @@ int bpf_pin_map(int fd, const std::string& path)
   return syscall(SYS_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
 }
 
-int bpf_load_pinned_map(const std::string& path)
+static int bpf_load_pinned_map(const std::string& path)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -64,7 +53,7 @@ int bpf_load_pinned_map(const std::string& path)
   return syscall(SYS_bpf, BPF_OBJ_GET, &attr, sizeof(attr));
 }
 
-void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expectedValueSize)
+static void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expectedValueSize)
 {
   struct bpf_map_info info;
   uint32_t info_len = sizeof(info);
@@ -89,6 +78,18 @@ void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expectedValu
   if (info.value_size != expectedValueSize) {
     throw std::runtime_error("Error checking the size of eBPF map: value size mismatch (" + std::to_string(info.value_size) + " VS " + std::to_string(expectedValueSize) + ")");
   }
+}
+
+int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
+                   int max_entries)
+{
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.map_type = map_type;
+  attr.key_size = key_size;
+  attr.value_size = value_size;
+  attr.max_entries = max_entries;
+  return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
 int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
@@ -475,13 +476,11 @@ void BPFFilter::block(const DNSName& qname, BPFFilter::MatchAction action, uint1
   void* value = nullptr;
 
   if (d_external) {
-    memset(&cadvalue, 0, sizeof(cadvalue));
     cadvalue.counter = 0;
     cadvalue.action = action;
     value = &cadvalue;
   }
   else {
-    memset(&qvalue, 0, sizeof(qvalue));
     qvalue.counter = 0;
     qvalue.qtype = qtype;
     value = &qvalue;

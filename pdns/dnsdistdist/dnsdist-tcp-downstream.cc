@@ -515,7 +515,9 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   /* we might be terminated while notifying a query sender */
   d_ds->outstanding -= d_pendingResponses.size();
   auto pendingQueries = std::move(d_pendingQueries);
+  d_pendingQueries.clear();
   auto pendingResponses = std::move(d_pendingResponses);
+  d_pendingResponses.clear();
 
   auto increaseCounters = [reason](std::shared_ptr<TCPQuerySender>& sender) {
     if (reason == FailureReason::timeout) {

@@ -47,12 +47,10 @@ bool CircularWriteBuffer::flush(int fd)
 
   struct iovec iov[2];
   int pos = 0;
-  size_t total = 0;
   for(const auto& arr : {arr1, arr2}) {
     if(arr.second) {
       iov[pos].iov_base = arr.first;
       iov[pos].iov_len = arr.second;
-      total += arr.second;
       ++pos;
     }
   }
@@ -84,7 +82,6 @@ bool CircularWriteBuffer::flush(int fd)
   }
   while (res < 0);
 
-  //  cout<<"Flushed "<<res<<" bytes out of " << total <<endl;
   if (static_cast<size_t>(res) == d_buffer.size()) {
     d_buffer.clear();
   }
