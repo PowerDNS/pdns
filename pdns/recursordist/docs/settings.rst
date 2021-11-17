@@ -107,7 +107,7 @@ NOTIFY operations received from a client listed in one of these netmasks
 will be accepted and used to wipe any cache entries whose zones match
 the zone specified in the NOTIFY operation, but only if that zone (or
 one of its parents) is included in `allow-notify-for`_,
-`allow-notify-for-file`_, or `forward-zones-file_` with a '^' prefix.
+`allow-notify-for-file`_, or `forward-zones-file`_ with a '^' prefix.
 
 .. _setting-allow-notify-from-file:
 
