@@ -78,3 +78,13 @@ std::unique_ptr<TLSSession> TLSSessionCache::getSession(const boost::uuids::uuid
 
   return value;
 }
+
+size_t TLSSessionCache::getSize()
+{
+  size_t count = 0;
+  auto data = d_data.lock();
+  for (const auto& backend : data->d_sessions) {
+    count += backend.second.d_sessions.size();
+  }
+  return count;
+}

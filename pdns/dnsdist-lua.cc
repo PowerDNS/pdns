@@ -1346,6 +1346,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     TLSSessionCache::setSessionValidity(validity);
   });
 
+  luaCtx.writeFunction("getOutgoingTLSSessionCacheSize", []() {
+    setLuaNoSideEffect();
+    return g_sessionCache.getSize();
+  });
+
   luaCtx.writeFunction("setCacheCleaningDelay", [](uint64_t delay) {
     checkParameterBound("setCacheCleaningDelay", delay, std::numeric_limits<uint32_t>::max());
     g_cacheCleaningDelay = delay;
