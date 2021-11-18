@@ -163,32 +163,6 @@ private:
   
 } s_idmanager;
 
-
-static void setSocketBuffer(int fd, int optname, uint32_t size)
-{
-  uint32_t psize=0;
-  socklen_t len=sizeof(psize);
-  
-  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
-    return; 
-  }
-
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<stringerror()<<endl;
-}
-
-static void setSocketReceiveBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_RCVBUF, size);
-}
-
-static void setSocketSendBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_SNDBUF, size);
-}
-
-
 struct AssignedIDTag{};
 struct QuestionTag{};
 
@@ -779,8 +753,18 @@ try
   if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
     s_socket->bind(ComboAddress(g_vm["source-ip"].as<string>(), g_vm["source-port"].as<uint16_t>()));
 
-  setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
-  setSocketSendBuffer(s_socket->getHandle(), 2000000);
+  try {
+    setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
+  }
+  catch (const std::exception& e) {
+    cerr<<e.what()<<endl;
+  }
+  try {
+    setSocketSendBuffer(s_socket->getHandle(), 2000000);
+  }
+  catch (const std::exception& e) {
+    cerr<<e.what()<<endl;
+  }
 
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
                     g_vm["target-port"].as<uint16_t>());
