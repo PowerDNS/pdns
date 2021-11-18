@@ -76,7 +76,8 @@ void runTaskOnce(bool logErrors)
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
   ++s_almost_expired_tasks_pushed;
-  t_taskQueue.push({qname, qtype, deadline, true, resolve});
+  pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
+  t_taskQueue.push(std::move(task));
 }
 
 uint64_t getTaskPushes()
