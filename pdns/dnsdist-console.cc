@@ -633,6 +633,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setTCPRecvTimeout", true, "n", "set the read timeout on TCP connections from the client, in seconds" },
   { "setTCPSendTimeout", true, "n", "set the write timeout on TCP connections from the client, in seconds" },
   { "setUDPMultipleMessagesVectorSize", true, "n", "set the size of the vector passed to recvmmsg() to receive UDP messages. Default to 1 which means that the feature is disabled and recvmsg() is used instead" },
+  { "setUDPSocketBufferSizes", true, "recv, send", "Set the size of the receive (SO_RCVBUF) and send (SO_SNDBUF) buffers for incoming UDP sockets" },
   { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
   { "setWebserverConfig", true, "[{password=string, apiKey=string, customHeaders, statsRequireAuthentication}]", "Updates webserver configuration" },

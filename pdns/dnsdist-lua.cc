@@ -2780,6 +2780,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     }
   });
+
+  luaCtx.writeFunction("setUDPSocketBufferSizes", [client](uint64_t recv, uint64_t snd) {
+    if (client) {
+      return;
+    }
+    checkParameterBound("setUDPSocketBufferSizes", recv, std::numeric_limits<uint32_t>::max());
+    checkParameterBound("setUDPSocketBufferSizes", snd, std::numeric_limits<uint32_t>::max());
+    setLuaSideEffect();
+
+    if (g_configurationDone) {
+      g_outputBuffer = "setUDPSocketBufferSizes cannot be used at runtime!\n";
+      return;
+    }
+
+    g_socketUDPSendBuffer = snd;
+    g_socketUDPRecvBuffer = recv;
+  });
 }
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)

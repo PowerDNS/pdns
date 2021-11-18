@@ -1016,6 +1016,8 @@ extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
 extern size_t g_udpVectorSize;
 extern bool g_allowEmptyResponse;
+extern uint32_t g_socketUDPSendBuffer;
+extern uint32_t g_socketUDPRecvBuffer;
 
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;

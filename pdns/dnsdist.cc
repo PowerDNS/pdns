@@ -141,6 +141,8 @@ bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
 bool g_fixupCase{false};
 bool g_dropEmptyQueries{false};
+uint32_t g_socketUDPSendBuffer{16777216};
+uint32_t g_socketUDPRecvBuffer{16777216};
 
 std::set<std::string> g_capabilitiesToRetain;
 
@@ -2070,6 +2072,26 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     }
     catch(const std::exception& e) {
       warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", cs->local.toStringWithPort(), e.what());
+    }
+  }
+
+  if (!cs->tcp) {
+    if (g_socketUDPSendBuffer > 0) {
+      try {
+        setSocketSendBuffer(cs->udpFD, g_socketUDPSendBuffer);
+      }
+      catch (const std::exception& e) {
+        warnlog(e.what());
+      }
+    }
+
+    if (g_socketUDPRecvBuffer > 0) {
+      try {
+        setSocketReceiveBuffer(cs->udpFD, g_socketUDPRecvBuffer);
+      }
+      catch (const std::exception& e) {
+        warnlog(e.what());
+      }
     }
   }
 
