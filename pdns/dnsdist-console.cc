@@ -660,6 +660,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showTLSContexts", true, "", "list all the available TLS contexts" },
   { "showTLSErrorCounters", true, "", "show metrics about TLS handshake failures" },
   { "showVersion", true, "", "show the current version" },
+  { "showWebserverConfig", true, "", "Show the current webserver configuration" },
   { "shutdown", true, "", "shut down `dnsdist`" },
   { "snmpAgent", true, "enableTraps [, daemonSocket]", "enable `SNMP` support. `enableTraps` is a boolean indicating whether traps should be sent and `daemonSocket` an optional string specifying how to connect to the daemon agent"},
   { "SetAdditionalProxyProtocolValueAction", true, "type, value", "Add a Proxy Protocol TLV value of this type" },

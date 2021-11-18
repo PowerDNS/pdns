@@ -398,6 +398,13 @@ Webserver configuration
   :param str path: Path to register the handler for.
   :param function handler: The Lua function to register.
 
+.. function:: showWebserverConfig()
+
+  .. versionadded:: 1.7.0
+
+  Show the current webserver configuration. See :func:`webserver`.
+
+
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~
 
