@@ -164,10 +164,12 @@ Tuning related functions
 
   .. versionadded:: 1.7.0
 
-  Set the size of the receive (SO_RCVBUF) and send (SO_SNDBUF) buffers for incoming UDP sockets.
+  Set the size of the receive (``SO_RCVBUF``) and send (``SO_SNDBUF``) buffers for incoming UDP sockets. On Linux the default
+  values correspond to ``net.core.rmem_default`` and ``net.core.wmem_default`` , and the maximum values are restricted
+  by ``net.core.rmem_max`` and ``net.core.wmem_max``.
 
-  :param int recv: SO_RCVBUF value. Default is 16777216. 0 means the system value will be kept.
-  :param int send: SO_SNDBUF value. Default is 16777216. 0 means the system value will be kept.
+  :param int recv: ``SO_RCVBUF`` value. Default is 0, meaning the system value will be kept.
+  :param int send: ``SO_SNDBUF`` value. Default is 0, meaning the system value will be kept.
 
 .. function:: setUDPTimeout(num)
 
