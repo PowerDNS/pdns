@@ -19,6 +19,7 @@
 #include <openssl/ocsp.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/pkcs12.h>
 #include <fcntl.h>
 
 #ifdef HAVE_LIBSODIUM
@@ -785,25 +786,53 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   std::vector<int> keyTypes;
   /* load certificate and private key */
   for (const auto& pair : config.d_certKeyPairs) {
-    if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
-      ERR_print_errors_fp(stderr);
-      throw std::runtime_error("An error occurred while trying to load the TLS server certificate file: " + pair.first);
-    }
-    if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
-      ERR_print_errors_fp(stderr);
-      throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.second);
+    if (!pair.d_key) {
+      // If no separate key is given, treat it as a pkcs12 file
+      auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(pair.d_cert.c_str(), "r"), fclose);
+      if (!fp) {
+        throw std::runtime_error("Unable to open file " + pair.d_cert);
+      }
+      auto p12 = std::unique_ptr<PKCS12, void(*)(PKCS12*)>(d2i_PKCS12_fp(fp.get(), nullptr), PKCS12_free);
+      if (!p12) {
+        throw std::runtime_error("Unable to open PKCS12 file " + pair.d_cert);
+      }
+      EVP_PKEY *keyptr = nullptr;
+      X509 *certptr = nullptr;
+      STACK_OF(X509) *captr = nullptr;
+      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr))
+      {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+      }
+      auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
+      auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
+      auto ca = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, sk_X509_free);
+
+      if (SSL_CTX_use_cert_and_key(ctx.get(), cert.get(), key.get(), ca.get(), 1) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("An error occurred while trying to load the TLS certificate and key from PKCS12 file " + pair.d_cert);
+      }
+    } else {
+      if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.d_cert.c_str()) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("An error occurred while trying to load the TLS server certificate file: " + pair.d_cert);
+      }
+      if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.d_key->c_str(), SSL_FILETYPE_PEM) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.d_key.value());
+      }
     }
     if (SSL_CTX_check_private_key(ctx.get()) != 1) {
       ERR_print_errors_fp(stderr);
-      throw std::runtime_error("The key from '" + pair.second + "' does not match the certificate from '" + pair.first + "'");
+      throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
     }
     /* store the type of the new key, we might need it later to select the right OCSP stapling response */
     auto keyType = libssl_get_last_key_type(ctx);
     if (keyType < 0) {
-      throw std::runtime_error("The key from '" + pair.second + "' has an unknown type");
+      throw std::runtime_error("The key from '" + pair.d_key.value() + "' has an unknown type");
     }
     keyTypes.push_back(keyType);
-  }
+ }
 
   if (!config.d_ocspFiles.empty()) {
     try {

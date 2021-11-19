@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "config.h"
 #include "circular_buffer.hh"
@@ -14,10 +15,20 @@
 
 enum class LibsslTLSVersion : uint8_t { Unknown, TLS10, TLS11, TLS12, TLS13 };
 
+struct TLSCertKeyPair
+{
+  std::string d_cert;
+  std::optional<std::string> d_key;
+  std::optional<std::string> d_password;
+  explicit TLSCertKeyPair(const std::string& cert, std::optional<std::string> key = std::nullopt, std::optional<std::string> password = std::nullopt):
+    d_cert(cert), d_key(key), d_password(password) {
+  }
+};
+
 class TLSConfig
 {
 public:
-  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<TLSCertKeyPair> d_certKeyPairs;
   std::vector<std::string> d_ocspFiles;
 
   std::string d_ciphers;

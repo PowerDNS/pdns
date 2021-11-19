@@ -132,13 +132,25 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
 }
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
-static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<std::pair<std::string, std::string>>& pairs, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)
+static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, std::optional<std::string> password = std::nullopt)
 {
   if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
     auto certFile = boost::get<std::string>(certFiles);
     auto keyFile = boost::get<std::string>(keyFiles);
     pairs.clear();
-    pairs.emplace_back(certFile, keyFile);
+    pairs.emplace_back(certFile, keyFile, password);
+  }
+  else if (certFiles.type() == typeid(std::shared_ptr<TLSCertKeyPair>)) {
+    auto cert = boost::get<std::shared_ptr<TLSCertKeyPair>>(certFiles);
+    pairs.clear();
+    pairs.emplace_back(*cert);
+  }
+  else if (certFiles.type() == typeid(std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>)) {
+    auto certs = boost::get<std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>>(certFiles);
+    pairs.clear();
+    for (const auto& cert : certs) {
+      pairs.emplace_back(*(cert.second));
+    }
   }
   else if (certFiles.type() == typeid(std::vector<std::pair<int, std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int, std::string>>)) {
     auto certFilesVect = boost::get<std::vector<std::pair<int, std::string>>>(certFiles);
@@ -146,7 +158,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
     if (certFilesVect.size() == keyFilesVect.size()) {
       pairs.clear();
       for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-        pairs.emplace_back(certFilesVect.at(idx).second, keyFilesVect.at(idx).second);
+        pairs.emplace_back(certFilesVect.at(idx).second, keyFilesVect.at(idx).second, password);
       }
     }
     else {
@@ -2319,7 +2331,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::vector<std::pair<int, std::string>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int, std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string>>>> urls, boost::optional<localbind_t> vars) {
+  typedef std::unordered_map<std::string, std::string> tlscertificateopts_t;
+  luaCtx.writeFunction("newTLSCertificate", [client](const std::string& cert, boost::optional<tlscertificateopts_t> opts) {
+    std::shared_ptr<TLSCertKeyPair> result = nullptr;
+    if (client) {
+      return result;
+    }
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
+    std::optional<std::string> key, password;
+    if (opts) {
+      if (opts->count("key")) {
+        key = boost::get<const string>((*opts)["key"]);
+      }
+      if (opts->count("password")) {
+        password = boost::get<const string>((*opts)["password"]);
+      }
+    }
+    result = std::make_shared<TLSCertKeyPair>(TLSCertKeyPair{cert, key, password});
+#endif
+    return result;
+  });
+  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int, std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string>>>> urls, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2331,7 +2363,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     auto frontend = std::make_shared<DOHFrontend>();
 
-    if (certFiles && !certFiles->empty() && keyFiles && !keyFiles->empty()) {
+    if (certFiles && !certFiles->empty()) {
       if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
         return;
       }
@@ -2510,7 +2542,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std ::vector<std::pair<int, std::string>>> keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std ::vector<std::pair<int, std::string>>> keyFiles) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (frontend != nullptr) {
       if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
@@ -2545,7 +2577,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2730,7 +2762,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     frontend->setupTLS();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles) {
 #ifdef HAVE_DNS_OVER_TLS
     if (loadTLSCertificateAndKeys("TLSFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       frontend->setupTLS();
