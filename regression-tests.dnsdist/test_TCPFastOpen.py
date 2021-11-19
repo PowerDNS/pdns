@@ -46,7 +46,7 @@ class TestBrokenTCPFastOpen(DNSDistTest):
             try:
                 (conn, _) = sock.accept()
             except socket.timeout:
-                if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
                     del cls._backgroundThreads[threading.get_native_id()]
                     break
                 else:

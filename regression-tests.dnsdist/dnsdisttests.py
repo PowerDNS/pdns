@@ -223,7 +223,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             try:
               data, addr = sock.recvfrom(4096)
             except socket.timeout:
-              if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
                 del cls._backgroundThreads[threading.get_native_id()]
                 break
               else:
@@ -342,7 +342,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             except ConnectionResetError:
               continue
             except socket.timeout:
-              if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
                  del cls._backgroundThreads[threading.get_native_id()]
                  break
               else:
@@ -482,7 +482,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             except ConnectionResetError:
               continue
             except socket.timeout:
-                if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
                     del cls._backgroundThreads[threading.get_native_id()]
                     break
                 else:
