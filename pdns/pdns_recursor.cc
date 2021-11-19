@@ -2412,11 +2412,13 @@ static void startDoResolve(void *p)
       g_log<<endl;
     }
 
-    if (sr.d_outqueries || sr.d_authzonequeries) {
-      g_recCache->cacheMisses++;
-    }
-    else {
-      g_recCache->cacheHits++;
+    if (dc->d_mdp.d_header.opcode == Opcode::Query) {
+      if (sr.d_outqueries || sr.d_authzonequeries) {
+        g_recCache->cacheMisses++;
+      }
+      else {
+        g_recCache->cacheHits++;
+      }
     }
 
     g_stats.answers(spentUsec);
