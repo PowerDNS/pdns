@@ -17,6 +17,7 @@ class DNSDistProtobufTest(DNSDistTest):
 
     @classmethod
     def ProtobufListener(cls, port):
+        cls._backgroundThreads[threading.get_native_id()] = True
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
@@ -26,8 +27,17 @@ class DNSDistProtobufTest(DNSDistTest):
             sys.exit(1)
 
         sock.listen(100)
+        sock.settimeout(1.0)
         while True:
-            (conn, _) = sock.accept()
+            try:
+                (conn, _) = sock.accept()
+            except socket.timeout:
+                if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+                    del cls._backgroundThreads[threading.get_native_id()]
+                    break
+                else:
+                    continue
+
             data = None
             while True:
                 data = conn.recv(2)

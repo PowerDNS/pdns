@@ -30,6 +30,7 @@ class TestBrokenTCPFastOpen(DNSDistTest):
 
     @classmethod
     def BrokenTCPResponder(cls, port):
+        cls._backgroundThreads[threading.get_native_id()] = True
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -40,8 +41,17 @@ class TestBrokenTCPFastOpen(DNSDistTest):
             sys.exit(1)
 
         sock.listen(100)
+        sock.settimeout(1.0)
         while True:
-            (conn, _) = sock.accept()
+            try:
+                (conn, _) = sock.accept()
+            except socket.timeout:
+                if not threading.get_native_id() in cls._backgroundThreads or cls._backgroundThreads[threading.get_native_id()] == False:
+                    del cls._backgroundThreads[threading.get_native_id()]
+                    break
+                else:
+                    continue
+
             conn.settimeout(5.0)
             data = conn.recv(2)
             if not data:
