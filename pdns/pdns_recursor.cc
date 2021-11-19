@@ -3723,7 +3723,7 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
     setCloseOnExec(fd);
 
     try {
-      setSocketReceiveBuffer(fd, 25000);
+      setSocketReceiveBuffer(fd, 250000);
     }
     catch (const std::exception& e) {
       g_log<<Logger::Error<<e.what()<<endl;
