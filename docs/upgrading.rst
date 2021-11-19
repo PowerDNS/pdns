@@ -21,6 +21,11 @@ In 4.6.0, this automatic conversion is fully removed.
 If you still have ``@`` signs in any SOA RNAMEs, 4.6.0 will serve those out literally.
 You can find any stray ``@`` signs by running ``pdnsutil check-all-zones``.
 
+New default NSEC3 parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Following `draft-ietf-dnsop-nsec3-guidance (Guidance for NSEC3 parameter settings) <https://datatracker.ietf.org/doc/html/draft-ietf-dnsop-nsec3-guidance>`__, the default NSEC3PARAM settings (see :ref:`dnssec-operational-nsec-modes-params`) in pdnsutil are now `1 0 0 -` instead of `1 0 1 ab`.
+
 4.4.x to 4.5.0
 --------------
 

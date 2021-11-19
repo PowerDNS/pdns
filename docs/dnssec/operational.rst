@@ -44,7 +44,7 @@ e.g.
 
 .. code-block:: shell
 
-    pdnsutil set-nsec3 example.net '1 0 1 ab'
+    pdnsutil set-nsec3 example.net '1 0 0 -'
 
 The quoted part is the content of the NSEC3PARAM records, as defined in
 :rfc:`5155 <5155#section-4>`, in order:
