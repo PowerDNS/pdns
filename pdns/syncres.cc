@@ -3637,7 +3637,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
          and do an additional query for the CNAME target.
          We have a regression test making sure we do exactly that.
       */
-      if (!wasVariable() && newtarget.empty() && putInNegCache) {
+      if (newtarget.empty() && putInNegCache) {
         g_negCache->add(ne);
         if (s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
@@ -3811,9 +3811,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
             }
             LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
-            if (!wasVariable()) {
-              g_negCache->add(ne);
-            }
+            g_negCache->add(ne);
 
             /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
                and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
@@ -3865,10 +3863,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
         ne.d_ttd = d_now.tv_sec + lowestTTL;
 
-        if (!wasVariable()) {
-          if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
-            g_negCache->add(ne);
-          }
+        if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
+          g_negCache->add(ne);
         }
 
         ret.push_back(rec);
