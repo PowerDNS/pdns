@@ -1650,6 +1650,9 @@ bool isTCPSocketUsable(int sock);
 extern template class NetmaskTree<bool>;
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 
+std::set<std::string> getListOfNetworkInterfaces();
+std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf);
+
 /* These functions throw if the value was already set to a higher value,
    or on error */
 void setSocketBuffer(int fd, int optname, uint32_t size);
