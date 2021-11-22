@@ -117,6 +117,7 @@ struct map_value
 BPF_TABLE_PINNED("hash", uint32_t, struct map_value, v4filter, 1024, "/sys/fs/bpf/dnsdist/addr-v4");
 BPF_TABLE_PINNED("hash", struct in6_addr, struct map_value, v6filter, 1024, "/sys/fs/bpf/dnsdist/addr-v6");
 BPF_TABLE_PINNED("hash", struct dns_qname, struct map_value, qnamefilter, 1024, "/sys/fs/bpf/dnsdist/qnames");
+BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
 
 /*
  * bcc has added BPF_TABLE_PINNED7 to the latest commit of the master branch, but it has not yet been released.
@@ -430,7 +431,11 @@ int xdp_dns_filter(struct xdp_md* ctx)
       key.addr = bpf_htonl(ipv4->saddr);
       // if TC bit must not be set, apply the action
       if ((r = udp_dns_reply_v4(&c, &key)) != TC) {
-        return r == DROP ? XDP_DROP : XDP_PASS;
+        if (r == DROP) {
+          progsarray.call(ctx, 0);
+          return XDP_DROP;
+        }
+        return XDP_PASS;
       }
 
       // swap src/dest IP addresses
@@ -448,7 +453,11 @@ int xdp_dns_filter(struct xdp_md* ctx)
 
       // if TC bit must not be set, apply the action
       if ((r = udp_dns_reply_v6(&c, &key)) != TC) {
-        return r == DROP ? XDP_DROP : XDP_PASS;
+        if (r == DROP) {
+          progsarray.call(ctx, 0);
+          return XDP_DROP;
+        }
+        return XDP_PASS;
       }
 
       // swap src/dest IP addresses
@@ -470,6 +479,8 @@ int xdp_dns_filter(struct xdp_md* ctx)
   memcpy(swap_eth, eth->h_dest, ETH_ALEN);
   memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
   memcpy(eth->h_source, swap_eth, ETH_ALEN);
+
+  progsarray.call(ctx, 1);
 
   // bounce the request
   return XDP_TX;

@@ -1,0 +1,274 @@
+#include <net/sock.h>
+#include <uapi/linux/udp.h>
+#include <uapi/linux/ip.h>
+#include <uapi/linux/ipv6.h>
+
+#define DNS_PORT      53
+
+// do not use libc includes because this causes clang
+// to include 32bit headers on 64bit ( only ) systems.
+typedef __u8  uint8_t;
+typedef __u16 uint16_t;
+typedef __u32 uint32_t;
+typedef __u64 uint64_t;
+#define memcpy __builtin_memcpy
+
+/*
+ * Helper pointer to parse the incoming packets
+ * Copyright 2020, NLnet Labs, All rights reserved.
+ */
+struct cursor {
+  void *pos;
+  void *end;
+};
+
+/*
+ * Store the VLAN header
+ * Copyright 2020, NLnet Labs, All rights reserved.
+ */
+struct vlanhdr {
+  uint16_t tci;
+  uint16_t encap_proto;
+};
+
+/*
+ * Store the DNS header
+ * Copyright 2020, NLnet Labs, All rights reserved.
+ */
+struct dnshdr {
+  uint16_t id;
+  union {
+  	struct {
+#if BYTE_ORDER == LITTLE_ENDIAN
+  		uint8_t  rd     : 1;
+  		uint8_t  tc     : 1;
+  		uint8_t  aa     : 1;
+  		uint8_t  opcode : 4;
+  		uint8_t  qr     : 1;
+
+  		uint8_t  rcode  : 4;
+  		uint8_t  cd     : 1;
+  		uint8_t  ad     : 1;
+  		uint8_t  z      : 1;
+  		uint8_t  ra     : 1;
+#elif BYTE_ORDER == BIG_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+  		uint8_t  qr     : 1;
+  		uint8_t  opcode : 4;
+  		uint8_t  aa     : 1;
+  		uint8_t  tc     : 1;
+  		uint8_t  rd     : 1;
+
+  		uint8_t  ra     : 1;
+  		uint8_t  z      : 1;
+  		uint8_t  ad     : 1;
+  		uint8_t  cd     : 1;
+  		uint8_t  rcode  : 4;
+#endif
+  	}        as_bits_and_pieces;
+  	uint16_t as_value;
+  } flags;
+  uint16_t qdcount;
+  uint16_t ancount;
+  uint16_t nscount;
+  uint16_t arcount;
+};
+
+/*
+ * Store the qname and qtype
+ */
+struct dns_qname
+{
+  uint8_t qname[255];
+  uint16_t qtype;
+};
+
+/*
+ * The possible actions to perform on the packet
+ * PASS: XDP_PASS
+ * DROP: XDP_DROP
+ * TC: set TC bit and XDP_TX
+ */
+enum dns_action {
+  PASS = 0,
+  DROP = 1,
+  TC = 2
+};
+
+BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
+BPF_PERF_OUTPUT(events);
+
+/*
+ * Initializer of a cursor pointer
+ *  Copyright 2020, NLnet Labs, All rights reserved.
+ */
+static inline void cursor_init(struct cursor *c, struct xdp_md *ctx)
+{
+  c->end = (void *)(long)ctx->data_end;
+  c->pos = (void *)(long)ctx->data;
+}
+
+/*
+ * Header parser functions
+ * Copyright 2020, NLnet Labs, All rights reserved.
+ */
+#define PARSE_FUNC_DECLARATION(STRUCT)                            \
+static inline struct STRUCT *parse_ ## STRUCT (struct cursor *c)  \
+{                                                                 \
+  struct STRUCT *ret = c->pos;                                    \
+  if (c->pos + sizeof(struct STRUCT) > c->end)                    \
+  	return 0;                                                 \
+  c->pos += sizeof(struct STRUCT);                                \
+  return ret;                                                     \
+}
+
+PARSE_FUNC_DECLARATION(ethhdr)
+PARSE_FUNC_DECLARATION(vlanhdr)
+PARSE_FUNC_DECLARATION(iphdr)
+PARSE_FUNC_DECLARATION(ipv6hdr)
+PARSE_FUNC_DECLARATION(udphdr)
+PARSE_FUNC_DECLARATION(dnshdr)
+
+/*
+ * Parse ethernet frame and fill the struct
+ * Copyright 2020, NLnet Labs, All rights reserved.
+ */
+static inline struct ethhdr *parse_eth(struct cursor *c, uint16_t *eth_proto)
+{
+  struct ethhdr  *eth;
+
+  if (!(eth = parse_ethhdr(c)))
+  	return 0;
+
+  *eth_proto = eth->h_proto;
+  if (*eth_proto == bpf_htons(ETH_P_8021Q)
+  ||  *eth_proto == bpf_htons(ETH_P_8021AD)) {
+  	struct vlanhdr *vlan;
+
+  	if (!(vlan = parse_vlanhdr(c)))
+  		return 0;
+
+  	*eth_proto = vlan->encap_proto;
+  	if (*eth_proto == bpf_htons(ETH_P_8021Q)
+  	||  *eth_proto == bpf_htons(ETH_P_8021AD)) {
+  		if (!(vlan = parse_vlanhdr(c)))
+  			return 0;
+
+  		*eth_proto = vlan->encap_proto;
+  	}
+  }
+  return eth;
+}
+
+/*
+ * Parse DNS QName and fill the struct
+ */
+static inline void parse_qname(struct cursor *c, struct dns_qname *query)
+{
+  uint8_t qname_byte;
+  uint16_t qtype;
+  int length = 0;
+
+  for(int i = 0; i<255; i++) {
+      bpf_probe_read_kernel(&qname_byte, sizeof(qname_byte), c->pos);
+
+      c->pos += 1;
+      if (length == 0) {
+        if (qname_byte == 0 || qname_byte > 63 ) {
+            break;
+        }
+        length += qname_byte;
+      } else {
+        length--;
+      }
+      if (qname_byte >= 'A' && qname_byte <= 'Z') {
+              query->qname[i] = qname_byte + ('a' - 'A');
+      } else {
+              query->qname[i] = qname_byte;
+      }
+  }
+
+  bpf_probe_read_kernel(&(query->qtype), sizeof(query->qtype), c->pos);
+}
+
+/*
+ * Push data regarding the dropped/redirected packet to a perf buffer
+ */
+static inline void log_packet(struct xdp_md *ctx, enum dns_action action) {
+  // store variables
+  struct cursor   c;
+  struct ethhdr  *eth;
+  uint16_t        eth_proto;
+  struct iphdr   *ipv4;
+  struct ipv6hdr *ipv6;
+  struct udphdr  *udp;
+  struct dnshdr  *dns;
+  int            r = 0;
+
+  struct pktdata {
+    uint32_t         ipv4_src;
+    uint8_t          ipv6_src[16];
+    struct dns_qname query;
+  } packet_info = {0};
+
+  // initialise the cursor
+  cursor_init(&c, ctx);
+
+  if ((eth = parse_eth(&c, &eth_proto))) {
+	if (eth_proto == bpf_htons(ETH_P_IP))
+        {
+                if ((ipv4 = parse_iphdr(&c)))
+		{
+		  	if (action == DROP)
+			{
+		  		memcpy(&(packet_info.ipv4_src), &(ipv4->saddr), sizeof(packet_info.ipv4_src));
+		  	}
+			else if (action == TC)
+			{
+		  		memcpy(&(packet_info.ipv4_src), &(ipv4->daddr), sizeof(packet_info.ipv4_src));
+		  	}
+			if ((udp = parse_udphdr(&c)))
+			{
+		    		if ((dns = parse_dnshdr(&c)))
+				{
+		      			parse_qname(&c, &(packet_info.query));
+                    		}
+		  	}
+                }
+
+        }
+        else if (eth_proto == bpf_htons(ETH_P_IPV6))
+        {
+                if ((ipv6 = parse_ipv6hdr(&c)))
+		{
+		  	if (action == DROP)
+			{
+		  		memcpy(&(packet_info.ipv6_src), &(ipv6->saddr.in6_u.u6_addr8), 16);
+		  	}
+			else if (action == TC)
+			{
+		  		memcpy(&(packet_info.ipv6_src), &(ipv6->daddr.in6_u.u6_addr8), 16);
+		  	}
+			if ((udp = parse_udphdr(&c)))
+			{
+		    		if ((dns = parse_dnshdr(&c)))
+				{
+		      			parse_qname(&c, &(packet_info.query));
+                    		}
+		  	}
+                }
+        }
+  }
+  events.perf_submit(ctx, &packet_info, sizeof(packet_info));
+}
+
+int log_drop(struct xdp_md *ctx)
+{
+  log_packet(ctx, DROP);
+  return XDP_DROP;
+}
+
+int log_tc(struct xdp_md *ctx)
+{
+  log_packet(ctx, TC);
+  return XDP_TX;
+}
