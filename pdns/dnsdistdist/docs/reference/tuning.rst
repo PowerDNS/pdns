@@ -160,6 +160,17 @@ Tuning related functions
 
   :param int num: maximum number of UDP queries to accept
 
+.. function:: setUDPSocketBufferSize(recv, send)
+
+  .. versionadded:: 1.7.0
+
+  Set the size of the receive (``SO_RCVBUF``) and send (``SO_SNDBUF``) buffers for incoming UDP sockets. On Linux the default
+  values correspond to ``net.core.rmem_default`` and ``net.core.wmem_default`` , and the maximum values are restricted
+  by ``net.core.rmem_max`` and ``net.core.wmem_max``.
+
+  :param int recv: ``SO_RCVBUF`` value. Default is 0, meaning the system value will be kept.
+  :param int send: ``SO_SNDBUF`` value. Default is 0, meaning the system value will be kept.
+
 .. function:: setUDPTimeout(num)
 
   Set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2

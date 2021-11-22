@@ -1413,6 +1413,7 @@ rightsidebar
 Rijsdijk
 ringbuffer
 rkey
+rmem
 rname
 rng
 rocommunity
@@ -1905,6 +1906,7 @@ yubikey
 YYYYMMD
 YYYYMMDD
 YYYYMMDDSS
+wmem
 Zealey
 zeha
 Zengers

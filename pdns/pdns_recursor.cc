@@ -597,34 +597,6 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 
 static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
 
-static void setSocketBuffer(int fd, int optname, uint32_t size)
-{
-  uint32_t psize=0;
-  socklen_t len=sizeof(psize);
-
-  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    g_log<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
-    return;
-  }
-
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0) {
-    int err = errno;
-    g_log << Logger::Error << "Unable to raise socket buffer size to " << size << ": " << stringerror(err) << endl;
-  }
-}
-
-
-static void setSocketReceiveBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_RCVBUF, size);
-}
-
-static void setSocketSendBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_SNDBUF, size);
-}
-
-
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
 // but after you call 'returnSocket' on it, don't assume anything anymore
@@ -3682,7 +3654,13 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
       throw PDNSException("Binding TCP server socket for "+ st.host +": "+stringerror());
 
     setNonBlocking(fd);
-    setSocketSendBuffer(fd, 65000);
+    try {
+      setSocketSendBuffer(fd, 65000);
+    }
+    catch (const std::exception& e) {
+      g_log<<Logger::Error<<e.what()<<endl;
+    }
+
     listen(fd, 128);
     deferredAdds.emplace_back(fd, handleNewTCPQuestion);
     tcpSockets.insert(fd);
@@ -3746,7 +3724,12 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
     setCloseOnExec(fd);
 
-    setSocketReceiveBuffer(fd, 250000);
+    try {
+      setSocketReceiveBuffer(fd, 250000);
+    }
+    catch (const std::exception& e) {
+      g_log<<Logger::Error<<e.what()<<endl;
+    }
     sin.sin4.sin_port = htons(st.port);
 
   

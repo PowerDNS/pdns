@@ -117,36 +117,6 @@ static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
   return 0;
 }
 
-static void setSocketBuffer(int fd, int optname, uint32_t size)
-{
-  uint32_t psize=0;
-  socklen_t len=sizeof(psize);
-  
-  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    if (!g_quiet) {
-      cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
-    }
-    return; 
-  }
-
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 ) {
-    if (!g_quiet) {
-      cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<stringerror()<<endl;
-    }
-  }
-}
-
-
-static void setSocketReceiveBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_RCVBUF, size);
-}
-
-static void setSocketSendBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_SNDBUF, size);
-}
-
 static ComboAddress getRandomAddressFromRange(const Netmask& ecsRange)
 {
   ComboAddress result = ecsRange.getMaskedNetwork();
@@ -426,8 +396,23 @@ try
   for(int i=0; i < 24; ++i) {
     auto sock = make_unique<Socket>(dest.sin4.sin_family, SOCK_DGRAM);
     //    sock->connect(dest);
-    setSocketSendBuffer(sock->getHandle(), 2000000);
-    setSocketReceiveBuffer(sock->getHandle(), 2000000);
+    try {
+      setSocketSendBuffer(sock->getHandle(), 2000000);
+    }
+    catch (const std::exception& e) {
+      if (!g_quiet) {
+        cerr<<e.what()<<endl;
+      }
+    }
+    try {
+      setSocketReceiveBuffer(sock->getHandle(), 2000000);
+    }
+    catch (const std::exception& e) {
+      if (!g_quiet) {
+        cerr<<e.what()<<endl;
+      }
+    }
+
     sockets.push_back(std::move(sock));
   }
   new thread(recvThread, &sockets);
