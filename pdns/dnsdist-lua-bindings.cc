@@ -616,4 +616,24 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
     return parameters;
   });
+
+  luaCtx.writeFunction("getListOfNetworkInterfaces", []() {
+    std::vector<std::pair<int, std::string>> result;
+    auto itfs = getListOfNetworkInterfaces();
+    int counter = 1;
+    for (const auto& itf : itfs) {
+      result.push_back({counter++, itf});
+    }
+    return result;
+  });
+
+  luaCtx.writeFunction("getListOfAddressesOfNetworkInterface", [](const std::string& itf) {
+    std::vector<std::pair<int, std::string>> result;
+    auto addrs = getListOfAddressesOfNetworkInterface(itf);
+    int counter = 1;
+    for (const auto& addr : addrs) {
+      result.push_back({counter++, addr.toString()});
+    }
+    return result;
+  });
 }

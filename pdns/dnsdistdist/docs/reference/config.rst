@@ -950,6 +950,22 @@ Status, Statistics and More
 
   Return the number of DOHFrontend binds.
 
+.. function:: getListOfAddressesOfNetworkInterface(itf)
+
+  .. versionadded:: 1.8.0
+
+  Return the list of addresses configured on a given network interface, as strings.
+  This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
+
+  :param str itf: The name of the network interface
+
+.. function:: getListOfNetworkInterfaces()
+
+  .. versionadded:: 1.8.0
+
+  Return the list of network interfaces configured on the system, as strings
+  This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
+
 .. function:: getOutgoingTLSSessionCacheSize()
 
   .. versionadded:: 1.7.0
