@@ -456,8 +456,7 @@ def test_dnsdist(c):
 @task
 def test_regression_recursor(c):
     c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
-    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y LIBFAKETIME=/bin/false ./build-scripts/test-recursor test_RecDnstap.py')
-    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y ./build-scripts/test-recursor -I test_RecDnstap.py')
+    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y ./build-scripts/test-recursor')
 
 @task
 def test_bulk_recursor(c, threads, mthreads, shards):
