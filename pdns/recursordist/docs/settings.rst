@@ -83,6 +83,8 @@ Like `allow-notify-for`_, except reading from file. To use this
 feature, supply one domain name per line, with optional comments
 preceded by a "#".
 
+NOTIFY-allowed zones can also be specified using `forward-zones-file`_.
+
 .. _setting-allow-notify-from:
 
 ``allow-notify-from``
