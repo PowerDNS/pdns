@@ -2952,6 +2952,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.sourceDisallowedNotify++;
+            terminateTCPConnection(fd);
             return;
           }
 
@@ -2961,6 +2962,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.zoneDisallowedNotify++;
+            terminateTCPConnection(fd);
             return;
           }
         }
