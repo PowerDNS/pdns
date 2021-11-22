@@ -97,7 +97,7 @@ changelog_render_changeset = "https://github.com/PowerDNS/pdns/commit/%s"
 changelog_sections = ['New Features', 'Removed Features', 'Improvements', 'Bug Fixes']
 changelog_inner_tag_sort = ['Internals', 'API', 'Tools', 'ALIAS', 'DNSUpdate', 'BIND', 'MySQL', 'Postgresql', 'LDAP', 'GeoIP', 'Remote']
 
-changelog_render_tags = False
+changelog_hide_tags_in_entry = True
 
 # -- Options for HTML output ----------------------------------------------
 

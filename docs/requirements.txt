@@ -1,7 +1,7 @@
 Sphinx>=1.5.0,!=1.8.0,<2.0
 git+https://github.com/pieterlexis/sphinxcontrib-openapi@use-jsondomain-pdns
 git+https://github.com/pieterlexis/sphinx-jsondomain@no-type-links
-git+https://github.com/pieterlexis/sphinx-changelog@render-tags
+changelog>=0.5.6,<0.6
 sphinxcontrib-fulltoc
 guzzle_sphinx_theme
 docutils!=0.15,<0.18
