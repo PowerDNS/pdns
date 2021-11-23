@@ -15,14 +15,17 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: |
+      - name: Update dependencies
+        run: |
           sudo apt-get update
           sudo apt-get -qq --no-install-recommends install git clang-11
-      - run: |
+      - name: Run format-code on files that should be formatted
+        run: |
            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
            git --no-pager diff
            exit $(git diff | wc -l)
-      - run: |
+      - name: Report diffs for files that should be formatted
+        run: |
            exitcode=0
            for f in $(find . -type f -name 'Makefile.am'); do
              ./build-scripts/test-sources-sorted.py ${f}
