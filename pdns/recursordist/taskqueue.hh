@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <sys/time.h>
 #include <thread>
 
 #include <boost/multi_index_container.hpp>
