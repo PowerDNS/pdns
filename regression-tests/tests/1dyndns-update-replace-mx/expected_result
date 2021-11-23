@@ -11,7 +11,7 @@ Answer:
 ;test.dyndns.			IN	SOA
 
 0	test.dyndns.	IN	MX	3000	10 host-1.test.dyndns.
-0	test.dyndns.	IN	MX	3600	20 host-2.test.dyndns.
+0	test.dyndns.	IN	MX	3000	20 host-2.test.dyndns.
 2	host-1.test.dyndns.	IN	A	3600	127.0.0.101
 2	host-2.test.dyndns.	IN	A	3600	127.0.0.102
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
