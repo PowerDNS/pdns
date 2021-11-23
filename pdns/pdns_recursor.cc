@@ -2924,6 +2924,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.sourceDisallowedNotify++;
+            terminateTCPConnection(fd);
             return;
           }
 
@@ -2933,6 +2934,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.zoneDisallowedNotify++;
+            terminateTCPConnection(fd);
             return;
           }
         }
@@ -2969,6 +2971,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
               g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
             }
+            return;
           } // cache hit
         } // query opcode
 
