@@ -39,7 +39,7 @@ disable-syslog=yes
         self.assertRRsetInAnswer(res, expected)
         # this will break if you are not looking for the first RR, sorry!
         if expectedFirstTTL is not None:
-            self.assertEqual(res.answer[0].ttl, expectedFirstTTL)
+            self.assertTrue(res.answer[0].ttl == expectedFirstTTL or res.answer[0].ttl == expectedFirstTTL - 1)
         else:
             expectedFirstTTL = res.answer[0].ttl
         self.assertEqual(res.edns, query.edns)

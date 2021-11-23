@@ -7,7 +7,7 @@ import subprocess
 class AggressiveNSECCacheBase(RecursorTest):
     __test__ = False
     _wsPort = 8042
-    _wsTimeout = 2
+    _wsTimeout = 10
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _config_template = """
