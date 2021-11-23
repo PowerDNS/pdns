@@ -257,9 +257,9 @@ if not available:
     serverproc.terminate()
     serverproc.wait()
     print("==STDOUT===")
-    print(proc.stdout.read())
+    print(serverproc.stdout.read())
     print("==STDERRR===")
-    print(proc.stderr.read())
+    print(serverproc.stderr.read())
     sys.exit(2)
 
 print("Query for example.com/A to create statistic data...")
