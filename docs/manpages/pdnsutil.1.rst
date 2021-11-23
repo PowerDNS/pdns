@@ -103,7 +103,7 @@ set-nsec3 *ZONE* ['*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*'] [**narrow**]
     it will send out the hash + 1 as the next secure record. Narrow mode
     requires online signing capabilities by the nameserver and therefore
     zone transfers are denied. If only the zone is provided as argument,
-    the 4-parameter quoted string defaults to ``'1 0 1 ab'``. A sample
+    the 4-parameter quoted string defaults to ``'1 0 0 -'``. A sample
     commandline is: ``pdnsutil set-nsec3 powerdnssec.org '1 1 1 ab' narrow``.
     **WARNING**: If running in RSASHA1 mode (algorithm 5 or 7), switching
     from NSEC to NSEC3 will require a DS update in the parent zone.

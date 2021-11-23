@@ -3020,7 +3020,7 @@ try
       cerr<<"Syntax: pdnsutil set-nsec3 ZONE 'params' [narrow]"<<endl;
       return 0;
     }
-    string nsec3params = cmds.size() > 2 ? cmds.at(2) : "1 0 1 ab";
+    string nsec3params = cmds.size() > 2 ? cmds.at(2) : "1 0 0 -";
     bool narrow = cmds.size() > 3 && cmds.at(3) == "narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
 

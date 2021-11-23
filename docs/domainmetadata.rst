@@ -152,7 +152,7 @@ NSEC3PARAM
 NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the
 NSEC3PARAM record. If present, NSEC3 is used, if not present, zones
 default to NSEC. See ``set-nsec3`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
-Example content: "1 0 1 ab".
+Example content: "1 0 0 -".
 
 .. _metadata-presigned:
 
