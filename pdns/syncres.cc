@@ -3443,7 +3443,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
          and do an additional query for the CNAME target.
          We have a regression test making sure we do exactly that.
       */
-      if(!wasVariable() && newtarget.empty()) {
+      if (newtarget.empty()) {
         t_sstorage.negcache.add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
@@ -3591,9 +3591,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
-          if(!wasVariable()) {
-            t_sstorage.negcache.add(ne);
-          }
+          t_sstorage.negcache.add(ne);
 
           if (qname == newauth && qtype == QType::DS) {
             /* we are actually done! */
@@ -3633,10 +3631,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
         ne.d_ttd = d_now.tv_sec + lowestTTL;
 
-        if(!wasVariable()) {
-          if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            t_sstorage.negcache.add(ne);
-          }
+        if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
+          t_sstorage.negcache.add(ne);
         }
 
         ret.push_back(rec);

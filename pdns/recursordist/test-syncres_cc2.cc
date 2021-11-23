@@ -873,7 +873,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis)
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 }
 
-BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response)
+BOOST_AUTO_TEST_CASE(test_dont_skip_negcache_for_variable_response)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
@@ -926,8 +926,7 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 2U);
-  /* no negative cache entry because the response was variable */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed)
