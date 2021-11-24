@@ -498,7 +498,7 @@ public:
     if (ret != 1) {
       throw std::runtime_error("Error setting up session: " + libssl_get_error_string());
     }
-    native.release();
+    session.reset();
   }
 
   void addNewTicket(SSL_SESSION* session)
@@ -916,12 +916,9 @@ public:
     d_sess.data = nullptr;
   }
 
-  gnutls_datum_t getNative()
+  const gnutls_datum_t& getNative()
   {
-    auto ret = d_sess;
-    d_sess.data = nullptr;
-    d_sess.size = 0;
-    return ret;
+    return d_sess;
   }
 
 private:
@@ -1424,8 +1421,7 @@ public:
     if (ret != GNUTLS_E_SUCCESS) {
       throw std::runtime_error("Error setting up GnuTLS session: " + std::string(gnutls_strerror(ret)));
     }
-
-    session.release();
+    session.reset();
   }
 
   void close() override
