@@ -1053,7 +1053,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("showWebserverConfig", []() {
     setLuaNoSideEffect();
-    return getWebServerConfig();
+    return getWebserverConfig();
   });
 
   luaCtx.writeFunction("hashPassword", [](const std::string& password, boost::optional<uint64_t> workFactor) {

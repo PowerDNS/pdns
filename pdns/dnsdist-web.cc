@@ -64,7 +64,7 @@ static const MetricDefinitionStorage s_metricDefinitions;
 
 static ConcurrentConnectionManager s_connManager(100);
 
-std::string getWebServerConfig()
+std::string getWebserverConfig()
 {
   ostringstream out;
 
@@ -74,14 +74,14 @@ std::string getWebServerConfig()
     out << "ACL: " << config->acl.toString() << endl;
     out << "Custom headers: ";
     if (config->customHeaders) {
+      out << endl;
       for (const auto& header : *config->customHeaders) {
         out << " - " << header.first << ": " << header.second << endl;
       }
     }
     else {
-      out << "None";
+      out << "None" << endl;
     }
-    out << endl;
     out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
     out << "Password: " << (config->password ? "set" : "unset") << endl;
     out << "API key: " << (config->apiKey ? "set" : "unset") << endl;

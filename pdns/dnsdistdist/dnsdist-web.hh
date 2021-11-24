@@ -14,4 +14,4 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local);
 void registerBuiltInWebHandlers();
 void clearWebHandlers();
 
-std::string getWebServerConfig();
+std::string getWebserverConfig();
