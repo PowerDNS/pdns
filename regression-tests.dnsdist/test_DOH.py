@@ -1384,3 +1384,40 @@ class TestProtocols(DNSDistDOHTest):
         self.assertEqual(expectedQuery, receivedQuery)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
+
+class TestDOHWithPCKS12Cert(DNSDistDOHTest):
+    _serverCert = 'server.p12'
+    _pkcs12Password = 'passw0rd'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    cert=newTLSCertificate("%s", {password="%s"})
+    addDOHLocal("127.0.0.1:%s", cert, "", { "/" })
+    """
+    _config_params = ['_testServerPort', '_serverCert', '_pkcs12Password', '_dohServerPort']
+
+    def testProtocolDOH(self):
+        """
+        DoH: Test Simple DOH Query with a password protected PCKS12 file configured
+        """
+        name = 'simple.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
