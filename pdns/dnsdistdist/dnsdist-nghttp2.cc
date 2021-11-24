@@ -924,6 +924,7 @@ static void dohClientThread(int crossProtocolPipeFD)
                   errlog(" - Worker thread pipe");
                 }
               });
+              errlog("The DoH client cache has %d active and %d idle outgoing connections cached", t_downstreamDoHConnectionsManager.getActiveCount(), t_downstreamDoHConnectionsManager.getIdleCount());
             }
           }
         }

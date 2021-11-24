@@ -943,6 +943,12 @@ Status, Statistics and More
 
   Return the number of DOHFrontend binds.
 
+.. function:: getOutgoingTLSSessionCacheSize()
+
+  .. versionadded:: 1.7.0
+
+  Return the number of TLS sessions (for outgoing connections) currently cached.
+
 .. function:: getTLSContext(idx)
 
   Return the TLSContext object for the context of index ``idx``.

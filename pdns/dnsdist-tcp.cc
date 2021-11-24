@@ -1277,6 +1277,7 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
                   errlog(" - Worker thread pipe");
                 }
               });
+              errlog("The TCP/DoT client cache has %d active and %d idle outgoing connections cached", t_downstreamTCPConnectionsManager.getActiveCount(), t_downstreamTCPConnectionsManager.getIdleCount());
             }
           }
         }

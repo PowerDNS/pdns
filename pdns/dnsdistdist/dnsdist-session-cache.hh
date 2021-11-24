@@ -53,6 +53,8 @@ public:
     s_maxSessionsPerBackend = max;
   }
 
+  size_t getSize();
+
 private:
   static time_t s_cleanupDelay;
   static time_t s_sessionValidity;
