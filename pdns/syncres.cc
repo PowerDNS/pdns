@@ -677,6 +677,25 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
+/* The parameters from rfc9156. */
+static const unsigned int s_max_minimise_count = 10;
+static const unsigned int s_minimise_one_lab = 4;
+
+static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
+{
+    unsigned int step;
+
+    if (i < s_minimise_one_lab) {
+      step = 1;
+    } else if (i < s_max_minimise_count) {
+      step = std::max(1U, (qnamelen - labels) / (10 - i));
+    } else {
+      step = qnamelen - labels;
+    }
+    unsigned int targetlen = std::min(labels + step, qnamelen);
+    return targetlen;
+}
+
 int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
   string prefix = d_prefix;
@@ -786,16 +805,15 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
         child = bestns[0].d_name;
       }
     }
-
-    unsigned int targetlen = std::min(child.countLabels() + (i > 3 ? 3 : 1), qnamelen);
-
     for (; i <= qnamelen; i++) {
       // Step 2
-      while (child.countLabels() < targetlen) {
-        child.prependRawLabel(qname.getRawLabel(qnamelen - child.countLabels() - 1));
+      unsigned int labels = child.countLabels();
+      unsigned int targetlen = qmStepLen(labels, qnamelen, i);
+
+      while (labels < targetlen) {
+        child.prependRawLabel(qname.getRawLabel(qnamelen - labels - 1));
+        labels++;
       }
-      targetlen += i > 3 ? 3 : 1;
-      targetlen = std::min(targetlen, qnamelen);
 
       QLOG("Step2 New child");
 
