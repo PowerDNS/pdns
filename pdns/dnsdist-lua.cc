@@ -132,13 +132,13 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
 }
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
-static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, std::optional<std::string> password = std::nullopt)
+static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)
 {
   if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
     auto certFile = boost::get<std::string>(certFiles);
     auto keyFile = boost::get<std::string>(keyFiles);
     pairs.clear();
-    pairs.emplace_back(certFile, keyFile, password);
+    pairs.emplace_back(certFile, keyFile);
   }
   else if (certFiles.type() == typeid(std::shared_ptr<TLSCertKeyPair>)) {
     auto cert = boost::get<std::shared_ptr<TLSCertKeyPair>>(certFiles);
@@ -158,7 +158,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TL
     if (certFilesVect.size() == keyFilesVect.size()) {
       pairs.clear();
       for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-        pairs.emplace_back(certFilesVect.at(idx).second, keyFilesVect.at(idx).second, password);
+        pairs.emplace_back(certFilesVect.at(idx).second, keyFilesVect.at(idx).second);
       }
     }
     else {

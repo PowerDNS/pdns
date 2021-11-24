@@ -118,7 +118,7 @@ Listen Sockets
     ``enableRenegotiation``, ``exactPathMatching``, ``maxConcurrentTCPConnections`` and ``releaseBuffers`` options added.
     ``internalPipeBufferSize`` now defaults to 1048576 on Linux.
 
-  .. versionchanged:: 1.x.0
+  .. versionchanged:: 1.8.0
      ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
@@ -1650,9 +1650,11 @@ Other functions
 
   .. versionadded:: 1.8.0
 
-  Creates a TLSCertificate object suited to be used with functions like :func:`addDOHLocal` and :func:`addTLSLocal` for TLS certificate configuration
+  Creates a TLSCertificate object suited to be used with functions like :func:`addDOHLocal` and :func:`addTLSLocal` for TLS certificate configuration.
 
-  :param string pathToCert: Path to a file containing the certificate or a PCKS12 file containing both certificate and the key
+  PKCS12 files are only supported by the ``openssl`` provider, password-protected or not.
+
+  :param string pathToCert: Path to a file containing the certificate or a PCKS12 file containing both a certificate and a key.
   :param table options: A table with key: value pairs with additional options.
 
   Options:
@@ -1662,7 +1664,7 @@ Other functions
 
   .. code-block:: lua
 
-    newTLSCertificate("path/to/pub.crt", {key="pat/to/private.pem"})
+    newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
     newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PCKS12 file
 
 DOHFrontend
@@ -1678,7 +1680,7 @@ DOHFrontend
 
      .. versionadded:: 1.6.1
 
-     .. versionchanged:: 1.x.0
+     .. versionchanged:: 1.8.0
         ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
 
      :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
