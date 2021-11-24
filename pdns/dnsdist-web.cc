@@ -64,6 +64,35 @@ static const MetricDefinitionStorage s_metricDefinitions;
 
 static ConcurrentConnectionManager s_connManager(100);
 
+std::string getWebserverConfig()
+{
+  ostringstream out;
+
+  {
+    auto config = g_webserverConfig.lock();
+    out << "Current web server configuration:" << endl;
+    out << "ACL: " << config->acl.toString() << endl;
+    out << "Custom headers: ";
+    if (config->customHeaders) {
+      out << endl;
+      for (const auto& header : *config->customHeaders) {
+        out << " - " << header.first << ": " << header.second << endl;
+      }
+    }
+    else {
+      out << "None" << endl;
+    }
+    out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
+    out << "Password: " << (config->password ? "set" : "unset") << endl;
+    out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
+  }
+  out << "API writable: " << (g_apiReadWrite ? "yes" : "no") << endl;
+  out << "API configuration directory: " << g_apiConfigDirectory << endl;
+  out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
+
+  return out.str();
+}
+
 class WebClientConnection
 {
 public:

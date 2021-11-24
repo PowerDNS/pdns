@@ -36,6 +36,11 @@ public:
     d_data.lock()->d_maxConcurrentConnections = max;
   }
 
+  size_t getMaxConcurrentConnections()
+  {
+    return d_data.lock()->d_maxConcurrentConnections;
+  }
+
   bool registerConnection()
   {
     auto data = d_data.lock();
