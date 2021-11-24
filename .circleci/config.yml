@@ -1310,9 +1310,6 @@ workflows:
       - test-auth-regress-ldap:
           requires:
             - build-auth
-      - check-formatting:
-          requires:
-            - checkout
       - build-recursor:
           requires:
             - checkout
