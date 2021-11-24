@@ -1535,6 +1535,9 @@ public:
 
     if (params.d_validateCertificates) {
       if (params.d_caStore.empty()) {
+#if GNUTLS_VERSION_NUMBER >= 0x030700
+        std::cerr<<"Warning: GnuTLS >= 3.7.0 has a known memory leak when validating server certificates in some configurations (PKCS11 support enabled, and a default PKCS11 trust store), please consider using the OpenSSL provider for outgoing connections instead, or explicitely setting a CA store"<<std::endl;
+#endif /* GNUTLS_VERSION_NUMBER >= 0x030700 */
         rc = gnutls_certificate_set_x509_system_trust(d_creds.get());
         if (rc < 0) {
           throw std::runtime_error("Error adding the system's default trusted CAs: " + std::string(gnutls_strerror(rc)));
