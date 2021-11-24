@@ -1145,11 +1145,17 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
   return true;
 }
 
-class RunningTCPResolve {
+/**
+ * A helper class that handles the TCP in-flight bookkeeping on
+ * destruct. This class ise used by startDoResolve() to not forget
+ * that. You can also signal that the TCP connection must be closed
+ * once the in-flight connections drop to zero.
+ **/
+class RunningResolveGuard {
 public:
-  RunningTCPResolve(std::unique_ptr<DNSComboWriter>& dc) : d_dc(dc) {
+  RunningResolveGuard(std::unique_ptr<DNSComboWriter>& dc) : d_dc(dc) {
   }
-  ~RunningTCPResolve() {
+  ~RunningResolveGuard() {
     if (!d_handled && d_dc->d_tcp) {
       finishTCPReply(d_dc, false, true);
     }
@@ -1167,7 +1173,7 @@ private:
 
 enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, RunningTCPResolve& tcpGuard)
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, RunningResolveGuard& tcpGuard)
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
@@ -1792,7 +1798,7 @@ static void startDoResolve(void *p)
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
 
-    RunningTCPResolve tcpGuard(dc);
+    RunningResolveGuard tcpGuard(dc);
 
     if(ednsExtRCode != 0 || dc->d_mdp.d_header.opcode == Opcode::Notify) {
       goto sendit;
@@ -2653,12 +2659,13 @@ static void requestWipeCaches(const DNSName& canon)
   }
 }
 
-class RunningTCPGuard {
+/* A helper class that by default closes the incoming TCP connection on destruct */
+class RunningTCPQuestionGuard {
 public:
-  RunningTCPGuard(int fd) {
+  RunningTCPQuestionGuard(int fd) {
     d_fd = fd;
   }
-  ~RunningTCPGuard() {
+  ~RunningTCPQuestionGuard() {
     if (d_fd != -1) {
       terminateTCPConnection(d_fd);
       d_fd = -1;
@@ -2675,7 +2682,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   shared_ptr<TCPConnection> conn=boost::any_cast<shared_ptr<TCPConnection> >(var);
 
-  RunningTCPGuard tcpGuard{fd};
+  RunningTCPQuestionGuard tcpGuard{fd};
 
   if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
     ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
