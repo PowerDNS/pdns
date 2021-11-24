@@ -447,6 +447,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -534,6 +535,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -626,6 +628,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -744,6 +747,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -817,6 +821,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.2");
@@ -976,6 +981,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
   dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress requestor2("192.0.2.42");
