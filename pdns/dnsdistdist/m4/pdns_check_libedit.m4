@@ -12,13 +12,6 @@ AC_DEFUN([PDNS_WITH_LIBEDIT], [
       PKG_CHECK_MODULES([LIBEDIT], [libedit], [
         [HAVE_LIBEDIT=1]
         AC_DEFINE([HAVE_LIBEDIT], [1], [Define to 1 if you have libedit])
-        save_CFLAGS=$CFLAGS
-        save_LIBS=$LIBS
-        CFLAGS="$LIBEDIT_CFLAGS $CFLAGS"
-        LIBS="$LIBEDIT_LIBS $LIBS"
-        CFLAGS=$save_CFLAGS
-        LIBS=$save_LIBS
-
       ], [ : ])
     ])
   ])

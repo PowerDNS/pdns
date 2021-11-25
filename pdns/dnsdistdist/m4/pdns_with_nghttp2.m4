@@ -13,13 +13,6 @@ AC_DEFUN([PDNS_WITH_NGHTTP2], [
       PKG_CHECK_MODULES([NGHTTP2], [libnghttp2], [
         [HAVE_NGHTTP2=1]
         AC_DEFINE([HAVE_NGHTTP2], [1], [Define to 1 if you have nghttp2])
-        save_CFLAGS=$CFLAGS
-        save_LIBS=$LIBS
-        CFLAGS="$NGHTTP2_CFLAGS $CFLAGS"
-        LIBS="$NGHTTP2_LIBS $LIBS"
-        CFLAGS=$save_CFLAGS
-        LIBS=$save_LIBS
-
       ], [ : ])
     ])
   ])
