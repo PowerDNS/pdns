@@ -28,6 +28,7 @@
 
 #include "statnode.hh"
 
+#ifndef DISABLE_TOP_N_BINDINGS
 static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGenResponses(uint64_t top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
 {
   setLuaNoSideEffect();
@@ -89,6 +90,7 @@ static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGen
 
   return ret;
 }
+#endif /* DISABLE_TOP_N_BINDINGS */
 
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
 
@@ -240,6 +242,7 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 
 void setupLuaInspection(LuaContext& luaCtx)
 {
+#ifndef DISABLE_TOP_N_BINDINGS
   luaCtx.writeFunction("topClients", [](boost::optional<uint64_t> top_) {
       setLuaNoSideEffect();
       auto top = top_.get_value_or(10);
@@ -378,6 +381,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     });
 
   luaCtx.executeCode(R"(function topBandwidth(top) top = top or 10; for k,v in ipairs(getTopBandwidth(top)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+#endif /* DISABLE_TOP_N_BINDINGS */
 
   luaCtx.writeFunction("delta", []() {
       setLuaNoSideEffect();
