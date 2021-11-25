@@ -2,6 +2,19 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.2
+  :released: 25th of November 2021
+
+  This is version 4.4.2 of the Authoritative Server.
+  It fixes one issue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11004
+
+    RFC2136/nsupdate: apply new TTL to whole RRset, not only to the added record
+
+.. changelog::
   :version: 4.4.1
   :released: 8th of February 2021
 
