@@ -2576,23 +2576,6 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   }
 }
 
-static bool handleTCPReadResult(int fd, ssize_t bytes)
-{
-  if (bytes == 0) {
-    /* EOF */
-    terminateTCPConnection(fd);
-    return false;
-  }
-  else if (bytes < 0) {
-    if (errno != EAGAIN && errno != EWOULDBLOCK) {
-      terminateTCPConnection(fd);
-      return false;
-    }
-  }
-
-  return true;
-}
-
 static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                              DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                              const struct timeval& now,
@@ -2659,21 +2642,42 @@ static void requestWipeCaches(const DNSName& canon)
   }
 }
 
-/* A helper class that by default closes the incoming TCP connection on destruct */
+/*
+ * A helper class that by default closes the incoming TCP connection on destruct
+ * If you want to keep the connection aliave, call keep() on the guard object
+ */
 class RunningTCPQuestionGuard {
 public:
-  RunningTCPQuestionGuard(int fd) {
+  RunningTCPQuestionGuard(int fd)
+  {
     d_fd = fd;
   }
-  ~RunningTCPQuestionGuard() {
+  ~RunningTCPQuestionGuard()
+  {
     if (d_fd != -1) {
       terminateTCPConnection(d_fd);
       d_fd = -1;
     }
   }
-  void keep() {
+  void keep()
+  {
     d_fd = -1;
   }
+  bool handleTCPReadResult(int fd, ssize_t bytes)
+  {
+    if (bytes == 0) {
+      /* EOF */
+      return false;
+    }
+    else if (bytes < 0) {
+      if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        return false;
+      }
+    }
+    keep();
+    return true;
+  }
+
 private:
   int d_fd{-1};
 };
@@ -2687,8 +2691,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
     ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
     if (bytes <= 0) {
-      handleTCPReadResult(fd, bytes);
-      tcpGuard.keep();
+      tcpGuard.handleTCPReadResult(fd, bytes);
       return;
     }
 
@@ -2758,8 +2761,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state=TCPConnection::GETQUESTION;
     }
     if (bytes <= 0) {
-      handleTCPReadResult(fd, bytes);
-      tcpGuard.keep();
+      tcpGuard.handleTCPReadResult(fd, bytes);
       return;
     }
   }
@@ -2773,12 +2775,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->bytesread=0;
     }
     if (bytes <= 0) {
-      if (!handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
         }
       }
-      tcpGuard.keep();
       return;
     }
   }
@@ -2786,12 +2787,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if (bytes <= 0) {
-      if (!handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
         }
-      }      
-      tcpGuard.keep();
+      }
       return;
     }
     else if (bytes > std::numeric_limits<std::uint16_t>::max()) {
@@ -3053,6 +3053,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       } // good query
     } // read full query
   } // reading query
+
+  // more to come
+  tcpGuard.keep();
 }
 
 static bool expectProxyProtocol(const ComboAddress& from)
