@@ -292,9 +292,7 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
         try {
           auto sessions = data->d_tcpHandler->getTLSSessions();
           if (!sessions.empty()) {
-            struct timeval now;
-            gettimeofday(&now, nullptr);
-            g_sessionCache.putSessions(data->d_ds->getID(), now.tv_sec, std::move(sessions));
+            g_sessionCache.putSessions(data->d_ds->getID(), time(nullptr), std::move(sessions));
           }
         }
         catch (const std::exception& e) {
