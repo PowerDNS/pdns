@@ -1111,7 +1111,14 @@ public:
   {
     return d_fd;
   }
-
+  void setDropOnIdle()
+  {
+    d_dropOnIdle = true;
+  }
+  bool isDropOnIdle() const
+  {
+    return d_dropOnIdle;
+  }
   std::vector<ProxyProtocolValue> proxyProtocolValues;
   std::string data;
   const ComboAddress d_remote;
@@ -1130,6 +1137,7 @@ public:
 private:
   const int d_fd;
   static std::atomic<uint32_t> s_currentConnections; //!< total number of current TCP connections
+  bool d_dropOnIdle{false};
 };
 
 class ImmediateServFailException

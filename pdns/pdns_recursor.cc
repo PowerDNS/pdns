@@ -933,7 +933,8 @@ static void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, b
     return;
   }
   dc->d_tcpConnection->queriesCount++;
-  if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+  if ((g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) ||
+      (dc->d_tcpConnection->isDropOnIdle() && dc->d_tcpConnection->d_requestsInFlight == 0)) {
     try {
       t_fdm->removeReadFD(dc->d_socket);
     }
@@ -1144,9 +1145,40 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
   return true;
 }
 
+/**
+ * A helper class that handles the TCP in-flight bookkeeping on
+ * destruct. This class ise used by startDoResolve() to not forget
+ * that. You can also signal that the TCP connection must be closed
+ * once the in-flight connections drop to zero.
+ **/
+class RunningResolveGuard {
+public:
+  RunningResolveGuard(std::unique_ptr<DNSComboWriter>& dc) : d_dc(dc) {
+    if (d_dc->d_tcp && !d_dc->d_tcpConnection) {
+      throw std::runtime_error("incoming TCP case without TCP connection");
+    }
+  }
+  ~RunningResolveGuard() {
+    if (!d_handled && d_dc->d_tcp) {
+      finishTCPReply(d_dc, false, true);
+    }
+  }
+  void setHandled() {
+    d_handled = true;
+  }
+  void setDropOnIdle() {
+    if (d_dc->d_tcp) {
+      d_dc->d_tcpConnection->setDropOnIdle();
+    }
+  }
+private:
+  std::unique_ptr<DNSComboWriter>& d_dc;
+  bool d_handled{false};
+};
+
 enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, RunningResolveGuard& tcpGuard)
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
@@ -1169,6 +1201,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
       return PolicyResult::NoAction;
 
   case DNSFilterEngine::PolicyKind::Drop:
+    tcpGuard.setDropOnIdle();
     ++g_stats.policyDrops;
     return PolicyResult::Drop;
 
@@ -1770,6 +1803,8 @@ static void startDoResolve(void *p)
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
 
+    RunningResolveGuard tcpGuard(dc);
+
     if(ednsExtRCode != 0 || dc->d_mdp.d_header.opcode == Opcode::Notify) {
       goto sendit;
     }
@@ -1863,7 +1898,7 @@ static void startDoResolve(void *p)
           appliedPolicy = DNSFilterEngine::Policy();
         }
         else {
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           if (policyResult == PolicyResult::HaveAnswer) {
             if (g_dns64Prefix && dq.qtype == QType::AAAA && answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
               res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
@@ -1924,7 +1959,7 @@ static void startDoResolve(void *p)
         if (appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
           throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
         }
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }
@@ -1938,7 +1973,7 @@ static void startDoResolve(void *p)
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
             if (t_pdl && t_pdl->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
-              auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+              auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
               if (policyResult == PolicyResult::HaveAnswer) {
                 goto haveAnswer;
               }
@@ -1954,7 +1989,7 @@ static void startDoResolve(void *p)
 	}
 	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           if (policyResult == PolicyResult::HaveAnswer) {
             goto haveAnswer;
           }
@@ -1965,7 +2000,7 @@ static void startDoResolve(void *p)
 
 	if (t_pdl && t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           // haveAnswer case redundant
           if (policyResult == PolicyResult::Drop) {
             return;
@@ -1976,7 +2011,7 @@ static void startDoResolve(void *p)
     else if (t_pdl) {
       // preresolve returned true
       shouldNotValidate = true;
-      auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+      auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
       // haveAnswer case redundant
       if (policyResult == PolicyResult::Drop) {
         return;
@@ -2313,6 +2348,7 @@ static void startDoResolve(void *p)
     else {
       bool hadError = sendResponseOverTCP(dc, packet);
       finishTCPReply(dc, hadError, true);
+      tcpGuard.setHandled();
     }
 
     sr.d_eventTrace.add(RecEventTrace::AnswerSent);
@@ -2545,23 +2581,6 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   }
 }
 
-static bool handleTCPReadResult(int fd, ssize_t bytes)
-{
-  if (bytes == 0) {
-    /* EOF */
-    terminateTCPConnection(fd);
-    return false;
-  }
-  else if (bytes < 0) {
-    if (errno != EAGAIN && errno != EWOULDBLOCK) {
-      terminateTCPConnection(fd);
-      return false;
-    }
-  }
-
-  return true;
-}
-
 static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                              DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                              const struct timeval& now,
@@ -2628,14 +2647,56 @@ static void requestWipeCaches(const DNSName& canon)
   }
 }
 
+/*
+ * A helper class that by default closes the incoming TCP connection on destruct
+ * If you want to keep the connection alive, call keep() on the guard object
+ */
+class RunningTCPQuestionGuard {
+public:
+  RunningTCPQuestionGuard(int fd)
+  {
+    d_fd = fd;
+  }
+  ~RunningTCPQuestionGuard()
+  {
+    if (d_fd != -1) {
+      terminateTCPConnection(d_fd);
+      d_fd = -1;
+    }
+  }
+  void keep()
+  {
+    d_fd = -1;
+  }
+  bool handleTCPReadResult(int fd, ssize_t bytes)
+  {
+    if (bytes == 0) {
+      /* EOF */
+      return false;
+    }
+    else if (bytes < 0) {
+      if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        return false;
+      }
+    }
+    keep();
+    return true;
+  }
+
+private:
+  int d_fd{-1};
+};
+
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   shared_ptr<TCPConnection> conn=boost::any_cast<shared_ptr<TCPConnection> >(var);
 
+  RunningTCPQuestionGuard tcpGuard{fd};
+
   if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
     ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
     if (bytes <= 0) {
-      handleTCPReadResult(fd, bytes);
+      tcpGuard.handleTCPReadResult(fd, bytes);
       return;
     }
 
@@ -2647,12 +2708,12 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         g_log<<Logger::Error<<"Unable to consume proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
       }
       ++g_stats.proxyProtocolInvalidCount;
-      terminateTCPConnection(fd);
       return;
     }
     else if (remaining < 0) {
       conn->proxyProtocolNeed = -remaining;
       conn->data.resize(conn->proxyProtocolGot + conn->proxyProtocolNeed);
+      tcpGuard.keep();
       return;
     }
     else {
@@ -2667,7 +2728,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Unable to parse proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         }
         ++g_stats.proxyProtocolInvalidCount;
-        terminateTCPConnection(fd);
         return;
       }
       else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
@@ -2675,7 +2735,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
         }
         ++g_stats.proxyProtocolInvalidCount;
-        terminateTCPConnection(fd);
         return;
       }
 
@@ -2688,7 +2747,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
 
         ++g_stats.unauthorizedTCP;
-        terminateTCPConnection(fd);
         return;
       }
 
@@ -2708,7 +2766,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state=TCPConnection::GETQUESTION;
     }
     if (bytes <= 0) {
-      handleTCPReadResult(fd, bytes);
+      tcpGuard.handleTCPReadResult(fd, bytes);
       return;
     }
   }
@@ -2722,7 +2780,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->bytesread=0;
     }
     if (bytes <= 0) {
-      if (!handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
         }
@@ -2734,7 +2792,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if (bytes <= 0) {
-      if (!handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
         }
@@ -2745,7 +2803,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(g_logCommonErrors) {
         g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" sent an invalid question size while reading question body"<<endl;
       }
-      terminateTCPConnection(fd);
       return;
     }
     conn->bytesread+=(uint16_t)bytes;
@@ -2760,7 +2817,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         }
-        terminateTCPConnection(fd);
         return;
       }
       dc->d_tcpConnection = conn; // carry the torch
@@ -2883,7 +2939,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
           }
           g_stats.policyDrops++;
-          terminateTCPConnection(fd);
           return;
         }
       }
@@ -2893,7 +2948,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        terminateTCPConnection(fd);
         return;
       }
       if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
@@ -2902,6 +2956,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Ignoring unsupported opcode "<<Opcode::to_s(dc->d_mdp.d_header.opcode)<<" from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
         sendErrorOverTCP(dc, RCode::NotImp);
+        tcpGuard.keep();
         return;
       }
       else if (dh->qdcount == 0) {
@@ -2910,6 +2965,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
         }
         sendErrorOverTCP(dc, RCode::NotImp);
+        tcpGuard.keep();
         return;
       }
       else {
@@ -2924,7 +2980,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.sourceDisallowedNotify++;
-            terminateTCPConnection(fd);
             return;
           }
 
@@ -2934,7 +2989,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             g_stats.zoneDisallowedNotify++;
-            terminateTCPConnection(fd);
             return;
           }
         }
@@ -2971,6 +3025,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
               g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
             }
+            tcpGuard.keep();
             return;
           } // cache hit
         } // query opcode
@@ -2998,10 +3053,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           struct timeval ttd = g_now;
           t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
         }
+        tcpGuard.keep();
         MT->makeThread(startDoResolve, dc.release()); // deletes dc
       } // good query
     } // read full query
   } // reading query
+
+  // more to come
+  tcpGuard.keep();
 }
 
 static bool expectProxyProtocol(const ComboAddress& from)
