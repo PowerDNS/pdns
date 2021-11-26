@@ -814,6 +814,15 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
         child.prependRawLabel(qname.getRawLabel(qnamelen - labels - 1));
         labels++;
       }
+      // rfc9156 section-2.3, append labels if they start with an underscore
+      while (labels < qnamelen) {
+        auto prependLabel = qname.getRawLabel(qnamelen - labels - 1);
+        if (prependLabel.at(0) != '_') {
+          break;
+        }
+        child.prependRawLabel(prependLabel);
+        labels++;
+      }
 
       QLOG("Step2 New child");
 
