@@ -26,6 +26,7 @@
 #include "dolog.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-session-cache.hh"
 
 bool g_verboseHealthChecks{false};
 
@@ -287,6 +288,19 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (ioState == IOState::Done) {
       /* remove us from the mplexer, we are done */
       data->d_ioState->update(ioState, healthCheckTCPCallback, data);
+      if (data->d_tcpHandler->isTLS()) {
+        try {
+          auto sessions = data->d_tcpHandler->getTLSSessions();
+          if (!sessions.empty()) {
+            struct timeval now;
+            gettimeofday(&now, nullptr);
+            g_sessionCache.putSessions(data->d_ds->getID(), now.tv_sec, std::move(sessions));
+          }
+        }
+        catch (const std::exception& e) {
+          vinfolog("Unable to get a TLS session from the DoT healthcheck: %s", e.what());
+        }
+      }
     }
     else {
       data->d_ioState->update(ioState, healthCheckTCPCallback, data, data->d_ttd);
@@ -409,8 +423,20 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       }
     }
     else {
-      data->d_tcpHandler = std::make_unique<TCPIOHandler>(ds->d_tlsSubjectName, sock.releaseHandle(), timeval{ds->checkTimeout,0}, ds->d_tlsCtx, time(nullptr));
+      time_t now = time(nullptr);
+      data->d_tcpHandler = std::make_unique<TCPIOHandler>(ds->d_tlsSubjectName, sock.releaseHandle(), timeval{ds->checkTimeout,0}, ds->d_tlsCtx, now);
       data->d_ioState = std::make_unique<IOStateHandler>(*mplexer, data->d_tcpHandler->getDescriptor());
+      if (ds->d_tlsCtx) {
+        try {
+          auto tlsSession = g_sessionCache.getSession(ds->getID(), now);
+          if (tlsSession) {
+            data->d_tcpHandler->setTLSSession(tlsSession);
+          }
+        }
+        catch (const std::exception& e) {
+          vinfolog("Unable to restore a TLS session for the DoT healthcheck: %s", e.what());
+        }
+      }
       data->d_tcpHandler->tryConnect(ds->tcpFastOpen, ds->remote);
 
       const uint8_t sizeBytes[] = { static_cast<uint8_t>(packetSize / 256), static_cast<uint8_t>(packetSize % 256) };
