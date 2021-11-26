@@ -2649,7 +2649,7 @@ static void requestWipeCaches(const DNSName& canon)
 
 /*
  * A helper class that by default closes the incoming TCP connection on destruct
- * If you want to keep the connection aliave, call keep() on the guard object
+ * If you want to keep the connection alive, call keep() on the guard object
  */
 class RunningTCPQuestionGuard {
 public:
