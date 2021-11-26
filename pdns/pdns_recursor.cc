@@ -1154,6 +1154,9 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
 class RunningResolveGuard {
 public:
   RunningResolveGuard(std::unique_ptr<DNSComboWriter>& dc) : d_dc(dc) {
+    if (d_dc->d_tcp && !d_dc->d_tcpConnection) {
+      throw std::runtime_error("incoming TCP case without TCP connection");
+    }
   }
   ~RunningResolveGuard() {
     if (!d_handled && d_dc->d_tcp) {
@@ -1164,7 +1167,9 @@ public:
     d_handled = true;
   }
   void setDropOnIdle() {
-    d_dc->d_tcpConnection->setDropOnIdle();
+    if (d_dc->d_tcp) {
+      d_dc->d_tcpConnection->setDropOnIdle();
+    }
   }
 private:
   std::unique_ptr<DNSComboWriter>& d_dc;
