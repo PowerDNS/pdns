@@ -132,7 +132,7 @@ cat > $PREFIX.12/arthur.example.net.zone <<EOF
 arthur.example.net.      3600 IN SOA $SOA
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
-arthur.example.net.      3600 IN MX  mail.arthur.example.net.
+arthur.example.net.      3600 IN MX  10 mail.arthur.example.net.
 ns.arthur.example.net.   3600 IN A   $PREFIX.12
 ns2.arthur.example.net.  3600 IN A   $PREFIX.13
 www.arthur.example.net.  3600 IN A   192.0.2.2
