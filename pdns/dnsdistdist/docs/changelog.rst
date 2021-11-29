@@ -2,6 +2,61 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0-beta2
+  :released: 29th of November 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10993
+    :tickets: 10988
+
+    Fix compiler/static analyzer warnings
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 10997
+
+    Add a function to know how many TLS sessions are currently cached
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 10999
+
+    Fix a memory leak when reusing TLS tickets for outgoing connections
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 11001
+
+    Warn that GnuTLS 3.7.x leaks memory when validating certs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11006
+    :tickets: 10135
+
+    Add 'showWebserverConfig'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11007
+
+    Fix Lua parameters bound checks
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11008
+    :tickets: 10898
+
+    Add a function to set the UDP recv/snd buffer sizes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11031
+
+    Add missing visibility attribute on `dnsdist_ffi_dnsquestion_get_qname_hash`
+
+.. changelog::
   :version: 1.7.0-beta1
   :released: 16th of November 2021
 
