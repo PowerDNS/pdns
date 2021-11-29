@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   const ComboAddress firstRangeAddr4("192.0.2.1:0");
   const ComboAddress lastRangeAddr4("192.0.2.1:16383");
 
-  const string dbPath("/tmp/test_lmdb.XXXXXX");
+  string dbPath("/tmp/test_lmdb.XXXXXX");
   {
     MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
     auto transaction = env.getRWTransaction();
@@ -360,6 +360,11 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 
   lmdb = std::make_unique<LMDBKVStore>(dbPath, "range-db-name");
   doKVSRangeChecks(lmdb);
+
+  unlink(dbPath.c_str());
+  dbPath += "-lock";
+  unlink(dbPath.c_str());
+
   /*
   std::string value;
   DTime dt;
@@ -416,6 +421,8 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
 
   std::unique_ptr<KeyValueStore> cdb = std::make_unique<CDBKVStore>(db, 0);
   doKVSChecks(cdb, lc, rem, dq, plaintextDomain);
+
+  unlink(db);
 
   /*
   std::string value;
