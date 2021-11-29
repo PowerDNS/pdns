@@ -678,7 +678,9 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
 /* The parameters from rfc9156. */
+/* maximum number of QNAME minimisation iterations */
 static const unsigned int s_max_minimise_count = 10;
+/* number of queries that should only have one label appended */
 static const unsigned int s_minimise_one_lab = 4;
 
 static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
