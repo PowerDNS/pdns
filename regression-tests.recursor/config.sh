@@ -513,8 +513,6 @@ module-dir=../../../regression-tests/modules
 launch=bind
 daemon=no
 local-address=$dir
-## TODO remove when switching circle-ci and travis to 4.3
-local-ipv6=
 bind-config=named.conf
 no-shuffle
 socket-dir=.
