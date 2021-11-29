@@ -1,6 +1,7 @@
 import dns
 import requests
 import socket
+import time
 from recursortests import RecursorTest
 
 class RootNXTrustRecursorTest(RecursorTest):
@@ -18,6 +19,17 @@ class RootNXTrustRecursorTest(RecursorTest):
                 return int(entry['value'])
 
         return 0
+
+    # Recursor can still be busy resolving root hints, so wait a bit until
+    # getOutgoingQueriesCount() stabilizes.
+    # Code below is inherently racey, but better than a fixed sleep
+    def waitForOutgoingToStabilize(self):
+        for count in range(20):
+            outgoing1 = self.getOutgoingQueriesCount();
+            time.sleep(0.1);
+            outgoing2 = self.getOutgoingQueriesCount();
+            if outgoing1 == outgoing2:
+                break
 
 class testRootNXTrustDisabled(RootNXTrustRecursorTest):
     _confdir = 'RootNXTrustDisabled'
@@ -42,7 +54,8 @@ api-key=%s
         after receiving a NXD from "." for nx-example. as an answer for www.nx-example.
         """
 
-        # first query nx.example.
+        self.waitForOutgoingToStabilize()
+        # First query nx.example.
         before = self.getOutgoingQueriesCount()
         query = dns.message.make_query('www.nx-example.', 'A')
         res = self.sendUDPQuery(query)
@@ -88,6 +101,7 @@ api-key=%s
         after receiving a NXD from "." for nx-example. as an answer for www.nx-example.
         """
 
+        self.waitForOutgoingToStabilize()
         # first query nx.example.
         before = self.getOutgoingQueriesCount()
         query = dns.message.make_query('www.nx-example.', 'A')
