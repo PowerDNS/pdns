@@ -526,11 +526,11 @@ distributor-threads={threads}""".format(confdir=confdir,
         print("Launching pdns_server..")
         authcmd = list(cls._auth_cmd)
         authcmd.append('--config-dir=%s' % confdir)
-        authcmd.append('--local-address=%s' % ipaddress)
-        if (confdir[-4:] == "ROOT") and have_ipv6():
-            authcmd.append('--local-ipv6=::1')
-        else:
-            authcmd.append('--local-ipv6=')
+        ipconfig = ipaddress
+        # auth-8 is the auth serving the root, it gets an ipv6 address
+        if (confdir[-6:] == "auth-8") and have_ipv6():
+            ipconfig += ',::1'
+        authcmd.append('--local-address=%s' % ipconfig)
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
