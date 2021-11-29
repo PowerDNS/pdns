@@ -170,7 +170,7 @@ The DNSQuestion object contains at least the following fields:
 
       The result of the DNSSEC validation, accessible from the ``postresolve``, ``nxdomain`` and ``nodata`` hooks.
       Possible states are ``pdns.validationstates.Indeterminate``, ``pdns.validationstates.Bogus``, ``pdns.validationstates.Insecure`` and ``pdns.validationstates.Secure``.
-      The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
+      The result will always be ``pdns.validationstates.Indeterminate`` if validation is disabled or was not requested.
 
   .. attribute:: DNSQuestion.detailedValidationState
 
