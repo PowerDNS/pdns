@@ -54,6 +54,7 @@ api-key=%s
         after receiving a NXD from "." for nx-example. as an answer for www.nx-example.
         """
 
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         self.waitForOutgoingToStabilize()
         # First query nx.example.
         before = self.getOutgoingQueriesCount()
@@ -101,6 +102,7 @@ api-key=%s
         after receiving a NXD from "." for nx-example. as an answer for www.nx-example.
         """
 
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         self.waitForOutgoingToStabilize()
         # first query nx.example.
         before = self.getOutgoingQueriesCount()
