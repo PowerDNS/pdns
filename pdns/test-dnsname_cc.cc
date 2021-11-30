@@ -695,6 +695,13 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
   BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
+  BOOST_CHECK(DNSName("99.2.1.10.in-addr.arpa").canonCompare(DNSName("101.2.1.10.in-addr.arpa")));
+  BOOST_CHECK(!DNSName("101.2.1.10.in-addr.arpa").canonCompare(DNSName("99.2.1.10.in-addr.arpa")));
+  BOOST_CHECK(DNSName("ns12.example.com").canonCompare(DNSName("ns8.example.com")));
+  BOOST_CHECK(!DNSName("ns8.example.com").canonCompare(DNSName("ns12.example.com")));
+  BOOST_CHECK(DNSName("135.org").canonCompare(DNSName("2x.org")));
+  BOOST_CHECK(!DNSName("2x.org").canonCompare(DNSName("135.org")));
+
   CanonDNSNameCompare a;
   BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.com")));
   BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.net")));

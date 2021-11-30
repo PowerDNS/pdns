@@ -214,6 +214,17 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     uint8_t ourlen = *(ourstr - 1), rhslen = *(rhsstr - 1);
     bool res;
 
+    // If both names are integers of different lengths: longer name is greater
+    if (ourlen != rhslen) {
+      res = true;
+      for (int i = 0; res && i < ourlen; i++)
+        res = isdigit(ourstr[i]);
+      for (int i = 0; res && i < rhslen; i++)
+        res = isdigit(rhsstr[i]);
+      if (res)
+        return ourlen < rhslen;
+    }
+
     res = std::lexicographical_compare(ourstr, ourstr + ourlen,
                                        rhsstr, rhsstr + rhslen,
                                        [](const unsigned char& a, const unsigned char& b) {
