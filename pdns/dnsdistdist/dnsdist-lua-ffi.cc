@@ -434,6 +434,13 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
   }
 }
 
+void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const char* raw, size_t len)
+{
+  std::string result;
+  SpoofAction sa(raw, len);
+  sa(dq->dq, &result);
+}
+
 void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
 {
   std::vector<std::string> data;
