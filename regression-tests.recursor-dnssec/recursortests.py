@@ -526,6 +526,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         for try_number in range(0, 100):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1.0)
                 sock.connect((ipaddress, port))
                 sock.close()
                 return
