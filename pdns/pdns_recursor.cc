@@ -1160,7 +1160,11 @@ public:
   }
   ~RunningResolveGuard() {
     if (!d_handled && d_dc->d_tcp) {
-      finishTCPReply(d_dc, false, true);
+      try {
+        finishTCPReply(d_dc, false, true);
+      }
+      catch (const FDMultiplexerException&) {
+      }
     }
   }
   void setHandled() {
