@@ -525,38 +525,6 @@ jobs:
           paths:
             - project
 
-  check-formatting:
-    docker:
-      - image: debian:bullseye
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-    steps:
-      - run:
-          name: Install dependencies
-          command: |
-            apt-get update && apt-get -qq --no-install-recommends install git
-            apt-get -qq --no-install-recommends install clang-format-11
-      - get-workspace
-      - run:
-          name: Check formatting
-          command: |
-            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
-            git --no-pager diff
-            exit $(git diff | wc -l)
-          working_directory: ~/project
-      - run:
-          name: Check Makefile.am SOURCES sort order
-          command: |
-            exitcode=0
-            for f in $(find . -type f -name 'Makefile.am'); do
-              ./build-scripts/test-sources-sorted.py ${f}
-              if [ $? -ne 0 ]; then
-                exitcode=1
-              fi
-            done
-            exit ${exitcode}
-
   build-auth:
     docker:
       - image: debian:buster
@@ -1310,9 +1278,6 @@ workflows:
       - test-auth-regress-ldap:
           requires:
             - build-auth
-      - check-formatting:
-          requires:
-            - checkout
       - build-recursor:
           requires:
             - checkout
