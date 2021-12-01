@@ -73,6 +73,14 @@ sed -i \
     -e 's/# setgid=/setgid=pdns-recursor/' \
     %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 
+# The EL7 and 8 systemd actually supports %t, but its version number is older than that, so we do use seperate runtime dirs, but don't rely on RUNTIME_DIRECTORY
+%if 0%{?rhel} < 9
+sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor!' -i %{buildroot}/%{_unitdir}/pdns-recursor.service
+%if 0%{?rhel} < 8
+sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor-%i!' -e 's!RuntimeDirectory=pdns-recursor!&-%i!' -i %{buildroot}/%{_unitdir}/pdns-recursor@.service
+%endif
+%endif
+
 %pre
 getent group pdns-recursor > /dev/null || groupadd -r pdns-recursor
 getent passwd pdns-recursor > /dev/null || \
