@@ -174,6 +174,9 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
                  # @aio, @sync, @chown, @setuid, @memlock, @signal and @timer in 235
                  systemd_system_call_filter=y
               fi
+              if test $_systemd_version -ge 236; then
+                 systemd_percent_t=y
+              fi
               if test $_systemd_version -ge 239; then
                  systemd_private_mounts=y
               fi
@@ -195,6 +198,7 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
         AM_CONDITIONAL([HAVE_SYSTEMD_DYNAMIC_USER], [ test x"$systemd_dynamic_user" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_LOCK_PERSONALITY], [ test x"$systemd_lock_personality" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE], [ test x"$systemd_memory_deny_write_execute" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PERCENT_T], [ test x"$systemd_percent_t" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_DEVICES], [ test x"$systemd_private_devices" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_MOUNTS], [ test x"$systemd_private_mounts" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_TMP], [ test x"$systemd_private_tmp" = "xy" ])
