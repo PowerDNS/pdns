@@ -24,6 +24,7 @@
    is passed to the Lua FFI wrapper which doesn't support it */
 
 typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
+typedef struct dnsdist_ffi_dnsresponse_t dnsdist_ffi_dnsresponse_t;
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
 typedef struct dnsdist_ffi_server_t dnsdist_ffi_server_t;
 
@@ -123,3 +124,7 @@ const char* dnsdist_ffi_server_get_name_with_addr(const dnsdist_ffi_server_t* se
 int dnsdist_ffi_server_get_weight(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
 int dnsdist_ffi_server_get_order(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
 double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
+
+void dnsdist_ffi_dnsresponse_set_min_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max) __attribute__ ((visibility ("default")));

@@ -59,6 +59,15 @@ struct dnsdist_ffi_dnsquestion_t
   boost::optional<std::string> httpScheme{boost::none};
 };
 
+struct dnsdist_ffi_dnsresponse_t
+{
+  dnsdist_ffi_dnsresponse_t(DNSResponse* dr_): dr(dr_)
+  {
+  }
+
+  DNSResponse* dr{nullptr};
+};
+
 // dnsdist_ffi_server_t is a lightuserdata
 template<>
 struct LuaContext::Pusher<dnsdist_ffi_server_t*> {

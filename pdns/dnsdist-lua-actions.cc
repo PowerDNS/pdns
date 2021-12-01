@@ -1233,7 +1233,6 @@ private:
   bool d_buffered{true};
 };
 
-
 class SetDisableValidationAction : public DNSAction
 {
 public:
@@ -2215,6 +2214,18 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> fname, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
+    });
+
+  luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max) {
+      return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max));
+    });
+
+  luaCtx.writeFunction("SetMinTTLResponseAction", [](uint32_t min) {
+      return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min));
+    });
+
+  luaCtx.writeFunction("SetMaxTTLResponseAction", [](uint32_t max) {
+      return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
     });
 
   luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
