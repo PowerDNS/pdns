@@ -2,6 +2,39 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.0-rc1
+  :released: 3rd of December 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11055
+    :tickets: 10982
+
+    Condition to HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV is reversed.
+    During build, the runtime directory in the service files for virtual-hosting are now correctly generated.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11025
+    :tickets: 10994, 11010
+
+    Do cache negcache results, even when wasVariable() is true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11022
+    :tickets: 11018
+
+    Fix logic botch in TCP code introduced by notify handling in 4.6.0-beta2.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11016
+    :tickets: 11005
+
+    Include sys/time.h; needed on musl.
+
+.. changelog::
   :version: 4.6.0-beta2
   :released: 17th of November 2021
 
