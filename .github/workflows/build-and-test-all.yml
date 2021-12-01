@@ -303,7 +303,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [ubsan+asan]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=/home/runner/work/pdns/pdns/build-scripts/UBSan.supp'
       ASAN_OPTIONS: detect_leaks=0
