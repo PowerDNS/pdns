@@ -320,6 +320,8 @@ Reverse DNS functions
 
 .. function:: filterForward(address, masks[, fallback])
 
+  .. versionadded:: 4.5.0
+
   Used for limiting the output of :func:`createForward` and :func:`createForward6` to a set of netmasks.
 
   :param address: A string containing an address, usually taken directly from :func:`createForward: or :func:`createForward6`.
@@ -328,7 +330,7 @@ Reverse DNS functions
 
   Example::
 
-    *.static4.example.com IN LUA A "filterForward(createForward(), newNMG():addMasks{'192.0.2.0/24', '10.0.0.0/8'})"
+    *.static4.example.com IN LUA A "filterForward(createForward(), newNMG({'192.0.2.0/24', '10.0.0.0/8'}))"
 
 Helper functions
 ~~~~~~~~~~~~~~~~
