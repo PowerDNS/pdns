@@ -23,11 +23,13 @@
 #include "auth-caches.hh"
 #include "auth-querycache.hh"
 #include "auth-packetcache.hh"
+#include "auth-zonecache.hh"
+#include "dnsseckeeper.hh"
 
 extern AuthPacketCache PC;
 extern AuthQueryCache QC;
 
-/* empty all caches */
+/* empty packet and query caches */
 uint64_t purgeAuthCaches()
 {
   uint64_t ret = 0;
@@ -36,7 +38,7 @@ uint64_t purgeAuthCaches()
   return ret;
 }
 
- /* remove specific entries from all caches, can be $ terminated */
+/* remove specific entries from packet and query caches, can be $ terminated */
 uint64_t purgeAuthCaches(const std::string& match)
 {
   uint64_t ret = 0;
@@ -45,7 +47,31 @@ uint64_t purgeAuthCaches(const std::string& match)
   return ret;
 }
 
-/* remove specific entries from all caches, no wildcard matching */
+/* remove zone from all caches */
+uint64_t purgeAuthCacheForZone(const DNSName& name)
+{
+  uint64_t ret = 0;
+
+  if (g_zoneCache.isEnabled()) {
+    DomainInfo di;
+    UeberBackend B;
+    if (B.getDomainInfo(name, di, false)) {
+      // zone exists, add/update it in the zone cache.
+      // Handle this first, to avoid concurrent queries re-populating the other caches.
+      g_zoneCache.add(name, di.id);
+    }
+  }
+
+  DNSSECKeeper::clearCaches(name);
+
+  std::string match = name.toString() + "$";
+  ret += PC.purge(match);
+  ret += QC.purge(match);
+
+  return ret;
+}
+
+/* remove specific entries from packet and query caches, no wildcard matching */
 uint64_t purgeAuthCachesExact(const DNSName& qname)
 {
   uint64_t ret = 0;

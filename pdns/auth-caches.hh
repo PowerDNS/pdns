@@ -25,6 +25,7 @@
 
 #include "dnsname.hh"
 
-uint64_t purgeAuthCaches(); /* empty all caches */
-uint64_t purgeAuthCaches(const std::string& match); /* remove specific entries from all caches, can be $ terminated */
-uint64_t purgeAuthCachesExact(const DNSName& qname); /* remove specific entries from all caches, no wildcard matching */
+uint64_t purgeAuthCaches(); /* empty packet and query caches */
+uint64_t purgeAuthCaches(const std::string& match); /* remove specific entries from packet and query caches, can be $ terminated */
+uint64_t purgeAuthCacheForZone(const DNSName& name); /* remove zone from all caches */
+uint64_t purgeAuthCachesExact(const DNSName& qname); /* remove specific entries from packet and query caches, no wildcard matching */

@@ -972,7 +972,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
       throw ApiException("Could not update metadata entries for domain '" +
         zonename.toString() + "'");
 
-    DNSSECKeeper::clearMetaCache(zonename);
+    purgeAuthCacheForZone(zonename);
 
     Json::array respMetadata;
     for (const string& s : vecMetadata)
@@ -1039,7 +1039,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
 
-    DNSSECKeeper::clearMetaCache(zonename);
+    purgeAuthCacheForZone(zonename);
 
     Json::object key {
       { "type", "Metadata" },
@@ -1056,7 +1056,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, md))
       throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
 
-    DNSSECKeeper::clearMetaCache(zonename);
+    purgeAuthCacheForZone(zonename);
   } else
     throw HttpMethodNotAllowedException();
 }
@@ -1850,8 +1850,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     }
 
     // clear caches
-    DNSSECKeeper::clearCaches(zonename);
-    purgeAuthCaches(zonename.toString() + "$");
+    purgeAuthCacheForZone(zonename);
 
     // empty body on success
     resp->body = "";
@@ -2149,7 +2148,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
   di.backend->commitTransaction();
 
-  purgeAuthCaches(zonename.toString() + "$");
+  purgeAuthCacheForZone(zonename);
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success
@@ -2270,7 +2269,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
-  uint64_t count = purgeAuthCachesExact(canon);
+  uint64_t count = purgeAuthCacheForZone(canon);
   resp->setJsonBody(Json::object {
       { "count", (int) count },
       { "result", "Flushed cache." }
