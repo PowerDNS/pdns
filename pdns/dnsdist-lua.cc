@@ -2813,17 +2813,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #if defined(HAVE_LIBSSL)
-    luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
-      if (client) {
-        return;
-      }
+  luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
+    if (client) {
+      return;
+    }
 
-      auto [success, error] = libssl_load_engine(engineName, defaultString ? std::optional<std::string>(*defaultString) : std::nullopt);
-      if (!success) {
-        g_outputBuffer = "Error while trying to load TLS engine '" + engineName + "': " + error + "\n";
-        errlog("Error while trying to load TLS engine '%s': %s", engineName, error);
-      }
-    });
+    auto [success, error] = libssl_load_engine(engineName, defaultString ? std::optional<std::string>(*defaultString) : std::nullopt);
+    if (!success) {
+      g_outputBuffer = "Error while trying to load TLS engine '" + engineName + "': " + error + "\n";
+      errlog("Error while trying to load TLS engine '%s': %s", engineName, error);
+    }
+  });
 #endif /* HAVE_LIBSSL */
 }
 
