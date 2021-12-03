@@ -246,11 +246,11 @@ class TestResponseRuleLimitTTL(DNSDistTest):
 
     function luaFFISetMinTTL(dr)
       ffi.C.dnsdist_ffi_dnsresponse_set_min_ttl(dr, highttl)
-      return DNSAction.None, ""
+      return DNSResponseAction.None, ""
     end
     function luaFFISetMaxTTL(dr)
       ffi.C.dnsdist_ffi_dnsresponse_set_max_ttl(dr, lowttl)
-      return DNSAction.None, ""
+      return DNSResponseAction.None, ""
     end
 
     newServer{address="127.0.0.1:%s"}
