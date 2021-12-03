@@ -193,6 +193,9 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
               if test $_systemd_version -ge 245; then
                  systemd_protect_clock=y
               fi
+              if test $_systemd_version -ge 247; then
+                 systemd_protect_proc=y
+              fi
           ])
         ])
         AM_CONDITIONAL([HAVE_SYSTEMD_DYNAMIC_USER], [ test x"$systemd_dynamic_user" = "xy" ])
@@ -210,6 +213,7 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_LOGS], [ test x"$systemd_protect_kernel_logs" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_MODULES], [ test x"$systemd_protect_kernel_modules" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES], [ test x"$systemd_protect_kernel_tunables" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_PROC], [ test x"$systemd_protect_proc" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_SYSTEM], [ test x"$systemd_protect_system" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_SYSTEM_STRICT], [ test x"$systemd_protect_system_strict" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_REMOVE_IPC], [ test x"$systemd_remove_ipc" = "xy" ])
