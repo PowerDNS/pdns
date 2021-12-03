@@ -24,7 +24,7 @@ jobs:
            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
            git --no-pager diff
            exit $(git diff | wc -l)
-      - name: Report diffs for files that should be formatted
+      - name: Report file names that are out of order in Makefile.am files
         run: |
            exitcode=0
            for f in $(find . -type f -name 'Makefile.am'); do
