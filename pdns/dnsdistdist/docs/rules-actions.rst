@@ -1561,7 +1561,7 @@ The following actions exist.
   Spoof a raw self-generated answer
 
   :param string rawPacket: The raw wire-ready DNS answer
-  :param int len: The len of the packet
+  :param int len: The length of the packet
 
 .. function:: TagAction(name, value)
 

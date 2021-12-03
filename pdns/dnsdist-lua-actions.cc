@@ -784,7 +784,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
 
   if (d_raw.size() >= sizeof(dnsheader)) {
     auto id = dq->getHeader()->id;
-    dq->getMutableData() = std::move(d_raw);
+    dq->getMutableData() = d_raw;
     dq->getHeader()->id = id;
     return Action::HeaderModify;
   }

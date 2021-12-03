@@ -768,6 +768,14 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent,
   }
 }
 
+static void spoofPacketFromString(DNSQuestion& dq, const string& spoofContent)
+{
+  string result;
+
+  SpoofAction sa(spoofContent.c_str(), spoofContent.size());
+  sa(&dq, &result);
+}
+
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop)
 {
   switch(action) {
@@ -799,6 +807,10 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     break;
   case DNSAction::Action::Spoof:
     spoofResponseFromString(dq, ruleresult, false);
+    return true;
+    break;
+  case DNSAction::Action::SpoofPacket:
+    spoofPacketFromString(dq, ruleresult);
     return true;
     break;
   case DNSAction::Action::SpoofRaw:
