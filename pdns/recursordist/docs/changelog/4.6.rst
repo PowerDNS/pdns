@@ -18,7 +18,7 @@ Changelogs for 4.6.X
     :pullreq: 11025
     :tickets: 10994, 11010
 
-    Do cache negcache results, even when wasVariable() is true.
+    Do cache negative answers, even when the response was ECS-scoped.
 
   .. change::
     :tags: Bug Fixes
