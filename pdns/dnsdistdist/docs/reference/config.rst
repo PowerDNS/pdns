@@ -1620,10 +1620,10 @@ Other functions
 
   Load the OpenSSL engine named ``engineName``, setting the engine default string to ``defaultString`` if supplied. Engines can be used to accelerate cryptographic operations, like for example Intel QAT.
   At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental.
-  Some engines might not actually decrease, and sometimes increase, the CPU usage when the TLS asynchronous mode of OpenSSL is not enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal`.
+  Some engines might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal`.
 
   :param string engineName: The name of the engine to load.
-  :param string defaultString: The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register to this engine, as a list of  comma-separated keywords. For example "RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1".
+  :param string defaultString: The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register with the engine, as a list of  comma-separated keywords. For example "RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1".
 
 DOHFrontend
 ~~~~~~~~~~~
