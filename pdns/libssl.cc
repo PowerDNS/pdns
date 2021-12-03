@@ -767,11 +767,13 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   }
 #endif
 
-#ifdef SSL_MODE_ASYNC
   if (config.d_asyncMode) {
+#ifdef SSL_MODE_ASYNC
     mode |= SSL_MODE_ASYNC;
-  }
+#else
+    cerr<<"Warning: TLS async mode requested but not supported"<<endl;
 #endif
+  }
 
   SSL_CTX_set_mode(ctx.get(), mode);
 
