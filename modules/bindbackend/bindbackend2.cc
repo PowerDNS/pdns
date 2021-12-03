@@ -745,6 +745,10 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
   setArgPrefix("bind" + suffix);
   d_logprefix = "[bind" + suffix + "backend]";
   d_hybrid = mustDo("hybrid");
+  if (d_hybrid && g_zoneCache.isEnabled()) {
+    throw PDNSException("bind-hybrid and the zone cache currently interoperate badly. Please disable the zone cache or stop using bind-hybrid");
+  }
+
   d_transaction_id = 0;
   s_ignore_broken_records = mustDo("ignore-broken-records");
   d_upgradeContent = ::arg().mustDo("upgrade-unknown-types");
