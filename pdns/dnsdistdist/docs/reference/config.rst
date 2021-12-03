@@ -308,7 +308,7 @@ Webserver configuration
   :param string - password: The password to hash
   :param int - workFactor: The work factor to use for the hash function (currently scrypt), as a power of two. Default is 1024.
 
-.. function:: webserver(listen_address [, password[, apikey[, custom_headers[, acl]]]])
+.. function:: webserver(listen_address [, password[, apikey[, customHeaders[, acl]]]])
 
   .. versionchanged:: 1.5.0
     ``acl`` optional parameter added.
@@ -323,7 +323,7 @@ Webserver configuration
   :param str listen_address: The IP address and Port to listen on
   :param str password: The password required to access the webserver
   :param str apikey: The key required to access the API
-  :param {[str]=str,...} custom_headers: Allows setting custom headers and removing the defaults
+  :param {[str]=str,...} customHeaders: Allows setting custom headers and removing the defaults
   :param str acl: List of netmasks, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1". It accepts the same syntax that :func:`NetmaskGroup:addMask` does
 
 .. function:: setAPIWritable(allow [,dir])
@@ -355,7 +355,7 @@ Webserver configuration
 
   * ``password=newPassword``: string - Set the password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the :func:`hashPassword` command.
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the :func:`hashPassword` command.
-  * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
+  * ``customHeaders={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
