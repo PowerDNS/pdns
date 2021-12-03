@@ -1,6 +1,18 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2021120301 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2021120304 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
+
+; Policy to mark releases
+; =======================
+; Status 1: OK
+; Status 2: Upgrade recommended for security or other reasons
+; Status 3: Upgrade mandatory for security reasons
+
+; Pre-releases (alpha, beta, rc) get initial status: "1 Unsupported pre-release"
+; Superseded pre-releases get "2 Superseded pre-release", or "3 ..." if a security issue was found.
+
+; Official releases get status 2 or 3 on security issues or on end-of-life of the version only.
+;
 
 ; Auth
 auth-3.3.2.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
@@ -224,7 +236,7 @@ recursor-4.1.14.security-status                         60 IN TXT "3 Upgrade now
 recursor-4.1.15.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-01.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-02.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-03.html"
 recursor-4.1.16.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-04.html"
 recursor-4.1.17.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-07.html"
-recursor-4.1.18.security-status                         60 IN TXT "1 OK"
+recursor-4.1.18.security-status                         60 IN TXT "2 Unsupported release (EOL)"
 
 recursor-4.2.0-alpha1.security-status                   60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 recursor-4.2.0-beta1.security-status                    60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
@@ -235,7 +247,7 @@ recursor-4.2.1.security-status                          60 IN TXT "3 Upgrade now
 recursor-4.2.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-04.html"
 recursor-4.2.3.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-07.html"
 recursor-4.2.4.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-07.html"
-recursor-4.2.5.security-status                          60 IN TXT "1 OK"
+recursor-4.2.5.security-status                          60 IN TXT "2 Unsupported release (EOL)"
 
 recursor-4.3.0-alpha1.security-status                   60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 recursor-4.3.0-alpha2.security-status                   60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
@@ -279,10 +291,10 @@ recursor-4.5.4.security-status                          60 IN TXT "1 OK"
 recursor-4.5.5.security-status                          60 IN TXT "1 OK"
 recursor-4.5.6.security-status                          60 IN TXT "1 OK"
 recursor-4.5.7.security-status                          60 IN TXT "1 OK"
-recursor-4.6.0-alpha1.security-status                   60 IN TXT "1 Unsupported pre-release"
-recursor-4.6.0-alpha2.security-status                   60 IN TXT "1 Unsupported pre-release"
-recursor-4.6.0-beta1.security-status                    60 IN TXT "1 Unsupported pre-release"
-recursor-4.6.0-beta2.security-status                    60 IN TXT "1 Unsupported pre-release"
+recursor-4.6.0-alpha1.security-status                   60 IN TXT "2 Unsupported pre-release"
+recursor-4.6.0-alpha2.security-status                   60 IN TXT "2 Unsupported pre-release"
+recursor-4.6.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release"
+recursor-4.6.0-beta2.security-status                    60 IN TXT "2 Unsupported pre-release"
 recursor-4.6.0-rc1.security-status                      60 IN TXT "1 Unsupported pre-release"
 
 ; Recursor Debian
@@ -426,7 +438,7 @@ dnsdist-1.6.0-rc1.security-status                          60 IN TXT "3 Unsuppor
 dnsdist-1.6.0-rc2.security-status                          60 IN TXT "3 Unsupported pre-release"
 dnsdist-1.6.0.security-status                              60 IN TXT "1 OK"
 dnsdist-1.6.1.security-status                              60 IN TXT "1 OK"
-dnsdist-1.7.0-alpha1.security-status                       60 IN TXT "1 Unsupported pre-release"
-dnsdist-1.7.0-alpha2.security-status                       60 IN TXT "1 Unsupported pre-release"
-dnsdist-1.7.0-beta1.security-status                        60 IN TXT "1 Unsupported pre-release"
+dnsdist-1.7.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release"
+dnsdist-1.7.0-alpha2.security-status                       60 IN TXT "2 Unsupported pre-release"
+dnsdist-1.7.0-beta1.security-status                        60 IN TXT "2 Unsupported pre-release"
 dnsdist-1.7.0-beta2.security-status                        60 IN TXT "1 Unsupported pre-release"

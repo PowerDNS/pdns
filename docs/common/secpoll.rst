@@ -38,6 +38,7 @@ The data returned is in one of the following forms:
 -  "3 Upgrade mandatory for security reasons, see ..." -> 3
 
 In cases 2 or 3, periodic logging commences.
+Case 2 can also be issued for non-security related upgrade recommendations for pre-releases.
 The metric security-status is set to 2 or 3 respectively.
 If at a later date, resolution fails, the security-status is not reset to 1.
 It could be lowered however if we discover the security status is less urgent than we thought.
