@@ -545,6 +545,12 @@ endif
 if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
 	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
 endif
+if !HAVE_SYSTEMD_PRIVATE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
+endif
+if !HAVE_SYSTEMD_REMOVE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^RemoveIPC/' $@
+endif
 
 dnsdist@.service: dnsdist.service
 	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' \
