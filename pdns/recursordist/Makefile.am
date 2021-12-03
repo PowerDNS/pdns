@@ -624,6 +624,9 @@ endif
 if !HAVE_SYSTEMD_PROTECT_PROC
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
 endif
+if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
+	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
+endif
 
 pdns-recursor@.service: pdns-recursor.service
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --config-name=%i!' \

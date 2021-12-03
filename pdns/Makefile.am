@@ -1793,6 +1793,9 @@ endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
 endif
+if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
+	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
+endif
 if !HAVE_SYSTEMD_PROTECT_PROC
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
 endif
@@ -1878,6 +1881,9 @@ if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 endif
 if !HAVE_SYSTEMD_PROTECT_PROC
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
+endif
+if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
+	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
 endif
 
 ixfrdist@.service: ixfrdist.service
