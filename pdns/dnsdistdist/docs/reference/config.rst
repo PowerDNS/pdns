@@ -166,7 +166,7 @@ Listen Sockets
     ``sessionTimeout`` and ``tcpListenQueueSize`` options added.
   .. versionchanged:: 1.6.0
     ``enableRenegotiation``, ``maxConcurrentTCPConnections``, ``maxInFlight`` and ``releaseBuffers`` options added.
-  .. versionchanged:: 1.7.0
+  .. versionchanged:: 1.8.0
     ``tlsAsyncMode`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
@@ -1616,7 +1616,7 @@ Other functions
 
 .. function:: loadTLSEngine(engineName [, defaultString])
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   Load the OpenSSL engine named ``engineName``, setting the engine default string to ``defaultString`` if supplied. Engines can be used to accelerate cryptographic operations, like for example Intel QAT.
   At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental.
