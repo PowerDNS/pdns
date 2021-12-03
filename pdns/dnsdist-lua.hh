@@ -104,7 +104,7 @@ public:
         if (ttl < d_min) {
           ttl = d_min;
         }
-                       }
+      }
       if (ttl > d_max) {
         ttl = d_max;
       }
@@ -116,7 +116,7 @@ public:
 
   std::string toString() const override
   {
-    return "limit ttl";
+    return "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max) + ")";
   }
 
 private:

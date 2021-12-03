@@ -650,7 +650,7 @@ thread_local std::map<uint64_t, LuaFFIPerThreadAction::PerThreadState> LuaFFIPer
 class LuaFFIResponseAction: public DNSResponseAction
 {
 public:
-  typedef std::function<int(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+  typedef std::function<int(dnsdist_ffi_dnsresponse_t* dq)> func_t;
 
   LuaFFIResponseAction(const LuaFFIResponseAction::func_t& func): d_func(func)
   {
@@ -658,18 +658,13 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    DNSQuestion* dq = dynamic_cast<DNSQuestion*>(dr);
-    if (dq == nullptr) {
-      return DNSResponseAction::Action::ServFail;
-    }
-
-    dnsdist_ffi_dnsquestion_t dqffi(dq);
+    dnsdist_ffi_dnsresponse_t drffi(dr);
     try {
       auto lock = g_lua.lock();
-      auto ret = d_func(&dqffi);
+      auto ret = d_func(&drffi);
       if (ruleresult) {
-        if (dqffi.result) {
-          *ruleresult = *dqffi.result;
+        if (drffi.result) {
+          *ruleresult = *drffi.result;
         }
         else {
           // default to empty string
@@ -696,7 +691,7 @@ private:
 class LuaFFIPerThreadResponseAction: public DNSResponseAction
 {
 public:
-  typedef std::function<int(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+  typedef std::function<int(dnsdist_ffi_dnsresponse_t* dr)> func_t;
 
   LuaFFIPerThreadResponseAction(const std::string& code): d_functionCode(code), d_functionID(s_functionsCounter++)
   {
@@ -704,11 +699,6 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    DNSQuestion* dq = dynamic_cast<DNSQuestion*>(dr);
-    if (dq == nullptr) {
-      return DNSResponseAction::Action::ServFail;
-    }
-
     try {
       auto& state = t_perThreadStates[d_functionID];
       if (!state.d_initialized) {
@@ -724,11 +714,11 @@ public:
         return DNSResponseAction::Action::None;
       }
 
-      dnsdist_ffi_dnsquestion_t dqffi(dq);
-      auto ret = state.d_func(&dqffi);
+      dnsdist_ffi_dnsresponse_t drffi(dr);
+      auto ret = state.d_func(&drffi);
       if (ruleresult) {
-        if (dqffi.result) {
-          *ruleresult = *dqffi.result;
+        if (drffi.result) {
+          *ruleresult = *drffi.result;
         }
         else {
           // default to empty string
