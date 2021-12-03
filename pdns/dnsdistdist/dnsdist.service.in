@@ -54,6 +54,7 @@ ProtectProc=invisible
 MemoryDenyWriteExecute=true
 PrivateIPC=true
 RemoveIPC=true
+DevicePolicy=closed
 
 [Install]
 WantedBy=multi-user.target
