@@ -482,6 +482,7 @@ void RecursorLua4::postLoad()
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
   d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
+  d_postresolve_ffi = d_lw->readVariable<boost::optional<postresolve_ffi_t>>("postresolve_ffi").get_value_or(0);
 
   d_policyHitEventFilter = d_lw->readVariable<boost::optional<policyEventFilter_t>>("policyEventFilter").get_value_or(0);
 }
@@ -1033,3 +1034,140 @@ void pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t* ref, const char* 
 {
   ref->params.meta[std::string(key)].intVal.insert(val);
 }
+
+struct pdns_postresolve_ffi_handle
+{
+public:
+  pdns_postresolve_ffi_handle(RecursorLua4::PostResolveFFIHandle& h) :
+    handle(h)
+  {
+  }
+  ~pdns_postresolve_ffi_handle()
+  {
+    cerr << "~pdns_postresolve_ffi_handle: " << pool.size() << endl;
+  }
+  RecursorLua4::PostResolveFFIHandle& handle;
+  std::unordered_set<std::string> pool;
+  auto insert(const std::string& str)
+  {
+    auto [it, inserted] = pool.insert(str);
+    return it;
+  }
+};
+
+bool RecursorLua4::postresolve_ffi(RecursorLua4::PostResolveFFIHandle& h) const
+{
+  if (d_postresolve_ffi) {
+    pdns_postresolve_ffi_handle_t handle(h);
+
+    auto ret = d_postresolve_ffi(&handle);
+    return ret;
+  }
+  return false;
+}
+
+const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref)
+{
+  auto str = ref->insert(ref->handle.d_dq.qname.toStringNoDot());
+  return str->c_str();
+}
+
+uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref)
+{
+  return ref->handle.d_dq.qtype;
+}
+
+uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref)
+{
+  return ref->handle.d_dq.rcode;
+}
+
+pdns_policy_kind_t pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref)
+{
+  return static_cast<pdns_policy_kind_t>(ref->handle.d_dq.appliedPolicy->d_kind);
+}
+
+void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind)
+{
+  ref->handle.d_dq.appliedPolicy->d_kind = static_cast<DNSFilterEngine::PolicyKind>(kind);
+}
+
+bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t *record, bool raw)
+{
+  if (i >= ref->handle.d_dq.currentRecords->size()) {
+    return false;
+  }
+  try {
+    DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
+    record->name = ref->insert(r.d_name.toStringNoDot())->c_str();
+    if (raw) {
+      auto content = ref->insert(r.d_content->serialize(r.d_name, true));
+      record->content = content->data();
+      record->content_len = content->size();
+    } else {
+      auto content = ref->insert(r.d_content->getZoneRepresentation());
+      record->content = content->data();
+      record->content_len = content->size();
+    }
+    record->ttl = r.d_ttl;
+    record->place = static_cast<pdns_record_place_t>(r.d_place);
+    record->type = r.d_type;
+  }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Error attempting to get a record from Lua via pdns_postresolve_ffi_handle_get_record: " << e.what() << endl;
+    return false;
+  }
+
+  return true;
+}
+
+bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw)
+{
+  if (i >= ref->handle.d_dq.currentRecords->size()) {
+    return false;
+  }
+  try {
+    DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
+    if (raw) {
+      r.d_content = DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen));
+    } else {
+      r.d_content = DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen));
+    }
+
+    return true;
+  }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Error attempting to add a record from Lua via pdns_postresolve_ffi_handle_set_record(): " << e.what() << endl;
+    return false;
+  }
+}
+
+void pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref)
+{
+  ref->handle.d_dq.currentRecords->clear();
+}
+
+bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw)
+{
+  try {
+    DNSRecord dr;
+    dr.d_name = name != nullptr ? DNSName(name) : ref->handle.d_dq.qname;
+    dr.d_ttl = ttl;
+    dr.d_type = type;
+    dr.d_class = QClass::IN;
+    dr.d_place = DNSResourceRecord::Place(place);
+    if (raw) {
+      dr.d_content = DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen));
+    } else {
+      dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen));
+    }
+    ref->handle.d_dq.currentRecords->push_back(std::move(dr));
+
+    return true;
+  }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Error attempting to add a record from Lua via pdns_postresolve_ffi_handle_add_record(): " << e.what() << endl;
+    return false;
+  }
+}
+
