@@ -434,6 +434,8 @@ string simpleCompress(const string& label, const string& root="");
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds);
 void ageDNSPacket(std::string& packet, uint32_t seconds);
 void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor);
+void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes);
+void clearDNSPacketRecordTypes(char* packet, size_t& length, const std::set<QType>& qtypes);
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA=nullptr);
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
@@ -541,6 +543,14 @@ public:
     return d_offset;
   }
 
+  void shrinkBytes(uint16_t by)
+  {
+    if (d_notyouroffset + by > d_length) {
+      throw std::out_of_range("shrinking dns packet out of range: " + std::to_string(by) + " bytes at " + std::to_string(d_notyouroffset) + " for a total of " + std::to_string(d_length) );
+    }
+    memmove(d_packet + d_notyouroffset, d_packet + d_notyouroffset + by, d_length - (d_notyouroffset + by));
+    d_length -= by;
+  }
 private:
   void moveOffset(uint16_t by)
   {
