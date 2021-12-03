@@ -152,14 +152,14 @@ std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, c
 
   ENGINE* enginePtr = ENGINE_by_id(engineName.c_str());
   if (enginePtr == nullptr) {
-    return { false, "unable to load TLS engine" };
+    return { false, "unable to load TLS engine '" + engineName + "'" };
   }
 
   auto engine = std::unique_ptr<ENGINE, int(*)(ENGINE*)>(enginePtr, ENGINE_free);
   enginePtr = nullptr;
 
   if (!ENGINE_init(engine.get())) {
-    return { false, "Unable to init TLS engine" };
+    return { false, "Unable to init TLS engine '" + engineName + "'" };
   }
 
   if (defaultString) {
