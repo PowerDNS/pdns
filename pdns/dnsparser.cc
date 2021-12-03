@@ -752,6 +752,13 @@ void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& q
   packet.resize(finalsize);
 }
 
+void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
+{
+  size_t finalsize = packet.size();
+  clearDNSPacketRecordTypes(reinterpret_cast<char*>(packet.data()), finalsize, qtypes);
+  packet.resize(finalsize);
+}
+
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
 void clearDNSPacketRecordTypes(char* packet, size_t& length, const std::set<QType>& qtypes)
 {
