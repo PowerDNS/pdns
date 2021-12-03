@@ -497,6 +497,9 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
       break;
     case IOState::NeedWrite:
       break;
+    case IOState::Async:
+      throw std::runtime_error("TLS async mode not supported");
+      break;
     }
   }
   catch (const std::exception& e) {
@@ -4418,6 +4421,9 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
       TCPLOG(pid->tcpsock, "Done -> removeReadFD" << endl);
       t_fdm->removeReadFD(pid->tcpsock);
       break;
+    case IOState::Async:
+      throw std::runtime_error("TLS async mode not supported");
+      break;
     }
     break;
 
@@ -4434,6 +4440,9 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
       TCPLOG(pid->tcpsock, "Done -> removeWriteFD" << endl);
       t_fdm->removeWriteFD(pid->tcpsock);
       break;
+    case IOState::Async:
+      throw std::runtime_error("TLS async mode not supported");
+      break;
     }
     break;
 
@@ -4449,7 +4458,14 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
       break;
     case IOState::Done:
       break;
+    case IOState::Async:
+      throw std::runtime_error("TLS async mode not supported");
+      break;
     }
+    break;
+
+  case IOState::Async:
+    throw std::runtime_error("TLS async mode not supported");
     break;
   }
 
@@ -4489,6 +4505,9 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
         break;
       case IOState::NeedWrite:
         break;
+      case IOState::Async:
+        throw std::runtime_error("TLS async mode not supported");
+        break;
       }
     }
     catch (const std::exception& e) {
@@ -4519,6 +4538,9 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
         break;
       case IOState::NeedWrite:
         TCPLOG(pid->tcpsock, "tryWrite: NeedWrite" << endl);
+        break;
+      case IOState::Async:
+        throw std::runtime_error("TLS async mode not supported");
         break;
       }
     }
