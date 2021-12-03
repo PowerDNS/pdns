@@ -2270,6 +2270,16 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
+  if (g_zoneCache.isEnabled()) {
+    DomainInfo di;
+    UeberBackend B;
+    if (B.getDomainInfo(canon, di, false)) {
+      // zone exists (uncached), add/update it in the zone cache.
+      // Handle this first, to avoid concurrent queries re-populating the other caches.
+      g_zoneCache.add(di.zone, di.id);
+    }
+  }
+
   // purge entire zone from cache, not just zone-level records.
   uint64_t count = purgeAuthCaches(canon.toString() + "$");
   resp->setJsonBody(Json::object {
