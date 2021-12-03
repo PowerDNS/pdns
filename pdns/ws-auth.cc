@@ -2270,7 +2270,8 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
-  uint64_t count = purgeAuthCachesExact(canon);
+  // purge entire zone from cache, not just zone-level records.
+  uint64_t count = purgeAuthCaches(canon.toString() + "$");
   resp->setJsonBody(Json::object {
       { "count", (int) count },
       { "result", "Flushed cache." }
