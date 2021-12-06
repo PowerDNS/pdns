@@ -257,8 +257,8 @@ class TestResponseRuleLimitTTL(DNSDistTest):
 
     addResponseAction("min.responses.tests.powerdns.com.", SetMinTTLResponseAction(highttl))
     addResponseAction("max.responses.tests.powerdns.com.", SetMaxTTLResponseAction(lowttl))
-    addResponseAction("ffi.min.limitttl.responses.tests.powerdns.com.", LuaResponseAction(luaFFISetMinTTL))
-    addResponseAction("ffi.max.limitttl.responses.tests.powerdns.com.", LuaResponseAction(luaFFISetMaxTTL))
+    addResponseAction("ffi.min.limitttl.responses.tests.powerdns.com.", LuaFFIResponseAction(luaFFISetMinTTL))
+    addResponseAction("ffi.max.limitttl.responses.tests.powerdns.com.", LuaFFIResponseAction(luaFFISetMaxTTL))
     """
 
     def testLimitTTL(self):
