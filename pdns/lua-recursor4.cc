@@ -1167,3 +1167,12 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
   }
 }
 
+const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref)
+{
+  return ref->insert(ref->handle.d_dq.fromAuthIP->toString())->c_str();
+}
+
+void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize)
+{
+  return pdns_ffi_comboaddress_to_raw(*ref->handle.d_dq.fromAuthIP, addr, addrSize);
+}

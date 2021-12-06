@@ -1806,6 +1806,7 @@ static void startDoResolve(void *p)
     dq.extendedErrorCode = &dc->d_extendedErrorCode;
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
+    dq.fromAuthIP = &sr.d_fromAuthIP;
 
     RunningResolveGuard tcpGuard(dc);
 

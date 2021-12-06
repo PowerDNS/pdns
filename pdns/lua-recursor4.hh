@@ -94,6 +94,7 @@ public:
     const uint16_t qtype;
     const ComboAddress& local;
     const ComboAddress& remote;
+    const ComboAddress* fromAuthIP{nullptr};
     const struct dnsheader* dh{nullptr};
     const bool isTcp;
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
