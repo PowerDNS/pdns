@@ -39,6 +39,7 @@ api-key=%s
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testAPI(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
@@ -63,6 +64,7 @@ api-key=%s
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testAPI(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         try:

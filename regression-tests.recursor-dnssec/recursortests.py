@@ -556,14 +556,11 @@ distributor-threads={threads}""".format(confdir=confdir,
         cls.waitForTCPSocket(ipaddress, 53)
 
         if cls._auths[ipaddress].poll() is not None:
-            try:
-                cls._auths[ipaddress].kill()
-            except OSError as e:
-                if e.errno != errno.ESRCH:
-                    raise
-                with open(logFile, 'r') as fdLog:
-                    print(fdLog.read())
-            sys.exit(cls._auths[ipaddress].returncode)
+            print(f"\n*** startAuth log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startAuth log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -619,14 +616,11 @@ distributor-threads={threads}""".format(confdir=confdir,
         cls.waitForTCPSocket("127.0.0.1", port)
 
         if cls._recursor.poll() is not None:
-            try:
-                cls._recursor.kill()
-            except OSError as e:
-                if e.errno != errno.ESRCH:
-                    raise
-                with open(logFile, 'r') as fdLog:
-                    print(fdLog.read())
-            sys.exit(cls._recursor.returncode)
+            print(f"\n*** startRecursor log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startRecursor log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (recursorcmd, _recursor.returncode))
 
     @classmethod
     def wipeRecursorCache(cls, confdir):
@@ -674,6 +668,9 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def killProcess(cls, p):
+        # Don't try to kill it if it's already dead
+        if p.poll() is not None:
+            return
         try:
             p.terminate()
             for count in range(10):
