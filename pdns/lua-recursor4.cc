@@ -1042,15 +1042,11 @@ public:
     handle(h)
   {
   }
-  ~pdns_postresolve_ffi_handle()
-  {
-    cerr << "~pdns_postresolve_ffi_handle: " << pool.size() << endl;
-  }
   RecursorLua4::PostResolveFFIHandle& handle;
   std::unordered_set<std::string> pool;
-  auto insert(const std::string& str)
+  auto insert(std::string&& str)
   {
-    auto [it, inserted] = pool.insert(str);
+    auto [it, inserted] = pool.insert(std::move(str));
     return it;
   }
 };
