@@ -863,6 +863,8 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "NOTIFY-DNSUPDATE",
     "ALSO-NOTIFY",
     "AXFR-MASTER-TSIG",
+    "GSS-ALLOW-AXFR-PRINCIPAL",
+    "GSS-ACCEPTOR-PRINCIPAL",
     "IXFR",
     "LUA-AXFR-SCRIPT",
     "NSEC3NARROW",
