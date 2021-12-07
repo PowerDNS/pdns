@@ -1043,12 +1043,13 @@ public:
   {
   }
   RecursorLua4::PostResolveFFIHandle& handle;
-  std::unordered_set<std::string> pool;
   auto insert(std::string&& str)
   {
-    auto [it, inserted] = pool.insert(std::move(str));
+    const auto it = pool.insert(std::move(str)).first;
     return it;
   }
+private:
+  std::unordered_set<std::string> pool;
 };
 
 bool RecursorLua4::postresolve_ffi(RecursorLua4::PostResolveFFIHandle& h) const
