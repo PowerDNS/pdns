@@ -459,6 +459,7 @@ public:
 
     if (!processResponse(du->response, localRespRuleActions, dr, false, false)) {
       du->release();
+      du = nullptr;
       return;
     }
 
