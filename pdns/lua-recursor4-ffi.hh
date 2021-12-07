@@ -56,7 +56,8 @@ extern "C"
     pdns_policy_kind_custom = 5
   } pdns_policy_kind_t;
 
-  typedef struct pdns_ffi_record {
+  typedef struct pdns_ffi_record
+  {
     const char* name;
     const char* content;
     size_t content_len;
@@ -117,7 +118,7 @@ extern "C"
   uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
   pdns_policy_kind_t pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
   void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind) __attribute__((visibility("default")));
-  bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t *record, bool raw) __attribute__((visibility("default")));
+  bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t* record, bool raw) __attribute__((visibility("default")));
   bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw) __attribute__((visibility("default")));
   void pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
   bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw) __attribute__((visibility("default")));

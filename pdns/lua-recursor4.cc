@@ -1048,6 +1048,7 @@ public:
     const auto it = pool.insert(std::move(str)).first;
     return it;
   }
+
 private:
   std::unordered_set<std::string> pool;
 };
@@ -1089,7 +1090,7 @@ void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_han
   ref->handle.d_dq.appliedPolicy->d_kind = static_cast<DNSFilterEngine::PolicyKind>(kind);
 }
 
-bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t *record, bool raw)
+bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t* record, bool raw)
 {
   if (i >= ref->handle.d_dq.currentRecords->size()) {
     return false;
@@ -1101,7 +1102,8 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
       auto content = ref->insert(r.d_content->serialize(r.d_name, true));
       record->content = content->data();
       record->content_len = content->size();
-    } else {
+    }
+    else {
       auto content = ref->insert(r.d_content->getZoneRepresentation());
       record->content = content->data();
       record->content_len = content->size();
@@ -1127,7 +1129,8 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
     DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
     if (raw) {
       r.d_content = DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen));
-    } else {
+    }
+    else {
       r.d_content = DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen));
     }
 
@@ -1155,7 +1158,8 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
     dr.d_place = DNSResourceRecord::Place(place);
     if (raw) {
       dr.d_content = DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen));
-    } else {
+    }
+    else {
       dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen));
     }
     ref->handle.d_dq.currentRecords->push_back(std::move(dr));

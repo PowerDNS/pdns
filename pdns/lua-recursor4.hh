@@ -72,7 +72,6 @@ struct LuaContext::Pusher<pdns_postresolve_ffi_handle*>
   }
 };
 
-
 class RecursorLua4 : public BaseLua4
 {
 public:
@@ -224,10 +223,10 @@ public:
   typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
   gettag_ffi_t d_gettag_ffi;
 
-
   struct PostResolveFFIHandle
   {
-    PostResolveFFIHandle(DNSQuestion& dq) : d_dq(dq)
+    PostResolveFFIHandle(DNSQuestion& dq) :
+      d_dq(dq)
     {
     }
     DNSQuestion& d_dq;
