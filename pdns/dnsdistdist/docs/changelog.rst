@@ -2,6 +2,22 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0-rc1
+  :released: TBD
+
+  .. change::
+    :tags: Improvements, DNS over TLS, Performance
+    :pullreq: 11037
+
+    Reuse and save the TLS session tickets in DoT healthchecks
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Security
+    :pullreq: 11075
+
+    Fix a double-free when a DoH cross-protocol response is dropped
+
+.. changelog::
   :version: 1.7.0-beta2
   :released: 29th of November 2021
 
