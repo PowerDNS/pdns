@@ -35,6 +35,10 @@ if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
+if GSS_TSIG
+AM_CPPFLAGS +=$(GSS_CFLAGS)
+endif
+
 if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
@@ -230,6 +234,7 @@ pdns_server_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	histogram.hh \
+        gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
@@ -328,6 +333,10 @@ if LUA
 pdns_server_LDADD += $(LUA_LIBS)
 endif
 
+if GSS_TSIG
+pdns_server_LDADD += $(GSS_LIBS)
+endif
+
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
@@ -360,6 +369,7 @@ pdnsutil_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \
 	json.cc \
@@ -427,6 +437,10 @@ endif
 
 if LUA
 pdnsutil_LDADD += $(LUA_LIBS)
+endif
+
+if GSS_TSIG
+pdnsutil_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \
@@ -524,6 +538,10 @@ zone2ldap_SOURCES = \
 
 zone2ldap_LDADD = $(LIBCRYPTO_LIBS)
 zone2ldap_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
+if GSS_TSIG
+zone2ldap_LDADD += $(GSS_LIBS)
+endif
 
 sdig_SOURCES = \
 	base32.cc \
@@ -664,6 +682,7 @@ saxfr_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -685,6 +704,10 @@ saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+saxfr_LDADD += $(GSS_LIBS)
+endif
+
 ixfrdist_SOURCES = \
 	arguments.cc \
 	axfr-retriever.cc \
@@ -699,6 +722,7 @@ ixfrdist_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrdist-stats.hh ixfrdist-stats.cc \
@@ -746,6 +770,11 @@ ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
 ixfrdist_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+ixfrdist_LDADD += $(GSS_LIBS)
+endif
+
+
 ixplore_SOURCES = \
 	arguments.cc \
 	axfr-retriever.cc \
@@ -759,6 +788,7 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+        gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
@@ -779,6 +809,9 @@ ixplore_SOURCES = \
 
 ixplore_LDADD = $(LIBCRYPTO_LIBS)
 ixplore_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+if GSS_TSIG
+ixplore_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -825,6 +858,7 @@ nsec3dig_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -838,8 +872,13 @@ nsec3dig_SOURCES = \
 	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
+
 nsec3dig_LDADD = $(LIBCRYPTO_LIBS)
 nsec3dig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
+if GSS_TSIG
+nsec3dig_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -902,6 +941,7 @@ tsig_tests_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -921,6 +961,10 @@ tsig_tests_SOURCES = \
 tsig_tests_LDADD = $(LIBCRYPTO_LIBS)
 tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
+if GSS_TSIG
+toysdig_LDADD += $(GSS_LIBS)
+endif
+
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
@@ -938,6 +982,7 @@ speedtest_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -1352,6 +1397,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
+        gss_context.cc gss_context.hh \
 	histogram.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \
@@ -1436,6 +1482,10 @@ testrunner_LDADD = \
 	$(LUA_LIBS) \
 	$(LIBDL) \
 	$(IPCRYPT_LIBS)
+
+if GSS_TSIG
+testrunner_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

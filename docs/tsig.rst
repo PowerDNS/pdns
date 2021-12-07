@@ -119,8 +119,6 @@ the master, not just those about AXFR requests.
 
 GSS-TSIG support
 ----------------
-  .. versionchanged:: 4.4.0
-    GSS support was removed
 
 GSS-TSIG allows authentication and authorization of DNS updates or AXFR
 using Kerberos with TSIG signatures.
