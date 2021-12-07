@@ -10,8 +10,8 @@ replication.
 Native replication
 ------------------
 
-Native replication is the default, unless other operation is
-specifically configured. Native replication basically means that
+Native replication is the default unless another operation is
+specifically configured. Native replication means that
 PowerDNS will not send out DNS update notifications, nor will it react
 to them. PowerDNS assumes that the backend is taking care of
 replication unaided.
@@ -26,7 +26,7 @@ Typically, a database slave will be configured as read-only as
 uni-directional database replication is usually sufficient. A PowerDNS
 server only requires database write access if it is participating as a
 master or slave in zone transfers, or has a frontend attached for
-managing records etc.
+managing records, etc.
 
 .. _master-operation:
 .. _primary-operation:
@@ -40,7 +40,7 @@ see if the zone changed, and transferring its contents if it has.
 Notifications are a way to promptly propagate zone changes to slaves, as
 described in :rfc:`1996`. Since
 version 4.0.0, the NOTIFY messages have a TSIG record added (transaction
-signature) if zone has been configured to use TSIG and feature has been
+signature) if the zone has been configured to use TSIG and the feature has been
 enabled.
 
 .. warning::
@@ -64,11 +64,11 @@ might be authoritative for the name of its secondary, but not have the
 data available.
 
 To resolve this issue, PowerDNS tries multiple tactics to figure out the
-IP addresses of the slaves, and notifies everybody. In contrived
-configurations this may lead to duplicate notifications being sent out,
+IP addresses of the slaves and notifies everybody. In contrived
+configurations, this may lead to duplicate notifications being sent out,
 which shouldn't hurt.
 
-Some backends may be able to detect zone changes, others may chose to
+Some backends may be able to detect zone changes, others may choose to
 let the operator indicate which zones have changed and which haven't.
 Consult the documentation for your backend to see how it processes
 changes in zones.
@@ -92,30 +92,30 @@ the :ref:`pdns_control <running-pdnscontrol>` tool:
 Secondary operation
 -------------------
 
-On launch, PowerDNS requests from all backends a list of domains which
+On launch, PowerDNS requests from all backends a list of domains that
 have not been checked recently for changes. This should happen every
 '**refresh**' seconds, as specified in the SOA record. All domains that
 are unfresh are then checked for changes over at their master. If the
 :ref:`types-SOA` serial number there is higher, the domain is
-retrieved and inserted into the database. In any case, after the check
+retrieved and inserted into the database. In any case, after the check,
 the domain is declared 'fresh', and will only be checked again after
 '**refresh**' seconds have passed.
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after
 :ref:`setting-xfr-cycle-interval` seconds.
-Every time the domain fails it's freshness check, PowerDNS will hold
+Every time the domain fails its freshness check, PowerDNS will hold
 back on checking the domain for
 ``amount of failures * xfr-cycle-interval`` seconds, with a maximum of
 :ref:`setting-soa-retry-default` seconds
 between checks. With default settings, this means that PowerDNS will
-back off for 1, then 2, then 3 etc. minutes, to a maximum of 60 minutes
+back off for 1, then 2, then 3, etc. minutes, to a maximum of 60 minutes
 between checks. The same hold back algorithm is also applied if the zone
 transfer fails due to problems on the master, i.e. if zone transfer is
 not allowed.
 
-Receiving a NOTIFY immediately clears the back off period for the
-respective domain to allow immediately freshness checks for this domain.
+Receiving a NOTIFY immediately clears the back-off period for the
+respective domain to allow immediate freshness checks for this domain.
 
 .. warning::
   Slave support is OFF by default, turn it on by adding
@@ -125,7 +125,7 @@ respective domain to allow immediately freshness checks for this domain.
   When running PowerDNS via the provided systemd service file,
   `ProtectSystem <http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_
   is set to ``full``, this means PowerDNS is unable to write to e.g.
-  ``/etc`` and ``/home``, possibly being unable to write AXFR's zones.
+  ``/etc`` and ``/home``, possibly being unable to write AXFR'd zones.
 
 PowerDNS also reacts to notifies by immediately checking if the zone has
 updated and if so, retransfering it.
@@ -133,7 +133,7 @@ updated and if so, retransfering it.
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.
 MySQL configured with either BerkeleyDB or InnoDB meets this
-requirement, as do PostgreSQL. The BIND backend implements
+requirement, as does PostgreSQL. The BIND backend implements
 transaction semantics by renaming files if and only if they have been
 retrieved completely and parsed correctly.
 
@@ -150,7 +150,7 @@ first in first out order.
 
 PowerDNS supports multiple masters. For the BIND backend, the native
 BIND configuration language suffices to specify multiple masters, for
-SQL based backends, list all master servers separated by commas in the
+SQL-based backends, list all master servers separated by commas in the
 'master' field of the domains table.
 
 Since version 4.0.0, PowerDNS requires that masters sign their
@@ -163,11 +163,11 @@ Master/Slave Setup Requirements
 -------------------------------
 
 Generally to enable a Master/Slave setup you have to take care of
-following properties.
+the following properties.
 
 * The :ref:`setting-master`/:ref:`setting-slave` state has to be enabled in the respective ``/etc/powerdns/pdns.conf`` config files.
 * The nameservers have to be set up correctly as NS domain records i.e. defining a NS and A record for each slave.
-* Master/Slave state has to be configured on a per domain basis in the ``domains`` table. Namely the ``type`` column has to be either ``MASTER`` or ``SLAVE`` respectively and the slave needs a comma separated list of master node IP addresses in the ``master`` column in the ``domains`` table. :doc:`more to this topic <backends/generic-sql>`.
+* Master/Slave state has to be configured on a per-domain basis in the ``domains`` table. Namely, the ``type`` column has to be either ``MASTER`` or ``SLAVE`` respectively and the slave needs a comma-separated list of master node IP addresses in the ``master`` column in the ``domains`` table. :doc:`more to this topic <backends/generic-sql>`.
 
 IXFR: incremental zone transfers
 --------------------------------
@@ -183,7 +183,7 @@ attempt to retrieve zone updates via IXFR.
 In such cases, make sure to delete the zone contents to force a fresh
 retrieval.
 
-Finally, IXFR updates that "plug" Empty Non Terminals do not yet remove
+Finally, IXFR updates that "plug" Empty Non-Terminals do not yet remove
 ENT records. A 'pdnsutil rectify-zone' may be required.
 
 PowerDNS itself is currently only able to retrieve updates via IXFR. It
@@ -198,14 +198,14 @@ Autoprimary: automatic provisioning of secondaries
 .. versionchanged:: 4.5.0
   Before version 4.5.0, this feature was called 'supermaster'
 
-PowerDNS can recognize so called 'autoprimaries'. An autoprimary is a host
+PowerDNS can recognize so-called 'autoprimaries'. An autoprimary is a host
 which is primary for domains and for which we are to be a secondary. When a
 primary (re)loads a domain, it sends out a notification to its secondaries.
 Normally, such a notification is only accepted if PowerDNS already knows
 that it is a secondary for a domain.
 
 However, a notification from an autoprimary carries more persuasion. When
-PowerDNS determines that a notification comes from a autoprimary and it
+PowerDNS determines that a notification comes from an autoprimary and it
 is bonafide, it can provision the domain automatically, and configure
 itself as a secondary for that zone.
 
@@ -263,7 +263,7 @@ This script can be enabled like this::
   correct; if not, the zone transfer is not performed.
 
 Your Lua functions have access to the query codes through a pre-defined
-Lua table called ``pdns``. For example if you want to check for a CNAME
+Lua table called ``pdns``. For example, if you want to check for a CNAME
 record you can either compare ``qtype`` to the numeric constant 5 or the
 value ``pdns.CNAME`` -- they are equivalent.
 
@@ -294,7 +294,7 @@ Consider the following simple example:
               return 0, resp
            end
 
-           -- Grab each _tstamp TXT record and add a time stamp
+           -- Grab each _tstamp TXT record and add a timestamp
            if record:qtype() == pdns.TXT and string.starts(record:qname():toString(), "_tstamp.") then
               resp = {}
               resp[1] = {
@@ -329,6 +329,6 @@ Consider the following simple example:
 Upon an incoming AXFR, PowerDNS calls our ``axfrfilter`` function for
 each record. All HINFO records are replaced by a TXT record with a TTL
 of 99 seconds and the specified string. TXT Records with names starting
-with ``_tstamp.`` get their value (rdata) set to the current time stamp.
+with ``_tstamp.`` get their value (rdata) set to the current timestamp.
 A records are appended with a TXT record. All other records are
 unhandled.
