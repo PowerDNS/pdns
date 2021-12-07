@@ -889,6 +889,7 @@ function postresolve_ffi(ref)
      if record.type == pdns.A and content == "1.2.3.4"
      then
        ffi.C.pdns_postresolve_ffi_handle_set_record(ref, i, "0.1.2.3", 7, false);
+       ffi.C.pdns_postresolve_ffi_handle_add_record(ref, "add."..name, pdns.A, record.ttl, '4.5.6.7', 7, "pdns_record_place_additional", false);
      elseif record.type == pdns.AAAA and content == "::1"
      then
        ffi.C.pdns_postresolve_ffi_handle_set_record(ref, i, "\\0\\1\\2\\3\\4\\5\\6\\7\\8\\9\\10\\11\\12\\13\\14\\15", 16, true);
@@ -940,13 +941,18 @@ end
         expectedAnswerRecords = [
             dns.rrset.from_text('postresolve_ffi.example.', 60, dns.rdataclass.IN, 'A', '0.1.2.3', '1.2.3.5'),
         ]
+        expectedAdditionalRecords = [
+            dns.rrset.from_text('add.postresolve_ffi.example.', 60, dns.rdataclass.IN, 'A', '4.5.6.7'),
+        ]
+
         query = dns.message.make_query('postresolve_ffi.example', 'A')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 1)
         self.assertEqual(len(res.authority), 0)
-        self.assertEqual(len(res.additional), 0)
+        self.assertEqual(len(res.additional), 1)
         self.assertEqual(res.answer, expectedAnswerRecords)
+        self.assertEqual(res.additional, expectedAdditionalRecords)
 
     def testModifyAAAA(self):
         """postresolve_ffi: test that we can modify AAAA answers"""
