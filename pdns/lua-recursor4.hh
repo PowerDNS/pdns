@@ -58,7 +58,7 @@ struct LuaContext::Pusher<pdns_ffi_param*>
   }
 };
 
-// pdns_postresolve_ffi_param_t is a lightuserdata
+// pdns_postresolve_ffi_handle is a lightuserdata
 template <>
 struct LuaContext::Pusher<pdns_postresolve_ffi_handle*>
 {
