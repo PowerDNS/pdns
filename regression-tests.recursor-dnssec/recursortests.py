@@ -121,6 +121,11 @@ optout.example.          3600 IN NS   ns1.optout.example.
 optout.example.          3600 IN DS   59332 13 1 e664f886ae1b5df03d918bc1217d22afc29925b9
 ns1.optout.example.      3600 IN A    {prefix}.14
 
+postresolve_ffi.example.  3600 IN A    1.2.3.4
+postresolve_ffi.example.  3600 IN A    1.2.3.5
+postresolve_ffi.example.  3600 IN AAAA ::1
+postresolve_ffi.example.  3600 IN AAAA ::2
+
 insecure-formerr.example. 3600 IN NS   ns1.insecure-formerr.example.
 ns1.insecure-formerr.example. 3600 IN A    {prefix}.2
 

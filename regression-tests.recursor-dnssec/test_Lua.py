@@ -763,3 +763,200 @@ secure.example.zone.rpz. 60 IN A 192.0.2.42
             self.assertEqual(len(res.answer), 2)
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
+
+class LuaPostResolveFFITest(RecursorTest):
+    """Tests postresolve_ffi interface"""
+
+    _confdir = 'LuaPostResolveFFITest'
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+local ffi = require("ffi")
+
+ffi.cdef[[
+  typedef struct pdns_postresolve_ffi_handle pdns_postresolve_ffi_handle_t;
+
+  typedef enum
+  {
+    pdns_record_place_answer = 1,
+    pdns_record_place_authority = 2,
+    pdns_record_place_additional = 3
+  } pdns_record_place_t;
+
+ typedef enum
+  {
+    pdns_policy_kind_noaction = 0,
+    pdns_policy_kind_drop = 1,
+    pdns_policy_kind_nxdomain = 2,
+    pdns_policy_kind_nodata = 3,
+    pdns_policy_kind_truncate = 4,
+    pdns_policy_kind_custom = 5
+  } pdns_policy_kind_t;
+
+  typedef struct pdns_ffi_record {
+    const char* name;
+    const char* content;
+    const size_t content_len;
+    uint32_t ttl;
+    pdns_record_place_t place;
+    uint16_t type;
+  } pdns_ffi_record_t;
+
+  const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref);
+  uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref);
+  uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref);
+  void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind);
+  bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t *record, bool raw);
+  bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw);
+  void pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref);
+  bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw);
+  const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref);
+  void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize);
+]]
+
+
+function tohex(str)
+  return (str:gsub('.', function (c) return string.format('%02X', string.byte(c)) end))
+end
+function toA(str)
+  return (str:gsub('.', function (c) return string.format('%d.', string.byte(c)) end))
+end
+
+function postresolve_ffi(ref)
+  local qname = ffi.string(ffi.C.pdns_postresolve_ffi_handle_get_qname(ref))
+  local qtype = ffi.C.pdns_postresolve_ffi_handle_get_qtype(ref)
+
+  if qname  == "example" and qtype == pdns.SOA
+  then
+     local addr = ffi.string(ffi.C.pdns_postresolve_ffi_handle_get_authip(ref))
+     pdnslog("XXXX "..addr)
+     if string.sub(addr, -3) ~= ".10" and string.sub(addr, -3) ~= ".18"
+     then
+       -- signal error by clearing all
+       ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
+     end
+     -- as a bonug check from which auth the data came
+     local addr = ffi.new("const void *[1]")
+     local len = ffi.new("size_t [1]")
+     ffi.C.pdns_postresolve_ffi_handle_get_authip_raw(ref, addr, len)
+     local a = ffi.string(addr[0], len[0])
+     if string.byte(a, 4) ~= 10 and string.byte(a,4) ~= 18
+     then
+       -- signal error by clearing all
+       ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
+     end
+
+     ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_noaction")
+     return true
+  end
+  if qname == "example" and qtype == pdns.TXT
+  then
+     ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_drop")
+     return true
+  end
+  if qname == "ns1.example" and qtype == pdns.A
+  then
+     ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_nxdomain")
+     return true
+  end
+  if qname == "ns1.example" and qtype == pdns.AAAA
+  then
+     ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_nodata")
+     return true
+  end
+  if qname == "ns2.example" and qtype == pdns.A
+  then
+     ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_truncate")
+     return true
+  end
+
+  if qname ~= "postresolve_ffi.example" or (qtype ~= pdns.A and qtype ~= pdns.AAAA)
+  then
+    return false
+  end
+
+  local record = ffi.new("pdns_ffi_record_t")
+  local i = 0
+
+  while ffi.C.pdns_postresolve_ffi_handle_get_record(ref, i, record, false)
+  do
+     local content = ffi.string(record.content, record.content_len)
+     local name = ffi.string(record.name)
+     if name ~= "postresolve_ffi.example"
+     then
+       return false
+     end
+     if record.type == pdns.A and content == "1.2.3.4"
+     then
+       ffi.C.pdns_postresolve_ffi_handle_set_record(ref, i, "0.1.2.3", 7, false);
+     elseif record.type == pdns.AAAA and content == "::1"
+     then
+       ffi.C.pdns_postresolve_ffi_handle_set_record(ref, i, "\\0\\1\\2\\3\\4\\5\\6\\7\\8\\9\\10\\11\\12\\13\\14\\15", 16, true);
+     end
+     i = i + 1
+  end
+  return true
+end
+    """
+
+    def testNOACTION(self):
+        """ postresolve_ffi: test that we can do a NOACTION for a name and type combo"""
+        query = dns.message.make_query('example', 'SOA')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+
+    def testDROP(self):
+        """ postresolve_ffi: test that we can do a DROP for a name and type combo"""
+        query = dns.message.make_query('example', 'TXT')
+        res = self.sendUDPQuery(query)
+        self.assertEquals(res, None)
+
+    def testNXDOMAIN(self):
+        """ postresolve_ffi: test that we can return a NXDOMAIN for a name and type combo"""
+        query = dns.message.make_query('ns1.example', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertEqual(len(res.answer), 0)
+
+    def testNODATA(self):
+        """ postresolve_ffi: test that we can return a NODATA for a name and type combo"""
+        query = dns.message.make_query('ns1.example', 'AAAA')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+
+    def testTRUNCATE(self):
+        """ postresolve_ffi: test that we can return a truncated for a name and type combo"""
+        query = dns.message.make_query('ns2.example', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+        self.assertMessageHasFlags(res, ['QR', 'TC', 'RD', 'RA'])
+
+
+    def testModifyA(self):
+        """postresolve_ffi: test that we can modify A answers"""
+        expectedAnswerRecords = [
+            dns.rrset.from_text('postresolve_ffi.example.', 60, dns.rdataclass.IN, 'A', '0.1.2.3', '1.2.3.5'),
+        ]
+        query = dns.message.make_query('postresolve_ffi.example', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
+        self.assertEqual(len(res.additional), 0)
+        self.assertEqual(res.answer, expectedAnswerRecords)
+
+    def testModifyAAAA(self):
+        """postresolve_ffi: test that we can modify AAAA answers"""
+        expectedAnswerRecords = [
+            dns.rrset.from_text('postresolve_ffi.example.', 60, dns.rdataclass.IN, 'AAAA', '1:203:405:607:809:a0b:c0d:e0f', '::2'),
+        ]
+        query = dns.message.make_query('postresolve_ffi.example', 'AAAA')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
+        self.assertEqual(len(res.additional), 0)
+        self.assertEqual(res.answer, expectedAnswerRecords)

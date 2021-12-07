@@ -1134,7 +1134,7 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
     return true;
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << "Error attempting to add a record from Lua via pdns_postresolve_ffi_handle_set_record(): " << e.what() << endl;
+    g_log << Logger::Error << "Error attempting to set record content from Lua via pdns_postresolve_ffi_handle_set_record(): " << e.what() << endl;
     return false;
   }
 }
