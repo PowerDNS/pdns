@@ -395,7 +395,6 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
 
   SQLFreeStmt(d_statement, SQL_CLOSE);
   throw SSqlException("Should not get here.");
-  return this;
 }
 
 // Constructor.

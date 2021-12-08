@@ -382,8 +382,6 @@ bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
     id = -2;
     return true;
   }
-
-  return false;
 }
 
 bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)

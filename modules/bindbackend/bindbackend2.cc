@@ -221,7 +221,6 @@ bool Bind2Backend::startTransaction(const DNSName& qname, int id)
     int fd = mkstemp(&d_transaction_tmpname.at(0));
     if (fd == -1) {
       throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
-      return false;
     }
 
     d_of = std::make_unique<ofstream>(d_transaction_tmpname);

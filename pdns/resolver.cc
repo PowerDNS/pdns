@@ -336,7 +336,6 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+to.toLogString());
   }
-  return -1;
 }
 
 int Resolver::resolve(const ComboAddress& ipport, const DNSName &domain, int type, Resolver::res_t* res) {
