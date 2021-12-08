@@ -795,16 +795,19 @@ ffi.cdef[[
 
   typedef struct pdns_ffi_record {
     const char* name;
+    size_t name_len;
     const char* content;
-    const size_t content_len;
+    size_t content_len;
     uint32_t ttl;
     pdns_record_place_t place;
     uint16_t type;
   } pdns_ffi_record_t;
 
   const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref);
+  const char* pdns_postresolve_ffi_handle_get_qname_raw(pdns_postresolve_ffi_handle_t* ref, const char** name, size_t* len);
   uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref);
   uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref);
+  void pdns_postresolve_ffi_handle_set_rcode(const pdns_postresolve_ffi_handle_t* ref, uint16_t rcode);
   void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind);
   bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t *record, bool raw);
   bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw);

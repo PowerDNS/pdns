@@ -1070,6 +1070,13 @@ const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t*
   return str->c_str();
 }
 
+void pdns_postresolve_ffi_handle_get_qname_raw(pdns_postresolve_ffi_handle_t* ref, const char** qname, size_t* qnameSize)
+{
+  const auto& storage = ref->handle.d_dq.qname.getStorage();
+  *qname = storage.data();
+  *qnameSize = storage.size();
+}
+
 uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref)
 {
   return ref->handle.d_dq.qtype;
@@ -1078,6 +1085,11 @@ uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle
 uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref)
 {
   return ref->handle.d_dq.rcode;
+}
+
+void pdns_postresolve_ffi_handle_set_rcode(const pdns_postresolve_ffi_handle_t* ref, uint16_t rcode)
+{
+  ref->handle.d_dq.rcode = rcode;
 }
 
 pdns_policy_kind_t pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref)
@@ -1097,7 +1109,15 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
   }
   try {
     DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
-    record->name = ref->insert(r.d_name.toStringNoDot())->c_str();
+    if (raw) {
+      const auto& storage = r.d_name.getStorage();
+      record->name = storage.data();
+      record->name_len = storage.size();
+    } else {
+      std::string name = r.d_name.toStringNoDot();
+      record->name_len = name.size();
+      record->name = ref->insert(std::move(name))->c_str();
+    }
     if (raw) {
       auto content = ref->insert(r.d_content->serialize(r.d_name, true));
       record->content = content->data();
