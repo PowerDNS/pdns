@@ -538,6 +538,9 @@ distributor-threads={threads}""".format(confdir=confdir,
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
+        print("But first an lsof -nPi :53 run")
+        lsof = subprocess.run(["lsof", "-nPi", ":53"], capture_output=True, text=True )
+        print(lsof.stdout)
         authcmd = list(cls._auth_cmd)
         authcmd.append('--config-dir=%s' % confdir)
         ipconfig = ipaddress

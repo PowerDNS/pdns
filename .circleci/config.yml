@@ -868,7 +868,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler prometheus
+      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler prometheus lsof
       - install-recursor-deps
       - run:
           name: Set up authbind

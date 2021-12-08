@@ -181,7 +181,7 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
               pdns-server pdns-backend-bind daemontools \
               jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
-              protobuf-compiler snmpd prometheus')
+              protobuf-compiler snmpd prometheus lsof')
 
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
