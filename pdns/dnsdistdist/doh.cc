@@ -1327,8 +1327,6 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       queryDH->id = du->ids.origID;
 
       auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
-
-      du->get();
       du->tcp = true;
       du->truncated = false;
 
