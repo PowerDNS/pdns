@@ -681,7 +681,7 @@ distributor-threads={threads}""".format(confdir=confdir,
             if x is None:
                 print("kill...", p, file=sys.stderr)
                 p.kill()
-                p.wait()
+            p.wait()
         except OSError as e:
             # There is a race-condition with the poll() and
             # kill() statements, when the process is dead on the
