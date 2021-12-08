@@ -241,7 +241,7 @@ struct IDState
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   boost::optional<uint32_t> tempFailureTTL; // 8
   const ClientState* cs{nullptr}; // 8
-  DOHUnit* du{nullptr}; // 8
+  DOHUnit* du{nullptr}; // 8 (not a unique_ptr because we currently need to be able to peek at it without knowing taking ownership until later)
   std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8
   std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
   uint32_t cacheKey{0}; // 4
