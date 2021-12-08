@@ -173,6 +173,9 @@ struct DOHFrontend
 #ifndef HAVE_DNS_OVER_HTTPS
 struct DOHUnit
 {
+  static void release(DOHUnit* ptr)
+  {
+  }
 };
 
 #else /* HAVE_DNS_OVER_HTTPS */
@@ -208,7 +211,12 @@ struct DOHUnit
     }
   }
 
-  void handleUDPResponse(PacketBuffer&& response, IDState&& state);
+  static void release(DOHUnit* ptr)
+  {
+    if (ptr) {
+      ptr->release();
+    }
+  }
 
   IDState ids;
   std::string sni;
@@ -248,6 +256,8 @@ struct DOHUnit
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="");
 };
 
+void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, IDState&& state);
+
 #endif /* HAVE_DNS_OVER_HTTPS  */
 
-void handleDOHTimeout(DOHUnit* oldDU);
+void handleDOHTimeout(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& oldDU);
