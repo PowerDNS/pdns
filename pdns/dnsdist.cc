@@ -668,8 +668,9 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         /* don't call processResponse for DOH */
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
-          // DoH query
+          // DoH query, we cannot touch du after that
           du->handleUDPResponse(std::move(response), std::move(*ids));
+          du = nullptr;
 #endif
           continue;
         }
@@ -1547,6 +1548,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
       handleDOHTimeout(du);
+      du = nullptr;
     }
 
     ids->cs = &cs;
@@ -1887,6 +1889,7 @@ static void healthChecksThread()
           }
           ids.du = nullptr;
           handleDOHTimeout(oldDU);
+          oldDU = nullptr;
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
