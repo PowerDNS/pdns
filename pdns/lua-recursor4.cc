@@ -1113,7 +1113,8 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
       const auto& storage = r.d_name.getStorage();
       record->name = storage.data();
       record->name_len = storage.size();
-    } else {
+    }
+    else {
       std::string name = r.d_name.toStringNoDot();
       record->name_len = name.size();
       record->name = ref->insert(std::move(name))->c_str();

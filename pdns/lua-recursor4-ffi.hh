@@ -128,5 +128,3 @@ extern "C"
   const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
   void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
 }
-
-#undef PDNS_VISIBILITY

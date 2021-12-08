@@ -832,13 +832,22 @@ function postresolve_ffi(ref)
   if qname  == "example" and qtype == pdns.SOA
   then
      local addr = ffi.string(ffi.C.pdns_postresolve_ffi_handle_get_authip(ref))
-     pdnslog("XXXX "..addr)
      if string.sub(addr, -3) ~= ".10" and string.sub(addr, -3) ~= ".18"
      then
        -- signal error by clearing all
        ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
      end
-     -- as a bonug check from which auth the data came
+     local qaddr = ffi.new("const char *[1]")
+     local qlen = ffi.new("size_t [1]")
+     ffi.C.pdns_postresolve_ffi_handle_get_qname_raw(ref, qaddr, qlen)
+     local q = ffi.string(qaddr[0], qlen[0])
+     if tohex(q) ~= "076578616D706C6500"
+     then
+       -- pdnslog("Error "..tohex(q))
+       -- signal error by clearing all
+       ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
+     end
+     -- as a bonus check from which auth the data came
      local addr = ffi.new("const void *[1]")
      local len = ffi.new("size_t [1]")
      ffi.C.pdns_postresolve_ffi_handle_get_authip_raw(ref, addr, len)
@@ -848,7 +857,6 @@ function postresolve_ffi(ref)
        -- signal error by clearing all
        ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
      end
-
      ffi.C.pdns_postresolve_ffi_handle_set_appliedpolicy_kind(ref, "pdns_policy_kind_noaction")
      return true
   end
@@ -896,6 +904,19 @@ function postresolve_ffi(ref)
      elseif record.type == pdns.AAAA and content == "::1"
      then
        ffi.C.pdns_postresolve_ffi_handle_set_record(ref, i, "\\0\\1\\2\\3\\4\\5\\6\\7\\8\\9\\10\\11\\12\\13\\14\\15", 16, true);
+     end
+     i = i + 1
+  end
+  -- loop again using raw
+  i = 0
+  while ffi.C.pdns_postresolve_ffi_handle_get_record(ref, i, record, true)
+  do
+     local content = ffi.string(record.content, record.content_len)
+     local name = ffi.string(record.name, record.name_len)
+     --pdnslog("R  "..tohex(name))
+     if tohex(name) ~= "0F706F73747265736F6C76655F666669076578616D706C6500"
+     then
+       ffi.C.pdns_postresolve_ffi_handle_clear_records(ref)
      end
      i = i + 1
   end
