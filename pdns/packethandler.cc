@@ -44,7 +44,7 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 #include "version.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
 
 #if 0

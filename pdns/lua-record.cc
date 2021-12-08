@@ -13,7 +13,7 @@
 #include "ueberbackend.hh"
 #include "dnsrecords.hh"
 #include "dns_random.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 
 /* to do:

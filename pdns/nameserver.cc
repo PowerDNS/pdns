@@ -32,7 +32,7 @@
 #include <sys/types.h>
 #include "responsestats.hh"
 
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "dnspacket.hh"
@@ -83,7 +83,7 @@ extern StatBag S;
     These statistics are made available via the UeberBackend on the same socket that is used for dynamic module commands.
 
     \section Main Main 
-    The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
+    The main() of PowerDNS can be found in auth-main.cc - start reading there for further insights into the operation of the nameserver
 */
 
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this

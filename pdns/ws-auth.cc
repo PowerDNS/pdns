@@ -42,7 +42,7 @@
 #include "dnsseckeeper.hh"
 #include <iomanip>
 #include "zoneparser-tng.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "auth-caches.hh"
 #include "auth-zonecache.hh"
 #include "threadname.hh"
