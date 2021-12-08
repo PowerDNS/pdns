@@ -228,6 +228,7 @@ struct DOHServerConfig
 static void sendDoHUnitToTheMainThread(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du, const char* description)
 {
   auto ptr = du.release();
+  ptr->get();
   static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
 
   ssize_t sent = write(ptr->rsock, &ptr, sizeof(ptr));
@@ -242,6 +243,7 @@ static void sendDoHUnitToTheMainThread(std::unique_ptr<DOHUnit, void(*)(DOHUnit*
 
     ptr->release();
   }
+  ptr->release();
 }
 
 /* This function is called from other threads than the main DoH one,
