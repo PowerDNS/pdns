@@ -44,7 +44,7 @@ typedef struct dnsdist_ffi_tag {
 } dnsdist_ffi_tag_t;
 
 typedef struct dnsdist_ffi_raw_value {
-  char* value;
+  const char* value;
   uint16_t size;
 } dnsdist_ffi_raw_value_t;
 

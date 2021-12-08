@@ -773,12 +773,10 @@ class TestSpoofingLuaFFISpoofMulti(DNSDistTest):
 
             local str = "\\192\\000\\002\\001"
             records[0].size = #str
-            records[0].value = ffi.new("char[?]", #str)
-            ffi.copy(records[0].value, str, #str)
+            records[0].value = str
 
             local str = "\\192\\000\\002\\255"
-            records[1].value = ffi.new("char[?]", #str)
-            ffi.copy(records[1].value, str, #str)
+            records[1].value = str
             records[1].size = #str
 
             ffi.C.dnsdist_ffi_dnsquestion_spoof_raw(dq, records, 2)
@@ -788,13 +786,11 @@ class TestSpoofingLuaFFISpoofMulti(DNSDistTest):
 
             local str = "\\033this text has a comma at the end,"
             records[0].size = #str
-            records[0].value = ffi.new("char[?]", #str)
-            ffi.copy(records[0].value, str, #str)
+            records[0].value = str
 
             local str = "\\003aaa\\004bbbb"
             records[1].size = #str
-            records[1].value = ffi.new("char[?]", #str)
-            ffi.copy(records[1].value, str, #str)
+            records[1].value = str
 
             ffi.C.dnsdist_ffi_dnsquestion_spoof_raw(dq, records, 2)
             return DNSAction.HeaderModify
