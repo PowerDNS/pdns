@@ -2,6 +2,108 @@ Changelogs for 4.6.x
 ====================
 
 .. changelog::
+  :version: 4.6.0-beta1
+  :released: 9th of December 2021
+
+  This is version 4.6.0-beta1 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.5, and a couple of user visible changes.
+
+  New features:
+
+  * support for incoming PROXY headers
+  * support for EDNS Cookies
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  Compared to 4.6.0-alpha1, the major user visible change is the new NSEC3PARAM settings (again, see the upgrade docs).
+  Besides that, see below for various fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11068
+
+    prevent bind-hybrid+zone-cache
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11067
+
+    pdnsutil: skip SHA1 DSes except in verbose mode
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11066
+
+    add zone to zone cache on flush API endpoint
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10982
+
+    Condition to HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV is reversed.
+    During build, the runtime directory in the service files for virtual-hosting are now correctly generated.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11012
+
+    new default nsec3param settings
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10981
+
+    dnsupdate/2136: apply new TTL to whole RRset, not only to the added record
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10941
+
+    bindbackend: skip rejected zones during list and search
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10963
+
+    make the zone cache more robust for bad data and save some SOA queries for DNSSEC zones (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10959
+
+    api, check qtype location (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10865
+
+    put some json on /api/v1
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10951
+
+    improve dnsname exception handling for SOA records (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10919
+
+    Add more UDP error metrics (checksum, IPv6)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10901
+
+    ZoneParserTNG: Stricter checks when loading a zone file
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10891
+
+    Implement fd-usage metric for OpenBSD
+
+.. changelog::
   :version: 4.6.0-alpha1
   :released: 7th of October 2021
 
