@@ -559,6 +559,9 @@ distributor-threads={threads}""".format(confdir=confdir,
         cls.waitForTCPSocket(ipaddress, 53)
 
         if cls._auths[ipaddress].poll() is not None:
+            print("Start auth failed, second lsof -nPi :43 run:");
+            lsof = subprocess.run(["lsof", "-nPi", ":53"], capture_output=True, text=True )
+            print(lsof.stdout)
             print(f"\n*** startAuth log for {logFile} ***")
             with open(logFile, 'r') as fdLog:
                 print(fdLog.read())
