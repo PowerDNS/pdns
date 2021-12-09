@@ -53,3 +53,5 @@ There are multiple ways of dealing with these restrictions if you encounter them
 * Use custom configuration files to bind to alternate ports outside of the privileged range. This can be done via the following configuration settings:
     * dnsdist: `setLocal()`
     * Auth & Recursor: `local-address` and/or `local-port`
+
+Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the `NET_BIND_SERVICE` capability when attempting to bind to a privileged port. 
