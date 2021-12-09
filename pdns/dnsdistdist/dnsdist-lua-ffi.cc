@@ -655,3 +655,23 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
     return 0;
   }
 }
+
+size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dq, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value* values, void* out, const size_t outSize)
+{
+  std::vector<ProxyProtocolValue> valuesVect;
+  if (valuesCount > 0) {
+    valuesVect.reserve(valuesCount);
+    for (size_t idx = 0; idx < valuesCount; idx++) {
+      valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+    }
+  }
+
+  std::string payload = makeProxyHeader(dq->dq->overTCP(), *dq->dq->remote, *dq->dq->local, valuesVect);
+  if (payload.size() > outSize) {
+    return 0;
+  }
+
+  memcpy(out, payload.c_str(), payload.size());
+
+  return payload.size();
+}
