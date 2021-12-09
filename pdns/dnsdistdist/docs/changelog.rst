@@ -17,6 +17,18 @@ Changelog
 
     Fix a double-free when a DoH cross-protocol response is dropped
 
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Security
+    :pullreq: 11075
+
+    Fix a double-free when a DoH cross-protocol response is dropped
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 11079
+
+    Check the size of the query when re-sending a DoH query
+
 .. changelog::
   :version: 1.7.0-beta2
   :released: 29th of November 2021
