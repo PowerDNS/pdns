@@ -414,7 +414,8 @@ class TestResponseClearRecordsType(DNSDistTest):
 
     newServer{address="127.0.0.1:%s"}
 
-    addResponseAction("ffi.clear-records-type.responses.tests.powerdns.com.", LuaResponseAction(luafct))
+    addResponseAction("ffi.clear-records-type.responses.tests.powerdns.com.", LuaFFIResponseAction(luafct))
+    addResponseAction("clear-records-type.responses.tests.powerdns.com.", ClearRecordTypesResponseAction(DNSQType.AAAA))
     """
 
     def testClearedFFI(self):
@@ -422,6 +423,34 @@ class TestResponseClearRecordsType(DNSDistTest):
         Responses: Removes records of a given type (FFI API)
         """
         name = 'ffi.clear-records-type.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        expectedResponse.answer.append(rrset)
+        rrset = dns.rrset.from_text(name,
+                                    3660,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1', '2001:DB8::2')
+        response.answer.append(rrset)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testCleared(self):
+        """
+        Responses: Removes records of a given type
+        """
+        name = 'clear-records-type.responses.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         expectedResponse = dns.message.make_response(query)

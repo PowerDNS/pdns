@@ -1720,6 +1720,32 @@ private:
   std::string d_value;
 };
 
+class ClearRecordTypesResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  ClearRecordTypesResponseAction() {}
+
+  ClearRecordTypesResponseAction(std::set<QType> qtypes) : d_qtypes(qtypes)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    if (d_qtypes.size() > 0) {
+      clearDNSPacketRecordTypes(dr->getMutableData(), d_qtypes);
+    }
+    return DNSResponseAction::Action::HeaderModify;
+  }
+
+  std::string toString() const override
+  {
+    return "clear record types";
+  }
+
+private:
+  std::set<QType> d_qtypes{};
+};
+
 class ContinueAction : public DNSAction
 {
 public:
@@ -2232,6 +2258,19 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SetMaxTTLResponseAction", [](uint32_t max) {
       return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
+    });
+
+  luaCtx.writeFunction("ClearRecordTypesResponseAction", [](boost::variant<int,vector<pair<int, int>>> types) {
+      std::set<QType> qtypes{};
+      if(auto t = boost::get<int>(types)) {
+        qtypes.insert(t);
+      } else {
+        const auto& v = boost::get<vector<pair<int,int>>>(types);
+        for(const auto& tpair: v) {
+          qtypes.insert(tpair.second);
+        }
+      }
+      return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(qtypes));
     });
 
   luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {

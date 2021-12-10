@@ -745,69 +745,132 @@ void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(
   }
 }
 
+int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::set<QType>& qtypes)
+{
+  static const std::set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::LUA, QType::ENT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
+
+  if (initialPacket.size() < sizeof(dnsheader)) {
+    return EINVAL;
+  }
+  try {
+    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
+
+    if (ntohs(dh->qdcount) == 0)
+      return ENOENT;
+    auto packetView = pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
+
+    PacketReader pr(packetView);
+
+    size_t idx = 0;
+    DNSName rrname;
+    uint16_t qdcount = ntohs(dh->qdcount);
+    uint16_t ancount = ntohs(dh->ancount);
+    uint16_t nscount = ntohs(dh->nscount);
+    uint16_t arcount = ntohs(dh->arcount);
+    uint16_t rrtype;
+    uint16_t rrclass;
+    string blob;
+    struct dnsrecordheader ah;
+
+    rrname = pr.getName();
+    rrtype = pr.get16BitInt();
+    rrclass = pr.get16BitInt();
+
+    GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+    pw.getHeader()->id=dh->id;
+    pw.getHeader()->qr=dh->qr;
+    pw.getHeader()->aa=dh->aa;
+    pw.getHeader()->tc=dh->tc;
+    pw.getHeader()->rd=dh->rd;
+    pw.getHeader()->ra=dh->ra;
+    pw.getHeader()->ad=dh->ad;
+    pw.getHeader()->cd=dh->cd;
+    pw.getHeader()->rcode=dh->rcode;
+
+    /* consume remaining qd if any */
+    if (qdcount > 1) {
+      for(idx = 1; idx < qdcount; idx++) {
+        rrname = pr.getName();
+        rrtype = pr.get16BitInt();
+        rrclass = pr.get16BitInt();
+        (void) rrtype;
+        (void) rrclass;
+      }
+    }
+
+    /* copy AN */
+    for (idx = 0; idx < ancount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        // if this is not a safe type
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ANSWER, true);
+        pw.xfrBlob(blob);
+      }
+    }
+
+    /* copy NS */
+    for (idx = 0; idx < nscount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::AUTHORITY, true);
+        pw.xfrBlob(blob);
+      }
+    }
+    /* copy AR */
+    for (idx = 0; idx < arcount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
+        pw.xfrBlob(blob);
+      }
+    }
+    pw.commit();
+
+  }
+  catch (...)
+  {
+    newContent.clear();
+    return EIO;
+  }
+  return 0;
+}
+
 void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes)
 {
-  size_t finalsize = packet.size();
-  clearDNSPacketRecordTypes(reinterpret_cast<char*>(packet.data()), finalsize, qtypes);
-  packet.resize(finalsize);
+  return clearDNSPacketRecordTypes(reinterpret_cast<PacketBuffer&>(packet), qtypes);
 }
 
 void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
 {
-  size_t finalsize = packet.size();
-  clearDNSPacketRecordTypes(reinterpret_cast<char*>(packet.data()), finalsize, qtypes);
-  packet.resize(finalsize);
-}
+  PacketBuffer newContent;
 
-// method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void clearDNSPacketRecordTypes(char* packet, size_t& length, const std::set<QType>& qtypes)
-{
-  if (length < sizeof(dnsheader)) {
-    return;
-  }
-  try
-  {
-    dnsheader* dh = reinterpret_cast<dnsheader*>(packet);
-    uint64_t ancount = ntohs(dh->ancount);
-    uint64_t nscount = ntohs(dh->nscount);
-    uint64_t arcount = ntohs(dh->arcount);
-    DNSPacketMangler dpm(packet, length);
-
-    for(uint64_t n = 0; n < ntohs(dh->qdcount) ; ++n) {
-      dpm.skipDomainName();
-      /* type and class */
-      dpm.skipBytes(4);
-    }
-    auto processSection = [&dpm, &qtypes, &length](uint64_t& count) {
-      for (uint64_t n=0; n < count; ++n) {
-        uint32_t start = dpm.getOffset();
-        dpm.skipDomainName();
-
-        const auto dnstype = QType{dpm.get16BitInt()};
-        /* class, ttl */
-        dpm.skipBytes(6);
-        dpm.skipRData();
-        if (qtypes.find(dnstype) != qtypes.end()) {
-          uint32_t rlen = dpm.getOffset() - start;
-          dpm.rewindBytes(rlen);
-          dpm.shrinkBytes(rlen);
-          // update count
-          count -= 1;
-          length -= rlen;
-          n -= 1;
-        }
-      }
-    };
-    processSection(ancount);
-    dh->ancount = htons(ancount);
-    processSection(nscount);
-    dh->nscount = htons(nscount);
-    processSection(arcount);
-    dh->arcount = htons(arcount);
-  }
-  catch(...)
-  {
-    return;
+  auto result = rewritePacketWithoutRecordTypes(packet, newContent, qtypes);
+  if (!result) {
+    packet = std::move(newContent);
   }
 }
 

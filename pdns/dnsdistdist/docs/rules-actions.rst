@@ -838,6 +838,14 @@ The following actions exist.
 
   Let these packets go through.
 
+.. function::ClearRecordTypesResponseAction(types)
+
+  .. versionadded:: 1.8.0
+
+  Removes given type(s) records from the response.
+
+  :param int types: a single type or a list of types to remove
+
 .. function:: ContinueAction(action)
 
   .. versionadded:: 1.4.0
