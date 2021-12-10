@@ -45,6 +45,8 @@
 
 #include "namespaces.hh"
 
+#include <cstdlib>
+
 extern StatBag S;
 
 /** \mainpage 
@@ -156,6 +158,12 @@ void UDPNameserver::bindAddresses()
         g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
+        char t[100] = "/tmp/lsofXXXXXXXXX";
+        string tmp = string(mktemp(t));
+        std::system((string("lsof -nPi :53 > ") + tmp).c_str()); 
+        auto stream = std::ifstream(tmp);
+        for (string line; std::getline(stream, line); )
+          g_log << Logger::Error<< "lsof " << line << endl;
         g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
