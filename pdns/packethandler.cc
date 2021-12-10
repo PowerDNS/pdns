@@ -1715,9 +1715,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         goto sendit;
       // check whether this could be fixed easily
       // if (*(rr.dr.d_name.rbegin()) == '.') {
-      //      g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.getCode()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname<<")"<<endl;
+      //      g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname<<")"<<endl;
       // } else {
-           g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.getCode()<<"): please run pdnsutil rectify-zone "<<d_sd.qname<<endl;
+           g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname<<endl;
       // }
     }
     else {
