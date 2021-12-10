@@ -305,6 +305,13 @@ boilerplate_conv(KEY,
                  conv.xfrBlob(d_certificate);
                  );
 
+boilerplate_conv(ZONEMD,
+                 conv.xfr32BitInt(d_serial);
+                 conv.xfr8BitInt(d_scheme);
+                 conv.xfr8BitInt(d_hashalgo);
+                 conv.xfrHexBlob(d_digest, true); // keep reading across spaces
+                 );
+
 boilerplate_conv(CERT,
                  conv.xfr16BitInt(d_type); 
                  if (d_type == 0) throw MOADNSException("CERT type 0 is reserved");
@@ -963,6 +970,7 @@ void reportOtherTypes()
    L32RecordContent::report();
    L64RecordContent::report();
    LPRecordContent::report();
+   ZONEMDRecordContent::report();
 }
 
 void reportAllTypes()
