@@ -545,14 +545,6 @@ public:
     return d_offset;
   }
 
-  void shrinkBytes(uint16_t by)
-  {
-    if (d_notyouroffset + by > d_length) {
-      throw std::out_of_range("shrinking dns packet out of range: " + std::to_string(by) + " bytes at " + std::to_string(d_notyouroffset) + " for a total of " + std::to_string(d_length) );
-    }
-    memmove(d_packet + d_notyouroffset, d_packet + d_notyouroffset + by, d_length - (d_notyouroffset + by));
-    d_length -= by;
-  }
 private:
   void moveOffset(uint16_t by)
   {

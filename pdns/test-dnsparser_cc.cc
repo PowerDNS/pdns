@@ -549,4 +549,67 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketRecordTypes) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_clearDNSPacketUnsafeRecordTypes) {
+  {
+    auto generatePacket = []() {
+      const DNSName name("powerdns.com.");
+      const DNSName mxname("mx.powerdns.com.");
+      const ComboAddress v4("1.2.3.4");
+      const ComboAddress v6("2001:db8::1");
+
+      vector<uint8_t> packet;
+      DNSPacketWriter pwR(packet, name, QType::A, QClass::IN, 0);
+      pwR.getHeader()->qr = 1;
+      pwR.commit();
+
+      pwR.startRecord(name, QType::A, 255, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrIP(v4.sin4.sin_addr.s_addr);
+      pwR.commit();
+
+      /* different type */
+      pwR.startRecord(name, QType::AAAA, 42, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
+      pwR.commit();
+
+      pwR.startRecord(name, QType::A, 256, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrIP(v4.sin4.sin_addr.s_addr);
+      pwR.commit();
+
+      pwR.startRecord(name, QType::MX, 256, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrName(mxname, false);
+      pwR.commit();
+
+      pwR.addOpt(4096, 0, 0);
+      pwR.commit();
+      return packet;
+    };
+
+    auto packet = generatePacket();
+
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::A), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::AAAA), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::A), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::MX), 1);
+
+    std::set<QType> toremove{QType::AAAA};
+    clearDNSPacketRecordTypes(packet, toremove);
+
+    // nothing should have been removed as an "unsafe" MX RR is in the packet
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::A), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::AAAA), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::A), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::MX), 1);
+
+    toremove = {QType::MX, QType::AAAA};
+    clearDNSPacketRecordTypes(packet, toremove);
+
+    // MX is unsafe, but we asked to remove it
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::A), 1);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::AAAA), 0);
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::A), 1); 
+    BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::MX), 0);
+  }
+
+}
+
 BOOST_AUTO_TEST_SUITE_END()

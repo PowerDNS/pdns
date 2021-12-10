@@ -399,8 +399,6 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, None)
 
-from pprint import pprint
-
 class TestResponseClearRecordsType(DNSDistTest):
 
     _config_params = ['_testServerPort']

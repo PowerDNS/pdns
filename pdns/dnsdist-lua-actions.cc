@@ -1725,7 +1725,7 @@ class ClearRecordTypesResponseAction : public DNSResponseAction, public boost::n
 public:
   ClearRecordTypesResponseAction() {}
 
-  ClearRecordTypesResponseAction(std::set<QType> qtypes) : d_qtypes(qtypes)
+  ClearRecordTypesResponseAction(const std::set<QType>& qtypes) : d_qtypes(qtypes)
   {
   }
 
@@ -2262,11 +2262,11 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("ClearRecordTypesResponseAction", [](boost::variant<int,vector<pair<int, int>>> types) {
       std::set<QType> qtypes{};
-      if(auto t = boost::get<int>(types)) {
+      if (auto t = boost::get<int>(types)) {
         qtypes.insert(t);
       } else {
         const auto& v = boost::get<vector<pair<int,int>>>(types);
-        for(const auto& tpair: v) {
+        for (const auto& tpair: v) {
           qtypes.insert(tpair.second);
         }
       }
