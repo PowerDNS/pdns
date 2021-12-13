@@ -592,7 +592,6 @@ public:
   includeboilerplate(ZONEMD)
   //ZONEMDRecordContent(uint32_t serial, uint8_t scheme, uint8_t hashalgo, string digest);
 
-private:
   uint32_t d_serial;
   uint8_t d_scheme;
   uint8_t d_hashalgo;

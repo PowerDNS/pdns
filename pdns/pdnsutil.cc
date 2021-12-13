@@ -39,6 +39,8 @@
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
 
+#include <openssl/evp.h>
+
 StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
@@ -1358,6 +1360,153 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
   return EXIT_SUCCESS;
 }
 
+static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
+  ZoneParserTNG zpt(fname, zone);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+
+  typedef pair<DNSName, QType> rrSetKey_t;
+  typedef vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
+
+  struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
+  {
+    bool operator()(const rrSetKey_t&a, const rrSetKey_t& b) const
+    {
+      // FIXME surely we can be smarter here
+      if(a.first.canonCompare(b.first))
+        return true;
+      if(b.first.canonCompare(a.first))
+        return false;
+
+      return a.second < b.second;
+    }
+  };
+
+  typedef std::map<rrSetKey_t, rrVector_t, CanonrrSetKeyCompare> RRsetMap_t;
+
+  RRsetMap_t RRsets;
+  std::map<rrSetKey_t, uint32_t> RRsetTTLs;
+
+  DNSResourceRecord rr;
+  rrVector_t zonemdRecords;
+  std::shared_ptr<SOARecordContent> soarc;
+
+  while(zpt.get(rr)) {
+    if(!rr.qname.isPartOf(zone) && rr.qname!=zone) {
+      continue;
+      cerr<<"File contains record named '"<<rr.qname<<"' which is not part of zone '"<<zone<<"'"<<endl;
+      return EXIT_FAILURE;
+    }
+    if (rr.qtype == QType::SOA) {
+      if (soarc)
+        continue;
+    }
+    std::shared_ptr<DNSRecordContent> drc;
+    try {
+      drc = DNSRecordContent::mastermake(rr.qtype, QClass::IN, rr.content);
+    }
+    catch (const PDNSException &pe) {
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype<<": "<<pe.reason<<endl;
+      return EXIT_FAILURE;
+    }
+    catch (const std::exception &e) {
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype<<": "<<e.what()<<endl;
+      return EXIT_FAILURE;
+    }
+    if (rr.qtype == QType::SOA && rr.qname == zone) {
+      soarc = std::dynamic_pointer_cast<SOARecordContent>(drc);
+    }
+    if (rr.qtype == QType::ZONEMD && rr.qname == zone) {
+      zonemdRecords.push_back(drc);
+    }
+    rrSetKey_t key = std::pair(rr.qname, rr.qtype);
+    RRsets[key].push_back(drc);
+    RRsetTTLs[key] = rr.ttl;
+  }
+
+  EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+  if (mdctx == nullptr) {
+  }
+  const EVP_MD *md = EVP_sha384();
+
+  if (EVP_DigestInit_ex(mdctx, md, NULL) == 0) {
+  }
+
+  for (auto& rrset: RRsets) {
+    const auto& qname = rrset.first.first;
+    const auto& qtype = rrset.first.second;
+    if (qtype == QType::ZONEMD && qname == zone) {
+      continue; // the apex ZONEMD is not digested
+    }
+
+    sortedRecords_t sorted;
+    for (auto& _rr: rrset.second) {
+      if (qtype == QType::RRSIG) {
+        const auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(_rr);
+        if (rrsig->d_type == QType::ZONEMD && qname == zone) {
+          continue;
+        }
+      }
+      sorted.insert(_rr);
+    }
+
+    if (qtype != QType::RRSIG) {
+      RRSIGRecordContent rrc;
+      rrc.d_originalttl = RRsetTTLs[rrset.first];
+      rrc.d_type = qtype;
+      auto msg = getMessageForRRSET(qname, rrc, sorted, false, false);
+      if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+      }
+    } else {
+      for (const auto& rrsig : sorted) {
+        auto rrsigc = std::dynamic_pointer_cast<RRSIGRecordContent>(rrsig);
+        RRSIGRecordContent rrc;
+        rrc.d_originalttl = RRsetTTLs[pair(rrset.first.first, rrsigc->d_type)];
+        rrc.d_type = qtype;
+        auto msg = getMessageForRRSET(qname, rrc, { rrsigc }, false, false);
+        if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+        }
+      }
+    }
+  }
+
+  unsigned char md_value[EVP_MAX_MD_SIZE];
+  unsigned int md_len;
+  if (EVP_DigestFinal_ex(mdctx, md_value, &md_len) == 0) {
+  }
+  EVP_MD_CTX_free(mdctx);
+  string sha384 = string(reinterpret_cast<char*>(md_value), md_len);
+  for (const auto& z : zonemdRecords) {
+    const std::shared_ptr<ZONEMDRecordContent> zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(z);
+    cerr << "Checking against " << zonemd->getZoneRepresentation() << endl;
+    if (zonemd->d_serial != soarc->d_st.serial) {
+      cerr << "SOA serial does not match " << endl;
+      continue;
+    }
+    if (zonemd->d_scheme != 1) {
+      cerr << "Unsupported scheme " << std::to_string(zonemd->d_scheme) << endl;
+      continue;
+    }
+    if (zonemd->d_hashalgo == 1) {
+      if (zonemd->d_digest != sha384) {
+        cerr << "sha384 mismatch" << endl;
+        continue;
+      }
+    }
+    else if (zonemd->d_hashalgo == 2) {
+      //if (zonemd->d_digest != pdns_sha512sum(toHash.str())) {
+        cerr << "sha512 unavailable" << endl;
+        continue;
+        //}
+    }
+    else {
+      cerr << "Unsupported hashalgo " << std::to_string(zonemd->d_hashalgo) << endl;
+      continue;
+    }
+    cerr << "OK!" << endl;
+  }
+
+  return EXIT_SUCCESS;
+}
 
 static int loadZone(const DNSName& zone, const string& fname) {
   UeberBackend B;
@@ -2536,6 +2685,19 @@ try
     }
   }
 
+  if(cmds[0] == "zonemd-verify-file") {
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnsutil zonemd-verify-file ZONE FILENAME"<<endl;
+      return 0;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
+
+    auto ret = zonemdVerifyFile(DNSName(cmds[1]), cmds[2]);
+    if (ret) exit(ret);
+    return 0;
+  }
+
   DNSSECKeeper dk;
 
   if (cmds.at(0) == "test-schema") {
@@ -3154,7 +3316,7 @@ try
   }
   else if (cmds.at(0) == "unset-nsec3") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnsutil unset-nsec3 ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil unset-nsec3 ZON"<<endl;
       return 0;
     }
     if (!dk.unsetNSEC3PARAM(DNSName(cmds.at(1)))) {
