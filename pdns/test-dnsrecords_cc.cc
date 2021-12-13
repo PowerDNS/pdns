@@ -206,6 +206,10 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 
      (CASE_S(QType::CSYNC, "66 3 A NS AAAA", "\x00\x00\x00\x42\x00\x03\x00\x04\x60\x00\x00\x08"))
 
+     // ZONEMD
+     (CASE_S(QType::ZONEMD, "2018031900 1 1 a3b69bad980a3504e1cffcb0fd6397f93848071c93151f552ae2f6b1711d4bd2d8b39808226d7b9db71e34b72077f8fe", "\x78\x48\xb9\x1c\x01\x01\xa3\xb6\x9b\xad\x98\x0a\x35\x04\xe1\xcf\xfc\xb0\xfd\x63\x97\xf9\x38\x48\x07\x1c\x93\x15\x1f\x55\x2a\xe2\xf6\xb1\x71\x1d\x4b\xd2\xd8\xb3\x98\x08\x22\x6d\x7b\x9d\xb7\x1e\x34\xb7\x20\x77\xf8\xfe"))
+     (CASE_L(QType::ZONEMD, " 2018031900  1  1 ( 616c6c6f77656420 6275742069676e6f \n 7265642e20616c6c \n6f77656420627574\n 2069676e6f726564 \n2e20616c6c6f7765 \n)", "2018031900 1 1 616c6c6f776564206275742069676e6f7265642e20616c6c6f776564206275742069676e6f7265642e20616c6c6f7765", "\x78\x48\xb9\x1c\x01\x01\x61\x6c\x6c\x6f\x77\x65\x64\x20\x62\x75\x74\x20\x69\x67\x6e\x6f\x72\x65\x64\x2e\x20\x61\x6c\x6c\x6f\x77\x65\x64\x20\x62\x75\x74\x20\x69\x67\x6e\x6f\x72\x65\x64\x2e\x20\x61\x6c\x6c\x6f\x77\x65"))
+
      // Alias mode
      (CASE_S(QType::SVCB, "0 foo.powerdns.org.", "\0\0\3foo\x08powerdns\x03org\x00"))
      (CASE_L(QType::SVCB, "0 foo.powerdns.org", "0 foo.powerdns.org.", "\0\0\3foo\x08powerdns\x03org\x00"))
