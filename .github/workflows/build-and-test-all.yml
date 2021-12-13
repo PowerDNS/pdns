@@ -299,7 +299,9 @@ jobs:
       - run: inv test-api recursor
 
   test-recursor-regression:
-    needs: build-recursor
+    needs:
+      - build-recursor
+      - build-auth
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -318,10 +320,16 @@ jobs:
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
+      - name: Fetch the built auth binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: pdns-auth
+          path: /opt/pdns-auth
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv add-auth-repo
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
+      - run: inv install-auth-test-deps
       - run: inv test-regression-recursor
 
   test-recursor-bulk:
