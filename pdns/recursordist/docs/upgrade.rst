@@ -26,6 +26,11 @@ Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 -  The :ref:`setting-api-key` and :ref:`setting-webserver-password` settings now accept a hashed and salted version (if the support is available in the openssl library used).
 
+Privileged port binding in Docker
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
+For more information, see the section ["Privileged ports" in Docker-README](https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports).
 
 4.5.1 to 4.5.2
 --------------
