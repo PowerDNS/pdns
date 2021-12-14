@@ -27,6 +27,7 @@
 #include "dns_random.hh"
 #include "ipcipher.hh"
 #include "misc.hh"
+#include "zonemd.hh"
 #include <fstream>
 #include <utility>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
@@ -38,8 +39,6 @@
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
-
-#include <openssl/evp.h>
 
 StatBag S;
 AuthPacketCache PC;
@@ -1360,246 +1359,34 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
   return EXIT_SUCCESS;
 }
 
+
 static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   ZoneParserTNG zpt(fname, zone);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
-  typedef std::pair<DNSName, QType> rrSetKey_t;
-  typedef std::vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
+  bool validationDone, validationOK;
 
-  struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
-  {
-    bool operator()(const rrSetKey_t&a, const rrSetKey_t& b) const
-    {
-      // FIXME surely we can be smarter here
-      if(a.first.canonCompare(b.first))
-        return true;
-      if(b.first.canonCompare(a.first))
-        return false;
-
-      return a.second < b.second;
-    }
-  };
-
-  typedef std::map<rrSetKey_t, rrVector_t, CanonrrSetKeyCompare> RRsetMap_t;
-
-  RRsetMap_t RRsets;
-  std::map<rrSetKey_t, uint32_t> RRsetTTLs;
-
-  DNSResourceRecord rr;
-  std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<ZONEMDRecordContent>> zonemdRecords;
-  std::shared_ptr<SOARecordContent> soarc;
-
-  class SHADigest
-  {
-  public:
-    SHADigest(int bits)
-    {
-      mdctx = EVP_MD_CTX_new();
-      if (mdctx == nullptr) {
-        throw std::runtime_error("VSHADigest: P_MD_CTX_new failed");
-      }
-      switch (bits) {
-      case 256:
-        md = EVP_sha256();
-        break;
-      case 384:
-        md = EVP_sha384();
-        break;
-      case 512:
-        md = EVP_sha512();
-        break;
-      default:
-        throw std::runtime_error("SHADigest: unsupported size");
-      }
-      if (EVP_DigestInit_ex(mdctx, md, NULL) == 0) {
-        throw std::runtime_error("SHADigest: init error");
-      }
-    }
-    ~SHADigest()
-    {
-      // No free of md needed afaik
-      if (mdctx != nullptr) {
-        EVP_MD_CTX_free(mdctx);
-      }
-    }
-    void process(const string& msg, size_t sz)
-    {
-      if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
-        throw std::runtime_error("SHADigest: update error");
-      }
-    }
-    std::string digest()
-    {
-      string md_value;
-      md_value.resize(EVP_MD_size(md));
-      unsigned int md_len;
-      if (EVP_DigestFinal_ex(mdctx, reinterpret_cast<unsigned char*>(md_value.data()), &md_len) == 0) {
-        throw std::runtime_error("SHADigest: finalize error");
-      }
-      if (md_len != md_value.size()) {
-        throw std::runtime_error("SHADigest: inconsisten size");
-      }
-      return md_value;
-    }
-  private:
-    EVP_MD_CTX *mdctx{nullptr};
-    const EVP_MD *md;
-  };
-
-  while (zpt.get(rr)) {
-    if(!rr.qname.isPartOf(zone) && rr.qname!=zone) {
-      continue;
-      cerr<<"File contains record named '"<<rr.qname<<"' which is not part of zone '"<<zone<<"'"<<endl;
-      return EXIT_FAILURE;
-    }
-    if (rr.qtype == QType::SOA) {
-      if (soarc)
-        continue;
-    }
-    std::shared_ptr<DNSRecordContent> drc;
-    try {
-      drc = DNSRecordContent::mastermake(rr.qtype, QClass::IN, rr.content);
-    }
-    catch (const PDNSException &pe) {
-      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype<<": "<<pe.reason<<endl;
-      return EXIT_FAILURE;
-    }
-    catch (const std::exception &e) {
-      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype<<": "<<e.what()<<endl;
-      return EXIT_FAILURE;
-    }
-    if (rr.qtype == QType::SOA && rr.qname == zone) {
-      soarc = std::dynamic_pointer_cast<SOARecordContent>(drc);
-    }
-    if (rr.qtype == QType::ZONEMD && rr.qname == zone) {
-      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
-      auto inserted = zonemdRecords.insert(pair(pair(zonemd->d_scheme, zonemd->d_hashalgo), zonemd)).second;
-      if (!inserted) {
-        cerr << "Duplicate ZONEMD record!" << endl;
-      }
-    }
-    rrSetKey_t key = std::pair(rr.qname, rr.qtype);
-    RRsets[key].push_back(drc);
-    RRsetTTLs[key] = rr.ttl;
+  try {
+    pdns::zonemdVerify(zone, zpt, validationDone, validationOK);
   }
-
-  unique_ptr<SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
-
-  for (const auto& [k, zonemd] : zonemdRecords) {
-    cerr << "Checking against " << zonemd->getZoneRepresentation() << endl;
-    if (zonemd->d_serial != soarc->d_st.serial) {
-      cerr << "SOA serial does not match " << endl;
-      continue;
-    }
-    if (zonemd->d_scheme != 1) {
-      cerr << "Unsupported scheme " << std::to_string(zonemd->d_scheme) << endl;
-      continue;
-    }
-    if (zonemd->d_hashalgo == 1) {
-      sha384digest = make_unique<SHADigest>(384);
-    }
-    else if (zonemd->d_hashalgo == 2) {
-      sha512digest = make_unique<SHADigest>(512);
-    }
-    else {
-      cerr << "Unsupported hashalgo " << std::to_string(zonemd->d_hashalgo) << endl;
-      continue;
-    }
+  catch (const PDNSException& ex) {
+    cerr << "zonemd-verify-file: " << ex.reason << endl;
+    return EXIT_FAILURE;
   }
-
-  for (auto& rrset: RRsets) {
-    const auto& qname = rrset.first.first;
-    const auto& qtype = rrset.first.second;
-    if (qtype == QType::ZONEMD && qname == zone) {
-      continue; // the apex ZONEMD is not digested
-    }
-
-    sortedRecords_t sorted;
-    for (auto& _rr: rrset.second) {
-      if (qtype == QType::RRSIG) {
-        const auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(_rr);
-        if (rrsig->d_type == QType::ZONEMD && qname == zone) {
-          continue;
-        }
-      }
-      sorted.insert(_rr);
-    }
-
-    if (qtype != QType::RRSIG) {
-      RRSIGRecordContent rrc;
-      rrc.d_originalttl = RRsetTTLs[rrset.first];
-      rrc.d_type = qtype;
-      auto msg = getMessageForRRSET(qname, rrc, sorted, false, false);
-      if (sha384digest) {
-        sha384digest->process(msg, msg.size());
-      }
-      if (sha512digest) {
-        sha512digest->process(msg, msg.size());
-      }
-    } else {
-      for (const auto& rrsig : sorted) {
-        auto rrsigc = std::dynamic_pointer_cast<RRSIGRecordContent>(rrsig);
-        RRSIGRecordContent rrc;
-        rrc.d_originalttl = RRsetTTLs[pair(rrset.first.first, rrsigc->d_type)];
-        rrc.d_type = qtype;
-        auto msg = getMessageForRRSET(qname, rrc, { rrsigc }, false, false);
-        if (sha384digest) {
-          sha384digest->process(msg, msg.size());
-        }
-        if (sha512digest) {
-          sha512digest->process(msg, msg.size());
-        }
-      }
-    }
-  }
-
-  bool validationDone = false;
-  bool validationOK = false;
-
-  for (const auto& [k, zonemd] : zonemdRecords) {
-    if (zonemd->d_serial != soarc->d_st.serial) {
-      cerr << "SOA serial does not match " << endl;
-      continue;
-    }
-    if (zonemd->d_scheme != 1) {
-      cerr << "Unsupported scheme " << std::to_string(zonemd->d_scheme) << endl;
-      continue;
-    }
-    if (zonemd->d_hashalgo == 1) {
-      validationDone = true;
-      if (zonemd->d_digest == sha384digest->digest()) {
-        validationOK = true;
-        break; // Per RFC: a single succeeding validation is enough
-      } else {
-        continue;
-      }
-    }
-    else if (zonemd->d_hashalgo == 2) {
-      validationDone = true;
-      if (zonemd->d_digest == sha512digest->digest()) {
-        validationOK = true;
-        break; // Per RFC: a single succeeding validation is enough
-      } else {
-        continue;
-      }
-    }
-    else {
-      cerr << "Unsupported hashalgo " << std::to_string(zonemd->d_hashalgo) << endl;
-      continue;
-    }
+  catch (const std::exception& ex) {
+    cerr << "zonemd-verify-file: " << ex.what() << endl;
   }
 
   if (validationDone) {
     if (validationOK) {
-      cerr << "OK!" << endl;
+      cout << "zonemd-verify-file: Validation of ZONEMD record succeeded" << endl;
       return EXIT_SUCCESS;
     } else {
-      cerr << "Validation of ZONEMD record(s) failed" << endl;
+      cerr << "zonemd-verify-file: Validation of ZONEMD record(s) failed" << endl;
     }
   }
-  if (!validationDone) {
-    cerr << "No suitable ZONEMD record found to verify against" << endl;
+  else {
+    cerr << "zonemd-verify-file: No suitable ZONEMD record found to verify against" << endl;
   }
   return EXIT_FAILURE;
 }
