@@ -1,0 +1,34 @@
+example.      86400  IN  SOA     ns1 admin 2018031900 (
+                                 1800 900 604800 86400 )
+              86400  IN  NS      ns1
+              86400  IN  NS      ns2
+              86400  IN  ZONEMD  2018031900 1 1 (
+                                 a3b69bad980a3504
+                                 e1cffcb0fd6397f9
+                                 3848071c93151f55
+                                 2ae2f6b1711d4bd2
+                                 d8b39808226d7b9d
+                                 b71e34b72077f8fe )
+ns1           3600   IN  A       203.0.113.63
+NS2           3600   IN  AAAA    2001:db8::63
+occluded.sub  7200   IN  TXT     "I'm occluded but must be digested"
+sub           7200   IN  NS      ns1
+duplicate     300    IN  TXT     "I must be digested just once"
+duplicate     300    IN  TXT     "I must be digested just once"
+foo.test.     555    IN  TXT     "out-of-zone data must be excluded"
+UPPERCASE     3600   IN  TXT     "canonicalize uppercase owner names"
+*             777    IN  PTR     dont-forget-about-wildcards
+mail          3600   IN  MX      20 MAIL1
+mail          3600   IN  MX      10 Mail2.Example.
+sortme        3600   IN  AAAA    2001:db8::5:61
+sortme        3600   IN  AAAA    2001:db8::3:62
+sortme        3600   IN  AAAA    2001:db8::4:63
+sortme        3600   IN  AAAA    2001:db8::1:65
+sortme        3600   IN  AAAA    2001:db8::2:64
+non-apex      900    IN  ZONEMD  2018031900 1 1 (
+                                 616c6c6f77656420
+                                 6275742069676e6f
+                                 7265642e20616c6c
+                                 6f77656420627574
+                                 2069676e6f726564
+                                 2e20616c6c6f7765 )

@@ -25,17 +25,25 @@ struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t,
 
 typedef std::map<rrSetKey_t, rrVector_t, CanonrrSetKeyCompare> RRsetMap_t;
 
-RRsetMap_t RRsets;
-std::map<rrSetKey_t, uint32_t> RRsetTTLs;
-
 void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validationDone, bool& validationOK)
 {
   validationDone = false;
   validationOK = false;
 
-  DNSResourceRecord dnsrr;
-  std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<ZONEMDRecordContent>> zonemdRecords;
+  // scheme,hasalgo -> duplicate,zonemdrecord
+  struct ZoneMDAndDuplicateFlag
+  {
+    std::shared_ptr<ZONEMDRecordContent> record;
+    bool duplicate;
+  };
+
+  std::map<pair<uint8_t, uint8_t>, ZoneMDAndDuplicateFlag> zonemdRecords;
   std::shared_ptr<SOARecordContent> soarc;
+
+  RRsetMap_t RRsets;
+  std::map<rrSetKey_t, uint32_t> RRsetTTLs;
+
+  DNSResourceRecord dnsrr;
 
   // Get all records and remember RRSets and TTLs
   while (zpt.get(dnsrr)) {
@@ -63,9 +71,10 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
     }
     if (dnsrr.qtype == QType::ZONEMD && dnsrr.qname == zone) {
       auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
-      auto inserted = zonemdRecords.insert(pair(pair(zonemd->d_scheme, zonemd->d_hashalgo), zonemd)).second;
-      if (!inserted) {
-        throw PDNSException("Duplicate ZONEMD record");
+      auto inserted = zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
+      if (!inserted.second) {
+        // Mark as duplicate;
+        inserted.first->second.duplicate = true;
       }
     }
     rrSetKey_t key = std::pair(dnsrr.qname, dnsrr.qtype);
@@ -76,27 +85,33 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
   // Determine which digests to compute based on accepted zonemd records present
   unique_ptr<pdns::SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
 
-  for (const auto& [k, zonemd] : zonemdRecords) {
-    if (zonemd->d_serial != soarc->d_st.serial) {
-      // The SOA Serial field MUST exactly match the ZONEMD Serial
-      // field. If the fields do not match, digest verification MUST
-      // NOT be considered successful with this ZONEMD RR.
-      continue;
-    }
-    if (zonemd->d_scheme != 1) {
-      // The Scheme field MUST be checked. If the verifier does not
-      // support the given scheme, verification MUST NOT be considered
-      // successful with this ZONEMD RR.
-      continue;
-    }
+  for (auto it = zonemdRecords.begin(); it != zonemdRecords.end(); ) {
+    // The SOA Serial field MUST exactly match the ZONEMD Serial
+    // field. If the fields do not match, digest verification MUST
+    // NOT be considered successful with this ZONEMD RR.
+
+    // The Scheme field MUST be checked. If the verifier does not
+    // support the given scheme, verification MUST NOT be considered
+    // successful with this ZONEMD RR.
+
     // The Hash Algorithm field MUST be checked. If the verifier does
     // not support the given hash algorithm, verification MUST NOT be
     // considered successful with this ZONEMD RR.
-    if (zonemd->d_hashalgo == 1) {
-      sha384digest = make_unique<pdns::SHADigest>(384);
-    }
-    else if (zonemd->d_hashalgo == 2) {
-      sha512digest = make_unique<pdns::SHADigest>(512);
+    const auto duplicate = it->second.duplicate;
+    const auto& r = it->second.record;
+    if (!duplicate && r->d_serial == soarc->d_st.serial &&
+        r->d_scheme == 1 &&
+        (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
+      // A supported ZONEMD record
+      if (r->d_hashalgo == 1) {
+        sha384digest = make_unique<pdns::SHADigest>(384);
+      }
+      else if (r->d_hashalgo == 2) {
+        sha512digest = make_unique<pdns::SHADigest>(512);
+      }
+      ++it;
+    } else {
+      it = zonemdRecords.erase(it);
     }
   }
 
@@ -149,33 +164,21 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
     }
   }
 
-  // Final verify
-  for (const auto& [k, zonemd] : zonemdRecords) {
-    if (zonemd->d_serial != soarc->d_st.serial) {
-      // The SOA Serial field MUST exactly match the ZONEMD Serial
-      // field. If the fields do not match, digest verification MUST
-      // NOT be considered successful with this ZONEMD RR.
-      continue;
-    }
-    if (zonemd->d_scheme != 1) {
-      // The Scheme field MUST be checked. If the verifier does not
-      // support the given scheme, verification MUST NOT be considered
-      // successful with this ZONEMD RR.
-      continue;
-    }
-    // The Hash Algorithm field MUST be checked. If the verifier does
-    // not support the given hash algorithm, verification MUST NOT be
-    // considered successful with this ZONEMD RR.
+  // Final verify, we know we only have supported candidate ZONEDMD records
+  for (const auto& [k, v] : zonemdRecords) {
+    auto [zonemd, duplicate] = v;
     if (zonemd->d_hashalgo == 1) {
       validationDone = true;
-      if (constantTimeStringEquals(zonemd->d_digest, sha384digest->digest())) {
+      auto computed = sha384digest->digest();
+      if (constantTimeStringEquals(zonemd->d_digest, computed)) {
         validationOK = true;
         break; // Per RFC: a single succeeding validation is enough
       }
     }
     else if (zonemd->d_hashalgo == 2) {
       validationDone = true;
-      if (constantTimeStringEquals(zonemd->d_digest, sha512digest->digest())) {
+      auto computed = sha512digest->digest();
+      if (constantTimeStringEquals(zonemd->d_digest, computed)) {
         validationOK = true;
         break; // Per RFC: a single succeeding validation is enough
       }

@@ -1,0 +1,6 @@
+example.      86400  IN  SOA     ns1 admin 2018031900 (
+                                 1800 900 604800 86400 )
+              86400  IN  NS      ns1
+              86400  IN  NS      ns2
+ns1           3600   IN  A       203.0.113.63
+ns2           3600   IN  AAAA    2001:db8::63
