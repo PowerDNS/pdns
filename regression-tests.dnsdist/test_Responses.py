@@ -233,6 +233,118 @@ class TestResponseRuleEditTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._ttl)
 
+class TestResponseRuleLimitTTL(DNSDistTest):
+
+    _lowttl = 60
+    _defaulttl = 3600
+    _highttl = 18000
+    _config_params = ['_lowttl', '_highttl', '_testServerPort']
+    _config_template = """
+    local ffi = require("ffi")
+    local lowttl = %d
+    local highttl = %d
+
+    function luaFFISetMinTTL(dr)
+      ffi.C.dnsdist_ffi_dnsresponse_set_min_ttl(dr, highttl)
+      return DNSResponseAction.None, ""
+    end
+    function luaFFISetMaxTTL(dr)
+      ffi.C.dnsdist_ffi_dnsresponse_set_max_ttl(dr, lowttl)
+      return DNSResponseAction.None, ""
+    end
+
+    newServer{address="127.0.0.1:%s"}
+
+    addResponseAction("min.responses.tests.powerdns.com.", SetMinTTLResponseAction(highttl))
+    addResponseAction("max.responses.tests.powerdns.com.", SetMaxTTLResponseAction(lowttl))
+    addResponseAction("ffi.min.limitttl.responses.tests.powerdns.com.", LuaFFIResponseAction(luaFFISetMinTTL))
+    addResponseAction("ffi.max.limitttl.responses.tests.powerdns.com.", LuaFFIResponseAction(luaFFISetMaxTTL))
+    """
+
+    def testLimitTTL(self):
+        """
+        Responses: Alter the TTLs via Limiter
+        """
+        name = 'min.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._highttl)
+
+        name = 'max.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._lowttl)
+
+    def testLimitTTLFFI(self):
+        """
+        Responses: Alter the TTLs via Limiter
+        """
+        name = 'ffi.min.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._highttl)
+
+        name = 'ffi.max.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._lowttl)
+
 class TestResponseLuaActionReturnSyntax(DNSDistTest):
 
     _config_template = """

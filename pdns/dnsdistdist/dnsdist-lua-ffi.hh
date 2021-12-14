@@ -59,6 +59,28 @@ struct dnsdist_ffi_dnsquestion_t
   boost::optional<std::string> httpScheme{boost::none};
 };
 
+// dnsdist_ffi_dnsresponse_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<dnsdist_ffi_dnsresponse_t*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, dnsdist_ffi_dnsresponse_t* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
+struct dnsdist_ffi_dnsresponse_t
+{
+  dnsdist_ffi_dnsresponse_t(DNSResponse* dr_): dr(dr_)
+  {
+  }
+
+  DNSResponse* dr{nullptr};
+  boost::optional<std::string> result{boost::none};
+};
+
 // dnsdist_ffi_server_t is a lightuserdata
 template<>
 struct LuaContext::Pusher<dnsdist_ffi_server_t*> {

@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "dnsparser.hh"
 #include <random>
 
 struct ResponseConfig
@@ -85,6 +86,42 @@ private:
   std::set<uint16_t> d_types;
   std::vector<std::string> d_rawResponses;
   DNSName d_cname;
+};
+
+class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  LimitTTLResponseAction() {}
+
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max()) : d_min(min), d_max(max)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      if (d_min > 0) {
+        if (ttl < d_min) {
+          ttl = d_min;
+        }
+      }
+      if (ttl > d_max) {
+        ttl = d_max;
+      }
+      return ttl;
+    };
+    editDNSPacketTTL(reinterpret_cast<char *>(dr->getMutableData().data()), dr->getData().size(), visitor);
+    return DNSResponseAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max) + ")";
+  }
+
+private:
+  uint32_t d_min{0};
+  uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;

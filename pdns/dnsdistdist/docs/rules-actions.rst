@@ -819,6 +819,7 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`KeyValueStoreLookupAction`
 - :func:`DnstapLogAction`
 - :func:`DnstapLogResponseAction`
+- :func:`LimitTTLResponseAction`
 - :func:`LogAction`
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
@@ -1000,6 +1001,15 @@ The following actions exist.
   :param KeyValueStore kvs: The key value store to query
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
+
+.. function:: LimitTTLResponseAction(min[, max])
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given boundaries.
+
+  :param int min: The minimum allowed value
+  :param int max: The maximum allowed value
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
@@ -1327,6 +1337,22 @@ The following actions exist.
   Note that this function was called :func:`MacAddrAction` before 1.6.0.
 
   :param int option: The EDNS0 option number
+
+.. function:: SetMaxTTLResponseAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum.
+
+  :param int max: The maximum allowed value
+
+.. function:: SetMinTTLResponseAction(min)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given minimum.
+
+  :param int min: The minimum allowed value
 
 .. function:: SetNoRecurseAction()
 

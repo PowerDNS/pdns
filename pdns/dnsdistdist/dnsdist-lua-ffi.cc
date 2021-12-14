@@ -544,6 +544,23 @@ const char* dnsdist_ffi_server_get_name_with_addr(const dnsdist_ffi_server_t* se
   return server->server->getNameWithAddr().c_str();
 }
 
+void dnsdist_ffi_dnsresponse_set_min_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min)
+{
+  dnsdist_ffi_dnsresponse_limit_ttl(dr, min, std::numeric_limits<uint32_t>::max());
+}
+
+void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max)
+{
+  dnsdist_ffi_dnsresponse_limit_ttl(dr, 0, max);
+}
+
+void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
+{
+  std::string result;
+  LimitTTLResponseAction ac(min, max);
+  ac(dr->dr, &result);
+}
+
 const std::string& getLuaFFIWrappers()
 {
   static const std::string interface =
