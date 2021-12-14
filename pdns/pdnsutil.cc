@@ -1390,7 +1390,64 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<ZONEMDRecordContent>> zonemdRecords;
   std::shared_ptr<SOARecordContent> soarc;
 
-  while(zpt.get(rr)) {
+  class SHADigest
+  {
+  public:
+    SHADigest(int bits)
+    {
+      mdctx = EVP_MD_CTX_new();
+      if (mdctx == nullptr) {
+        throw std::runtime_error("VSHADigest: P_MD_CTX_new failed");
+      }
+      switch (bits) {
+      case 256:
+        md = EVP_sha256();
+        break;
+      case 384:
+        md = EVP_sha384();
+        break;
+      case 512:
+        md = EVP_sha512();
+        break;
+      default:
+        throw std::runtime_error("SHADigest: unsupported size");
+      }
+      if (EVP_DigestInit_ex(mdctx, md, NULL) == 0) {
+        throw std::runtime_error("SHADigest: init error");
+      }
+    }
+    ~SHADigest()
+    {
+      // No free of md needed afaik
+      if (mdctx != nullptr) {
+        EVP_MD_CTX_free(mdctx);
+      }
+    }
+    void process(const string& msg, size_t sz)
+    {
+      if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+        throw std::runtime_error("SHADigest: update error");
+      }
+    }
+    std::string digest()
+    {
+      string md_value;
+      md_value.resize(EVP_MD_size(md));
+      unsigned int md_len;
+      if (EVP_DigestFinal_ex(mdctx, reinterpret_cast<unsigned char*>(md_value.data()), &md_len) == 0) {
+        throw std::runtime_error("SHADigest: finalize error");
+      }
+      if (md_len != md_value.size()) {
+        throw std::runtime_error("SHADigest: inconsisten size");
+      }
+      return md_value;
+    }
+  private:
+    EVP_MD_CTX *mdctx{nullptr};
+    const EVP_MD *md;
+  };
+
+  while (zpt.get(rr)) {
     if(!rr.qname.isPartOf(zone) && rr.qname!=zone) {
       continue;
       cerr<<"File contains record named '"<<rr.qname<<"' which is not part of zone '"<<zone<<"'"<<endl;
@@ -1427,12 +1484,28 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
     RRsetTTLs[key] = rr.ttl;
   }
 
-  EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-  if (mdctx == nullptr) {
-  }
-  const EVP_MD *md = EVP_sha384();
+  unique_ptr<SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
 
-  if (EVP_DigestInit_ex(mdctx, md, NULL) == 0) {
+  for (const auto& [k, zonemd] : zonemdRecords) {
+    cerr << "Checking against " << zonemd->getZoneRepresentation() << endl;
+    if (zonemd->d_serial != soarc->d_st.serial) {
+      cerr << "SOA serial does not match " << endl;
+      continue;
+    }
+    if (zonemd->d_scheme != 1) {
+      cerr << "Unsupported scheme " << std::to_string(zonemd->d_scheme) << endl;
+      continue;
+    }
+    if (zonemd->d_hashalgo == 1) {
+      sha384digest = make_unique<SHADigest>(384);
+    }
+    else if (zonemd->d_hashalgo == 2) {
+      sha512digest = make_unique<SHADigest>(512);
+    }
+    else {
+      cerr << "Unsupported hashalgo " << std::to_string(zonemd->d_hashalgo) << endl;
+      continue;
+    }
   }
 
   for (auto& rrset: RRsets) {
@@ -1458,7 +1531,11 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
       rrc.d_originalttl = RRsetTTLs[rrset.first];
       rrc.d_type = qtype;
       auto msg = getMessageForRRSET(qname, rrc, sorted, false, false);
-      if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+      if (sha384digest) {
+        sha384digest->process(msg, msg.size());
+      }
+      if (sha512digest) {
+        sha512digest->process(msg, msg.size());
       }
     } else {
       for (const auto& rrsig : sorted) {
@@ -1467,20 +1544,20 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
         rrc.d_originalttl = RRsetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;
         auto msg = getMessageForRRSET(qname, rrc, { rrsigc }, false, false);
-        if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+        if (sha384digest) {
+          sha384digest->process(msg, msg.size());
+        }
+        if (sha512digest) {
+          sha512digest->process(msg, msg.size());
         }
       }
     }
   }
 
-  unsigned char md_value[EVP_MAX_MD_SIZE];
-  unsigned int md_len;
-  if (EVP_DigestFinal_ex(mdctx, md_value, &md_len) == 0) {
-  }
-  EVP_MD_CTX_free(mdctx);
-  string sha384 = string(reinterpret_cast<char*>(md_value), md_len);
+  bool validationDone = false;
+  bool validationOK = false;
+
   for (const auto& [k, zonemd] : zonemdRecords) {
-    cerr << "Checking against " << zonemd->getZoneRepresentation() << endl;
     if (zonemd->d_serial != soarc->d_st.serial) {
       cerr << "SOA serial does not match " << endl;
       continue;
@@ -1490,25 +1567,41 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
       continue;
     }
     if (zonemd->d_hashalgo == 1) {
-      if (zonemd->d_digest != sha384) {
-        cerr << "sha384 mismatch" << endl;
+      validationDone = true;
+      if (zonemd->d_digest == sha384digest->digest()) {
+        validationOK = true;
+        break; // Per RFC: a single succeeding validation is enough
+      } else {
         continue;
       }
     }
     else if (zonemd->d_hashalgo == 2) {
-      //if (zonemd->d_digest != pdns_sha512sum(toHash.str())) {
-        cerr << "sha512 unavailable" << endl;
+      validationDone = true;
+      if (zonemd->d_digest == sha512digest->digest()) {
+        validationOK = true;
+        break; // Per RFC: a single succeeding validation is enough
+      } else {
         continue;
-        //}
+      }
     }
     else {
       cerr << "Unsupported hashalgo " << std::to_string(zonemd->d_hashalgo) << endl;
       continue;
     }
-    cerr << "OK!" << endl;
   }
 
-  return EXIT_SUCCESS;
+  if (validationDone) {
+    if (validationOK) {
+      cerr << "OK!" << endl;
+      return EXIT_SUCCESS;
+    } else {
+      cerr << "Validation of ZONEMD record(s) failed" << endl;
+    }
+  }
+  if (!validationDone) {
+    cerr << "No suitable ZONEMD record found to verify against" << endl;
+  }
+  return EXIT_FAILURE;
 }
 
 static int loadZone(const DNSName& zone, const string& fname) {
