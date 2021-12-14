@@ -2903,9 +2903,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       if (t_pdl) {
-        dc->d_eventTrace.add(RecEventTrace::LuaIPFilter);
-        bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh);
-        dc->d_eventTrace.add(RecEventTrace::LuaIPFilter, ipf, false);
+        bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh, dc->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
             g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
@@ -3289,9 +3287,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
 
   if (t_pdl) {
-    eventTrace.add(RecEventTrace::LuaIPFilter);
-    bool ipf = t_pdl->ipfilter(source, destination, *dh);
-    eventTrace.add(RecEventTrace::LuaIPFilter, ipf, false);
+    bool ipf = t_pdl->ipfilter(source, destination, *dh, eventTrace);
     if (ipf) {
       if (!g_quiet) {
         g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
