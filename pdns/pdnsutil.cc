@@ -1364,8 +1364,8 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   ZoneParserTNG zpt(fname, zone);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
-  typedef pair<DNSName, QType> rrSetKey_t;
-  typedef vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
+  typedef std::pair<DNSName, QType> rrSetKey_t;
+  typedef std::vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
 
   struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
   {
@@ -1387,7 +1387,7 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   std::map<rrSetKey_t, uint32_t> RRsetTTLs;
 
   DNSResourceRecord rr;
-  rrVector_t zonemdRecords;
+  std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<ZONEMDRecordContent>> zonemdRecords;
   std::shared_ptr<SOARecordContent> soarc;
 
   while(zpt.get(rr)) {
@@ -1416,7 +1416,11 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
       soarc = std::dynamic_pointer_cast<SOARecordContent>(drc);
     }
     if (rr.qtype == QType::ZONEMD && rr.qname == zone) {
-      zonemdRecords.push_back(drc);
+      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
+      auto inserted = zonemdRecords.insert(pair(pair(zonemd->d_scheme, zonemd->d_hashalgo), zonemd)).second;
+      if (!inserted) {
+        cerr << "Duplicate ZONEMD record!" << endl;
+      }
     }
     rrSetKey_t key = std::pair(rr.qname, rr.qtype);
     RRsets[key].push_back(drc);
@@ -1475,8 +1479,7 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   }
   EVP_MD_CTX_free(mdctx);
   string sha384 = string(reinterpret_cast<char*>(md_value), md_len);
-  for (const auto& z : zonemdRecords) {
-    const std::shared_ptr<ZONEMDRecordContent> zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(z);
+  for (const auto& [k, zonemd] : zonemdRecords) {
     cerr << "Checking against " << zonemd->getZoneRepresentation() << endl;
     if (zonemd->d_serial != soarc->d_st.serial) {
       cerr << "SOA serial does not match " << endl;
