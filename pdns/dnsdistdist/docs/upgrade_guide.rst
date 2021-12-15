@@ -12,6 +12,9 @@ Unless set via :func:`setMaxTCPClientThreads` the number of TCP workers now defa
 
 Plain-text API keys and passwords for web server authentication are now strongly discouraged. The :func:`hashPassword` method can be used to generate a hashed and salted version of passwords and API keys instead, so that the plain-text version can no longer be found in either the configuration file or the memory of the running process.
 
+In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
+For more information, see the section ["Privileged ports" in Docker-README](https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports).
+
 1.5.x to 1.6.0
 --------------
 

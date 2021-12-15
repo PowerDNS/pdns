@@ -31,6 +31,12 @@ SHA1 DSes
 
 ``pdnsutil show-zone`` and ``pdnsutil export-zone-ds`` no longer emit SHA1 DS records, unless ``--verbose`` is in use.
 
+Privileged port binding in Docker
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
+For more information, see the section ["Privileged ports" in Docker-README](https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports).
+
 4.4.x to 4.5.0
 --------------
 
