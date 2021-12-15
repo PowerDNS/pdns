@@ -225,7 +225,7 @@ struct DOHServerConfig
 
 /* This internal function sends back the object to the main thread to send a reply.
    The caller should NOT release or touch the unit after calling this function */
-static void sendDoHUnitToTheMainThread(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du, const char* description)
+static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& du, const char* description)
 {
   auto ptr = du.release();
   ptr->get();
@@ -249,7 +249,7 @@ static void sendDoHUnitToTheMainThread(std::unique_ptr<DOHUnit, void(*)(DOHUnit*
 /* This function is called from other threads than the main DoH one,
    instructing it to send a 502 error to the client.
    It takes ownership of the unit. */
-void handleDOHTimeout(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& oldDU)
+void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)
 {
   if (oldDU == nullptr) {
     return;
@@ -415,7 +415,7 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
 class DoHTCPCrossQuerySender : public TCPQuerySender
 {
 public:
-  DoHTCPCrossQuerySender(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du_): du(std::move(du_))
+  DoHTCPCrossQuerySender(DOHUnitUniquePtr&& du_): du(std::move(du_))
   {
   }
 
@@ -490,13 +490,13 @@ public:
   }
 
 private:
-  std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du;
+  DOHUnitUniquePtr du;
 };
 
 class DoHCrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  DoHCrossProtocolQuery(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du_): du(std::move(du_))
+  DoHCrossProtocolQuery(DOHUnitUniquePtr&& du_): du(std::move(du_))
   {
     query = InternalQuery(std::move(du->query), std::move(du->ids));
     /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
@@ -522,13 +522,13 @@ public:
   }
 
 private:
-  std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du;
+  DOHUnitUniquePtr du;
 };
 
 /*
    We are not in the main DoH thread but in the DoH 'client' thread.
 */
-static void processDOHQuery(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du)
+static void processDOHQuery(DOHUnitUniquePtr&& du)
 {
   uint16_t queryId = 0;
   ComboAddress remote;
@@ -676,7 +676,7 @@ static void processDOHQuery(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du)
          to handle it because it's about to be overwritten. */
       ++du->downstream->reuseds;
       ++g_stats.downstreamTimeouts;
-      handleDOHTimeout(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>(oldDU, DOHUnit::release));
+      handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
     }
 
     ids->origFD = 0;
@@ -1239,7 +1239,7 @@ static void dnsdistclient(int qsock)
         continue;
       }
 
-      std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du(ptr, DOHUnit::release);
+      DOHUnitUniquePtr du(ptr, DOHUnit::release);
       /* we are not in the main DoH thread anymore, so there is a real risk of
          a race condition where h2o kills the query while we are processing it,
          so we can't touch the content of du->req until we are back into the
@@ -1306,7 +1306,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       return;
     }
 
-    std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du(ptr, DOHUnit::release);
+    DOHUnitUniquePtr du(ptr, DOHUnit::release);
     if (!du->req) { // it got killed in flight
       du->self = nullptr;
       continue;
@@ -1634,7 +1634,7 @@ void dohThread(ClientState* cs)
   }
 }
 
-void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& du, PacketBuffer&& udpResponse, IDState&& state)
+void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, IDState&& state)
 {
   du->response = std::move(udpResponse);
   du->ids = std::move(state);

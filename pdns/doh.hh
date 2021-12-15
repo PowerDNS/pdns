@@ -260,4 +260,6 @@ void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, Pack
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
 
-void handleDOHTimeout(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&& oldDU);
+using DOHUnitUniquePtr = std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>;
+
+void handleDOHTimeout(DOHUnitUniquePtr&& oldDU);
