@@ -630,7 +630,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         /* read the potential DOHUnit state as soon as possible, but don't use it
            until we have confirmed that we own this state by updating usageIndicator */
-        auto du = ids->du;
+        auto du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
         /* setting age to 0 to prevent the maintainer thread from
            cleaning this IDS while we process the response.
         */
@@ -656,7 +656,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
         } else {
           /* someone updated the state in the meantime, we can't touch the existing pointer */
-          du = nullptr;
+          du.release();
           /* since the state has been updated, we can't safely access it so let's just drop
              this response */
           continue;
@@ -668,8 +668,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         /* don't call processResponse for DOH */
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
-          // DoH query
-          du->handleUDPResponse(std::move(response), std::move(*ids));
+          // DoH query, we cannot touch du after that
+          handleUDPResponseForDoH(std::move(du), std::move(response), std::move(*ids));
 #endif
           continue;
         }
@@ -1524,20 +1524,20 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    DOHUnit* du = nullptr;
+    DOHUnitUniquePtr du(nullptr, DOHUnit::release);
 
     /* that means that the state was in use, possibly with an allocated
        DOHUnit that we will need to handle, but we can't touch it before
        confirming that we now own this state */
     if (ids->isInUse()) {
-      du = ids->du;
+      du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
     }
 
     /* we atomically replace the value, we now own this state */
     if (!ids->markAsUsed()) {
       /* the state was not in use.
          we reset 'du' because it might have still been in use when we read it. */
-      du = nullptr;
+      du.release();
       ++ss->outstanding;
     }
     else {
@@ -1546,7 +1546,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids->du = nullptr;
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
-      handleDOHTimeout(du);
+      handleDOHTimeout(std::move(du));
     }
 
     ids->cs = &cs;
@@ -1886,7 +1886,8 @@ static void healthChecksThread()
             continue;
           }
           ids.du = nullptr;
-          handleDOHTimeout(oldDU);
+          handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
+          oldDU = nullptr;
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
