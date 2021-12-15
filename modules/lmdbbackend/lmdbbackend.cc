@@ -92,6 +92,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600, mapSize), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
+  d_tautoprimaries = std::make_shared<tautoprimariesdb_t>(d_tdomains->getEnv(), "autoprimaries");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
 
   auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
@@ -224,6 +225,12 @@ namespace serialization
     else {
       g.published = true;
     }
+  }
+
+  template <class Archive>
+  void serialize(Archive& ar, LMDBBackend::AutoPrimariesDB& s, const unsigned int version)
+  {
+    ar& s.ip& s.nameserver& s.account;
   }
 
   template <class Archive>
@@ -994,6 +1001,28 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
+bool LMDBBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+{
+  string name;
+  vector<ComboAddress> masters({ComboAddress(ip, 53)});
+  if (nameserver.empty())
+    return false;
+  else {
+    auto txn = d_tautoprimaries->getROTransaction();
+    vector<ComboAddress> tmp;
+    // figure out all IP addresses for the master
+    for (auto range = txn.equal_range<1>(DNSName(nameserver)); range.first != range.second; ++range.first) {
+      if (range.first->account == account)
+        tmp.emplace_back(range.first->ip, 53);
+    }
+    if (tmp.size() > 0) {
+      // set them as domain's masters, comma separated
+      masters = tmp;
+    }
+  }
+  return createDomain(domain, DomainInfo::Slave, masters, account);
+}
+
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled)
 {
   domains->clear();
@@ -1689,6 +1718,66 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   }
   if (needCommit)
     txn->txn->commit();
+  return false;
+}
+
+bool LMDBBackend::autoPrimaryRemove(const struct AutoPrimary& primary)
+{
+  auto txn = d_tautoprimaries->getRWTransaction();
+  /* check if it exists first */
+  DNSName ns(primary.nameserver);
+  for (auto range = txn.equal_range<0>(primary.ip); range.first != range.second; ++range.first)
+    if (range.first->nameserver == ns)
+      txn.del(range.first.getID());
+  txn.commit();
+  return true;
+}
+
+bool LMDBBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
+{
+  auto txn = d_tautoprimaries->getROTransaction();
+  AutoPrimariesDB tsm;
+
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter)
+    primaries.emplace_back(iter->ip, iter->nameserver.toString(), iter->account);
+
+  return true;
+}
+
+bool LMDBBackend::superMasterAdd(const AutoPrimary& primary)
+{
+  (void)autoPrimaryRemove(primary);
+
+  auto txn = d_tautoprimaries->getRWTransaction();
+
+  AutoPrimariesDB tsm;
+  tsm.ip = primary.ip;
+  tsm.nameserver = DNSName(primary.nameserver);
+  tsm.account = primary.account;
+
+  txn.put(tsm, 0, true);
+  txn.commit();
+
+  return true;
+}
+
+bool LMDBBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+{
+  auto txn = d_tautoprimaries->getROTransaction();
+  AutoPrimariesDB tsm;
+
+  for (const auto& ns : nsset) {
+    DNSName server(ns.content);
+    for (auto range = txn.equal_range<0>(ip); range.first != range.second; ++range.first) {
+      if (range.first->nameserver == server) {
+        *nameserver = range.first->nameserver.toString();
+        *account = range.first->account;
+        *ddb = this;
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
