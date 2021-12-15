@@ -8,9 +8,13 @@
 #include <fstream>
 #include <cstring>
 #include <mutex>
+#include <unordered_map>
 #include <pthread.h>
 
 #include <openssl/conf.h>
+#ifndef OPENSSL_NO_ENGINE
+#include <openssl/engine.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/ocsp.h>
 #include <openssl/rand.h>
@@ -63,6 +67,9 @@ static void openssl_thread_cleanup()
 #endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL) */
 
 static std::atomic<uint64_t> s_users;
+#ifndef OPENSSL_NO_ENGINE
+static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, int(*)(ENGINE*)>>> s_engines;
+#endif
 static int s_ticketsKeyIndex{-1};
 static int s_countersIndex{-1};
 static int s_keyLogIndex{-1};
@@ -104,6 +111,13 @@ void registerOpenSSLUser()
 void unregisterOpenSSLUser()
 {
   if (s_users.fetch_sub(1) == 1) {
+#ifndef OPENSSL_NO_ENGINE
+    for (auto& [name, engine] : *s_engines.lock()) {
+      ENGINE_finish(engine.get());
+      engine.reset();
+    }
+    s_engines.lock()->clear();
+#endif
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     ERR_free_strings();
 
@@ -117,6 +131,46 @@ void unregisterOpenSSLUser()
     openssl_thread_cleanup();
 #endif
   }
+}
+
+std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString)
+{
+#ifdef OPENSSL_NO_ENGINE
+  return { false, "OpenSSL has been built without engine support" };
+#else
+  if (s_users.load() == 0) {
+    /* We need to make sure that OpenSSL has been properly initialized before loading an engine.
+       This messes up our accounting a bit, so some memory might not be properly released when
+       the program exits when engines are in use. */
+    registerOpenSSLUser();
+  }
+
+  auto engines = s_engines.lock();
+  if (engines->count(engineName) > 0) {
+    return { false, "TLS engine already loaded" };
+  }
+
+  ENGINE* enginePtr = ENGINE_by_id(engineName.c_str());
+  if (enginePtr == nullptr) {
+    return { false, "unable to load TLS engine '" + engineName + "'" };
+  }
+
+  auto engine = std::unique_ptr<ENGINE, int(*)(ENGINE*)>(enginePtr, ENGINE_free);
+  enginePtr = nullptr;
+
+  if (!ENGINE_init(engine.get())) {
+    return { false, "Unable to init TLS engine '" + engineName + "'" };
+  }
+
+  if (defaultString) {
+    if (ENGINE_set_default_string(engine.get(), defaultString->c_str()) == 0) {
+      return { false, "error while setting the TLS engine default string" };
+    }
+  }
+
+  engines->insert({engineName, std::move(engine)});
+  return { true, "" };
+#endif
 }
 
 void* libssl_get_ticket_key_callback_data(SSL* s)
@@ -706,11 +760,22 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     SSL_CTX_sess_set_cache_size(ctx.get(), config.d_maxStoredSessions);
   }
 
+  long mode = 0;
 #ifdef SSL_MODE_RELEASE_BUFFERS
   if (config.d_releaseBuffers) {
-    SSL_CTX_set_mode(ctx.get(), SSL_MODE_RELEASE_BUFFERS);
+    mode |= SSL_MODE_RELEASE_BUFFERS;
   }
 #endif
+
+  if (config.d_asyncMode) {
+#ifdef SSL_MODE_ASYNC
+    mode |= SSL_MODE_ASYNC;
+#else
+    cerr<<"Warning: TLS async mode requested but not supported"<<endl;
+#endif
+  }
+
+  SSL_CTX_set_mode(ctx.get(), mode);
 
   /* we need to set this callback to acknowledge the server name sent by the client,
      otherwise it will not stored in the session and will not be accessible when the

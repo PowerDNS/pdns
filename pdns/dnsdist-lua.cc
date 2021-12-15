@@ -236,6 +236,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   if (vars->count("enableRenegotiation")) {
     config.d_enableRenegotiation = boost::get<bool>((*vars)["enableRenegotiation"]);
   }
+
+  if (vars->count("tlsAsyncMode")) {
+    config.d_asyncMode = boost::get<bool>((*vars).at("tlsAsyncMode"));
+  }
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -2807,6 +2811,20 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_socketUDPSendBuffer = snd;
     g_socketUDPRecvBuffer = recv;
   });
+
+#if defined(HAVE_LIBSSL)
+  luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
+    if (client) {
+      return;
+    }
+
+    auto [success, error] = libssl_load_engine(engineName, defaultString ? std::optional<std::string>(*defaultString) : std::nullopt);
+    if (!success) {
+      g_outputBuffer = "Error while trying to load TLS engine '" + engineName + "': " + error + "\n";
+      errlog("Error while trying to load TLS engine '%s': %s", engineName, error);
+    }
+  });
+#endif /* HAVE_LIBSSL */
 }
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)

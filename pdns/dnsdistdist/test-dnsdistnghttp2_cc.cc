@@ -444,6 +444,11 @@ public:
   {
   }
 
+  std::vector<int> getAsyncFDs() override
+  {
+    return {};
+  }
+
   /* unused in that context, don't bother */
   void doHandshake() override
   {
