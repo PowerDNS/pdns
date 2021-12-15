@@ -227,7 +227,15 @@ struct DOHServerConfig
    The caller should NOT release or touch the unit after calling this function */
 static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& du, const char* description)
 {
+  /* taking a naked pointer since we are about to send that pointer over a pipe */
   auto ptr = du.release();
+  /* increasing the reference counter. This should not be strictly needed because
+     we already hold a reference and will only release it if we failed to send the
+     pointer over the pipe, but TSAN seems confused when the responder thread gets
+     a reply from a backend before the send() syscall sending the corresponding query
+     to that backend has returned in the initial thread.
+     The memory barrier needed to increase that counter seems to work around that.
+  */
   ptr->get();
   static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
 
@@ -241,8 +249,10 @@ static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& du, const char* descri
       vinfolog("Unable to pass a %s to the DoH worker thread because we couldn't write to the pipe: %s", description, stringerror());
     }
 
+    /* we fail to write over the pipe so we do not need to hold to that ref anymore */
     ptr->release();
   }
+  /* we decrement the counter incremented above at the beginning of that function */
   ptr->release();
 }
 
