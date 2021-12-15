@@ -17,7 +17,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
-        product: ['auth', 'rec', 'dnsdist']
+        product: ['dnsdist']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -96,15 +96,6 @@ jobs:
                 ragel \
                 unixodbc-dev
 
-    - name: Build auth
-      if: matrix.product == 'auth'
-      run: |
-        autoreconf -vfi
-        ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
-        make -j8 -C ext
-        make -j8 -C modules
-        make -j8 -C pdns
-
     - name: Build dnsdist
       if: matrix.product == 'dnsdist'
       run: |
@@ -114,16 +105,6 @@ jobs:
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
         make -j4 dnsdist
-
-    - name: Build recursor
-      if: matrix.product == 'rec'
-      run: |
-        cd pdns/recursordist
-        autoreconf -vfi
-        ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
-        make -j8 -C ext
-        make htmlfiles.h
-        make -j8 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
