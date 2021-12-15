@@ -8,12 +8,12 @@
 typedef std::pair<DNSName, QType> rrSetKey_t;
 typedef std::vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
 
-struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
+struct CanonrrSetKeyCompare : public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
 {
-  bool operator()(const rrSetKey_t&a, const rrSetKey_t& b) const
+  bool operator()(const rrSetKey_t& a, const rrSetKey_t& b) const
   {
     // FIXME surely we can be smarter here
-    if(a.first.canonCompare(b.first)) {
+    if (a.first.canonCompare(b.first)) {
       return true;
     }
     if (b.first.canonCompare(a.first)) {
@@ -25,7 +25,7 @@ struct CanonrrSetKeyCompare: public std::binary_function<rrSetKey_t, rrSetKey_t,
 
 typedef std::map<rrSetKey_t, rrVector_t, CanonrrSetKeyCompare> RRsetMap_t;
 
-void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validationDone, bool& validationOK)
+void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validationDone, bool& validationOK)
 {
   validationDone = false;
   validationOK = false;
@@ -59,7 +59,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
       drc = DNSRecordContent::mastermake(dnsrr.qtype, QClass::IN, dnsrr.content);
     }
     catch (const PDNSException& pe) {
-      std::string err = "Bad record content in record for '" + dnsrr.qname.toStringNoDot() + "'|" + dnsrr.qtype.toString() + ": "+ pe.reason;
+      std::string err = "Bad record content in record for '" + dnsrr.qname.toStringNoDot() + "'|" + dnsrr.qtype.toString() + ": " + pe.reason;
       throw PDNSException(err);
     }
     catch (const std::exception& e) {
@@ -85,7 +85,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
   // Determine which digests to compute based on accepted zonemd records present
   unique_ptr<pdns::SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
 
-  for (auto it = zonemdRecords.begin(); it != zonemdRecords.end(); ) {
+  for (auto it = zonemdRecords.begin(); it != zonemdRecords.end();) {
     // The SOA Serial field MUST exactly match the ZONEMD Serial
     // field. If the fields do not match, digest verification MUST
     // NOT be considered successful with this ZONEMD RR.
@@ -99,9 +99,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
     // considered successful with this ZONEMD RR.
     const auto duplicate = it->second.duplicate;
     const auto& r = it->second.record;
-    if (!duplicate && r->d_serial == soarc->d_st.serial &&
-        r->d_scheme == 1 &&
-        (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
+    if (!duplicate && r->d_serial == soarc->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
       // A supported ZONEMD record
       if (r->d_hashalgo == 1) {
         sha384digest = make_unique<pdns::SHADigest>(384);
@@ -110,7 +108,8 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
         sha512digest = make_unique<pdns::SHADigest>(512);
       }
       ++it;
-    } else {
+    }
+    else {
       it = zonemdRecords.erase(it);
     }
   }
@@ -126,7 +125,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
   };
 
   // Compute requested digests
-  for (auto& rrset: RRsets) {
+  for (auto& rrset : RRsets) {
     const auto& qname = rrset.first.first;
     const auto& qtype = rrset.first.second;
     if (qtype == QType::ZONEMD && qname == zone) {
@@ -134,7 +133,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
     }
 
     sortedRecords_t sorted;
-    for (auto& rr: rrset.second) {
+    for (auto& rr : rrset.second) {
       if (qtype == QType::RRSIG) {
         const auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rr);
         if (rrsig->d_type == QType::ZONEMD && qname == zone) {
@@ -150,7 +149,8 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
       rrc.d_type = qtype;
       auto msg = getMessageForRRSET(qname, rrc, sorted, false, false);
       hash(msg);
-    } else {
+    }
+    else {
       // RRSIG is special, since  original TTL depends on qtype covered by RRSIG
       // which can be different per record
       for (const auto& rrsig : sorted) {
@@ -158,7 +158,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validatio
         RRSIGRecordContent rrc;
         rrc.d_originalttl = RRsetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;
-        auto msg = getMessageForRRSET(qname, rrc, { rrsigc }, false, false);
+        auto msg = getMessageForRRSET(qname, rrc, {rrsigc}, false, false);
         hash(msg);
       }
     }

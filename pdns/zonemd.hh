@@ -28,6 +28,6 @@ class ZoneParserTNG;
 
 namespace pdns
 {
-  void zonemdVerify(const DNSName& zone, ZoneParserTNG &zpt, bool& validationDone, bool& validationOK);
+void zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validationDone, bool& validationOK);
 
 }
