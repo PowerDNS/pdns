@@ -107,3 +107,36 @@ OS Specific Instructions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 None, really.
+
+Build options
+~~~~~~~~~~~~~
+
+Our ``configure`` script provides a fair number of options with regard to which features should be enabled, as well as which libraries should be used. In addition to these options, more features can be disabled at compile-time by defining the following symbols:
+
+* ``DISABLE_BUILTIN_HTML`` removes the built-in web pages
+* ``DISABLE_CARBON`` for carbon support
+* ``DISABLE_COMPLETION`` for completion support in the console
+* ``DISABLE_DEPRECATED_DYNBLOCK`` for legacy dynamic blocks not using the new ``DynBlockRulesGroup`` interface
+* ``DISABLE_ECS_ACTIONS`` to disable actions altering EDNS Client Subnet
+* ``DISABLE_LUA_WEB_HANDLERS`` for custom Lua web handlers support
+* ``DISABLE_PROMETHEUS`` for prometheus
+* ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap
+* ``DISABLE_RECVMMSG`` for ``recvmmsg`` support
+* ``DISABLE_RULES_ALTERING_QUERIES`` to remove rules altering the content of queries
+* ``DISABLE_SECPOLL`` for security polling
+* ``DISABLE_WEB_CONFIG`` to disable accessing the configuration via the web interface
+
+Additionally several Lua bindings can be removed when they are not needed, as they increase the memory required during compilation and the size of the final binary:
+
+* ``DDISABLE_CLIENT_STATE_BINDINGS``
+* ``DISABLE_COMBO_ADDR_BINDINGS``
+* ``DISABLE_DNSHEADER_BINDINGS``
+* ``DISABLE_DNSNAME_BINDINGS``
+* ``DISABLE_DOWNSTREAM_BINDINGS``
+* ``DISABLE_NETMASK_BINDINGS``
+* ``DISABLE_NON_FFI_DQ_BINDINGS``
+* ``DISABLE_PACKETCACHE_BINDINGS``
+* ``DISABLE_POLICIES_BINDINGS``
+* ``DISABLE_QPS_LIMITER_BINDINGS``
+* ``DISABLE_SUFFIX_MATCH_BINDINGS``
+* ``DISABLE_TOP_N_BINDINGS``
