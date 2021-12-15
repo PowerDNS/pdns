@@ -3200,7 +3200,7 @@ try
   }
   else if (cmds.at(0) == "unset-nsec3") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnsutil unset-nsec3 ZON"<<endl;
+      cerr<<"Syntax: pdnsutil unset-nsec3 ZONE"<<endl;
       return 0;
     }
     if (!dk.unsetNSEC3PARAM(DNSName(cmds.at(1)))) {

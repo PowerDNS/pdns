@@ -30,7 +30,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
   validationDone = false;
   validationOK = false;
 
-  // scheme,hasalgo -> duplicate,zonemdrecord
+  // scheme,hashalgo -> duplicate,zonemdrecord
   struct ZoneMDAndDuplicateFlag
   {
     std::shared_ptr<ZONEMDRecordContent> record;
@@ -117,10 +117,10 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
   // A little helper
   auto hash = [&sha384digest, &sha512digest](const std::string& msg) {
     if (sha384digest) {
-      sha384digest->process(msg, msg.size());
+      sha384digest->process(msg);
     }
     if (sha512digest) {
-      sha512digest->process(msg, msg.size());
+      sha512digest->process(msg);
     }
   };
 

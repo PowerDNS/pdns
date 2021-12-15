@@ -58,11 +58,11 @@ namespace pdns
 class SHADigest
 {
 public:
-  SHADigest(int bits)
+  SHADigest(unsigned int bits)
   {
     mdctx = EVP_MD_CTX_new();
     if (mdctx == nullptr) {
-      throw std::runtime_error("VSHADigest: P_MD_CTX_new failed");
+      throw std::runtime_error("SHADigest: EVP_MD_CTX_new failed");
     }
     switch (bits) {
     case 256:
@@ -90,7 +90,7 @@ public:
     }
   }
 
-  void process(const std::string& msg, size_t sz)
+  void process(const std::string& msg)
   {
     if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
       throw std::runtime_error("SHADigest: update error");
@@ -106,7 +106,7 @@ public:
       throw std::runtime_error("SHADigest: finalize error");
     }
     if (md_len != md_value.size()) {
-      throw std::runtime_error("SHADigest: inconsisten size");
+      throw std::runtime_error("SHADigest: inconsistent size");
     }
     return md_value;
   }
