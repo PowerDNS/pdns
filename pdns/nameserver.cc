@@ -150,13 +150,13 @@ void UDPNameserver::bindAddresses()
         g_localaddresses.push_back(locala);
 
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
-      string binderror = stringerror();
+      int err = errno;
       close(s);
-      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
+      if (err == EADDRNOTAVAIL && !::arg().mustDo("local-address-nonexist-fail")) {
         g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
+        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
