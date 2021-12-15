@@ -726,7 +726,8 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
 
     int fd = pickBackendSocketForSending(du->downstream);
     try {
-      /* you can't touch du after this line, because it might already have been freed */
+      /* you can't touch du after this line, unless the call returned a non-negative value,
+         because it might already have been freed */
       ssize_t ret = udpClientSendRequestToBackend(du->downstream, fd, du->query);
 
       if (ret < 0) {
