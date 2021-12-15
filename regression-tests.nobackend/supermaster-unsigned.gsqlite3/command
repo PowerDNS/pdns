@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+local_prepare()
+{
+        cat > pdns-gsqlite3-master.conf<<EOF
+module-dir=../regression-tests/modules
+launch=gsqlite3
+gsqlite3-dnssec=yes
+gsqlite3-database=master.db
+EOF
+        cat > pdns-gsqlite3-slave.conf<<EOF
+module-dir=../regression-tests/modules
+launch=gsqlite3
+gsqlite3-dnssec=yes
+gsqlite3-database=slave.db
+zone-cache-refresh-interval=900
+EOF
+	rm -f master.db* slave.db*
+	sqlite3 master.db < ../modules/gsqlite3backend/schema.sqlite3.sql
+	sqlite3 slave.db < ../modules/gsqlite3backend/schema.sqlite3.sql
+}
+
+MODULE=gsqlite3
+
+source supermaster-unsigned-command
