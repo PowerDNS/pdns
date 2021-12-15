@@ -1916,6 +1916,7 @@ zilopbg
 Zmd
 zonecryptokey
 zonefile
+zonemd
 zonemetadata
 zonename
 zoneparser
