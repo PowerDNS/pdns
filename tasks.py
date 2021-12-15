@@ -277,27 +277,69 @@ def ci_rec_configure(c):
         raise UnexpectedExit(res)
 
 @task
-def ci_dnsdist_configure(c):
+def ci_dnsdist_configure(c, features):
+    additional_flags = ''
+    if features == 'full':
+      features_set = '--enable-dnstap \
+                      --enable-dnscrypt \
+                      --enable-dns-over-tls \
+                      --enable-dns-over-https \
+                      --enable-systemd \
+                      --prefix=/opt/dnsdist \
+                      --with-gnutls \
+                      --with-libsodium \
+                      --with-lua=luajit \
+                      --with-libcap \
+                      --with-nghttp2 \
+                      --with-re2 '
+    else:
+      features_set = '--disable-dnstap \
+                      --disable-dnscrypt \
+                      --disable-ipcipher \
+                      --disable-systemd \
+                      --without-cdb \
+                      --without-ebpf \
+                      --without-gnutls \
+                      --without-libedit \
+                      --without-libsodium \
+                      --without-lmdb \
+                      --without-net-snmp \
+                      --without-re2 '
+      additional_flags = '-DDISABLE_COMPLETION \
+                          -DDISABLE_PROMETHEUS \
+                          -DDISABLE_PROTOBUF \
+                          -DDISABLE_BUILTIN_HTML \
+                          -DDISABLE_CARBON \
+                          -DDISABLE_SECPOLL \
+                          -DDISABLE_DEPRECATED_DYNBLOCK \
+                          -DDISABLE_LUA_WEB_HANDLERS \
+                          -DDISABLE_NON_FFI_DQ_BINDINGS \
+                          -DDISABLE_POLICIES_BINDINGS \
+                          -DDISABLE_PACKETCACHE_BINDINGS \
+                          -DDISABLE_DOWNSTREAM_BINDINGS \
+                          -DDISABLE_COMBO_ADDR_BINDINGS \
+                          -DDISABLE_CLIENT_STATE_BINDINGS \
+                          -DDISABLE_QPS_LIMITER_BINDINGS \
+                          -DDISABLE_SUFFIX_MATCH_BINDINGS \
+                          -DDISABLE_NETMASK_BINDINGS \
+                          -DDISABLE_DNSNAME_BINDINGS \
+                          -DDISABLE_DNSHEADER_BINDINGS \
+                          -DDISABLE_RECVMMSG \
+                          -DDISABLE_WEB_CONFIG \
+                          -DDISABLE_RULES_ALTERING_QUERIES \
+                          -DDISABLE_ECS_ACTIONS \
+                          -DDISABLE_TOP_N_BINDINGS'
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
-    res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
-                   CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
+    cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
+    cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
+    res = c.run('''CFLAGS="%s" \
+                   CXXFLAGS="%s" \
                    ./configure \
                      CC='clang-12' \
                      CXX='clang++-12' \
                      --enable-option-checking=fatal \
                      --enable-unit-tests \
-                     --enable-dnstap \
-                     --enable-dnscrypt \
-                     --enable-dns-over-tls \
-                     --enable-dns-over-https \
-                     --enable-systemd \
-                     --prefix=/opt/dnsdist \
-                     --with-gnutls \
-                     --with-libsodium \
-                     --with-lua=luajit \
-                     --with-libcap \
-                     --with-nghttp2 \
-                     --with-re2 ''' + sanitizers, warn=True)
+                     --prefix=/opt/dnsdist %s %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)

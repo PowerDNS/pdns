@@ -99,6 +99,10 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
+        features: [least, full]
+        exclude:
+          - sanitizers: tsan
+            features: least
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -120,14 +124,14 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: dnsdist-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: dnsdist-${{ matrix.sanitizers }}-ccache-
+          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
       - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv apt-fresh
       - run: inv install-clang
       - run: inv install-dnsdist-build-deps
       - run: inv ci-autoconf
-      - run: inv ci-dnsdist-configure
+      - run: inv ci-dnsdist-configure ${{ matrix.features }}
       - run: inv ci-dnsdist-make
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
@@ -135,7 +139,7 @@ jobs:
       - name: Store the binaries
         uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}
           path: /opt/dnsdist
           retention-days: 1
 
@@ -373,7 +377,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v2
         with:
-          name: dnsdist-${{ matrix.sanitizers }}
+          name: dnsdist-full-${{ matrix.sanitizers }}
           path: /opt/dnsdist
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
