@@ -1375,14 +1375,15 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   }
   catch (const std::exception& ex) {
     cerr << "zonemd-verify-file: " << ex.what() << endl;
+    return EXIT_FAILURE;
   }
 
   if (validationDone) {
     if (validationOK) {
-      cout << "zonemd-verify-file: Validation of ZONEMD record succeeded" << endl;
+      cout << "zonemd-verify-file: Verification of ZONEMD record succeeded" << endl;
       return EXIT_SUCCESS;
     } else {
-      cerr << "zonemd-verify-file: Validation of ZONEMD record(s) failed" << endl;
+      cerr << "zonemd-verify-file: Verification of ZONEMD record(s) failed" << endl;
     }
   }
   else {
@@ -2445,6 +2446,7 @@ try
     cout<<"unset-publish-cds ZONE             Disable sending CDS responses for ZONE"<<endl;
     cout<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
     cout<<"raw-lua-from-content TYPE CONTENT  Display record contents in a form suitable for dnsdist's `SpoofRawAction`"<<endl;
+    cout<<"zonemd-verify-file ZONE FILE       Validate ZONEMD for ZONE"<<endl;
     cout<<desc<<endl;
     return 0;
   }
@@ -2571,14 +2573,13 @@ try
   if(cmds[0] == "zonemd-verify-file") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnsutil zonemd-verify-file ZONE FILENAME"<<endl;
-      return 0;
+      return 1;
     }
     if(cmds[1]==".")
       cmds[1].clear();
 
     auto ret = zonemdVerifyFile(DNSName(cmds[1]), cmds[2]);
-    if (ret) exit(ret);
-    return 0;
+    return ret;
   }
 
   DNSSECKeeper dk;

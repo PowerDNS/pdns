@@ -251,6 +251,8 @@ unset-presigned *ZONE*
     Disables presigned operation for *ZONE*.
 raw-lua-from-content *TYPE* *CONTENT*  
     Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
+zonemd-verify-file *ZONE* *FILE*  
+    Validate ZONEMD for *ZONE* read from *FILE*.
 
 DEBUGGING TOOLS
 ---------------
