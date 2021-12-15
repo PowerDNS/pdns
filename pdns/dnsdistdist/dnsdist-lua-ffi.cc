@@ -23,6 +23,7 @@
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
+#include "dolog.hh"
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
 {
@@ -601,30 +602,40 @@ void setupLuaFFIPerThreadContext(LuaContext& luaCtx)
 
 size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const void* srcAddr, const void* dstAddr, const uint16_t srcPort, const uint16_t dstPort, const bool tcp, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value* values, void* out, const size_t outSize)
 {
-  ComboAddress src, dst;
-  if (addrSize != sizeof(src.sin4.sin_addr) && addrSize != sizeof(src.sin6.sin6_addr.s6_addr)) {
-    return 0;
-  }
-
-  src = makeComboAddressFromRaw(addrSize == sizeof(src.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(srcAddr), addrSize);
-  src.sin4.sin_port = htons(srcPort);
-  dst = makeComboAddressFromRaw(addrSize == sizeof(dst.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(dstAddr), addrSize);
-  dst.sin4.sin_port = htons(dstPort);
-
-  std::vector<ProxyProtocolValue> valuesVect;
-  if (valuesCount > 0) {
-    valuesVect.reserve(valuesCount);
-    for (size_t idx = 0; idx < valuesCount; idx++) {
-      valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+  try {
+    ComboAddress src, dst;
+    if (addrSize != sizeof(src.sin4.sin_addr) && addrSize != sizeof(src.sin6.sin6_addr.s6_addr)) {
+      return 0;
     }
-  }
 
-  std::string payload = makeProxyHeader(tcp, src, dst, valuesVect);
-  if (payload.size() > outSize) {
+    src = makeComboAddressFromRaw(addrSize == sizeof(src.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(srcAddr), addrSize);
+    src.sin4.sin_port = htons(srcPort);
+    dst = makeComboAddressFromRaw(addrSize == sizeof(dst.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(dstAddr), addrSize);
+    dst.sin4.sin_port = htons(dstPort);
+
+    std::vector<ProxyProtocolValue> valuesVect;
+    if (valuesCount > 0) {
+      valuesVect.reserve(valuesCount);
+      for (size_t idx = 0; idx < valuesCount; idx++) {
+        valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+      }
+    }
+
+    std::string payload = makeProxyHeader(tcp, src, dst, valuesVect);
+    if (payload.size() > outSize) {
+      return 0;
+    }
+
+    memcpy(out, payload.c_str(), payload.size());
+
+    return payload.size();
+  }
+  catch (const std::exception& e) {
+    vinfolog("Exception in dnsdist_ffi_generate_proxy_protocol_payload: %s", e.what());
     return 0;
   }
-
-  memcpy(out, payload.c_str(), payload.size());
-
-  return payload.size();
+  catch (...) {
+    vinfolog("Unhandled exception in dnsdist_ffi_generate_proxy_protocol_payload");
+    return 0;
+  }
 }
