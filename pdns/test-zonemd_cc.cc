@@ -25,11 +25,9 @@ static void testZoneMD(const std::string& zone, const std::string& file, bool ex
     pdns::zonemdVerify(z, zpt, validationDone, validationOK);
   }
   catch (const PDNSException& e) {
-    cerr << e.reason << endl;
     BOOST_CHECK(ex);
   }
   catch (const std::exception& e) {
-    cerr << e.what() << endl;
     BOOST_CHECK(ex);
   }
 

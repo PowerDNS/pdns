@@ -58,9 +58,9 @@ namespace pdns
 class SHADigest
 {
 public:
-  SHADigest(unsigned int bits)
+  SHADigest(unsigned int bits) :
+    mdctx(std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free))
   {
-    mdctx = EVP_MD_CTX_new();
     if (mdctx == nullptr) {
       throw std::runtime_error("SHADigest: EVP_MD_CTX_new failed");
     }
@@ -77,7 +77,7 @@ public:
     default:
       throw std::runtime_error("SHADigest: unsupported size");
     }
-    if (EVP_DigestInit_ex(mdctx, md, NULL) == 0) {
+    if (EVP_DigestInit_ex(mdctx.get(), md, NULL) == 0) {
       throw std::runtime_error("SHADigest: init error");
     }
   }
@@ -85,14 +85,11 @@ public:
   ~SHADigest()
   {
     // No free of md needed afaik
-    if (mdctx != nullptr) {
-      EVP_MD_CTX_free(mdctx);
-    }
   }
 
   void process(const std::string& msg)
   {
-    if (EVP_DigestUpdate(mdctx, msg.data(), msg.size()) == 0) {
+    if (EVP_DigestUpdate(mdctx.get(), msg.data(), msg.size()) == 0) {
       throw std::runtime_error("SHADigest: update error");
     }
   }
@@ -102,7 +99,7 @@ public:
     std::string md_value;
     md_value.resize(EVP_MD_size(md));
     unsigned int md_len;
-    if (EVP_DigestFinal_ex(mdctx, reinterpret_cast<unsigned char*>(md_value.data()), &md_len) == 0) {
+    if (EVP_DigestFinal_ex(mdctx.get(), reinterpret_cast<unsigned char*>(md_value.data()), &md_len) == 0) {
       throw std::runtime_error("SHADigest: finalize error");
     }
     if (md_len != md_value.size()) {
@@ -112,7 +109,7 @@ public:
   }
 
 private:
-  EVP_MD_CTX* mdctx{nullptr};
+  std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)> mdctx;
   const EVP_MD* md;
 };
 }
