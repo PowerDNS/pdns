@@ -151,6 +151,16 @@ void UDPNameserver::bindAddresses()
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
 
+    {
+      char t[100] = "/tmp/lsofXXXXXXXXX";
+      string tmp = string(mktemp(t));
+      std::system((string("sudo lsof -nPi :53 > ") + tmp).c_str());
+      g_log << Logger::Error<< "Before sudo lsof -nPi :53" << endl;
+      auto stream = std::ifstream(tmp);
+      for (string line; std::getline(stream, line); )
+        g_log << Logger::Error<< "lsof " << line << endl;
+      g_log << Logger::Error<< "End before sudo lsof -nPi :53" << endl;
+    }
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
       int err = errno;
       close(s);
@@ -161,12 +171,11 @@ void UDPNameserver::bindAddresses()
         char t[100] = "/tmp/lsofXXXXXXXXX";
         string tmp = string(mktemp(t));
         std::system((string("sudo lsof -nPi :53 > ") + tmp).c_str());
-        g_log << Logger::Error << "UID: " << getuid() << ' ' << geteuid() << endl;
-        g_log << Logger::Error<< "sudo lsof  -nPi :53" << endl;
+        g_log << Logger::Error<< "sudo lsof -nPi :53" << endl;
         auto stream = std::ifstream(tmp);
         for (string line; std::getline(stream, line); )
           g_log << Logger::Error<< "lsof " << line << endl;
-        g_log << Logger::Error<< "End sudo lsof  -nPi :53" << endl;
+        g_log << Logger::Error<< "End sudo lsof -nPi :53" << endl;
         g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
