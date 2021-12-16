@@ -25,6 +25,10 @@
 #include "iputils.hh"
 #include <sys/socket.h> 
 
+#if HAVE_GETIFADDRS
+#include <ifaddrs.h>
+#endif
+
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
 static void RuntimeError(const boost::format& fmt)
@@ -542,4 +546,57 @@ void setSocketReceiveBuffer(int fd, uint32_t size)
 void setSocketSendBuffer(int fd, uint32_t size)
 {
   setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
+std::set<std::string> getListOfNetworkInterfaces()
+{
+  std::set<std::string> result;
+#if HAVE_GETIFADDRS
+  struct ifaddrs *ifaddr;
+  if (getifaddrs(&ifaddr) == -1) {
+    return result;
+  }
+
+  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_name == nullptr) {
+      continue;
+    }
+    result.insert(ifa->ifa_name);
+  }
+
+  freeifaddrs(ifaddr);
+#endif
+  return result;
+}
+
+std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf)
+{
+  std::vector<ComboAddress> result;
+#if HAVE_GETIFADDRS
+  struct ifaddrs *ifaddr;
+  if (getifaddrs(&ifaddr) == -1) {
+    return result;
+  }
+
+  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_name == nullptr || strcmp(ifa->ifa_name, itf.c_str()) != 0) {
+      continue;
+    }
+    if (ifa->ifa_addr == nullptr || (ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6)) {
+      continue;
+    }
+    ComboAddress addr;
+    try {
+      addr.setSockaddr(ifa->ifa_addr, ifa->ifa_addr->sa_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+    }
+    catch (...) {
+      continue;
+    }
+
+    result.push_back(addr);
+  }
+
+  freeifaddrs(ifaddr);
+#endif
+  return result;
 }
