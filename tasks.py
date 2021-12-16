@@ -339,7 +339,7 @@ def ci_dnsdist_configure(c, features):
                      CXX='clang++-12' \
                      --enable-option-checking=fatal \
                      --enable-unit-tests \
-                     --prefix=/opt/dnsdist %s %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
+                     --prefix=/opt/dnsdist %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
