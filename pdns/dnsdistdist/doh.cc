@@ -1685,7 +1685,7 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
 
 #else /* HAVE_DNS_OVER_HTTPS */
 
-void handleDOHTimeout(DOHUnit* oldDU)
+void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)
 {
 }
 
