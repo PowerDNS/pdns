@@ -18,12 +18,6 @@ Changelog
     Fix a double-free when a DoH cross-protocol response is dropped
 
   .. change::
-    :tags: Bug Fixes, DNS over HTTPS, Security
-    :pullreq: 11075
-
-    Fix a double-free when a DoH cross-protocol response is dropped
-
-  .. change::
     :tags: Bug Fixes, DNS over HTTPS
     :pullreq: 11079
 
