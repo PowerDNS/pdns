@@ -128,7 +128,7 @@ Our ``configure`` script provides a fair number of options with regard to which 
 
 Additionally several Lua bindings can be removed when they are not needed, as they increase the memory required during compilation and the size of the final binary:
 
-* ``DDISABLE_CLIENT_STATE_BINDINGS``
+* ``DISABLE_CLIENT_STATE_BINDINGS``
 * ``DISABLE_COMBO_ADDR_BINDINGS``
 * ``DISABLE_DNSHEADER_BINDINGS``
 * ``DISABLE_DNSNAME_BINDINGS``
