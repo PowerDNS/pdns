@@ -394,6 +394,7 @@ dnsdistdoc
 dnsdomain
 dnsext
 dnsgram
+dnsheader
 dnskey
 dnsmessage
 dnsname
