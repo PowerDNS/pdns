@@ -1680,7 +1680,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
 
 #else /* HAVE_DNS_OVER_HTTPS */
 
-void handleDOHTimeout(DOHUnit* oldDU)
+void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)
 {
 }
 
