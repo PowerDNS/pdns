@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import base64
+
 import dns
 import os
 import time
@@ -889,7 +889,7 @@ class TestDOHWithCache(DNSDistDOHTest):
         self._toResponderQueue.put(tcResponse, True, 2.0)
 
         (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response)
-        # first query, received by dnsdist over UDP
+        # first query, received by the responder over UDP
         self.assertTrue(receivedQuery)
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
@@ -899,7 +899,7 @@ class TestDOHWithCache(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         self.assertEqual(response, receivedResponse)
 
-        # check the second query, received by dnsdist over TCP
+        # check the second query, received by the responder over TCP
         receivedQuery = self._fromResponderQueue.get(True, 2.0)
         self.assertTrue(receivedQuery)
         receivedQuery.id = expectedQuery.id
@@ -1294,3 +1294,38 @@ class TestDOHWithPCKS12Cert(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
+
+class TestDOHForwardedToTCPOnly(DNSDistDOHTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s", tcpOnly=true}
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" })
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+
+    def testDOHTCPOnly(self):
+        """
+        DoH: Test a DoH query forwarded to a TCP-only server
+        """
+        name = 'tcponly.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 42
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
