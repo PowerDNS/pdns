@@ -1734,7 +1734,7 @@ public:
     if (d_qtypes.size() > 0) {
       clearDNSPacketRecordTypes(dr->getMutableData(), d_qtypes);
     }
-    return DNSResponseAction::Action::HeaderModify;
+    return DNSResponseAction::Action::None;
   }
 
   std::string toString() const override
@@ -2260,12 +2260,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
     });
 
-  luaCtx.writeFunction("ClearRecordTypesResponseAction", [](boost::variant<int,vector<pair<int, int>>> types) {
+  luaCtx.writeFunction("ClearRecordTypesResponseAction", [](boost::variant<int, vector<pair<int, int>>> types) {
       std::set<QType> qtypes{};
-      if (auto t = boost::get<int>(types)) {
-        qtypes.insert(t);
-      } else {
-        const auto& v = boost::get<vector<pair<int,int>>>(types);
+      if (types.type() == typeid(int)) {
+        qtypes.insert(boost::get<int>(types));
+      } else if (types.type() == typeid(vector<pair<int, int>>)) {
+        const auto& v = boost::get<vector<pair<int, int>>>(types);
         for (const auto& tpair: v) {
           qtypes.insert(tpair.second);
         }
