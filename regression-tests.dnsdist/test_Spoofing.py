@@ -909,3 +909,72 @@ class TestSpoofingLuaWithStatistics(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponseAfterwards, receivedResponse)
+
+class TestSpoofingLuaSpoofPacket(DNSDistTest):
+
+    _config_template = """
+
+    function spoofpacket(dq)
+        if dq.qtype == DNSQType.A then
+             return DNSAction.SpoofPacket, "\\000\\000\\129\\133\\000\\001\\000\\000\\000\\000\\000\\000\\014lua\\045raw\\045packet\\008spoofing\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001"
+        end
+        return DNSAction.None, ""
+    end
+
+    addAction("lua-raw-packet.spoofing.tests.powerdns.com.", LuaAction(spoofpacket))
+    local rawResponse="\\000\\000\\129\\133\\000\\001\\000\\000\\000\\000\\000\\000\\019rule\\045lua\\045raw\\045packet\\008spoofing\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001"
+    addAction(AndRule{QTypeRule(DNSQType.A), makeRule("rule-lua-raw-packet.spoofing.tests.powerdns.com.")}, SpoofPacketAction(rawResponse, string.len(rawResponse)))
+
+    local ffi = require("ffi")
+
+    function spoofpacketffi(dq)
+        local qtype = ffi.C.dnsdist_ffi_dnsquestion_get_qtype(dq)
+        if qtype == DNSQType.A then
+            -- REFUSED answer
+            local refusedResponse="\\000\\000\\129\\133\\000\\001\\000\\000\\000\\000\\000\\000\\014lua\\045raw\\045packet\\012ffi\\045spoofing\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001"
+
+            ffi.C.dnsdist_ffi_dnsquestion_spoof_packet(dq, refusedResponse, string.len(refusedResponse))
+            return DNSAction.HeaderModify
+        end
+        return DNSAction.None, ""
+    end
+
+    addAction("lua-raw-packet.ffi-spoofing.tests.powerdns.com.", LuaFFIAction(spoofpacketffi))
+    newServer{address="127.0.0.1:%s"}
+    """
+    _verboseMode = True
+
+    def testLuaSpoofPacket(self):
+        """
+        Spoofing via Lua FFI: Spoof raw response via Lua FFI
+        """
+        for name in ('lua-raw-packet.spoofing.tests.powerdns.com.', 'rule-lua-raw-packet.spoofing.tests.powerdns.com.'):
+
+            query = dns.message.make_query(name, 'A', 'IN')
+            expectedResponse = dns.message.make_response(query)
+            expectedResponse.flags |= dns.flags.RA
+            expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertTrue(receivedResponse)
+                self.assertEqual(expectedResponse, receivedResponse)
+
+    def testLuaFFISpoofPacket(self):
+        """
+        Spoofing via Lua FFI: Spoof raw response via Lua FFI
+        """
+        name = 'lua-raw-packet.ffi-spoofing.tests.powerdns.com.'
+
+        #
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags |= dns.flags.RA
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)

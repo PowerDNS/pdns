@@ -1580,6 +1580,15 @@ The following actions exist.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
   * ``ttl``: int - The TTL of the record.
 
+.. function:: SpoofPacketAction(rawPacket, len)
+
+  .. versionadded:: 1.8.0
+
+  Spoof a raw self-generated answer
+
+  :param string rawPacket: The raw wire-ready DNS answer
+  :param int len: The length of the packet
+
 .. function:: TagAction(name, value)
 
   .. deprecated:: 1.6.0

@@ -766,10 +766,18 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   // do we even have a response?
   if (d_cname.empty() &&
       d_rawResponses.empty() &&
+      // make sure pre-forged response is greater than sizeof(dnsheader)
+      (d_raw.size() < sizeof(dnsheader)) &&
       d_types.count(qtype) == 0) {
     return Action::None;
   }
 
+  if (d_raw.size() >= sizeof(dnsheader)) {
+    auto id = dq->getHeader()->id;
+    dq->getMutableData() = d_raw;
+    dq->getHeader()->id = id;
+    return Action::HeaderModify;
+  }
   vector<ComboAddress> addrs;
   vector<std::string> rawResponses;
   unsigned int totrdatalen = 0;
@@ -2167,6 +2175,14 @@ void setupLuaActions(LuaContext& luaCtx)
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
+    });
+
+  luaCtx.writeFunction("SpoofPacketAction", [](const std::string& response, size_t len) {
+    if (len < sizeof(dnsheader)) {
+      throw std::runtime_error(std::string("SpoofPacketAction: given packet len is too small"));
+    }
+    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(response.c_str(), len));
+    return ret;
     });
 
   luaCtx.writeFunction("DropAction", []() {

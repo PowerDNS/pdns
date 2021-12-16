@@ -56,6 +56,10 @@ public:
   {
   }
 
+  SpoofAction(const char* rawresponse, size_t len): d_raw(rawresponse, rawresponse + len)
+  {
+  }
+
   SpoofAction(const vector<std::string>& raws): d_rawResponses(raws)
   {
   }
@@ -85,6 +89,7 @@ private:
   std::vector<ComboAddress> d_addrs;
   std::set<uint16_t> d_types;
   std::vector<std::string> d_rawResponses;
+  PacketBuffer d_raw;
   DNSName d_cname;
 };
 
