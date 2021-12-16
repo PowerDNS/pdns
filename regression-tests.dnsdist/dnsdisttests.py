@@ -801,6 +801,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 with open(inFileName) as inFile:
                     outFile.write(inFile.read())
 
+        cmd = ['openssl', 'pkcs12', '-export', '-passout', 'pass:passw0rd', '-clcerts', '-in', 'server.pem', '-CAfile', 'ca.pem', '-inkey', 'server.key', '-out', 'server.p12']
+        output = None
+        try:
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input='')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('openssl pkcs12 failed (%d): %s' % (exc.returncode, exc.output))
+
     def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=[], v6=False, sourcePort=None, destinationPort=None):
         proxy = ProxyProtocol()
         self.assertTrue(proxy.parseHeader(receivedProxyPayload))

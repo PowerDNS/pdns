@@ -1513,9 +1513,9 @@ public:
     creds = nullptr;
 
     for (const auto& pair : fe.d_tlsConfig.d_certKeyPairs) {
-      rc = gnutls_certificate_set_x509_key_file(d_creds.get(), pair.first.c_str(), pair.second.c_str(), GNUTLS_X509_FMT_PEM);
+      rc = gnutls_certificate_set_x509_key_file(d_creds.get(), pair.d_cert.c_str(), pair.d_key->c_str(), GNUTLS_X509_FMT_PEM);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading certificate ('" + pair.first + "') and key ('" + pair.second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        throw std::runtime_error("Error loading certificate ('" + pair.d_cert + "') and key ('" + pair.d_key.value() + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
       }
     }
 
@@ -1523,7 +1523,7 @@ public:
     for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).first + "') and key ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).d_cert + "') and key ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).d_key.value() + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
       }
       ++count;
     }

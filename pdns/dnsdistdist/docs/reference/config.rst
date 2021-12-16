@@ -118,13 +118,16 @@ Listen Sockets
     ``enableRenegotiation``, ``exactPathMatching``, ``maxConcurrentTCPConnections`` and ``releaseBuffers`` options added.
     ``internalPipeBufferSize`` now defaults to 1048576 on Linux.
 
+  .. versionchanged:: 1.8.0
+     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
+
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
   :param str-or-list urls: The path part of a URL, or a list of paths, to accept queries on. Any query with a path matching exactly one of these will be treated as a DoH query (sub-paths can be accepted by setting the ``exactPathMatching`` to false). The default is /dns-query.
   :param table options: A table with key: value pairs with listen options.
 
@@ -168,13 +171,15 @@ Listen Sockets
     ``enableRenegotiation``, ``maxConcurrentTCPConnections``, ``maxInFlight`` and ``releaseBuffers`` options added.
   .. versionchanged:: 1.8.0
     ``tlsAsyncMode`` option added.
+  .. versionchanged:: 1.8.0
+     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 853.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
@@ -1641,6 +1646,27 @@ Other functions
   :param string engineName: The name of the engine to load.
   :param string defaultString: The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register with the engine, as a list of  comma-separated keywords. For example "RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1".
 
+.. function:: newTLSCertificate(pathToCert[, options])
+
+  .. versionadded:: 1.8.0
+
+  Creates a TLSCertificate object suited to be used with functions like :func:`addDOHLocal` and :func:`addTLSLocal` for TLS certificate configuration.
+
+  PKCS12 files are only supported by the ``openssl`` provider, password-protected or not.
+
+  :param string pathToCert: Path to a file containing the certificate or a PCKS12 file containing both a certificate and a key.
+  :param table options: A table with key: value pairs with additional options.
+
+  Options:
+
+  * ``key="path/to/key"``: string - Path to a file containing the key corresponding to the certificate.
+  * ``password="pass"``: string - Password protecting the PCKS12 file if appropriate.
+
+  .. code-block:: lua
+
+    newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
+    newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PCKS12 file
+
 DOHFrontend
 ~~~~~~~~~~~
 
@@ -1654,10 +1680,11 @@ DOHFrontend
 
      .. versionadded:: 1.6.1
 
-     Create and switch to a new TLS context using the same options than were passed to the corresponding `addDOHLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
+     .. versionchanged:: 1.8.0
+        ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
 
-     :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
-     :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+     :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
+     :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
 
   .. method:: DOHFrontend:loadTicketsKeys(ticketsKeysFile)
 
