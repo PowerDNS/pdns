@@ -40,10 +40,32 @@ extern "C"
 
   typedef enum
   {
-    answer = 1,
-    authority = 2,
-    additional = 3
+    pdns_record_place_answer = 1,
+    pdns_record_place_authority = 2,
+    pdns_record_place_additional = 3
   } pdns_record_place_t;
+
+  // Must match DNSFilterEngine::PolicyKind
+  typedef enum
+  {
+    pdns_policy_kind_noaction = 0,
+    pdns_policy_kind_drop = 1,
+    pdns_policy_kind_nxdomain = 2,
+    pdns_policy_kind_nodata = 3,
+    pdns_policy_kind_truncate = 4,
+    pdns_policy_kind_custom = 5
+  } pdns_policy_kind_t;
+
+  typedef struct pdns_ffi_record
+  {
+    const char* name;
+    size_t name_len;
+    const char* content;
+    size_t content_len;
+    uint32_t ttl;
+    pdns_record_place_t place;
+    uint16_t type;
+  } pdns_ffi_record_t;
 
   const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
   void pdns_ffi_param_get_qname_raw(pdns_ffi_param_t* ref, const char** qname, size_t* qnameSize) __attribute__((visibility("default")));
@@ -89,4 +111,20 @@ extern "C"
   void pdns_ffi_param_set_padding_disabled(pdns_ffi_param_t* ref, bool disabled) __attribute__((visibility("default")));
   void pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t* ref, const char* key, const char* val) __attribute__((visibility("default")));
   void pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t* ref, const char* key, int64_t val) __attribute__((visibility("default")));
+
+  typedef struct pdns_postresolve_ffi_handle pdns_postresolve_ffi_handle_t;
+
+  const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  void pdns_postresolve_ffi_handle_get_qname_raw(pdns_postresolve_ffi_handle_t* ref, const char** qname, size_t* qnameSize) __attribute__((visibility("default")));
+  uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  void pdns_postresolve_ffi_handle_set_rcode(const pdns_postresolve_ffi_handle_t* ref, uint16_t rcode) __attribute__((visibility("default")));
+  pdns_policy_kind_t pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind) __attribute__((visibility("default")));
+  bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t* record, bool raw) __attribute__((visibility("default")));
+  bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw) __attribute__((visibility("default")));
+  void pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw) __attribute__((visibility("default")));
+  const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref) __attribute__((visibility("default")));
+  void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
 }

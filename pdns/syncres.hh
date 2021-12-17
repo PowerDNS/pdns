@@ -799,6 +799,7 @@ public:
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
   boost::optional<string> d_routingTag;
+  ComboAddress d_fromAuthIP;
   RecEventTrace d_eventTrace;
 
   unsigned int d_authzonequeries;

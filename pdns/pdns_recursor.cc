@@ -1809,6 +1809,7 @@ static void startDoResolve(void *p)
     dq.extendedErrorCode = &dc->d_extendedErrorCode;
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
+    dq.fromAuthIP = &sr.d_fromAuthIP;
 
     RunningResolveGuard tcpGuard(dc);
 
@@ -2005,12 +2006,28 @@ static void startDoResolve(void *p)
           }
         }
 
-	if (t_pdl && t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
-          shouldNotValidate = true;
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-          // haveAnswer case redundant
-          if (policyResult == PolicyResult::Drop) {
-            return;
+        if (t_pdl) {
+          if (t_pdl->d_postresolve_ffi) {
+            RecursorLua4::PostResolveFFIHandle handle(dq);
+            sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
+            bool pr = t_pdl->postresolve_ffi(handle);
+            sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, pr, false);
+            if (pr) {
+              shouldNotValidate = true;
+              auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
+              // haveAnswer case redundant
+              if (policyResult == PolicyResult::Drop) {
+                return;
+              }
+            }
+          }
+          else if (t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
+            shouldNotValidate = true;
+            auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
+            // haveAnswer case redundant
+            if (policyResult == PolicyResult::Drop) {
+              return;
+            }
           }
         }
       }

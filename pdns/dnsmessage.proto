@@ -163,6 +163,7 @@ message PBDNSMessage {
     LuaPostResolve = 107;
     LuaNoData = 108;
     LuaNXDomain = 109;
+    LuaPostResolveFFI = 110;
   }
 
   message Event {

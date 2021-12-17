@@ -54,6 +54,7 @@ public:
     LuaPostResolve = 107,
     LuaNoData = 108,
     LuaNXDomain = 109,
+    LuaPostResolveFFI = 110,
   };
 
   static const std::unordered_map<EventType, std::string> s_eventNames;
