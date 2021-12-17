@@ -456,6 +456,7 @@ def test_dnsdist(c):
 @task
 def test_regression_recursor(c):
     c.run('sudo systemctl stop systemd-resolved')
+    c.run('sudo systemctl stop pdns.service')
     c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
     c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
     c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control PDNS=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SKIP_IPV6_TESTS=y ./build-scripts/test-recursor')
