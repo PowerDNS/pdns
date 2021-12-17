@@ -209,6 +209,7 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
               libssl-dev \
               libsystemd0 \
               libsodium23 \
+              lua-socket \
               patch \
               protobuf-compiler \
               python3-venv snmpd prometheus')
