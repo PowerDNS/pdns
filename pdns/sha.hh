@@ -75,7 +75,7 @@ public:
       md = EVP_sha512();
       break;
     default:
-      throw std::runtime_error("SHADigest: unsupported size");
+      throw std::invalid_argument("SHADigest: unsupported size");
     }
     if (EVP_DigestInit_ex(mdctx.get(), md, NULL) == 0) {
       throw std::runtime_error("SHADigest: init error");
