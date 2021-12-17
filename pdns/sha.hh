@@ -59,7 +59,7 @@ class SHADigest
 {
 public:
   SHADigest(unsigned int bits) :
-    mdctx(std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free))
+    mdctx(std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), EVP_MD_CTX_free))
   {
     if (mdctx == nullptr) {
       throw std::runtime_error("SHADigest: EVP_MD_CTX_new failed");
@@ -109,7 +109,7 @@ public:
   }
 
 private:
-  std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)> mdctx;
+  std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> mdctx;
   const EVP_MD* md;
 };
 }
