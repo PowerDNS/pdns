@@ -538,8 +538,8 @@ distributor-threads={threads}""".format(confdir=confdir,
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
-        print("But first an lsof -nPi :53 run")
-        lsof = subprocess.run(["sudo", "lsof", "-nPi", ":53"], capture_output=True, text=True )
+        print("But first an ss -uan run")
+        lsof = subprocess.run(["sudo", "ss", "-uan"], capture_output=True, text=True )
         print(lsof.stdout)
         authcmd = list(cls._auth_cmd)
         authcmd.append('--config-dir=%s' % confdir)
@@ -559,8 +559,8 @@ distributor-threads={threads}""".format(confdir=confdir,
         cls.waitForTCPSocket(ipaddress, 53)
 
         if cls._auths[ipaddress].poll() is not None:
-            print("Start auth failed, second lsof -nPi :43 run:");
-            lsof = subprocess.run(["sudo", "lsof", "-nPi", ":53"], capture_output=True, text=True )
+            print("Start auth failed, second ss -uan run:");
+            lsof = subprocess.run(["sudo", "ss", "-uan", ":53"], capture_output=True, text=True )
             print(lsof.stdout)
             print(f"\n*** startAuth log for {logFile} ***")
             with open(logFile, 'r') as fdLog:
