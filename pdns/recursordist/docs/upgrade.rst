@@ -11,6 +11,11 @@ Offensive language
 ^^^^^^^^^^^^^^^^^^
 Using the settings mentioned in :ref:`upgrade-offensive` now generates a warning. Please start using the new names.
 
+File descriptor usage
+^^^^^^^^^^^^^^^^^^^^^
+The number of file descriptors used by the Recursor has increased because the Recursor now keeps idle outgoing TCP/DoT connections open for a while.
+The extra file descriptors used compared to previous versions of the Recursor is :ref:`setting-tcp-out-max-idle-per-thread` times the number of worker threads (:ref:`threads`).
+
 New settings
 ^^^^^^^^^^^^
 - The :ref:`setting-dot-to-auth-names` setting to list nameservers that should be contacted over DoT has been introduced.

@@ -2039,7 +2039,7 @@ closed and a new one will be created if needed.
 .. versionadded:: 4.6.0
 
 -  Integer
--  Default : 0
+-  Default : 100
 
 Maximum number of idle outgoing TCP/DoT connections per thread, 0 means do not keep idle connections open.
 

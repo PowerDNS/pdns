@@ -2,6 +2,22 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.0
+  :released: 17th of December 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11091
+
+    Do not generate event trace records for Lua hooks if no Lua hook is defined.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11092
+
+    Remove capability requirements from Docker images.
+
+.. changelog::
   :version: 4.6.0-rc1
   :released: 3rd of December 2021
 
