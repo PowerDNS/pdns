@@ -1323,7 +1323,10 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       continue;
     }
 
-    if (!du->tcp && du->truncated && du->response.size() > sizeof(dnsheader)) {
+    if (!du->tcp &&
+        du->truncated &&
+        du->query.size() > du->proxyProtocolPayloadSize &&
+        (du->query.size() - du->proxyProtocolPayloadSize) > sizeof(dnsheader)) {
       /* restoring the original ID */
       dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data() + du->proxyProtocolPayloadSize);
       queryDH->id = du->ids.origID;
