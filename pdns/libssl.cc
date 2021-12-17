@@ -787,6 +787,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   /* load certificate and private key */
   for (const auto& pair : config.d_certKeyPairs) {
     if (!pair.d_key) {
+#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY) && HAVE_SSL_CTX_USE_CERT_AND_KEY == 1 && defined(sk_X509_free)
       // If no separate key is given, treat it as a pkcs12 file
       auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(pair.d_cert.c_str(), "r"), fclose);
       if (!fp) {
@@ -812,6 +813,9 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
         ERR_print_errors_fp(stderr);
         throw std::runtime_error("An error occurred while trying to load the TLS certificate and key from PKCS12 file " + pair.d_cert);
       }
+#else
+      throw std::runtime_error("PKCS12 files are not supported by your openssl version");
+#endif /* HAVE_SSL_CTX_USE_CERT_AND_KEY */
     } else {
       if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.d_cert.c_str()) != 1) {
         ERR_print_errors_fp(stderr);
