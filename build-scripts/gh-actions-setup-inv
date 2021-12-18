@@ -1,4 +1,10 @@
 #!/bin/bash -x
+sudo sh -c "cat > /usr/sbin/policy-rc.d << EOF
+#!/bin/sh
+exit 101
+EOF
+"
+sudo chmod 755 /usr/sbin/policy-rc.d
 sudo apt-get update
 # FIXME: Avoid GRUB related errors due to runner image configuration by removing it.
 sudo dpkg --purge --force-all grub-efi-amd64-signed && sudo dpkg --purge --force-all shim-signed
