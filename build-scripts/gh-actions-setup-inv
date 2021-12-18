@@ -1,4 +1,10 @@
 #!/bin/bash -x
+sudo sh -c "cat > /usr/sbin/policy-rc.d << EOF
+#!/bin/sh
+exit 101
+EOF
+"
+sudo chmod 755 /usr/sbin/policy-rc.d
 sudo apt-get update
 sudo apt-get -qq -y dist-upgrade
 sudo apt-get -qq -y --no-install-recommends install python3-pip
