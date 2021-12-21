@@ -74,6 +74,7 @@ api-key=%s
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testPrometheus(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         url = 'http://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
         r = requests.get(url, timeout=self._wsTimeout)
         self.assertTrue(r)
