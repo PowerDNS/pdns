@@ -1,11 +1,18 @@
 #!/usr/bin/env python
+
+import base64
 import dns
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestBasics(DNSDistTest):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
     newServer{address="127.0.0.1:%s"}
     truncateTC(true)
     addAction(QTypeRule(DNSQType.ANY), TCAction())
@@ -18,6 +25,7 @@ class TestBasics(DNSDistTest):
     addAction(newDNSName("dnsname.addaction.powerdns.com."), RCodeAction(DNSRCode.REFUSED))
     addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(DNSRCode.REFUSED))
     """
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
 
     def testDropped(self):
         """
@@ -404,7 +412,15 @@ class TestBasics(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
+
+            print("Before %s" % (method))
+            print(self.sendConsoleCommand("grepq(\"\")").rstrip())
+
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
+
+            print("After %s" % (method))
+            print(self.sendConsoleCommand("grepq(\"\")").rstrip())
+
             self.assertEqual(receivedResponse, expectedResponse)
 
     def testAddActionDNSNames(self):
