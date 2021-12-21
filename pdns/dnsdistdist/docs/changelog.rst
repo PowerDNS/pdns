@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.7.0-rc1
-  :released: TBD
+  :released: 22nd of December 2021
 
   .. change::
     :tags: Improvements, DNS over TLS, Performance
