@@ -393,7 +393,9 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
   msgh.msg_flags = 0;
 
   size_t sent = 0;
+#ifdef MSG_FASTOPEN
   bool firstTry = true;
+#endif
 
   do {
 
@@ -414,7 +416,9 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       }
 
       /* partial write */
+ #ifdef MSG_FASTOPEN
       firstTry = false;
+ #endif
       iov.iov_len -= written;
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
     }
