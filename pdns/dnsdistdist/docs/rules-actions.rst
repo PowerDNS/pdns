@@ -816,6 +816,8 @@ Actions
 
 :ref:`RulesIntro` need to be combined with an action for them to actually do something with the matched packets.
 Some actions allow further processing of rules, this is noted in their description. Most of these start with 'Set' with a few exceptions, mostly for logging actions. These exceptions are:
+
+- :func:`ClearRecordTypesResponseAction`
 - :func:`KeyValueStoreLookupAction`
 - :func:`DnstapLogAction`
 - :func:`DnstapLogResponseAction`
@@ -837,6 +839,30 @@ The following actions exist.
 .. function:: AllowResponseAction()
 
   Let these packets go through.
+
+.. function:: ClearRecordTypesResponseAction(types)
+
+  .. versionadded:: 1.8.0
+
+  Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response
+  without a SOA record in the additional section in which case you may want to use :func:`NegativeAndSOAAction` to generate an answer,
+  see example bellow.
+  Subsequent rules are processed after this action.
+
+  .. code-block:: Lua
+
+    -- removes any HTTPS record in the response
+    addResponseAction(
+            QNameRule('www.example.com.'),
+            ClearRecordTypesResponseAction(DNSQType.HTTPS)
+    )
+    -- reply directly with NODATA and a SOA record as we know the answer will be empty
+    addAction(
+            AndRule{QNameRule('www.example.com.'), QTypeRule(DNSQType.HTTPS)},
+            NegativeAndSOAAction(false, 'example.com.', 3600, 'ns.example.com.', 'postmaster.example.com.', 1, 1800, 900, 604800, 86400)
+    )
+
+  :param int types: a single type or a list of types to remove
 
 .. function:: ContinueAction(action)
 

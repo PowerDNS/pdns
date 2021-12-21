@@ -26,7 +26,7 @@
 
 #include "namespaces.hh"
 
-UnknownRecordContent::UnknownRecordContent(const string& zone) 
+UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
   // parse the input
   vector<string> parts;
@@ -217,7 +217,7 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
-  
+
   memcpy(&d_header, packet.data(), sizeof(dnsheader));
 
   if(d_header.opcode != Opcode::Query && d_header.opcode != Opcode::Notify && d_header.opcode != Opcode::Update)
@@ -230,7 +230,7 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
 
   if (query && (d_header.qdcount > 1))
     throw MOADNSException("Query with QD > 1 ("+std::to_string(d_header.qdcount)+")");
-  
+
   unsigned int n=0;
 
   PacketReader pr(packet);
@@ -251,12 +251,12 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
     d_answers.reserve((unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount));
     for(n=0;n < (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount); ++n) {
       DNSRecord dr;
-      
+
       if(n < d_header.ancount)
         dr.d_place=DNSResourceRecord::ANSWER;
       else if(n < d_header.ancount + d_header.nscount)
         dr.d_place=DNSResourceRecord::AUTHORITY;
-      else 
+      else
         dr.d_place=DNSResourceRecord::ADDITIONAL;
 
       unsigned int recordStartPos=pr.getPosition();
@@ -347,10 +347,10 @@ void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
   unsigned int n;
   unsigned char *p=reinterpret_cast<unsigned char*>(&ah);
-  
-  for(n=0; n < sizeof(dnsrecordheader); ++n) 
+
+  for(n=0; n < sizeof(dnsrecordheader); ++n)
     p[n]=d_content.at(d_pos++);
-  
+
   ah.d_type=ntohs(ah.d_type);
   ah.d_class=ntohs(ah.d_class);
   ah.d_clen=ntohs(ah.d_clen);
@@ -416,7 +416,7 @@ uint32_t PacketReader::get32BitInt()
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
   ret<<=8;
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
-  
+
   return ret;
 }
 
@@ -427,7 +427,7 @@ uint16_t PacketReader::get16BitInt()
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
   ret<<=8;
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
-  
+
   return ret;
 }
 
@@ -441,7 +441,7 @@ DNSName PacketReader::getName()
   unsigned int consumed;
   try {
     DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader));
-    
+
     d_pos+=consumed;
     return dn;
   }
@@ -488,7 +488,7 @@ string PacketReader::getText(bool multi, bool lenField)
       labellen=static_cast<uint8_t>(d_content.at(d_pos++));
     else
       labellen=d_recordlen - (d_pos - d_startrecordpos);
-    
+
     ret.append(1,'"');
     if(labellen) { // no need to do anything for an empty string
       string val(&d_content.at(d_pos), &d_content.at(d_pos+labellen-1)+1);
@@ -576,7 +576,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
     auto key = static_cast<SvcParam::SvcParamKey>(keyInt);
     uint16_t len;
     xfr16BitInt(len);
-    
+
     if (d_pos + len > (d_startrecordpos + d_recordlen)) {
       throw std::out_of_range("record is shorter than SVCB lengthfield implies");
     }
@@ -681,7 +681,7 @@ string simpleCompress(const string& elabel, const string& root)
   if(strchr(label.c_str(), '\\')) {
     boost::replace_all(label, "\\.", ".");
     boost::replace_all(label, "\\032", " ");
-    boost::replace_all(label, "\\\\", "\\");   
+    boost::replace_all(label, "\\\\", "\\");
   }
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
@@ -745,12 +745,141 @@ void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(
   }
 }
 
+static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::set<QType>& qtypes)
+{
+  static const std::set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
+
+  if (initialPacket.size() < sizeof(dnsheader)) {
+    return EINVAL;
+  }
+  try {
+    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
+
+    if (ntohs(dh->qdcount) == 0)
+      return ENOENT;
+    auto packetView = pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
+
+    PacketReader pr(packetView);
+
+    size_t idx = 0;
+    DNSName rrname;
+    uint16_t qdcount = ntohs(dh->qdcount);
+    uint16_t ancount = ntohs(dh->ancount);
+    uint16_t nscount = ntohs(dh->nscount);
+    uint16_t arcount = ntohs(dh->arcount);
+    uint16_t rrtype;
+    uint16_t rrclass;
+    string blob;
+    struct dnsrecordheader ah;
+
+    rrname = pr.getName();
+    rrtype = pr.get16BitInt();
+    rrclass = pr.get16BitInt();
+
+    GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+    pw.getHeader()->id=dh->id;
+    pw.getHeader()->qr=dh->qr;
+    pw.getHeader()->aa=dh->aa;
+    pw.getHeader()->tc=dh->tc;
+    pw.getHeader()->rd=dh->rd;
+    pw.getHeader()->ra=dh->ra;
+    pw.getHeader()->ad=dh->ad;
+    pw.getHeader()->cd=dh->cd;
+    pw.getHeader()->rcode=dh->rcode;
+
+    /* consume remaining qd if any */
+    if (qdcount > 1) {
+      for(idx = 1; idx < qdcount; idx++) {
+        rrname = pr.getName();
+        rrtype = pr.get16BitInt();
+        rrclass = pr.get16BitInt();
+        (void) rrtype;
+        (void) rrclass;
+      }
+    }
+
+    /* copy AN */
+    for (idx = 0; idx < ancount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        // if this is not a safe type
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ANSWER, true);
+        pw.xfrBlob(blob);
+      }
+    }
+
+    /* copy NS */
+    for (idx = 0; idx < nscount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::AUTHORITY, true);
+        pw.xfrBlob(blob);
+      }
+    }
+    /* copy AR */
+    for (idx = 0; idx < arcount; idx++) {
+      rrname = pr.getName();
+      pr.getDnsrecordheader(ah);
+      pr.xfrBlob(blob);
+
+      if (qtypes.find(ah.d_type) == qtypes.end()) {
+        if (safeTypes.find(ah.d_type) == safeTypes.end()) {
+          // "unsafe" types might countain compressed data, so cancel rewrite
+          newContent.clear();
+          return EIO;
+        }
+        pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
+        pw.xfrBlob(blob);
+      }
+    }
+    pw.commit();
+
+  }
+  catch (...)
+  {
+    newContent.clear();
+    return EIO;
+  }
+  return 0;
+}
+
+void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes)
+{
+  return clearDNSPacketRecordTypes(reinterpret_cast<PacketBuffer&>(packet), qtypes);
+}
+
+void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
+{
+  PacketBuffer newContent;
+
+  auto result = rewritePacketWithoutRecordTypes(packet, newContent, qtypes);
+  if (!result) {
+    packet = std::move(newContent);
+  }
+}
+
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
 {
   if(length < sizeof(dnsheader))
     return;
-  try 
+  try
   {
     const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
     const uint64_t dqcount = ntohs(dh->qdcount);
@@ -766,14 +895,14 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
    // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
     for(n=0; n < numrecords; ++n) {
       dpm.skipDomainName();
-      
+
       uint16_t dnstype = dpm.get16BitInt();
       /* class */
       dpm.skipBytes(2);
-      
+
       if(dnstype == QType::OPT) // not aging that one with a stick
         break;
-      
+
       dpm.decreaseAndSkip32BitInt(seconds);
       dpm.skipRData();
     }

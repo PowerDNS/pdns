@@ -564,9 +564,18 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t
 
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
 {
-  std::string result;
-  LimitTTLResponseAction ac(min, max);
-  ac(dr->dr, &result);
+  if (dr->dr != nullptr) {
+    std::string result;
+    LimitTTLResponseAction ac(min, max);
+    ac(dr->dr, &result);
+  }
+}
+
+void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype)
+{
+  if (dr->dr != nullptr) {
+    clearDNSPacketRecordTypes(dr->dr->getMutableData(), std::set<QType>{qtype});
+  }
 }
 
 const std::string& getLuaFFIWrappers()
