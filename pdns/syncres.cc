@@ -104,6 +104,19 @@ int SyncRes::s_event_trace_enabled;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
+// A helper function to print a double with specific precsision
+// Not using boost::format since it is not thread safe while calling into locale handling code according to tsan
+// This allocates a string, but that's nothing compared to what boost::format is doing
+static inline std::string fmtfloat(const char* fmt, double f)
+{
+  char buf[20];
+  int ret = snprintf(buf, sizeof(buf), fmt, f);
+  if (ret < 0 || ret >= static_cast<int>(sizeof(buf))) {
+    return "?";
+  }
+  return std::string(buf, strlen(buf));
+}
+
 static inline void accountAuthLatency(uint64_t usec, int family)
 {
   if (family == AF_INET) {
@@ -1224,7 +1237,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       else {
         LOG(", ");
       }
-      LOG((addr.toString())<<"(" << (boost::format("%0.2f") % (speeds[addr]/1000.0)).str() <<"ms)");
+      LOG((addr.toString())<<"(" << fmtfloat("%0.2f", speeds[addr]/1000.0) <<"ms)");
     }
     LOG(endl);
   }
@@ -2023,7 +2036,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG(i->first.toLogString()<<"(" << (boost::format("%0.2f") % (i->second/1000.0)).str() <<"ms)");
+      LOG(i->first.toLogString()<<"(" << fmtfloat("%0.2f", i->second/1000.0) <<"ms)");
     }
     LOG(endl);
   }
@@ -2054,7 +2067,7 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddre
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() <<"(" << fmtfloat("%0.2f", speeds[*i]/1000.0) <<"ms)");
     }
     LOG(endl);
   }
