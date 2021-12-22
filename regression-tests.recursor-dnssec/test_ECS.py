@@ -22,7 +22,6 @@ class ECSTest(RecursorTest):
 daemon=no
 trace=yes
 dont-query=
-ecs-add-for=0.0.0.0/0
 local-address=127.0.0.1
 packetcache-ttl=0
 packetcache-servfail-ttl=0
@@ -30,6 +29,9 @@ max-cache-ttl=600
 threads=1
 loglevel=9
 disable-syslog=yes
+log-common-errors=yes
+statistics-interval=0
+ecs-add-for=0.0.0.0/0
 """
 
     def sendECSQuery(self, query, expected, expectedFirstTTL=None, scopeZeroResponse=None):
@@ -536,21 +538,10 @@ class testECSWithProxyProtocoldRecursorTest(ECSTest):
 class testTooLargeToAddZeroScope(RecursorTest):
 
     _confdir = 'TooLargeToAddZeroScope'
-    _config_template_default = """
+    _config_template = """
 use-incoming-edns-subnet=yes
 dnssec=validate
-daemon=no
-trace=yes
-packetcache-ttl=0
-packetcache-servfail-ttl=0
-max-cache-ttl=15
-threads=1
-loglevel=9
-disable-syslog=yes
-log-common-errors=yes
 """
-    _config_template = """
-    """
     _lua_dns_script_file = """
     function preresolve(dq)
       if dq.qname == newDN('toolarge.ecs.') then

@@ -104,9 +104,11 @@ int SyncRes::s_event_trace_enabled;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
-// A helper function to print a double with specific precsision
-// Not using boost::format since it is not thread safe while calling into locale handling code according to tsan
-// This allocates a string, but that's nothing compared to what boost::format is doing
+// A helper function to print a double with specific printf format.
+// Not using boost::format since it is not thread safe while calling
+// into locale handling code according to tsan.
+// This allocates a string, but that's nothing compared to what
+// boost::format is doing and maybe even gets optimized away anyway.
 static inline std::string fmtfloat(const char* fmt, double f)
 {
   char buf[20];
