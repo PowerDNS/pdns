@@ -3,6 +3,7 @@
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 
+#ifdef HAVE_IPCIPHER
 /*
 int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
                            const unsigned char *salt, int saltlen, int iter,
@@ -97,3 +98,5 @@ ComboAddress decryptCA(const ComboAddress& ca, const std::string& key)
     throw std::runtime_error("ipcrypt can't decrypt non-IP addresses");
 
 }
+
+#endif /* HAVE_IPCIPHER */

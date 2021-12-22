@@ -131,15 +131,16 @@ private:
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
-typedef std::unordered_map<std::string, boost::variant<std::string> > luaruleparams_t;
+typedef std::unordered_map<std::string, std::string> luaruleparams_t;
 void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
+void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max());
 
 typedef NetmaskTree<DynBlock, AddressAndPortRange> nmts_t;
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
 void setupLuaActions(LuaContext& luaCtx);
 void setupLuaBindings(LuaContext& luaCtx, bool client);
-void setupLuaBindingsDNSCrypt(LuaContext& luaCtx);
+void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client);

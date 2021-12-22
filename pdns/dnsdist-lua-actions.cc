@@ -39,9 +39,7 @@
 
 #include <boost/optional/optional_io.hpp>
 
-#ifdef HAVE_LIBCRYPTO
 #include "ipcipher.hh"
-#endif /* HAVE_LIBCRYPTO */
 
 class DropAction : public DNSAction
 {
@@ -1393,6 +1391,7 @@ private:
   bool d_hasV6;
 };
 
+#ifndef DISABLE_PROTOBUF
 static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
   if (protocol == dnsdist::Protocol::DoUDP) {
@@ -1469,12 +1468,12 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_LIBCRYPTO
+#if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
       message.setRequestor(encryptCA(*dq->remote, d_ipEncryptKey));
     }
-#endif /* HAVE_LIBCRYPTO */
+#endif /* HAVE_IPCIPHER */
 
     if (d_alterFunc) {
       auto lock = g_lua.lock();
@@ -1498,6 +1497,8 @@ private:
   std::string d_serverID;
   std::string d_ipEncryptKey;
 };
+
+#endif /* DISABLE_PROTOBUF */
 
 class SNMPTrapAction : public DNSAction
 {
@@ -1544,6 +1545,7 @@ private:
   std::string d_value;
 };
 
+#ifndef DISABLE_PROTOBUF
 class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
@@ -1599,12 +1601,12 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_LIBCRYPTO
+#if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
       message.setRequestor(encryptCA(*dr->remote, d_ipEncryptKey));
     }
-#endif /* HAVE_LIBCRYPTO */
+#endif /* HAVE_IPCIPHER */
 
     if (d_alterFunc) {
       auto lock = g_lua.lock();
@@ -1629,6 +1631,8 @@ private:
   std::string d_ipEncryptKey;
   bool d_includeCNAME;
 };
+
+#endif /* DISABLE_PROTOBUF */
 
 class DropResponseAction : public DNSResponseAction
 {
@@ -1675,6 +1679,7 @@ private:
   int d_msec;
 };
 
+#ifdef HAVE_NET_SNMP
 class SNMPTrapResponseAction : public DNSResponseAction
 {
 public:
@@ -1697,6 +1702,7 @@ public:
 private:
   std::string d_reason;
 };
+#endif /* HAVE_NET_SNMP */
 
 class SetTagResponseAction : public DNSResponseAction
 {
@@ -1815,6 +1821,7 @@ private:
 };
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
 class KeyValueStoreLookupAction : public DNSAction
 {
 public:
@@ -1882,6 +1889,7 @@ private:
   std::shared_ptr<KeyValueLookupKey> d_key;
   std::string d_tag;
 };
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
 class NegativeAndSOAAction: public DNSAction
 {
@@ -2125,22 +2133,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetNoRecurseAction);
     });
 
-  luaCtx.writeFunction("NoRecurseAction", []() {
-      warnlog("access to NoRecurseAction is deprecated and will be removed in a future version, please use SetNoRecurseAction instead");
-      return std::shared_ptr<DNSAction>(new SetNoRecurseAction);
-    });
-
   luaCtx.writeFunction("SetMacAddrAction", [](int code) {
       return std::shared_ptr<DNSAction>(new SetMacAddrAction(code));
     });
 
   luaCtx.writeFunction("SetEDNSOptionAction", [](int code, const std::string& data) {
       return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
-    });
-
-  luaCtx.writeFunction("MacAddrAction", [](int code) {
-      warnlog("access to MacAddrAction is deprecated and will be removed in a future version, please use SetMacAddrAction instead");
-      return std::shared_ptr<DNSAction>(new SetMacAddrAction(code));
     });
 
   luaCtx.writeFunction("PoolAction", [](const std::string& a) {
@@ -2235,11 +2233,6 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
     });
 
-  luaCtx.writeFunction("DisableValidationAction", []() {
-      warnlog("access to DisableValidationAction is deprecated and will be removed in a future version, please use SetDisableValidationAction instead");
-      return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
-  });
-
   luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSAction>(new LogAction(fname ? *fname : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
@@ -2291,21 +2284,11 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetSkipCacheAction);
     });
 
-  luaCtx.writeFunction("SkipCacheAction", []() {
-      warnlog("access to SkipCacheAction is deprecated and will be removed in a future version, please use SetSkipCacheAction instead");
-      return std::shared_ptr<DNSAction>(new SetSkipCacheAction);
-    });
-
   luaCtx.writeFunction("SetSkipCacheResponseAction", []() {
       return std::shared_ptr<DNSResponseAction>(new SetSkipCacheResponseAction);
     });
 
   luaCtx.writeFunction("SetTempFailureCacheTTLAction", [](int maxTTL) {
-      return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
-    });
-
-  luaCtx.writeFunction("TempFailureCacheTTLAction", [](int maxTTL) {
-      warnlog("access to TempFailureCacheTTLAction is deprecated and will be removed in a future version, please use SetTempFailureCacheTTLAction instead");
       return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
     });
 
@@ -2336,6 +2319,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
     });
 
+#ifndef DISABLE_PROTOBUF
   luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
@@ -2391,6 +2375,7 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
       return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
     });
+#endif /* DISABLE_PROTOBUF */
 
   luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
       return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), addECS ? *addECS : false));
@@ -2400,26 +2385,11 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
     });
 
-  luaCtx.writeFunction("ECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
-      warnlog("access to ECSPrefixLengthAction is deprecated and will be removed in a future version, please use SetECSPrefixLengthAction instead");
-      return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
-    });
-
   luaCtx.writeFunction("SetECSOverrideAction", [](bool ecsOverride) {
       return std::shared_ptr<DNSAction>(new SetECSOverrideAction(ecsOverride));
     });
 
-  luaCtx.writeFunction("ECSOverrideAction", [](bool ecsOverride) {
-      warnlog("access to ECSOverrideAction is deprecated and will be removed in a future version, please use SetECSOverrideAction instead");
-      return std::shared_ptr<DNSAction>(new SetECSOverrideAction(ecsOverride));
-    });
-
   luaCtx.writeFunction("SetDisableECSAction", []() {
-      return std::shared_ptr<DNSAction>(new SetDisableECSAction());
-    });
-
-  luaCtx.writeFunction("DisableECSAction", []() {
-      warnlog("access to DisableECSAction is deprecated and will be removed in a future version, please use SetDisableECSAction instead");
       return std::shared_ptr<DNSAction>(new SetDisableECSAction());
     });
 
@@ -2430,37 +2400,21 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4)));
     });
 
-  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
+  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
       return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
-#else
-      throw std::runtime_error("NET SNMP support is required to use SNMPTrapAction()");
-#endif /* HAVE_NET_SNMP */
     });
 
   luaCtx.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
-#ifdef HAVE_NET_SNMP
       return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
-#else
-      throw std::runtime_error("NET SNMP support is required to use SNMPTrapResponseAction()");
-#endif /* HAVE_NET_SNMP */
     });
+#endif /* HAVE_NET_SNMP */
 
   luaCtx.writeFunction("SetTagAction", [](std::string tag, std::string value) {
       return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
     });
 
-  luaCtx.writeFunction("TagAction", [](std::string tag, std::string value) {
-      warnlog("access to TagAction is deprecated and will be removed in a future version, please use SetTagAction instead");
-      return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
-    });
-
   luaCtx.writeFunction("SetTagResponseAction", [](std::string tag, std::string value) {
-      return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
-    });
-
-  luaCtx.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
-      warnlog("access to TagResponseAction is deprecated and will be removed in a future version, please use SetTagResponseAction instead");
       return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
     });
 
@@ -2477,6 +2431,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
     });
@@ -2484,16 +2439,9 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("KeyValueStoreRangeLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag));
     });
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
-      auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
-      auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
-      parseResponseConfig(vars, action->d_responseConfig);
-      return ret;
-    });
-
-  luaCtx.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
-      warnlog("access to SetNegativeAndSOAAction is deprecated and will be removed in a future version, please use NegativeAndSOAAction instead");
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
       auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
       parseResponseConfig(vars, action->d_responseConfig);

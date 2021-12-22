@@ -38,9 +38,7 @@
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
-#include "htmlfiles.h"
 #include "threadname.hh"
-#include "sodcrypto.hh"
 #include "sstuff.hh"
 
 struct WebserverConfig
@@ -53,14 +51,13 @@ struct WebserverConfig
   NetmaskGroup acl;
   std::unique_ptr<CredentialsHolder> password;
   std::unique_ptr<CredentialsHolder> apiKey;
-  boost::optional<std::map<std::string, std::string> > customHeaders;
+  boost::optional<std::unordered_map<std::string, std::string> > customHeaders;
   bool statsRequireAuthentication{true};
 };
 
 bool g_apiReadWrite{false};
 LockGuarded<WebserverConfig> g_webserverConfig;
 std::string g_apiConfigDirectory;
-static const MetricDefinitionStorage s_metricDefinitions;
 
 static ConcurrentConnectionManager s_connManager(100);
 
@@ -131,6 +128,9 @@ private:
   Socket d_socket;
 };
 
+#ifndef DISABLE_PROMETHEUS
+static const MetricDefinitionStorage s_metricDefinitions;
+
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
   { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
@@ -190,7 +190,9 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "tcp-listen-overflows",   MetricDefinition(PrometheusMetricType::counter, "From /proc/net/netstat ListenOverflows") },
   { "proxy-protocol-invalid", MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
+#endif /* DISABLE_PROMETHEUS */
 
+#ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
   if (!g_apiReadWrite) {
@@ -231,6 +233,7 @@ static void apiSaveACL(const NetmaskGroup& nmg)
   string content = "setACL({" + acl + "})";
   apiWriteConfigFile("acl", content);
 }
+#endif /* DISABLE_WEB_CONFIG */
 
 static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& apiKey)
 {
@@ -352,7 +355,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string> >& customHeaders)
 {
   static const std::vector<std::pair<std::string, std::string> > headers = {
     { "X-Content-Type-Options", "nosniff" },
@@ -373,7 +376,7 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
   }
 }
 
-static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string> >& customHeaders)
 {
   if (!customHeaders)
     return;
@@ -407,6 +410,7 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   return responseRules;
 }
 
+#ifndef DISABLE_PROMETHEUS
 template<typename T>
 static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHolder<vector<T> >& rules)
 {
@@ -810,9 +814,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.body = output.str();
   resp.headers["Content-Type"] = "text/plain";
 }
+#endif /* DISABLE_PROMETHEUS */
 
 using namespace json11;
 
+#ifndef DISABLE_BUILTIN_HTML
 static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   handleCORS(req, resp);
@@ -911,6 +917,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     resp.status = 404;
   }
 }
+#endif /* DISABLE_BUILTIN_HTML */
 
 static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<DownstreamState>& a)
 {
@@ -1240,6 +1247,7 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.headers["Content-Type"] = "application/json";
 }
 
+#ifndef DISABLE_WEB_CONFIG
 static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   handleCORS(req, resp);
@@ -1349,6 +1357,7 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
     resp.body = my_json.dump();
   }
 }
+#endif /* DISABLE_WEB_CONFIG */
 
 static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
 
@@ -1363,6 +1372,9 @@ void clearWebHandlers()
 {
   s_webHandlers.clear();
 }
+
+#ifndef DISABLE_BUILTIN_HTML
+#include "htmlfiles.h"
 
 static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
@@ -1398,21 +1410,30 @@ static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& res
 
   resp.status = 200;
 }
+#endif /* DISABLE_BUILTIN_HTML */
 
 void registerBuiltInWebHandlers()
 {
+#ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/jsonstat", handleJSONStats);
+#endif /* DISABLE_BUILTIN_HTML */
+#ifndef DISABLE_PROMETHEUS
   registerWebHandler("/metrics", handlePrometheus);
+#endif /* DISABLE_PROMETHEUS */
   registerWebHandler("/api/v1/servers/localhost", handleStats);
   registerWebHandler("/api/v1/servers/localhost/pool", handlePoolStats);
   registerWebHandler("/api/v1/servers/localhost/statistics", handleStatsOnly);
+#ifndef DISABLE_WEB_CONFIG
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
+#endif /* DISABLE_WEB_CONFIG */
+#ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/", redirectToIndex);
 
   for (const auto& path : s_urlmap) {
     registerWebHandler("/" + path.first, handleBuiltInFiles);
   }
+#endif /* DISABLE_BUILTIN_HTML */
 }
 
 static void connectionThread(WebClientConnection&& conn)
@@ -1525,7 +1546,7 @@ void setWebserverACL(const std::string& acl)
   g_webserverConfig.lock()->acl = std::move(newACL);
 }
 
-void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
+void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string> > customHeaders)
 {
   g_webserverConfig.lock()->customHeaders = customHeaders;
 }

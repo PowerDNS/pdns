@@ -20,9 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "config.h"
+#include "dnsdist-secpoll.hh"
+#ifndef DISABLE_SECPOLL
 
-#include <string>
 #include <vector>
 
 #ifdef HAVE_LIBSODIUM
@@ -36,7 +36,6 @@
 #include "sstuff.hh"
 
 #include "dnsdist.hh"
-#include "dnsdist-secpoll.hh"
 
 #ifndef PACKAGEVERSION
 #define PACKAGEVERSION PACKAGE_VERSION
@@ -244,3 +243,5 @@ void doSecPoll(const std::string& suffix)
     g_secPollDone = true;
   }
 }
+
+#endif /* DISABLE_SECPOLL */

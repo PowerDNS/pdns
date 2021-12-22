@@ -46,6 +46,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-cache.hh"
+#include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
@@ -1120,6 +1121,7 @@ bool checkQueryHeaders(const struct dnsheader* dh)
   return true;
 }
 
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
 static void queueResponse(const ClientState& cs, const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
@@ -1134,6 +1136,7 @@ static void queueResponse(const ClientState& cs, const PacketBuffer& response, c
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
 
 /* self-generated responses or cache hits */
 static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQuestion& dq, bool cacheHit)
@@ -1491,6 +1494,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     // the buffer might have been invalidated by now (resized)
     struct dnsheader* dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
@@ -1498,6 +1502,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
       return;
@@ -1595,6 +1600,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
   }
 }
 
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
 static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holders)
 {
@@ -1679,6 +1685,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void udpClientThread(ClientState* cs)
@@ -1686,13 +1693,14 @@ static void udpClientThread(ClientState* cs)
   try {
     setThreadName("dnsdist/udpClie");
     LocalHolders holders;
-
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
     if (g_udpVectorSize > 1) {
       MultipleMessagesUDPClientThread(cs, holders);
     }
     else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
     {
       /* the actual buffer is larger because:
          - we may have to add EDNS and/or ECS
@@ -1839,6 +1847,7 @@ static void dynBlockMaintenanceThread()
   DynBlockMaintenance::run();
 }
 
+#ifndef DISABLE_SECPOLL
 static void secPollThread()
 {
   setThreadName("dnsdist/secpoll");
@@ -1852,6 +1861,7 @@ static void secPollThread()
     sleep(g_secPollInterval);
   }
 }
+#endif /* DISABLE_SECPOLL */
 
 static void healthChecksThread()
 {
@@ -2237,8 +2247,12 @@ int main(int argc, char** argv)
   try {
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
+#ifdef HAVE_LIBEDIT
+#ifndef DISABLE_COMPLETION
     rl_attempted_completion_function = my_completion;
     rl_completion_append_character = 0;
+#endif /* DISABLE_COMPLETION */
+#endif /* HAVE_LIBEDIT */
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
@@ -2376,8 +2390,11 @@ int main(int argc, char** argv)
 #ifdef HAVE_FSTRM
         cout<<"fstrm ";
 #endif
-#ifdef HAVE_LIBCRYPTO
+#ifdef HAVE_IPCIPHER
         cout<<"ipcipher ";
+#endif
+#ifdef HAVE_LIBEDIT
+        cout<<"libeditr ";
 #endif
 #ifdef HAVE_LIBSODIUM
         cout<<"libsodium ";
@@ -2388,13 +2405,17 @@ int main(int argc, char** argv)
 #ifdef HAVE_NGHTTP2
         cout<<"outgoing-dns-over-https(nghttp2) ";
 #endif
+#ifndef DISABLE_PROTOBUF
         cout<<"protobuf ";
+#endif
 #ifdef HAVE_RE2
         cout<<"re2 ";
 #endif
+#ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
         cout<<"recvmmsg/sendmmsg ";
 #endif
+#endif /* DISABLE_RECVMMSG */
 #ifdef HAVE_NET_SNMP
         cout<<"snmp ";
 #endif
@@ -2686,8 +2707,10 @@ int main(int argc, char** argv)
       }
     }
 
+#ifndef DISABLE_CARBON
     thread carbonthread(carbonDumpThread);
     carbonthread.detach();
+#endif /* DISABLE_CARBON */
 
     thread stattid(maintThread);
     stattid.detach();
@@ -2697,10 +2720,12 @@ int main(int argc, char** argv)
     thread dynBlockMaintThread(dynBlockMaintenanceThread);
     dynBlockMaintThread.detach();
 
+#ifndef DISABLE_SECPOLL
     if (!g_secPollSuffix.empty()) {
       thread secpollthread(secPollThread);
       secpollthread.detach();
     }
+#endif /* DISABLE_SECPOLL */
 
     if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD

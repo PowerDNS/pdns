@@ -119,6 +119,8 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 
       return res;
     });
+
+#ifndef DISABLE_PACKETCACHE_BINDINGS
   luaCtx.registerFunction<std::string(std::shared_ptr<DNSDistPacketCache>::*)()const>("toString", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
       if (cache) {
         return cache->toString();
@@ -211,4 +213,5 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         g_outputBuffer += "Dumped " + std::to_string(records) + " records\n";
       }
     });
+#endif /* DISABLE_PACKETCACHE_BINDINGS */
 }

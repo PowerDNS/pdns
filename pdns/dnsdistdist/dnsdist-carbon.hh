@@ -23,39 +23,19 @@
 
 #include "config.h"
 
-#ifndef DISABLE_COMPLETION
-struct ConsoleKeyword {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
-  {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
-  }
+#ifndef DISABLE_CARBON
+#include "sholder.hh"
+#include "iputils.hh"
+
+struct CarbonConfig
+{
+  ComboAddress server;
+  std::string namespace_name;
+  std::string ourname;
+  std::string instance_name;
+  unsigned int interval;
 };
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
-}
 
-#endif /* DISABLE_COMPLETION */
-
-extern GlobalStateHolder<NetmaskGroup> g_consoleACL;
-extern std::string g_consoleKey; // in theory needs locking
-extern bool g_logConsoleConnections;
-extern bool g_consoleEnabled;
-extern uint32_t g_consoleOutputMsgMaxSize;
-
-void doClient(ComboAddress server, const std::string& command);
-void doConsole();
-void controlThread(int fd, ComboAddress local);
-void clearConsoleHistory();
-
-void setConsoleMaximumConcurrentConnections(size_t max);
+extern GlobalStateHolder<std::vector<CarbonConfig>> g_carbon;
+void carbonDumpThread();
+#endif /* DISABLE_CARBON */

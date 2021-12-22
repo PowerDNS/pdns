@@ -3,6 +3,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#ifdef HAVE_IPCIPHER
+
 #include <boost/test/unit_test.hpp>
 #include "ipcipher.hh"
 #include "misc.hh"
@@ -66,5 +69,6 @@ BOOST_AUTO_TEST_CASE(test_ipcrypt6)
   BOOST_CHECK_EQUAL(ca.toString(), decrypted.toString());
 }
 
-
 BOOST_AUTO_TEST_SUITE_END()
+
+#endif /* HAVE_IPCIPHER */
