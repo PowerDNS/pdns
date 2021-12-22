@@ -304,6 +304,7 @@ def ci_dnsdist_configure(c, features):
                       --without-libsodium \
                       --without-lmdb \
                       --without-net-snmp \
+                      --without-nghttp2 \
                       --without-re2 '
       additional_flags = '-DDISABLE_COMPLETION \
                           -DDISABLE_PROMETHEUS \
