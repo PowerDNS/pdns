@@ -264,6 +264,40 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
   }
 }
 
+static void LuaThread(const std::string code)
+{
+  LuaContext l;
+  // submitToMainThread is camelcased, threadmessage is not.
+  // This follows our tradition of hooks we call being lowercased but functions the user can call being camelcased.
+  l.writeFunction("submitToMainThread", [](std::string cmd, std::unordered_map<std::string, std::string> data) {
+    auto lua = g_lua.lock();
+    // maybe offer more than `void`
+    auto func = lua->readVariable<boost::optional<std::function<void(std::string cmd, std::unordered_map<std::string, std::string> data)>>>("threadmessage");
+    if (func) {
+      func.get()(cmd, data);
+    }
+    else {
+      errlog("Lua thread called submitToMainThread but no threadmessage receiver is defined");
+    }
+  });
+
+  // function threadmessage(cmd, data) print("got thread data:", cmd) for k,v in pairs(data) do print(k,v) end end
+
+  for (;;) {
+    try {
+      l.executeCode(code);
+      errlog("Lua thread exited, restarting in 5 seconds");
+    }
+    catch (const std::exception& e) {
+      errlog("Lua thread crashed, restarting in 5 seconds: %s", e.what());
+    }
+    catch (...) {
+      errlog("Lua thread crashed, restarting in 5 seconds");
+    }
+    sleep(5);
+  }
+}
+
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string>>, DownstreamState::checkfunc_t>> newserver_t;
@@ -2759,6 +2793,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 #endif /* HAVE_LIBSSL */
+
+  luaCtx.writeFunction("newThread", [](const std::string& code) {
+    std::thread newThread(LuaThread, code);
+    newThread.detach();
+  });
 }
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
