@@ -15,4 +15,5 @@
 /server.key
 /server.pem
 /server.ocsp
+/server.p12
 /configs
