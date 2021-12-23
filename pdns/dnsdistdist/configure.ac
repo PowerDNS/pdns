@@ -183,7 +183,7 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
-AS_IF([test "x$enable_ipcipher" != "xno"],
+AS_IF([test "x$HAVE_IPCIPHER" = "x1"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]
 )
