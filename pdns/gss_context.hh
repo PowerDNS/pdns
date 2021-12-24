@@ -33,7 +33,6 @@
 #include <gssapi/gssapi_ext.h>
 #endif
 
-
 //! Generic errors
 enum GssContextError
 {
@@ -151,11 +150,12 @@ private:
   OM_uint32 d_maj, d_min;
   gss_name_t d_name;
 #endif
-};
+}; // GssName
 
 class GssContext
 {
 public:
+  static std::tuple<size_t, size_t, size_t> getCounts();
   static bool supported(); //<! Returns true if GSS is supported in the first place
   GssContext(); //<! Construct new GSS context with random name
   GssContext(const DNSName& label); //<! Create or open existing named context
@@ -192,8 +192,8 @@ private:
   GssContextError d_error; //<! Context error
   GssContextType d_type; //<! Context type
   std::vector<std::string> d_gss_errors; //<! Native error string(s)
-  std::shared_ptr<GssSecContext> d_ctx; //<! Attached security context
-};
+  std::shared_ptr<GssSecContext> d_secctx; //<! Attached security context
+}; // GssContext
 
 bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
 bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac); //<! Validate signature

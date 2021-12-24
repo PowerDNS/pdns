@@ -759,3 +759,12 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
 const DNSName& DNSPacket::getTSIGKeyname() const {
   return d_tsigkeyname;
 }
+
+void DNSPacket::cleanupGSS(int rcode)
+{
+  if (rcode != RCode::NoError && d_tsig_algo == TSIG_GSS && !getTSIGKeyname().empty()) {
+    GssContext ctx(getTSIGKeyname());
+    ctx.destroy();
+  }
+}
+ 

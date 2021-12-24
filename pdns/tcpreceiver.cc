@@ -409,6 +409,7 @@ void TCPNameserver::doConnection(int fd)
         break;
 
       sendPacket(reply, fd);
+      packet->cleanupGSS(reply->d.rcode);
     }
   }
   catch(PDNSException &ae) {
