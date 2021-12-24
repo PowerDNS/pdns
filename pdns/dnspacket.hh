@@ -172,6 +172,7 @@ public:
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
+  void cleanupGSS(int rcode);
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies

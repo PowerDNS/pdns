@@ -22,6 +22,7 @@ struct Question
   {
     return make_unique<DNSPacket>(false);
   }
+  void cleanupGSS(int){}
 };
 
 struct Backend

@@ -245,6 +245,7 @@ retry:
       }
 
       QD->callback(a, QD->start);
+      QD->Q.cleanupGSS(a->d.rcode);
       QD.reset();
     }
 
@@ -306,6 +307,8 @@ retry:
     }
   }
   callback(a, start);
+  q.cleanupGSS(a->d.rcode);
+
   return 0;
 }
 

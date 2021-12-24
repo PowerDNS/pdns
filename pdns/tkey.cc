@@ -4,6 +4,11 @@
 #include "packethandler.hh"
 
 void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
+#if 0
+  auto [i,a,s] = GssContext::getCounts();
+  cerr << "#init_creds: " << i << " #accept_creds: " << a << " #secctxs: " << s << endl;
+#endif
+
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   DNSName name;
@@ -22,8 +27,6 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_inception = time((time_t*)nullptr);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
-  GssContext ctx(name);
-
   if (tkey_in.d_mode == 3) { // establish context
     if (tkey_in.d_algo == DNSName("gss-tsig.")) {
       std::vector<std::string> meta;
@@ -34,14 +37,20 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         }
       } while(tmpName.chopOff());
 
-      if (meta.size()>0) {
+      if (meta.size() == 0) {
+        tkey_out->d_error = 20;
+      } else {
+        GssContext ctx(name);
         ctx.setLocalPrincipal(meta[0]);
+        // try to get a context
+        if (!ctx.accept(tkey_in.d_key, tkey_out->d_key)) {
+          ctx.destroy();
+          tkey_out->d_error = 19;
+        }
+        else {
+          sign = true;
+        }
       }
-      // try to get a context
-      if (!ctx.accept(tkey_in.d_key, tkey_out->d_key))
-        tkey_out->d_error = 19;
-      else
-        sign = true;
     } else {
       tkey_out->d_error = 21; // BADALGO
     }
@@ -53,10 +62,13 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         r->setRcode(RCode::NotAuth);
       return;
     }
-    if (ctx.valid())
+    GssContext ctx(name);
+    if (ctx.valid()) {
       ctx.destroy();
-    else
+    }
+    else {
       tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
+    }
   } else {
     if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
       if (p.d.opcode == Opcode::Update)
