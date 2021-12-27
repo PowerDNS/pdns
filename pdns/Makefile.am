@@ -364,7 +364,8 @@ pdnsutil_SOURCES = \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
-	pdnsutil.cc \
+	pdnsutil-hsm.cc \
+	pdnsutil.cc pdnsutil.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	serialtweaker.cc \
