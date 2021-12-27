@@ -356,7 +356,20 @@ void setupLuaInspection(LuaContext& luaCtx)
       return getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
     });
 
+
+  luaCtx.writeFunction("getEkkelResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> doubleTlds = getGenResponses(top, 3, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
+
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> normalTlds = getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
+
+
+      doubleTlds.merge(normalTlds);
+      return doubleTlds;
+    });
+
+
   luaCtx.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function ekkelResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getEkkelResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
   luaCtx.writeFunction("getSlowResponses", [](unsigned int top, unsigned int msec, boost::optional<int> labels) {
