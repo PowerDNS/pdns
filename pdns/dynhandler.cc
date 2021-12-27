@@ -414,6 +414,7 @@ extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& token
 
 string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
 {
+#if 0
 #ifndef HAVE_P11KIT1
   return "PKCS#11 support not compiled in";
 #else
@@ -427,6 +428,8 @@ string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
     return "could not log in, check logs";
   }
 #endif
+#endif
+  return "";
 }
 
 string DLSuckRequests(const vector<string> &parts, Utility::pid_t ppid) {

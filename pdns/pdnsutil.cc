@@ -34,6 +34,9 @@
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
+#ifdef HAVE_P11KIT1
+#include "pkcs11infra.hh"
+#endif
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
