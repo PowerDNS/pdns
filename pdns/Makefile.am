@@ -315,7 +315,8 @@ pdns_server_LDADD += $(SQLITE3_LIBS)
 endif
 
 if PKCS11
-pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh
+pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh \
+	pkcs11infra.cc pkcs11infra.hh
 pdns_server_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -413,7 +414,8 @@ pdnsutil_LDADD += $(SQLITE3_LIBS)
 endif
 
 if PKCS11
-pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh \
+	pkcs11infra.cc pkcs11infra.hh
 pdnsutil_LDADD += $(P11KIT1_LIBS)
 endif
 
