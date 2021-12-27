@@ -30,6 +30,7 @@
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "arguments.hh"
+#include "pkcs11infra.hh"
 #include "pdnsutil.hh"
 
 using namespace std;
@@ -122,6 +123,72 @@ int pdnsutil_cmd_hsm(const vector<string>& cmds, DNSSECKeeper& dk) {
 
     cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
 
+    return 0;
+  }
+  else if (cmds.at(1) == "list") {
+    if (cmds.size() < 3) {
+      std::cout << "Usage: pdnsutil hsm list MODULE [PIN]" << std::endl;
+      return 1;
+    }
+    auto module = std::make_shared<pdns::Pkcs11Module>(cmds.at(2));
+    module->Initialize();
+    auto& slots = module->GetSlots();
+    for(auto& slot : slots) {
+      if (!slot.second.HasToken() ||
+          !slot.second.HasInitializedToken())
+        continue;
+
+      std::cout << "Slot ID: " << slot.first << std::endl;
+      std::cout << "Serial : " << slot.second.GetSerialNumber() << std::endl;
+      std::cout << "Label  : " << slot.second.GetLabel() << std::endl;
+
+      auto session = slot.second.GetSession();
+      if (cmds.size() > 3 && !session->Login(cmds.at(3))) {
+        cerr << "Cannot login to slot" << endl;
+        continue;
+      }
+      std::vector<CK_OBJECT_HANDLE> objects;
+      std::vector<pdns::P11KitAttribute> attributes;
+      attributes.push_back(pdns::P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
+      if (session->FindObjects(attributes, objects) != CKR_OK) {
+        cerr << "Cannot list objects from slot" << endl;
+        continue;
+      }
+      attributes.clear();
+      attributes.push_back(pdns::P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
+      if (session->FindObjects(attributes, objects) != CKR_OK) {
+        cerr << "Cannot list objects from slot" << endl;
+        continue;
+      }
+      for (auto& object : objects) {
+        attributes.clear();
+        attributes.push_back(pdns::P11KitAttribute(CKA_ID, ""));
+        attributes.push_back(pdns::P11KitAttribute(CKA_LABEL, ""));
+        attributes.push_back(pdns::P11KitAttribute(CKA_KEY_TYPE, 0UL));
+        attributes.push_back(pdns::P11KitAttribute(CKA_CLASS, 0UL));
+        if (session->GetAttributeValue(object, attributes) != CKR_OK)
+          continue;
+        if (attributes[3].ulong() == CKO_PUBLIC_KEY)
+          cout << "Public key object; ";
+        else if (attributes[3].ulong() == CKO_PRIVATE_KEY)
+          cout << "Private key object; ";
+        else
+          cout << "Unknown object; ";
+        switch (attributes[2].ulong()) {
+        case CKK_RSA:
+          std::cout << "RSA";
+          break;
+        case CKK_EC:
+          std::cout << "ECC";
+          break;
+        default:
+          std::cout << "(" << attributes[2].ulong() << ")";
+        }
+        std::cout << std::endl;
+        std::cout << " ID    : " << makeHexDump(attributes[0].str()) <<  std::endl;
+        std::cout << " Label : " << attributes[1].str() << std::endl;
+      }
+    }
     return 0;
   }
   else if (cmds.at(1) == "create-key") {
