@@ -51,6 +51,11 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
             continue;
 
           DNSName temp(a.name);
+          cout << a.name.getLastLabel().toString() << endl;
+          
+          if(strcmp(a.name.getLastLabel().toString().c_str(),"uk.") == 0) {
+            cout << "godverdomme!!!" << endl;
+          }
           temp.trimToLabels(lab);
           counts[temp]++;
           total++;
@@ -87,6 +92,75 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
 
   return ret;
 }
+
+static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> getEkkelResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
+{
+  setLuaNoSideEffect();
+  map<DNSName, unsigned int> counts;
+  unsigned int total=0;
+  {
+    for (const auto& shard : g_rings.d_shards) {
+      auto rl = shard->respRing.lock();
+      if (!labels) {
+        for(const auto& a : *rl) {
+          if(!pred(a))
+            continue;
+          counts[a.name]++;
+          total++;
+        }
+      }
+      else {
+        unsigned int lab = *labels;
+        for(const auto& a : *rl) {
+          if(!pred(a))
+            continue;
+
+          DNSName temp(a.name);
+          cout << a.name.getLastLabel().toString() << endl;
+          
+          DNSName tld(a.name);
+          tld.trimToLabels(2);
+          //cout << tld.toString() << endl;
+          if(strcmp(tld.toString().c_str(),"co.uk.") == 0) {
+            cout << "het werkt! " << endl;
+          }
+          temp.trimToLabels(lab);
+          counts[temp]++;
+          total++;
+        }
+      }
+    }
+  }
+  //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
+  vector<pair<unsigned int, DNSName>> rcounts;
+  rcounts.reserve(counts.size());
+  for(const auto& c : counts)
+    rcounts.emplace_back(c.second, c.first.makeLowerCase());
+
+  sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a,
+                                          const decltype(rcounts)::value_type& b) {
+         return b.first < a.first;
+       });
+
+  std::unordered_map<unsigned int, vector<boost::variant<string,double>>> ret;
+  unsigned int count=1, rest=0;
+  for(const auto& rc : rcounts) {
+    if(count==top+1)
+      rest+=rc.first;
+    else
+      ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+  }
+
+  if (total > 0) {
+    ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  }
+  else {
+    ret.insert({count, {"Rest", rest, 100.0 }});
+  }
+
+  return ret;
+}
+
 
 typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
 
@@ -286,6 +360,7 @@ void setupLuaInspection(LuaContext& luaCtx)
         for (const auto& shard : g_rings.d_shards) {
           auto rl = shard->queryRing.lock();
           for(auto a : *rl) {
+
             a.name.trimToLabels(lab);
             counts[a.name]++;
             total++;
@@ -358,9 +433,8 @@ void setupLuaInspection(LuaContext& luaCtx)
 
 
   luaCtx.writeFunction("getEkkelResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
-      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> doubleTlds = getGenResponses(top, 3, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
-
-      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> normalTlds = getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> doubleTlds = getEkkelResponses(top, 3, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> normalTlds = getEkkelResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
 
 
       doubleTlds.merge(normalTlds);
