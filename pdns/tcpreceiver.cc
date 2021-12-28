@@ -359,11 +359,15 @@ void TCPNameserver::doConnection(int fd)
   }
 
   catch(std::exception &e) {
-    g_log<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
+    std::lock_guard<std::mutex> l(s_plock);
+    s_P.reset(); // on next call, backend will be recycled
+    g_log << Logger::Error << "TCP Connection Thread died because of STL error, cycling backend: " << e.what() << endl;
   }
   catch( ... )
   {
-    g_log << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
+    std::lock_guard<std::mutex> l(s_plock);
+    s_P.reset(); // on next call, backend will be recycled
+    g_log << Logger::Error << "TCP Connection Thread caught unknown exception, cycling backend." << endl;
   }
   d_connectionroom_sem->post();
 

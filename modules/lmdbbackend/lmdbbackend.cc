@@ -648,16 +648,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
   }
 
   doms.del(id);
-  compoundOrdername co;
-  string match = co(id);
-
-  auto cursor = txn->txn->getCursor(txn->db->dbi);
-  MDBOutVal key, val;
-  if (!cursor.find(match, key, val)) {
-    do {
-      cursor.del();
-    } while (!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
-  }
+  deleteDomainRecords(*txn, id);
 
   if (needCommit)
     txn->txn->commit();
