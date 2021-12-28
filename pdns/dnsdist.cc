@@ -537,7 +537,9 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
       cerr<<"Got an errno of "<<err<<endl;
       vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
     }
-    cerr<<"res is "<<res<<endl;
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    cerr<<"res is "<<res<<" at "<<tv.tv_sec<<" "<<tv.tv_usec<<endl;
   }
 
   return true;
@@ -1727,7 +1729,9 @@ static void udpClientThread(ClientState* cs)
         iov.iov_len = packet.size();
 
         ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
-
+        struct timeval tv;
+        gettimeofday(&tv, nullptr);
+        cerr<<"Received UDP query at "<<tv.tv_sec<<" "<<tv.tv_usec<<endl;
         if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
           ++g_stats.nonCompliantQueries;
           continue;

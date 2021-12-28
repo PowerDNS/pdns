@@ -2,6 +2,7 @@
 
 import base64
 import dns
+import time
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
@@ -414,12 +415,12 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
 
-            print("Before %s" % (method))
+            print("%f: Before %s" % (time.time(), method))
             print(self.sendConsoleCommand("grepq(\"\")").rstrip())
 
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
 
-            print("After %s" % (method))
+            print("%f: After %s" % (time.time(), method))
             print(self.sendConsoleCommand("grepq(\"\")").rstrip())
 
             self.assertEqual(receivedResponse, expectedResponse)
