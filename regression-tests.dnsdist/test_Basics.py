@@ -26,6 +26,7 @@ class TestBasics(DNSDistTest):
     addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(DNSRCode.REFUSED))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _verboseMode = True
 
     def testDropped(self):
         """

@@ -515,22 +515,29 @@ static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 
 static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
+  cerr<<"in "<<__PRETTY_FUNCTION__<<endl;
   if(delayMsec && g_delay) {
+    cerr<<"delayed for "<<delayMsec<<endl;
     DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
   }
   else {
+    cerr<<"not delayed, sending response of size "<<response.size()<<" to "<<origRemote.toStringWithPort()<<endl;
     ssize_t res;
     if (origDest.sin4.sin_family == 0) {
+      cerr<<"using sendto"<<endl;
       res = sendto(origFD, response.data(), response.size(), 0, reinterpret_cast<const struct sockaddr*>(&origRemote), origRemote.getSocklen());
     }
     else {
+      cerr<<"using sendfromto"<<endl;
       res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
     }
     if (res == -1) {
       int err = errno;
+      cerr<<"Got an errno of "<<err<<endl;
       vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
     }
+    cerr<<"res is "<<res<<endl;
   }
 
   return true;
@@ -1499,6 +1506,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
+      vinfolog("Got query for %s|%s from %s, self-answered", qname.toLogString(), QType(qtype).toString(), remote.toStringWithPort());
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
       return;
     }

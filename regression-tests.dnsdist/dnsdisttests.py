@@ -480,6 +480,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             data = cls._sock.recv(4096)
         except socket.timeout:
             data = None
+            print("Timeout waiting for a UDP response")
         finally:
             if timeout:
                 cls._sock.settimeout(None)
