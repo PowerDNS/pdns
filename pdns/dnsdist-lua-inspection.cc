@@ -51,11 +51,6 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
             continue;
 
           DNSName temp(a.name);
-          cout << a.name.getLastLabel().toString() << endl;
-          
-          if(strcmp(a.name.getLastLabel().toString().c_str(),"uk.") == 0) {
-            cout << "godverdomme!!!" << endl;
-          }
           temp.trimToLabels(lab);
           counts[temp]++;
           total++;
@@ -96,6 +91,32 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
 static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> getEkkelResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
 {
   setLuaNoSideEffect();
+
+  vector<string> matchedTlds;
+
+  matchedTlds.push_back("co.uk.");
+  matchedTlds.push_back("cn.com.");
+  matchedTlds.push_back("co.in.");
+  matchedTlds.push_back("com.ar.");
+  matchedTlds.push_back("com.au.");
+  matchedTlds.push_back("com.br.");
+  matchedTlds.push_back("com.cn.");
+  matchedTlds.push_back("com.co.");
+  matchedTlds.push_back("com.cy.");
+  matchedTlds.push_back("com.es.");
+  matchedTlds.push_back("com.hk.");
+  matchedTlds.push_back("com.mt.");
+  matchedTlds.push_back("com.tw.");
+  matchedTlds.push_back("co.nl."); 
+  matchedTlds.push_back("co.nz.");
+  matchedTlds.push_back("co.uk.");
+  matchedTlds.push_back("co.za.");
+  matchedTlds.push_back("de.ls.");
+  matchedTlds.push_back("info.pl.");
+  matchedTlds.push_back("net.cn.");
+  matchedTlds.push_back("org.cn.");
+  matchedTlds.push_back("org.uk.");
+   
   map<DNSName, unsigned int> counts;
   unsigned int total=0;
   {
@@ -116,15 +137,19 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
             continue;
 
           DNSName temp(a.name);
-          cout << a.name.getLastLabel().toString() << endl;
-          
-          DNSName tld(a.name);
-          tld.trimToLabels(2);
-          //cout << tld.toString() << endl;
-          if(strcmp(tld.toString().c_str(),"co.uk.") == 0) {
-            cout << "het werkt! " << endl;
+          bool filterTLD = false;
+          for(std::vector<string>::iterator it = matchedTlds.begin(); it != matchedTlds.end(); ++it) {            
+             DNSName tld(a.name);
+             tld.trimToLabels(2);
+              if(strcmp(tld.toString().c_str(),(*it).c_str()) == 0) {
+               temp.trimToLabels(3);
+               filterTLD = true;
+             }
           }
-          temp.trimToLabels(lab);
+
+          if(!filterTLD) {
+             temp.trimToLabels(lab);
+          }
           counts[temp]++;
           total++;
         }
@@ -433,12 +458,7 @@ void setupLuaInspection(LuaContext& luaCtx)
 
 
   luaCtx.writeFunction("getEkkelResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
-      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> doubleTlds = getEkkelResponses(top, 3, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
-      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> normalTlds = getEkkelResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
-
-
-      doubleTlds.merge(normalTlds);
-      return doubleTlds;
+      return getEkkelResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
     });
 
 
