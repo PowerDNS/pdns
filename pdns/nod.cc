@@ -195,7 +195,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
 
 void NODDB::housekeepingThread(std::thread::id tid)
 {
-  setThreadName("pdns-r/NOD-hk");
+  setThreadName("hk:NOD");
   for (;;) {
     sleep(d_snapshot_interval);
     {
@@ -265,7 +265,7 @@ void UniqueResponseDB::addResponse(const std::string& response)
 
 void UniqueResponseDB::housekeepingThread(std::thread::id tid)
 {
-  setThreadName("pdns-r/UDR-hk");
+  setThreadName("hk:UDR");
   for (;;) {
     sleep(d_snapshot_interval);
     {

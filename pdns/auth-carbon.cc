@@ -35,7 +35,7 @@
 void carbonDumpThread()
 try
 {
-  setThreadName("pdns/carbonDump");
+  setThreadName("carbonDump");
   extern StatBag S;
 
   string namespace_name=arg()["carbon-namespace"];

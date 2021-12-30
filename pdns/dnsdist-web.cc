@@ -1534,7 +1534,7 @@ void registerBuiltInWebHandlers()
 
 static void connectionThread(WebClientConnection&& conn)
 {
-  setThreadName("dnsdist/webConn");
+  setThreadName("webConnect");
 
   vinfolog("Webserver handling connection from %s", conn.getClient().toStringWithPort());
 
@@ -1664,7 +1664,7 @@ void setWebserverMaxConcurrentConnections(size_t max)
 
 void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
-  setThreadName("dnsdist/webserv");
+  setThreadName("webserver");
   warnlog("Webserver launched on %s", local.toStringWithPort());
 
   if (!g_webserverConfig.lock()->password) {

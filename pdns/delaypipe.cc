@@ -136,7 +136,7 @@ DelayPipe<T>::~DelayPipe()
 template<class T>
 void DelayPipe<T>::worker()
 {
-  setThreadName("dnsdist/delayPi");
+  setThreadName("delayPipe");
   Combo c;
   for(;;) {
     /* this code is slightly too subtle, but I don't see how it could be any simpler.

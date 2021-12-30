@@ -3986,7 +3986,6 @@ wday
 We'd
 weanswers
 webetter
-webhndlr
 webkit
 WEBPORT
 webrick

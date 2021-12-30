@@ -185,7 +185,7 @@ int DNSProxy::getID_locked(map_t& conntrack)
 
 void DNSProxy::mainloop()
 {
-  setThreadName("pdns/dnsproxy");
+  setThreadName("dnsproxy");
   try {
     char buffer[1500];
     ssize_t len;

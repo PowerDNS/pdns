@@ -1238,7 +1238,7 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const s
    a DOHUnit object and passed it to us */
 static void dnsdistclient(int qsock)
 {
-  setThreadName("dnsdist/doh-cli");
+  setThreadName("dohClient");
 
   for(;;) {
     try {
@@ -1604,7 +1604,7 @@ void dohThread(ClientState* cs)
     std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1]);
     dnsdistThread.detach(); // gets us better error reporting
 
-    setThreadName("dnsdist/doh");
+    setThreadName("doh");
     // I wonder if this registers an IP address.. I think it does
     // this may mean we need to actually register a site "name" here and not the IP address
     h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);

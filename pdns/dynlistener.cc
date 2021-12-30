@@ -332,7 +332,7 @@ void DynListener::registerRestFunc(g_funk_t *gf)
 
 void DynListener::theListener()
 {
-  setThreadName("pdns/ctrlListen");
+  setThreadName("ctrlListen");
 
   try {
     signal(SIGPIPE,SIG_IGN);
