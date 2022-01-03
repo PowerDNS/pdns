@@ -503,6 +503,9 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
            please be aware that you will also need to update the conditions in the code merging
            the records and comments below */
         if (rrA.qname == rrB.qname) {
+          if (rrA.qtype == rrB.qtype) {
+            return rrB.content < rrA.content;
+          }
           return rrB.qtype < rrA.qtype;
         }
         return rrB.qname < rrA.qname;
@@ -523,6 +526,9 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
            please be aware that you will also need to update the conditions in the code merging
            the records and comments below */
         if (rrA.qname == rrB.qname) {
+          if (rrA.qtype == rrB.qtype) {
+            return rrB.content < rrA.content;
+          }
           return rrB.qtype < rrA.qtype;
         }
         return rrB.qname < rrA.qname;
