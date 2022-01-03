@@ -19,6 +19,7 @@
 #include "communicator.hh"
 #include "query-local-address.hh"
 #include "gss_context.hh"
+#include "auth-main.hh"
 
 extern StatBag S;
 extern CommunicatorClass Communicator;
@@ -695,7 +696,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         return RCode::Refused;
       }
 
-      if (p.d_tsig_algo == TSIG_GSS) {
+      if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
         GssName inputname(p.d_peer_principal); // match against principal since GSS
         for(const auto& key: tsigKeys) {
           if (inputname.match(key)) {
