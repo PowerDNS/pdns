@@ -3,6 +3,7 @@
 #endif
 #include "packethandler.hh"
 #include "gss_context.hh"
+#include "auth-main.hh"
 
 void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
 #if 0
@@ -29,31 +30,40 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
   if (tkey_in.d_mode == 3) { // establish context
-    if (tkey_in.d_algo == DNSName("gss-tsig.")) {
-      std::vector<std::string> meta;
-      DNSName tmpName(name);
-      do {
-        if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
-          break;
-        }
-      } while(tmpName.chopOff());
+    if (g_doGssTSIG) {
+      if (tkey_in.d_algo == DNSName("gss-tsig.")) {
+        std::vector<std::string> meta;
+        DNSName tmpName(name);
+        do {
+          if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
+            break;
+          }
+        } while(tmpName.chopOff());
 
-      if (meta.size() == 0) {
-        tkey_out->d_error = 20;
+        if (meta.size() == 0) {
+          tkey_out->d_error = 20;
+        } else {
+          GssContext ctx(name);
+          ctx.setLocalPrincipal(meta[0]);
+          // try to get a context
+          if (!ctx.accept(tkey_in.d_key, tkey_out->d_key)) {
+            ctx.destroy();
+            tkey_out->d_error = 19;
+          }
+          else {
+            sign = true;
+          }
+        }
       } else {
-        GssContext ctx(name);
-        ctx.setLocalPrincipal(meta[0]);
-        // try to get a context
-        if (!ctx.accept(tkey_in.d_key, tkey_out->d_key)) {
-          ctx.destroy();
-          tkey_out->d_error = 19;
-        }
-        else {
-          sign = true;
-        }
+        tkey_out->d_error = 21; // BADALGO
       }
     } else {
       tkey_out->d_error = 21; // BADALGO
+#ifdef ENABLE_GSS_TSIG
+      g_log<<Logger::Error<<"GSS-TSIG request but feature not enabled by enable-gss-tsigs setting"<<endl;
+#else
+      g_log<<Logger::Error<<"GSS-TSIG request but not feature not compiled in"<<endl;
+#endif
     }
   } else if (tkey_in.d_mode == 5) { // destroy context
     if (p.d_havetsig == false) { // unauthenticated
