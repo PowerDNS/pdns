@@ -412,6 +412,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
               /* if you ever want to update this comparison function,
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
+              if (a.qname == b.qname && b.qtype == a.qtype) {
+                  return b.content < a.content;
+              }
               if (a.qname == b.qname) {
                   return b.qtype < a.qtype;
               }
@@ -430,6 +433,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
               /* if you ever want to update this comparison function,
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
+              if (a.qname == b.qname && b.qtype == a.qtype) {
+                  return b.content < a.content;
+              }
               if (a.qname == b.qname) {
                   return b.qtype < a.qtype;
               }
@@ -725,7 +731,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (!dk.unSecureZone(zonename, error, info)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
-        isDNSSECZone = dk.isSecuredZone(zonename, false); 
+        isDNSSECZone = dk.isSecuredZone(zonename, false);
         if (isDNSSECZone) {
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }
