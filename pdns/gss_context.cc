@@ -21,8 +21,6 @@
  */
 
 #include "gss_context.hh"
-
-#include "lock.hh"
 #include "logger.hh"
 
 #ifndef ENABLE_GSS_TSIG
@@ -49,6 +47,10 @@ bool GssContext::verify(const std::string& input, const std::string& signature) 
 GssContextError GssContext::getError() { return GSS_CONTEXT_UNSUPPORTED; }
 
 #else
+
+#include <unordered_map>
+
+#include "lock.hh"
 
 class GssCredential : boost::noncopyable
 {

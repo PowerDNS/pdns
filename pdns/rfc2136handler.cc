@@ -18,6 +18,7 @@
 #include "backends/gsql/ssql.hh"
 #include "communicator.hh"
 #include "query-local-address.hh"
+#include "gss_context.hh"
 
 extern StatBag S;
 extern CommunicatorClass Communicator;

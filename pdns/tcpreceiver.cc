@@ -409,7 +409,9 @@ void TCPNameserver::doConnection(int fd)
         break;
 
       sendPacket(reply, fd);
+#ifdef ENABLE_GSS_TSIG
       packet->cleanupGSS(reply->d.rcode);
+#endif
     }
   }
   catch(PDNSException &ae) {
