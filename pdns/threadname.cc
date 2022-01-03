@@ -39,7 +39,7 @@
 
 #include "threadname.hh"
 
-int trySetThreadName(const std::string& threadName) {
+static int trySetThreadName(const std::string& threadName) {
   int retval = 0;
 
 #ifdef HAVE_PTHREAD_SETNAME_NP_2
