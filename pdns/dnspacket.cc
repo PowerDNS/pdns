@@ -760,6 +760,7 @@ const DNSName& DNSPacket::getTSIGKeyname() const {
   return d_tsigkeyname;
 }
 
+#ifdef ENABLE_GSS_TSIG
 void DNSPacket::cleanupGSS(int rcode)
 {
   if (rcode != RCode::NoError && d_tsig_algo == TSIG_GSS && !getTSIGKeyname().empty()) {
@@ -767,4 +768,5 @@ void DNSPacket::cleanupGSS(int rcode)
     ctx.destroy();
   }
 }
- 
+#endif
+

@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include "packethandler.hh"
+#include "gss_context.hh"
 
 void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
 #if 0

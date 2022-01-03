@@ -21,7 +21,10 @@
  */
 #pragma once
 
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include "namespaces.hh"
 #include "pdnsexception.hh"
@@ -30,7 +33,6 @@
 #ifdef ENABLE_GSS_TSIG
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
-#include <gssapi/gssapi_ext.h>
 #endif
 
 //! Generic errors

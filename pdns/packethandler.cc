@@ -46,6 +46,7 @@
 #include "version.hh"
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
+#include "gss_context.hh"
 
 #if 0
 #undef DLOG
