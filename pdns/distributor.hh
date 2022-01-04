@@ -249,7 +249,9 @@ retry:
 
       QD->callback(a, QD->start);
 #ifdef ENABLE_GSS_TSIG
-      QD->Q.cleanupGSS(a->d.rcode);
+      if (a != nullptr) {
+        QD->Q.cleanupGSS(a->d.rcode);
+      }
 #endif
       QD.reset();
     }
@@ -313,7 +315,9 @@ retry:
   }
   callback(a, start);
 #ifdef ENABLE_GSS_TSIG
-  q.cleanupGSS(a->d.rcode);
+  if (a != nullptr) {
+    q.cleanupGSS(a->d.rcode);
+  }
 #endif
   return 0;
 }
