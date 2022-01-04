@@ -22,6 +22,7 @@
 
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dolog.hh"
 
@@ -714,4 +715,128 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
   memcpy(out, payload.c_str(), payload.size());
 
   return payload.size();
+}
+
+struct dnsdist_ffi_dnspacket_t
+{
+  dnsdist::DNSPacketOverlay overlay;
+};
+
+bool dnsdist_ffi_dnspacket_parse(const char* packet, size_t packetSize, dnsdist_ffi_dnspacket_t** out)
+{
+  if (out == nullptr || packetSize < sizeof(dnsheader)) {
+    return false;
+  }
+
+  try {
+    dnsdist::DNSPacketOverlay overlay(std::string_view(packet, packetSize));
+    *out = new dnsdist_ffi_dnspacket_t{std::move(overlay)};
+    return true;
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error in dnsdist_ffi_dnspacket_parse: %s", e.what());
+  }
+  catch (...) {
+    vinfolog("Error in dnsdist_ffi_dnspacket_parse");
+  }
+  return false;
+}
+
+void dnsdist_ffi_dnspacket_get_qname_raw(const dnsdist_ffi_dnspacket_t* packet, const char** qname, size_t* qnameSize)
+{
+  if (packet == nullptr || qname == nullptr || qnameSize == nullptr) {
+    return;
+  }
+  const auto& storage = packet->overlay.d_qname.getStorage();
+  *qname = storage.data();
+  *qnameSize = storage.size();
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_qtype(const dnsdist_ffi_dnspacket_t* packet)
+{
+  if (packet != nullptr) {
+    return packet->overlay.d_qtype;
+  }
+  return 0;
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_qclass(const dnsdist_ffi_dnspacket_t* packet)
+{
+  if (packet != nullptr) {
+    return packet->overlay.d_qclass;
+  }
+  return 0;
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_records_count_in_section(const dnsdist_ffi_dnspacket_t* packet, uint8_t section)
+{
+  if (packet == nullptr || section > 3) {
+    return 0;
+  }
+
+  uint16_t count = 0;
+  for (const auto& record : packet->overlay.d_records) {
+    if (record.d_place == section) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+void dnsdist_ffi_dnspacket_get_record_name_raw(const dnsdist_ffi_dnspacket_t* packet, size_t idx, const char** name, size_t* nameSize)
+{
+  if (packet == nullptr || name == nullptr || nameSize == nullptr || idx > packet->overlay.d_records.size()) {
+    return;
+  }
+  const auto& storage = packet->overlay.d_records.at(idx).d_name.getStorage();
+  *name = storage.data();
+  *nameSize = storage.size();
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_record_type(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
+{
+  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+    return 0;
+  }
+  return packet->overlay.d_records.at(idx).d_type;
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_record_class(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
+{
+  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+    return 0;
+  }
+  return packet->overlay.d_records.at(idx).d_class;
+}
+
+uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
+{
+  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+    return 0;
+  }
+  return packet->overlay.d_records.at(idx).d_ttl;
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
+{
+  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+    return 0;
+  }
+  return packet->overlay.d_records.at(idx).d_contentLength;
+}
+
+uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
+{
+  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+    return 0;
+  }
+  return packet->overlay.d_records.at(idx).d_contentOffset;
+}
+
+void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
+{
+  if (packet != nullptr) {
+    delete packet;
+  }
 }

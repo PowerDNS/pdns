@@ -151,3 +151,17 @@ typedef struct dnsdist_ffi_proxy_protocol_value {
 
 size_t dnsdist_ffi_generate_proxy_protocol_payload(size_t addrSize, const void* srcAddr, const void* dstAddr, uint16_t srcPort, uint16_t dstPort, bool tcp, size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, size_t outSize) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dq, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, const size_t outSize) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_dnspacket_t dnsdist_ffi_dnspacket_t;
+bool dnsdist_ffi_dnspacket_parse(const char* packet, size_t packetSize, dnsdist_ffi_dnspacket_t** out) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_get_qname_raw(const dnsdist_ffi_dnspacket_t* packet, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_qtype(const dnsdist_ffi_dnspacket_t* packet) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_qclass(const dnsdist_ffi_dnspacket_t* packet) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_records_count_in_section(const dnsdist_ffi_dnspacket_t* packet, uint8_t section) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_get_record_name_raw(const dnsdist_ffi_dnspacket_t* packet, size_t idx, const char** name, size_t* nameSize) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_type(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_class(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t*) __attribute__ ((visibility ("default")));
