@@ -33,6 +33,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'libcdb-dev',
     'libcurl4-openssl-dev',
     'libgeoip-dev',
+    'libgss-dev',
     'libkrb5-dev',
     'libldap2-dev',
     'liblmdb-dev',
@@ -92,6 +93,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libcdb1',
     'libcurl4',
     'libgeoip1',
+    'libgss3',
     'libkrb5-3',
     'libldap-2.4-2',
     'liblmdb0',
@@ -267,6 +269,7 @@ def ci_auth_configure(c):
                       --enable-backend-unit-tests \
                       --enable-fuzz-targets \
                       --enable-experimental-pkcs11 \
+                      --enable-experimental-gss-tsig \
                       --enable-remotebackend-zeromq \
                       --with-lmdb=/usr \
                       --with-libsodium \
