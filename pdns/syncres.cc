@@ -108,7 +108,7 @@ int SyncRes::s_event_trace_enabled;
 // Not using boost::format since it is not thread safe while calling
 // into locale handling code according to tsan.
 // This allocates a string, but that's nothing compared to what
-// boost::format is doing and maybe even gets optimized away anyway.
+// boost::format is doing and may even be optimized away anyway.
 static inline std::string fmtfloat(const char* fmt, double f)
 {
   char buf[20];
