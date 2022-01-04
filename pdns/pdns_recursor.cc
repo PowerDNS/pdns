@@ -61,7 +61,6 @@
 #include <boost/any.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/shared_array.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
 #ifdef MALLOC_TRACE

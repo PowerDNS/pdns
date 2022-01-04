@@ -59,7 +59,7 @@ public:
 
 private:
   int d_kqueuefd;
-  boost::shared_array<struct kevent> d_kevents;
+  std::vector<struct kevent> d_kevents;
   static unsigned int s_maxevents; // not a hard maximum
 };
 
@@ -79,7 +79,7 @@ static struct KqueueRegisterOurselves
 } kQueueDoIt;
 
 KqueueFDMultiplexer::KqueueFDMultiplexer() :
-  d_kevents(new struct kevent[s_maxevents])
+  d_kevents(s_maxevents)
 {
   d_kqueuefd = kqueue();
   if (d_kqueuefd < 0) {
@@ -148,7 +148,7 @@ void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
   ts.tv_sec = timeout / 1000;
   ts.tv_nsec = (timeout % 1000) * 1000000;
 
-  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), s_maxevents, &ts);
 
   if (ret < 0 && errno != EINTR) {
     throw FDMultiplexerException("kqueue returned error: " + stringerror());
@@ -177,7 +177,7 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
   ts.tv_sec = timeout / 1000;
   ts.tv_nsec = (timeout % 1000) * 1000000;
 
-  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), s_maxevents, &ts);
   gettimeofday(now, nullptr); // MANDATORY!
 
   if (ret < 0 && errno != EINTR) {

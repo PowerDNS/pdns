@@ -58,7 +58,7 @@ public:
 
 private:
   int d_epollfd;
-  boost::shared_array<epoll_event> d_eevents;
+  std::vector<epoll_event> d_eevents;
   static int s_maxevents; // not a hard maximum
 };
 
@@ -78,7 +78,7 @@ static struct EpollRegisterOurselves
 int EpollFDMultiplexer::s_maxevents = 1024;
 
 EpollFDMultiplexer::EpollFDMultiplexer() :
-  d_eevents(new epoll_event[s_maxevents])
+  d_eevents(s_maxevents)
 {
   d_epollfd = epoll_create(s_maxevents); // not hard max
   if (d_epollfd < 0) {
@@ -156,7 +156,7 @@ void EpollFDMultiplexer::alterFD(int fd, FDMultiplexer::EventKind, FDMultiplexer
 
 void EpollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 {
-  int ret = epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, timeout);
+  int ret = epoll_wait(d_epollfd, d_eevents.data(), s_maxevents, timeout);
 
   if (ret < 0 && errno != EINTR) {
     throw FDMultiplexerException("epoll returned error: " + stringerror());
@@ -173,7 +173,7 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
 
-  int ret = epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, timeout);
+  int ret = epoll_wait(d_epollfd, d_eevents.data(), s_maxevents, timeout);
   gettimeofday(now, nullptr); // MANDATORY
 
   if (ret < 0 && errno != EINTR) {
