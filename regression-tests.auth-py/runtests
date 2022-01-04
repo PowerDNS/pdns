@@ -27,9 +27,20 @@ for bin in "$PDNS" "$PDNSUTIL"; do
   fi
 done
 
-set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
-nosetests --with-xunit $@
+ignore="-I test_GSSTSIG.py"
+if [ "${WITHKERBEROS}" = "YES" ]; then
+    ignore=""
+    (cd kerberos-server && docker-compose up --detach --build)
+fi
+
+nosetests --with-xunit $ignore $@
+ret=$?
+
+if [ "${WITHKERBEROS}" = "YES" ]; then
+    (cd kerberos-server && docker-compose stop || exit 0)
+fi
+exit $ret
