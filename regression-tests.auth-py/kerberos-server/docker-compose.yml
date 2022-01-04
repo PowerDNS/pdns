@@ -1,0 +1,10 @@
+version: "2"
+services:
+  kerberos:
+    build: .
+    ports:
+      - "1188:88"
+      - "1749:749"
+    volumes:
+      # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
+      - /dev/urandom:/dev/random

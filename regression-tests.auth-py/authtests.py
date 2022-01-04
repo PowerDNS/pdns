@@ -172,6 +172,20 @@ options {
                 cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
 
     @classmethod
+    def waitForTCPSocket(cls, ipaddress, port):
+        for try_number in range(0, 100):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1.0)
+                sock.connect((ipaddress, port))
+                sock.close()
+                return
+            except Exception as err:
+                if err.errno != errno.ECONNREFUSED:
+                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+            time.sleep(0.1)
+
+    @classmethod
     def startAuth(cls, confdir, ipaddress):
 
         print("Launching pdns_server..")
@@ -187,18 +201,14 @@ options {
             cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
                                                      stdout=fdLog, stderr=fdLog,
                                                      env=cls._auth_env)
-
-        time.sleep(2)
+        cls.waitForTCPSocket(ipaddress, cls._authPort)
 
         if cls._auths[ipaddress].poll() is not None:
-            try:
-                cls._auths[ipaddress].kill()
-            except OSError as e:
-                if e.errno != errno.ESRCH:
-                    raise
-                with open(logFile, 'r') as fdLog:
-                    print(fdLog.read())
-            sys.exit(cls._auths[ipaddress].returncode)
+            print(f"\n*** startAuth log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startAuth log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
 
     @classmethod
     def setUpSockets(cls):
@@ -239,23 +249,32 @@ options {
         cls.tearDownAuth()
 
     @classmethod
-    def tearDownAuth(cls):
-        if 'PDNSRECURSOR_FAST_TESTS' in os.environ:
-            delay = 0.1
-        else:
-            delay = 1.0
+    def killProcess(cls, p):
+        # Don't try to kill it if it's already dead
+        if p.poll() is not None:
+            return
+        try:
+            p.terminate()
+            for count in range(10):
+                x = p.poll()
+                if x is not None:
+                    break
+                time.sleep(0.1)
+            if x is None:
+                print("kill...", p, file=sys.stderr)
+                p.kill()
+                p.wait()
+        except OSError as e:
+            # There is a race-condition with the poll() and
+            # kill() statements, when the process is dead on the
+            # kill(), this is fine
+            if e.errno != errno.ESRCH:
+                raise
 
+    @classmethod
+    def tearDownAuth(cls):
         for _, auth in cls._auths.items():
-            try:
-                auth.terminate()
-                if auth.poll() is None:
-                    time.sleep(delay)
-                    if auth.poll() is None:
-                        auth.kill()
-                    auth.wait()
-            except OSError as e:
-                if e.errno != errno.ESRCH:
-                    raise
+            cls.killProcess(auth)
 
     @classmethod
     def sendUDPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
