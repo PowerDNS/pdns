@@ -572,7 +572,6 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
     }
     catch (SSqlException &e) {
       throw PDNSException("GSQLBackend unable to delete empty non-terminal records from domain_id "+itoa(domain_id)+": "+e.txtReason());
-      return false;
     }
   }
   else
@@ -589,7 +588,6 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
       }
       catch (SSqlException &e) {
         throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+itoa(domain_id)+": "+e.txtReason());
-        return false;
       }
     }
   }
@@ -608,7 +606,6 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
     }
     catch (SSqlException &e) {
       throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+itoa(domain_id)+": "+e.txtReason());
-      return false;
     }
   }
 
@@ -775,8 +772,6 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     id = -2;
     return true;
   }
-
-  return false;
 }
 
 bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
@@ -1849,8 +1844,6 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to search for records with pattern '" + pattern + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
-
-  return false;
 }
 
 bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
@@ -1882,8 +1875,6 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to search for comments with pattern '" + pattern + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
-
-  return false;
 }
 
 void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
