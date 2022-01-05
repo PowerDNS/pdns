@@ -17,7 +17,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
-        product: ['auth', 'rec', 'dnsdist']
+        product: ['auth']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -104,26 +104,6 @@ jobs:
         make -j8 -C ext
         make -j8 -C modules
         make -j8 -C pdns
-
-    - name: Build dnsdist
-      if: matrix.product == 'dnsdist'
-      run: |
-        cd pdns/dnsdistdist
-        autoreconf -vfi
-        ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
-        make -j8 -C ext/ipcrypt
-        make -j8 -C ext/yahttp
-        make -j4 dnsdist
-
-    - name: Build recursor
-      if: matrix.product == 'rec'
-      run: |
-        cd pdns/recursordist
-        autoreconf -vfi
-        ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
-        make -j8 -C ext
-        make htmlfiles.h
-        make -j8 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1

@@ -1255,10 +1255,6 @@ workflows:
     jobs:
       - coverity-auth:
           context: auth-coverity
-      - coverity-dnsdist:
-          context: dnsdist-coverity
-      - coverity-recursor:
-          context: recursor-coverity
 
   build-and-test-all:
     jobs:
@@ -1278,57 +1274,3 @@ workflows:
       - test-auth-regress-ldap:
           requires:
             - build-auth
-      - build-recursor:
-          requires:
-            - checkout
-      - test-recursor-regression:
-          requires:
-            - build-recursor
-      - test-recursor-bulk:
-          requires:
-            - build-recursor
-
-  build-docs:
-    jobs:
-      - checkout
-      - build-auth-docs:
-          filters:
-            branches:
-              ignore: master
-          requires:
-            - checkout
-      - build-recursor-docs:
-          filters:
-            branches:
-              ignore: master
-          requires:
-            - checkout
-      - build-dnsdist-docs:
-          filters:
-            branches:
-              ignore: master
-          requires:
-            - checkout
-
-      # These actually deploy
-      - deploy-auth-docs:
-          context: docs
-          filters:
-            branches:
-              only: master
-          requires:
-            - checkout
-      - deploy-recursor-docs:
-          context: docs
-          filters:
-            branches:
-              only: master
-          requires:
-            - checkout
-      - deploy-dnsdist-docs:
-          context: docs
-          filters:
-            branches:
-              only: master
-          requires:
-            - checkout
