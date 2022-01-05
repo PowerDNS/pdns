@@ -88,7 +88,9 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   else
   {
     d_update_policy_lua = std::make_unique<AuthLua4>();
-    d_update_policy_lua->loadFile(fname);
+    if (d_update_policy_lua->loadFile(fname) != 0) {
+      d_update_policy_lua = nullptr;
+    }
   }
 }
 
