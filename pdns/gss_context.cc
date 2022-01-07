@@ -506,9 +506,14 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
   msg_ctx = 0;
   while (1) {
     ostringstream oss;
-    gss_display_status(&tmp_min, maj, GSS_C_GSS_CODE, GSS_C_NULL_OID, &msg_ctx, &msg);
-    oss << method << ": " << msg.value;
-    /// XXX leaks gss_buffer_desc?
+    if (gss_display_status(&tmp_min, maj, GSS_C_GSS_CODE, GSS_C_NULL_OID, &msg_ctx, &msg) == GSS_S_COMPLETE) {
+      oss << method << ": " << msg.value;
+    } else {
+      oss << method << ": ?";
+    }
+    if (msg.length != 0) {
+      gss_release_buffer(&tmp_min, &msg);
+    }
     d_gss_errors.push_back(oss.str());
     if (!msg_ctx)
       break;
@@ -516,9 +521,14 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
   msg_ctx = 0;
   while (1) {
     ostringstream oss;
-    gss_display_status(&tmp_min, min, GSS_C_MECH_CODE, GSS_C_NULL_OID, &msg_ctx, &msg);
-    oss << method << ": " << msg.value;
-    /// XXX leaks gss_buffer_desc?
+    if (gss_display_status(&tmp_min, min, GSS_C_MECH_CODE, GSS_C_NULL_OID, &msg_ctx, &msg) ==  GSS_S_COMPLETE) {
+      oss << method << ": " << msg.value;
+    } else {
+      oss << method << ": ?";
+    }
+    if (msg.length != 0) {
+      gss_release_buffer(&tmp_min, &msg);
+    }
     d_gss_errors.push_back(oss.str());
     if (!msg_ctx)
       break;
