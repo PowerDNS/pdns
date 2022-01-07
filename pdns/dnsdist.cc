@@ -48,6 +48,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
@@ -2620,6 +2621,8 @@ int main(int argc, char** argv)
         t1.detach();
       }
     }
+
+    dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON
     thread carbonthread(carbonDumpThread);

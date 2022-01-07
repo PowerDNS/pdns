@@ -90,7 +90,7 @@ static std::string getFirstTXTAnswer(const std::string& answer)
 
 static std::string getSecPollStatus(const std::string& queriedName, int timeout=2)
 {
-  const DNSName& sentName = DNSName(queriedName);
+  const DNSName sentName(queriedName);
   std::vector<uint8_t> packet;
   DNSPacketWriter pw(packet, sentName, QType::TXT);
   pw.getHeader()->id = dnsdist::getRandomDNSID();

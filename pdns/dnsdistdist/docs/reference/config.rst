@@ -532,6 +532,9 @@ Servers
   .. versionchanged:: 1.7.0
     Added ``addXForwardedHeaders``, ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
+  .. versionchanged:: 1.8.0
+    Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep`` and ``autoUpgradePool`` to server_table.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -589,7 +592,12 @@ Servers
       dohPath=STRING,           -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
       addXForwardedHeaders=BOOL,-- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
       releaseBuffers=BOOL,      -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
-      enableRenegotiation=BOOL  -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
+      enableRenegotiation=BOOL, -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
+      autoUpgrade=BOOL,         -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade an Do53 backend to DoT or DoH. Default to false.
+      autoUpgradeInterval=NUM,  -- If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds.
+      autoUpgradeKeep=BOOL,     -- If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one.
+      autoUpgradePool=STRING,   -- If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool.
+      autoUpgradeDoHKey=NUM     -- If ``autoUpgrade`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7.
     })
 
   :param str server_string: A simple IP:PORT string.

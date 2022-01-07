@@ -43,6 +43,7 @@ public:
   explicit Protocol(const std::string& protocol);
 
   bool operator==(typeenum) const;
+  bool operator!=(typeenum) const;
 
   const std::string& toString() const;
   const std::string& toPrettyString() const;

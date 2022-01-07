@@ -35,6 +35,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-discovery.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
@@ -312,8 +313,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          setLuaSideEffect();
 
                          newserver_t vars;
+                         DownstreamState::Config config;
 
-                         ComboAddress serverAddr;
                          std::string serverAddressStr;
                          if (auto addrStr = boost::get<string>(&pvars)) {
                            serverAddressStr = *addrStr;
@@ -327,7 +328,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          try {
-                           serverAddr = ComboAddress(serverAddressStr, 53);
+                           config.remote = ComboAddress(serverAddressStr, 53);
                          }
                          catch (const PDNSException& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.reason);
@@ -340,13 +341,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            return std::shared_ptr<DownstreamState>();
                          }
 
-                         if (IsAnyAddress(serverAddr)) {
+                         if (IsAnyAddress(config.remote)) {
                            g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
                            errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
                            return std::shared_ptr<DownstreamState>();
                          }
-
-                         DownstreamState::Config config;
 
                          if (vars.count("source")) {
                            /* handle source in the following forms:
@@ -601,10 +600,47 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
+                         bool autoUpgrade = false;
+                         bool keepAfterUpgrade = false;
+                         uint32_t upgradeInterval = 3600;
+                         uint16_t upgradeDoHKey = 7;
+                         std::string upgradePool;
+
+                         if (vars.count("autoUpgrade") && boost::get<bool>(vars.at("autoUpgrade"))) {
+                           autoUpgrade = true;
+
+                           if (vars.count("autoUpgradeInterval")) {
+                             try {
+                               upgradeInterval = static_cast<uint32_t>(std::stoul(boost::get<string>(vars.at("autoUpgradeInterval"))));
+                             }
+                             catch (const std::exception& e) {
+                               warnlog("Error parsing 'autoUpgradeInterval' value: %s", e.what());
+                             }
+                           }
+                           if (vars.count("autoUpgradeKeep")) {
+                             keepAfterUpgrade = boost::get<bool>(vars.at("autoUpgradeKeep"));
+                           }
+                           if (vars.count("autoUpgradePool")) {
+                             upgradePool = boost::get<string>(vars.at("autoUpgradePool"));
+                           }
+                           if (vars.count("autoUpgradeDoHKey")) {
+                             try {
+                               upgradeDoHKey = static_cast<uint16_t>(std::stoul(boost::get<string>(vars.at("autoUpgradeDoHKey"))));
+                             }
+                             catch (const std::exception& e) {
+                               warnlog("Error parsing 'autoUpgradeDoHKey' value: %s", e.what());
+                             }
+                           }
+                         }
+
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
                          if (!(client || configCheck)) {
-                           infolog("Added downstream server %s", serverAddr.toStringWithPort());
+                           infolog("Added downstream server %s", config.remote.toStringWithPort());
+                         }
+
+                         if (autoUpgrade) {
+                           dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
@@ -622,7 +658,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          if (ret->connected) {
                            if (g_launchWork) {
-                             g_launchWork->push_back([&ret]() {
+                             g_launchWork->push_back([ret]() {
                                ret->start();
                              });
                            }
