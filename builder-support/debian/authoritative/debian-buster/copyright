@@ -3,7 +3,7 @@ Upstream-Name: PowerDNS
 Source: https://www.powerdns.com/downloads.html
 
 Files: *
-Copyright: 2002 - 2020 PowerDNS.COM BV and contributors
+Copyright: 2002 - 2022 PowerDNS.COM BV and contributors
 License: GPL-2 with OpenSSL Exception
 
 Files: m4/ax_cxx_compile_stdcxx_11.m4
