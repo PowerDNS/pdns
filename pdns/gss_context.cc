@@ -508,7 +508,8 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
     ostringstream oss;
     if (gss_display_status(&tmp_min, maj, GSS_C_GSS_CODE, GSS_C_NULL_OID, &msg_ctx, &msg) == GSS_S_COMPLETE) {
       oss << method << ": " << msg.value;
-    } else {
+    }
+    else {
       oss << method << ": ?";
     }
     if (msg.length != 0) {
@@ -521,9 +522,10 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
   msg_ctx = 0;
   while (1) {
     ostringstream oss;
-    if (gss_display_status(&tmp_min, min, GSS_C_MECH_CODE, GSS_C_NULL_OID, &msg_ctx, &msg) ==  GSS_S_COMPLETE) {
+    if (gss_display_status(&tmp_min, min, GSS_C_MECH_CODE, GSS_C_NULL_OID, &msg_ctx, &msg) == GSS_S_COMPLETE) {
       oss << method << ": " << msg.value;
-    } else {
+    }
+    else {
       oss << method << ": ?";
     }
     if (msg.length != 0) {

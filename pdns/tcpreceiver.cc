@@ -60,6 +60,7 @@
 #include "stubresolver.hh"
 #include "proxy-protocol.hh"
 #include "noinitvector.hh"
+#include "gss_context.hh"
 extern AuthPacketCache PC;
 extern StatBag S;
 
@@ -458,9 +459,27 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
       return false;
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+      if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
     }
 
     DNSSECKeeper dk(packetHandler->getBackend());
+    if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
+      vector<string> princs;
+      packetHandler->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
+      for(const std::string& princ :  princs) {
+        if (q->d_peer_principal == princ) {
+          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          return true;
+        }
+      }
+      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      return false;
+    }
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
       g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
       return false;
@@ -634,13 +653,15 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     DNSName algorithm=trc.d_algoName; // FIXME400: check
     if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
       algorithm = DNSName("hmac-md5");
-    if (!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
-      g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
-      return 0;
-    }
-    if (B64Decode(tsig64, tsigsecret) == -1) {
-      g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
-      return 0;
+    if (algorithm != DNSName("gss-tsig")) {
+      if(!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
+        g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
+        return 0;
+      }
     }
   }
 
