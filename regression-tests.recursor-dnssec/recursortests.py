@@ -58,6 +58,7 @@ threads=1
 loglevel=9
 disable-syslog=yes
 log-common-errors=yes
+statistics-interval=0
 """
     _config_template = """
 """

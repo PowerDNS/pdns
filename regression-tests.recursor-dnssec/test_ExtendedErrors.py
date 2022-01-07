@@ -7,21 +7,10 @@ from recursortests import RecursorTest
 class ExtendedErrorsRecursorTest(RecursorTest):
 
     _confdir = 'ExtendedErrors'
-    _config_template_default = """
-dnssec=validate
-daemon=no
-trace=yes
-packetcache-ttl=0
-packetcache-servfail-ttl=0
-max-cache-ttl=15
-threads=1
-loglevel=9
-disable-syslog=yes
-log-common-errors=yes
-"""
     _config_template = """
-    extended-resolution-errors=yes
-    """
+dnssec=validate
+extended-resolution-errors=yes
+"""
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", extendedErrorCode=15, extendedErrorExtra='Blocked by RPZ!'})
     """ % (_confdir)
@@ -219,20 +208,9 @@ log-common-errors=yes
 class NoExtendedErrorsRecursorTest(RecursorTest):
 
     _confdir = 'ExtendedErrorsDisabled'
-    _config_template_default = """
-dnssec=validate
-daemon=no
-trace=yes
-packetcache-ttl=0
-packetcache-servfail-ttl=0
-max-cache-ttl=15
-threads=1
-loglevel=9
-disable-syslog=yes
-log-common-errors=yes
-"""
     _config_template = """
-    extended-resolution-errors=no
+dnssec=validate
+extended-resolution-errors=no
     """
     _roothints = None
 

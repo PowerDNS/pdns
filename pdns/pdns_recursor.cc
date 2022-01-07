@@ -3165,6 +3165,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
 {
+  ++s_threadInfos[t_id].numberOfDistributedQueries;
   gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
     struct timeval diff = g_now - tv;
@@ -3588,7 +3589,6 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             });
           }
           else {
-            ++s_threadInfos[t_id].numberOfDistributedQueries;
             doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
           }
         }
@@ -4215,8 +4215,6 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
       unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
     }
   }
-
-  ++targetInfo.numberOfDistributedQueries;
 
   return true;
 }
@@ -5711,7 +5709,7 @@ static int serviceMain(int argc, char*argv[])
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfos = s_threadInfos.at(0);
     handlerInfos.isHandler = true;
-    handlerInfos.thread = std::thread(recursorThread, 0, "main");
+    handlerInfos.thread = std::thread(recursorThread, 0, "web+stat");
 
     setCPUMap(cpusMap, currentThreadId, pthread_self());
 

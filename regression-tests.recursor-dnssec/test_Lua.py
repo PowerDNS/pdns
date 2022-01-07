@@ -642,23 +642,13 @@ class PDNSValidationStatesTest(RecursorTest):
     """Tests that we have access to the validation states from Lua"""
 
     _confdir = 'validation-states-from-lua'
-    _config_template_default = """
+    _config_template = """
 dnssec=validate
-daemon=no
-trace=yes
-packetcache-ttl=0
-packetcache-servfail-ttl=0
-max-cache-ttl=15
-threads=1
-loglevel=9
-disable-syslog=yes
-log-common-errors=yes
 """
     _roothints = None
     _lua_config_file = """
     """
-    _config_template = """
-    """
+
     _lua_dns_script_file = """
     function postresolve (dq)
       if pdns.validationstates.Indeterminate == nil or

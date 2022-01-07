@@ -21,7 +21,6 @@ class RoutingTagTest(RecursorTest):
 daemon=no
 trace=yes
 dont-query=
-ecs-add-for=0.0.0.0/0
 local-address=127.0.0.1
 packetcache-ttl=0
 packetcache-servfail-ttl=0
@@ -29,6 +28,9 @@ max-cache-ttl=600
 threads=1
 loglevel=9
 disable-syslog=yes
+log-common-errors=yes
+statistics-interval=0
+ecs-add-for=0.0.0.0/0
 """
 
     def sendECSQuery(self, query, expected, expectedFirstTTL=None):
@@ -107,9 +109,8 @@ class testRoutingTag(RoutingTagTest):
     _confdir = 'RoutingTag'
 
     _config_template = """
-log-common-errors=yes
 use-incoming-edns-subnet=yes
-edns-subnet-whitelist=ecs-echo.example.
+edns-subnet-allow-list=ecs-echo.example.
 forward-zones=ecs-echo.example=%s.24
     """ % (os.environ['PREFIX'])
     _lua_dns_script_file = """
@@ -182,9 +183,8 @@ class testRoutingTagFFI(RoutingTagTest):
     _confdir = 'RoutingTagFFI'
 
     _config_template = """
-log-common-errors=yes
 use-incoming-edns-subnet=yes
-edns-subnet-whitelist=ecs-echo.example.
+edns-subnet-allow-list=ecs-echo.example.
 forward-zones=ecs-echo.example=%s.24
     """ % (os.environ['PREFIX'])
     _lua_dns_script_file = """
