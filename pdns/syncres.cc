@@ -116,7 +116,7 @@ static inline std::string fmtfloat(const char* fmt, double f)
   if (ret < 0 || ret >= static_cast<int>(sizeof(buf))) {
     return "?";
   }
-  return std::string(buf, strlen(buf));
+  return std::string(buf, ret);
 }
 
 static inline void accountAuthLatency(uint64_t usec, int family)
