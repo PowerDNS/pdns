@@ -57,7 +57,7 @@ enum GssContextType
 class GssSecContext;
 
 /*! Class for representing GSS names, such as host/host.domain.com@REALM.
-*/
+ */
 class GssName
 {
 public:
