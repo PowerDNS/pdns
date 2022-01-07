@@ -605,7 +605,6 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
     DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native]");
-    DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
     if(!::arg()["tcp-control-address"].empty()) {
