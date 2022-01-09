@@ -47,6 +47,9 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     // cached:
     unsigned long d_cached_slot_id;
+
+    std::string hash_locked(const std::string& msg, std::shared_ptr<pdns::Pkcs11Session>& session) const;
+
   public:
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
     ~PKCS11DNSCryptoKeyEngine();

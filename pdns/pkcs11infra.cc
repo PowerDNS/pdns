@@ -46,6 +46,8 @@
 #define ECDSA256_PARAMS "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07" // prime256v1
 #define ECDSA384_PARAMS "\x06\x05\x2b\x81\x04\x00\x22" // secp384r1
 
+static std::mutex g_lock;
+
 namespace pdns {
 
 #ifdef HAVE_P11KIT1_V2
@@ -198,6 +200,7 @@ bool Pkcs11Session::Login(const std::string& pin, bool force) {
 
   /* create pin */
 
+  this->d_pin = pin;
   auto uPin = p11_kit_pin_new_for_string(pin.c_str());
   CK_ULONG len;
   const unsigned char *value = p11_kit_pin_get_value(uPin, &len);
@@ -341,6 +344,10 @@ int Pkcs11Session::GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11Ki
   }
 
   return rv;
+}
+
+std::mutex& Pkcs11Session::Lock() {
+  return g_lock;
 }
 
 

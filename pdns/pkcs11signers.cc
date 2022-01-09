@@ -169,25 +169,34 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
 std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   CK_RV rv;
   std::string result;
-  auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
-
-  if (session->Login(d_pin) == false)
-    throw PDNSException("Not logged in to token");
-
-  if (!session->HasPrivateKey())
-    session->LoadPrivateKey(d_priv_attr);
-
+  std::string input = msg;
   CK_MECHANISM mech;
   mech.mechanism = dnssec2smech[d_algorithm];
   mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
 
-  if (mech.mechanism == CKM_ECDSA) {
-    rv = session->Sign(this->hash(msg), result, &mech);
-  } else {
-    rv = session->Sign(msg, result, &mech);
-  }
+  if (mech.mechanism == CKM_ECDSA)
+    input = this->hash(msg);
+
+  auto session = GetSlot().GetSession();
+  cerr << "Trying to get a lock" << endl;
+  std::scoped_lock lock(session->Lock());
+  cerr << "Got a lock" << endl;
+
+  cerr << "Logging in" << endl;
+  if (session->Login(d_pin) == false)
+    throw PDNSException("Not logged in to token");
+
+  cerr << "Loading private key" << endl;
+  if (!session->HasPrivateKey())
+    session->LoadPrivateKey(d_priv_attr);
+
+  if (session->Login(d_pin) == false)
+    throw PDNSException("Not logged in to token");
+
+  cerr << "Signing data" << endl;
+  rv = session->Sign(input, result, &mech);
+  cerr << "Done signing" << endl;
 
   if (rv != CKR_OK)
     throw PDNSException("Could not sign data");
@@ -195,14 +204,12 @@ std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   return result;
 };
 
-std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
+std::string PKCS11DNSCryptoKeyEngine::hash_locked(const std::string& msg, std::shared_ptr<pdns::Pkcs11Session>& session) const {
   std::string result;
   CK_MECHANISM mech;
   mech.mechanism = dnssec2hmech[d_algorithm];
   mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
-  auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
 
   if (session->Digest(msg, result, &mech) != CKR_OK) {
     g_log<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
@@ -228,9 +235,16 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   return result;
 };
 
+std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
+  auto session = GetSlot().GetSession();
+  const std::scoped_lock lock(session->Lock());
+
+  return hash_locked(msg, session);
+}
+
 bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const {
   auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
+  const std::scoped_lock lock(session->Lock());
 
   if (session->Login(d_pin) == false)
     throw PDNSException("Not logged in to token");
@@ -253,7 +267,7 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
 std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
   // find us a public key
   auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
+  //const std::scoped_lock lock(session->Lock());
 
   if (!session->HasPublicKey())
     session->LoadPublicKey(d_pub_attr);
@@ -268,7 +282,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
   std::string result("");
   auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
+  //const std::scoped_lock lock(session->Lock());
 
   if (!session->HasPublicKey())
     session->LoadPublicKey(d_pub_attr);
@@ -291,7 +305,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
 
 int PKCS11DNSCryptoKeyEngine::getBits() const {
   auto session = GetSlot().GetSession();
-  const std::lock_guard<std::mutex> lock(session->Lock());
+  //const std::scoped_lock lock(session->Lock());
 
   if (!session->HasPublicKey())
     session->LoadPublicKey(d_pub_attr);

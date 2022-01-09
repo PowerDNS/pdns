@@ -274,8 +274,7 @@ private:
   std::string d_modulus;
   std::string d_ec_point;
   std::string d_ecdsa_params;
-
-  std::mutex d_lock;
+  std::string d_pin;
 
   void logError(const std::string& operation, CK_RV err) const {
     if (err != 0) {
@@ -304,9 +303,7 @@ public:
     d_logged_in = false;
   };
 
-  std::mutex& Lock() {
-    return d_lock;
-  }
+  std::mutex& Lock();
 
   int GetAttributeValue(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes);
 
@@ -333,17 +330,20 @@ public:
     CK_BYTE buffer[1024];
     CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
 
+    cerr << "sign init" << endl;
     // perform signature
     if ((rv = f()->C_SignInit(d_session, mechanism, d_private_key)) != CKR_OK) {
       logError("C_SignInit", rv);
       return rv;
     }
+    cerr << "sign" << endl;
     rv = f()->C_Sign(d_session, reinterpret_cast<unsigned char*>(const_cast<char*>(data.data())), data.size(), buffer, &buflen);
     logError("C_Sign", rv);
     if (rv == CKR_OK)
       result.assign(reinterpret_cast<char*>(buffer), buflen);
     memset(buffer, 0, sizeof buffer);
 
+    cerr << "sign done" << endl;
     return rv;
   }
 
@@ -445,7 +445,8 @@ public:
   }
 
   ~Pkcs11Session() {
-    const std::lock_guard<std::mutex> lock(d_lock);
+    std::scoped_lock(this->Lock());
+    cerr << "logging out" << endl;
     if (d_session != CK_INVALID_HANDLE) {
       f()->C_CloseSession(d_session);
       d_session = CK_INVALID_HANDLE;
