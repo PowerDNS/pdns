@@ -34,6 +34,7 @@ public:
 
   void replace(const vector<tuple<DNSName, int>>& zone);
   void add(const DNSName& zone, const int zoneId);
+  void remove(const DNSName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
   bool getEntry(const DNSName& zone, int& zoneId);
@@ -90,7 +91,7 @@ private:
 
   struct PendingData
   {
-    std::vector<tuple<DNSName, int>> d_pendingAdds;
+    std::vector<tuple<DNSName, int, bool>> d_pendingUpdates;
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;

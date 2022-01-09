@@ -98,15 +98,28 @@ void AuthZoneCache::replace(const vector<tuple<DNSName, int>>& zone_indices)
   }
 
   {
+    // process zone updates done while data collection for replace() was already in progress.
     auto pending = d_pending.lock();
-    if (pending->d_replacePending) {
-      // add/replace all zones created while data collection for replace() was already in progress.
-      for (const tuple<DNSName, int>& tup : pending->d_pendingAdds) {
-        const DNSName& zone = tup.get<0>();
-        CacheValue val;
-        val.zoneId = tup.get<1>();
-        auto& mc = newMaps[getMapIndex(zone)];
-        mc[zone] = val;
+    assert(pending->d_replacePending); // make sure we never forget to call setReplacePending()
+    for (const tuple<DNSName, int, bool>& tup : pending->d_pendingUpdates) {
+      const DNSName& zone = tup.get<0>();
+      CacheValue val;
+      val.zoneId = tup.get<1>();
+      bool insert = tup.get<2>();
+      auto& mc = newMaps[getMapIndex(zone)];
+      auto iter = mc.find(zone);
+      if (iter != mc.end()) {
+        if (insert) {
+          iter->second = std::move(val);
+        }
+        else {
+          mc.erase(iter);
+          count--;
+        }
+      }
+      else if (insert) {
+        mc.emplace(zone, val);
+        count++;
       }
     }
 
@@ -116,11 +129,11 @@ void AuthZoneCache::replace(const vector<tuple<DNSName, int>>& zone_indices)
       *map = std::move(newMaps[mapIndex]);
     }
 
-    pending->d_pendingAdds.clear();
+    pending->d_pendingUpdates.clear();
     pending->d_replacePending = false;
-  }
 
-  d_statnumentries->store(count);
+    d_statnumentries->store(count);
+  }
 }
 
 void AuthZoneCache::add(const DNSName& zone, const int zoneId)
@@ -131,7 +144,7 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
   {
     auto pending = d_pending.lock();
     if (pending->d_replacePending) {
-      pending->d_pendingAdds.emplace_back(zone, zoneId);
+      pending->d_pendingUpdates.emplace_back(zone, zoneId, true);
     }
   }
 
@@ -148,6 +161,29 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
     }
     else {
       map->emplace(zone, val);
+      (*d_statnumentries)++;
+    }
+  }
+}
+
+void AuthZoneCache::remove(const DNSName& zone)
+{
+  if (!d_refreshinterval)
+    return;
+
+  {
+    auto pending = d_pending.lock();
+    if (pending->d_replacePending) {
+      pending->d_pendingUpdates.emplace_back(zone, -1, false);
+    }
+  }
+
+  int mapIndex = getMapIndex(zone);
+  {
+    auto& mc = d_maps[mapIndex];
+    auto map = mc.d_map.write_lock();
+    if (map->erase(zone)) {
+      (*d_statnumentries)--;
     }
   }
 }
@@ -160,6 +196,6 @@ void AuthZoneCache::setReplacePending()
   {
     auto pending = d_pending.lock();
     pending->d_replacePending = true;
-    pending->d_pendingAdds.clear();
+    pending->d_pendingUpdates.clear();
   }
 }

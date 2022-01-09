@@ -43,6 +43,7 @@ BOOST_AUTO_TEST_CASE(test_replace)
   vector<tuple<DNSName, int>> zone_indices{
     {DNSName("example.org."), 1},
   };
+  cache.setReplacePending();
   cache.replace(zone_indices);
 
   int zoneId = 0;
@@ -67,6 +68,24 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
   if (!found || zoneId != 2) {
     BOOST_FAIL("zone added while replace was pending not found");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_remove_while_pending_replace)
+{
+  AuthZoneCache cache;
+  cache.setRefreshInterval(3600);
+
+  vector<tuple<DNSName, int>> zone_indices{
+    {DNSName("powerdns.org."), 1}};
+  cache.setReplacePending();
+  cache.remove(DNSName("powerdns.org."));
+  cache.replace(zone_indices);
+
+  int zoneId = 0;
+  bool found = cache.getEntry(DNSName("example.org."), zoneId);
+  if (found) {
+    BOOST_FAIL("zone removed while replace was pending is found");
   }
 }
 
