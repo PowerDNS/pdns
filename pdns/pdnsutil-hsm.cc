@@ -31,6 +31,7 @@
 #include "ueberbackend.hh"
 #include "arguments.hh"
 #include "pkcs11infra.hh"
+#include "pkcs11signers.hh"
 #include "pdnsutil.hh"
 
 using namespace std;
@@ -49,7 +50,7 @@ int pdnsutil_cmd_hsm(const vector<string>& cmds, DNSSECKeeper& dk) {
     std::vector<DNSBackend::KeyData> keys;
 
     if (cmds.size() < 9) {
-      std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL (PUBLABEL)" << std::endl;
+      std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} engine MODULE-NAME label LABEL publiclabel PUBLIC-LABEL id ID publicid ID tokenserial SERIAL tokenlabel TOKEN-LABEL slot SLOT-ID pin PIN" << std::endl;
       return 1;
     }
 
@@ -57,44 +58,62 @@ int pdnsutil_cmd_hsm(const vector<string>& cmds, DNSSECKeeper& dk) {
 
     // verify zone
     if (!B.getDomainInfo(zone, di)) {
-      cerr << "Unable to assign module to unknown zone '" << zone << "'" << std::endl;
+      cerr << "Unable to assign token to unknown zone '" << zone << "'" << std::endl;
       return 1;
     }
 
     int algorithm = DNSSECKeeper::shorthand2algorithm(cmds.at(3));
     if (algorithm<0) {
-      cerr << "Unable to use unknown algorithm '" << cmds.at(3) << "'" << std::endl;
+      cerr << "Cannot use unknown algorithm '" << cmds.at(3) << "'" << std::endl;
       return 1;
     }
 
     int64_t id;
     bool keyOrZone = (cmds.at(4) == "ksk" ? true : false);
-    string module = cmds.at(5);
-    string slot = cmds.at(6);
-    string pin = cmds.at(7);
-    string label = cmds.at(8);
-    string pub_label;
-    if (cmds.size() > 9)
-      pub_label = cmds.at(9);
-    else
-       pub_label = label;
-
-    std::ostringstream iscString;
-    iscString << "Private-key-format: v1.2" << std::endl <<
-      "Algorithm: " << algorithm << std::endl <<
-      "Engine: " << module << std::endl <<
-      "Slot: " << slot << std::endl <<
-      "PIN: " << pin << std::endl <<
-      "Label: " << label << std::endl <<
-      "PubLabel: " << pub_label << std::endl;
 
     DNSKEYRecordContent drc;
     DNSSECPrivateKey dpk;
     dpk.d_flags = (keyOrZone ? 257 : 256);
 
-    shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str()));
+    if ((cmds.size() - 5) % 2 != 0) {
+      cerr << "Missing parameter after " << cmds.back() << endl;
+      return 1;
+    }
+
+    const vector<std::string> knownKeys = {
+      "engine", "label", "publiclabel", "id", "publicid", "tokenserial", "tokenlabel", "slot", "pin",
+    };
+    DNSCryptoKeyEngine::stormap_t stormap;
+    stormap.emplace("algorithm", boost::lexical_cast<std::string>(algorithm));
+
+    for(size_t i = 5; i < cmds.size(); i+=2) {
+      string label = boost::to_lower_copy(cmds.at(i));
+      if (find(knownKeys.begin(), knownKeys.end(), cmds.at(i)) == cmds.end()) {
+        cerr << "Unsupported keyword '" << cmds.at(i) << "' given" << endl;
+        return 1;
+      }
+      stormap.emplace(label, cmds.at(i+1));
+    }
+
+    if (stormap.count("engine") == 0) {
+      cerr << "engine parameter is mandatory" << endl;
+      return 1;
+    }
+
+    if (stormap.count("slot") == 0 &&
+        stormap.count("tokenserial") == 0 &&
+        stormap.count("tokenlabel") == 0) {
+      cerr << "slot, tokenserial or tokenlabel must be provided" << endl;
+      return 1;
+    }
+
+    shared_ptr<DNSCryptoKeyEngine> dke = make_shared<PKCS11DNSCryptoKeyEngine>(algorithm);
+    dke->fromISCMap(drc, stormap);
+
+    cout << dke->convertToISC() << endl;
+
     if(!dke->checkKey()) {
-      cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
+      cerr << "Invalid DNS Private Key in engine " << stormap.find("engine")->second << std::endl;
       return 1;
     }
     dpk.setKey(dke);
@@ -104,7 +123,7 @@ int pdnsutil_cmd_hsm(const vector<string>& cmds, DNSSECKeeper& dk) {
     id = -1;
 
     for(DNSBackend::KeyData& kd :  keys) {
-      if (kd.content == iscString.str()) {
+      if (kd.content == dke->convertToISC()) {
         // it's this one, I guess...
         id = kd.id;
         break;
@@ -117,11 +136,11 @@ int pdnsutil_cmd_hsm(const vector<string>& cmds, DNSSECKeeper& dk) {
     }
 
     if (!dk.addKey(zone, dpk, id)) {
-      cerr << "Unable to assign module slot to zone" << std::endl;
+      cerr << "Unable to assign token to zone" << std::endl;
       return 1;
     }
 
-    cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
+    cerr << "Assigned token to " << zone << " with key id " << id << endl;
 
     return 0;
   }
