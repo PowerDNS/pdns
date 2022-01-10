@@ -13,7 +13,7 @@ AC_DEFUN([PDNS_ENABLE_GSS_TSIG],[
   AM_CONDITIONAL([GSS_TSIG],[test "x$enable_experimental_gss_tsig" != "xno"])
   AC_SUBST(GSS_TSIG)
   AS_IF([test "x$enable_experimental_gss_tsig" != "xno"],
-   [PKG_CHECK_MODULES([GSS], [krb5 krb5-gssapi gss],
+   [PKG_CHECK_MODULES([GSS], [krb5 krb5-gssapi],
       [
         AC_DEFINE([ENABLE_GSS_TSIG], [1], [Define to 1 if you want to enable GSS-TSIG support])
         GSS_TSIG=yes
