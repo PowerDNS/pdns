@@ -325,8 +325,11 @@ Webserver configuration
     The ``password`` parameter is now optional.
     The use of optional parameters is now deprecated. Please use :func:`setWebserverConfig` instead.
 
-  Launch the :doc:`../guides/webserver` with statistics and the API. Note that the parameters are global, so the parameter from the last ``webserver`` will override any existing ones. For this reason
-  the use of :func:`setWebserverConfig` is advised instead of specifying optional parameters here.
+  .. versionchanged:: 1.7.0
+    The ``password``, ``apikey``, ``customHeaders`` and ``acl`` parameters is no longer supported.
+    Please use :func:`setWebserverConfig` instead.
+
+  Launch the :doc:`../guides/webserver` with statistics and the API. Note that the parameters are global, so the parameter from the last ``webserver`` will override any existing ones. For this reason :func:`setWebserverConfig` should be used instead of specifying optional parameters here.
 
   :param str listen_address: The IP address and Port to listen on
   :param str password: The password required to access the webserver
