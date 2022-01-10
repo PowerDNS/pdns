@@ -39,7 +39,7 @@
 
 #include "threadname.hh"
 
-void setThreadName(const std::string& threadName) {
+static int trySetThreadName(const std::string& threadName) {
   int retval = 0;
 
 #ifdef HAVE_PTHREAD_SETNAME_NP_2
@@ -57,6 +57,16 @@ void setThreadName(const std::string& threadName) {
 #ifdef HAVE_PTHREAD_SETNAME_NP_3
   retval = pthread_setname_np(pthread_self(), threadName.c_str(), nullptr);
 #endif
+
+  return retval;
+}
+
+void setThreadName(const std::string& threadName) {
+  int retval = trySetThreadName(threadName);
+  if (retval == ERANGE) {
+    const std::string shortThreadName(threadName.substr(0, 15));
+    retval = trySetThreadName(shortThreadName);
+  }
 
   if (retval != 0) {
 #ifdef DNSDIST
