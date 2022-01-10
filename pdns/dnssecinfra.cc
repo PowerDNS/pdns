@@ -276,7 +276,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   auto dckeSign = signer(algo);
   auto dckeVerify = verifier(algo);
 
-  cerr<<"Testing algorithm "<<algo<<": '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
+  cerr<<"Testing algorithm "<<algo<<"("<<DNSSECKeeper::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
