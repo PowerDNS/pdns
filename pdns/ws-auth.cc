@@ -287,7 +287,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2021 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2022 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -412,10 +412,10 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
               /* if you ever want to update this comparison function,
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
-              if (a.qname == b.qname && b.qtype == a.qtype) {
-                  return b.content < a.content;
-              }
               if (a.qname == b.qname) {
+                  if (a.qtype == b.qtype) {
+                      return b.content < a.content;
+                  }
                   return b.qtype < a.qtype;
               }
               return b.qname < a.qname;
@@ -433,10 +433,10 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
               /* if you ever want to update this comparison function,
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
-              if (a.qname == b.qname && b.qtype == a.qtype) {
-                  return b.content < a.content;
-              }
               if (a.qname == b.qname) {
+                  if (a.qtype == b.qtype) {
+                      return b.content < a.content;
+                  }
                   return b.qtype < a.qtype;
               }
               return b.qname < a.qname;
