@@ -35,7 +35,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
                              uint16_t timeout)
-  : d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
+  : d_buf(65536), d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {
@@ -51,7 +51,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     d_sock = makeQuerySocket(local, false); // make a TCP socket
     if (d_sock < 0)
       throw ResolverException("Error creating socket for AXFR request to "+d_remote.toStringWithPort());
-    d_buf = boost::shared_array<char>(new char[65536]);
+
     d_remote = remote; // mostly for error reporting
     this->connect(timeout);
     d_soacount = 0;
@@ -125,7 +125,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
 
   d_receivedBytes += (uint16_t) len;
 
-  MOADNSParser mdp(false, d_buf.get(), len);
+  MOADNSParser mdp(false, d_buf.data(), len);
 
   int err = mdp.d_header.rcode;
 
@@ -134,7 +134,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
   }
 
   try {
-    d_tsigVerifier.check(std::string(d_buf.get(), len), mdp);
+    d_tsigVerifier.check(std::string(d_buf.data(), len), mdp);
   }
   catch(const std::runtime_error& re) {
     throw ResolverException(re.what());
@@ -177,7 +177,7 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
     if(!res)
       throw ResolverException("Timeout while reading data from remote nameserver over TCP");
 
-    numread=recv(d_sock, d_buf.get()+n, bytes-n, 0);
+    numread=recv(d_sock, &d_buf.at(n), bytes-n, 0);
     if(numread<0)
       throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
     if(numread==0)
@@ -243,6 +243,6 @@ void AXFRRetriever::connect(uint16_t timeout)
 int AXFRRetriever::getLength(uint16_t timeout)
 {
   timeoutReadn(2, timeout);
-  return (unsigned char)d_buf[0]*256+(unsigned char)d_buf[1];
+  return (unsigned char)d_buf.at(0)*256+(unsigned char)d_buf.at(1);
 }
 

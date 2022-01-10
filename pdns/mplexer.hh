@@ -22,7 +22,6 @@
 #pragma once
 #include <boost/function.hpp>
 #include <boost/any.hpp>
-#include <boost/shared_array.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index_container.hpp>
