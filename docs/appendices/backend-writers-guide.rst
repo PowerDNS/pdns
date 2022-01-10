@@ -959,3 +959,122 @@ ENT (Empty Non-Terminal)
 
 You are expected to reply with a DNSResourceRecord having ``qtype = 0``,
 ``ttl = 0`` and ``content`` should be empty string (string length 0)
+
+Storage classes
+~~~~~~~~~~~~~~~
+
+You may have noticed that PowerDNS has several C++ classes for holding DNS data.
+Some use presentation format, some use the wire format.
+Some just hold content, some hold a whole record.
+
+Below, we'll show the class definitions of each (with some details omitted, but with some useful words added) to help you find your way.
+
+.. code-block:: cpp
+  struct DNSZoneRecord
+  {
+    int domain_id{-1};
+    uint8_t scopeMask{0};
+    int signttl{0};
+    DNSName wildcardname;
+    bool auth{true};
+    bool disabled{false};
+    DNSRecord dr;
+  };
+
+``DNSZoneRecord`` holds a record in the context of a zone.
+It is a wrapper around ``DNSRecord`` with some extra fields that PowerDNS might need to handle DNSSEC and ECS correctly.
+
+.. code-block:: cpp
+
+  struct DNSRecord
+  {
+    DNSRecord() : d_type(0), d_class(QClass::IN), d_ttl(0), d_clen(0), d_place(DNSResourceRecord::ANSWER)
+    {}
+    explicit DNSRecord(const DNSResourceRecord& rr);
+    DNSName d_name;
+    std::shared_ptr<DNSRecordContent> d_content;
+    uint16_t d_type;
+    uint16_t d_class;
+    uint32_t d_ttl;
+    uint16_t d_clen;
+    DNSResourceRecord::Place d_place;
+
+    // this orders by name/type/class/ttl/lowercased zone representation
+    bool operator<(const DNSRecord& rhs);
+
+    // this orders in canonical order and keeps the SOA record on top
+    static bool prettyCompare(const DNSRecord& a, const DNSRecord& b);
+
+    bool operator==(const DNSRecord& rhs) const
+  };
+
+``DNSRecord`` holds a DNS record.
+It has name, type, class, TTL, content length, and a content object of type ``DNSRecordContent``.
+
+.. code-block:: cpp
+
+  class DNSRecordContent
+  {
+  public:
+    static std::shared_ptr<DNSRecordContent> mastermake(...);
+
+    virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
+    virtual void toPacket(DNSPacketWriter& pw)=0;
+    virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false);
+    virtual bool operator==(const DNSRecordContent& rhs); // compares presentation format
+    static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
+
+    void doRecordCheck(const struct DNSRecord&){}
+
+    virtual uint16_t getType() const = 0;
+  };
+
+``DNSRecordContent`` holds DNS content, in individual fields for the various contents of record types.
+It is subclassed for all supported types:
+
+.. code-block:: cpp
+
+  class SRVRecordContent : public DNSRecordContent
+  {
+  public:
+    SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target);
+
+    includeboilerplate(SRV)
+
+    uint16_t d_weight, d_port;
+    DNSName d_target;
+    uint16_t d_preference;
+  };
+
+.. code-block:: cpp
+
+  class DNSResourceRecord
+  {
+  public:
+    DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0) {};
+    static DNSResourceRecord fromWire(const DNSRecord& d);
+
+    void setContent(const string& content);
+    string getZoneRepresentation(bool noDot=false) const;
+
+    DNSName qname; //!< the name of this record, for example: www.powerdns.com
+    DNSName ordername;
+    DNSName wildcardname;
+    string content; //!< what this record points to. Example: 10.1.2.3
+
+    uint32_t ttl; //!< Time To Live of this record
+    uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
+
+    int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
+    QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
+    uint16_t qclass; //!< class of this record
+
+    uint8_t scopeMask;
+    bool auth;
+    bool disabled;
+
+    bool operator==(const DNSResourceRecord& rhs);
+
+    bool operator<(const DNSResourceRecord &b);
+
+``DNSResourceRecord`` holds a DNS record with content in presentation format, as a string.
