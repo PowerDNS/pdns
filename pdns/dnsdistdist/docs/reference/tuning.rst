@@ -128,7 +128,7 @@ Tuning related functions
 
   .. versionadded:: 1.8.0
 
-  Setting this parameter to true (default is false) will randomize the IDs in outgoing UDPqueries, at a small performance cost. :func:`setMaxUDPOutstanding`
+  Setting this parameter to true (default is false) will randomize the IDs in outgoing UDP queries, at a small performance cost. :func:`setMaxUDPOutstanding`
   should be set at its highest possible value (default since 1.4.0) to make that setting fully efficient. This is only useful if the path between dnsdist
   and the backend is not trusted and the 'TCP-only', DNS over TLS or DNS over HTTPS transports cannot be used.
   See also :func:`setRandomizedOutgoingSockets`.
