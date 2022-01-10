@@ -32,8 +32,14 @@ std::string keyConv(const T& t)
      nl -> nl0
      
   */
-  if (t.isRoot())
+  if (t.empty()) {
+    throw std::out_of_range(std::string(__PRETTY_FUNCTION__) + " Attempt to serialize an unset dnsname");
+  }
+
+  if (t.isRoot()) {
     return std::string(1, (char)0);
+  }
+
   std::string in = t.labelReverse().toDNSStringLC(); // www.ds9a.nl is now 2nl4ds9a3www0
   std::string ret;
   ret.reserve(in.size());
