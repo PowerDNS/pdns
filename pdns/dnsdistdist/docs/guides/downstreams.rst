@@ -78,5 +78,37 @@ Please note that specifying the interface name is only supported on system havin
 Securing the channel
 --------------------
 
-Support for securing the exchanges between dnsdist and the backend will be implemented in 1.7.0, and will lead to all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, being forwarded over a secure DNS over TLS channel.
-That support can be enabled via the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+Securing the path to the backend
+--------------------------------
+
+As explained briefly in the quickstart guide, dnsdist has always been designed as a load-balancer placed in
+front of authoritative or recursive servers, assuming that the network path between dnsdist and these servers
+is trusted. This is particularly important because for performance reasons it uses a single connected socket
+for UDP exchanges by default, and easy to predict DNS query IDs, which makes it easy for an attacker to poison
+responses.
+
+If dnsdist is instead intended to be deployed in such a way that the path to its backend is not secure, the
+UDP protocol should not be used, and 'TCP-only', DNS over TLS and DNS over HTTPS protocols used instead, as
+supported since 1.7.0.
+
+Using these protocols leads to all queries, regardless of whether they were initially received by dnsdist over
+UDP, TCP, DoT or DoH, being forwarded over a TCP socket, a secure DNS over TLS channel or a secure DNS over HTTPS
+channel.
+
+The TCP-only mode for a backend can be enabled by using the ``tcpOnly`` parameter of the :func:`newServer` command.
+
+The DNS over TLS mode via the the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the
+validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers
+used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+
+The DNS over HTTPS mode in the same way than DNS over TLS but with the additional ``dohPath`` keyword indicating that
+DNS over HTTPS should be used instead of DNS over TLS.
+
+If it is absolutely necessary to support UDP exchanges over an untrusted network, a few options have been introduced in
+1.8.0 to make spoofing attempts harder:
+
+- :func::`setRandomizedIdsOverUDP` will randomize the IDs in outgoing queries, at a small performance cost. :func:`setMaxUDPOutstanding`
+should be set at its highest possible value (default since 1.4.0) to make that setting fully efficient.
+- :func:`setRandomizedOutgoingSockets` can be used to randomize the outgoing socket used when forwarding a query to a backend.
+This requires configuring the backend to use more than one outgoing socket via the ``sockets`` parameter of :func:`newServer`
+to be of any use.

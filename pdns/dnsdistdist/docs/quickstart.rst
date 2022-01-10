@@ -118,6 +118,18 @@ Adding network ranges to the :term:`ACL` is done with the :func:`setACL` and :fu
   setACL({'192.0.2.0/28', '2001:db8:1::/56'}) -- Set the ACL to only allow these subnets
   addACL('2001:db8:2::/56')                   -- Add this subnet to the existing ACL
 
+Securing the path to the backend
+--------------------------------
+
+dnsdist has always been designed as a load-balancer placed in front of authoritative or recursive servers,
+assuming that the network path between dnsdist and these servers is trusted.
+
+If dnsdist is instead intended to be deployed in such a way that the path to its backend is not secure, the
+UDP protocol should not be used, and 'TCP-only', DNS over TLS and DNS over HTTPS protocols used instead, as
+supported since 1.7.0.
+
+For more details, please look at the :doc:`../guides/downstreams` guide.
+
 More Information
 ----------------
 

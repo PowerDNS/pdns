@@ -124,6 +124,25 @@ Tuning related functions
   :param int max: The maximum time in seconds.
 
 
+.. function:: setRandomizedIdsOverUDP(val)
+
+  .. versionadded:: 1.8.0
+
+  Setting this parameter to true (default is false) will randomize the IDs in outgoing UDPqueries, at a small performance cost. :func:`setMaxUDPOutstanding`
+  should be set at its highest possible value (default since 1.4.0) to make that setting fully efficient. This is only useful if the path between dnsdist
+  and the backend is not trusted and the 'TCP-only', DNS over TLS or DNS over HTTPS transports cannot be used.
+  See also :func:`setRandomizedOutgoingSockets`.
+
+.. function:: setRandomizedOutgoingSockets(val):
+
+  .. versionadded:: 1.8.0
+
+  Setting this parameter to true (default is false) will randomize the outgoing socket used when forwarding a query to a backend.
+  This requires configuring the backend to use more than one outgoing socket via the ``sockets`` parameter of :func:`newServer`
+  to be of any use, and only makes sense if the path between dnsdist and the backend is not trusted and the 'TCP-only', DNS over
+  TLS or DNS over HTTPS transports cannot be used.
+  See also :func:`setRandomizedIdsOverUDP`.
+
 .. function:: setTCPInternalPipeBufferSize(size)
 
   .. versionadded:: 1.6.0
