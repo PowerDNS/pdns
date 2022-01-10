@@ -1333,6 +1333,31 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord& r)
   return false;
 }
 
+bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
+{
+  if (getArg("supermaster-config").empty())
+    return false;
+
+  ifstream c_if(getArg("supermasters"), std::ios::in);
+  if (!c_if) {
+    g_log << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
+    return false;
+  }
+
+  string line, sip, saccount;
+  while (getline(c_if, line)) {
+    std::istringstream ii(line);
+    ii >> sip;
+    if (sip.size() != 0) {
+      ii >> saccount;
+      primaries.emplace_back(sip, "", saccount);
+    }
+  }
+
+  c_if.close();
+  return true;
+}
+
 bool Bind2Backend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db)
 {
   // Check whether we have a configfile available.

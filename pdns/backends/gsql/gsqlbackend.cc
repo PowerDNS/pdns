@@ -71,6 +71,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
   d_AddSuperMaster=getArg("supermaster-add"); 
+  d_RemoveAutoPrimaryQuery=getArg("autoprimary-remove");
+  d_ListAutoPrimariesQuery=getArg("list-autoprimaries");
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertRecordQuery=getArg("insert-record-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
@@ -141,6 +143,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery_stmt = nullptr;
   d_GetSuperMasterIPs_stmt = nullptr;
   d_AddSuperMaster_stmt = nullptr;
+  d_RemoveAutoPrimary_stmt = nullptr;
+  d_ListAutoPrimaries_stmt = nullptr;
   d_InsertZoneQuery_stmt = nullptr;
   d_InsertRecordQuery_stmt = nullptr;
   d_InsertEmptyNonTerminalOrderQuery_stmt = nullptr;
@@ -1242,24 +1246,65 @@ skiprow:
   return false;
 }
 
-bool GSQLBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account)
+bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
 {
   try{
     reconnectIfNeeded();
 
     d_AddSuperMaster_stmt -> 
-      bind("ip",ip)->
-      bind("nameserver",nameserver)->
-      bind("account",account)->
+      bind("ip",primary.ip)->
+      bind("nameserver",primary.nameserver)->
+      bind("account",primary.account)->
       execute()->
       reset();
 
   }
   catch (SSqlException &e){
-    throw PDNSException("GSQLBackend unable to insert a supermaster with IP " + ip + " and nameserver name '" + nameserver + "' and account '" + account + "': " + e.txtReason()); 
+    throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason()); 
   }
   return true;
 
+}
+
+bool GSQLBackend::autoPrimaryRemove(const AutoPrimary& primary)
+{
+  try{
+    reconnectIfNeeded();
+
+    d_RemoveAutoPrimary_stmt ->
+      bind("ip",primary.ip)->
+      bind("nameserver",primary.nameserver)->
+      execute()->
+      reset();
+
+  }
+  catch (SSqlException &e){
+    throw PDNSException("GSQLBackend unable to remove an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "': " + e.txtReason());
+  }
+  return true;
+
+}
+
+bool GSQLBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
+{
+  try{
+    reconnectIfNeeded();
+
+    d_ListAutoPrimaries_stmt->
+      execute()->
+      getResult(d_result)->
+      reset();
+  }
+  catch (SSqlException &e){
+     throw PDNSException("GSQLBackend unable to list autoprimaries: " + e.txtReason());
+  }
+
+  for(const auto& row : d_result) {
+     ASSERT_ROW_COLUMNS("list-autoprimaries", row, 3);
+     primaries.emplace_back(row[0], row[1], row[2]);
+  }
+
+  return true;
 }
 
 bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
