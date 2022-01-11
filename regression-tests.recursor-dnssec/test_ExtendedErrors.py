@@ -119,7 +119,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
     def testBogus(self):
         qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
