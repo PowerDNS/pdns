@@ -40,6 +40,7 @@
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
 #include "rec-tcpout.hh"
+#include "rec-main.hh"
 
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {

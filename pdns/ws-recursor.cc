@@ -43,6 +43,7 @@
 #include "rpzloader.hh"
 #include "uuid-utils.hh"
 #include "tcpiohandler.hh"
+#include "rec-main.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 

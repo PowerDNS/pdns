@@ -161,9 +161,11 @@ pdns_recursor_SOURCES = \
 	rec-carbon.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-lua-conf.hh rec-lua-conf.cc \
+	rec-main.hh rec-main.cc \
 	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
+	rec-tcp.cc \
         rec-tcpout.cc rec-tcpout.hh \
         rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
