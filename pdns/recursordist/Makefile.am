@@ -160,8 +160,8 @@ pdns_recursor_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
-	ec-main.hh rec-main.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
+	rec-main.hh rec-main.cc \
 	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \

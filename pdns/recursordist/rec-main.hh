@@ -43,40 +43,42 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
-
 //! used to send information to a newborn mthread
-struct DNSComboWriter {
-  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now), d_query(query)
+struct DNSComboWriter
+{
+  DNSComboWriter(const std::string& query, const struct timeval& now) :
+    d_mdp(true, query), d_now(now), d_query(query)
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
+    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
   {
   }
 
   void setRemote(const ComboAddress& sa)
   {
-    d_remote=sa;
+    d_remote = sa;
   }
 
   void setSource(const ComboAddress& sa)
   {
-    d_source=sa;
+    d_source = sa;
   }
 
   void setLocal(const ComboAddress& sa)
   {
-    d_local=sa;
+    d_local = sa;
   }
 
   void setDestination(const ComboAddress& sa)
   {
-    d_destination=sa;
+    d_destination = sa;
   }
 
   void setSocket(int sock)
   {
-    d_socket=sock;
+    d_socket = sock;
   }
 
   string getRemote() const
@@ -107,7 +109,10 @@ struct DNSComboWriter {
   string d_requestorId;
   string d_deviceId;
   string d_deviceName;
-  struct timeval d_kernelTimestamp{0,0};
+  struct timeval d_kernelTimestamp
+  {
+    0, 0
+  };
   std::string d_query;
   std::unordered_set<std::string> d_policyTags;
   std::string d_routingTag;
@@ -142,8 +147,10 @@ extern uint16_t s_maxUdpSourcePort;
 class UDPClientSocks
 {
   unsigned int d_numsocks;
+
 public:
-  UDPClientSocks() : d_numsocks(0)
+  UDPClientSocks() :
+    d_numsocks(0)
   {
   }
 
@@ -151,13 +158,17 @@ public:
 
   // return a socket to the pool, or simply erase it
   void returnSocket(int fd);
+
 private:
-  
   // returns -1 for errors which might go away, throws for ones that won't
   static int makeClientSocket(int family);
 };
 
-enum class PaddingMode { Always, PaddedQueries };
+enum class PaddingMode
+{
+  Always,
+  PaddedQueries
+};
 
 typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
 extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
@@ -232,12 +243,11 @@ extern std::set<uint16_t> s_avoidUdpSourcePorts;
 #endif
 
 /* without reuseport, all listeners share the same sockets */
-typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
+typedef vector<pair<int, boost::function<void(int, boost::any&)>>> deferredAdd_t;
 extern deferredAdd_t g_deferredAdds;
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
-
 
 inline MT_t* getMT()
 {
@@ -260,20 +270,25 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const
   buf[1] = packet.size() % 256;
 
   Utility::iovec iov[2];
-  iov[0].iov_base = (void*)buf;              iov[0].iov_len = 2;
-  iov[1].iov_base = (void*)&*packet.begin(); iov[1].iov_len = packet.size();
+  iov[0].iov_base = (void*)buf;
+  iov[0].iov_len = 2;
+  iov[1].iov_base = (void*)&*packet.begin();
+  iov[1].iov_len = packet.size();
 
   int wret = Utility::writev(dc->d_socket, iov, 2);
   bool hadError = true;
 
   if (wret == 0) {
-    g_log<<Logger::Warning<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-  } else if (wret < 0 ) {
+    g_log << Logger::Warning << "EOF writing TCP answer to " << dc->getRemote() << endl;
+  }
+  else if (wret < 0) {
     int err = errno;
     g_log << Logger::Warning << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
-  } else if ((unsigned int)wret != 2 + packet.size()) {
-    g_log<<Logger::Warning<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
-  } else {
+  }
+  else if ((unsigned int)wret != 2 + packet.size()) {
+    g_log << Logger::Warning << "Oops, partial answer sent to " << dc->getRemote() << " for " << dc->d_mdp.d_qname << " (size=" << (2 + packet.size()) << ", sent " << wret << ")" << endl;
+  }
+  else {
     hadError = false;
   }
 
@@ -356,26 +371,26 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
 void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
-                             DNSName& qname, uint16_t& qtype, uint16_t& qclass,
-                             const struct timeval& now,
-                             string& response, uint32_t& qhash,
+                      DNSName& qname, uint16_t& qtype, uint16_t& qclass,
+                      const struct timeval& now,
+                      string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
 void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
-                                const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
-                                bool tcp, const ComboAddress& source, const ComboAddress& destination,
-                                const EDNSSubnetOpts& ednssubnet,
-                                const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
-                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
+                         const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
+                         bool tcp, const ComboAddress& source, const ComboAddress& destination,
+                         const EDNSSubnetOpts& ednssubnet,
+                         const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
+                         const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace);
 void requestWipeCaches(const DNSName& canon);
-void startDoResolve(void *p);
+void startDoResolve(void* p);
 bool expectProxyProtocol(const ComboAddress& from);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active);
 void checkTFOconnect();
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets);
-void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& );
+void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
 
 void makeUDPServerSockets(deferredAdd_t& deferredAdds);
 void* recursorThread(unsigned int n, const string& threadName);
@@ -387,5 +402,5 @@ void* recursorThread(unsigned int n, const string& threadName);
 // and
 // http://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
 // where such a network may not be considered a valid destination
-#define BAD_NETS   "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
+#define BAD_NETS "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
 #define DONT_QUERY LOCAL_NETS ", " BAD_NETS
