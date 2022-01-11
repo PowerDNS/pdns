@@ -33,6 +33,15 @@
 #include "rec-lua-conf.hh"
 #include "rec-protozero.hh"
 #include "syncres.hh"
+#include "rec-snmp.hh"
+
+#ifdef NOD_ENABLED
+#include "nod.hh"
+#endif /* NOD_ENABLED */
+
+#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
+#include <boost/container/flat_set.hpp>
+#endif
 
 
 //! used to send information to a newborn mthread
@@ -123,11 +132,36 @@ struct DNSComboWriter {
   std::map<std::string, RecursorLua4::MetaValue> d_meta;
 };
 
+extern thread_local FDMultiplexer* t_fdm;
+extern uint16_t s_minUdpSourcePort;
+extern uint16_t s_maxUdpSourcePort;
+
+// you can ask this class for a UDP socket to send a query from
+// this socket is not yours, don't even think about deleting it
+// but after you call 'returnSocket' on it, don't assume anything anymore
+class UDPClientSocks
+{
+  unsigned int d_numsocks;
+public:
+  UDPClientSocks() : d_numsocks(0)
+  {
+  }
+
+  LWResult::Result getSocket(const ComboAddress& toaddr, int* fd);
+
+  // return a socket to the pool, or simply erase it
+  void returnSocket(int fd);
+private:
+  
+  // returns -1 for errors which might go away, throws for ones that won't
+  static int makeClientSocket(int family);
+};
+
+enum class PaddingMode { Always, PaddedQueries };
 
 typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
 extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 
-extern thread_local FDMultiplexer* t_fdm;
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;
@@ -137,6 +171,7 @@ extern thread_local std::shared_ptr<RecursorLua4> t_pdl;
 extern bool g_gettagNeedsEDNSOptions;
 extern NetmaskGroup g_paddingFrom;
 extern unsigned int g_paddingTag;
+extern PaddingMode g_paddingMode;
 extern thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers;
 extern unsigned int g_maxMThreads;
 extern bool g_reusePort;
@@ -144,11 +179,65 @@ extern bool g_anyToTcp;
 extern size_t g_tcpMaxQueriesPerConn;
 extern unsigned int g_maxTCPPerClient;
 extern int g_tcpTimeout;
+extern uint16_t g_udpTruncationThreshold;
+extern double s_balancingFactor;
+extern size_t s_maxUDPQueriesPerRound;
+extern bool g_useKernelTimestamp;
+extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
+extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
+extern thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;
+extern thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
+extern bool g_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
+extern bool g_useIncomingECS;
+extern boost::optional<ComboAddress> g_dns64Prefix;
+extern DNSName g_dns64PrefixReverse;
+extern uint64_t g_latencyStatSize;
+extern bool s_addExtendedResolutionDNSErrors;
+extern uint16_t g_xpfRRCode;
+extern NetmaskGroup g_proxyProtocolACL;
+extern std::atomic<bool> statsWanted;
+extern unsigned int g_numDistributorThreads;
+extern unsigned int g_numWorkerThreads;
+extern uint32_t g_disthashseed;
+extern int g_argc;
+extern char** g_argv;
+extern std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
+extern std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
+extern std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
+extern std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
+extern thread_local std::shared_ptr<Regex> t_traceRegex;
+
+#ifdef NOD_ENABLED
+extern bool g_nodEnabled;
+extern DNSName g_nodLookupDomain;
+extern bool g_nodLog;
+extern SuffixMatchNode g_nodDomainWL;
+extern std::string g_nod_pbtag;
+extern bool g_udrEnabled;
+extern bool g_udrLog;
+extern std::string g_udr_pbtag;
+extern thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
+extern thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
+#endif
+
+#ifdef HAVE_FSTRM
+extern thread_local std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> t_frameStreamServers;
+extern thread_local uint64_t t_frameStreamServersGeneration;
+#endif /* HAVE_FSTRM */
+
+#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
+extern boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
+#else
+extern std::set<uint16_t> s_avoidUdpSourcePorts;
+#endif
+
+/* without reuseport, all listeners share the same sockets */
+typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
+extern deferredAdd_t g_deferredAdds;
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
-typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
 
 inline MT_t* getMT()
 {
@@ -191,8 +280,75 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const
   return hadError;
 }
 
+// for communicating with our threads
+// effectively readonly after startup
+struct RecThreadInfo
+{
+  struct ThreadPipeSet
+  {
+    int writeToThread{-1};
+    int readToThread{-1};
+    int writeFromThread{-1};
+    int readFromThread{-1};
+    int writeQueriesToThread{-1}; // this one is non-blocking
+    int readQueriesToThread{-1};
+  };
+
+  /* FD corresponding to TCP sockets this thread is listening
+     on.
+     These FDs are also in deferredAdds when we have one
+     socket per listener, and in g_deferredAdds instead. */
+  std::set<int> tcpSockets;
+  /* FD corresponding to listening sockets if we have one socket per
+     listener (with reuseport), otherwise all listeners share the
+     same FD and g_deferredAdds is then used instead */
+  deferredAdd_t deferredAdds;
+  struct ThreadPipeSet pipes;
+  std::thread thread;
+  MT_t* mt{nullptr};
+  uint64_t numberOfDistributedQueries{0};
+  int exitCode{0};
+  /* handle the web server, carbon, statistics and the control channel */
+  bool isHandler{false};
+  /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
+  bool isListener{false};
+  /* process queries */
+  bool isWorker{false};
+};
+
+struct ThreadMSG
+{
+  pipefunc_t func;
+  bool wantAnswer;
+};
+
+/* first we have the handler thread, t_id == 0 (some other
+   helper threads like SNMP might have t_id == 0 as well)
+   then the distributor threads if any
+   and finally the workers */
+extern std::vector<RecThreadInfo> s_threadInfos;
+
+inline bool isDistributorThread()
+{
+  if (t_id == 0) {
+    return false;
+  }
+
+  return g_weDistributeQueries && s_threadInfos.at(t_id).isListener;
+}
+
+inline bool isHandlerThread()
+{
+  if (t_id == 0) {
+    return true;
+  }
+
+  return s_threadInfos.at(t_id).isHandler;
+}
+
 PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
+bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
                        bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
@@ -220,3 +376,16 @@ void checkFastOpenSysctl(bool active);
 void checkTFOconnect();
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets);
 void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& );
+
+void makeUDPServerSockets(deferredAdd_t& deferredAdds);
+void* recursorThread(unsigned int n, const string& threadName);
+
+#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+#define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"
+// Bad Nets taken from both:
+// http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+// and
+// http://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+// where such a network may not be considered a valid destination
+#define BAD_NETS   "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
+#define DONT_QUERY LOCAL_NETS ", " BAD_NETS
