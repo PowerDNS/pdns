@@ -31,6 +31,7 @@
 #include "filterpo.hh"
 #include "rec-snmp.hh"
 #include <unordered_set>
+#include "rec-main.hh"
 
 RecursorLua4::RecursorLua4() { prepareContext(); }
 

@@ -1026,8 +1026,6 @@ struct PacketIDBirthdayCompare
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
-MT_t* getMT();
 
 struct RecursorStats
 {

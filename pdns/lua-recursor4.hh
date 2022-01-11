@@ -41,9 +41,6 @@
 
 #include "lua-recursor4-ffi.hh"
 
-PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
-unsigned int getRecursorThreadId();
-
 // pdns_ffi_param_t is a lightuserdata
 template <>
 struct LuaContext::Pusher<pdns_ffi_param*>

@@ -226,7 +226,6 @@
 ./pdns/packethandler.cc
 ./pdns/packethandler.hh
 ./pdns/pdns_hw.cc
-./pdns/pdns_recursor.cc
 ./pdns/pdnsexception.hh
 ./pdns/pdnsutil.cc
 ./pdns/pkcs11signers.cc
