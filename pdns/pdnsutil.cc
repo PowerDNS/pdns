@@ -1187,6 +1187,7 @@ static int editZone(const DNSName &zone) {
     tmpfd=-1;
   }
  editMore:;
+  post.clear();
   cmdline=editor+" ";
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
@@ -1297,17 +1298,15 @@ static int editZone(const DNSName &zone) {
             changed[{dr.d_name, dr.d_type}]+=str.str();
             grouped[{dr.d_name, dr.d_type}].at(0) = dr;
           }
-        break;
+          break;
         case 'q':
           return EXIT_FAILURE;
-          break;
         case 'e':
-          goto editAgain;
-          break;
+          goto editMore;
         case 'n':
+          goto reAsk2;
         default:
           goto reAsk3;
-          break;
       }
     }
   }
