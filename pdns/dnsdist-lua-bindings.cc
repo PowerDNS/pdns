@@ -29,6 +29,9 @@
 
 void setupLuaBindings(LuaContext& luaCtx, bool client)
 {
+  luaCtx.writeFunction("vinfolog", [](const string& arg) {
+      vinfolog("%s", arg);
+    });
   luaCtx.writeFunction("infolog", [](const string& arg) {
       infolog("%s", arg);
     });
