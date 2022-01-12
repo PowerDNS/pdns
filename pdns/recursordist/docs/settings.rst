@@ -192,19 +192,6 @@ Disallow data modification through the REST API when set.
 
 Location of the server logfile (used by the REST API).
 
-.. _setting-auth-can-lower-ttl:
-
-``auth-can-lower-ttl``
-----------------------
--  Boolean
--  Default: no
-
-Authoritative zones can transmit a TTL value that is lower than that specified in the parent zone.
-This is called a 'delegation inconsistency'.
-To follow :rfc:`RFC 2181 section 5.2<2181#section-5.2>` and :rfc:`5.4 <2181#section-5.4>` to the letter, enable this feature.
-This will mean a slight deterioration of performance, and it will not solve any problems, but does make the recursor more standards compliant.
-Not recommended unless you have to tick an 'RFC 2181 compliant' box.
-
 .. _setting-auth-zones:
 
 ``auth-zones``
