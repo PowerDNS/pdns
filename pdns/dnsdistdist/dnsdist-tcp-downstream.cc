@@ -68,7 +68,7 @@ bool ConnectionToBackend::reconnect()
   d_proxyProtocolPayloadSent = false;
 
   do {
-    vinfolog("TCP connecting to downstream %s (%d)", d_ds->getNameWithAddr(), d_downstreamFailures);
+    DEBUGLOG("TCP connecting to downstream "<<d_ds->getNameWithAddr()<<" ("<<d_downstreamFailures<<")");
     DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
     ++d_ds->tcpNewConnections;
     try {
