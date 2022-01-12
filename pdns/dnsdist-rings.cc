@@ -35,10 +35,9 @@ void Rings::setCapacity(size_t newCapacity, size_t numberOfShards)
 
 void Rings::init()
 {
-  if (d_initialized) {
+  if (d_initialized.exchange(true)) {
     throw std::runtime_error("Rings::init() should only be called once");
   }
-  d_initialized = true;
 
   if (d_numberOfShards <= 1) {
     d_nbLockTries = 0;
