@@ -34,6 +34,7 @@
 #include "rec-protozero.hh"
 #include "syncres.hh"
 #include "rec-snmp.hh"
+#include "rec_channel.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -138,8 +139,8 @@ struct DNSComboWriter
 };
 
 extern thread_local FDMultiplexer* t_fdm;
-extern uint16_t s_minUdpSourcePort;
-extern uint16_t s_maxUdpSourcePort;
+extern uint16_t g_minUdpSourcePort;
+extern uint16_t g_maxUdpSourcePort;
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
@@ -191,8 +192,8 @@ extern size_t g_tcpMaxQueriesPerConn;
 extern unsigned int g_maxTCPPerClient;
 extern int g_tcpTimeout;
 extern uint16_t g_udpTruncationThreshold;
-extern double s_balancingFactor;
-extern size_t s_maxUDPQueriesPerRound;
+extern double g_balancingFactor;
+extern size_t g_maxUDPQueriesPerRound;
 extern bool g_useKernelTimestamp;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
@@ -203,10 +204,10 @@ extern bool g_useIncomingECS;
 extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
-extern bool s_addExtendedResolutionDNSErrors;
+extern bool g_addExtendedResolutionDNSErrors;
 extern uint16_t g_xpfRRCode;
 extern NetmaskGroup g_proxyProtocolACL;
-extern std::atomic<bool> statsWanted;
+extern std::atomic<bool> g_statsWanted;
 extern unsigned int g_numDistributorThreads;
 extern unsigned int g_numWorkerThreads;
 extern uint32_t g_disthashseed;
@@ -217,6 +218,9 @@ extern std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to 
 extern std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
 extern std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 extern thread_local std::shared_ptr<Regex> t_traceRegex;
+extern string g_programname;
+extern string g_pidfname;
+extern RecursorControlChannel g_rcc; // only active in the handler thread
 
 #ifdef NOD_ENABLED
 extern bool g_nodEnabled;
@@ -237,9 +241,9 @@ extern thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
-extern boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
+extern boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
 #else
-extern std::set<uint16_t> s_avoidUdpSourcePorts;
+extern std::set<uint16_t> g_avoidUdpSourcePorts;
 #endif
 
 /* without reuseport, all listeners share the same sockets */
@@ -341,7 +345,7 @@ struct ThreadMSG
    helper threads like SNMP might have t_id == 0 as well)
    then the distributor threads if any
    and finally the workers */
-extern std::vector<RecThreadInfo> s_threadInfos;
+extern std::vector<RecThreadInfo> g_threadInfos;
 
 inline bool isDistributorThread()
 {
@@ -349,7 +353,7 @@ inline bool isDistributorThread()
     return false;
   }
 
-  return g_weDistributeQueries && s_threadInfos.at(t_id).isListener;
+  return g_weDistributeQueries && g_threadInfos.at(t_id).isListener;
 }
 
 inline bool isHandlerThread()
@@ -358,7 +362,7 @@ inline bool isHandlerThread()
     return true;
   }
 
-  return s_threadInfos.at(t_id).isHandler;
+  return g_threadInfos.at(t_id).isHandler;
 }
 
 PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);

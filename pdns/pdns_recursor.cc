@@ -68,7 +68,7 @@ static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mecha
 NetmaskGroup g_XPFAcl;
 NetmaskGroup g_paddingFrom;
 size_t g_proxyProtocolMaximumSize;
-size_t s_maxUDPQueriesPerRound;
+size_t g_maxUDPQueriesPerRound;
 unsigned int g_maxMThreads;
 unsigned int g_paddingTag;
 PaddingMode g_paddingMode;
@@ -80,13 +80,13 @@ bool g_gettagNeedsEDNSOptions{false};
 bool g_useKernelTimestamp;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
-boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
+boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
 #else
-std::set<uint16_t> s_avoidUdpSourcePorts;
+std::set<uint16_t> g_avoidUdpSourcePorts;
 #endif
-uint16_t s_minUdpSourcePort;
-uint16_t s_maxUdpSourcePort;
-double s_balancingFactor;
+uint16_t g_minUdpSourcePort;
+uint16_t g_maxUdpSourcePort;
+double g_balancingFactor;
 
 RecursorStats g_stats;
 bool g_lowercaseOutgoing;
@@ -176,8 +176,8 @@ int UDPClientSocks::makeClientSocket(int family)
     }
     else {
       do {
-        port = s_minUdpSourcePort + dns_random(s_maxUdpSourcePort - s_minUdpSourcePort + 1);
-      } while (s_avoidUdpSourcePorts.count(port));
+        port = g_minUdpSourcePort + dns_random(g_maxUdpSourcePort - g_minUdpSourcePort + 1);
+      } while (g_avoidUdpSourcePorts.count(port));
     }
 
     sin = pdns::getQueryLocalAddress(family, port); // does htons for us
@@ -1342,7 +1342,7 @@ void startDoResolve(void* p)
 
     if (haveEDNS) {
       auto state = sr.getValidationState();
-      if (dc->d_extendedErrorCode || (s_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
+      if (dc->d_extendedErrorCode || (g_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
         EDNSExtendedError::code code;
         std::string extra;
 
@@ -1757,7 +1757,7 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
-  if (write(s_threadInfos[0].pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+  if (write(g_threadInfos[0].pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
     delete tmsg;
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -1771,7 +1771,7 @@ bool expectProxyProtocol(const ComboAddress& from)
 
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
 {
-  ++s_threadInfos[t_id].numberOfDistributedQueries;
+  ++g_threadInfos[t_id].numberOfDistributedQueries;
   gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
     struct timeval diff = g_now - tv;
@@ -2042,7 +2042,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   std::vector<ProxyProtocolValue> proxyProtocolValues;
   RecEventTrace eventTrace;
 
-  for (size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
+  for (size_t queriesCounter = 0; queriesCounter < g_maxUDPQueriesPerRound; queriesCounter++) {
     bool proxyProto = false;
     proxyProtocolValues.clear();
     data.resize(maxIncomingQuerySize);
@@ -2323,7 +2323,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
 static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 {
-  auto& targetInfo = s_threadInfos[target];
+  auto& targetInfo = g_threadInfos[target];
   if (!targetInfo.isWorker) {
     g_log << Logger::Error << "distributeAsyncFunction() tried to assign a query to a non-worker thread" << endl;
     _exit(1);
@@ -2354,7 +2354,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto mt = s_threadInfos[/* skip handler */ 1 + g_numDistributorThreads + workerIdx].mt;
+  const auto mt = g_threadInfos[/* skip handler */ 1 + g_numDistributorThreads + workerIdx].mt;
   if (mt != nullptr) {
     return mt->numProcesses();
   }
@@ -2363,7 +2363,7 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 
 static unsigned int selectWorker(unsigned int hash)
 {
-  if (s_balancingFactor == 0) {
+  if (g_balancingFactor == 0) {
     return /* skip handler */ 1 + g_numDistributorThreads + (hash % g_numWorkerThreads);
   }
 
@@ -2376,7 +2376,7 @@ static unsigned int selectWorker(unsigned int hash)
     // cerr<<"load for worker "<<idx<<" is "<<load[idx]<<endl;
   }
 
-  double targetLoad = (currentLoad / g_numWorkerThreads) * s_balancingFactor;
+  double targetLoad = (currentLoad / g_numWorkerThreads) * g_balancingFactor;
   // cerr<<"total load is "<<currentLoad<<", number of workers is "<<g_numWorkerThreads<<", target load is "<<targetLoad<<endl;
 
   unsigned int worker = hash % g_numWorkerThreads;

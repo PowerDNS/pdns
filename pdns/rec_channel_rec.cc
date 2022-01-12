@@ -1160,8 +1160,6 @@ static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map
   return entries;
 }
 
-extern ResponseStats g_rs;
-
 static void registerAllStats1()
 {
   addGetStat("questions", &g_stats.qcounter);
@@ -1445,12 +1443,10 @@ void registerAllStats()
 void doExitGeneric(bool nicely)
 {
   g_log << Logger::Error << "Exiting on user request" << endl;
-  extern RecursorControlChannel s_rcc;
-  s_rcc.~RecursorControlChannel();
+  g_rcc.~RecursorControlChannel();
 
-  extern string s_pidfname;
-  if (!s_pidfname.empty())
-    unlink(s_pidfname.c_str()); // we can at least try..
+  if (!g_pidfname.empty())
+    unlink(g_pidfname.c_str()); // we can at least try..
   if (nicely) {
     RecursorControlChannel::stop = true;
   }

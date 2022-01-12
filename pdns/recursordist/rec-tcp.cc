@@ -33,9 +33,7 @@ int g_tcpTimeout;
 bool g_anyToTcp;
 
 uint16_t TCPConnection::s_maxInFlight;
-std::atomic<uint32_t> TCPConnection::s_currentConnections;
 
-typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
@@ -48,6 +46,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 #else
 #define TCPLOG(pid, x)
 #endif
+
+std::atomic<uint32_t> TCPConnection::s_currentConnections;
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) :
   data(2, 0), d_remote(addr), d_fd(fd)
