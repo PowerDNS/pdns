@@ -1739,8 +1739,6 @@ private:
 class ClearRecordTypesResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  ClearRecordTypesResponseAction() {}
-
   ClearRecordTypesResponseAction(const std::set<QType>& qtypes) : d_qtypes(qtypes)
   {
   }
@@ -1900,6 +1898,50 @@ private:
   std::string d_tag;
 };
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
+
+class MaxReturnedTTLAction : public DNSAction
+{
+public:
+  MaxReturnedTTLAction(uint32_t cap) : d_cap(cap)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    dq->ids.ttlCap = d_cap;
+    return DNSAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "cap the TTL of the returned response to " + std::to_string(d_cap);
+  }
+
+private:
+  uint32_t d_cap;
+};
+
+class MaxReturnedTTLResponseAction : public DNSResponseAction
+{
+public:
+  MaxReturnedTTLResponseAction(uint32_t cap) : d_cap(cap)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    dr->ids.ttlCap = d_cap;
+    return DNSResponseAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "cap the TTL of the returned response to " + std::to_string(d_cap);
+  }
+
+private:
+  uint32_t d_cap;
+};
 
 class NegativeAndSOAAction: public DNSAction
 {
@@ -2297,6 +2339,14 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("SetMaxTTLResponseAction", [](uint32_t max) {
       return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
     });
+
+  luaCtx.writeFunction("SetMaxReturnedTTLAction", [](uint32_t max) {
+    return std::shared_ptr<DNSAction>(new MaxReturnedTTLAction(max));
+  });
+
+  luaCtx.writeFunction("SetMaxReturnedTTLResponseAction", [](uint32_t max) {
+    return std::shared_ptr<DNSResponseAction>(new MaxReturnedTTLResponseAction(max));
+  });
 
   luaCtx.writeFunction("SetReducedTTLResponseAction", [](uint8_t percentage) {
       if (percentage > 100) {

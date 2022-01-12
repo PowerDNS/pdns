@@ -883,6 +883,10 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
 - :func:`RemoteLogResponseAction`
+- :func:`SetMaxReturnedTTLResponseAction`
+- :func:`SetMaxReturnedTTLAction`
+- :func:`SetMinTTLResponseAction`
+- :func:`SetMaxTTLResponseAction`
 - :func:`SNMPTrapAction`
 - :func:`SNMPTrapResponseAction`
 - :func:`TeeAction`
@@ -1432,6 +1436,22 @@ The following actions exist.
   Note that this function was called :func:`MacAddrAction` before 1.6.0.
 
   :param int option: The EDNS0 option number
+
+.. function:: SetMaxReturnedTTLAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
+
+.. function:: SetMaxReturnedTTLResponseAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
 
 .. function:: SetMaxTTLResponseAction(max)
 

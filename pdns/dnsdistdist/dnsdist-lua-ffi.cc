@@ -542,6 +542,13 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
   sa(dq->dq, &result);
 }
 
+void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max)
+{
+  if (dq != nullptr && dq->dq != nullptr) {
+    dq->dq->ids.ttlCap = max;
+  }
+}
+
 size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)
 {
   return list->ffiServers.size();
@@ -621,16 +628,23 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t
 
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
 {
-  if (dr->dr != nullptr) {
+  if (dr != nullptr && dr->dr != nullptr) {
     std::string result;
     LimitTTLResponseAction ac(min, max);
     ac(dr->dr, &result);
   }
 }
 
+void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max)
+{
+  if (dr != nullptr && dr->dr != nullptr) {
+    dr->dr->ids.ttlCap = max;
+  }
+}
+
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype)
 {
-  if (dr->dr != nullptr) {
+  if (dr != nullptr && dr->dr != nullptr) {
     clearDNSPacketRecordTypes(dr->dr->getMutableData(), std::set<QType>{qtype});
   }
 }
