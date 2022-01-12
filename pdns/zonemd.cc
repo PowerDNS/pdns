@@ -5,12 +5,12 @@
 #include "sha.hh"
 #include "zoneparser-tng.hh"
 
-typedef std::pair<DNSName, QType> rrSetKey_t;
-typedef std::vector<std::shared_ptr<DNSRecordContent>> rrVector_t;
+typedef std::pair<DNSName, QType> RRSetKey_t;
+typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
 
-struct CanonrrSetKeyCompare : public std::binary_function<rrSetKey_t, rrSetKey_t, bool>
+struct CanonRRSetKeyCompare : public std::binary_function<RRSetKey_t, RRSetKey_t, bool>
 {
-  bool operator()(const rrSetKey_t& a, const rrSetKey_t& b) const
+  bool operator()(const RRSetKey_t& a, const RRSetKey_t& b) const
   {
     // FIXME surely we can be smarter here
     if (a.first.canonCompare(b.first)) {
@@ -23,14 +23,14 @@ struct CanonrrSetKeyCompare : public std::binary_function<rrSetKey_t, rrSetKey_t
   }
 };
 
-typedef std::map<rrSetKey_t, rrVector_t, CanonrrSetKeyCompare> RRsetMap_t;
+typedef std::map<RRSetKey_t, RRVector_t, CanonRRSetKeyCompare> RRSetMap_t;
 
 void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validationDone, bool& validationOK)
 {
   validationDone = false;
   validationOK = false;
 
-  // scheme,hashalgo -> duplicate,zonemdrecord
+  // scheme,hashalgo -> zonemdrecord,duplicate
   struct ZoneMDAndDuplicateFlag
   {
     std::shared_ptr<ZONEMDRecordContent> record;
@@ -38,38 +38,38 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
   };
 
   std::map<pair<uint8_t, uint8_t>, ZoneMDAndDuplicateFlag> zonemdRecords;
-  std::shared_ptr<SOARecordContent> soarc;
+  std::shared_ptr<SOARecordContent> soaRecordContent;
 
-  RRsetMap_t RRsets;
-  std::map<rrSetKey_t, uint32_t> RRsetTTLs;
+  RRSetMap_t resourceRecordSets;
+  std::map<RRSetKey_t, uint32_t> resourceRecordSetTTLs;
 
-  DNSResourceRecord dnsrr;
+  DNSResourceRecord dnsResourceRecord;
 
   // Get all records and remember RRSets and TTLs
-  while (zpt.get(dnsrr)) {
-    if (!dnsrr.qname.isPartOf(zone) && dnsrr.qname != zone) {
+  while (zpt.get(dnsResourceRecord)) {
+    if (!dnsResourceRecord.qname.isPartOf(zone) && dnsResourceRecord.qname != zone) {
       continue;
     }
-    if (dnsrr.qtype == QType::SOA && soarc) {
+    if (dnsResourceRecord.qtype == QType::SOA && soaRecordContent) {
       // XXX skip extra SOA?
       continue;
     }
     std::shared_ptr<DNSRecordContent> drc;
     try {
-      drc = DNSRecordContent::mastermake(dnsrr.qtype, QClass::IN, dnsrr.content);
+      drc = DNSRecordContent::mastermake(dnsResourceRecord.qtype, QClass::IN, dnsResourceRecord.content);
     }
     catch (const PDNSException& pe) {
-      std::string err = "Bad record content in record for '" + dnsrr.qname.toStringNoDot() + "'|" + dnsrr.qtype.toString() + ": " + pe.reason;
+      std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "'|" + dnsResourceRecord.qtype.toString() + ": " + pe.reason;
       throw PDNSException(err);
     }
     catch (const std::exception& e) {
-      std::string err = "Bad record content in record for '" + dnsrr.qname.toStringNoDot() + "|" + dnsrr.qtype.toString() + "': " + e.what();
+      std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "|" + dnsResourceRecord.qtype.toString() + "': " + e.what();
       throw PDNSException(err);
     }
-    if (dnsrr.qtype == QType::SOA && dnsrr.qname == zone) {
-      soarc = std::dynamic_pointer_cast<SOARecordContent>(drc);
+    if (dnsResourceRecord.qtype == QType::SOA && dnsResourceRecord.qname == zone) {
+      soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(drc);
     }
-    if (dnsrr.qtype == QType::ZONEMD && dnsrr.qname == zone) {
+    if (dnsResourceRecord.qtype == QType::ZONEMD && dnsResourceRecord.qname == zone) {
       auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
       auto inserted = zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
       if (!inserted.second) {
@@ -77,9 +77,9 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
         inserted.first->second.duplicate = true;
       }
     }
-    rrSetKey_t key = std::pair(dnsrr.qname, dnsrr.qtype);
-    RRsets[key].push_back(drc);
-    RRsetTTLs[key] = dnsrr.ttl;
+    RRSetKey_t key = std::pair(dnsResourceRecord.qname, dnsResourceRecord.qtype);
+    resourceRecordSets[key].push_back(drc);
+    resourceRecordSetTTLs[key] = dnsResourceRecord.ttl;
   }
 
   // Determine which digests to compute based on accepted zonemd records present
@@ -99,7 +99,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
     // considered successful with this ZONEMD RR.
     const auto duplicate = it->second.duplicate;
     const auto& r = it->second.record;
-    if (!duplicate && r->d_serial == soarc->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
+    if (!duplicate && r->d_serial == soaRecordContent->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
       // A supported ZONEMD record
       if (r->d_hashalgo == 1) {
         sha384digest = make_unique<pdns::SHADigest>(384);
@@ -125,7 +125,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
   };
 
   // Compute requested digests
-  for (auto& rrset : RRsets) {
+  for (auto& rrset : resourceRecordSets) {
     const auto& qname = rrset.first.first;
     const auto& qtype = rrset.first.second;
     if (qtype == QType::ZONEMD && qname == zone) {
@@ -145,7 +145,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
 
     if (qtype != QType::RRSIG) {
       RRSIGRecordContent rrc;
-      rrc.d_originalttl = RRsetTTLs[rrset.first];
+      rrc.d_originalttl = resourceRecordSetTTLs[rrset.first];
       rrc.d_type = qtype;
       auto msg = getMessageForRRSET(qname, rrc, sorted, false, false);
       hash(msg);
@@ -156,7 +156,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
       for (const auto& rrsig : sorted) {
         auto rrsigc = std::dynamic_pointer_cast<RRSIGRecordContent>(rrsig);
         RRSIGRecordContent rrc;
-        rrc.d_originalttl = RRsetTTLs[pair(rrset.first.first, rrsigc->d_type)];
+        rrc.d_originalttl = resourceRecordSetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;
         auto msg = getMessageForRRSET(qname, rrc, {rrsigc}, false, false);
         hash(msg);
