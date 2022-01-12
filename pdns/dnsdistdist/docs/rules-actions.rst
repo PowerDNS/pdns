@@ -1204,11 +1204,15 @@ The following actions exist.
   Strip RD bit from the question, let it go through.
   Subsequent rules are processed after this action.
 
-.. function:: PoolAction(poolname)
+.. function:: PoolAction(poolname [, stop])
 
-  Send the packet into the specified pool.
+  .. versionchanged:: 1.8.0
+    Added the ``stop`` optional parameter.
+
+  Send the packet into the specified pool. If ``stop`` is set to false, subsequent rules will be processed after this action.
 
   :param string poolname: The name of the pool
+  :param bool stop: Whether to stop processing rules after this action. Default is true, meaning the remaining rules will not be processed.
 
 .. function:: QPSAction(maxqps)
 

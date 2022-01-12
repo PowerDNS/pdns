@@ -273,12 +273,20 @@ void TeeAction::worker()
 class PoolAction : public DNSAction
 {
 public:
-  PoolAction(const std::string& pool) : d_pool(pool) {}
+  PoolAction(const std::string& pool, bool stopProcessing) : d_pool(pool), d_stopProcessing(stopProcessing) {}
+
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    *ruleresult=d_pool;
-    return Action::Pool;
+    if (d_stopProcessing) {
+      *ruleresult = d_pool;
+      return Action::Pool;
+    }
+    else {
+      dq->poolname = d_pool;
+      return Action::None;
+    }
   }
+
   std::string toString() const override
   {
     return "to pool "+d_pool;
@@ -286,6 +294,7 @@ public:
 
 private:
   std::string d_pool;
+  bool d_stopProcessing;
 };
 
 
@@ -2141,8 +2150,8 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
     });
 
-  luaCtx.writeFunction("PoolAction", [](const std::string& a) {
-      return std::shared_ptr<DNSAction>(new PoolAction(a));
+  luaCtx.writeFunction("PoolAction", [](const std::string& a, boost::optional<bool> stopProcessing) {
+    return std::shared_ptr<DNSAction>(new PoolAction(a, stopProcessing.get_value_or(true)));
     });
 
   luaCtx.writeFunction("QPSAction", [](int limit) {
