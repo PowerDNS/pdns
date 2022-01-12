@@ -108,6 +108,10 @@ private:
 
     bool warningRateExceeded(unsigned int count, const struct timespec& now) const
     {
+      if (!d_enabled) {
+        return false;
+      }
+
       if (d_warningRate == 0) {
         return false;
       }
@@ -177,7 +181,11 @@ private:
 
     bool warningRatioExceeded(unsigned int total, unsigned int count) const
     {
-      if (d_warningRate == 0) {
+      if (!d_enabled) {
+        return false;
+      }
+
+      if (d_warningRatio == 0.0) {
         return false;
       }
 
