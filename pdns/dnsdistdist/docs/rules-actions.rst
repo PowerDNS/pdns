@@ -1223,11 +1223,15 @@ The following actions exist.
 
 .. function:: QPSPoolAction(maxqps, poolname)
 
-  Send the packet into the specified pool only if it does not exceed the ``maxqps`` queries per second limits.
+  .. versionchanged:: 1.8.0
+    Added the ``stop`` optional parameter.
+
+  Send the packet into the specified pool only if it does not exceed the ``maxqps`` queries per second limits. If ``stop`` is set to false, subsequent rules will be processed after this action.
   Letting the subsequent rules apply otherwise.
 
   :param int maxqps: The QPS limit for that pool
   :param string poolname: The name of the pool
+  :param bool stop: Whether to stop processing rules after this action. Default is true, meaning the remaining rules will not be processed.
 
 .. function:: RCodeAction(rcode [, options])
 
