@@ -68,12 +68,17 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction("toString", &ServerPolicy::toString);
   luaCtx.registerFunction("__tostring", &ServerPolicy::toString);
 
-  luaCtx.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
-  luaCtx.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
-  luaCtx.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, false});
-  luaCtx.writeVariable("whashed", ServerPolicy{"whashed", whashed, false});
-  luaCtx.writeVariable("chashed", ServerPolicy{"chashed", chashed, false});
-  luaCtx.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, false});
+  ServerPolicy policies[] = {
+    ServerPolicy{"firstAvailable", firstAvailable, false},
+    ServerPolicy{"roundrobin", roundrobin, false},
+    ServerPolicy{"wrandom", wrandom, false},
+    ServerPolicy{"whashed", whashed, false},
+    ServerPolicy{"chashed", chashed, false},
+    ServerPolicy{"leastOutstanding", leastOutstanding, false}
+  };
+  for (auto& policy : policies) {
+    luaCtx.writeVariable(policy.d_name, policy);
+  }
 
   /* ServerPool */
   luaCtx.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {
