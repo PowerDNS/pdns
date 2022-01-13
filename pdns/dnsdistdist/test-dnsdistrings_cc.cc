@@ -205,7 +205,11 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
 
   Rings rings(numberOfEntries, numberOfShards, lockAttempts, true);
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  Rings::Query query({requestor, qname, now, dh, size, qtype, protocol, "", false});
+#else
   Rings::Query query({requestor, qname, now, dh, size, qtype, protocol});
+#endif
   Rings::Response response({requestor, server, qname, now, dh, latency, size, qtype, outgoingProtocol});
 
   std::atomic<bool> done(false);

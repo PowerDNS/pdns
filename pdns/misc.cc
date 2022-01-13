@@ -1111,31 +1111,40 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
-string getMACAddress(const ComboAddress& ca)
+int getMACAddress(const ComboAddress& ca, char* dest, size_t len)
 {
-  string ret;
 #ifdef __linux__
   ifstream ifs("/proc/net/arp");
-  if(!ifs)
-    return ret;
+  if (len < 6) {
+    return EINVAL;
+  }
+  if (!ifs) {
+    return EIO;
+  }
   string line;
-  string match=ca.toString()+' ';
+  string match = ca.toString() + ' ';
   while(getline(ifs, line)) {
     if(boost::starts_with(line, match)) {
       vector<string> parts;
       stringtok(parts, line, " \n\t\r");
-      if(parts.size() < 4)
-        return ret;
-      unsigned int tmp[6];
-      if (sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5) != 6) {
-        return ret;
+      if (parts.size() < 4)
+        return ENOENT;
+      if (sscanf(parts[3].c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", dest, dest+1, dest+2, dest+3, dest+4, dest+5) != 6) {
+        return ENOENT;
       }
-      for(unsigned int i : tmp)
-        ret.append(1, (char)i);
-      return ret;
+      return 0;
     }
   }
 #endif
+  return ENOENT;
+}
+string getMACAddress(const ComboAddress& ca)
+{
+  string ret;
+  char tmp[6];
+  if (getMACAddress(ca, tmp, sizeof(tmp)) == 0) {
+    ret.append(tmp, sizeof(tmp));
+  }
   return ret;
 }
 

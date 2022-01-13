@@ -44,6 +44,10 @@ struct Rings {
     uint16_t qtype;
     // incoming protocol
     dnsdist::Protocol protocol;
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    char macaddress[6];
+    bool hasmac{false};
+#endif
   };
   struct Response
   {
@@ -120,11 +124,22 @@ struct Rings {
 
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    char macaddress[6];
+    bool hasmac{false};
+    if (getMACAddress(requestor, macaddress, sizeof(macaddress)) == 0) {
+      hasmac = true;
+    }
+#endif
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
       auto lock = shard->queryRing.try_lock();
       if (lock.owns_lock()) {
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, sizeof(macaddress), hasmac);
+#else
         insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
+#endif
         return;
       }
       if (d_keepLockingStats) {
@@ -138,7 +153,11 @@ struct Rings {
     }
     auto& shard = getOneShard();
     auto lock = shard->queryRing.lock();
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, sizeof(macaddress), hasmac);
+#else
     insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
+#endif
   }
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
@@ -201,12 +220,24 @@ private:
     return d_shards[getShardId()];
   }
 
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol, const char* macaddress, size_t maclen, const bool hasmac)
+#else
   void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
+#endif
   {
     if (!ring.full()) {
       d_nbQueryEntries++;
     }
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    Rings::Query query({requestor, name, when, dh, size, qtype, protocol, "", hasmac});
+    if (hasmac) {
+      memcpy(query.macaddress, macaddress, maclen);
+    }
+    ring.push_back(std::move(query));
+#else
     ring.push_back({requestor, name, when, dh, size, qtype, protocol});
+#endif
   }
 
   void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
