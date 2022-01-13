@@ -970,6 +970,7 @@ Some just hold content, some hold a whole record.
 Below, we'll show the class definitions of each (with some details omitted, but with some useful words added) to help you find your way.
 
 .. code-block:: cpp
+
   struct DNSZoneRecord
   {
     int domain_id{-1};
