@@ -1,11 +1,12 @@
 Built-in webserver
 ==================
 
-To visually interact with dnsdist, try add :func:`webserver` to the configuration:
+To visually interact with dnsdist, try adding :func:`webserver` and :func:`setWebserverConfig` directives to the configuration:
 
 .. code-block:: lua
 
-  webserver("127.0.0.1:8083", "supersecretpassword", "supersecretAPIkey")
+  webserver("127.0.0.1:8083")
+  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey"})
 
 Now point your browser at http://127.0.0.1:8083 and log in with any username, and that password. Enjoy!
 
@@ -13,7 +14,7 @@ Since 1.5.0, only connections from 127.0.0.1 and ::1 are allowed by default. To 
 
 .. code-block:: lua
 
-  webserver("127.0.0.1:8083", "supersecretpassword", "supersecretAPIkey", {}, "192.0.2.0/24, !192.0.2.1")
+  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", acl="192.0.2.0/24, !192.0.2.1"})
 
 
 Security of the Webserver
@@ -34,9 +35,9 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
 
 .. code-block:: lua
 
-  webserver("127.0.0.1:8080", "supersecret", "apikey", {["X-Frame-Options"]= "", ["X-Custom"]="custom"})
+  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", customHeaders={["X-Frame-Options"]= "", ["X-Custom"]="custom"} })
 
-Credentials can be changed over time using the :func:`setWebserverConfig` function.
+Credentials can be changed at run time using the :func:`setWebserverConfig` function.
 
 dnsdist API
 -----------

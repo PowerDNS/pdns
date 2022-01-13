@@ -893,7 +893,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetDisableECSAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetDisableECSAction` instead.
 
   Disable the sending of ECS to the backend.
   Subsequent rules are processed after this action.
@@ -902,7 +902,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetDisableValidationAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetDisableValidationAction` instead.
 
   Set the CD bit in the query and let it go through.
   Subsequent rules are processed after this action.
@@ -939,7 +939,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetECSOverrideAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetECSOverrideAction` instead.
 
   Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
   Subsequent rules are processed after this action.
@@ -950,7 +950,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetECSPrefixLengthAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetECSPrefixLengthAction` instead.
 
   Set the ECS prefix length.
   Subsequent rules are processed after this action.
@@ -1157,7 +1157,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetMacAddrAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetMacAddrAction` instead.
 
   Add the source MAC address to the query as EDNS0 option ``option``.
   This action is currently only supported on Linux.
@@ -1199,7 +1199,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetNoRecurseAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetNoRecurseAction` instead.
 
   Strip RD bit from the question, let it go through.
   Subsequent rules are processed after this action.
@@ -1394,7 +1394,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`NegativeAndSOAAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`NegativeAndSOAAction` instead.
 
   Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
 
@@ -1484,7 +1484,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetSkipAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetSkipAction` instead.
 
   Don't lookup the cache for this query, don't store the answer.
   Subsequent rules are processed after this action.
@@ -1618,7 +1618,7 @@ The following actions exist.
 .. function:: TagAction(name, value)
 
   .. deprecated:: 1.6.0
-    This function has been deprecated in 1.6.0, please use :func:`SetTagAction` instead.
+    This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTagAction` instead.
 
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
   Subsequent rules are processed after this action.
@@ -1629,7 +1629,7 @@ The following actions exist.
 .. function:: TagResponseAction(name, value)
 
   .. deprecated:: 1.6.0
-    This function has been deprecated in 1.6.0, please use :func:`SetTagResponseAction` instead.
+    This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTagResponseAction` instead.
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
   Subsequent rules are processed after this action.
@@ -1659,7 +1659,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`SetTempFailureCacheTTLAction` instead.
+  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTempFailureCacheTTLAction` instead.
 
   Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
   Subsequent rules are processed after this action.
