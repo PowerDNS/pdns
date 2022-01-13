@@ -2,6 +2,59 @@ Changelogs for 4.6.x
 ====================
 
 .. changelog::
+  :version: 4.6.0-rc1
+  :released: 14th of January 2022
+
+  This is version 4.6.0-rc1 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.5, and a couple of user visible changes.
+
+  New features:
+
+  * support for incoming PROXY headers
+  * support for EDNS Cookies
+  * autoprimary management via pdnsutil and the API
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  Compared to 4.6.0-beta1, this release contains one new feature (autoprimary management via API and pdnsutil) and a bunch of bug fixes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11160
+
+    add zone removal to the zone cache (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11145
+
+    pdnsutil edit-zone: fix n and e behaviour on increase-serial prompt
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11159
+
+    lmdb: check if the lookup name is part of the zone (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11161
+
+    add autoprimary management in API & pdnsutil
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11139
+
+    lmdb: fix records removal in deleteDomain(); improve tcp exception handling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11093
+
+    docker images: Remove capability requirements
+
+.. changelog::
   :version: 4.6.0-beta1
   :released: 9th of December 2021
 
