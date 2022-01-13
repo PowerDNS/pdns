@@ -1894,6 +1894,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
       di.backend->commitTransaction();
+
+      g_zoneCache.remove(zonename);
     } catch (...) {
       di.backend->abortTransaction();
       throw;
@@ -2327,6 +2329,9 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
       // zone exists (uncached), add/update it in the zone cache.
       // Handle this first, to avoid concurrent queries re-populating the other caches.
       g_zoneCache.add(di.zone, di.id);
+    }
+    else {
+      g_zoneCache.remove(di.zone);
     }
   }
 
