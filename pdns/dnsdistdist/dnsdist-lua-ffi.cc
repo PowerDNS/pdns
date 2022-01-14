@@ -62,15 +62,13 @@ size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dq,
   if (dq == nullptr) {
     return 0;
   }
-  std::string mac = getMACAddress(*dq->dq->remote);
-  if (mac.empty()) {
+
+  auto ret = getMACAddress(*dq->dq->remote, reinterpret_cast<char*>(buffer), bufferSize);
+  if (ret != 0) {
     return 0;
   }
-  if (mac.size() > bufferSize) {
-    return bufferSize;
-  }
-  memcpy(buffer, mac.data(), mac.size());
-  return mac.size();
+
+  return 6;
 }
 
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
