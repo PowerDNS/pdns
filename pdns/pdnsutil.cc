@@ -27,6 +27,7 @@
 #include "dns_random.hh"
 #include "ipcipher.hh"
 #include "misc.hh"
+#include "zonemd.hh"
 #include <fstream>
 #include <utility>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
@@ -1359,6 +1360,38 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
 }
 #endif /* HAVE_IPCIPHER */
 
+static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
+  ZoneParserTNG zpt(fname, zone);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+
+  bool validationDone, validationOK;
+
+  try {
+    pdns::zonemdVerify(zone, zpt, validationDone, validationOK);
+  }
+  catch (const PDNSException& ex) {
+    cerr << "zonemd-verify-file: " << ex.reason << endl;
+    return EXIT_FAILURE;
+  }
+  catch (const std::exception& ex) {
+    cerr << "zonemd-verify-file: " << ex.what() << endl;
+    return EXIT_FAILURE;
+  }
+
+  if (validationDone) {
+    if (validationOK) {
+      cout << "zonemd-verify-file: Verification of ZONEMD record succeeded" << endl;
+      return EXIT_SUCCESS;
+    } else {
+      cerr << "zonemd-verify-file: Verification of ZONEMD record(s) failed" << endl;
+    }
+  }
+  else {
+    cerr << "zonemd-verify-file: No suitable ZONEMD record found to verify against" << endl;
+  }
+  return EXIT_FAILURE;
+}
+
 static int loadZone(const DNSName& zone, const string& fname) {
   UeberBackend B;
   DomainInfo di;
@@ -2442,6 +2475,7 @@ try
     cout<<"unset-publish-cds ZONE             Disable sending CDS responses for ZONE"<<endl;
     cout<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
     cout<<"raw-lua-from-content TYPE CONTENT  Display record contents in a form suitable for dnsdist's `SpoofRawAction`"<<endl;
+    cout<<"zonemd-verify-file ZONE FILE       Validate ZONEMD for ZONE"<<endl;
     cout<<desc<<endl;
     return 0;
   }
@@ -2568,6 +2602,18 @@ try
       cerr<<"Error while hashing the supplied password: "<<e.what()<<endl;
       return 1;
     }
+  }
+
+  if(cmds[0] == "zonemd-verify-file") {
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnsutil zonemd-verify-file ZONE FILENAME"<<endl;
+      return 1;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
+
+    auto ret = zonemdVerifyFile(DNSName(cmds[1]), cmds[2]);
+    return ret;
   }
 
   DNSSECKeeper dk;

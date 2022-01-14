@@ -160,7 +160,7 @@ struct sharedDNSSECRecordCompare {
 
 typedef std::set<std::shared_ptr<DNSRecordContent>, sharedDNSSECRecordCompare> sortedRecords_t;
 
-string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, const sortedRecords_t& signRecords, bool processRRSIGLabels = false);
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, const sortedRecords_t& signRecords, bool processRRSIGLabels = false, bool includeRRSIG_RDATA = true);
 
 DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, uint8_t digest);
 
