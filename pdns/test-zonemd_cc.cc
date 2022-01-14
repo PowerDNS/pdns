@@ -3,7 +3,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include "zonemd.hh"
-#include "dnsrecords.hh"
 #include "zoneparser-tng.hh"
 
 BOOST_AUTO_TEST_SUITE(test_zonemd_cc)
@@ -22,7 +21,9 @@ static void testZoneMD(const std::string& zone, const std::string& file, bool ex
   bool validationDone, validationOK;
 
   try {
-    pdns::zonemdVerify(z, zpt, validationDone, validationOK);
+    auto zonemd = pdns::ZoneMD(z);
+    zonemd.readRecords(zpt);
+    zonemd.verify(validationDone, validationOK);
   }
   catch (const PDNSException& e) {
     BOOST_CHECK(ex);

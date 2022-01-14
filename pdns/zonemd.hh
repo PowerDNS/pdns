@@ -21,13 +21,62 @@
  */
 #pragma once
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
-class DNSName;
+#include "dnsname.hh"
+#include "qtype.hh"
+#include "dnsrecords.hh"
+
 class ZoneParserTNG;
 
 namespace pdns
 {
-void zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validationDone, bool& validationOK);
+class ZoneMD
+{
+public:
+  ZoneMD(const DNSName& zone) :
+    d_zone(zone)
+  {}
+  void readRecords(ZoneParserTNG& zpt);
+  void verify(bool& validationDone, bool& validationOK);
+
+private:
+  typedef std::pair<DNSName, QType> RRSetKey_t;
+  typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
+
+  struct CanonRRSetKeyCompare : public std::binary_function<RRSetKey_t, RRSetKey_t, bool>
+  {
+    bool operator()(const RRSetKey_t& a, const RRSetKey_t& b) const
+    {
+      // FIXME surely we can be smarter here
+      if (a.first.canonCompare(b.first)) {
+        return true;
+      }
+      if (b.first.canonCompare(a.first)) {
+        return false;
+      }
+      return a.second < b.second;
+    }
+  };
+
+  typedef std::map<RRSetKey_t, RRVector_t, CanonRRSetKeyCompare> RRSetMap_t;
+
+  struct ZoneMDAndDuplicateFlag
+  {
+    std::shared_ptr<ZONEMDRecordContent> record;
+    bool duplicate;
+  };
+
+  // scheme,hashalgo -> zonemdrecord,duplicate
+  std::map<pair<uint8_t, uint8_t>, ZoneMDAndDuplicateFlag> d_zonemdRecords;
+
+  RRSetMap_t d_resourceRecordSets;
+  std::map<RRSetKey_t, uint32_t> d_resourceRecordSetTTLs;
+
+  std::shared_ptr<SOARecordContent> d_soaRecordContent;
+  const DNSName d_zone;
+};
 
 }

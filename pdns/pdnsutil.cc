@@ -1367,7 +1367,9 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   bool validationDone, validationOK;
 
   try {
-    pdns::zonemdVerify(zone, zpt, validationDone, validationOK);
+    auto zoneMD = pdns::ZoneMD(zone);
+    zoneMD.readRecords(zpt);
+    zoneMD.verify(validationDone, validationOK);
   }
   catch (const PDNSException& ex) {
     cerr << "zonemd-verify-file: " << ex.reason << endl;
