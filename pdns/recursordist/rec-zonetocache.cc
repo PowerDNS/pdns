@@ -30,6 +30,7 @@
 #include "logging.hh"
 #include "threadname.hh"
 #include "rec-lua-conf.hh"
+#include "zonemd.hh"
 
 #ifdef HAVE_LIBCURL
 #include "minicurl.hh"
@@ -58,7 +59,7 @@ struct ZoneData
 
   bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
-  void getByAXFR(const RecZoneToCache::Config&);
+  pdns::ZoneMD::Result getByAXFR(const RecZoneToCache::Config&);
   void ZoneToCache(const RecZoneToCache::Config& config, uint64_t gen);
 };
 
@@ -125,7 +126,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
   }
 }
 
-void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
+pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config)
 {
   ComboAddress primary = ComboAddress(config.d_sources.at(0), 53);
   uint16_t axfrTimeout = config.d_timeout;
@@ -142,8 +143,12 @@ void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
 
+  vector<DNSRecord> v;
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
+      if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+        v.push_back(dr);
+      }
       parseDRForCache(dr);
     }
     axfrNow = time(nullptr);
@@ -151,6 +156,19 @@ void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
       throw std::runtime_error("Total AXFR time for zoneToCache exceeded!");
     }
   }
+  if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+    auto zonemd = pdns::ZoneMD(d_zone);
+    zonemd.readRecords(v);
+    bool validationDone, validationSuccess;
+    zonemd.verify(validationDone, validationSuccess);
+    if (!validationDone) {
+      return pdns::ZoneMD::Result::NoValidationDone;
+    }
+    if (!validationSuccess) {
+      return pdns::ZoneMD::Result::ValidationFailure;
+    }
+  }
+  return pdns::ZoneMD::Result::OK;
 }
 
 static std::vector<std::string> getLinesFromFile(const std::string& file)
@@ -201,9 +219,10 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
 
+  pdns::ZoneMD::Result result = pdns::ZoneMD::Result::OK;
   if (config.d_method == "axfr") {
     d_log->info("Getting zone by AXFR");
-    getByAXFR(config);
+    result = getByAXFR(config);
   }
   else {
     vector<string> lines;
@@ -223,6 +242,30 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
     while (zpt.get(drr)) {
       DNSRecord dr(drr);
       parseDRForCache(dr);
+    }
+    // XXX ZONEMD processing
+  }
+
+  if (config.d_zonemd == pdns::ZoneMD::Config::Required && result != pdns::ZoneMD::Result::OK) {
+    // We do not accept NoValidationDone in this case
+    throw PDNSException("ZoneMD validation failure");
+    return;
+  }
+  if (config.d_zonemd == pdns::ZoneMD::Config::Process && result == pdns::ZoneMD::Result::ValidationFailure) {
+    throw PDNSException("ZoneMD validation failure");
+    return;
+  }
+  if (config.d_zonemd == pdns::ZoneMD::Config::LogOnly) {
+    switch (result) {
+    case pdns::ZoneMD::Result::ValidationFailure:
+      d_log->info("ZoneMD failure (ignored)");
+      break;
+    case pdns::ZoneMD::Result::NoValidationDone:
+      d_log->info("No ZoneMD validation done");
+      break;
+    case pdns::ZoneMD::Result::OK:
+      d_log->info("ZoneMD validation succeeded");
+      break;
     }
   }
 

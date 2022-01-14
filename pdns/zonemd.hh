@@ -36,10 +36,14 @@ namespace pdns
 class ZoneMD
 {
 public:
+  enum class Config: uint8_t { Ignore, Process, LogOnly, Required };
+  enum class Result: uint8_t { OK, NoValidationDone, ValidationFailure };
+
   ZoneMD(const DNSName& zone) :
     d_zone(zone)
   {}
   void readRecords(ZoneParserTNG& zpt);
+  void readRecords(const std::vector<DNSRecord>& records);
   void verify(bool& validationDone, bool& validationOK);
 
 private:

@@ -206,6 +206,7 @@ pdns_recursor_SOURCES = \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
 	xpf.cc xpf.hh \
+	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
@@ -346,6 +347,7 @@ testrunner_SOURCES = \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
 	xpf.cc xpf.hh \
+	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
