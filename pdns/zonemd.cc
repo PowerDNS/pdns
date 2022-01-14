@@ -51,7 +51,6 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
       continue;
     }
     if (dnsResourceRecord.qtype == QType::SOA && soaRecordContent) {
-      // XXX skip extra SOA?
       continue;
     }
     std::shared_ptr<DNSRecordContent> drc;
@@ -73,7 +72,7 @@ void pdns::zonemdVerify(const DNSName& zone, ZoneParserTNG& zpt, bool& validatio
       auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
       auto inserted = zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
       if (!inserted.second) {
-        // Mark as duplicate;
+        // Mark as duplicate
         inserted.first->second.duplicate = true;
       }
     }

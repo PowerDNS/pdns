@@ -84,7 +84,7 @@ public:
 
   ~SHADigest()
   {
-    // No free of md needed afaik
+    // No free of md needed and mdctx is cleaned up by unique_ptr
   }
 
   void process(const std::string& msg)
