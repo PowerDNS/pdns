@@ -577,6 +577,7 @@ uint64_t getCPUTimeSystem(const std::string&);
 uint64_t getCPUIOWait(const std::string&);
 uint64_t getCPUSteal(const std::string&);
 std::string getMACAddress(const ComboAddress& ca);
+int getMACAddress(const ComboAddress& ca, char* dest, size_t len);
 
 template<typename T>
 const T& defTer(const T& a, const T& b)
