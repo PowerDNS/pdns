@@ -36,6 +36,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   const auto action = DNSAction::Action::Drop;
   const std::string reason = "Exceeded query rate";
 
+  g_rings.reset();
+  g_rings.init();
+
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
@@ -177,6 +180,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6) {
   dbrg.setQuiet(true);
   dbrg.setMasks(32, 64, 0);
 
+  g_rings.reset();
+  g_rings.init();
+
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
 
@@ -276,6 +282,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
   dbrg.setQuiet(true);
   /* split v4 by ports using a  /2 (0 - 16383, 16384 - 32767, 32768 - 49151, 49152 - 65535) */
   dbrg.setMasks(32, 128, 2);
+
+  g_rings.reset();
+  g_rings.init();
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
@@ -401,15 +410,14 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
   /* 100k entries, one shard */
+  g_rings.reset();
   g_rings.setCapacity(1000000, 1);
+  g_rings.init();
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
   const auto action = DNSAction::Action::Drop;
   const std::string reason = "Exceeded query rate";
-
-  /* 100k entries, one shard */
-  g_rings.setCapacity(1000000, 1);
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
@@ -465,6 +473,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
+  g_rings.reset();
+  g_rings.init();
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQTypeRate(QType::AAAA, 50, 0, numberOfSeconds, reason, blockDuration, action);
@@ -650,6 +660,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
+  g_rings.reset();
+  g_rings.init();
+
   /* block above 0.2 ServFail/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
   dbrg.setRCodeRatio(rcode, 0.2, 0, numberOfSeconds, reason, blockDuration, action, 51);
 
@@ -769,6 +782,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
+  g_rings.reset();
+  g_rings.init();
+
   /* block above 10kB/s for numberOfSeconds seconds, no warning */
   dbrg.setResponseByteRate(10000, 0, numberOfSeconds, reason, blockDuration, action);
 
@@ -839,6 +855,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
+
+  g_rings.reset();
+  g_rings.init();
 
   /* warn above 20 qps for numberOfSeconds seconds, block above 50 qps */
   dbrg.setQueryRate(50, 20, numberOfSeconds, reason, blockDuration, action);
@@ -1007,6 +1026,9 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
 
+  g_rings.reset();
+  g_rings.init();
+
   {
     /* insert just above 50 qps from the two clients in the last 10s
        this should trigger the rule for the first one but not the second one */
@@ -1054,8 +1076,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
   const auto action = DNSAction::Action::Drop;
   const std::string reason = "Exceeded query rate";
 
+  g_rings.reset();
   /* 10M entries, only one shard */
   g_rings.setCapacity(10000000, 1);
+  g_rings.init();
 
   {
     DynBlockRulesGroup dbrg;

@@ -2543,6 +2543,8 @@ int main(int argc, char** argv)
 
     g_configurationDone = true;
 
+    g_rings.init();
+
     for(auto& frontend : g_frontends) {
       setUpLocalBind(frontend);
 

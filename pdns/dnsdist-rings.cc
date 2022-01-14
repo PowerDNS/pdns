@@ -24,6 +24,48 @@
 
 #include "dnsdist-rings.hh"
 
+void Rings::setCapacity(size_t newCapacity, size_t numberOfShards)
+{
+  if (d_initialized) {
+    throw std::runtime_error("Rings::setCapacity() should not be called once the rings have been initialized");
+  }
+  d_capacity = newCapacity;
+  d_numberOfShards = numberOfShards;
+}
+
+void Rings::init()
+{
+  if (d_initialized.exchange(true)) {
+    throw std::runtime_error("Rings::init() should only be called once");
+  }
+
+  if (d_numberOfShards <= 1) {
+    d_nbLockTries = 0;
+  }
+
+  d_shards.resize(d_numberOfShards);
+
+  /* resize all the rings */
+  for (auto& shard : d_shards) {
+    shard = std::make_unique<Shard>();
+    shard->queryRing.lock()->set_capacity(d_capacity / d_numberOfShards);
+    shard->respRing.lock()->set_capacity(d_capacity / d_numberOfShards);
+  }
+
+  /* we just recreated the shards so they are now empty */
+  d_nbQueryEntries = 0;
+  d_nbResponseEntries = 0;
+}
+
+void Rings::setNumberOfLockRetries(size_t retries)
+{
+  if (d_numberOfShards <= 1) {
+    d_nbLockTries = 0;
+  } else {
+    d_nbLockTries = retries;
+  }
+}
+
 size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
