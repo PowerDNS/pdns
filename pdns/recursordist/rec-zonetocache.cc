@@ -60,6 +60,7 @@ struct ZoneData
   bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
   pdns::ZoneMD::Result getByAXFR(const RecZoneToCache::Config&);
+  pdns::ZoneMD::Result processLines(const std::vector<std::string>& lines, const RecZoneToCache::Config& config);
   void ZoneToCache(const RecZoneToCache::Config& config, uint64_t gen);
 };
 
@@ -208,6 +209,36 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
+pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config)
+{
+  DNSResourceRecord drr;
+  ZoneParserTNG zpt(lines, d_zone);
+  zpt.setMaxGenerateSteps(1);
+  zpt.setMaxIncludes(0);
+
+  std::vector<DNSRecord> v;
+  while (zpt.get(drr)) {
+    DNSRecord dr(drr);
+    if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+      v.push_back(dr);
+    }
+    parseDRForCache(dr);
+  }
+  if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+    auto zonemd = pdns::ZoneMD(d_zone);
+    zonemd.readRecords(v);
+    bool validationDone, validationSuccess;
+    zonemd.verify(validationDone, validationSuccess);
+    if (!validationDone) {
+      return pdns::ZoneMD::Result::NoValidationDone;
+    }
+    if (!validationSuccess) {
+      return pdns::ZoneMD::Result::ValidationFailure;
+    }
+  }
+  return pdns::ZoneMD::Result::OK;
+}
+
 void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t configGeneration)
 {
   if (config.d_sources.size() > 1) {
@@ -234,16 +265,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
       d_log->info("Getting zone from file");
       lines = getLinesFromFile(config.d_sources.at(0));
     }
-    DNSResourceRecord drr;
-    ZoneParserTNG zpt(lines, d_zone);
-    zpt.setMaxGenerateSteps(1);
-    zpt.setMaxIncludes(0);
-
-    while (zpt.get(drr)) {
-      DNSRecord dr(drr);
-      parseDRForCache(dr);
-    }
-    // XXX ZONEMD processing
+    result = processLines(lines, config);
   }
 
   if (config.d_zonemd == pdns::ZoneMD::Config::Required && result != pdns::ZoneMD::Result::OK) {

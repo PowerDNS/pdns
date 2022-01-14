@@ -182,6 +182,7 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
+	sha.hh \
 	sholder.hh \
 	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
