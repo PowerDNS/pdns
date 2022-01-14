@@ -38,16 +38,17 @@ otherwise, obfuscate the response IP address
 #include "config.h"
 #endif
 
-#ifdef HAVE_IPCIPHER
+#include "namespaces.hh"
 #include "statbag.hh"
+StatBag S;
+
+#ifdef HAVE_IPCIPHER
 #include "dnspcap.hh"
 #include "iputils.hh"
 #include "ipcipher.hh"
-#include "namespaces.hh"
 #include <boost/program_options.hpp>
 #include "base64.hh"
 
-StatBag S;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
