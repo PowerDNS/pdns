@@ -22,6 +22,7 @@ jobs:
           - el-8
           - centos-8-stream
           - centos-9-stream
+          - ubuntu-jammy
           - debian-bookworm
       fail-fast: false
     steps:
