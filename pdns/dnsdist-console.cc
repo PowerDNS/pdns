@@ -878,7 +878,9 @@ static void controlClientThread(ConsoleConnection&& conn)
       writen2(conn.getFD(), response.c_str(), response.length());
     }
     if (g_logConsoleConnections) {
-      infolog("Closed control connection from %s", conn.getClient().toStringWithPort());
+      struct timeval tv;
+      gettimeofday(&tv, nullptr);
+      infolog("Closed control connection from %s", conn.getClient().toStringWithPort(), tv.tv_sec, tv.tv_usec);
     }
   }
   catch (const std::exception& e)
@@ -914,7 +916,9 @@ void controlThread(int fd, ComboAddress local)
       try {
         ConsoleConnection conn(client, sock);
         if (g_logConsoleConnections) {
-          warnlog("Got control connection from %s", client.toStringWithPort());
+          struct timeval tv;
+          gettimeofday(&tv, nullptr);
+          warnlog("Got control connection from %s at %d.%d", client.toStringWithPort(), tv.tv_sec, tv.tv_usec);
         }
 
         std::thread t(controlClientThread, std::move(conn));
