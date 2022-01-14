@@ -1,0 +1,35 @@
+# First do the source builds
+@INCLUDE Dockerfile.target.sdist
+
+@IF [ ${BUILDER_TARGET} = ubuntu-jammy ]
+FROM ubuntu:jammy as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = ubuntu-jammy-amd64 ]
+FROM amd64/ubuntu:jammy as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = ubuntu-jammy-arm64 ]
+FROM arm64v8/ubuntu:jammy as dist-base
+@ENDIF
+ARG BUILDER_CACHE_BUSTER=
+ARG APT_URL
+RUN apt-get update && apt-get -y dist-upgrade
+
+@INCLUDE Dockerfile.debbuild-prepare
+
+@IF [ -n "$M_authoritative$M_all" ]
+ADD builder-support/debian/authoritative/debian-buster/ pdns-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@IF [ -n "$M_recursor$M_all" ]
+ADD builder-support/debian/recursor/debian-buster/ pdns-recursor-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@IF [ -n "$M_dnsdist$M_all" ]
+ADD builder-support/debian/dnsdist/debian-buster/ dnsdist-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@INCLUDE Dockerfile.debbuild
+
+# Do a test install and verify
+# Can be skipped with skiptests=1 in the environment
+# @EXEC [ "$skiptests" = "" ] && include Dockerfile.debtest
