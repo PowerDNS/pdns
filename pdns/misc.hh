@@ -381,7 +381,7 @@ typedef unsigned long AtomicCounterInner;
 typedef std::atomic<AtomicCounterInner> AtomicCounter ;
 
 // FIXME400 this should probably go? 
-struct CIStringCompare: public std::binary_function<string, string, bool>
+struct CIStringCompare
 {
   bool operator()(const string& a, const string& b) const
   {
@@ -405,7 +405,7 @@ struct CIStringComparePOSIX
    }
 };
 
-struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>
+struct CIStringPairCompare
 {
   bool operator()(const pair<string, uint16_t>& a, const pair<string, uint16_t>& b) const
   {
