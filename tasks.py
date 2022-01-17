@@ -512,6 +512,14 @@ def test_bulk_recursor(c, threads, mthreads, shards):
         c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
         c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 100 {threads} {mthreads} {shards}')
 
+@task
+def install_swagger_tools(c):
+    c.run('npm install -g api-spec-converter')
+
+@task
+def swagger_syntax_check(c):
+    c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
+
 # this is run always
 def setup():
     if '/usr/lib/ccache' not in os.environ['PATH']:
