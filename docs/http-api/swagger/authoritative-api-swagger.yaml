@@ -869,7 +869,7 @@ paths:
       - name: server_id
         in: path
         required: true
-        description: 'The id of the server to retrieve the key from'
+        description: 'The id of the server to manage the list of autoprimaries on'
         type: string
     get:
       summary: 'Get a list of autoprimaries'
@@ -905,7 +905,7 @@ paths:
       - name: server_id
         in: path
         required: true
-        description: 'The id of the server to retrieve to delete the autoprimary from'
+        description: 'The id of the server to delete the autoprimary from'
         type: string
       - name: ip
         in: path
