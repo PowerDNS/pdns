@@ -17,9 +17,9 @@
 #endif
 #include <openssl/err.h>
 #include <openssl/ocsp.h>
+#include <openssl/pkcs12.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-#include <openssl/pkcs12.h>
 #include <fcntl.h>
 
 #ifdef HAVE_LIBSODIUM
@@ -812,7 +812,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
       }
       auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
       auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
-      auto ca = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, sk_X509_free);
+      auto ca = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, [](STACK_OF(X509)* st){ sk_X509_free(st); });
 
       if (SSL_CTX_use_cert_and_key(ctx.get(), cert.get(), key.get(), ca.get(), 1) != 1) {
         ERR_print_errors_fp(stderr);
