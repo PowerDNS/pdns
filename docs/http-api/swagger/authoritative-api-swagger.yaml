@@ -889,21 +889,9 @@ paths:
       tags:
         - autoprimary
       parameters:
-        - name: ip
-          description: IP address for autoprimary server
+        - name: autoprimary
+          description: autoprimary entry to add
           required: true
-          in: body
-          schema:
-            $ref: '#/definitions/Autoprimary'
-        - name: nameserver
-          description: DNS name for autoprimary server
-          required: true
-          in: body
-          schema:
-            $ref: '#/definitions/Autoprimary'
-        - name: account
-          description: Optional account name
-          required: false
           in: body
           schema:
             $ref: '#/definitions/Autoprimary'
