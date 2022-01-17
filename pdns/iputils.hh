@@ -143,7 +143,7 @@ union ComboAddress {
     }
   };
 
-  struct addressOnlyLessThan: public std::binary_function<ComboAddress, ComboAddress, bool>
+  struct addressOnlyLessThan
   {
     bool operator()(const ComboAddress& a, const ComboAddress& b) const
     {
@@ -158,7 +158,7 @@ union ComboAddress {
     }
   };
 
-  struct addressOnlyEqual: public std::binary_function<ComboAddress, ComboAddress, bool>
+  struct addressOnlyEqual
   {
     bool operator()(const ComboAddress& a, const ComboAddress& b) const
     {
