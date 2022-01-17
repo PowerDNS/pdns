@@ -179,10 +179,21 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
+  swagger-syntax-check:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-swagger-tools
+      - run: inv swagger-syntax-check
 
   collect:
     needs:
       - build-auth
+      - swagger-syntax-check
       - test-auth-api
       - test-auth-backend
       - test-ixfrdist
