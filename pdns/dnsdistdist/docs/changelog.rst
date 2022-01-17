@@ -2,6 +2,17 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.0
+  :released: 17th of January 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11156
+    :tickets: 11131
+
+    Test the correct member in DynBlockRatioRule::warningRatioExceeded (Doug Freed)
+
+.. changelog::
   :version: 1.7.0-rc1
   :released: 22nd of December 2021
 
