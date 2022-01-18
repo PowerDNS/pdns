@@ -21,6 +21,7 @@
  */
 
 #include "rec-zonetocache.hh"
+#include <algorithm>
 
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
@@ -31,6 +32,7 @@
 #include "threadname.hh"
 #include "rec-lua-conf.hh"
 #include "zonemd.hh"
+#include "validate.hh"
 
 #ifdef HAVE_LIBCURL
 #include "minicurl.hh"
@@ -59,9 +61,10 @@ struct ZoneData
 
   bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
-  pdns::ZoneMD::Result getByAXFR(const RecZoneToCache::Config&);
-  pdns::ZoneMD::Result processLines(const std::vector<std::string>& lines, const RecZoneToCache::Config& config);
+  pdns::ZoneMD::Result getByAXFR(const RecZoneToCache::Config&, pdns::ZoneMD&);
+  pdns::ZoneMD::Result processLines(const std::vector<std::string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD&);
   void ZoneToCache(const RecZoneToCache::Config& config, uint64_t gen);
+  vState dnssecValidate(pdns::ZoneMD&) const;
 };
 
 bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype) const
@@ -127,7 +130,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
   }
 }
 
-pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config)
+pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
 {
   ComboAddress primary = ComboAddress(config.d_sources.at(0), 53);
   uint16_t axfrTimeout = config.d_timeout;
@@ -144,7 +147,6 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config)
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
 
-  auto zonemd = pdns::ZoneMD(d_zone);
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
       if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
@@ -207,14 +209,13 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
-pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config)
+pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
 {
   DNSResourceRecord drr;
   ZoneParserTNG zpt(lines, d_zone);
   zpt.setMaxGenerateSteps(1);
   zpt.setMaxIncludes(0);
 
-  auto zonemd = pdns::ZoneMD(d_zone);
   while (zpt.get(drr)) {
     DNSRecord dr(drr);
     if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
@@ -235,21 +236,76 @@ pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const R
   return pdns::ZoneMD::Result::OK;
 }
 
+vState ZoneData::dnssecValidate(pdns::ZoneMD &zonemd) const
+{
+  vector<DNSRecord> dsRecords;
+  vState dsState = vState::Indeterminate;
+
+  // XXX TA/NTA processsing, plus we have nog guarantee the DS is
+  // is in the cache. We assume for now it's cached magically
+
+  // Get the DS records
+  if (g_recCache->get(d_now, d_zone, QType::DS,  false, &dsRecords, ComboAddress(), false, boost::none, nullptr, nullptr, nullptr, &dsState) <= 0) {
+    return vState::BogusUnableToGetDSs;
+  }
+  if (dsState != vState::Secure) {
+    return vState::BogusUnableToGetDSs; // XXX is this the right status?
+  }
+
+  // Collect DNSKEYs and validate them using the DS records
+  dsmap_t dsRecordContents;
+  for (const auto& ds : dsRecords) {
+    dsRecordContents.insert(*getRR<DSRecordContent>(ds).get());
+  }
+
+  skeyset_t  dnsKeys;
+  sortedRecords_t records;
+  if (zonemd.getDNSKEYs().size() == 0) {
+    return vState::BogusUnableToGetDNSKEYs;
+  }
+  for (const auto& key: zonemd.getDNSKEYs()) {
+    dnsKeys.emplace(key);
+    records.emplace(key);
+  }
+
+  skeyset_t validKeys;
+  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsRecordContents, dnsKeys, records, zonemd.getRRSIGs(), validKeys);
+  if (dnsKeyState != vState::Secure) {
+    return dnsKeyState;
+  }
+
+  if (validKeys.size() == 0) {
+    return vState::BogusNoValidDNSKEY;
+  }
+  if (zonemd.getZONEMDs().size() == 0) {
+    // XXX is this the right status? Also per RFC we should actuelly prove non-existence of ZONEMD
+    // as downgrade attacks could be possible by an in the middle party zapping ZONEMDs
+    return dnsKeyState;
+  }
+  records.clear();
+
+  // Collect the ZONEMD records and validate them using the validted DNSSKEYs
+  for (const auto& rec : zonemd.getZONEMDs()) {
+    records.emplace(rec);
+  }
+  return validateWithKeySet(d_now, d_zone,  records, zonemd.getRRSIGs(), validKeys);
+}
+
 void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t configGeneration)
 {
   if (config.d_sources.size() > 1) {
     d_log->info("Multiple sources not yet supported, using first");
   }
 
-  // We do not do validation, it will happen on-demand if an Indeterminate record is encountered when the caches are queried
   // First scan all records collecting info about delegations ans sigs
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
 
+  auto zonemd = pdns::ZoneMD(DNSName(config.d_zone));
   pdns::ZoneMD::Result result = pdns::ZoneMD::Result::OK;
   if (config.d_method == "axfr") {
     d_log->info("Getting zone by AXFR");
-    result = getByAXFR(config);
+    result = getByAXFR(config, zonemd);
   }
   else {
     vector<string> lines;
@@ -261,28 +317,46 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
       d_log->info("Getting zone from file");
       lines = getLinesFromFile(config.d_sources.at(0));
     }
-    result = processLines(lines, config);
+    result = processLines(lines, config, zonemd);
+  }
+
+  if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC && g_dnssecmode == DNSSECMode::Off) {
+    throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched of but required by ztc");
+  }
+
+  // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
+  if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC  ||
+      (g_dnssecmode == DNSSECMode::ValidateAll && config.d_zonemd != pdns::ZoneMD::Config::RequiredButIgnoreDNSSEC)) {
+    auto validationStatus = dnssecValidate(zonemd);
+    d_log->info("ZONEMD DNSSEC validation done", "validationStatus", Logging::Loggable(validationStatus));
+    if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC) {
+      if (validationStatus != vState::Secure) {
+        throw PDNSException("ZONEMD required DNSSEC validation failed");
+      }
+    }
+    // XXX handle other cases
   }
 
   if (pdns::ZoneMD::validationRequired(config.d_zonemd) && result != pdns::ZoneMD::Result::OK) {
     // We do not accept NoValidationDone in this case
-    throw PDNSException("ZoneMD validation failure");
+    throw PDNSException("ZONEMD validation failure");
     return;
   }
   if (config.d_zonemd == pdns::ZoneMD::Config::Process && result == pdns::ZoneMD::Result::ValidationFailure) {
-    throw PDNSException("ZoneMD validation failure");
+    throw PDNSException("ZONEMD digest validation failure");
     return;
   }
+
   if (config.d_zonemd == pdns::ZoneMD::Config::LogOnly) {
     switch (result) {
     case pdns::ZoneMD::Result::ValidationFailure:
-      d_log->info("ZoneMD failure (ignored)");
+      d_log->info("ZONEMD digest failure (ignored)");
       break;
     case pdns::ZoneMD::Result::NoValidationDone:
-      d_log->info("No ZoneMD validation done");
+      d_log->info("No ZONEMD digest validation done");
       break;
     case pdns::ZoneMD::Result::OK:
-      d_log->info("ZoneMD validation succeeded");
+      d_log->info("ZONEMD digest validation succeeded");
       break;
     }
   }

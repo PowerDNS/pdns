@@ -28,15 +28,27 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
       std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "|" + dnsResourceRecord.qtype.toString() + "': " + e.what();
       throw PDNSException(err);
     }
-    if (dnsResourceRecord.qtype == QType::SOA && dnsResourceRecord.qname == d_zone) {
-      d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(drc);
-    }
-    if (dnsResourceRecord.qtype == QType::ZONEMD && dnsResourceRecord.qname == d_zone) {
-      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
-      auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
-      if (!inserted.second) {
-        // Mark as duplicate
-        inserted.first->second.duplicate = true;
+
+    if (dnsResourceRecord.qname == d_zone) {
+      switch (dnsResourceRecord.qtype) {
+      case QType::SOA:
+        d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(drc);
+        break;
+      case QType::DNSKEY:
+        d_dnskeys.emplace(std::dynamic_pointer_cast<DNSKEYRecordContent>(drc));
+        break;
+      case QType::ZONEMD :{
+        auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
+        auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
+        if (!inserted.second) {
+          // Mark as duplicate
+          inserted.first->second.duplicate = true;
+        }
+        break;
+      }
+      case QType::RRSIG:
+        d_rrsigs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(drc));
+        break;
       }
     }
     RRSetKey_t key = std::pair(dnsResourceRecord.qname, dnsResourceRecord.qtype);
@@ -56,20 +68,31 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
 {
   if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
     return;
-    }
+  }
   if (record.d_type == QType::SOA && d_soaRecordContent) {
     return;
   }
 
-  if (record.d_type == QType::SOA && record.d_name == d_zone) {
-    d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
-  }
-  if (record.d_type == QType::ZONEMD && record.d_name == d_zone) {
-    auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
-    auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
-    if (!inserted.second) {
-      // Mark as duplicate
-      inserted.first->second.duplicate = true;
+  if (record.d_name == d_zone) {
+    switch (record.d_type) {
+    case QType::SOA:
+      d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
+      break;
+    case QType::DNSKEY:
+      d_dnskeys.emplace(std::dynamic_pointer_cast<DNSKEYRecordContent>(record.d_content));
+      break;
+    case QType::ZONEMD: {
+      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
+      auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
+      if (!inserted.second) {
+        // Mark as duplicate
+        inserted.first->second.duplicate = true;
+      }
+      break;
+    }
+    case QType::RRSIG:
+      d_rrsigs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content));
+      break;
     }
   }
   RRSetKey_t key = std::pair(record.d_name, record.d_type);
@@ -145,6 +168,10 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       sorted.insert(rr);
     }
 
+    if (sorted.empty()) {
+      // continue;
+    }
+    
     if (qtype != QType::RRSIG) {
       RRSIGRecordContent rrc;
       rrc.d_originalttl = d_resourceRecordSetTTLs[rrset.first];

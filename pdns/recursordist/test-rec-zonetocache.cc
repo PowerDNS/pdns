@@ -71,6 +71,7 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
 
   RecZoneToCache::Config config{".", "file", {temp}, ComboAddress(), TSIGTriplet()};
   config.d_refreshPeriod = 0;
+  config.d_retryOnError = 0;
 
   // Start with a new, empty cache
   g_recCache = std::make_unique<MemRecursorCache>();

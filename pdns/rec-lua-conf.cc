@@ -452,7 +452,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
             { "logonly",  pdns::ZoneMD::Config::LogOnly},
             { "required",  pdns::ZoneMD::Config::Required},
             { "requiredWithDNSSEC",  pdns::ZoneMD::Config::RequiredWithDNSSEC},
-            { "requiredIgnoreDNSSEC",  pdns::ZoneMD::Config::RequiredIgnoreDNSSEC},
+            { "requiredButIgnoreDNSSEC",  pdns::ZoneMD::Config::RequiredButIgnoreDNSSEC},
             };
           auto it = nameToVal.find(zonemdValidation);
           if (it == nameToVal.end()) {

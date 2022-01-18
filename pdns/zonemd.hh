@@ -43,7 +43,7 @@ public:
     LogOnly,
     Required,
     RequiredWithDNSSEC,
-    RequiredIgnoreDNSSEC,
+    RequiredButIgnoreDNSSEC,
   };
   enum class Result : uint8_t
   {
@@ -62,7 +62,29 @@ public:
 
   static bool validationRequired(Config config)
   {
-    return config == Config::Required || config == Config::RequiredWithDNSSEC || config == Config::RequiredIgnoreDNSSEC;
+    return config == Config::Required || config == Config::RequiredWithDNSSEC || config == Config::RequiredButIgnoreDNSSEC;
+  }
+
+  // Return the zone's apex DNSKEYs
+  const std::set<shared_ptr<DNSKEYRecordContent>>& getDNSKEYs() const
+  {
+    return d_dnskeys;
+  }
+
+  // Return the zone's apex RRSIGs
+  const std::vector<shared_ptr<RRSIGRecordContent>>& getRRSIGs() const
+  {
+    return d_rrsigs;
+  }
+
+  // Return the zone's apex ZONEMDs
+  std::vector<shared_ptr<ZONEMDRecordContent>> getZONEMDs() const
+  {
+    std::vector<shared_ptr<ZONEMDRecordContent>> ret;
+    for (const auto& zonemd : d_zonemdRecords) {
+      ret.emplace_back(zonemd.second.record);
+    }
+    return ret;
   }
 
 private:
@@ -99,6 +121,8 @@ private:
   std::map<RRSetKey_t, uint32_t> d_resourceRecordSetTTLs;
 
   std::shared_ptr<SOARecordContent> d_soaRecordContent;
+  std::set<shared_ptr<DNSKEYRecordContent>> d_dnskeys;
+  std::vector<shared_ptr<RRSIGRecordContent>> d_rrsigs;
   const DNSName d_zone;
 };
 
