@@ -144,11 +144,11 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config)
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
 
-  vector<DNSRecord> v;
+  auto zonemd = pdns::ZoneMD(d_zone);
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
       if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
-        v.push_back(dr);
+        zonemd.readRecord(dr);
       }
       parseDRForCache(dr);
     }
@@ -158,8 +158,6 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config)
     }
   }
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
-    auto zonemd = pdns::ZoneMD(d_zone);
-    zonemd.readRecords(v);
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
     if (!validationDone) {
@@ -216,17 +214,15 @@ pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const R
   zpt.setMaxGenerateSteps(1);
   zpt.setMaxIncludes(0);
 
-  std::vector<DNSRecord> v;
+  auto zonemd = pdns::ZoneMD(d_zone);
   while (zpt.get(drr)) {
     DNSRecord dr(drr);
     if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
-      v.push_back(dr);
+      zonemd.readRecord(dr);
     }
     parseDRForCache(dr);
   }
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
-    auto zonemd = pdns::ZoneMD(d_zone);
-    zonemd.readRecords(v);
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
     if (!validationDone) {

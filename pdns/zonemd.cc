@@ -48,28 +48,33 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
 void pdns::ZoneMD::readRecords(const vector<DNSRecord>& records)
 {
   for (auto& record : records) {
-    if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
-      continue;
-    }
-    if (record.d_type == QType::SOA && d_soaRecordContent) {
-      continue;
-    }
-
-    if (record.d_type == QType::SOA && record.d_name == d_zone) {
-      d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
-    }
-    if (record.d_type == QType::ZONEMD && record.d_name == d_zone) {
-      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
-      auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
-      if (!inserted.second) {
-        // Mark as duplicate
-        inserted.first->second.duplicate = true;
-      }
-    }
-    RRSetKey_t key = std::pair(record.d_name, record.d_type);
-    d_resourceRecordSets[key].push_back(record.d_content);
-    d_resourceRecordSetTTLs[key] = record.d_ttl;
+    readRecord(record);
   }
+}
+
+void pdns::ZoneMD::readRecord(const DNSRecord& record)
+{
+  if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
+    return;
+    }
+  if (record.d_type == QType::SOA && d_soaRecordContent) {
+    return;
+  }
+
+  if (record.d_type == QType::SOA && record.d_name == d_zone) {
+    d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
+  }
+  if (record.d_type == QType::ZONEMD && record.d_name == d_zone) {
+    auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
+    auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
+    if (!inserted.second) {
+      // Mark as duplicate
+      inserted.first->second.duplicate = true;
+    }
+  }
+  RRSetKey_t key = std::pair(record.d_name, record.d_type);
+  d_resourceRecordSets[key].push_back(record.d_content);
+  d_resourceRecordSetTTLs[key] = record.d_ttl;
 }
 
 void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)

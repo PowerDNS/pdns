@@ -41,7 +41,9 @@ public:
     Ignore,
     Process,
     LogOnly,
-    Required
+    Required,
+    RequiredWithDNSSEC,
+    RequiredIgnoreDNSSEC,
   };
   enum class Result : uint8_t
   {
@@ -55,6 +57,7 @@ public:
   {}
   void readRecords(ZoneParserTNG& zpt);
   void readRecords(const std::vector<DNSRecord>& records);
+  void readRecord(const DNSRecord& record);
   void verify(bool& validationDone, bool& validationOK);
 
 private:
