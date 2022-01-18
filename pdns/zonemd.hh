@@ -60,6 +60,11 @@ public:
   void readRecord(const DNSRecord& record);
   void verify(bool& validationDone, bool& validationOK);
 
+  static bool validationRequired(Config config)
+  {
+    return config == Config::Required || config == Config::RequiredWithDNSSEC || config == Config::RequiredIgnoreDNSSEC;
+  }
+
 private:
   typedef std::pair<DNSName, QType> RRSetKey_t;
   typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;

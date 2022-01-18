@@ -264,7 +264,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
     result = processLines(lines, config);
   }
 
-  if (config.d_zonemd == pdns::ZoneMD::Config::Required && result != pdns::ZoneMD::Result::OK) {
+  if (pdns::ZoneMD::validationRequired(config.d_zonemd) && result != pdns::ZoneMD::Result::OK) {
     // We do not accept NoValidationDone in this case
     throw PDNSException("ZoneMD validation failure");
     return;

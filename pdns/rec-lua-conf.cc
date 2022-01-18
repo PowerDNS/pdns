@@ -444,6 +444,23 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (have.count("retryOnErrorPeriod")) {
           conf.d_retryOnError = boost::get<uint32_t>(have.at("retryOnErrorPeriod"));
         }
+        if (have.count("zonemdValidation")) {
+          string zonemdValidation = boost::get<string>(have.at("zonemdValidation"));
+          const map<string, pdns::ZoneMD::Config> nameToVal = {
+            { "ignore",  pdns::ZoneMD::Config::Ignore},
+            { "process",  pdns::ZoneMD::Config::Process},
+            { "logonly",  pdns::ZoneMD::Config::LogOnly},
+            { "required",  pdns::ZoneMD::Config::Required},
+            { "requiredWithDNSSEC",  pdns::ZoneMD::Config::RequiredWithDNSSEC},
+            { "requiredIgnoreDNSSEC",  pdns::ZoneMD::Config::RequiredIgnoreDNSSEC},
+            };
+          auto it = nameToVal.find(zonemdValidation);
+          if (it == nameToVal.end()) {
+            throw std::runtime_error(zonemdValidation + " is not a valid value for `zonemdValidation`");
+          } else {
+            conf.d_zonemd = it->second;
+          }
+        }
       }
 
       delayedThreads.ztcConfigs.push_back(conf);
