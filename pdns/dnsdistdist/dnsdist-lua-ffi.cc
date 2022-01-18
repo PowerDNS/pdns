@@ -24,6 +24,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
 #include "dolog.hh"
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
@@ -839,4 +840,360 @@ void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
   if (packet != nullptr) {
     delete packet;
   }
+}
+
+struct dnsdist_ffi_domain_list_t
+{
+  std::vector<std::string> d_domains;
+};
+struct dnsdist_ffi_address_list_t {
+  std::vector<std::string> d_addresses;
+};
+
+const char* dnsdist_ffi_domain_list_get(const dnsdist_ffi_domain_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_domains.size()) {
+    return nullptr;
+  }
+
+  return list->d_domains.at(idx).c_str();
+}
+
+void dnsdist_ffi_domain_list_free(dnsdist_ffi_domain_list_t* list)
+{
+  delete list;
+}
+
+const char* dnsdist_ffi_address_list_get(const dnsdist_ffi_address_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_addresses.size()) {
+    return nullptr;
+  }
+
+  return list->d_addresses.at(idx).c_str();
+}
+
+void dnsdist_ffi_address_list_free(dnsdist_ffi_address_list_t* list)
+{
+  delete list;
+}
+
+size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, const char* addr, dnsdist_ffi_domain_list_t** out)
+{
+  if (poolName == nullptr || addr == nullptr || out == nullptr) {
+    return 0;
+  }
+
+  ComboAddress ca;
+  try {
+    ca = ComboAddress(addr);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+    return 0;
+  }
+
+  const auto localPools = g_pools.getCopy();
+  auto it = localPools.find(poolName);
+  if (it == localPools.end()) {
+    return 0;
+  }
+
+  auto pool = it->second;
+  if (!pool->packetCache) {
+    return 0;
+  }
+
+  auto domains = pool->packetCache->getDomainsContainingRecords(ca);
+  if (domains.size() == 0) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_domain_list_t>();
+  list->d_domains.reserve(domains.size());
+  for (const auto& domain : domains) {
+    try {
+      list->d_domains.push_back(domain.toString());
+    }
+    catch (const std::exception& e) {
+      vinfolog("Error converting domain to string in dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+    }
+  }
+
+  size_t count = list->d_domains.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, const char* domain, dnsdist_ffi_address_list_t** out)
+{
+  if (poolName == nullptr || domain == nullptr || out == nullptr) {
+    return 0;
+  }
+
+  DNSName name;
+  try {
+    name = DNSName(domain);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error parsing domain passed to dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+    return 0;
+  }
+
+  const auto localPools = g_pools.getCopy();
+  auto it = localPools.find(poolName);
+  if (it == localPools.end()) {
+    return 0;
+  }
+
+  auto pool = it->second;
+  if (!pool->packetCache) {
+    return 0;
+  }
+
+  auto addresses = pool->packetCache->getRecordsForDomain(name);
+  if (addresses.size() == 0) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_address_list_t>();
+  list->d_addresses.reserve(addresses.size());
+  for (const auto& addr : addresses) {
+    try {
+      list->d_addresses.push_back(addr.toString());
+    }
+    catch (const std::exception& e) {
+      vinfolog("Error converting address to string in dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+    }
+  }
+
+  size_t count = list->d_addresses.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+struct dnsdist_ffi_ring_entry_list_t
+{
+  struct entry
+  {
+    std::string qname;
+    std::string requestor;
+    std::string macAddr;
+    size_t size;
+    uint16_t qtype;
+    dnsdist::Protocol protocol;
+    bool isResponse;
+  };
+
+  std::vector<entry> d_entries;
+};
+
+bool dnsdist_ffi_ring_entry_is_response(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return false;
+  }
+
+  return list->d_entries.at(idx).isResponse;
+}
+
+const char* dnsdist_ffi_ring_entry_get_name(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).qname.c_str();
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_type(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).qtype;
+
+}
+
+const char* dnsdist_ffi_ring_entry_get_requestor(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).requestor.c_str();
+}
+
+uint8_t dnsdist_ffi_ring_entry_get_protocol(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  //return static_cast<uint8_t>(list->d_entries.at(idx).protocol);
+  #warning FIXME
+  return 0;
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_size(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).size;
+
+}
+
+bool dnsdist_ffi_ring_entry_has_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return false;
+  }
+
+  return !list->d_entries.at(idx).macAddr.empty();
+}
+
+const char* dnsdist_ffi_ring_entry_get_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).macAddr.data();
+
+}
+
+void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t* list)
+{
+  delete list;
+}
+
+template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const T& entry)
+{
+  constexpr bool response = std::is_same_v<T, Rings::Response>;
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  if constexpr (!response) {
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), entry.hasmac ? std::string(entry.macaddress, sizeof(entry.macaddress)) : std::string(), entry.size, entry.qtype, entry.protocol, response};
+    list->d_entries.push_back(std::move(tmp));
+  }
+  else {
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+    list->d_entries.push_back(std::move(tmp));
+  }
+#else
+  dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+  list->d_entries.push_back(std::move(tmp));
+#endif
+}
+
+size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr) {
+    return 0;
+  }
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  for (const auto& shard : g_rings.d_shards) {
+    {
+      auto ql = shard->queryRing.lock();
+      for (const auto& entry : *ql) {
+        addRingEntryToList(list, entry);
+      }
+    }
+    {
+      auto rl = shard->respRing.lock();
+      for (const auto& entry : *rl) {
+        addRingEntryToList(list, entry);
+      }
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr || addr == nullptr) {
+    return 0;
+  }
+  ComboAddress ca;
+  try {
+    ca = ComboAddress(addr);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.what());
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  auto compare = ComboAddress::addressOnlyEqual();
+  for (const auto& shard : g_rings.d_shards) {
+    {
+      auto ql = shard->queryRing.lock();
+      for (const auto& entry : *ql) {
+        if (!compare(entry.requestor, ca)) {
+          continue;
+        }
+
+        addRingEntryToList(list, entry);
+      }
+    }
+    {
+      auto rl = shard->respRing.lock();
+      for (const auto& entry : *rl) {
+        if (!compare(entry.requestor, ca)) {
+          continue;
+        }
+
+        addRingEntryToList(list, entry);
+      }
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr || addr == nullptr) {
+    return 0;
+  }
+
+#if !defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  return 0;
+#else
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  for (const auto& shard : g_rings.d_shards) {
+    auto ql = shard->queryRing.lock();
+    for (const auto& entry : *ql) {
+      if (memcmp(addr, entry.macaddress, sizeof(entry.macaddress)) != 0) {
+        continue;
+      }
+
+      addRingEntryToList(list, entry);
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+#endif
 }
