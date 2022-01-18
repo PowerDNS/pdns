@@ -864,3 +864,225 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
   }
   return count;
 }
+
+struct dnsdist_ffi_ring_entry_list_t
+{
+  struct entry
+  {
+    std::string qname;
+    std::string requestor;
+    std::string macAddr;
+    size_t size;
+    uint16_t qtype;
+    dnsdist::Protocol protocol;
+    bool isResponse;
+  };
+
+  std::vector<entry> d_entries;
+};
+
+bool dnsdist_ffi_ring_entry_is_response(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return false;
+  }
+
+  return list->d_entries.at(idx).isResponse;
+}
+
+const char* dnsdist_ffi_ring_entry_get_name(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).qname.c_str();
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_type(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).qtype;
+
+}
+
+const char* dnsdist_ffi_ring_entry_get_requestor(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).requestor.c_str();
+}
+
+uint8_t dnsdist_ffi_ring_entry_get_protocol(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  //return static_cast<uint8_t>(list->d_entries.at(idx).protocol);
+  #warning FIXME
+  return 0;
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_size(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).size;
+
+}
+
+bool dnsdist_ffi_ring_entry_has_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return false;
+  }
+
+  return !list->d_entries.at(idx).macAddr.empty();
+}
+
+const char* dnsdist_ffi_ring_entry_get_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).macAddr.data();
+
+}
+
+void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t* list)
+{
+  delete list;
+}
+
+template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const T& entry)
+{
+  constexpr bool response = std::is_same_v<T, Rings::Response>;
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  if constexpr (!response) {
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string(), entry.size, entry.qtype, entry.protocol, response};
+    list->d_entries.push_back(std::move(tmp));
+  }
+  else {
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+    list->d_entries.push_back(std::move(tmp));
+  }
+#else
+  dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+  list->d_entries.push_back(std::move(tmp));
+#endif
+}
+
+size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr) {
+    return 0;
+  }
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  for (const auto& shard : g_rings.d_shards) {
+    {
+      auto ql = shard->queryRing.lock();
+      for (const auto& entry : *ql) {
+        addRingEntryToList(list, entry);
+      }
+    }
+    {
+      auto rl = shard->respRing.lock();
+      for (const auto& entry : *rl) {
+        addRingEntryToList(list, entry);
+      }
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr || addr == nullptr) {
+    return 0;
+  }
+  ComboAddress ca;
+  try {
+    ca = ComboAddress(addr);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.what());
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  auto compare = ComboAddress::addressOnlyEqual();
+  for (const auto& shard : g_rings.d_shards) {
+    {
+      auto ql = shard->queryRing.lock();
+      for (const auto& entry : *ql) {
+        if (!compare(entry.requestor, ca)) {
+          continue;
+        }
+
+        addRingEntryToList(list, entry);
+      }
+    }
+    {
+      auto rl = shard->respRing.lock();
+      for (const auto& entry : *rl) {
+        if (!compare(entry.requestor, ca)) {
+          continue;
+        }
+
+        addRingEntryToList(list, entry);
+      }
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_entry_list_t** out)
+{
+  if (out == nullptr || addr == nullptr) {
+    return 0;
+  }
+
+#if !defined(DNSDIST_RINGS_WITH_MACADDRESS)
+  return 0;
+#else
+  auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+
+  for (const auto& shard : g_rings.d_shards) {
+    auto ql = shard->queryRing.lock();
+    for (const auto& entry : *ql) {
+      if (memcmp(addr, entry.macaddress.data(), entry.macaddress.size()) != 0) {
+        continue;
+      }
+
+      addRingEntryToList(list, entry);
+    }
+  }
+
+  auto count = list->d_entries.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+#endif
+}
