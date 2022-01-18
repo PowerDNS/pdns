@@ -55,6 +55,12 @@ public:
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
+
+  /* get the list of domains (qnames) that contains the given address in an A or AAAA record */
+  std::set<DNSName> getDomainsContainingRecords(const ComboAddress& addr);
+  /* get the list of IP addresses contained in A or AAAA for a given domains (qname) */
+  std::set<ComboAddress> getRecordsForDomain(const DNSName& domain);
+
   void setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip);
 
   bool isECSParsingEnabled() const { return d_parseECS; }

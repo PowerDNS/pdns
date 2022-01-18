@@ -441,6 +441,9 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
 bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payloadSize, uint16_t* z);
+/* call the visitor for every records in the answer, authority and additional sections, passing the section, class, type, ttl, rdatalength and rdata
+   to the visitor. Stops whenever the visitor returns false or at the end of the packet */
+bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uint8_t, uint16_t, uint16_t, uint32_t, uint16_t, const char*)>& visitor);
 
 template<typename T>
 std::shared_ptr<T> getRR(const DNSRecord& dr)

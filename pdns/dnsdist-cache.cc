@@ -484,3 +484,110 @@ void DNSDistPacketCache::setSkippedOptions(const std::unordered_set<uint16_t>& o
 {
   d_optionsToSkip = optionsToSkip;
 }
+
+std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAddress& addr)
+{
+  std::set<DNSName> domains;
+
+  for (auto& shard : d_shards) {
+    auto map = shard.d_map.read_lock();
+
+    for (const auto& entry : *map) {
+      const CacheValue& value = entry.second;
+
+      try {
+        dnsheader dh;
+        if (value.len >= sizeof(dnsheader)) {
+          memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        }
+        if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
+          continue;
+        }
+
+        bool found = false;
+        bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
+
+          if (qtype == QType::A && qclass == QClass::IN && addr.isIPv4() && rdatalength == 4 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin4.sin_family = AF_INET;
+            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+            if (parsed == addr) {
+              found = true;
+              return true;
+            }
+          }
+          else if (qtype == QType::AAAA && qclass == QClass::IN && addr.isIPv6() && rdatalength == 16 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin6.sin6_family = AF_INET6;
+            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+            if (parsed == addr) {
+              found = true;
+              return true;
+            }
+          }
+
+          return false;
+        });
+
+        if (valid && found) {
+          domains.insert(value.qname);
+        }
+      }
+      catch (...) {
+        continue;
+      }
+    }
+  }
+
+  return domains;
+}
+
+std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& domain)
+{
+  std::set<ComboAddress> addresses;
+
+  for (auto& shard : d_shards) {
+    auto map = shard.d_map.read_lock();
+
+    for (const auto& entry : *map) {
+      const CacheValue& value = entry.second;
+
+      try {
+        if (value.qname != domain) {
+          continue;
+        }
+
+        dnsheader dh;
+        if (value.len >= sizeof(dnsheader)) {
+          memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        }
+        if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
+          continue;
+        }
+
+        visitDNSPacket(value.value, [&addresses](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
+
+          if (qtype == QType::A && qclass == QClass::IN && rdatalength == 4 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin4.sin_family = AF_INET;
+            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+            addresses.insert(parsed);
+          }
+          else if (qtype == QType::AAAA && qclass == QClass::IN && rdatalength == 16 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin6.sin6_family = AF_INET6;
+            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+            addresses.insert(parsed);
+          }
+
+          return false;
+        });
+      }
+      catch (...) {
+        continue;
+      }
+    }
+  }
+
+  return addresses;
+}
