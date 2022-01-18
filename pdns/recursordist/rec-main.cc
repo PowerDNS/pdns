@@ -689,7 +689,7 @@ static void loggerBackend(const Logging::Entry& entry)
   g_log << u << buf.str() << endl;
 }
 
-void makeThreadPipes()
+static void makeThreadPipes()
 {
   auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
   if (pipeBufferSize > 0) {
