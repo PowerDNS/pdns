@@ -1,4 +1,4 @@
-dnspython
+dnspython==2.1.0
 nose
 git+https://github.com/PowerDNS/xfrserver.git@0.1
 requests
