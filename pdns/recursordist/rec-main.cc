@@ -38,10 +38,10 @@
 #include "ws-recursor.hh"
 #include "rec-taskqueue.hh"
 #include "secpoll-recursor.hh"
+#include "logging.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
-#include "logging.hh"
 #endif /* NOD_ENABLED */
 
 #ifdef HAVE_LIBSODIUM
