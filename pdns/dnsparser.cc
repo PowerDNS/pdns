@@ -1129,3 +1129,54 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
 
   return false;
 }
+
+bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uint8_t, uint16_t, uint16_t, uint32_t, uint16_t, const char*)>& visitor)
+{
+  if (packet.size() < sizeof(dnsheader)) {
+    return false;
+  }
+
+  try
+  {
+    dnsheader dh;
+    memcpy(&dh, reinterpret_cast<const dnsheader*>(packet.data()), sizeof(dh));
+    uint64_t numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
+    PacketReader reader(packet);
+
+    uint64_t n;
+    for (n = 0; n < ntohs(dh.qdcount) ; ++n) {
+      (void) reader.getName();
+      /* type and class */
+      reader.skip(4);
+    }
+
+    for (n = 0; n < numrecords; ++n) {
+      (void) reader.getName();
+
+      uint8_t section = n < ntohs(dh.ancount) ? 1 : (n < (ntohs(dh.ancount) + ntohs(dh.nscount)) ? 2 : 3);
+      uint16_t dnstype = reader.get16BitInt();
+      uint16_t dnsclass = reader.get16BitInt();
+
+      if (dnstype == QType::OPT) {
+        // not getting near that one with a stick
+        break;
+      }
+
+      uint32_t dnsttl = reader.get32BitInt();
+      uint16_t contentLength = reader.get16BitInt();
+      uint16_t pos = reader.getPosition();
+
+      bool done = visitor(section, dnsclass, dnstype, dnsttl, contentLength, &packet.at(pos));
+      if (done) {
+        return true;
+      }
+
+      reader.skip(contentLength);
+    }
+  }
+  catch (...) {
+    return false;
+  }
+
+  return true;
+}
