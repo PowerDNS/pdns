@@ -43,5 +43,12 @@ public:
     uint32_t d_timeout{20}; // timeout in seconds
     pdns::ZoneMD::Config d_zonemd{pdns::ZoneMD::Config::Process};
   };
-  static void ZoneToCache(Config config, uint64_t gen);
+
+  struct State
+  {
+    time_t d_lastrun{0};
+    time_t d_waittime{0};
+  };
+
+  static void ZoneToCache(const Config& config, State& state);
 };

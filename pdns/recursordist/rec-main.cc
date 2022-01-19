@@ -1576,7 +1576,6 @@ static int serviceMain(int argc, char* argv[])
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
   delayedLuaThreads.rpzPrimaryThreads.clear(); // no longer needed
-  delayedLuaThreads.ztcConfigs.clear(); // no longer needed
 
   makeThreadPipes();
 
@@ -1808,6 +1807,11 @@ static void houseKeeping(void*)
     }
 
     if (isHandlerThread()) {
+      static map<DNSName, RecZoneToCache::State> ztcState;
+      for (auto& ztc : luaconfsLocal->ztcConfigs) {
+        RecZoneToCache::ZoneToCache(ztc.second, ztcState[ztc.first]);
+      }
+
       if (now.tv_sec - s_last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);

@@ -70,13 +70,14 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
   BOOST_REQUIRE(fclose(fp) == 0);
 
   RecZoneToCache::Config config{".", "file", {temp}, ComboAddress(), TSIGTriplet()};
+  RecZoneToCache::State state;
   config.d_refreshPeriod = 0;
   config.d_retryOnError = 0;
 
   // Start with a new, empty cache
   g_recCache = std::make_unique<MemRecursorCache>();
   BOOST_CHECK_EQUAL(g_recCache->size(), 0U);
-  RecZoneToCache::ZoneToCache(config, 0);
+  RecZoneToCache::ZoneToCache(config, state);
   unlink(temp);
   BOOST_CHECK_EQUAL(g_recCache->size(), 17U);
 

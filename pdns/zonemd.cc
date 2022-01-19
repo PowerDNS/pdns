@@ -37,7 +37,7 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
       case QType::DNSKEY:
         d_dnskeys.emplace(std::dynamic_pointer_cast<DNSKEYRecordContent>(drc));
         break;
-      case QType::ZONEMD :{
+      case QType::ZONEMD: {
         auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(drc);
         auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
         if (!inserted.second) {
@@ -171,7 +171,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     if (sorted.empty()) {
       // continue;
     }
-    
+
     if (qtype != QType::RRSIG) {
       RRSIGRecordContent rrc;
       rrc.d_originalttl = d_resourceRecordSetTTLs[rrset.first];
