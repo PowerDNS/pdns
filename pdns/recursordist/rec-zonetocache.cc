@@ -29,7 +29,6 @@
 #include "axfr-retriever.hh"
 #include "validate-recursor.hh"
 #include "logging.hh"
-#include "threadname.hh"
 #include "rec-lua-conf.hh"
 #include "zonemd.hh"
 #include "validate.hh"
@@ -162,6 +161,8 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, p
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
+    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+                "validationSuccess", Logging::Loggable(validationSuccess));
     if (!validationDone) {
       return pdns::ZoneMD::Result::NoValidationDone;
     }
@@ -226,6 +227,8 @@ pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const R
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
+    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+                "validationSuccess", Logging::Loggable(validationSuccess));
     if (!validationDone) {
       return pdns::ZoneMD::Result::NoValidationDone;
     }
@@ -247,8 +250,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   dsmap_t dsmap; // Actually a set
   vState dsState = sr.getDSRecords(d_zone, dsmap, false, 0);
   if (dsState != vState::Secure) {
-    cerr << "getDSRecords says" << dsState << endl;
-    return vState::Insecure;
+    return dsState;
   }
 
   skeyset_t dnsKeys;
@@ -316,27 +318,25 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     result = processLines(lines, config, zonemd);
   }
 
-  if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC && g_dnssecmode == DNSSECMode::Off) {
+  if (config.d_dnssec == pdns::ZoneMD::Config::Required && g_dnssecmode == DNSSECMode::Off) {
     throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched of but required by ZoneToCache");
   }
 
   // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
-  if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC || (g_dnssecmode != DNSSECMode::Off && config.d_zonemd != pdns::ZoneMD::Config::RequiredButIgnoreDNSSEC)) {
+  if (config.d_dnssec == pdns::ZoneMD::Config::Required || (g_dnssecmode != DNSSECMode::Off && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
     size_t zonemdCount;
     auto validationStatus = dnssecValidate(zonemd, zonemdCount);
-    d_log->info("ZONEMD record related DNSSEC validation done", "validationStatus", Logging::Loggable(validationStatus),
+    d_log->info("ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),
                 "zonemdCount", Logging::Loggable(zonemdCount));
-    if (config.d_zonemd == pdns::ZoneMD::Config::RequiredWithDNSSEC || g_dnssecmode == DNSSECMode::ValidateAll) {
-      if (validationStatus != vState::Secure) {
-        throw PDNSException("ZONEMD required DNSSEC validation failed");
-      }
+    if (config.d_dnssec == pdns::ZoneMD::Config::Required && validationStatus != vState::Secure) {
+      throw PDNSException("ZONEMD required DNSSEC validation failed");
     }
     if (validationStatus != vState::Secure && validationStatus != vState::Insecure) {
       throw PDNSException("ZONEMD record DNSSEC Validation failed");
     }
   }
 
-  if (pdns::ZoneMD::validationRequired(config.d_zonemd) && result != pdns::ZoneMD::Result::OK) {
+  if (config.d_zonemd == pdns::ZoneMD::Config::Required && result != pdns::ZoneMD::Result::OK) {
     // We do not accept NoValidationDone in this case
     throw PDNSException("ZONEMD digest validation failure");
     return;
@@ -344,20 +344,6 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   if (config.d_zonemd == pdns::ZoneMD::Config::Process && result == pdns::ZoneMD::Result::ValidationFailure) {
     throw PDNSException("ZONEMD digest validation failure");
     return;
-  }
-
-  if (config.d_zonemd == pdns::ZoneMD::Config::LogOnly) {
-    switch (result) {
-    case pdns::ZoneMD::Result::ValidationFailure:
-      d_log->info("ZONEMD digest failure (ignored)");
-      break;
-    case pdns::ZoneMD::Result::NoValidationDone:
-      d_log->info("No ZONEMD digest validation done");
-      break;
-    case pdns::ZoneMD::Result::OK:
-      d_log->info("ZONEMD digest validation succeeded");
-      break;
-    }
   }
 
   // Rerun, now inserting the rrsets into the cache with associated sigs

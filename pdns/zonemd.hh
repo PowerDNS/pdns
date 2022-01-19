@@ -40,10 +40,7 @@ public:
   {
     Ignore,
     Process,
-    LogOnly,
-    Required,
-    RequiredWithDNSSEC,
-    RequiredButIgnoreDNSSEC,
+    Required
   };
   enum class Result : uint8_t
   {
@@ -59,11 +56,6 @@ public:
   void readRecords(const std::vector<DNSRecord>& records);
   void readRecord(const DNSRecord& record);
   void verify(bool& validationDone, bool& validationOK);
-
-  static bool validationRequired(Config config)
-  {
-    return config == Config::Required || config == Config::RequiredWithDNSSEC || config == Config::RequiredButIgnoreDNSSEC;
-  }
 
   // Return the zone's apex DNSKEYs
   const std::set<shared_ptr<DNSKEYRecordContent>>& getDNSKEYs() const
