@@ -10,18 +10,18 @@ EXTRA_DIST = \
 	pdns/named.conf.parsertest \
 	regression-tests/zones/unit.test \
 	regression-tests/zones/unit2.test \
-	regression-tests/zonemd-allunsup.zone \
-	regression-tests/zonemd-duplicate.zone \
-	regression-tests/zonemd-invalid.zone \
-	regression-tests/zonemd-nozonemd.zone \
-	regression-tests/zonemd-serialmismatch.zone \
-	regression-tests/zonemd-sha512.zone \
-	regression-tests/zonemd-syntax.zone \
-	regression-tests/zonemd1.zone \
-	regression-tests/zonemd2.zone \
-	regression-tests/zonemd3.zone \
-	regression-tests/zonemd4.zone \
-	regression-tests/zonemd5.zone \
+	regression-tests/zones/zonemd-allunsup.zone \
+	regression-tests/zones/zonemd-duplicate.zone \
+	regression-tests/zones/zonemd-invalid.zone \
+	regression-tests/zones/zonemd-nozonemd.zone \
+	regression-tests/zones/zonemd-serialmismatch.zone \
+	regression-tests/zones/zonemd-sha512.zone \
+	regression-tests/zones/zonemd-syntax.zone \
+	regression-tests/zones/zonemd1.zone \
+	regression-tests/zones/zonemd2.zone \
+	regression-tests/zones/zonemd3.zone \
+	regression-tests/zones/zonemd4.zone \
+	regression-tests/zones/zonemd5.zone \
 	builder-support/gen-version
 
 ACLOCAL_AMFLAGS = -I m4
