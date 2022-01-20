@@ -693,11 +693,11 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         }
 
         if(doCDS && !publishCDS.empty()){
-          doCDS = false;
           zrr.dr.d_type=QType::CDS;
           vector<string> digestAlgos;
           stringtok(digestAlgos, publishCDS, ", ");
           if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
+            doCDS = false;
             zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
             zrrs.push_back(zrr);
           } else {
