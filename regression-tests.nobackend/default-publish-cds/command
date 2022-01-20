@@ -29,7 +29,8 @@ rm -f pdns*.pid
 rm -f default-publish-cds/bind-dnssec.db
 
 $PDNSUTIL --config-dir=default-publish-cds create-bind-db default-publish-cds/bind-dnssec.db
-$PDNSUTIL --config-dir default-publish-cds/ import-zone-key minimal.com ../regression-tests/secure-delegated.dnssec-parent.com.private
+$PDNSUTIL --config-dir=default-publish-cds import-zone-key minimal.com default-publish-cds/key1
+$PDNSUTIL --config-dir=default-publish-cds import-zone-key minimal.com default-publish-cds/key2 passive
 
 $PDNS --config-dir=default-publish-cds &
 bindwait
