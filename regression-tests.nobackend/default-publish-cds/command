@@ -37,7 +37,9 @@ bindwait
 
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
 $SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
-$PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com 2
+$PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com '1 2'
+$SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com '1 0 2'
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
 $SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
 $PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com ''
