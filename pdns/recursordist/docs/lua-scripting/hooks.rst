@@ -221,7 +221,7 @@ An interesting rcode is NXDOMAIN (3, or ``pdns.NXDOMAIN``), which specifies the 
 
 The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
 
-The func:`policyEventFilter` has a different meaning as well, where returning true means that the policy hit should be ignored and normal processing should be resumed.
+The :func:`policyEventFilter` has a different meaning as well, where returning true means that the policy hit should be ignored and normal processing should be resumed.
 
 A minimal sample script:
 
