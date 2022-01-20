@@ -1091,6 +1091,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       setWebserverStatsRequireAuthentication(boost::get<bool>(vars->at("statsRequireAuthentication")));
     }
 
+    if (vars->count("apiRequiresAuthentication")) {
+      setWebserverAPIRequiresAuthentication(boost::get<bool>(vars->at("apiRequiresAuthentication")));
+    }
+
     if (vars->count("maxConcurrentConnections")) {
       setWebserverMaxConcurrentConnections(std::stoi(boost::get<std::string>(vars->at("maxConcurrentConnections"))));
     }

@@ -52,6 +52,7 @@ struct WebserverConfig
   std::unique_ptr<CredentialsHolder> password;
   std::unique_ptr<CredentialsHolder> apiKey;
   boost::optional<std::unordered_map<std::string, std::string> > customHeaders;
+  bool apiRequiresAuthentication{true};
   bool statsRequireAuthentication{true};
 };
 
@@ -79,6 +80,7 @@ std::string getWebserverConfig()
     else {
       out << "None" << endl;
     }
+    out << "API requires authentication: " << (config->apiRequiresAuthentication ? "yes" : "no") << endl;
     out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
     out << "Password: " << (config->password ? "set" : "unset") << endl;
     out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
@@ -304,7 +306,7 @@ static bool handleAuthorization(const YaHTTP::Request& req)
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (checkAPIKey(req, config->apiKey)) {
+    if (!config->apiRequiresAuthentication  || checkAPIKey(req, config->apiKey)) {
       return true;
     }
 
@@ -1556,6 +1558,11 @@ void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::str
 void setWebserverStatsRequireAuthentication(bool require)
 {
   g_webserverConfig.lock()->statsRequireAuthentication = require;
+}
+
+void setWebserverAPIRequiresAuthentication(bool require)
+{
+  g_webserverConfig.lock()->apiRequiresAuthentication = require;
 }
 
 void setWebserverMaxConcurrentConnections(size_t max)
