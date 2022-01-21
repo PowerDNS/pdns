@@ -320,7 +320,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
   records.clear();
 
   // partial lookup
-  std::pair<records_t::const_iterator,records_t::const_iterator> range = d_records.equal_range(tie(qname));
+  std::pair<records_t::const_iterator,records_t::const_iterator> range = d_records.equal_range(std::tie(qname));
 
   SyncRes::AuthDomain::records_t::const_iterator ziter;
   bool somedata = false;
@@ -1675,7 +1675,7 @@ struct CacheKey
   QType type;
   DNSResourceRecord::Place place;
   bool operator<(const CacheKey& rhs) const {
-    return tie(type, place, name) < tie(rhs.type, rhs.place, rhs.name);
+    return std::tie(type, place, name) < std::tie(rhs.type, rhs.place, rhs.name);
   }
 };
 typedef map<CacheKey, CacheEntry> tcache_t;

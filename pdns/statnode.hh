@@ -60,7 +60,7 @@ public:
   void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
 
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
-  typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
+  typedef std::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
   void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
   bool empty() const
   {

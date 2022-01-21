@@ -23,10 +23,12 @@
 #include "config.h"
 #endif
 #include <vector>
-#include <deque>
 #include <iostream>
 
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+
 #include <boost/format.hpp>
 #include <sys/time.h>
 #include <time.h>

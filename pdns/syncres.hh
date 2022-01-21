@@ -832,8 +832,8 @@ private:
     uint8_t qtype;
     bool operator<(const GetBestNSAnswer &b) const
     {
-      return boost::tie(qtype, qname, bestns) <
-	boost::tie(b.qtype, b.qname, b.bestns);
+      return std::tie(qtype, qname, bestns) <
+	std::tie(b.qtype, b.qname, b.bestns);
     }
   };
 
@@ -1002,14 +1002,14 @@ struct PacketIDCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
   {
-    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) < std::tie(b->remote, b->tcpsock, b->type)) {
       return true;
     }
-    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) > std::tie(b->remote, b->tcpsock, b->type)) {
       return false;
     }
 
-    return tie(a->domain, a->fd, a->id) < tie(b->domain, b->fd, b->id);
+    return std::tie(a->domain, a->fd, a->id) < std::tie(b->domain, b->fd, b->id);
   }
 };
 
@@ -1017,10 +1017,10 @@ struct PacketIDBirthdayCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
   {
-    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) < std::tie(b->remote, b->tcpsock, b->type)) {
       return true;
     }
-    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) > std::tie(b->remote, b->tcpsock, b->type)) {
       return false;
     }
     return a->domain < b->domain;

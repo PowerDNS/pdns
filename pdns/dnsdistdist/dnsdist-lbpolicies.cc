@@ -36,14 +36,14 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
     return servers[0].second;
   }
 
-  vector<pair<tuple<int,int,double>, size_t>> poss;
+  vector<pair<std::tuple<int,int,double>, size_t>> poss;
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
   size_t position = 0;
   for(const auto& d : servers) {
     if(d.second->isUp()) {
-      poss.emplace_back(make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), position);
+      poss.emplace_back(std::make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), position);
     }
     ++position;
   }

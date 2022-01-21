@@ -129,7 +129,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
   const auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag, *qhash, tcp));
+  auto range = idx.equal_range(std::tie(tag, *qhash, tcp));
 
   if (range.first == range.second) {
     d_misses++;
@@ -144,7 +144,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
   const auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag, *qhash, tcp));
+  auto range = idx.equal_range(std::tie(tag, *qhash, tcp));
 
   if (range.first == range.second) {
     d_misses++;
@@ -159,7 +159,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp)
 {
   auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag, qhash, tcp));
+  auto range = idx.equal_range(std::tie(tag, qhash, tcp));
   auto iter = range.first;
 
   for (; iter != range.second; ++iter) {

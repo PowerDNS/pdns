@@ -261,7 +261,7 @@ public:
       return;
     }
 
-    auto key = tie(entry.d_qname, entry.d_qtype);
+    auto key = std::tie(entry.d_qname, entry.d_qtype);
     auto ecsIndexEntry = map.d_ecsIndex.find(key);
     if (ecsIndexEntry != map.d_ecsIndex.end()) {
       ecsIndexEntry->removeNetmask(entry.d_netmask);

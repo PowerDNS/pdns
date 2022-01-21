@@ -50,7 +50,7 @@ struct SuckRequest
   std::pair<RequestPriority, uint64_t> priorityAndOrder;
   bool operator<(const SuckRequest& b) const
   {
-    return tie(domain, master) < tie(b.domain, b.master);
+    return std::tie(domain, master) < std::tie(b.domain, b.master);
   }
 };
 

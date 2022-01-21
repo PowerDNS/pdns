@@ -37,8 +37,8 @@ struct QuestionIdentifier
   bool operator<(const QuestionIdentifier& rhs) const
   {
     return 
-      tie(d_id,         d_qtype,     d_source,     d_dest,     d_qname) < 
-      tie(rhs.d_id, rhs.d_qtype, rhs.d_source, rhs.d_dest, rhs.d_qname);
+      std::tie(d_id,         d_qtype,     d_source,     d_dest,     d_qname) <
+      std::tie(rhs.d_id, rhs.d_qtype, rhs.d_source, rhs.d_dest, rhs.d_qname);
   }
 
 

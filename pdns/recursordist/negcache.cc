@@ -62,7 +62,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
   auto& map = getMap(lastLabel);
   auto content = map.lock();
 
-  negcache_t::const_iterator ni = content->d_map.find(tie(lastLabel, qtnull));
+  negcache_t::const_iterator ni = content->d_map.find(std::tie(lastLabel, qtnull));
 
   while (ni != content->d_map.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
     // We have something
@@ -142,7 +142,7 @@ void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, 
 {
   auto& mc = getMap(qname);
   auto map = mc.lock();
-  auto range = map->d_map.equal_range(tie(qname, qtype));
+  auto range = map->d_map.equal_range(std::tie(qname, qtype));
 
   if (range.first != range.second) {
     range.first->d_validationState = newState;
@@ -161,7 +161,7 @@ size_t NegCache::count(const DNSName& qname)
 {
   auto& map = getMap(qname);
   auto content = map.lock();
-  return content->d_map.count(tie(qname));
+  return content->d_map.count(std::tie(qname));
 }
 
 /*!
@@ -174,7 +174,7 @@ size_t NegCache::count(const DNSName& qname, const QType qtype)
 {
   auto& map = getMap(qname);
   auto content = map.lock();
-  return content->d_map.count(tie(qname, qtype));
+  return content->d_map.count(std::tie(qname, qtype));
 }
 
 /*!
@@ -190,7 +190,7 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   if (subtree) {
     for (auto& map : d_maps) {
       auto m = map.lock();
-      for (auto i = m->d_map.lower_bound(tie(name)); i != m->d_map.end();) {
+      for (auto i = m->d_map.lower_bound(std::tie(name)); i != m->d_map.end();) {
         if (!i->d_name.isPartOf(name))
           break;
         i = m->d_map.erase(i);
@@ -203,7 +203,7 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
 
   auto& map = getMap(name);
   auto content = map.lock();
-  auto range = content->d_map.equal_range(tie(name));
+  auto range = content->d_map.equal_range(std::tie(name));
   auto i = range.first;
   while (i != range.second) {
     i = content->d_map.erase(i);

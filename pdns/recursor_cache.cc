@@ -155,7 +155,7 @@ time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursor
 MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, const QType qtype, bool requireAuth, const ComboAddress& who)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
-  auto ecsIndexKey = tie(qname, qtype);
+  auto ecsIndexKey = std::tie(qname, qtype);
   auto ecsIndex = map.d_ecsIndex.find(ecsIndexKey);
   if (ecsIndex != map.d_ecsIndex.end() && !ecsIndex->isEmpty()) {
     /* we have netmask-specific entries, let's see if we match one */
@@ -221,7 +221,7 @@ MemRecursorCache::Entries MemRecursorCache::getEntries(MapCombo::LockedContent& 
     map.d_cachedqname = qname;
     map.d_cachedrtag = rtag;
     const auto& idx = map.d_map.get<NameAndRTagOnlyHashedTag>();
-    map.d_cachecache = idx.equal_range(tie(qname, rtag));
+    map.d_cachecache = idx.equal_range(std::tie(qname, rtag));
     map.d_cachecachevalid = true;
   }
   return map.d_cachecache;
@@ -522,7 +522,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
     }
     else {
       auto& ecsIdx = map->d_ecsIndex.get<HashedTag>();
-      auto ecsIndexRange = ecsIdx.equal_range(tie(name, qtype));
+      auto ecsIndexRange = ecsIdx.equal_range(std::tie(name, qtype));
       ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
     }
   }
@@ -564,7 +564,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType q
 {
   auto& mc = getMap(name);
   auto map = mc.lock();
-  cache_t::iterator iter = map->d_map.find(tie(name, qtype));
+  cache_t::iterator iter = map->d_map.find(std::tie(name, qtype));
   if (iter == map->d_map.end()) {
     return false;
   }
