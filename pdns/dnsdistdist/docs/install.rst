@@ -118,6 +118,7 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_COMPLETION`` for completion support in the console
 * ``DISABLE_DEPRECATED_DYNBLOCK`` for legacy dynamic blocks not using the new ``DynBlockRulesGroup`` interface
 * ``DISABLE_ECS_ACTIONS`` to disable actions altering EDNS Client Subnet
+* ``DISABLE_HASHED_CREDENTIALS`` to disable password-hashing support
 * ``DISABLE_LUA_WEB_HANDLERS`` for custom Lua web handlers support
 * ``DISABLE_OCSP_STAPLING`` for OCSP stapling
 * ``DISABLE_PROMETHEUS`` for prometheus
