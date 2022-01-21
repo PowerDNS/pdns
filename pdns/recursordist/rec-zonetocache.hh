@@ -49,7 +49,9 @@ public:
   {
     time_t d_lastrun{0};
     time_t d_waittime{0};
+    uint64_t d_generation;
   };
 
+  static void maintainStates(const map<DNSName, Config>&, map<DNSName, State>&, uint64_t mygeneration);
   static void ZoneToCache(const Config& config, State& state);
 };

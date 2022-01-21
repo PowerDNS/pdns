@@ -374,6 +374,31 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   }
 }
 
+void RecZoneToCache::maintainStates(const map<DNSName, Config>& configs, map<DNSName, State>& states, uint64_t mygeneration)
+{
+  // Delete states that have no config
+  for (auto it = states.begin(); it != states.end();) {
+    if (configs.find(it->first) == configs.end()) {
+      it = states.erase(it);
+    }
+    else {
+      it = ++it;
+    }
+  }
+  // Reset states for which the config generation changed and create new states for new configs
+  for (auto config : configs) {
+    auto state = states.find(config.first);
+    if (state != states.end()) {
+      if (state->second.d_generation != mygeneration) {
+        state->second = {0, 0, mygeneration};
+      }
+    }
+    else {
+      states.emplace(std::make_pair(config.first, State{0, 0, mygeneration}));
+    }
+  }
+}
+
 void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneToCache::State& state)
 {
   if (state.d_waittime == 0 && state.d_lastrun > 0) {
@@ -402,4 +427,5 @@ void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneTo
     log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable("unknown"), "refresh", Logging::Loggable(state.d_waittime));
   }
   state.d_lastrun = time(nullptr);
+  return;
 }
