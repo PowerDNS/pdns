@@ -8,7 +8,7 @@
 typedef std::pair<DNSName, QType> RRSetKey_t;
 typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
 
-struct CanonRRSetKeyCompare : public std::binary_function<RRSetKey_t, RRSetKey_t, bool>
+struct CanonRRSetKeyCompare
 {
   bool operator()(const RRSetKey_t& a, const RRSetKey_t& b) const
   {
