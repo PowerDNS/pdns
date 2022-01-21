@@ -2,6 +2,50 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.3
+  :released: 21th of January 2022
+
+  This is release 4.5.3 of the Authoritative Server.
+  It mostly contains several robustness fixes for the LMDB backend, and for the zone cache.
+  Please see the full list of fixes here:
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11158
+
+    lmdb, check if the lookup name is part of the zone (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11146
+
+    pdnsutil edit-zone: fix n and e behaviour on increase-serial prompt
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11123
+
+    improve tcp exception handling (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11123
+
+    lmdb: fix records removal in deleteDomain() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11002
+
+    2136: apply new TTL to whole RRset, not only to the added record
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11002
+
+    2136: improve some log messages
+
+.. changelog::
   :version: 4.5.2
   :released: 10th of November 2021
 

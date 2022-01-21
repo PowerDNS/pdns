@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2022011701 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2022012101 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -98,6 +98,7 @@ auth-4.5.0-rc2.security-status                          60 IN TXT "3 Unsupported
 auth-4.5.0.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2021-01.html"
 auth-4.5.1.security-status                              60 IN TXT "1 OK"
 auth-4.5.2.security-status                              60 IN TXT "1 OK"
+auth-4.5.3.security-status                              60 IN TXT "1 OK"
 auth-4.6.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release, superseded by 4.6.0-rc1"
 auth-4.6.0-beta1.security-status                        60 IN TXT "2 Unsupported pre-release, superseded by 4.6.0-rc1"
 auth-4.6.0-rc1.security-status                          60 IN TXT "1 Unsupported pre-release"
