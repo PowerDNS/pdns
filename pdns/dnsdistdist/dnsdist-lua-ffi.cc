@@ -1035,9 +1035,7 @@ uint8_t dnsdist_ffi_ring_entry_get_protocol(const dnsdist_ffi_ring_entry_list_t*
     return 0;
   }
 
-  //return static_cast<uint8_t>(list->d_entries.at(idx).protocol);
-  #warning FIXME
-  return 0;
+  return list->d_entries.at(idx).protocol.toNumber();
 }
 
 uint16_t dnsdist_ffi_ring_entry_get_size(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
