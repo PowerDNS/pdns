@@ -90,7 +90,7 @@ Record creation functions
 
   .. code-block:: lua
 
-    ifurlup("example.com", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
+    ifurlup("https://example.com/", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
 
 .. function:: pickrandom(addresses)
 
