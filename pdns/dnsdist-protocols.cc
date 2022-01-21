@@ -74,4 +74,8 @@ const std::string& Protocol::toPrettyString() const
   return s_prettyNames.at(static_cast<uint8_t>(d_protocol));
 }
 
+uint8_t Protocol::toNumber() const
+{
+  return static_cast<uint8_t>(d_protocol);
+}
 }
