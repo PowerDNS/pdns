@@ -2,10 +2,10 @@
 
 # Copyright 2021 Verisign, Inc.
 
-RED='\033[0;31m'
-GRN='\033[0;32m'
-YEL='\033[1;33m'
-NC='\033[0m' # No Color
+RED=''
+GRN=''
+YEL=''
+NC='' # No Color
 
 if test $# -eq 0 ; then
 	VERIFIERS=$(ls verifiers/*.sh)
