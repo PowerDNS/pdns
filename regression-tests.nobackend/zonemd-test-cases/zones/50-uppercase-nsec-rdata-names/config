@@ -1,0 +1,3 @@
+zonefile=arpa.zone.hashed
+origin=arpa
+expected_result=success

@@ -1,0 +1,11 @@
+example.	86400	IN	NS	ns1.example.
+example.	86400	IN	NS	ns2.example.
+example.	86400	IN	SOA	ns1.example. admin.example. 2021051800 1800 900 604800 86400
+example.	86400	IN	ZONEMD	2021051800 1 1 a846c7d6c780c394f6f4b691c8d2f26f9a6b29462a8d28179cb81652da170deca290cfbebff9380e0efb0cfee12ccc71
+ns1.example.	3600	IN	A	127.0.0.1
+ns2.example.	86400	IN	TXT	"This example has an RRSet with mixed TTLs"
+ns2.example.	86400	IN	TXT	"TTL values are digested as-is"
+ns2.example.	3600	IN	AAAA	::1
+a.example.	456	IN	A	127.0.0.2
+a.example.	123	IN	A	127.0.0.1
+a.example.	789	IN	A	127.0.0.3

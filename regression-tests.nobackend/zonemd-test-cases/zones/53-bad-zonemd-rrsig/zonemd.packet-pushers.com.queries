@@ -1,0 +1,194 @@
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns.packet-pushers.com. +dnssec zonemd.packet-pushers.com SOA
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 56880
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: 457539403fd744db0100000060ad19efef249d82fa85eb06 (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	SOA
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	SOA	ns.packet-pushers.com. root.packet-pushers.com. 1621955743 3600 300 604800 3600
+zonemd.packet-pushers.com. 3600	IN	RRSIG	SOA 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. uV7eBvOQs34QLSZChy8ZGiOoasQuumeIIf6kZTU4fZx1MDUt9hECOnS9 nv/9gNKmUn1cxuLQGbEzf3BCXT/rcg==
+
+;; Query time: 48 msec
+;; SERVER: 173.230.152.222#53(173.230.152.222)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 247
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns.packet-pushers.com. +dnssec zonemd.packet-pushers.com NS
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 11865
+;; flags: qr aa rd; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: a4c9b6b5af9264c20100000060ad19efc9978c88ffeec2f4 (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	NS
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	NS	ns2.packet-pushers.com.
+zonemd.packet-pushers.com. 3600	IN	NS	ns.packet-pushers.com.
+zonemd.packet-pushers.com. 3600	IN	RRSIG	NS 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. ogNzh48Xrzeoz8WtUDW6PScGZDE/iUKr/s9zgYRyQ0JwgbybY7Xr88w4 vGwaPdlrMmAi4NdnyTU7SWGBuzamsw==
+
+;; Query time: 48 msec
+;; SERVER: 173.230.152.222#53(173.230.152.222)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 238
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns2.packet-pushers.com. +dnssec zonemd.packet-pushers.com TXT
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36464
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: 434e3e001235d39e0100000060ad19ef00472b0ca4290834 (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	TXT
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	TXT	"ZONEMD test zone"
+zonemd.packet-pushers.com. 3600	IN	RRSIG	TXT 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. JYzXzagTdtV0DU3LnX6T/M6REpku23Rkngbf6JRaffmu+9VtnpAIEqzc U7wPQEBV8Ztsy789XCLzYeMkqaza8A==
+
+;; Query time: 84 msec
+;; SERVER: 104.237.131.42#53(104.237.131.42)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 232
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns2.packet-pushers.com. +dnssec zonemd.packet-pushers.com ZONEMD
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 33358
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: c4523cec05cc6d620100000060ad19efef2ce5c9cade4d50 (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	ZONEMD
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	ZONEMD	1621955743 1 1 9286F155438495FC5C4C103FC1C41C0FC66663DEFECF0BF4D31F5D48 204E411B60143559D97F53ED93AD6255EB3C2CA2
+zonemd.packet-pushers.com. 3600	IN	RRSIG	ZONEMD 13 3 3600 20210622151543 20210525151543 4201 zonemd.packet-pushers.com. 0coYJwYOu7Oc5Ez5DcKpMtsw/mw06P2UBmnd8L8H4MxVDEjyb9PMKKO8 iKIAXxNcs4Rtl7SKQ1bn9vkx4LY5Fg==
+
+;; Query time: 96 msec
+;; SERVER: 104.237.131.42#53(104.237.131.42)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 269
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns2.packet-pushers.com. +dnssec zonemd.packet-pushers.com DNSKEY
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 32930
+;; flags: qr aa rd; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: 0e2bb549b1cf09ad0100000060ad19ef0bbd31d91e81aec2 (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	DNSKEY
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	DNSKEY	256 3 13 yS1CsOanX6BZFy7WU9q7aKCj+UBH1lhEFefIUrNjcex/7ve3vx6D3WQv pjOXO0rqi2/g7gDvfPTVvddQCB2e4g==
+zonemd.packet-pushers.com. 3600	IN	DNSKEY	257 3 13 l9Do7mI5G7UDJVCp3tcRlxvzlzeJ9yQ5jpJOgwqUho/gXoFSTumrpBGF 6YhtzKMYN5cPO3399+JXLV5F2paKuA==
+zonemd.packet-pushers.com. 3600	IN	RRSIG	DNSKEY 13 3 3600 20210624141543 20210525141543 22069 zonemd.packet-pushers.com. Elqxdogyxq1zxMJiVVRclB4uIDPWMz8mexnkUK4f4XI/bK2gTyxJbZKc ahPARR5dnpHaFImaFi5+L35XjnupYg==
+
+;; Query time: 92 msec
+;; SERVER: 104.237.131.42#53(104.237.131.42)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 363
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns2.packet-pushers.com. +dnssec zonemd.packet-pushers.com NSEC
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 62839
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: 28ae35d0df42f9d40100000060ad19efa7f64d0249001e4b (good)
+;; QUESTION SECTION:
+;zonemd.packet-pushers.com.	IN	NSEC
+
+;; ANSWER SECTION:
+zonemd.packet-pushers.com. 3600	IN	NSEC	localhost.zonemd.packet-pushers.com. NS SOA TXT RRSIG NSEC DNSKEY ZONEMD
+zonemd.packet-pushers.com. 3600	IN	RRSIG	NSEC 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. 1ovHfB8HdhgjmGeX43N9CmnUElvlxL1IEB2IfqjaPD9fqvbkQBi1MgJi N5oIE3aOEjh5GzCgeH7TCWFlACZaeA==
+
+;; Query time: 92 msec
+;; SERVER: 104.237.131.42#53(104.237.131.42)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 262
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns.packet-pushers.com. +dnssec localhost.zonemd.packet-pushers.com A
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6548
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: 00ccf6671d8439fa0100000060ad19ef8bc2f4d95dd18946 (good)
+;; QUESTION SECTION:
+;localhost.zonemd.packet-pushers.com. IN	A
+
+;; ANSWER SECTION:
+localhost.zonemd.packet-pushers.com. 3600 IN A	127.0.0.1
+localhost.zonemd.packet-pushers.com. 3600 IN RRSIG A 13 4 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. AhR+KVxNBlqIs0LwfzxkZ8PqvixWfOfbcCpdmlFvQ1D5VEjeKSUG6CtC BC9Lv179unkbpeJsTCditLqdHZiSTA==
+
+;; Query time: 52 msec
+;; SERVER: 173.230.152.222#53(173.230.152.222)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 229
+
+
+; <<>> DiG 9.16.1-Ubuntu <<>> @ns.packet-pushers.com. +dnssec localhost.zonemd.packet-pushers.com NSEC
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 40285
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 4096
+; COOKIE: aab2376a5d713e3d0100000060ad19ef6cf0aac6d4199aeb (good)
+;; QUESTION SECTION:
+;localhost.zonemd.packet-pushers.com. IN	NSEC
+
+;; ANSWER SECTION:
+localhost.zonemd.packet-pushers.com. 3600 IN NSEC zonemd.packet-pushers.com. A RRSIG NSEC
+localhost.zonemd.packet-pushers.com. 3600 IN RRSIG NSEC 13 4 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. DmRQo4OxAjrZpvYAT1zhPoMCt8dRkN9lyQn//jIbNxsA6KOX0mbmHkN2 UPwtW6U0Cu6aQ+IANRgAr4uDugJUiw==
+
+;; Query time: 48 msec
+;; SERVER: 173.230.152.222#53(173.230.152.222)
+;; WHEN: Tue May 25 08:38:23 PDT 2021
+;; MSG SIZE  rcvd: 260
+

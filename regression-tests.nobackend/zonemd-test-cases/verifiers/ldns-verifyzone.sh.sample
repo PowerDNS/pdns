@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+origin=$1 ; shift
+file=$1; shift
+
+T_OPT=''
+if test -n "$DNSSEC_VALIDATION_TIME" ; then
+	T_OPT="-t $DNSSEC_VALIDATION_TIME"
+fi
+
+/path/to/ldns-verify-zone -V 4 $T_OPT -Z $file

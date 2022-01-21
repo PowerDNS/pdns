@@ -1,0 +1,4 @@
+zonefile=example.zone
+origin=example
+expected_result=failure
+try_canonical=yes

@@ -1,0 +1,3 @@
+zonefile=example.zone
+origin=example
+expected_result=success

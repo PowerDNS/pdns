@@ -1,0 +1,62 @@
+; https://en.wikipedia.org/wiki/List_of_DNS_record_types
+example.com.	999	SOA	mname.example.com rname.example.com 1 2 3 4 5
+		999	NS	ns
+ns		999	A	192.168.0.1
+cname		999	CNAME	cname.example.net.
+ptr             999	PTR	ptr.example.net.
+hinfo           999	HINFO	"IBM-PC" "MSDOS"
+MX		999	MX	10 mail.example.net.
+TXT		999	TXT	"I'm a little TXT record"
+RP		999	RP	rp.example.com. txt
+		999	RP	aa.example.com. txt
+AFSDB		999	AFSDB	2 green.example.net.
+			AFSDB   2 turquoise.example.net.
+			AFSDB   1 turquoise.example.org.
+			AFSDB   1 orange.example.org.
+SIG		999	SIG	TXT 1 2 9999 20401231000000 20201231000000 12345 example.com. (
+				AIYADP8d3zYNyQwW2EM4wXVFdslEJcUx/fxkfBeH1El4ixPFhpfHFElxbvKoWmvjDTCm
+				fiYy2X+8XpFjwICHc398kzWsTMKlxovpz2FnCTM= )
+KEY		999	KEY	111 3 8 AwEAAd7B29JH4hYHg+zRhiQ29ZyI4z26ks+OAoSXByK3mZ9WllZlk66y mB4x5gKPTyXx/kGz2vf1JmjIHsIVQJsIKtyi5BLIPbdFYbvTgYdhCLdk z1FHqiKtQc5KBMLzOy2QbcFIQFuhqjfoBax9i61mE0UMF82IvxnowM4v Kqm3IRGh
+AAAA		999	AAAA	::1
+LOC		999	LOC	45 0 0 N  116 0 0 W  5280m 11m 10m 12m
+			LOC	33 0 0 N  101 0 0 W  2580m 12m 11m 10m
+_SRV._tcp	999	SRV	0 1 9 srv1.example.net.
+			SRV	0 3 9 srv2.example.net.
+			SRV	1 0 9 srv3.example.net.
+			SRV	1 0 9 srv4.example.net.
+*._tcp          	SRV	0 0 0 .
+*._udp          	SRV	0 0 0 .
+NAPTR		999	NAPTR	100 50 s http+N2L+N2C+N2R "" www.example.com.
+KX		999	KX	10 KX.EXAMPLE.NET.
+CERT		999	CERT	PGP 123 0 deadbeef
+			CERT	PKIX 456 0 foofoofoofoo
+DNAME		999	DNAME	dname.example.org.
+APL		999	APL	1:224.0.0.0/4  2:FF00:0:0:0:0:0:0:0/8
+DS		999	DS	19036 8 1 b256bd09dc8dd59f0e0f0d8541b8328dd986df6e
+SSHFP		999	SSHFP	2 1 123456789abcdef67890123456789abcdef67890
+IPSECKEY	999	IPSECKEY  10 1 2 192.0.2.38 AQNRU3mG7TVTO2BkR47usntb102uFJtugbo6BSGvgqt4AQ==
+DHCID		999	DHCID	AAEBOSD+XR3Os/0LozeXVqcNc7FwCfQdWL3b/NaiUDlW2No=
+TLSA		999	TLSA	( 1 1 2 92003ba34942dc74152e2f2c408d29ec 
+				a5a520e7f2e06bb944f4dca346baf63c
+				1b177615d466f6c4b71c216a50292bd5
+				8c9ebdd2f74e38fe51ffd48c43326cbc )
+
+SMIMEA		999	SMIMEA	1 2 3 d00df00d
+HIP		999	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                   AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+				hip.example.com.  hop.example.com. )
+CDS		999	CDS	12345 13 1 091230981203812039812098235037456887988a
+CDNSKEY		999	CDNSKEY	256 3 253 AwEAAbKGKkqc1VAvQr48iPf9Nd39f337MitggxFy
+OPENPGPKEY	999	OPENPGPKEY rWMg3p1NYBV3bbhPeGhm23mdgzOn89aIUeH+Dx3PK07qMqAZiSmP8e/mDs6qO1MPgPBVnDpKFNpE
+CSYNC		999	CSYNC	123 3 NAPTR KX CERT APL SSHFP TLSA HIP
+;_123._SVCB	999	SVCB	0 svc4.example.net.
+;HTTPS		999	HTTPS	0 cdn.example.org.
+EUI48		999	EUI48	00-00-5e-00-53-2a
+EUI64		999	EUI64	00-00-5e-ef-10-00-00-2a
+_URI._tcp	999	URI	10 1 "ftp://ftp1.example.com/public"
+CAA		999	CAA	0 issue "ca.example.net"
+			CAA	0 iodef "mailto:security@example.com"
+			CAA	0 iodef "http://iodef.example.com/"
+;TA		999	TA	19036 8 1 b256bd09dc8dd59f0e0f0d8541b8328dd986df6e
+GENERIC		999	TYPE65281 \# 6 abcd ef 01 23 45
+example.com.    999     IN      ZONEMD  1 1 1 664046d77f36f640b1c5297fa56a695c180f9b688c6e8d915eff8fdad9b7bbfc00a833b77812b9f0785cc1ebfb57d709
