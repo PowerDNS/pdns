@@ -1,4 +1,4 @@
 zonefile=example.com.zone
 origin=example.com
-expected_result=success
+expected_result=failure
 try_canonical=no
