@@ -653,25 +653,15 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
-        const DNSName& owner = v.first.first;
+        const DNSName& hashedOwner = v.first.first;
         const DNSName signer = getSigner(v.second.signatures);
-        if (!owner.isPartOf(signer)) {
-          LOG("Owner "<<owner<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+        if (!hashedOwner.isPartOf(signer)) {
+          LOG("Owner "<<hashedOwner<<" is not part of the signer "<<signer<<", ignoring"<<endl);
           continue;
         }
 
         if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
           LOG("A NSEC3 RR from the child zone cannot deny the existence of a DS"<<endl);
-          continue;
-        }
-
-        /* The NSEC is either a delegation one, from the parent zone, and
-         * must have the NS bit set but not the SOA one, or a regular NSEC
-         * either at apex (signer == owner) or with the SOA or NS bits clear.
-         */
-        const bool notApex = signer.countLabels() < owner.countLabels();
-        if (notApex && nsec3->isSet(QType::NS) && nsec3->isSet(QType::SOA)) {
-          LOG("However, that NSEC3 is not at the apex and has both the NS and the SOA bits set!"<<endl);
           continue;
         }
 
@@ -684,10 +674,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         nsec3Seen = true;
 
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
-        string beginHash=fromBase32Hex(owner.getRawLabels()[0]);
+        string beginHash = fromBase32Hex(hashedOwner.getRawLabels()[0]);
 
         // If the name exists, check if the qtype is denied
         if (beginHash == h) {
+
+          /* The NSEC is either a delegation one, from the parent zone, and
+           * must have the NS bit set but not the SOA one, or a regular NSEC
+           * either at apex (signer == owner) or with the SOA or NS bits clear.
+           */
+          const bool notApex = signer.countLabels() < qname.countLabels();
+          if (notApex && nsec3->isSet(QType::NS) && nsec3->isSet(QType::SOA)) {
+            LOG("However, that NSEC3 is not at the apex and has both the NS and the SOA bits set!"<<endl);
+            continue;
+          }
 
           /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
              Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
@@ -695,7 +695,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
              that (original) owner name other than DS RRs, and all RRs below that
              owner name regardless of type.
           */
-          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, owner, nsec3)) {
+          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, qname, nsec3)) {
             /* this is an "ancestor delegation" NSEC3 RR */
             LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
             return dState::NODENIAL;
