@@ -119,6 +119,7 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_DEPRECATED_DYNBLOCK`` for legacy dynamic blocks not using the new ``DynBlockRulesGroup`` interface
 * ``DISABLE_ECS_ACTIONS`` to disable actions altering EDNS Client Subnet
 * ``DISABLE_LUA_WEB_HANDLERS`` for custom Lua web handlers support
+* ``DISABLE_OCSP_STAPLING`` for OCSP stapling
 * ``DISABLE_PROMETHEUS`` for prometheus
 * ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap
 * ``DISABLE_RECVMMSG`` for ``recvmmsg`` support

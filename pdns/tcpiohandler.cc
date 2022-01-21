@@ -587,10 +587,12 @@ public:
       libssl_set_ticket_key_callback_data(d_feContext->d_tlsCtx.get(), d_feContext.get());
     }
 
+#ifndef DISABLE_OCSP_STAPLING
     if (!d_feContext->d_ocspResponses.empty()) {
       SSL_CTX_set_tlsext_status_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ocspStaplingCb);
       SSL_CTX_set_tlsext_status_arg(d_feContext->d_tlsCtx.get(), &d_feContext->d_ocspResponses);
     }
+#endif /* DISABLE_OCSP_STAPLING */
 
     libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &fe.d_tlsCounters);
 
@@ -722,6 +724,7 @@ public:
     return ret;
   }
 
+#ifndef DISABLE_OCSP_STAPLING
   static int ocspStaplingCb(SSL* ssl, void* arg)
   {
     if (ssl == nullptr || arg == nullptr) {
@@ -730,6 +733,7 @@ public:
     const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
     return libssl_ocsp_stapling_callback(ssl, *ocspMap);
   }
+#endif /* DISABLE_OCSP_STAPLING */
 
   static int newTicketFromServerCb(SSL* ssl, SSL_SESSION* session)
   {
@@ -1539,6 +1543,7 @@ public:
       }
     }
 
+#ifndef DISABLE_OCSP_STAPLING
     size_t count = 0;
     for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
@@ -1547,6 +1552,7 @@ public:
       }
       ++count;
     }
+#endif /* DISABLE_OCSP_STAPLING */
 
 #if GNUTLS_VERSION_NUMBER >= 0x030600
     rc = gnutls_certificate_set_known_dh_params(d_creds.get(), GNUTLS_SEC_PARAM_HIGH);
