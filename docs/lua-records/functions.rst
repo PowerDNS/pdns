@@ -92,6 +92,30 @@ Record creation functions
 
     ifurlup("example.com", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
 
+.. function:: ifurlextup(groups-of-address-url-pairs[, options])
+
+  Very similar to ``ifurlup``, but the returned IPs are decoupled from their external health check URLs.
+  This is useful when health checking already happens elsewhere, and that state is exposed over HTTP(S).
+  Health checks are considered positive if the HTTP response code is 200 and optionally if the content matches the ``stringmatch`` option.
+
+  Options are identical to those for ``ifurlup``.
+
+  Example:
+
+  .. code-block:: lua
+
+    ifurlextup({{['192.168.0.1']='https://example.com/',['192.168.0.2']='https://example.com/404'}})
+
+  Example with two groups:
+
+  .. code-block:: lua
+
+    ifurlextup({{['192.168.0.1']='https://example.net/404',['192.168.0.2']='https://example.com/404'}, {['192.168.0.3']='https://example.net/'}})"
+
+  The health checker will look up the first two URLs (using normal DNS resolution to find them - whenever possible, use URLs with IPs in them).
+  The 404s will cause the first group of IPs to get marked as down, after which the URL in the second group is tested.
+  The third IP will get marked up assuming ``https://example.net/`` responds with HTTP response code 200.
+
 .. function:: pickrandom(addresses)
 
   Returns a random IP address from the list supplied.
