@@ -4,6 +4,7 @@
 #include "dnssecinfra.hh"
 #include "sha.hh"
 #include "zoneparser-tng.hh"
+#include "base32.hh"
 
 void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
 {
@@ -61,9 +62,11 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
         d_nsecs.records.emplace(std::dynamic_pointer_cast<NSECRecordContent>(drc));
         break;
       case QType::NSEC3:
-        d_nsecs3.records.emplace(std::dynamic_pointer_cast<NSEC3RecordContent>(drc));
         break;
       }
+    }
+    if (dnsResourceRecord.qtype == QType::NSEC3) {
+        d_nsecs3.records.emplace(std::dynamic_pointer_cast<NSEC3RecordContent>(drc));
     }
     RRSetKey_t key = std::pair(dnsResourceRecord.qname, dnsResourceRecord.qtype);
     d_resourceRecordSets[key].push_back(drc);
@@ -119,7 +122,26 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       d_nsecs.records.emplace(std::dynamic_pointer_cast<NSECRecordContent>(record.d_content));
       break;
     case QType::NSEC3:
+      // Handled below
+      break;
+    case QType::NSEC3PARAM:
+      auto param = *std::dynamic_pointer_cast<NSEC3PARAMRecordContent>(record.d_content);
+      d_nsec3label = d_zone;
+      d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param, d_zone)));
+      // XXX We could filter the collected NSEC3 and their RRSIGs in d_nsecs3 at this point as we now know the right label
+      break;
+    }
+  }
+  if (d_nsec3label.empty() || record.d_name == d_nsec3label) {
+    switch (record.d_type) {
+    case QType::NSEC3:
       d_nsecs3.records.emplace(std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content));
+      break;
+    case  QType::RRSIG:
+      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
+      if (rrsig->d_type == QType::NSEC3) {
+        d_nsecs3.signatures.emplace_back(rrsig);
+      }
       break;
     }
   }

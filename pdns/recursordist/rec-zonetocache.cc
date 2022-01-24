@@ -287,9 +287,9 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys);
       csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
     }
-    else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
-      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsec3s.records, nsec3s.signatures, validKeys);
-      csp.emplace(std::make_pair(d_zone, QType::NSEC3), nsec3s);
+    else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0 && !zonemd.getNSEC3Label().empty()) {
+      nsecValidationStatus = validateWithKeySet(d_now, zonemd.getNSEC3Label(), nsec3s.records, nsec3s.signatures, validKeys);
+      csp.emplace(std::make_pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
     }
     else {
       d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");

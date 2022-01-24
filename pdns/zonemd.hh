@@ -92,6 +92,10 @@ public:
     return d_nsecs3;
   }
 
+  const DNSName& getNSEC3Label() const {
+    return d_nsec3label;
+  }
+
 private:
   typedef std::pair<DNSName, QType> RRSetKey_t;
   typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
@@ -130,6 +134,7 @@ private:
   std::vector<shared_ptr<RRSIGRecordContent>> d_rrsigs;
   ContentSigPair d_nsecs;
   ContentSigPair d_nsecs3;
+  DNSName d_nsec3label;
   const DNSName d_zone;
 };
 
