@@ -446,8 +446,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
         const map<string, pdns::ZoneMD::Config> nameToVal = {
           {"ignore", pdns::ZoneMD::Config::Ignore},
-          {"process", pdns::ZoneMD::Config::Process},
-          {"required", pdns::ZoneMD::Config::Required},
+          {"valdiate", pdns::ZoneMD::Config::Validate},
+          {"require", pdns::ZoneMD::Config::Require},
         };
         if (have.count("zonemd")) {
           string zonemdValidation = boost::get<string>(have.at("zonemd"));

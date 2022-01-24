@@ -318,17 +318,17 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     result = processLines(lines, config, zonemd);
   }
 
-  if (config.d_dnssec == pdns::ZoneMD::Config::Required && g_dnssecmode == DNSSECMode::Off) {
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require && g_dnssecmode == DNSSECMode::Off) {
     throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched of but required by ZoneToCache");
   }
 
   // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
-  if (config.d_dnssec == pdns::ZoneMD::Config::Required || (g_dnssecmode != DNSSECMode::Off && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require || (g_dnssecmode != DNSSECMode::Off && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
     size_t zonemdCount;
     auto validationStatus = dnssecValidate(zonemd, zonemdCount);
     d_log->info("ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),
                 "zonemdCount", Logging::Loggable(zonemdCount));
-    if (config.d_dnssec == pdns::ZoneMD::Config::Required && validationStatus != vState::Secure) {
+    if (config.d_dnssec == pdns::ZoneMD::Config::Require && validationStatus != vState::Secure) {
       throw PDNSException("ZONEMD required DNSSEC validation failed");
     }
     if (validationStatus != vState::Secure && validationStatus != vState::Insecure) {
@@ -336,12 +336,12 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     }
   }
 
-  if (config.d_zonemd == pdns::ZoneMD::Config::Required && result != pdns::ZoneMD::Result::OK) {
+  if (config.d_zonemd == pdns::ZoneMD::Config::Require && result != pdns::ZoneMD::Result::OK) {
     // We do not accept NoValidationDone in this case
     throw PDNSException("ZONEMD digest validation failure");
     return;
   }
-  if (config.d_zonemd == pdns::ZoneMD::Config::Process && result == pdns::ZoneMD::Result::ValidationFailure) {
+  if (config.d_zonemd == pdns::ZoneMD::Config::Validate && result == pdns::ZoneMD::Result::ValidationFailure) {
     throw PDNSException("ZONEMD digest validation failure");
     return;
   }

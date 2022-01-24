@@ -39,8 +39,8 @@ public:
   enum class Config : uint8_t
   {
     Ignore,
-    Process,
-    Required
+    Validate,
+    Require
   };
   enum class Result : uint8_t
   {

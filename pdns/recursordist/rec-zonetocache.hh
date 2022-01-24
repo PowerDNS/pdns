@@ -41,8 +41,8 @@ public:
     time_t d_retryOnError{60}; // Retry on error
     time_t d_refreshPeriod{24 * 3600}; // Time between refetch
     uint32_t d_timeout{20}; // timeout in seconds
-    pdns::ZoneMD::Config d_zonemd{pdns::ZoneMD::Config::Process};
-    pdns::ZoneMD::Config d_dnssec{pdns::ZoneMD::Config::Process};
+    pdns::ZoneMD::Config d_zonemd{pdns::ZoneMD::Config::Validate};
+    pdns::ZoneMD::Config d_dnssec{pdns::ZoneMD::Config::Validate};
   };
 
   struct State
