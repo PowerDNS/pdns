@@ -18,7 +18,7 @@ static void testZoneMD(const std::string& zone, const std::string& file, bool ex
   pathbuf << p << "/../regression-tests/zones/" + file;
   ZoneParserTNG zpt(pathbuf.str(), z);
 
-  bool validationDone, validationOK;
+  bool validationDone = false, validationOK = false;
 
   try {
     auto zonemd = pdns::ZoneMD(z);
