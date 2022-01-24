@@ -42,7 +42,6 @@ using namespace ::boost::multi_index;
 #include <sys/socket.h>
 #include <time.h>
 #include <syslog.h>
-#include <deque>
 #include <stdexcept>
 #include <string>
 #include <ctype.h>

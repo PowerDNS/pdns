@@ -24,7 +24,6 @@
 #include <string>
 #include <vector>
 #include <set>
-#include <deque>
 #include <strings.h>
 #include <stdexcept>
 #include <sstream>
