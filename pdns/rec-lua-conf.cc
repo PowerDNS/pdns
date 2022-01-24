@@ -446,7 +446,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
         const map<string, pdns::ZoneMD::Config> nameToVal = {
           {"ignore", pdns::ZoneMD::Config::Ignore},
-          {"valdiate", pdns::ZoneMD::Config::Validate},
+          {"validate", pdns::ZoneMD::Config::Validate},
           {"require", pdns::ZoneMD::Config::Require},
         };
         if (have.count("zonemd")) {

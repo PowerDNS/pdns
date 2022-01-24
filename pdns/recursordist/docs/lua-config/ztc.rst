@@ -31,7 +31,7 @@ For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record, the digest of the 
 
 For both parts failure of validation will prevent the downloaded zone contents to be inserted into the cache.
 Absence of ``DNSSEC`` records is not considered a failure if the parent zone or negative trust anchor indicate the zone is ``Insecure``.
-Absence ``ZONEMD`` records is not considered a failure.
+Absence of ``ZONEMD`` records is not considered a failure.
 This behaviour can be tuned with the ``zoneToCache`` specific `zonemd`_ and `dnssec`_ settings described below.
 
 
@@ -98,7 +98,7 @@ zonemd
 
 .. versionadded:: 4.7.0
 
-A string. possible values: ``ignore``: ignore ZONEMD records, ``validate``: validate ``ZONEMD`` if present, ``require``: require valid ``ZONEMD`` record to be present.
+A string, possible values: ``ignore``: ignore ZONEMD records, ``validate``: validate ``ZONEMD`` if present, ``require``: require valid ``ZONEMD`` record to be present.
 Default ``validate``.
 
 

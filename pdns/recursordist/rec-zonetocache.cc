@@ -325,6 +325,10 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     d_log->info("Multiple sources not yet supported, using first");
   }
 
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require && (g_dnssecmode == DNSSECMode::Off || g_dnssecmode == DNSSECMode::ProcessNoValidate)) {
+    throw PDNSException("ZONEMD DNSSEC validation failure: DNSSEC validation is switched off but required by ZoneToCache");
+  }
+
   // First scan all records collecting info about delegations ans sigs
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
@@ -346,10 +350,6 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
       lines = getLinesFromFile(config.d_sources.at(0));
     }
     result = processLines(lines, config, zonemd);
-  }
-
-  if (config.d_dnssec == pdns::ZoneMD::Config::Require && g_dnssecmode == DNSSECMode::Off) {
-    throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched off but required by ZoneToCache");
   }
 
   // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
