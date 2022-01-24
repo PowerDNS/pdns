@@ -44,6 +44,7 @@ StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
+uint16_t g_maxNSEC3Iterations{0};
 
 namespace po = boost::program_options;
 po::variables_map g_vm;

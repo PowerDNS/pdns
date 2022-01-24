@@ -46,11 +46,11 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
   if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
     return;
   }
-  if (record.d_type == QType::SOA && d_soaRecordContent) {
+  if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {
     return;
   }
 
-  if (record.d_name == d_zone) {
+  if (record.d_class == QClass::IN && record.d_name == d_zone) {
     switch (record.d_type) {
     case QType::SOA: {
       d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
@@ -84,13 +84,11 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       if (rrsig == nullptr) {
         throw PDNSException("Invalid RRSIG record");
       }
+      d_rrsigs.emplace_back(rrsig);
       if (rrsig->d_type == QType::NSEC) {
         d_nsecs.signatures.emplace_back(rrsig);
       }
-      else if (rrsig->d_type == QType::NSEC3) {
-        d_nsecs3.signatures.emplace_back(rrsig);
-      }
-      d_rrsigs.emplace_back(rrsig);
+      // RRSIG on NEC3 handled below
       break;
     }
     case QType::NSEC: {
@@ -112,21 +110,31 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       if (g_maxNSEC3Iterations && param->d_iterations > g_maxNSEC3Iterations) {
         return;
       }
+      d_nsec3params.emplace_back(param);
       d_nsec3label = d_zone;
       d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, d_zone)));
-      // XXX We could filter the collected NSEC3 and their RRSIGs in d_nsecs3 at this point as we now know the right label
+      // Zap the NSEC3 at labels that we now know are not relevant
+      for (auto it = d_nsec3s.begin(); it != d_nsec3s.end();) {
+        if (it->first != d_nsec3label) {
+          it = d_nsec3s.erase(it);
+        }
+        else {
+          ++it;
+        }
+      }
       break;
     }
     }
   }
-  if (d_nsec3label.empty() || record.d_name == d_nsec3label) {
+  // Until we have seen the NSEC3PARAM record, we save all of them, as we do not know the label for the zone yet
+  if (record.d_class == QClass::IN && (d_nsec3label.empty() || record.d_name == d_nsec3label)) {
     switch (record.d_type) {
     case QType::NSEC3: {
       auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
       if (nsec3 == nullptr) {
         throw PDNSException("Invalid NSEC3 record");
       }
-      d_nsecs3.records.emplace(nsec3);
+      d_nsec3s[record.d_name].records.emplace(nsec3);
       break;
     }
     case QType::RRSIG: {
@@ -135,7 +143,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
         throw PDNSException("Invalid RRSIG record");
       }
       if (rrsig->d_type == QType::NSEC3) {
-        d_nsecs3.signatures.emplace_back(rrsig);
+        d_nsec3s[record.d_name].signatures.emplace_back(rrsig);
       }
       break;
     }

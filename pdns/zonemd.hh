@@ -89,11 +89,18 @@ public:
   // Return the zone's apex NSEC3s with signatures
   const ContentSigPair& getNSEC3s() const
   {
-    return d_nsecs3;
+    const auto it = d_nsec3s.find(d_nsec3label);
+    return it == d_nsec3s.end() ? empty : d_nsec3s.at(d_nsec3label);
   }
 
-  const DNSName& getNSEC3Label() const {
+  const DNSName& getNSEC3Label() const
+  {
     return d_nsec3label;
+  }
+
+  const std::vector<shared_ptr<NSEC3PARAMRecordContent>>& getNSEC3Params() const
+  {
+    return d_nsec3params;
   }
 
 private:
@@ -132,10 +139,12 @@ private:
   std::shared_ptr<SOARecordContent> d_soaRecordContent;
   std::set<shared_ptr<DNSKEYRecordContent>> d_dnskeys;
   std::vector<shared_ptr<RRSIGRecordContent>> d_rrsigs;
+  std::vector<shared_ptr<NSEC3PARAMRecordContent>> d_nsec3params;
   ContentSigPair d_nsecs;
-  ContentSigPair d_nsecs3;
+  map<DNSName, ContentSigPair> d_nsec3s;
   DNSName d_nsec3label;
   const DNSName d_zone;
+  const ContentSigPair empty;
 };
 
 }
