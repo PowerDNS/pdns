@@ -360,10 +360,11 @@ def ci_dnsdist_make(c):
     c.run('make -j4 -k V=1')
 
 @task
-def ci_auth_install_remotebackend_ruby_deps(c):
+def ci_auth_install_remotebackend_test_deps(c):
     with c.cd('modules/remotebackend'):
       # c.run('bundle config set path vendor/bundle')
       c.run('sudo ruby -S bundle install')
+    c.sudo('apt-get install -qq -y socat')
 
 @task
 def ci_auth_run_unit_tests(c):
@@ -465,7 +466,7 @@ backend_regress_tests = dict(
 @task
 def test_auth_backend(c, backend):
     if backend == 'remote':
-        ci_auth_install_remotebackend_ruby_deps(c)
+        ci_auth_install_remotebackend_test_deps(c)
 
     if backend == 'authpy':
         with c.cd('regression-tests.auth-py'):
