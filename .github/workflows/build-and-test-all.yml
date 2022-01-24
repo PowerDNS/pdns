@@ -36,7 +36,7 @@ jobs:
       - run: inv ci-autoconf
       - run: inv ci-auth-configure
       - run: inv ci-auth-make
-      - run: inv ci-auth-install-remotebackend-ruby-deps
+      - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
