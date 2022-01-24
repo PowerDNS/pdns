@@ -275,14 +275,42 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
 
   auto zonemdRecords = zonemd.getZONEMDs();
   zonemdCount = zonemdRecords.size();
-  if (zonemdCount == 0) {
-    // Per RFC we should actually prove non-existence of ZONEMD
-    // as downgrade attacks could be possible by an in the middle party zapping ZONEMDs
-    return dnsKeyState;
-  }
-  records.clear();
 
-  // Collect the ZONEMD records and validate them using the validted DNSSKEYs
+  // De we need to do a denial validation?
+  if (zonemdCount == 0) {
+    const auto& nsecs = zonemd.getNSECs();
+    const auto& nsec3s = zonemd.getNSEC3s();
+    cspmap_t csp;
+
+    vState nsecValidationStatus;
+    if (nsecs.records.size() > 0 && nsecs.signatures.size() > 0) {
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys);
+      csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
+    } else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsec3s.records, nsec3s.signatures, validKeys);
+      csp.emplace(std::make_pair(d_zone, QType::NSEC3), nsec3s);
+    } else {
+      d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
+      return vState::BogusInvalidDenial;
+    }
+
+    if (nsecValidationStatus != vState::Secure) {
+      d_log->info("zone NSEC(3) record does no validate");
+      return nsecValidationStatus;
+    }
+    auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, true);
+    switch (denial) {
+    case dState::NXQTYPE:
+      d_log->info("Validated denial of absence of ZONEMD record");
+      return vState::Secure;
+    default:
+      d_log->info("No ZONEMD record, but NSEC(3) record does not deny it");
+      return vState::BogusInvalidDenial;
+    }
+  }
+
+  // Collect the ZONEMD records and validate them using the validated DNSSKEYs
+  records.clear();
   for (const auto& rec : zonemdRecords) {
     records.emplace(rec);
   }
@@ -332,7 +360,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
       throw PDNSException("ZONEMD required DNSSEC validation failed");
     }
     if (validationStatus != vState::Secure && validationStatus != vState::Insecure) {
-      throw PDNSException("ZONEMD record DNSSEC Validation failed");
+      throw PDNSException("ZONEMD record DNSSEC validation failed");
     }
   }
 

@@ -28,6 +28,7 @@
 #include "dnsname.hh"
 #include "qtype.hh"
 #include "dnsrecords.hh"
+#include "validate.hh"
 
 class ZoneParserTNG;
 
@@ -79,6 +80,18 @@ public:
     return ret;
   }
 
+  // Return the zone's apex NSECs with signatures
+  const ContentSigPair& getNSECs() const
+  {
+    return d_nsecs;
+  }
+
+  // Return the zone's apex NSEC3s with signatures
+  const ContentSigPair& getNSEC3s() const
+  {
+    return d_nsecs3;
+  }
+
 private:
   typedef std::pair<DNSName, QType> RRSetKey_t;
   typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
@@ -115,6 +128,8 @@ private:
   std::shared_ptr<SOARecordContent> d_soaRecordContent;
   std::set<shared_ptr<DNSKEYRecordContent>> d_dnskeys;
   std::vector<shared_ptr<RRSIGRecordContent>> d_rrsigs;
+  ContentSigPair d_nsecs;
+  ContentSigPair d_nsecs3;
   const DNSName d_zone;
 };
 

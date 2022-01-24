@@ -46,8 +46,22 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
         }
         break;
       }
-      case QType::RRSIG:
-        d_rrsigs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(drc));
+      case QType::RRSIG: {
+        auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(drc);
+        if (rrsig->d_type == QType::NSEC) {
+          d_nsecs.signatures.emplace_back(rrsig);
+        }
+        else if (rrsig->d_type == QType::NSEC3) {
+          d_nsecs3.signatures.emplace_back(rrsig);
+        }
+        d_rrsigs.emplace_back(rrsig);
+        break;
+      }
+      case QType::NSEC:
+        d_nsecs.records.emplace(std::dynamic_pointer_cast<NSECRecordContent>(drc));
+        break;
+      case QType::NSEC3:
+        d_nsecs3.records.emplace(std::dynamic_pointer_cast<NSEC3RecordContent>(drc));
         break;
       }
     }
@@ -90,8 +104,22 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       }
       break;
     }
-    case QType::RRSIG:
-      d_rrsigs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content));
+    case QType::RRSIG: {
+      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
+      if (rrsig->d_type == QType::NSEC) {
+        d_nsecs.signatures.emplace_back(rrsig);
+      }
+      else if (rrsig->d_type == QType::NSEC3) {
+        d_nsecs3.signatures.emplace_back(rrsig);
+      }
+      d_rrsigs.emplace_back(rrsig);
+      break;
+    }
+    case QType::NSEC:
+      d_nsecs.records.emplace(std::dynamic_pointer_cast<NSECRecordContent>(record.d_content));
+      break;
+    case QType::NSEC3:
+      d_nsecs3.records.emplace(std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content));
       break;
     }
   }

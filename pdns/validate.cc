@@ -476,7 +476,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   - If `referralToUnsigned` is true and qtype is QType::DS, this functions returns NODENIAL
   if a NSEC or NSEC3 proves that the name exists but no NS type exists, as specified in RFC 5155 section 8.9.
   - If `wantsNoDataProof` is set but a NSEC proves that the whole name does not exist, the function will return
-  NXQTYPE is the name is proven to be ENT and NXDOMAIN otherwise.
+  NXQTYPE if the name is proven to be ENT and NXDOMAIN otherwise.
   - If `needWildcardProof` is false, the proof that a wildcard covering this qname|qtype is not checked. It is
   useful when we have a positive answer synthesized from a wildcard and we only need to prove that the exact
   name does not exist.
