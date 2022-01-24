@@ -618,21 +618,21 @@ void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, u
   }
 }
 
-const std::string& getLuaFFIWrappers()
-{
-  static const std::string interface =
-#include "dnsdist-lua-ffi-interface.inc"
-    ;
-  static const std::string code = R"FFICodeContent(
+static constexpr char s_lua_ffi_code[] = R"FFICodeContent(
   local ffi = require("ffi")
   local C = ffi.C
 
   ffi.cdef[[
-)FFICodeContent" + interface + R"FFICodeContent(
+)FFICodeContent"
+#include "dnsdist-lua-ffi-interface.inc"
+R"FFICodeContent(
   ]]
 
 )FFICodeContent";
-  return code;
+
+const char* getLuaFFIWrappers()
+{
+  return s_lua_ffi_code;
 }
 
 void setupLuaLoadBalancingContext(LuaContext& luaCtx)
