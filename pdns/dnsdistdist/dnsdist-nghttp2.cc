@@ -29,6 +29,7 @@
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-downstream-connection.hh"
 
 #include "dolog.hh"
 #include "iputils.hh"

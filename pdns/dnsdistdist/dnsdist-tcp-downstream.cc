@@ -2,6 +2,7 @@
 #include "dnsdist-session-cache.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
+#include "dnsdist-downstream-connection.hh"
 
 #include "dnsparser.hh"
 
@@ -773,4 +774,19 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
     /* ponder what to do here, shall we close the connection? */
   }
   return done;
+}
+
+void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max)
+{
+  DownstreamTCPConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
+}
+
+void setTCPDownstreamCleanupInterval(uint64_t interval)
+{
+  DownstreamTCPConnectionsManager::setCleanupInterval(interval);
+}
+
+void setTCPDownstreamMaxIdleTime(uint64_t max)
+{
+  DownstreamTCPConnectionsManager::setMaxIdleTime(max);
 }

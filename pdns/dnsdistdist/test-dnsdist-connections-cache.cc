@@ -25,6 +25,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-downstream-connection.hh"
 
 class MockupConnection
 {
