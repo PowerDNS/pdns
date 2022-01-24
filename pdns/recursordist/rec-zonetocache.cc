@@ -286,10 +286,12 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
     if (nsecs.records.size() > 0 && nsecs.signatures.size() > 0) {
       nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys);
       csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
-    } else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
+    }
+    else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
       nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsec3s.records, nsec3s.signatures, validKeys);
       csp.emplace(std::make_pair(d_zone, QType::NSEC3), nsec3s);
-    } else {
+    }
+    else {
       d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
       return vState::BogusInvalidDenial;
     }
@@ -347,11 +349,11 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   }
 
   if (config.d_dnssec == pdns::ZoneMD::Config::Require && g_dnssecmode == DNSSECMode::Off) {
-    throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched of but required by ZoneToCache");
+    throw PDNSException("ZONEMD DNSSEC validation failure: dnssec is switched off but required by ZoneToCache");
   }
 
   // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
-  if (config.d_dnssec == pdns::ZoneMD::Config::Require || (g_dnssecmode != DNSSECMode::Off && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require || (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
     size_t zonemdCount;
     auto validationStatus = dnssecValidate(zonemd, zonemdCount);
     d_log->info("ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),

@@ -68,7 +68,6 @@ static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns
   BOOST_REQUIRE(fclose(fp) == 0);
 
   RecZoneToCache::Config config{".", "file", {temp}, ComboAddress(), TSIGTriplet()};
-  RecZoneToCache::State state;
   config.d_refreshPeriod = 0;
   config.d_retryOnError = 0;
   config.d_zonemd = mode;
@@ -77,6 +76,7 @@ static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns
   // Start with a new, empty cache
   g_recCache = std::make_unique<MemRecursorCache>();
   BOOST_CHECK_EQUAL(g_recCache->size(), 0U);
+  RecZoneToCache::State state;
   RecZoneToCache::ZoneToCache(config, state);
   unlink(temp);
 

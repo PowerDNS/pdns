@@ -453,17 +453,17 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
           string zonemdValidation = boost::get<string>(have.at("zonemd"));
           auto it = nameToVal.find(zonemdValidation);
           if (it == nameToVal.end()) {
-            throw std::runtime_error(zonemdValidation + " is not a valid value for `zonemdValidation`");
+            throw std::runtime_error(zonemdValidation + " is not a valid value for `zonemd`");
           }
           else {
             conf.d_zonemd = it->second;
           }
         }
-        if (have.count("zonemdDNSSEC")) {
-          string dnssec = boost::get<string>(have.at("zonemdDNSSEC"));
+        if (have.count("dnssec")) {
+          string dnssec = boost::get<string>(have.at("dnssec"));
           auto it = nameToVal.find(dnssec);
           if (it == nameToVal.end()) {
-            throw std::runtime_error(dnssec + " is not a valid value for `zonemdDNSSEC`");
+            throw std::runtime_error(dnssec + " is not a valid value for `dnssec`");
           }
           else {
             conf.d_dnssec = it->second;
