@@ -23,6 +23,7 @@
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -32,8 +33,6 @@
 
 #include <boost/variant.hpp>
 
-#include "capabilities.hh"
-#include "circular_buffer.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"

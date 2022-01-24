@@ -64,6 +64,7 @@
 #include "dnsdist-xpf.hh"
 
 #include "base64.hh"
+#include "capabilities.hh"
 #include "delaypipe.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
