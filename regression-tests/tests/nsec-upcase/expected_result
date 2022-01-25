@@ -1,5 +1,5 @@
-0	ns1.dnssec-parent.com.	IN	NSEC	3600	ns2.dnssec-parent.com. A RRSIG NSEC
-0	ns1.dnssec-parent.com.	IN	RRSIG	3600	NSEC 13 3 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
-2	.	IN	OPT	32768	
+0	ns1.dnssec-parent.com.	3600	IN	NSEC	ns2.dnssec-parent.com. A RRSIG NSEC
+0	ns1.dnssec-parent.com.	3600	IN	RRSIG	NSEC 13 3 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+2	.	32768	IN	OPT	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.dnssec-parent.com.', qtype=NSEC

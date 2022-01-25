@@ -1,4 +1,4 @@
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-255.test.dyndns.', qtype=ANY
 Answer:
@@ -7,7 +7,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	host-1.test.dyndns.	IN	A	3600	127.0.0.101
+0	host-1.test.dyndns.	3600	IN	A	127.0.0.101
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-1.test.dyndns.', qtype=ANY
 Answer:
@@ -16,10 +16,10 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	host-1.test.dyndns.	IN	A	3600	127.0.0.101
+0	host-1.test.dyndns.	3600	IN	A	127.0.0.101
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-1.test.dyndns.', qtype=A
-0	host-2.test.dyndns.	IN	A	3600	127.0.0.102
+0	host-2.test.dyndns.	3600	IN	A	127.0.0.102
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-2.test.dyndns.', qtype=A
 Answer:
@@ -28,7 +28,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	host-2.test.dyndns.	IN	A	3600	127.0.0.102
+0	host-2.test.dyndns.	3600	IN	A	127.0.0.102
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-2.test.dyndns.', qtype=A
 Answer:
@@ -37,7 +37,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	host-2.test.dyndns.	IN	A	3600	127.0.0.102
+0	host-2.test.dyndns.	3600	IN	A	127.0.0.102
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host-2.test.dyndns.', qtype=A
 Answer:
