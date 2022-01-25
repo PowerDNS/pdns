@@ -223,7 +223,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     }
 
     if (sorted.empty()) {
-      // continue;
+      continue;
     }
 
     if (qtype != QType::RRSIG) {

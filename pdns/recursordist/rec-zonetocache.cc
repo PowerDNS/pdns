@@ -21,7 +21,6 @@
  */
 
 #include "rec-zonetocache.hh"
-#include <algorithm>
 
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
@@ -316,15 +315,14 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       d_log->info("zone NSEC(3) record does not validate");
       return nsecValidationStatus;
     }
+
     auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, true);
-    switch (denial) {
-    case dState::NXQTYPE:
+    if (denial == dState::NXQTYPE) {
       d_log->info("Validated denial of absence of ZONEMD record");
       return vState::Secure;
-    default:
-      d_log->info("No ZONEMD record, but NSEC(3) record does not deny it");
-      return vState::BogusInvalidDenial;
     }
+    d_log->info("No ZONEMD record, but NSEC(3) record does not deny it");
+    return vState::BogusInvalidDenial;
   }
 
   // Collect the ZONEMD records and validate them using the validated DNSSKEYs
@@ -345,7 +343,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     throw PDNSException("ZONEMD DNSSEC validation failure: DNSSEC validation is switched off but required by ZoneToCache");
   }
 
-  // First scan all records collecting info about delegations ans sigs
+  // First scan all records collecting info about delegations and sigs
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
 
