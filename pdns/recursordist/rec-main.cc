@@ -629,8 +629,8 @@ static void checkLinuxIPv6Limits()
 static void checkOrFixFDS()
 {
   unsigned int availFDs = getFilenumLimit();
-  unsigned int wantFDs = g_maxMThreads * RecThreadInfo::s_numWorkerThreads + 25; // even healthier margin then before
-  wantFDs += RecThreadInfo::s_numWorkerThreads * TCPOutConnectionManager::s_maxIdlePerThread;
+  unsigned int wantFDs = g_maxMThreads * RecThreadInfo::numWorkers() + 25; // even healthier margin then before
+  wantFDs += RecThreadInfo::numWorkers() * TCPOutConnectionManager::s_maxIdlePerThread;
 
   if (wantFDs > availFDs) {
     unsigned int hardlimit = getFilenumLimit(true);
@@ -639,7 +639,7 @@ static void checkOrFixFDS()
       g_log << Logger::Warning << "Raised soft limit on number of filedescriptors to " << wantFDs << " to match max-mthreads and threads settings" << endl;
     }
     else {
-      int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / RecThreadInfo::s_numWorkerThreads;
+      int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / RecThreadInfo::numWorkers();
       g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
@@ -697,7 +697,7 @@ static void makeThreadPipes()
   }
 
   /* thread 0 is the handler / SNMP, worker threads start at 1 */
-  for (unsigned int n = 0; n <= RecThreadInfo::numThreads(); ++n) {
+  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads(); ++n) {
     auto& threadInfo = RecThreadInfo::info(n);
 
     int fd[2];
@@ -1148,8 +1148,8 @@ static int serviceMain(int argc, char* argv[])
   }
 
   /* this needs to be done before parseACLs(), which call broadcastFunction() */
-  RecThreadInfo::s_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
-  if (RecThreadInfo::s_weDistributeQueries) {
+  RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
+  if (RecThreadInfo::weDistributeQueries()) {
     g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl;
   }
 
@@ -1323,11 +1323,11 @@ static int serviceMain(int argc, char* argv[])
   }
   g_paddingTag = ::arg().asNum("edns-padding-tag");
 
-  RecThreadInfo::s_numDistributorThreads = ::arg().asNum("distributor-threads");
-  RecThreadInfo::s_numWorkerThreads = ::arg().asNum("threads");
-  if (RecThreadInfo::s_numWorkerThreads < 1) {
+  RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
+  RecThreadInfo::setNumWorkerThreads(::arg().asNum("threads"));
+  if (RecThreadInfo::numWorkers() < 1) {
     g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl;
-    RecThreadInfo::s_numWorkerThreads = 1;
+    RecThreadInfo::setNumWorkerThreads(1);
   }
 
   g_maxMThreads = ::arg().asNum("max-mthreads");
@@ -1424,12 +1424,12 @@ static int serviceMain(int argc, char* argv[])
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
 
-  RecThreadInfo::infos().resize(RecThreadInfo::numThreads() + /* handler */ 1);
+  RecThreadInfo::infos().resize(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() + RecThreadInfo::numTaskThreads());
 
   if (g_reusePort) {
-    if (RecThreadInfo::s_weDistributeQueries) {
+    if (RecThreadInfo::weDistributeQueries()) {
       /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::s_numDistributorThreads; threadId++) {
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
         auto& info =  RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
@@ -1439,7 +1439,7 @@ static int serviceMain(int argc, char* argv[])
     }
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::s_numWorkerThreads; threadId++) {
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
         auto& info =  RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
@@ -1457,15 +1457,15 @@ static int serviceMain(int argc, char* argv[])
 
     /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
        needs to listen to the shared sockets */
-    if (RecThreadInfo::s_weDistributeQueries) {
+    if (RecThreadInfo::weDistributeQueries()) {
       /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::s_numDistributorThreads; threadId++) {
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
         RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
       }
     }
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::s_numWorkerThreads; threadId++) {
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
         RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
       }
     }
@@ -1632,7 +1632,7 @@ static int serviceMain(int argc, char* argv[])
   unsigned int currentThreadId = 1;
   const auto cpusMap = parseCPUMap();
 
-  if (RecThreadInfo::numThreads() == 1) {
+  if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
     g_log << Logger::Warning << "Operating unthreaded" << endl;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
@@ -1642,6 +1642,9 @@ static int serviceMain(int argc, char* argv[])
     auto& handlerInfo = RecThreadInfo::info(0);
     handlerInfo.setHandler();
     handlerInfo.start(0, "web+stat");
+    auto& taskInfo = RecThreadInfo::info(2);
+    taskInfo.setTaskThread();
+    taskInfo.start(2, "tasks");
 
     setCPUMap(cpusMap, currentThreadId, pthread_self());
 
@@ -1655,33 +1658,49 @@ static int serviceMain(int argc, char* argv[])
     if (handlerInfo.exitCode != 0) {
       ret = handlerInfo.exitCode;
     }
+    taskInfo.thread.join();
+    if (taskInfo.exitCode != 0) {
+      ret = taskInfo.exitCode;
+    }
   }
   else {
-    if (RecThreadInfo::s_weDistributeQueries) {
-      for (unsigned int n = 0; n < RecThreadInfo::s_numDistributorThreads; ++n) {
-        RecThreadInfo::info(currentThreadId + n).setListener();
+    // Setup RecThreadInfo objects
+    unsigned int tmp = currentThreadId;
+    if (RecThreadInfo::weDistributeQueries()) {
+      for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
+        RecThreadInfo::info(tmp++).setListener();
       }
     }
-    for (unsigned int n = 0; n < RecThreadInfo::s_numWorkerThreads; ++n) {
-      auto& info = RecThreadInfo::info(currentThreadId + (RecThreadInfo::s_weDistributeQueries ? RecThreadInfo::s_numDistributorThreads : 0) + n);
-      info.setListener(!RecThreadInfo::s_weDistributeQueries);
+    for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
+      auto& info = RecThreadInfo::info(tmp++);
+      info.setListener(!RecThreadInfo::weDistributeQueries());
       info.setWorker();
     }
+    for (unsigned int n = 0; n < RecThreadInfo::numTaskThreads(); ++n) {
+      auto& info = RecThreadInfo::info(tmp++);
+      info.setTaskThread();
+    }
 
-    if (RecThreadInfo::s_weDistributeQueries) {
-      g_log << Logger::Warning << "Launching " << RecThreadInfo::s_numDistributorThreads << " distributor threads" << endl;
-      for (unsigned int n = 0; n < RecThreadInfo::s_numDistributorThreads; ++n) {
+    if (RecThreadInfo::weDistributeQueries()) {
+      g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl;
+      for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
         auto& info = RecThreadInfo::info(currentThreadId);
         info.start(currentThreadId++, "distr");
         setCPUMap(cpusMap, currentThreadId, info.thread.native_handle()); // XXX off by one?
       }
     }
 
-    g_log << Logger::Warning << "Launching " << RecThreadInfo::s_numWorkerThreads << " worker threads" << endl;
+    g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl;
 
-    for (unsigned int n = 0; n < RecThreadInfo::s_numWorkerThreads; ++n) {
+    for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
       auto& info = RecThreadInfo::info(currentThreadId);
       info.start(currentThreadId++, "worker");
+      setCPUMap(cpusMap, currentThreadId, info.thread.native_handle()); // XXX off by one?
+    }
+
+    for (unsigned int n = 0; n < RecThreadInfo::numTaskThreads(); ++n) {
+      auto& info = RecThreadInfo::info(currentThreadId);
+      info.start(currentThreadId++, "taskThread");
       setCPUMap(cpusMap, currentThreadId, info.thread.native_handle()); // XXX off by one?
     }
 
@@ -1789,7 +1808,7 @@ static void houseKeeping(void*)
     past = now;
     past.tv_sec -= 5;
     if (t_last_prune < past) {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::s_numWorkerThreads + RecThreadInfo::s_numDistributorThreads));
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
 
       time_t limit;
       if (!((t_cleanCounter++) % 40)) { // this is a full scan!
@@ -1945,11 +1964,11 @@ void* recursorThread()
       }
     }
 
-    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::s_numWorkerThreads;
+    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numWorkers();
     if (ringsize) {
       t_remotes = std::make_unique<addrringbuf_t>();
-      if (RecThreadInfo::s_weDistributeQueries)
-        t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::s_numDistributorThreads);
+      if (RecThreadInfo::weDistributeQueries())
+        t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numDistributors());
       else
         t_remotes->set_capacity(ringsize);
       t_servfailremotes = std::make_unique<addrringbuf_t>();

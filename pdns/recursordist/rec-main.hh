@@ -351,6 +351,11 @@ public:
     return listener;
   }
 
+  bool isTaskThread() const
+  {
+    return taskThread;
+  }
+
   void setHandler()
   {
     handler = true;
@@ -364,6 +369,11 @@ public:
   void setListener(bool flag = true)
   {
     listener = flag;
+  }
+
+  void setTaskThread()
+  {
+    taskThread = true;
   }
 
   void start(unsigned int id, const string& name)
@@ -386,9 +396,54 @@ public:
     t_id = id;
   }
 
-   // FD corresponding to TCP sockets this thread is listening on.
-   // These FDs are also in deferredAdds when we have one socket per
-   // listener, and in g_deferredAdds instead.
+  static unsigned int numHandlers()
+  {
+    return 1;
+  }
+
+  static unsigned int numTaskThreads()
+  {
+    return 1;
+  }
+
+  static unsigned int numWorkers()
+  {
+    return s_numWorkerThreads;
+  }
+
+  static unsigned int numDistributors()
+  {
+    return s_numDistributorThreads;
+  }
+
+  static bool weDistributeQueries()
+  {
+    return s_weDistributeQueries;
+  }
+
+  static void setWeDistributeQueries(bool flag)
+  {
+    s_weDistributeQueries = flag;
+  }
+
+  static void setNumWorkerThreads(unsigned int n)
+  {
+    s_numWorkerThreads = n;
+  }
+
+  static void setNumDistributorThreads(unsigned int n)
+  {
+    s_numDistributorThreads = n;
+  }
+
+  static unsigned int numRecursorThreads()
+  {
+    return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
+  }
+
+  // FD corresponding to TCP sockets this thread is listening on.
+  // These FDs are also in deferredAdds when we have one socket per
+  // listener, and in g_deferredAdds instead.
   std::set<int> tcpSockets;
   // FD corresponding to listening sockets if we have one socket per
   // listener (with reuseport), otherwise all listeners share the
@@ -401,24 +456,21 @@ public:
   uint64_t numberOfDistributedQueries{0};
   int exitCode{0};
 
+private:
+  // handle the web server, carbon, statistics and the control channel
+  bool handler{false};
+  // accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set)
+  bool listener{false};
+  // process queries
+  bool worker{false};
+  // run async tasks: from TastQueue and ZoneToCache
+  bool taskThread{false};
+
+  static thread_local unsigned int t_id;
+  static std::vector<RecThreadInfo> s_threadInfos;
   static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
   static unsigned int s_numDistributorThreads;
   static unsigned int s_numWorkerThreads;
-
-  static unsigned int numThreads()
-  {
-    return s_numDistributorThreads + s_numWorkerThreads;
-  }
-
-private:
-  /* handle the web server, carbon, statistics and the control channel */
-  bool handler{false};
-  /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
-  bool listener{false};
-  /* process queries */
-  bool worker{false};
-  static thread_local unsigned int t_id;
-  static std::vector<RecThreadInfo> s_threadInfos;
 };
 
 struct ThreadMSG

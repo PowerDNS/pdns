@@ -2187,7 +2187,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             destination = dest;
           }
 
-          if (RecThreadInfo::s_weDistributeQueries) {
+          if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
             distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace]() mutable {
               return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
@@ -2353,7 +2353,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto mt = RecThreadInfo::info(/* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + workerIdx).mt;
+  const auto mt = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).mt;
   if (mt != nullptr) {
     return mt->numProcesses();
   }
@@ -2363,32 +2363,29 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 static unsigned int selectWorker(unsigned int hash)
 {
   if (g_balancingFactor == 0) {
-    return /* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + (hash % RecThreadInfo::s_numWorkerThreads);
+    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numWorkers());
   }
 
   /* we start with one, representing the query we are currently handling */
   double currentLoad = 1;
-  std::vector<unsigned int> load(RecThreadInfo::s_numWorkerThreads);
-  for (size_t idx = 0; idx < RecThreadInfo::s_numWorkerThreads; idx++) {
+  std::vector<unsigned int> load(RecThreadInfo::numWorkers());
+  for (size_t idx = 0; idx < RecThreadInfo::numWorkers(); idx++) {
     load[idx] = getWorkerLoad(idx);
     currentLoad += load[idx];
-    // cerr<<"load for worker "<<idx<<" is "<<load[idx]<<endl;
   }
 
-  double targetLoad = (currentLoad / RecThreadInfo::s_numWorkerThreads) * g_balancingFactor;
-  // cerr<<"total load is "<<currentLoad<<", number of workers is "<<g_numWorkerThreads<<", target load is "<<targetLoad<<endl;
+  double targetLoad = (currentLoad / RecThreadInfo::numWorkers()) * g_balancingFactor;
 
-  unsigned int worker = hash % RecThreadInfo::s_numWorkerThreads;
+  unsigned int worker = hash % RecThreadInfo::numWorkers();
   /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
     ++g_stats.rebalancedQueries;
     do {
-      // cerr<<"worker "<<worker<<" is above the target load, selecting another one"<<endl;
-      worker = (worker + 1) % RecThreadInfo::s_numWorkerThreads;
+      worker = (worker + 1) % RecThreadInfo::numWorkers();
     } while (load[worker] > targetLoad);
   }
 
-  return /* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + worker;
+  return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + worker;
 }
 
 // This function is only called by the distributor threads, when pdns-distributes-queries is set
@@ -2411,7 +2408,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
        was full, let's try another one */
     unsigned int newTarget = 0;
     do {
-      newTarget = /* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + dns_random(RecThreadInfo::s_numWorkerThreads);
+      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numWorkers());
     } while (newTarget == target);
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {

@@ -1118,7 +1118,7 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  for (unsigned int n = 0; n < RecThreadInfo::numThreads(); ++n) {
+  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads(); ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)});
