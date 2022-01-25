@@ -16,7 +16,6 @@ GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
-unsigned int g_numThreads = 1;
 bool g_lowercaseOutgoing = false;
 
 /* Fake some required functions we didn't want the trouble to

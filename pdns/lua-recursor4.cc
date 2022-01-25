@@ -422,8 +422,8 @@ void RecursorLua4::postPrepareContext()
     });
 
   d_lw->writeFunction("getRecursorThreadId", []() {
-      return getRecursorThreadId();
-    });
+    return RecThreadInfo::id();
+  });
 
   d_lw->writeFunction("sendCustomSNMPTrap", [](const std::string& str) {
       if (g_snmpAgent) {

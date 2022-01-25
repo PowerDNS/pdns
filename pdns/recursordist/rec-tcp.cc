@@ -452,7 +452,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh, dc->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
-            g_log << Logger::Notice << t_id << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl;
+            g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl;
           }
           g_stats.policyDrops++;
           return;
@@ -522,7 +522,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (cacheHit) {
             if (!g_quiet) {
-              g_log << Logger::Notice << t_id << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+              g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
             }
 
             bool hadError = sendResponseOverTCP(dc, response);
@@ -551,7 +551,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!g_quiet) {
-            g_log << Logger::Notice << t_id << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+            g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
           }
 
           requestWipeCaches(qname);
