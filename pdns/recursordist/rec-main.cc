@@ -1801,8 +1801,6 @@ static void houseKeeping(void*)
     }
     t_running = true;
 
-    runTaskOnce(g_logCommonErrors);
-
     struct timeval now, past;
     Utility::gettimeofday(&now, nullptr);
     past = now;
@@ -1822,7 +1820,10 @@ static void houseKeeping(void*)
       Utility::gettimeofday(&t_last_prune, nullptr);
     }
 
-    if (RecThreadInfo::self().isHandler()) {
+    const auto& info = RecThreadInfo::self();
+
+    if (RecThreadInfo::self().isTaskThread()) {
+      runTaskOnce(g_logCommonErrors);
       if (now.tv_sec - s_last_ZTC_prune > 60) {
         s_last_ZTC_prune = now.tv_sec;
         static map<DNSName, RecZoneToCache::State> ztcStates;
@@ -1831,6 +1832,9 @@ static void houseKeeping(void*)
           RecZoneToCache::ZoneToCache(ztc.second, ztcStates.at(ztc.first));
         }
       }
+    }
+
+    if (info.isHandler()) {
       if (now.tv_sec - s_last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);
@@ -2058,7 +2062,7 @@ void* recursorThread()
 
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
-      if ((threadInfo.isHandler() && s_counter % 11 == 0) || s_counter % 499 == 0) {
+      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
         MT->makeThread(houseKeeping, 0);
       }
 

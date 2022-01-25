@@ -77,9 +77,16 @@ public:
   ResolveTask pop();
   bool runOnce(bool logErrors); // Run one task if the queue is not empty
   void runAll(bool logErrors);
-  uint64_t* getPushes() const;
-  uint64_t* getExpired() const;
-  uint64_t* getSize() const;
+
+  uint64_t getPushes()
+  {
+    return d_pushes;
+  }
+
+  uint64_t getExpired()
+  {
+    return d_expired;
+  }
 
 private:
   queue_t d_queue;

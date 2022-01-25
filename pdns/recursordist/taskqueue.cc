@@ -85,19 +85,4 @@ void TaskQueue::runAll(bool logErrors)
   }
 }
 
-uint64_t* TaskQueue::getPushes() const
-{
-  return new uint64_t(d_pushes);
-}
-
-uint64_t* TaskQueue::getExpired() const
-{
-  return new uint64_t(d_expired);
-}
-
-uint64_t* TaskQueue::getSize() const
-{
-  return new uint64_t(size());
-}
-
 } /* namespace pdns */
