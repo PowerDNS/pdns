@@ -1,4 +1,4 @@
-0	cname1.test.dyndns.	IN	CNAME	3600	host-1.test.dyndns.
+0	cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cname1.test.dyndns.', qtype=CNAME
 Answer:
@@ -7,7 +7,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	cname1.test.dyndns.	IN	CNAME	3600	host-2.test.dyndns.
+0	cname1.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cname1.test.dyndns.', qtype=CNAME
 Answer:
@@ -16,6 +16,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	cname1.test.dyndns.	IN	CNAME	3600	host-1.test.dyndns.
+0	cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cname1.test.dyndns.', qtype=CNAME

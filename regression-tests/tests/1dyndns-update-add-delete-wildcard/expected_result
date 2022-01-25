@@ -1,4 +1,4 @@
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='abc.add-delete.test.dyndns.', qtype=ANY
 Answer:
@@ -7,10 +7,10 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	abc.add-delete.test.dyndns.	IN	TXT	3600	"Wildcard with non-empty terminal"
+0	abc.add-delete.test.dyndns.	3600	IN	TXT	"Wildcard with non-empty terminal"
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='abc.add-delete.test.dyndns.', qtype=ANY
-0	abc1.add-delete.test.dyndns.	IN	TXT	3600	"Wildcard with non-empty terminal"
+0	abc1.add-delete.test.dyndns.	3600	IN	TXT	"Wildcard with non-empty terminal"
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='abc1.add-delete.test.dyndns.', qtype=ANY
 Answer:
@@ -19,6 +19,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='abc.add-delete.test.dyndns.', qtype=ANY

@@ -1,2 +1,2 @@
-1	test.com.	IN	NSEC	3600	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY
-1	www.test.com.	IN	NSEC	3600	test.com. CNAME RRSIG NSEC
+1	test.com.	3600	IN	NSEC	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY
+1	www.test.com.	3600	IN	NSEC	test.com. CNAME RRSIG NSEC
