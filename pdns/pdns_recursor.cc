@@ -1756,7 +1756,7 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
-  if (write(g_threadInfos[0].pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+  if (write(RecThreadInfo::info(0).pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
     delete tmsg;
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -2322,7 +2322,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
 static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 {
-  auto& targetInfo = g_threadInfos[target];
+  auto& targetInfo = RecThreadInfo::info(target);
   if (!targetInfo.isWorker()) {
     g_log << Logger::Error << "distributeAsyncFunction() tried to assign a query to a non-worker thread" << endl;
     _exit(1);
@@ -2353,7 +2353,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto mt = g_threadInfos[/* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + workerIdx].mt;
+  const auto mt = RecThreadInfo::info(/* skip handler */ 1 + RecThreadInfo::s_numDistributorThreads + workerIdx).mt;
   if (mt != nullptr) {
     return mt->numProcesses();
   }

@@ -290,16 +290,13 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const
   return hadError;
 }
 
-struct RecThreadInfo;
-/* first we have the handler thread, t_id == 0 (some other
-   helper threads like SNMP might have t_id == 0 as well)
-   then the distributor threads if any
-   and finally the workers */
-extern std::vector<RecThreadInfo> g_threadInfos;
 void* recursorThread();
 
-// for communicating with our threads
-// effectively readonly after startup
+// For communicating with our threads effectively readonly after
+// startup.
+// First we have the handler thread, t_id == 0 (some other helper
+// threads like SNMP might have t_id == 0 as well) then the
+// distributor threads if any and finally the workers
 struct RecThreadInfo
 {
   struct ThreadPipeSet
@@ -315,7 +312,17 @@ struct RecThreadInfo
 public:
   static RecThreadInfo& self()
   {
-    return g_threadInfos.at(t_id);
+    return s_threadInfos.at(t_id);
+  }
+
+  static RecThreadInfo& info(unsigned int i)
+  {
+    return s_threadInfos.at(i);
+  }
+
+  static vector<RecThreadInfo>& infos()
+  {
+    return s_threadInfos;
   }
 
   bool isDistributor() const
@@ -367,7 +374,6 @@ public:
       setThreadName(threadPrefix + name);
       recursorThread();
     });
-    sleep(1);
   }
 
   static unsigned int id()
@@ -380,15 +386,15 @@ public:
     t_id = id;
   }
 
-  /* FD corresponding to TCP sockets this thread is listening
-     on.
-     These FDs are also in deferredAdds when we have one
-     socket per listener, and in g_deferredAdds instead. */
+   // FD corresponding to TCP sockets this thread is listening on.
+   // These FDs are also in deferredAdds when we have one socket per
+   // listener, and in g_deferredAdds instead.
   std::set<int> tcpSockets;
-  /* FD corresponding to listening sockets if we have one socket per
-     listener (with reuseport), otherwise all listeners share the
-     same FD and g_deferredAdds is then used instead */
+  // FD corresponding to listening sockets if we have one socket per
+  // listener (with reuseport), otherwise all listeners share the
+  // same FD and g_deferredAdds is then used instead
   deferredAdd_t deferredAdds;
+
   struct ThreadPipeSet pipes;
   std::thread thread;
   MT_t* mt{nullptr};
@@ -412,6 +418,7 @@ private:
   /* process queries */
   bool worker{false};
   static thread_local unsigned int t_id;
+  static std::vector<RecThreadInfo> s_threadInfos;
 };
 
 struct ThreadMSG
