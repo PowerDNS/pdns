@@ -14,7 +14,7 @@ Using the settings mentioned in :ref:`upgrade-offensive` now generates a warning
 File descriptor usage
 ^^^^^^^^^^^^^^^^^^^^^
 The number of file descriptors used by the Recursor has increased because the Recursor now keeps idle outgoing TCP/DoT connections open for a while.
-The extra file descriptors used compared to previous versions of the Recursor is :ref:`setting-tcp-out-max-idle-per-thread` times the number of worker threads (:ref:`setting-threads`).
+The extra file descriptors used in comparison to previous versions of the Recursor is :ref:`setting-tcp-out-max-idle-per-thread` times the number of worker threads (:ref:`setting-threads`).
 
 New settings
 ^^^^^^^^^^^^

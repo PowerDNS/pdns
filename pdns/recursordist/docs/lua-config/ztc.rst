@@ -29,7 +29,7 @@ The signatures of the remaining records will be verified on-demand once the reco
 
 For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record, the digest of the zone wil be verified.
 
-For both parts failure of validation will prevent the downloaded zone contents to be inserted into the cache.
+For both parts failure of validation will prevent the downloaded zone contents from being inserted into the cache.
 Absence of ``DNSSEC`` records is not considered a failure if the parent zone or negative trust anchor indicate the zone is ``Insecure``.
 Absence of ``ZONEMD`` records is not considered a failure.
 This behaviour can be tuned with the ``zoneToCache`` specific `zonemd`_ and `dnssec`_ settings described below.
