@@ -139,7 +139,7 @@ struct DNSComboWriter
   std::map<std::string, RecursorLua4::MetaValue> d_meta;
 };
 
-extern thread_local FDMultiplexer* t_fdm;
+extern thread_local unique_ptr<FDMultiplexer> t_fdm;
 extern uint16_t g_minUdpSourcePort;
 extern uint16_t g_maxUdpSourcePort;
 

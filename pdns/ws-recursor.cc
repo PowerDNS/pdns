@@ -45,8 +45,6 @@
 #include "tcpiohandler.hh"
 #include "rec-main.hh"
 
-extern thread_local FDMultiplexer* t_fdm;
-
 using json11::Json;
 
 void productServerStatisticsFetch(map<string, string>& out)

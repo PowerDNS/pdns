@@ -1977,11 +1977,9 @@ void* recursorThread()
     checkFrameStreamExport(luaconfsLocal);
 #endif
 
-    PacketID pident;
+    t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer());
 
-    t_fdm = getMultiplexer();
-
-    RecursorWebServer* rws = nullptr;
+    std::unique_ptr<RecursorWebServer> rws;
 
     t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
 
@@ -1989,7 +1987,7 @@ void* recursorThread()
       if (::arg().mustDo("webserver")) {
         g_log << Logger::Warning << "Enabling web server" << endl;
         try {
-          rws = new RecursorWebServer(t_fdm);
+          rws = make_unique<RecursorWebServer>(t_fdm.get());
         }
         catch (const PDNSException& e) {
           g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl;
@@ -2025,7 +2023,7 @@ void* recursorThread()
 
     unsigned int maxTcpClients = ::arg().asNum("max-tcp-clients");
 
-    bool listenOnTCP(true);
+    bool listenOnTCP{true};
 
     time_t last_stat = 0;
     time_t last_carbon = 0, last_lua_maintenance = 0;
@@ -2104,8 +2102,6 @@ void* recursorThread()
         }
       }
     }
-    delete rws;
-    delete t_fdm;
     return nullptr;
   }
   catch (PDNSException& ae) {
