@@ -17,7 +17,7 @@ Changelogs for 4.6.x
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
 
-Compared to 4.6.0-rc1, this release contains a couple bug fixes and a small improvement.
+  Compared to 4.6.0-rc1, this release contains a couple bug fixes and a small improvement.
 
   .. change::
     :tags: Bug Fixes
