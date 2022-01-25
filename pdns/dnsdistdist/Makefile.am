@@ -301,6 +301,7 @@ testrunner_SOURCES = \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
+	test-dnsdist-dnsparser.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
