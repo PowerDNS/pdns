@@ -2,6 +2,42 @@ Changelogs for 4.6.x
 ====================
 
 .. changelog::
+  :version: 4.6.0
+  :released: 25th of January 2022
+
+  This is version 4.6.0 of the Authoritative Server.
+
+  This release contains a ton of improvements and bug fixes compared to 4.5, and a couple of user visible changes.
+
+  New features:
+
+  * support for incoming PROXY headers
+  * support for EDNS Cookies
+  * autoprimary management via pdnsutil and the API
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+Compared to 4.6.0-rc1, this release contains a couple bug fixes and a small improvement.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11205
+
+    Fix swagger/openapi spec for new autoprimary management interface
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11220
+
+    fix multiple CDS records in an AXFR (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11206
+
+    show QType by name in log message (Chris Hofstaedtler)
+
+.. changelog::
   :version: 4.6.0-rc1
   :released: 14th of January 2022
 
