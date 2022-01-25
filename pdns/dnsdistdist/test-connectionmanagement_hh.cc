@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(test_ConnectionManagementEnabled) {
   /* raise the number of slots */
   maxConns = 12;
   manager.setMaxConcurrentConnections(maxConns);
+  BOOST_CHECK_EQUAL(manager.getMaxConcurrentConnections(), maxConns);
   BOOST_CHECK_EQUAL(manager.registerConnection(), true);
   BOOST_CHECK_EQUAL(manager.registerConnection(), true);
   BOOST_CHECK_EQUAL(manager.registerConnection(), false);
