@@ -306,26 +306,25 @@ When running multiple recursors on the same server, read settings from :file:`re
 
 ``cpu-map``
 -----------
-.. versionadded:: 4.1.0
 
 - String
 - Default: unset
 
-Set CPU affinity for worker threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
+Set CPU affinity for threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
 This parameter accepts a space separated list of thread-id=cpu-id, or thread-id=cpu-id-1,cpu-id-2,...,cpu-id-N.
 For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2::
 
   cpu-map=0=0 1=1,2
 
-The number of worker threads is determined by the :ref:`setting-threads` setting.
-If :ref:`setting-pdns-distributes-queries` is set, an additional thread is started, assigned the id 0,
-and is the only one listening on client sockets and accepting queries, distributing them to the other worker threads afterwards.
+The thread handling the control channel, the webserver and other internal stuff has been assigned id 0, the distributor
+threads if any are assigned id 1 and counting, and the worker threads follow behind.
+The number of distributor threads is determined by :ref:`setting-distributor-threads`, the number of worker threads is determined by the :ref:`setting-threads` setting.
 
-Starting with version 4.2.0, the thread handling the control channel, the webserver and other internal stuff has been assigned
-id 0 and more than one distributor thread can be started using the :ref:`setting-distributor-threads` setting, so the distributor
-threads if any are assigned id 1 and counting, and the other threads follow behind.
+This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function.
 
-This parameter is only available on OS that provides the `pthread_setaffinity_np()` function.
+Note that depending on the configuration the Recursor can start more threads.
+Typically these threads will sleep most of the time.
+These threads cannot be specified in this setting as their thread-ids are left unspecified.
 
 .. _setting-daemon:
 
