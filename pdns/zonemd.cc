@@ -164,7 +164,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   // Determine which digests to compute based on accepted zonemd records present
   unique_ptr<pdns::SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
 
-  for (auto it = d_zonemdRecords.begin(); it != d_zonemdRecords.end();) {
+  for (const auto& it : d_zonemdRecords) {
     // The SOA Serial field MUST exactly match the ZONEMD Serial
     // field. If the fields do not match, digest verification MUST
     // NOT be considered successful with this ZONEMD RR.
@@ -176,8 +176,8 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     // The Hash Algorithm field MUST be checked. If the verifier does
     // not support the given hash algorithm, verification MUST NOT be
     // considered successful with this ZONEMD RR.
-    const auto duplicate = it->second.duplicate;
-    const auto& r = it->second.record;
+    const auto duplicate = it.second.duplicate;
+    const auto& r = it.second.record;
     if (!duplicate && r->d_serial == d_soaRecordContent->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
       // A supported ZONEMD record
       if (r->d_hashalgo == 1) {
@@ -186,11 +186,12 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       else if (r->d_hashalgo == 2) {
         sha512digest = make_unique<pdns::SHADigest>(512);
       }
-      ++it;
     }
-    else {
-      it = d_zonemdRecords.erase(it);
-    }
+  }
+
+  if (!sha384digest && !sha512digest) {
+    // No supported ZONEMD algo found, mismatch in SOA, mismatch in scheme or duplicate
+    return;
   }
 
   // A little helper
@@ -247,7 +248,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     }
   }
 
-  // Final verify, we know we only have supported candidate ZONEDMD records
+  // Final verify
   for (const auto& [k, v] : d_zonemdRecords) {
     auto [zonemd, duplicate] = v;
     if (zonemd->d_hashalgo == 1) {
