@@ -34,11 +34,13 @@
 #include "pdns/version.hh"
 #include "pdns/arguments.hh"
 #include "pdns/lock.hh"
+#include "pdns/uuid-utils.hh"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 
 #include <boost/iostreams/device/back_inserter.hpp>
 
@@ -113,6 +115,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       else {
         s_shards = atoi(getArg("shards").c_str());
         txn->put(pdnsdbi, "shards", s_shards);
+      }
+
+      MDBOutVal gotuuid;
+      if (txn->get(pdnsdbi, "uuid", gotuuid)) {
+        const auto uuid = getUniqueID();
+        const string uuids(uuid.begin(), uuid.end());
+        txn->put(pdnsdbi, "uuid", uuids);
       }
 
       txn->commit();

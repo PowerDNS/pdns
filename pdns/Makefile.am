@@ -378,6 +378,7 @@ pdnsutil_SOURCES = \
 	tsigutils.hh tsigutils.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc \
 	zonemd.hh zonemd.cc \
 	zoneparser-tng.cc
 
