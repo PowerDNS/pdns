@@ -376,16 +376,6 @@ public:
     taskThread = true;
   }
 
-  void start(unsigned int id, const string& name)
-  {
-    thread = std::thread([id, name] {
-      t_id = id;
-      const string threadPrefix = "rec/";
-      setThreadName(threadPrefix + name);
-      recursorThread();
-    });
-  }
-
   static unsigned int id()
   {
     return t_id;
@@ -441,6 +431,14 @@ public:
     return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
   }
 
+  static int runThreads();
+  static void makeThreadPipes();
+
+  void setExitCode(int e)
+  {
+    exitCode = e;
+  }
+
   // FD corresponding to TCP sockets this thread is listening on.
   // These FDs are also in deferredAdds when we have one socket per
   // listener, and in g_deferredAdds instead.
@@ -451,12 +449,15 @@ public:
   deferredAdd_t deferredAdds;
 
   struct ThreadPipeSet pipes;
-  std::thread thread;
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
-  int exitCode{0};
 
 private:
+  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap);
+
+  std::thread thread;
+  int exitCode{0};
+
   // handle the web server, carbon, statistics and the control channel
   bool handler{false};
   // accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set)
