@@ -378,6 +378,7 @@ pdnsutil_SOURCES = \
 	tsigutils.hh tsigutils.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc \
 	zoneparser-tng.cc
 
 pdnsutil_LDFLAGS = \
