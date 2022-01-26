@@ -847,7 +847,6 @@ static void loggerBackend(const Logging::Entry& entry)
   g_log << u << buf.str() << endl;
 }
 
-
 static int ratePercentage(uint64_t nom, uint64_t denom)
 {
   if (denom == 0) {
@@ -1054,7 +1053,7 @@ void broadcastFunction(const pipefunc_t& func)
 
   unsigned int n = 0;
   for (const auto& threadInfo : RecThreadInfo::infos()) {
-    if (n++ ==  RecThreadInfo::id()) {
+    if (n++ == RecThreadInfo::id()) {
       func(); // don't write to ourselves!
       continue;
     }
@@ -1535,7 +1534,7 @@ static int serviceMain(int argc, char* argv[])
     if (RecThreadInfo::weDistributeQueries()) {
       /* first thread is the handler, then distributors */
       for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
-        auto& info =  RecThreadInfo::info(threadId);
+        auto& info = RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
         makeUDPServerSockets(deferredAdds);
@@ -1545,7 +1544,7 @@ static int serviceMain(int argc, char* argv[])
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
       for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
-        auto& info =  RecThreadInfo::info(threadId);
+        auto& info = RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
         makeUDPServerSockets(deferredAdds);
