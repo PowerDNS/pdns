@@ -1,6 +1,13 @@
 Upgrade Guide
 =============
 
+1.7.0 to 1.7.1
+--------------
+
+In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
+For more information, see the section `"Privileged ports" in Docker-README <https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports>`__.
+(This note was in the 1.6.x to 1.7.0 upgrade guide before, but the change was not present in 1.7.0.)
+
 1.6.x to 1.7.0
 --------------
 
@@ -11,9 +18,6 @@ Truncated responses received over UDP for DoH clients will now be retried over T
 Unless set via :func:`setMaxTCPClientThreads` the number of TCP workers now defaults to 10, instead of the number of TCP binds.
 
 Plain-text API keys and passwords for web server authentication are now strongly discouraged. The :func:`hashPassword` method can be used to generate a hashed and salted version of passwords and API keys instead, so that the plain-text version can no longer be found in either the configuration file or the memory of the running process.
-
-In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
-For more information, see the section `"Privileged ports" in Docker-README <https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports>`__.
 
 1.5.x to 1.6.0
 --------------
