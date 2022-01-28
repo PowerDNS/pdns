@@ -25,6 +25,7 @@
 #include "namespaces.hh"
 #include "dns.hh"
 #include "iputils.hh"
+#include "zonemd.hh"
 
 class RecZoneToCache
 {
@@ -40,6 +41,17 @@ public:
     time_t d_retryOnError{60}; // Retry on error
     time_t d_refreshPeriod{24 * 3600}; // Time between refetch
     uint32_t d_timeout{20}; // timeout in seconds
+    pdns::ZoneMD::Config d_zonemd{pdns::ZoneMD::Config::Validate};
+    pdns::ZoneMD::Config d_dnssec{pdns::ZoneMD::Config::Validate};
   };
-  static void ZoneToCache(Config config, uint64_t gen);
+
+  struct State
+  {
+    time_t d_lastrun{0};
+    time_t d_waittime{0};
+    uint64_t d_generation;
+  };
+
+  static void maintainStates(const map<DNSName, Config>&, map<DNSName, State>&, uint64_t mygeneration);
+  static void ZoneToCache(const Config& config, State& state);
 };

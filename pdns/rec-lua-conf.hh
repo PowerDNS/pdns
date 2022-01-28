@@ -71,6 +71,7 @@ public:
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
   map<DNSName, dsmap_t> dsAnchors;
   map<DNSName, std::string> negAnchors;
+  map<DNSName, RecZoneToCache::Config> ztcConfigs;
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
@@ -88,7 +89,6 @@ struct luaConfigDelayedThreads
 {
   // Please make sure that the tuple below only contains value types since they are used as parameters in a thread ct
   std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string>> rpzPrimaryThreads;
-  std::vector<RecZoneToCache::Config> ztcConfigs;
 };
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);

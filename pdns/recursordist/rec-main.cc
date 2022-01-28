@@ -1576,7 +1576,6 @@ static int serviceMain(int argc, char* argv[])
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
   delayedLuaThreads.rpzPrimaryThreads.clear(); // no longer needed
-  delayedLuaThreads.ztcConfigs.clear(); // no longer needed
 
   makeThreadPipes();
 
@@ -1770,6 +1769,7 @@ static void houseKeeping(void*)
   static thread_local int t_cleanCounter = 0;
   static thread_local bool t_running; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   static time_t s_last_RC_prune = 0;
+  static time_t s_last_ZTC_prune = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
@@ -1808,6 +1808,15 @@ static void houseKeeping(void*)
     }
 
     if (isHandlerThread()) {
+      if (now.tv_sec - s_last_ZTC_prune > 60) {
+        s_last_ZTC_prune = now.tv_sec;
+        static map<DNSName, RecZoneToCache::State> ztcStates;
+        RecZoneToCache::maintainStates(luaconfsLocal->ztcConfigs, ztcStates, luaconfsLocal->generation);
+        for (auto& ztc : luaconfsLocal->ztcConfigs) {
+          RecZoneToCache::ZoneToCache(ztc.second, ztcStates.at(ztc.first));
+        }
+      }
+
       if (now.tv_sec - s_last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);

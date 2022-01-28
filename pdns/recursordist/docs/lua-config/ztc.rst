@@ -15,6 +15,26 @@ To load the root zone from Internic into the recursor once at startup and when t
 
      zoneToCache(".", "url", "https://www.internic.net/domain/root.zone", { refreshPeriod = 0 })
 
+DNSSEC and ZONEMD validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Starting with version 4.7.0, the Recursor will do validation of the zone retrieved.
+Validation consists of two parts: ``DNSSEC`` and ``ZONEMD``.
+``ZONEMD`` is described in :rfc:`8976`.
+
+For the ``DNSSEC`` part, if the global :ref:`setting-dnssec` setting is not ``off`` or ``process-no-validate`` and the `DS` record from the parent zone or trust anchor indicates the zone is ``DNSSEC`` signed, the recursor will validate the ``DNSKEY`` records of the zone.
+If a ``ZONEMD`` record is present, it will also validate the ``ZONEMD`` record.
+If no ``ZONEMD`` is present, the ``NSEC`` or ``NSEC3`` denial of the ``ZONEMD`` record will be validated.
+Note that this is not a full validation of the signatures of all records.
+The signatures of the remaining records will be verified on-demand once the records are inserted into the cache by the Zone to Cache function.
+
+For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record with a matching serial number, supported digest algorithm and supported scheme, the digest of the zone will be verified.
+
+For both parts failure of validation will prevent the downloaded zone contents from being inserted into the cache.
+Absence of ``DNSSEC`` records is not considered a failure if the parent zone or negative trust anchor indicate the zone is ``Insecure``.
+Absence of ``ZONEMD`` records is not considered a failure unless ``DNSSEC`` indicates ``ZONEMD`` records should be present.
+This behaviour can be tuned with the ``zoneToCache`` specific `zonemd`_ and `dnssec`_ settings described below.
+
+
 Configuration
 ^^^^^^^^^^^^^
 .. function:: zoneToCache(zone, method, source [, settings ])
@@ -72,4 +92,22 @@ localAddress
 ~~~~~~~~~~~~
 The source IP address to use when transferring using the ``axfr`` or ``url`` methods.
 When unset, :ref:`setting-query-local-address` is used.
+
+zonemd
+~~~~~~
+
+.. versionadded:: 4.7.0
+
+A string, possible values: ``ignore``: ignore ZONEMD records, ``validate``: validate ``ZONEMD`` if present, ``require``: require valid ``ZONEMD`` record to be present.
+Default ``validate``.
+
+
+dnssec
+~~~~~~
+
+.. versionadded:: 4.7.0
+
+A string, possible values: ``ignore``: do not do ``DNSSEC`` validation, ``validate``: validate ``DNSSEC`` records as described above but accept an ``Insecure`` (unsigned) zone, ``require``: require ``DNSSEC`` validation, as described above.
+Default ``validate``.
+
 

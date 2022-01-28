@@ -354,7 +354,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   /* we can get: "1.2.3.4"
                  {"1.2.3.4", "4.5.6.7"}
-		 {"1.2.3.4", {"4.5.6.7", "8.9.10.11"}}
+                 {"1.2.3.4", {"4.5.6.7", "8.9.10.11"}}
   */
 
   map<string, DNSFilterEngine::PolicyKind> pmap{
@@ -398,7 +398,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
 
-  Lua.writeFunction("zoneToCache", [&delayedThreads](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
+  Lua.writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
     try {
       RecZoneToCache::Config conf;
       DNSName validZoneName(zoneName);
@@ -444,9 +444,34 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (have.count("retryOnErrorPeriod")) {
           conf.d_retryOnError = boost::get<uint32_t>(have.at("retryOnErrorPeriod"));
         }
+        const map<string, pdns::ZoneMD::Config> nameToVal = {
+          {"ignore", pdns::ZoneMD::Config::Ignore},
+          {"validate", pdns::ZoneMD::Config::Validate},
+          {"require", pdns::ZoneMD::Config::Require},
+        };
+        if (have.count("zonemd")) {
+          string zonemdValidation = boost::get<string>(have.at("zonemd"));
+          auto it = nameToVal.find(zonemdValidation);
+          if (it == nameToVal.end()) {
+            throw std::runtime_error(zonemdValidation + " is not a valid value for `zonemd`");
+          }
+          else {
+            conf.d_zonemd = it->second;
+          }
+        }
+        if (have.count("dnssec")) {
+          string dnssec = boost::get<string>(have.at("dnssec"));
+          auto it = nameToVal.find(dnssec);
+          if (it == nameToVal.end()) {
+            throw std::runtime_error(dnssec + " is not a valid value for `dnssec`");
+          }
+          else {
+            conf.d_dnssec = it->second;
+          }
+        }
       }
 
-      delayedThreads.ztcConfigs.push_back(conf);
+      lci.ztcConfigs[validZoneName] = conf;
     }
     catch (const std::exception& e) {
       g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl;
@@ -690,21 +715,6 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     }
     catch (const PDNSException& e) {
       g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl;
-      exit(1);
-    }
-  }
-
-  for (const auto& ztcConfig : delayedThreads.ztcConfigs) {
-    try {
-      std::thread t(RecZoneToCache::ZoneToCache, ztcConfig, generation);
-      t.detach();
-    }
-    catch (const std::exception& e) {
-      g_log << Logger::Error << "Problem starting zoneToCache thread: " << e.what() << endl;
-      exit(1);
-    }
-    catch (const PDNSException& e) {
-      g_log << Logger::Error << "Problem starting zoneToCache thread: " << e.reason << endl;
       exit(1);
     }
   }

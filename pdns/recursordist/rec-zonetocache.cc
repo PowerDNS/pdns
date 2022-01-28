@@ -28,8 +28,9 @@
 #include "axfr-retriever.hh"
 #include "validate-recursor.hh"
 #include "logging.hh"
-#include "threadname.hh"
 #include "rec-lua-conf.hh"
+#include "zonemd.hh"
+#include "validate.hh"
 
 #ifdef HAVE_LIBCURL
 #include "minicurl.hh"
@@ -58,8 +59,10 @@ struct ZoneData
 
   bool isRRSetAuth(const DNSName& qname, QType qtype) const;
   void parseDRForCache(DNSRecord& dr);
-  void getByAXFR(const RecZoneToCache::Config&);
-  void ZoneToCache(const RecZoneToCache::Config& config, uint64_t gen);
+  pdns::ZoneMD::Result getByAXFR(const RecZoneToCache::Config&, pdns::ZoneMD&);
+  pdns::ZoneMD::Result processLines(const std::vector<std::string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD&);
+  void ZoneToCache(const RecZoneToCache::Config& config);
+  vState dnssecValidate(pdns::ZoneMD&, size_t& zonemdCount) const;
 };
 
 bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype) const
@@ -83,6 +86,9 @@ bool ZoneData::isRRSetAuth(const DNSName& qname, QType qtype) const
 
 void ZoneData::parseDRForCache(DNSRecord& dr)
 {
+  if (dr.d_class != QClass::IN) {
+    return;
+  }
   const auto key = pair(dr.d_name, dr.d_type);
 
   dr.d_ttl += d_now;
@@ -125,7 +131,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
   }
 }
 
-void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
+pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
 {
   ComboAddress primary = ComboAddress(config.d_sources.at(0), 53);
   uint16_t axfrTimeout = config.d_timeout;
@@ -144,6 +150,9 @@ void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
 
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
+      if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+        zonemd.readRecord(dr);
+      }
       parseDRForCache(dr);
     }
     axfrNow = time(nullptr);
@@ -151,6 +160,19 @@ void ZoneData::getByAXFR(const RecZoneToCache::Config& config)
       throw std::runtime_error("Total AXFR time for zoneToCache exceeded!");
     }
   }
+  if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+    bool validationDone, validationSuccess;
+    zonemd.verify(validationDone, validationSuccess);
+    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+                "validationSuccess", Logging::Loggable(validationSuccess));
+    if (!validationDone) {
+      return pdns::ZoneMD::Result::NoValidationDone;
+    }
+    if (!validationSuccess) {
+      return pdns::ZoneMD::Result::ValidationFailure;
+    }
+  }
+  return pdns::ZoneMD::Result::OK;
 }
 
 static std::vector<std::string> getLinesFromFile(const std::string& file)
@@ -190,20 +212,146 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
   return lines;
 }
 
-void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t configGeneration)
+pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
+{
+  DNSResourceRecord drr;
+  ZoneParserTNG zpt(lines, d_zone);
+  zpt.setMaxGenerateSteps(1);
+  zpt.setMaxIncludes(0);
+
+  while (zpt.get(drr)) {
+    DNSRecord dr(drr);
+    if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+      zonemd.readRecord(dr);
+    }
+    parseDRForCache(dr);
+  }
+  if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
+    bool validationDone, validationSuccess;
+    zonemd.verify(validationDone, validationSuccess);
+    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+                "validationSuccess", Logging::Loggable(validationSuccess));
+    if (!validationDone) {
+      return pdns::ZoneMD::Result::NoValidationDone;
+    }
+    if (!validationSuccess) {
+      return pdns::ZoneMD::Result::ValidationFailure;
+    }
+  }
+  return pdns::ZoneMD::Result::OK;
+}
+
+vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
+{
+  zonemdCount = 0;
+
+  SyncRes sr({d_now, 0});
+  sr.setDoDNSSEC(true);
+  sr.setDNSSECValidationRequested(true);
+
+  dsmap_t dsmap; // Actually a set
+  vState dsState = sr.getDSRecords(d_zone, dsmap, false, 0);
+  if (dsState != vState::Secure) {
+    return dsState;
+  }
+
+  skeyset_t dnsKeys;
+  sortedRecords_t records;
+  if (zonemd.getDNSKEYs().size() == 0) {
+    return vState::BogusUnableToGetDNSKEYs;
+  }
+  for (const auto& key : zonemd.getDNSKEYs()) {
+    dnsKeys.emplace(key);
+    records.emplace(key);
+  }
+
+  skeyset_t validKeys;
+  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(), validKeys);
+  if (dnsKeyState != vState::Secure) {
+    return dnsKeyState;
+  }
+
+  if (validKeys.size() == 0) {
+    return vState::BogusNoValidDNSKEY;
+  }
+
+  auto zonemdRecords = zonemd.getZONEMDs();
+  zonemdCount = zonemdRecords.size();
+
+  // De we need to do a denial validation?
+  if (zonemdCount == 0) {
+    const auto& nsecs = zonemd.getNSECs();
+    const auto& nsec3s = zonemd.getNSEC3s();
+    cspmap_t csp;
+
+    vState nsecValidationStatus;
+
+    if (nsecs.records.size() > 0 && nsecs.signatures.size() > 0) {
+      // Valdidate the NSEC
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys);
+      csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
+    }
+    else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
+      // Validate NSEC3PARAMS
+      records.clear();
+      for (const auto& rec : zonemd.getNSEC3Params()) {
+        records.emplace(rec);
+      }
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys);
+      if (nsecValidationStatus != vState::Secure) {
+        d_log->info("NSEC3PARAMS records did not validate");
+        return nsecValidationStatus;
+      }
+      // Valdidate the NSEC3
+      nsecValidationStatus = validateWithKeySet(d_now, zonemd.getNSEC3Label(), nsec3s.records, nsec3s.signatures, validKeys);
+      csp.emplace(std::make_pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
+    }
+    else {
+      d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
+      return vState::BogusInvalidDenial;
+    }
+
+    if (nsecValidationStatus != vState::Secure) {
+      d_log->info("zone NSEC(3) record does not validate");
+      return nsecValidationStatus;
+    }
+
+    auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, true);
+    if (denial == dState::NXQTYPE) {
+      d_log->info("Validated denial of absence of ZONEMD record");
+      return vState::Secure;
+    }
+    d_log->info("No ZONEMD record, but NSEC(3) record does not deny it");
+    return vState::BogusInvalidDenial;
+  }
+
+  // Collect the ZONEMD records and validate them using the validated DNSSKEYs
+  records.clear();
+  for (const auto& rec : zonemdRecords) {
+    records.emplace(rec);
+  }
+  return validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys);
+}
+
+void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
 {
   if (config.d_sources.size() > 1) {
     d_log->info("Multiple sources not yet supported, using first");
   }
 
-  // We do not do validation, it will happen on-demand if an Indeterminate record is encountered when the caches are queried
-  // First scan all records collecting info about delegations ans sigs
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require && (g_dnssecmode == DNSSECMode::Off || g_dnssecmode == DNSSECMode::ProcessNoValidate)) {
+    throw PDNSException("ZONEMD DNSSEC validation failure: DNSSEC validation is switched off but required by ZoneToCache");
+  }
+
+  // First scan all records collecting info about delegations and sigs
   // A this moment, we ignore NSEC and NSEC3 records. It is not clear to me yet under which conditions
   // they could be entered in into the (neg)cache.
 
+  auto zonemd = pdns::ZoneMD(DNSName(config.d_zone));
+  pdns::ZoneMD::Result result = pdns::ZoneMD::Result::OK;
   if (config.d_method == "axfr") {
     d_log->info("Getting zone by AXFR");
-    getByAXFR(config);
+    result = getByAXFR(config, zonemd);
   }
   else {
     vector<string> lines;
@@ -215,20 +363,30 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
       d_log->info("Getting zone from file");
       lines = getLinesFromFile(config.d_sources.at(0));
     }
-    DNSResourceRecord drr;
-    ZoneParserTNG zpt(lines, d_zone);
-    zpt.setMaxGenerateSteps(1);
-    zpt.setMaxIncludes(0);
+    result = processLines(lines, config, zonemd);
+  }
 
-    while (zpt.get(drr)) {
-      DNSRecord dr(drr);
-      parseDRForCache(dr);
+  // Validate DNSKEYs and ZONEMD, rest of records are validated on-demand by SyncRes
+  if (config.d_dnssec == pdns::ZoneMD::Config::Require || (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
+    size_t zonemdCount;
+    auto validationStatus = dnssecValidate(zonemd, zonemdCount);
+    d_log->info("ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),
+                "zonemdCount", Logging::Loggable(zonemdCount));
+    if (config.d_dnssec == pdns::ZoneMD::Config::Require && validationStatus != vState::Secure) {
+      throw PDNSException("ZONEMD required DNSSEC validation failed");
+    }
+    if (validationStatus != vState::Secure && validationStatus != vState::Insecure) {
+      throw PDNSException("ZONEMD record DNSSEC validation failed");
     }
   }
 
-  // Extra check before we are touching the cache
-  auto luaconfsLocal = g_luaconfs.getLocal();
-  if (luaconfsLocal->generation != configGeneration) {
+  if (config.d_zonemd == pdns::ZoneMD::Config::Require && result != pdns::ZoneMD::Result::OK) {
+    // We do not accept NoValidationDone in this case
+    throw PDNSException("ZONEMD digest validation failure");
+    return;
+  }
+  if (config.d_zonemd == pdns::ZoneMD::Config::Validate && result == pdns::ZoneMD::Result::ValidationFailure) {
+    throw PDNSException("ZONEMD digest validation failure");
     return;
   }
 
@@ -260,45 +418,58 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config, uint64_t config
   }
 }
 
-// Config must be a copy, so call by value!
-void RecZoneToCache::ZoneToCache(RecZoneToCache::Config config, uint64_t configGeneration)
+void RecZoneToCache::maintainStates(const map<DNSName, Config>& configs, map<DNSName, State>& states, uint64_t mygeneration)
 {
-  setThreadName("pdns-r/ztc/" + config.d_zone);
-  auto luaconfsLocal = g_luaconfs.getLocal();
+  // Delete states that have no config
+  for (auto it = states.begin(); it != states.end();) {
+    if (configs.find(it->first) == configs.end()) {
+      it = states.erase(it);
+    }
+    else {
+      it = ++it;
+    }
+  }
+  // Reset states for which the config generation changed and create new states for new configs
+  for (auto config : configs) {
+    auto state = states.find(config.first);
+    if (state != states.end()) {
+      if (state->second.d_generation != mygeneration) {
+        state->second = {0, 0, mygeneration};
+      }
+    }
+    else {
+      states.emplace(std::make_pair(config.first, State{0, 0, mygeneration}));
+    }
+  }
+}
+
+void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneToCache::State& state)
+{
+  if (state.d_waittime == 0 && state.d_lastrun > 0) {
+    // single shot
+    return;
+  }
+  if (state.d_lastrun > 0 && state.d_lastrun + state.d_waittime > time(nullptr)) {
+    return;
+  }
   auto log = g_slog->withName("ztc")->withValues("zone", Logging::Loggable(config.d_zone));
 
-  while (true) {
-    if (luaconfsLocal->generation != configGeneration) {
-      /* the configuration has been reloaded, meaning that a new thread
-         has been started to handle that zone and we are now obsolete.
-      */
-      log->info("A more recent configuration has been found, stopping the old update thread");
-      return;
-    }
-
-    time_t refresh = config.d_retryOnError;
-    try {
-      ZoneData data(log, config.d_zone);
-      data.ZoneToCache(config, configGeneration);
-      if (luaconfsLocal->generation != configGeneration) {
-        log->info("A more recent configuration has been found, stopping the old update thread");
-        return;
-      }
-      refresh = config.d_refreshPeriod;
-      log->info("Loaded zone into cache", "refresh", Logging::Loggable(refresh));
-    }
-    catch (const PDNSException& e) {
-      log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(refresh));
-    }
-    catch (const std::runtime_error& e) {
-      log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.what()), "refresh", Logging::Loggable(refresh));
-    }
-    catch (...) {
-      log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable("unknown"), "refresh", Logging::Loggable(refresh));
-    }
-    if (refresh == 0) {
-      return; // single shot
-    }
-    sleep(refresh);
+  state.d_waittime = config.d_retryOnError;
+  try {
+    ZoneData data(log, config.d_zone);
+    data.ZoneToCache(config);
+    state.d_waittime = config.d_refreshPeriod;
+    log->info("Loaded zone into cache", "refresh", Logging::Loggable(state.d_waittime));
   }
+  catch (const PDNSException& e) {
+    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(state.d_waittime));
+  }
+  catch (const std::runtime_error& e) {
+    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.what()), "refresh", Logging::Loggable(state.d_waittime));
+  }
+  catch (...) {
+    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable("unknown"), "refresh", Logging::Loggable(state.d_waittime));
+  }
+  state.d_lastrun = time(nullptr);
+  return;
 }

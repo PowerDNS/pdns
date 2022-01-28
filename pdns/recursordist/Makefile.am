@@ -182,6 +182,7 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
+	sha.hh \
 	sholder.hh \
 	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
@@ -206,6 +207,7 @@ pdns_recursor_SOURCES = \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
 	xpf.cc xpf.hh \
+	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
@@ -346,6 +348,7 @@ testrunner_SOURCES = \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
 	xpf.cc xpf.hh \
+	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
