@@ -24,14 +24,14 @@ Validation consists of two parts: ``DNSSEC`` and ``ZONEMD``.
 For the ``DNSSEC`` part, if the global :ref:`setting-dnssec` setting is not ``off`` or ``process-no-validate`` and the `DS` record from the parent zone or trust anchor indicates the zone is ``DNSSEC`` signed, the recursor will validate the ``DNSKEY`` records of the zone.
 If a ``ZONEMD`` record is present, it will also validate the ``ZONEMD`` record.
 If no ``ZONEMD`` is present, the ``NSEC`` or ``NSEC3`` denial of the ``ZONEMD`` record will be validated.
-Note that this is not a full validation of all signatures.
-The signatures of the remaining records will be verified on-demand once the records are inserted into the cache.
+Note that this is not a full validation of the signatures of all records.
+The signatures of the remaining records will be verified on-demand once the records are inserted into the cache by the Zone to Cache function.
 
-For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record, the digest of the zone will be verified.
+For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record with a matching serial number, supported digest algorithm and supported scheme, the digest of the zone will be verified.
 
 For both parts failure of validation will prevent the downloaded zone contents from being inserted into the cache.
 Absence of ``DNSSEC`` records is not considered a failure if the parent zone or negative trust anchor indicate the zone is ``Insecure``.
-Absence of ``ZONEMD`` records is not considered a failure.
+Absence of ``ZONEMD`` records is not considered a failure unless ``DNSSEC`` indicates ``ZONEMD`` records should be present.
 This behaviour can be tuned with the ``zoneToCache`` specific `zonemd`_ and `dnssec`_ settings described below.
 
 
