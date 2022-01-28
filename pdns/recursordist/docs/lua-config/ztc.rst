@@ -27,7 +27,7 @@ If no ``ZONEMD`` is present, the ``NSEC`` or ``NSEC3`` denial of the ``ZONEMD`` 
 Note that this is not a full validation of all signatures.
 The signatures of the remaining records will be verified on-demand once the records are inserted into the cache.
 
-For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record, the digest of the zone wil be verified.
+For the ``ZONEMD`` part, if the zone has a ``ZONEMD`` record, the digest of the zone will be verified.
 
 For both parts failure of validation will prevent the downloaded zone contents from being inserted into the cache.
 Absence of ``DNSSEC`` records is not considered a failure if the parent zone or negative trust anchor indicate the zone is ``Insecure``.
