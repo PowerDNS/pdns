@@ -1,0 +1,118 @@
+arpa.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2021062901 1800 900 604800 86400
+urn.arpa.	86400	IN	DS	45052 8 2 7685b675f93ada412cfe534820c8dcc55654b1711f677ba83a8564c12943f695
+urn.arpa.	86400	IN	DS	34555 8 2 bd743967def1caf0812fe9eff2371d3adf29e27251db272145a5d523c92f7101
+urn.arpa.	86400	IN	DS	28996 8 2 8e66d01a1e5864bcdb8e1f85579aec7c8c536c9d6fc7032ee708e869fd27f3d3
+urn.arpa.	172800	IN	NS	ns4.apnic.net.
+urn.arpa.	172800	IN	NS	ns3.lacnic.net.
+urn.arpa.	172800	IN	NS	c.iana-servers.net.
+urn.arpa.	172800	IN	NS	b.iana-servers.net.
+urn.arpa.	172800	IN	NS	a.iana-servers.net.
+uri.arpa.	86400	IN	DS	57851 8 2 8feda13f642ed9be2e4aaa3d50099dd422ca6081b6bf8188f804343b58d39cb7
+uri.arpa.	86400	IN	DS	28547 8 2 deaefd0c163175350152da7b127dc7c4f9ec8bdf04ccc02829455df86c5ca035
+uri.arpa.	86400	IN	DS	15796 8 2 7f8fa18fdd9a826eb08a4d4e9ce94dbba7a5b7b2b3ce1d74afd150242e9f572f
+uri.arpa.	172800	IN	NS	ns4.apnic.net.
+uri.arpa.	172800	IN	NS	ns3.lacnic.net.
+uri.arpa.	172800	IN	NS	c.iana-servers.net.
+uri.arpa.	172800	IN	NS	b.iana-servers.net.
+uri.arpa.	172800	IN	NS	a.iana-servers.net.
+iris.arpa.	86400	IN	DS	44285 8 2 05cbf77375a8bf5702cf8e261ff947be8c8ab7a0b9485a0241edcfe2f155c7f3
+iris.arpa.	86400	IN	DS	39464 8 2 1e09a2d6374800d54cfd0e52293906ccf7db7e923dcab7015e4bb697d76d9846
+iris.arpa.	86400	IN	DS	38534 8 2 163416c9dcaf8d1babfec16552ed109029607907ab80b195e1dab40f1792a59c
+iris.arpa.	172800	IN	NS	ns4.apnic.net.
+iris.arpa.	172800	IN	NS	ns3.lacnic.net.
+iris.arpa.	172800	IN	NS	c.iana-servers.net.
+iris.arpa.	172800	IN	NS	b.iana-servers.net.
+iris.arpa.	172800	IN	NS	a.iana-servers.net.
+ipv4only.arpa.	172800	IN	NS	ns.icann.org.
+ipv4only.arpa.	172800	IN	NS	c.iana-servers.net.
+ipv4only.arpa.	172800	IN	NS	b.iana-servers.net.
+ipv4only.arpa.	172800	IN	NS	a.iana-servers.net.
+f.ip6-servers.arpa.	172800	IN	AAAA	2001:67c:e0::2
+f.ip6-servers.arpa.	172800	IN	A	193.0.9.2
+e.ip6-servers.arpa.	172800	IN	AAAA	2001:dd8:6::101
+e.ip6-servers.arpa.	172800	IN	A	203.119.86.101
+d.ip6-servers.arpa.	172800	IN	AAAA	2001:13c7:7012::53
+d.ip6-servers.arpa.	172800	IN	A	200.7.86.53
+c.ip6-servers.arpa.	172800	IN	AAAA	2001:43f8:110::11
+c.ip6-servers.arpa.	172800	IN	A	196.216.169.11
+b.ip6-servers.arpa.	172800	IN	AAAA	2001:500:86::86
+b.ip6-servers.arpa.	172800	IN	A	199.253.182.182
+a.ip6-servers.arpa.	172800	IN	AAAA	2620:37:e000::53
+a.ip6-servers.arpa.	172800	IN	A	199.180.182.53
+ip6-servers.arpa.	86400	IN	DS	54832 8 2 ff0d5f44a086a7a31b99c81cfd1135524b5896878e6de78f12b3f609bf7279dc
+ip6-servers.arpa.	86400	IN	DS	19720 8 2 f154d00f5759c274de9cad621910cc0b87d720d35b7de4b0b566e135196c38e2
+ip6-servers.arpa.	86400	IN	DS	16169 8 2 27fb5354c3c011c2851ee25ba32929b645d63262779ac101a6f28cd631991269
+ip6-servers.arpa.	172800	IN	NS	f.ip6-servers.arpa.
+ip6-servers.arpa.	172800	IN	NS	e.ip6-servers.arpa.
+ip6-servers.arpa.	172800	IN	NS	d.ip6-servers.arpa.
+ip6-servers.arpa.	172800	IN	NS	c.ip6-servers.arpa.
+ip6-servers.arpa.	172800	IN	NS	b.ip6-servers.arpa.
+ip6-servers.arpa.	172800	IN	NS	a.ip6-servers.arpa.
+ip6.arpa.	86400	IN	DS	64060 8 2 8a11501086330132be2c23f22dedf0634ad5ff668b4aa1988e172c6a2a4e5f7b
+ip6.arpa.	86400	IN	DS	45094 8 2 e6b54e0a20ce1edbfcb6879c02f5782059cecb043a31d804a04afa51af01d5fb
+ip6.arpa.	86400	IN	DS	13880 8 2 068554efcb5861f42af93ef8e79c442a86c16fc5652e6b6d2419ed527f344d17
+ip6.arpa.	172800	IN	NS	f.ip6-servers.arpa.
+ip6.arpa.	172800	IN	NS	e.ip6-servers.arpa.
+ip6.arpa.	172800	IN	NS	d.ip6-servers.arpa.
+ip6.arpa.	172800	IN	NS	c.ip6-servers.arpa.
+ip6.arpa.	172800	IN	NS	b.ip6-servers.arpa.
+ip6.arpa.	172800	IN	NS	a.ip6-servers.arpa.
+f.in-addr-servers.arpa.	172800	IN	AAAA	2001:67c:e0::1
+f.in-addr-servers.arpa.	172800	IN	A	193.0.9.1
+e.in-addr-servers.arpa.	172800	IN	AAAA	2001:dd8:6::101
+e.in-addr-servers.arpa.	172800	IN	A	203.119.86.101
+d.in-addr-servers.arpa.	172800	IN	AAAA	2001:13c7:7010::53
+d.in-addr-servers.arpa.	172800	IN	A	200.10.60.53
+c.in-addr-servers.arpa.	172800	IN	AAAA	2001:43f8:110::10
+c.in-addr-servers.arpa.	172800	IN	A	196.216.169.10
+b.in-addr-servers.arpa.	172800	IN	AAAA	2001:500:87::87
+b.in-addr-servers.arpa.	172800	IN	A	199.253.183.183
+a.in-addr-servers.arpa.	172800	IN	AAAA	2620:37:e000::53
+a.in-addr-servers.arpa.	172800	IN	A	199.180.182.53
+in-addr-servers.arpa.	86400	IN	DS	62996 8 2 836537710efc1e5570e3aeff7c0c80d3957a16ddf8005034bc9082898968dc81
+in-addr-servers.arpa.	86400	IN	DS	45104 8 2 50136f7a8d3ffe4f9887ad234ff8ce945cabd331feb12569b2f61f99ce40fdbf
+in-addr-servers.arpa.	86400	IN	DS	1987 8 2 dacfdeb02a489a514c6408d0d54e0904fe6e09a6e111abc9eacb27f6552805e1
+in-addr-servers.arpa.	172800	IN	NS	f.in-addr-servers.arpa.
+in-addr-servers.arpa.	172800	IN	NS	e.in-addr-servers.arpa.
+in-addr-servers.arpa.	172800	IN	NS	d.in-addr-servers.arpa.
+in-addr-servers.arpa.	172800	IN	NS	c.in-addr-servers.arpa.
+in-addr-servers.arpa.	172800	IN	NS	b.in-addr-servers.arpa.
+in-addr-servers.arpa.	172800	IN	NS	a.in-addr-servers.arpa.
+in-addr.arpa.	86400	IN	DS	63982 8 2 aaf4fb5d213ef25ae44679032ebe3514c487d7abd99d7f5fec3383d030733c73
+in-addr.arpa.	86400	IN	DS	53696 8 2 13e5501c56b20394da921b51412d48b7089c5eb6957a7c58553c4d4d424f04df
+in-addr.arpa.	86400	IN	DS	47054 8 2 5cafccec201d1933b4c9f6a9c8f51e51f3b39979058ac21b8df1b1f281cbc6f2
+in-addr.arpa.	172800	IN	NS	f.in-addr-servers.arpa.
+in-addr.arpa.	172800	IN	NS	e.in-addr-servers.arpa.
+in-addr.arpa.	172800	IN	NS	d.in-addr-servers.arpa.
+in-addr.arpa.	172800	IN	NS	c.in-addr-servers.arpa.
+in-addr.arpa.	172800	IN	NS	b.in-addr-servers.arpa.
+in-addr.arpa.	172800	IN	NS	a.in-addr-servers.arpa.
+home.arpa.	172800	IN	NS	blackhole-2.iana.org.
+home.arpa.	172800	IN	NS	blackhole-1.iana.org.
+e164.arpa.	86400	IN	DS	12553 13 2 afd44f150f46084491502b3cf2ccfdc8e2d4dcfca06df393d494fb702d64faed
+e164.arpa.	172800	IN	NS	rirns.arin.net.
+e164.arpa.	172800	IN	NS	pri.authdns.ripe.net.
+e164.arpa.	172800	IN	NS	ns4.apnic.net.
+e164.arpa.	172800	IN	NS	ns3.afrinic.net.
+e164.arpa.	172800	IN	NS	ns3.lacnic.net.
+as112.arpa.	86400	IN	DS	53690 8 2 354c6ef7b8b46a4c87ce6a21f3a9043898e68427ad64d029097ce2a38933b82e
+as112.arpa.	86400	IN	DS	53690 8 1 85d712965f3aa6556f40e11ba29c638565444acf
+as112.arpa.	86400	IN	DS	49400 8 2 f8e230e43e20e14200e46beb6e0a67ced274790c8c8c169df7fec5fb7dfa321f
+as112.arpa.	86400	IN	DS	49400 8 1 0236339d6c1fb0fdf6069a9babe455b443fe2f95
+as112.arpa.	86400	IN	DS	20236 8 2 72c9e5d15accc54a32c8c76fe5944bcbf3aabc2b13dc417609763e57bd89d515
+as112.arpa.	86400	IN	DS	20236 8 1 1307e5595598b25fe2eb07bcef767c9d96c3ecdc
+as112.arpa.	172800	IN	NS	c.iana-servers.net.
+as112.arpa.	172800	IN	NS	b.iana-servers.net.
+as112.arpa.	172800	IN	NS	a.iana-servers.net.
+arpa.	518400	IN	NS	m.root-servers.net.
+arpa.	518400	IN	NS	l.root-servers.net.
+arpa.	518400	IN	NS	k.root-servers.net.
+arpa.	518400	IN	NS	i.root-servers.net.
+arpa.	518400	IN	NS	h.root-servers.net.
+arpa.	518400	IN	NS	g.root-servers.net.
+arpa.	518400	IN	NS	f.root-servers.net.
+arpa.	518400	IN	NS	e.root-servers.net.
+arpa.	518400	IN	NS	d.root-servers.net.
+arpa.	518400	IN	NS	c.root-servers.net.
+arpa.	518400	IN	NS	b.root-servers.net.
+arpa.	518400	IN	NS	a.root-servers.net.

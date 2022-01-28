@@ -1,0 +1,4 @@
+zonefile=uri.arpa.zone
+origin=uri.arpa
+expected_result=success
+validation_time=20210201000000

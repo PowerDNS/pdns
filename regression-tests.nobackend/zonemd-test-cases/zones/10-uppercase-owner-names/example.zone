@@ -1,0 +1,9 @@
+EXAMPLE.      86400   IN  SOA     ns1 admin 2018031900 (
+                                  1800 900 604800 86400 )
+              86400   IN  NS      ns1
+              86400   IN  NS      ns2
+              86400   IN  ZONEMD  2018031900 1 1 502b5f3492e213a7124ef02f5c101b190fce8955f06c2e6979992d8e5773d11f8f4cee17d2664c57ef8d3f9cf45e678e
+ns1           3600    IN  A       203.0.113.63
+NS2           3600    IN  AAAA    2001:db8::63
+UPPERCASE     3600    IN  TXT     "canonicalize uppercase owner names"
+MAIL          3600    IN  MX      20 mail1

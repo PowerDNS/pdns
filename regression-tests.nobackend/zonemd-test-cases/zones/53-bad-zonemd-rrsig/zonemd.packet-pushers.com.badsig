@@ -1,0 +1,18 @@
+zonemd.packet-pushers.com.	3600	IN	SOA	ns.packet-pushers.com. root.packet-pushers.com. 1621955743 3600 300 604800 3600
+zonemd.packet-pushers.com.	3600	IN	RRSIG	SOA 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. uV7eBvOQs34QLSZChy8ZGiOoasQuumeIIf6kZTU4fZx1MDUt9hECOnS9nv/9gNKmUn1cxuLQGbEzf3BCXT/rcg==
+zonemd.packet-pushers.com.	3600	IN	NS	ns2.packet-pushers.com.
+zonemd.packet-pushers.com.	3600	IN	NS	ns.packet-pushers.com.
+zonemd.packet-pushers.com.	3600	IN	RRSIG	NS 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. ogNzh48Xrzeoz8WtUDW6PScGZDE/iUKr/s9zgYRyQ0JwgbybY7Xr88w4vGwaPdlrMmAi4NdnyTU7SWGBuzamsw==
+zonemd.packet-pushers.com.	3600	IN	TXT	"ZONEMD test zone"
+zonemd.packet-pushers.com.	3600	IN	RRSIG	TXT 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. JYzXzagTdtV0DU3LnX6T/M6REpku23Rkngbf6JRaffmu+9VtnpAIEqzcU7wPQEBV8Ztsy789XCLzYeMkqaza8A==
+zonemd.packet-pushers.com.	3600	IN	ZONEMD	1621955743 1 1 9286f155438495fc5c4c103fc1c41c0fc66663defecf0bf4d31f5d48204e411b60143559d97f53ed93ad6255eb3c2ca2
+zonemd.packet-pushers.com. 3600 IN RRSIG ZONEMD 13 3 3600 20210622151543 20210525151543 4201 zonemd.packet-pushers.com. 1coYJwYOu1Oc1Ez1DcKpMtsw/mw11P1UBmnd1L1H1MxVDEjyb1PMKKO1iKIAXxNcs1Rtl1SKQ1bn1vkx1LY1Fg==
+zonemd.packet-pushers.com.	3600	IN	DNSKEY	256 3 13 yS1CsOanX6BZFy7WU9q7aKCj+UBH1lhEFefIUrNjcex/7ve3vx6D3WQvpjOXO0rqi2/g7gDvfPTVvddQCB2e4g== ;{id = 4201 (zsk), size = 256b}
+zonemd.packet-pushers.com.	3600	IN	DNSKEY	257 3 13 l9Do7mI5G7UDJVCp3tcRlxvzlzeJ9yQ5jpJOgwqUho/gXoFSTumrpBGF6YhtzKMYN5cPO3399+JXLV5F2paKuA== ;{id = 22069 (ksk), size = 256b}
+zonemd.packet-pushers.com.	3600	IN	RRSIG	DNSKEY 13 3 3600 20210624141543 20210525141543 22069 zonemd.packet-pushers.com. Elqxdogyxq1zxMJiVVRclB4uIDPWMz8mexnkUK4f4XI/bK2gTyxJbZKcahPARR5dnpHaFImaFi5+L35XjnupYg==
+zonemd.packet-pushers.com.	3600	IN	NSEC	localhost.zonemd.packet-pushers.com. NS SOA TXT RRSIG NSEC DNSKEY ZONEMD 
+zonemd.packet-pushers.com.	3600	IN	RRSIG	NSEC 13 3 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. 1ovHfB8HdhgjmGeX43N9CmnUElvlxL1IEB2IfqjaPD9fqvbkQBi1MgJiN5oIE3aOEjh5GzCgeH7TCWFlACZaeA==
+localhost.zonemd.packet-pushers.com.	3600	IN	A	127.0.0.1
+localhost.zonemd.packet-pushers.com.	3600	IN	RRSIG	A 13 4 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. AhR+KVxNBlqIs0LwfzxkZ8PqvixWfOfbcCpdmlFvQ1D5VEjeKSUG6CtCBC9Lv179unkbpeJsTCditLqdHZiSTA==
+localhost.zonemd.packet-pushers.com.	3600	IN	NSEC	zonemd.packet-pushers.com. A RRSIG NSEC 
+localhost.zonemd.packet-pushers.com.	3600	IN	RRSIG	NSEC 13 4 3600 20210624141543 20210525141543 4201 zonemd.packet-pushers.com. DmRQo4OxAjrZpvYAT1zhPoMCt8dRkN9lyQn//jIbNxsA6KOX0mbmHkN2UPwtW6U0Cu6aQ+IANRgAr4uDugJUiw==

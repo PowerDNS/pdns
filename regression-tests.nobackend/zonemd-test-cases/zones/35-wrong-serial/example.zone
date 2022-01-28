@@ -1,0 +1,4 @@
+example.	86400	IN	NS	ns.example.
+example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400
+example.	86400	IN	ZONEMD	3333333333 1 1 f9a413fca26fbf24cde4cb03a93a3cfa6844ed74c4c958b9aeb9c45add37879129a27acf1b225b2d64e02c9e7f5b69a8
+ns.example.	3600	IN	A	127.0.0.3

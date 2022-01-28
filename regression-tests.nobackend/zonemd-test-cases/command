@@ -1,0 +1,3 @@
+cd zonemd-test-cases
+mkdir -p logs
+sh ./test-all.sh
