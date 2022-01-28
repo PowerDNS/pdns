@@ -27,7 +27,7 @@ ArgvMap& arg()
   return theArg;
 }
 
-void primeRootNSZones(bool, unsigned int)
+void primeRootNSZones(DNSSECMode, unsigned int)
 {
 }
 

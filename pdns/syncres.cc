@@ -1336,7 +1336,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
       LOG(prefix<<qname<<": reprimed the root"<<endl);
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
-        primeRootNSZones(g_dnssecmode != DNSSECMode::Off, depth);
+        primeRootNSZones(g_dnssecmode, depth);
         getRootNS(d_now, d_asyncResolve, depth);
       }
     }
@@ -4666,9 +4666,9 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   sr.setAsyncCallback(asyncCallback);
 
   vector<DNSRecord> ret;
-  int res=-1;
+  int res = -1;
   try {
-    res=sr.beginResolve(g_rootdnsname, QType::NS, 1, ret, depth + 1);
+    res = sr.beginResolve(g_rootdnsname, QType::NS, 1, ret, depth + 1);
     if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
       auto state = sr.getValidationState();
       if (vStateIsBogus(state)) {
@@ -4693,11 +4693,11 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     g_log<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
   }
 
-  if(!res) {
-    g_log<<Logger::Notice<<"Refreshed . records"<<endl;
+  if (res == 0) {
+    g_log<<Logger::Debug<<"Refreshed . records"<<endl;
   }
-  else
-    g_log<<Logger::Warning<<"Failed to update . records, RCODE="<<res<<endl;
-
+  else {
+    g_log<<Logger::Warning<<"Failed to update root NS records, RCODE="<<res<<endl;
+  }
   return res;
 }

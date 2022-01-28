@@ -45,7 +45,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
-#include "validate.hh"
+#include "validate-recursor.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "negcache.hh"
@@ -1201,7 +1201,7 @@ uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
-void primeRootNSZones(bool, unsigned int depth);
+void primeRootNSZones(DNSSECMode, unsigned int depth);
 
 struct WipeCacheResult
 {
