@@ -771,7 +771,7 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: throttle map: "
           << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
           << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize) << ", failed ns: "
-          << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize) << ", ednsmap: "
+          << SyncRes::getFailedServersSize() << ", ednsmap: "
           << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << endl;
     g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries) << "%";
     g_log << Logger::Notice << ", " << ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries) << "% throttled" << endl;

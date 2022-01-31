@@ -537,7 +537,8 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   fprintf(fp.get(), "; remote IP\tcount\ttimestamp\n");
   uint64_t count=0;
 
-  for(const auto& i : s_fails.lock()->getMap())
+  // We get a copy, so the I/O does not need to happen while holding the lock
+  for (const auto& i : s_fails.lock()->getMapCopy())
   {
     count++;
     char tmp[26];
@@ -563,7 +564,8 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
   fprintf(fp.get(), "; name\tcount\ttimestamp\n");
   uint64_t count=0;
 
-  for(const auto& i : s_nonresolving.lock()->getMap())
+  // We get a copy, so the I/O does not need to happen while holding the lock
+  for (const auto& i : s_nonresolving.lock()->getMapCopy())
   {
     count++;
     char tmp[26];

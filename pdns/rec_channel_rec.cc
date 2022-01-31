@@ -399,7 +399,8 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
     if (threads) {
       int fd = fdw;
       total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
-    } else {
+    }
+    else {
       auto ret = function(fdw);
       total = *ret;
       delete ret;
@@ -970,17 +971,6 @@ static uint64_t getNegCacheSize()
   return g_negCache->size();
 }
 
-static uint64_t* pleaseGetFailedHostsSize()
-{
-  uint64_t tmp = (SyncRes::getThrottledServersSize());
-  return new uint64_t(tmp);
-}
-
-static uint64_t getFailedHostsSize()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetFailedHostsSize);
-}
-
 uint64_t* pleaseGetNsSpeedsSize()
 {
   return new uint64_t(SyncRes::getNSSpeedsSize());
@@ -989,11 +979,6 @@ uint64_t* pleaseGetNsSpeedsSize()
 static uint64_t getNsSpeedsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
-}
-
-uint64_t* pleaseGetFailedServersSize()
-{
-  return new uint64_t(SyncRes::getFailedServersSize());
 }
 
 uint64_t* pleaseGetEDNSStatusesSize()
@@ -1256,7 +1241,8 @@ static void registerAllStats1()
   addGetStat("throttle-entries", getThrottleSize);
 
   addGetStat("nsspeeds-entries", getNsSpeedsSize);
-  addGetStat("failed-host-entries", getFailedHostsSize);
+  addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
+  addGetStat("non-resolving-ns-entries", SyncRes::getNonResolvingNSSize);
 
   addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);

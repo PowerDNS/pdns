@@ -210,9 +210,10 @@ public:
                                   ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
                                   >> cont_t;
 
-  const cont_t& getMap() const {
+  cont_t getMapCopy() const {
     return d_cont;
   }
+
   counter_t value(const T& t) const
   {
     auto i = d_cont.find(t);
