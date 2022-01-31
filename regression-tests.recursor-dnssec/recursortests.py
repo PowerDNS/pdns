@@ -626,7 +626,7 @@ distributor-threads={threads}""".format(confdir=confdir,
             with open(logFile, 'r') as fdLog:
                 print(fdLog.read())
             print(f"*** End startRecursor log for {logFile} ***")
-            raise AssertionError('%s failed (%d)' % (recursorcmd, _recursor.returncode))
+            raise AssertionError('%s failed (%d)' % (recursorcmd, cls._recursor.returncode))
 
     @classmethod
     def wipeRecursorCache(cls, confdir):
