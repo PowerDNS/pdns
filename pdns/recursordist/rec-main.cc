@@ -1796,25 +1796,22 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 
 static void houseKeeping(void*)
 {
-  static thread_local time_t t_last_rootupdate, t_last_secpoll, t_last_trustAnchorUpdate{0};
-  static thread_local struct timeval t_last_prune;
-
-  static thread_local int t_cleanCounter = 0;
-  static thread_local bool t_running; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
-  static time_t s_last_RC_prune = 0;
-  static time_t s_last_ZTC_prune = 0;
+  static thread_local time_t t_last_trustAnchorUpdate{0}; // all threads
+  static thread_local struct timeval t_last_prune{0, 0}; // all threads
+  static thread_local int t_cleanCounter{0}; // all threads
+  static thread_local bool t_running{false}; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   auto luaconfsLocal = g_luaconfs.getLocal();
-
-  if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
-    // Loading the Lua config file already "refreshed" the TAs
-    t_last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
-  }
 
   try {
     if (t_running) {
       return;
     }
     t_running = true;
+
+    if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
+      // Loading the Lua config file already "refreshed" the TAs
+      t_last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
+    }
 
     struct timeval now, past;
     Utility::gettimeofday(&now, nullptr);
@@ -1838,6 +1835,7 @@ static void houseKeeping(void*)
     const auto& info = RecThreadInfo::self();
 
     if (RecThreadInfo::self().isTaskThread()) {
+      static time_t s_last_ZTC_prune{0};
       runTaskOnce(g_logCommonErrors);
       if (now.tv_sec - s_last_ZTC_prune > 60) {
         s_last_ZTC_prune = now.tv_sec;
@@ -1850,6 +1848,8 @@ static void houseKeeping(void*)
     }
 
     if (info.isHandler()) {
+      static time_t t_last_rootupdate{0}, t_last_secpoll{0};
+      static time_t s_last_RC_prune{0};
       if (now.tv_sec - s_last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);
