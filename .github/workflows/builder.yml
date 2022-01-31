@@ -18,7 +18,7 @@ jobs:
         os:
           - centos-7
           - ubuntu-bionic
-          - oraclelinux-8
+          - el-8
     steps:
       - uses: actions/checkout@v2.3.4
         with:
