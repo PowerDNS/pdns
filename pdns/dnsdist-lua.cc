@@ -255,7 +255,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("inConfigCheck", [configCheck]() {
-    return !configCheck;
+    return configCheck;
   });
 
   luaCtx.writeFunction("newServer",
