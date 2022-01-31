@@ -151,7 +151,8 @@ protected:
     }
 
     struct timeval res = now;
-    res.tv_sec += d_ds->checkTimeout;
+    res.tv_sec += d_ds->checkTimeout / 1000; /* ms to s */
+    res.tv_usec += (d_ds->checkTimeout % 1000) / 1000; /* remaining ms to µs */
 
     return res;
   }
