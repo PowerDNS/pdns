@@ -126,6 +126,11 @@ public:
       throw std::runtime_error("Error assigning socket");
     }
 
+    /* set outgoing Server Name Indication */
+    if (SSL_set_tlsext_host_name(d_conn.get(), d_hostname.c_str()) != 1) {
+      throw std::runtime_error("Error setting TLS SNI");
+    }
+
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
     SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
