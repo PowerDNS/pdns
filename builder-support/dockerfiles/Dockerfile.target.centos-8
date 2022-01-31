@@ -3,8 +3,11 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-@IF [ ${BUILDER_TARGET} = centos-8 -o ${BUILDER_TARGET} = centos-8-stream ]
+@IF [ ${BUILDER_TARGET} = centos-8 ]
 FROM centos:8 as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = centos-8-stream ]
+FROM quay.io/centos/centos:stream8 as dist-base
 @ENDIF
 @IF [ ${BUILDER_TARGET} = centos-8-amd64 ]
 FROM amd64/centos:8 as dist-base
