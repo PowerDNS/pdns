@@ -31,6 +31,7 @@
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
+#include <openssl/opensslv.h>
 #include <openssl/rand.h>
 #endif
 
@@ -105,8 +106,13 @@ static std::string hashPasswordInternal(const std::string& password, const std::
     throw std::runtime_error("Error intializing the scrypt context to hash the supplied password");
   }
 
-  // OpenSSL 3.0 changed the string arg to const unsigned char*, other versions use const char *, so cast to const void * to satisfy both
-  if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), reinterpret_cast<const void*>(password.data()), password.size()) <= 0) {
+  // OpenSSL 3.0 changed the string arg to const unsigned char*, other versions use const char *
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto passwordData = reinterpret_cast<const char*>(password.data());
+#else
+  auto passwordData = reinterpret_cast<const unsigned char*>(password.data());
+#endif
+  if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), passwordData, password.size()) <= 0) {
     throw std::runtime_error("Error adding the password to the scrypt context to hash the supplied password");
   }
 
