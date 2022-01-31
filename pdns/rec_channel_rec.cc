@@ -1669,7 +1669,7 @@ static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSNam
 
 static string* nopFunction()
 {
-  return new string("pong\n");
+  return new string("pong " + RecThreadInfo::self().getname() + '\n');
 }
 
 static string getDontThrottleNames()

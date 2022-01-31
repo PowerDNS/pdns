@@ -384,6 +384,11 @@ public:
     t_id = id;
   }
 
+  std::string getname() const
+  {
+    return name;
+  }
+
   static unsigned int numHandlers()
   {
     return 1;
@@ -466,6 +471,7 @@ private:
   bool taskThread{false};
 
   static thread_local unsigned int t_id;
+  std::string name;
   static std::vector<RecThreadInfo> s_threadInfos;
   static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
   static unsigned int s_numDistributorThreads;

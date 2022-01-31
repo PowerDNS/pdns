@@ -176,12 +176,13 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
 
 static void recursorThread();
 
-void RecThreadInfo::start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap)
+void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<unsigned int, std::set<int>>& cpusMap)
 {
-  thread = std::thread([id, name] {
+  name = tname;
+  thread = std::thread([id, tname] {
     t_id = id;
     const string threadPrefix = "rec/";
-    setThreadName(threadPrefix + name);
+    setThreadName(threadPrefix + tname);
     recursorThread();
   });
   setCPUMap(cpusMap, id, thread.native_handle());
@@ -194,7 +195,7 @@ int RecThreadInfo::runThreads()
   const auto cpusMap = parseCPUMap();
 
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
-    g_log << Logger::Warning << "Operating unthreaded" << endl;
+    g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl;
 
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
@@ -206,7 +207,7 @@ int RecThreadInfo::runThreads()
     handlerInfo.start(0, "web+stat", cpusMap);
     auto& taskInfo = RecThreadInfo::info(2);
     taskInfo.setTaskThread();
-    taskInfo.start(2, "tasks", cpusMap);
+    taskInfo.start(2, "taskThread", cpusMap);
 
     auto& info = RecThreadInfo::info(currentThreadId);
     info.setListener();
@@ -1797,7 +1798,10 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 static void houseKeeping(void*)
 {
   static thread_local time_t t_last_trustAnchorUpdate{0}; // all threads
-  static thread_local struct timeval t_last_prune{0, 0}; // all threads
+  static thread_local struct timeval t_last_prune
+  {
+    0, 0
+  }; // all threads
   static thread_local int t_cleanCounter{0}; // all threads
   static thread_local bool t_running{false}; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   auto luaconfsLocal = g_luaconfs.getLocal();
