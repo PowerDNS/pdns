@@ -386,7 +386,7 @@ static uint64_t* pleaseDumpNonResolvingNS(int fd)
 }
 
 // Generic dump to file command
-static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
+static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name, bool threads = true)
 {
   auto fdw = getfd(s);
 
@@ -396,8 +396,14 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 
   uint64_t total = 0;
   try {
-    int fd = fdw;
-    total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
+    if (threads) {
+      int fd = fdw;
+      total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
+    } else {
+      auto ret = function(fdw);
+      total = *ret;
+      delete ret;
+    }
   }
   catch (std::exception& e) {
     return {1, name + ": error dumping data: " + string(e.what()) + "\n"};
@@ -1987,7 +1993,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpNSSpeeds, cmd);
   }
   if (cmd == "dump-failedservers") {
-    return doDumpToFile(s, pleaseDumpFailedServers, cmd);
+    return doDumpToFile(s, pleaseDumpFailedServers, cmd, false);
   }
   if (cmd == "dump-rpz") {
     return doDumpRPZ(s, begin, end);
@@ -1996,7 +2002,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
   }
   if (cmd == "dump-non-resolving") {
-    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd);
+    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd, false);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
     return {0, doWipeCache(begin, end, 0xffff)};

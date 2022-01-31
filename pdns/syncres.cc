@@ -48,6 +48,8 @@ EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 const std::unordered_set<QType> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
+LockGuarded<fails_t<ComboAddress>> SyncRes::s_fails;
+LockGuarded<fails_t<DNSName>> SyncRes::s_nonresolving;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -535,7 +537,7 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   fprintf(fp.get(), "; remote IP\tcount\ttimestamp\n");
   uint64_t count=0;
 
-  for(const auto& i : t_sstorage.fails.getMap())
+  for(const auto& i : s_fails.lock()->getMap())
   {
     count++;
     char tmp[26];
@@ -561,7 +563,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
   fprintf(fp.get(), "; name\tcount\ttimestamp\n");
   uint64_t count=0;
 
-  for(const auto& i : t_sstorage.nonresolving.getMap())
+  for(const auto& i : s_nonresolving.lock()->getMap())
   {
     count++;
     char tmp[26];
@@ -2357,7 +2359,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   size_t nonresolvingfails = 0;
   if (!tns->first.empty()) {
     if (s_nonresolvingnsmaxfails > 0) {
-      nonresolvingfails = t_sstorage.nonresolving.value(tns->first);
+      nonresolvingfails = s_nonresolving.lock()->value(tns->first);
       if (nonresolvingfails >= s_nonresolvingnsmaxfails) {
         LOG(prefix<<qname<<": NS "<<tns->first<< " in non-resolving map, skipping"<<endl);
         return result;
@@ -2374,7 +2376,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
       if (s_nonresolvingnsmaxfails > 0 && d_outqueries > oldOutQueries) {
         auto dontThrottleNames = g_dontThrottleNames.getLocal();
         if (!dontThrottleNames->check(tns->first)) {
-          t_sstorage.nonresolving.incr(tns->first, d_now);
+          s_nonresolving.lock()->incr(tns->first, d_now);
         }
       }
       throw ex;
@@ -2383,12 +2385,12 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
       if (result.empty()) {
         auto dontThrottleNames = g_dontThrottleNames.getLocal();
         if (!dontThrottleNames->check(tns->first)) {
-          t_sstorage.nonresolving.incr(tns->first, d_now);
+          s_nonresolving.lock()->incr(tns->first, d_now);
         }
       }
       else if (nonresolvingfails > 0) {
         // Succeeding resolve, clear memory of recent failures
-        t_sstorage.nonresolving.clear(tns->first);
+        s_nonresolving.lock()->clear(tns->first);
       }
     }
     pierceDontQuery=false;
@@ -4056,7 +4058,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
-      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP, d_now) >= s_serverdownmaxfails) {
+      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
@@ -4112,7 +4114,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   /* this server sent a valid answer, mark it backup up if it was down */
   if(s_serverdownmaxfails > 0) {
-    t_sstorage.fails.clear(remoteIP);
+    s_fails.lock()->clear(remoteIP);
   }
 
   if (lwr.d_tcbit) {
