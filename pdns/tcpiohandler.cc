@@ -127,8 +127,8 @@ public:
     }
 
     /* set outgoing Server Name Indication */
-    if (SSL_set_tlsext_host_name(d_conn.get(), d_hostname.c_str()) != 1) {
-      throw std::runtime_error("Error setting TLS SNI");
+    if (!d_hostname.empty() && SSL_set_tlsext_host_name(d_conn.get(), d_hostname.c_str()) != 1) {
+      throw std::runtime_error("Error setting TLS SNI to " + d_hostname);
     }
 
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
