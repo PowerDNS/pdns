@@ -512,6 +512,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            continue;
         }
 
+        /* The NSEC is either a delegation one, from the parent zone, and
+         * must have the NS bit set but not the SOA one, or a regular NSEC
+         * either at apex (signer == owner) or with the SOA or NS bits clear.
+         */
+        const bool notApex = signer.countLabels() < owner.countLabels();
+        if (notApex && nsec->isSet(QType::NS) && nsec->isSet(QType::SOA)) {
+          LOG("However, that NSEC is not at the apex and has both the NS and the SOA bits set!"<<endl);
+          continue;
+        }
+
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -546,9 +556,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * attention.  Bits corresponding to the delegation NS RRset and any
            * RRsets for which the parent zone has authoritative data MUST be set
            */
-          if (referralToUnsigned && qtype == QType::DS && !nsec->isSet(QType::NS)) {
-            LOG("However, no NS record exists at this level!"<<endl);
-            return dState::NODENIAL;
+          if (referralToUnsigned && qtype == QType::DS) {
+            if (!nsec->isSet(QType::NS)) {
+              LOG("However, no NS record exists at this level!"<<endl);
+              return dState::NODENIAL;
+            }
           }
 
           /* we know that the name exists (but this qtype doesn't) so except
@@ -641,9 +653,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
+        const DNSName& hashedOwner = v.first.first;
         const DNSName signer = getSigner(v.second.signatures);
-        if (!v.first.first.isPartOf(signer)) {
-          LOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+        if (!hashedOwner.isPartOf(signer)) {
+          LOG("Owner "<<hashedOwner<<" is not part of the signer "<<signer<<", ignoring"<<endl);
           continue;
         }
 
@@ -661,10 +674,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         nsec3Seen = true;
 
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
-        string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
+        string beginHash = fromBase32Hex(hashedOwner.getRawLabels()[0]);
 
         // If the name exists, check if the qtype is denied
         if (beginHash == h) {
+
+          /* The NSEC3 is either a delegation one, from the parent zone, and
+           * must have the NS bit set but not the SOA one, or a regular NSEC3
+           * either at apex (signer == owner) or with the SOA or NS bits clear.
+           */
+          const bool notApex = signer.countLabels() < qname.countLabels();
+          if (notApex && nsec3->isSet(QType::NS) && nsec3->isSet(QType::SOA)) {
+            LOG("However, that NSEC3 is not at the apex and has both the NS and the SOA bits set!"<<endl);
+            continue;
+          }
 
           /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
              Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
@@ -672,7 +695,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
              that (original) owner name other than DS RRs, and all RRs below that
              owner name regardless of type.
           */
-          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
+          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, qname, nsec3)) {
             /* this is an "ancestor delegation" NSEC3 RR */
             LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
             return dState::NODENIAL;
@@ -692,9 +715,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * set and that the DS bit is not set in the Type Bit Maps field of the
            * NSEC3 RR.
            */
-          if (referralToUnsigned && qtype == QType::DS && !nsec3->isSet(QType::NS)) {
-            LOG("However, no NS record exists at this level!"<<endl);
-            return dState::NODENIAL;
+          if (referralToUnsigned && qtype == QType::DS) {
+            if (!nsec3->isSet(QType::NS)) {
+              LOG("However, no NS record exists at this level!"<<endl);
+              return dState::NODENIAL;
+            }
           }
 
           return dState::NXQTYPE;

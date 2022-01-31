@@ -332,6 +332,46 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial_soa)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 5155 section 8.9:
+   * If there is an NSEC3 RR present in the response that matches the
+   * delegation name, then the validator MUST ensure that the NS bit is
+   * set and that the DS bit is not set in the Type Bit Maps field of the
+   * NSEC3 RR.
+   */
+  /*
+    The RRSIG from "." denies the existence of any type at a except NS and SOA.
+    NS has to be set since it is proving an insecure delegation, but SOA should NOT!
+  */
+  addNSECRecordToLW(DNSName("a."), DNSName("b."), {QType::NS, QType::SOA}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::pair(DNSName("a."), QType::NSEC)] = pair;
+
+  /* Insecure because both NS and SOA are set, so this is not a proper delegation */
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
 {
   initSR();
@@ -870,6 +910,46 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
 
   /* Insecure because the NS is not set, so while it does
      denies the DS, it can't prove an insecure delegation */
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial_soa)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 5155 section 8.9:
+   * If there is an NSEC3 RR present in the response that matches the
+   * delegation name, then the validator MUST ensure that the NS bit is
+   * set and that the DS bit is not set in the Type Bit Maps field of the
+   * NSEC3 RR.
+   */
+  /*
+    The RRSIG from "." denies the existence of any type at a except NS and SOA.
+    NS has to be set since it is proving an insecure delegation, but SOA should NOT!
+  */
+  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", {QType::NS, QType::SOA}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+  records.clear();
+
+  /* Insecure because both NS and SOA are set, so it is not a proper delegation */
   dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
