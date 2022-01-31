@@ -152,6 +152,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-dnscrypt.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
+	dnsdist-lua-bindings-network.cc \
 	dnsdist-lua-bindings-packetcache.cc \
 	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-bindings-rings.cc \
@@ -160,6 +161,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-inspection.cc \
+	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-lua-web.cc \
@@ -252,6 +254,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
+	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-vars.cc \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
 	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
@@ -300,6 +303,7 @@ testrunner_SOURCES = \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \
+	test-dnsdistluanetwork.cc \
 	test-dnsdistnghttp2_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
