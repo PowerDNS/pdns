@@ -248,7 +248,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
-static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS)
+static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
@@ -275,7 +275,7 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
       dnsOverTLS = false;
     }
   }
-  connection.d_handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
   connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
@@ -442,7 +442,11 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
         isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop
-        isNew = tcpconnect(*now, ip, connection, dnsOverTLS);
+        std::string nsName;
+        if (context && !context->d_nsName.empty()) {
+          nsName = context->d_nsName.toStringNoDot();
+        }
+        isNew = tcpconnect(*now, ip, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {

@@ -14,6 +14,7 @@ struct ResolveContext {
   ResolveContext & operator=(const ResolveContext&) = delete;
   
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+  DNSName d_nsName;
 #ifdef HAVE_FSTRM
   boost::optional<const DNSName&> d_auth;
 #endif
