@@ -434,32 +434,32 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     ret = arecvfrom(buf, 0, ip, &len, qid, domain, type, queryfd, now);
   }
   else {
-      bool isNew;
-      do {
-        try {
-          // If we get a new (not re-used) TCP connection that does not
-          // work, we give up. For reused connections, we assume the
-          // peer has closed it on error, so we retry. At some point we
-          // *will* get a new connection, so this loop is not endless.
-          isNew = tcpconnect(*now, ip, connection, dnsOverTLS);
-          ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
+    bool isNew;
+    do {
+      try {
+        // If we get a new (not re-used) TCP connection that does not
+        // work, we give up. For reused connections, we assume the
+        // peer has closed it on error, so we retry. At some point we
+        // *will* get a new connection, so this loop is not endless.
+        isNew = tcpconnect(*now, ip, connection, dnsOverTLS);
+        ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
-          if (fstrmQEnabled) {
-            logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
-          }
+        if (fstrmQEnabled) {
+          logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
+        }
 #endif /* HAVE_FSTRM */
-          if (ret == LWResult::Result::Success) {
-            break;
-          }
-          connection.d_handler->close();
+        if (ret == LWResult::Result::Success) {
+          break;
         }
-        catch (const NetworkError&) {
-          ret = LWResult::Result::OSLimitError; // OS limits error
-        }
-        catch (const runtime_error&) {
-          ret = LWResult::Result::OSLimitError; // OS limits error (PermanentError is transport related)
-        }
-      } while (!isNew);
+        connection.d_handler->close();
+      }
+      catch (const NetworkError&) {
+        ret = LWResult::Result::OSLimitError; // OS limits error
+      }
+      catch (const runtime_error&) {
+        ret = LWResult::Result::OSLimitError; // OS limits error (PermanentError is transport related)
+      }
+    } while (!isNew);
   }
 
   lwr->d_usec=dt.udiff();
