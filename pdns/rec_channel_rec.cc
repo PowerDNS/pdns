@@ -1118,7 +1118,9 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads(); ++n) {
+  // Only distr and worker threads, I think we should revisit this as we now not only have the handler thread but also
+  // taskThread(s).
+  for (unsigned int n = 0; n < RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers(); ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)});

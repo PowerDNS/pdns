@@ -174,6 +174,8 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
   }
 }
 
+static void recursorThread();
+
 void RecThreadInfo::start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap)
 {
   thread = std::thread([id, name] {
@@ -1096,10 +1098,11 @@ static vector<pair<DNSName, uint16_t>>& operator+=(vector<pair<DNSName, uint16_t
   return a;
 }
 
-/*
-  This function should only be called by the handler to gather metrics, wipe the cache,
-  reload the Lua script (not the Lua config) or change the current trace regex,
-  and by the SNMP thread to gather metrics. */
+// This function should only be called by the handler to gather
+// metrics, wipe the cache, reload the Lua script (not the Lua config)
+// or change the current trace regex, and by the SNMP thread to gather
+// metrics.
+// Note that this currently skips the handler, but includes the taskThread(s).
 template <class T>
 T broadcastAccFunction(const boost::function<T*()>& func)
 {
@@ -1934,7 +1937,7 @@ static void houseKeeping(void*)
   }
 }
 
-void* recursorThread()
+static void recursorThread()
 {
   try {
     auto& threadInfo = RecThreadInfo::self();
@@ -1952,7 +1955,6 @@ void* recursorThread()
           threadInfo.setExitCode(EXIT_FAILURE);
           RecursorControlChannel::stop = 1;
           g_log << Logger::Critical << "Priming cache failed, stopping" << endl;
-          return nullptr;
         }
         g_log << Logger::Debug << "Done priming cache with root hints" << endl;
       }
@@ -2139,19 +2141,15 @@ void* recursorThread()
         }
       }
     }
-    return nullptr;
   }
   catch (PDNSException& ae) {
     g_log << Logger::Error << "Exception: " << ae.reason << endl;
-    return nullptr;
   }
   catch (std::exception& e) {
     g_log << Logger::Error << "STL Exception: " << e.what() << endl;
-    return nullptr;
   }
   catch (...) {
     g_log << Logger::Error << "any other exception in main: " << endl;
-    return nullptr;
   }
 }
 

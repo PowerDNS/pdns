@@ -290,8 +290,6 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const
   return hadError;
 }
 
-void* recursorThread();
-
 // For communicating with our threads effectively readonly after
 // startup.
 // First we have the handler thread, t_id == 0 (some other helper
