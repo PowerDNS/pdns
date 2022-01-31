@@ -679,7 +679,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         // If the name exists, check if the qtype is denied
         if (beginHash == h) {
 
-          /* The NSEC is either a delegation one, from the parent zone, and
+          /* The NSEC3 is either a delegation one, from the parent zone, and
            * must have the NS bit set but not the SOA one, or a regular NSEC
            * either at apex (signer == owner) or with the SOA or NS bits clear.
            */
