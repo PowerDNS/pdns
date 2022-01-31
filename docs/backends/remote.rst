@@ -149,6 +149,8 @@ Methods required for different features
 :Always required: ``initialize``, ``lookup``
 :Master operation: ``list``, ``getUpdatedMasters``, ``setNotified``
 :Slave operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
+:DNSSEC operation (live-signing): ``getDomainKeys``, ``getBeforeAndAfterNamesAbsolute``
+:Filling the Zone Cache: ``getAllDomains``
 
 ``initialize``
 ~~~~~~~~~~~~~~
@@ -286,14 +288,15 @@ Response:
 ``getBeforeAndAfterNamesAbsolute``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Asks the names before and after qname. qname is given without dots or
-domain part. The query will be hashed when using NSEC3. Care must be
-taken to handle wrap-around when qname is first or last in the ordered
-list. Do not return nil for either one.
+Asks the names before and after qname. qname is given without domain part.
+Care must be taken to handle wrap-around when qname is first or last in the ordered list.
+Do not return nil or an empty string for ``before`` and ``after``.
+When using NSEC, ``unhashed`` can be an empty string (but MUST be present in the response).
+The ``qname`` will be hashed when using NSEC3 and in the response, ``unhashed`` should be the records' real name without the domain part, and ``before`` and ``after`` should be the hashes.
 
 -  Mandatory: for NSEC/NSEC3 non-narrow
--  Parameters: id, qname
--  Reply: before, after
+-  Parameters: id (domain ID), qname
+-  Reply: before, after, unhashed
 
 Example JSON/RPC
 ''''''''''''''''
@@ -302,7 +305,7 @@ Query:
 
 .. code-block:: json
 
-    {"method":"getbeforeandafternamesabsolute", "params":{"id":0,"qname":"www.example.com"}}
+    {"method":"getBeforeAndAfterNamesAbsolute", "params":{"id":0,"qname":"www."}}
 
 Response:
 
@@ -484,7 +487,7 @@ Query:
 
 .. code-block:: json
 
-    {"method":"getdomainkeys","parameters":{"name":"example.com."}}
+    {"method":"getDomainKeys","parameters":{"name":"example.com."}}
 
 Response:
 
