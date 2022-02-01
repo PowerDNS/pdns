@@ -87,6 +87,7 @@ public:
 private:
   void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
   {
+    string remstring;
     try {
       int timeout = 2;
       if (cd.opts.count("timeout")) {
@@ -99,24 +100,33 @@ private:
       MiniCurl mc(useragent);
 
       string content;
+      const ComboAddress* rem = nullptr;
+      if(cd.rem.sin4.sin_family != AF_UNSPEC) {
+        rem = &cd.rem;
+        remstring = rem->toString();
+      } else {
+        remstring = "[externally checked IP]";
+      }
+
       if (cd.opts.count("source")) {
         ComboAddress src(cd.opts.at("source"));
-        content=mc.getURL(cd.url, &cd.rem, &src, timeout);
+        content=mc.getURL(cd.url, rem, &src, timeout);
       }
       else {
-        content=mc.getURL(cd.url, &cd.rem, nullptr, timeout);
+        content=mc.getURL(cd.url, rem, nullptr, timeout);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
       }
+
       if(!status) {
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<cd.rem.toString()<<" UP for URL "<<cd.url<<"!"<<endl;
+        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
       }
       setUp(cd);
     }
     catch(std::exception& ne) {
       if(status || first)
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<cd.rem.toString()<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
       setDown(cd);
     }
   }
@@ -782,6 +792,39 @@ static void setupLuaRecords()
       }
 
       vector<ComboAddress> res = useSelector(selector, s_lua_record_ctx->bestwho, candidates);
+      return convIpListToString(res);
+    });
+
+  lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {
+      vector<ComboAddress> candidates;
+      opts_t opts;
+      if(options)
+        opts = *options;
+
+      ComboAddress ca_unspec;
+      ca_unspec.sin4.sin_family=AF_UNSPEC;
+
+      // ipurls: { { ["192.0.2.1"] = "https://example.com", ["192.0.2.2"] = "https://example.com/404" } }
+      for (const auto& [count, unitmap] : ipurls) {
+        // unitmap: 1 = { ["192.0.2.1"] = "https://example.com", ["192.0.2.2"] = "https://example.com/404" }
+        vector<ComboAddress> available;
+
+        for (const auto& [ipStr, url] : unitmap) {
+          // unit: ["192.0.2.1"] = "https://example.com"
+          ComboAddress ip(ipStr);
+          candidates.push_back(ip);
+          if (g_up.isUp(ca_unspec, url, opts)) {
+            available.push_back(ip);
+          }
+        }
+        if(!available.empty()) {
+          vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+          return convIpListToString(res);
+        }
+      }
+
+      // All units down, apply backupSelector on all candidates
+      vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
       return convIpListToString(res);
     });
 
