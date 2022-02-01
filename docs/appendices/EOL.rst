@@ -2,19 +2,18 @@ End of life statements
 ======================
 
 We aim to have a release every six months.
-The latest and previous release receive correctness, stability and security updates.
-The release before that gets critical security updates only.
+The latest release receives correctness, stability and security updates.
+The two releases before that get critical updates only.
 Older releases are marked end of life and receive no updates at all.
 Pre-releases do not receive immediate security updates.
 
-The currently supported release train of PowerDNS Authoritative Server is 4.5.
+The currently supported release train of PowerDNS Authoritative Server is 4.6.
 
-PowerDNS Authoritative Server 4.4 will only receive correctness, stability and security updates and will be receiving critical updates only after PowerDNS Authoritative Server 4.6 is released. It will be end of life after PowerDNS Authoritative Server 4.7 is released.
+PowerDNS Authoritative Server 4.5 will only receive critical updates and will be end of life after PowerDNS Authoritative Server 4.8 is released.
 
-PowerDNS Authoritative Server 4.3 will only receive critical updates and will be end of life after PowerDNS Authoritative Server 4.6 is released.
+PowerDNS Authoritative Server 4.4 will only receive critical updates and will be end of life after PowerDNS Authoritative Server 4.7 is released.
 
-PowerDNS Authoritative Server 4.2, 4.1, 4.0, 3.x and 2.x are end of life, and will not
-receive any updates, not even security fixes.
+PowerDNS Authoritative Server 4.0 through 4.3, 3.x, and 2.x are End of Life.
 
 Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
@@ -27,18 +26,22 @@ such a user, these EOL statements do not apply to you.
      - Release date
      - Critical-Only updates
      - End of Life
+   * - 4.6
+     - 25th of January 2022
+     - ~ July 2022
+     - ~ July 2023
    * - 4.5
      - July 13 2021
-     - ~ January 2022
+     - 25th of January 2022
      - ~ January 2023
    * - 4.4
      - December 18 2020
-     - ~ December 2021
+     - 25th of January 2022
      - ~ June 2022
    * - 4.3
      - April 7 2020
      - ~ April 2021
-     - ~ October 2021
+     - EOL 25th of January 2022
    * - 4.2
      - August 30 2019
      - December 2020
