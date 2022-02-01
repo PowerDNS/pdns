@@ -1054,7 +1054,7 @@ zoneDisallowedNotify OBJECT-TYPE
         "Number of NOTIFY operations not allowed by allow-notify-for"
     ::= { stats 125 }
 
-nonResolvingNSEntries OBJECT-TYPE
+nonResolvingNameserverEntries OBJECT-TYPE
     SYNTAX CounterBasedGauge64
     MAX-ACCESS read-only
     STATUS current

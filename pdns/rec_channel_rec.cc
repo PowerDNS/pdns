@@ -1242,7 +1242,7 @@ static void registerAllStats1()
 
   addGetStat("nsspeeds-entries", getNsSpeedsSize);
   addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
-  addGetStat("non-resolving-ns-entries", SyncRes::getNonResolvingNSSize);
+  addGetStat("non-resolving-nameserver-entries", SyncRes::getNonResolvingNSSize);
 
   addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);

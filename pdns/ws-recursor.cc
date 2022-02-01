@@ -692,7 +692,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"failed-host-entries",
    MetricDefinition(PrometheusMetricType::gauge,
                     "Number of entries in the failed NS cache")},
-  {"non-resolving-ns-entries",
+  {"non-resolving-nameserver-entries",
    MetricDefinition(PrometheusMetricType::gauge,
                     "Number of entries in the non-resolving NS name cache")},
   {"ignored-packets",

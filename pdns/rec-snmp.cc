@@ -145,7 +145,7 @@ static const oid udp6InCsumErrorsOID[] = {RECURSOR_STATS_OID, 123};
 #endif /* __linux__ */
 static const oid sourceDisallowedNotifyOID[] = {RECURSOR_STATS_OID, 124};
 static const oid zoneDisallowedNotifyOID[] = {RECURSOR_STATS_OID, 125};
-static const oid nonResolvingNSEntriesOID[] = {RECURSOR_STATS_OID, 126};
+static const oid nonResolvingNameserverEntriesOID[] = {RECURSOR_STATS_OID, 126};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -380,6 +380,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("almost-expired-pushed", almostExpiredPushed, OID_LENGTH(almostExpiredPushed));
   registerCounter64Stat("almost-expired-run", almostExpiredRun, OID_LENGTH(almostExpiredRun));
   registerCounter64Stat("almost-expired-exceptions", almostExpiredExceptions, OID_LENGTH(almostExpiredExceptions));
-  registerCounter64Stat("non-resolving-ns-entries", nonResolvingNSEntriesOID, OID_LENGTH(nonResolvingNSEntriesOID));
+  registerCounter64Stat("non-resolving-nameserver-entries", nonResolvingNameserverEntriesOID, OID_LENGTH(nonResolvingNameserverEntriesOID));
 #endif /* HAVE_NET_SNMP */
 }
