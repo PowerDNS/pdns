@@ -5,6 +5,7 @@
 
 #include "rec-zonetocache.hh"
 #include "recursor_cache.hh"
+#include "test-syncres_cc.hh"
 
 extern unique_ptr<MemRecursorCache> g_recCache;
 
@@ -96,6 +97,10 @@ static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns
 
 BOOST_AUTO_TEST_CASE(test_zonetocache)
 {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
   zonemdTest(zone, pdns::ZoneMD::Config::Ignore, pdns::ZoneMD::Config::Ignore, 17U);
   zonemdTest(zone, pdns::ZoneMD::Config::Validate, pdns::ZoneMD::Config::Ignore, 17U);
   zonemdTest(zone, pdns::ZoneMD::Config::Require, pdns::ZoneMD::Config::Ignore, 0U);
