@@ -10,6 +10,13 @@ class TestRoutingPoolRouting(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="real"}
     addAction(makeRule("poolaction.routing.tests.powerdns.com"), PoolAction("real"))
+    -- by default PoolAction stops the processing so the second rule should not be executed
+    addAction(makeRule("poolaction.routing.tests.powerdns.com"), PoolAction("not-real"))
+
+    -- this time we configure PoolAction to not stop the processing
+    addAction(makeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("no-real", false))
+    -- so the second rule should be executed
+    addAction(makeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("real"))
     """
 
     def testPolicyPoolAction(self):
@@ -20,6 +27,27 @@ class TestRoutingPoolRouting(DNSDistTest):
         check that dnsdist routes the query to the "real" pool.
         """
         name = 'poolaction.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+    def testPolicyPoolActionNoStop(self):
+        """
+        Routing: Set pool by qname via PoolAction (no stop)
+        """
+        name = 'poolaction-nostop.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
