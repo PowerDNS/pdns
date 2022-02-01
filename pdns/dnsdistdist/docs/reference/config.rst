@@ -1596,6 +1596,29 @@ Other functions
   If this function exists, it is called every second to do regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
+.. function:: threadmessage(cmd, dict)
+
+  .. versionadded:: 1.7.0
+
+  This function, if it exists, is called when a separate thread (made with :func:`newThread`) calls :func:`submitToMainThread`.
+
+.. function:: newThread(code)
+
+  .. versionadded:: 1.7.0
+
+  Spawns a separate thread running the supplied code.
+  Code is supplied as a string, not as a function object.
+
+.. function:: submitToMainThread(cmd, dict)
+
+  .. versionadded:: 1.7.0
+
+  Must be called from a separate thread (made with :func:`newThread`), submits data to the main thread by calling :func:`threadmessage` in it.
+  If no ``threadmessage`` receiver is present in the main thread, ``submitToMainThread`` logs an error but returns normally.
+
+  The ``cmd`` argument is a string.
+  The ``dict`` argument is a Lua table.
+
 .. function:: setAllowEmptyResponse()
 
   .. versionadded:: 1.4.0
