@@ -49,6 +49,15 @@ typedef struct dnsdist_ffi_raw_value {
   uint16_t size;
 } dnsdist_ffi_raw_value_t;
 
+typedef enum {
+ dnsdist_ffi_protocol_type_doudp = 0,
+ dnsdist_ffi_protocol_type_dotcp = 1,
+ dnsdist_ffi_protocol_type_dnscryptudp = 2,
+ dnsdist_ffi_protocol_type_dnscrypttcp = 3,
+ dnsdist_ffi_protocol_type_dot = 4,
+ dnsdist_ffi_protocol_type_doh = 5,
+} dnsdist_ffi_protocol_type;
+
 void dnsdist_ffi_dnsquestion_get_localaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_local_port(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
@@ -65,6 +74,7 @@ size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq) __a
 bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dq, size_t newSize) __attribute__ ((visibility ("default")));
 uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+dnsdist_ffi_protocol_type dnsdist_ffi_dnsquestion_get_protocol(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 bool dnsdist_ffi_dnsquestion_get_skip_cache(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 bool dnsdist_ffi_dnsquestion_get_use_ecs(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 bool dnsdist_ffi_dnsquestion_get_add_xpf(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
@@ -79,6 +89,7 @@ const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq)
 const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dq, void* buffer, size_t bufferSize) __attribute__ ((visibility ("default")));
 
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_ffi_ednsoption_t** out) __attribute__ ((visibility ("default")));
@@ -133,9 +144,10 @@ void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t m
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype) __attribute__ ((visibility ("default")));
 
 typedef struct dnsdist_ffi_proxy_protocol_value {
-  char* value;
+  const char* value;
   uint16_t size;
   uint8_t type;
 } dnsdist_ffi_proxy_protocol_value_t;
 
 size_t dnsdist_ffi_generate_proxy_protocol_payload(size_t addrSize, const void* srcAddr, const void* dstAddr, uint16_t srcPort, uint16_t dstPort, bool tcp, size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, size_t outSize) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dq, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, const size_t outSize);

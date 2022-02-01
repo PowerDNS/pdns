@@ -57,6 +57,20 @@ void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq,
   dnsdist_ffi_comboaddress_to_raw(*dq->dq->remote, addr, addrSize);
 }
 
+size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dq, void* buffer, size_t bufferSize)
+{
+  if (dq == nullptr) {
+    return 0;
+  }
+
+  auto ret = getMACAddress(*dq->dq->remote, reinterpret_cast<char*>(buffer), bufferSize);
+  if (ret != 0) {
+    return 0;
+  }
+
+  return 6;
+}
+
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
 {
   dq->maskedRemote = Netmask(*dq->dq->remote, bits).getMaskedNetwork();
@@ -124,6 +138,32 @@ uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq)
 bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->overTCP();
+}
+
+dnsdist_ffi_protocol_type dnsdist_ffi_dnsquestion_get_protocol(const dnsdist_ffi_dnsquestion_t* dq)
+{
+  if (dq != nullptr) {
+    auto proto = dq->dq->getProtocol();
+    if (proto == dnsdist::Protocol::DoUDP) {
+      return dnsdist_ffi_protocol_type_doudp;
+    }
+    else if (proto == dnsdist::Protocol::DoTCP) {
+      return dnsdist_ffi_protocol_type_dotcp;
+    }
+    else if (proto == dnsdist::Protocol::DNSCryptUDP) {
+      return dnsdist_ffi_protocol_type_dnscryptudp;
+    }
+    else if (proto == dnsdist::Protocol::DNSCryptTCP) {
+      return dnsdist_ffi_protocol_type_dnscrypttcp;
+    }
+    else if (proto == dnsdist::Protocol::DoT) {
+      return dnsdist_ffi_protocol_type_dot;
+    }
+    else if (proto == dnsdist::Protocol::DoH) {
+      return dnsdist_ffi_protocol_type_doh;
+    }
+  }
+  return dnsdist_ffi_protocol_type_doudp;
 }
 
 bool dnsdist_ffi_dnsquestion_get_skip_cache(const dnsdist_ffi_dnsquestion_t* dq)
@@ -654,4 +694,24 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
     vinfolog("Unhandled exception in dnsdist_ffi_generate_proxy_protocol_payload");
     return 0;
   }
+}
+
+size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dq, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value* values, void* out, const size_t outSize)
+{
+  std::vector<ProxyProtocolValue> valuesVect;
+  if (valuesCount > 0) {
+    valuesVect.reserve(valuesCount);
+    for (size_t idx = 0; idx < valuesCount; idx++) {
+      valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+    }
+  }
+
+  std::string payload = makeProxyHeader(dq->dq->overTCP(), *dq->dq->remote, *dq->dq->local, valuesVect);
+  if (payload.size() > outSize) {
+    return 0;
+  }
+
+  memcpy(out, payload.c_str(), payload.size());
+
+  return payload.size();
 }
