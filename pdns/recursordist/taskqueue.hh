@@ -34,10 +34,9 @@
 #include "dnsname.hh"
 #include "qtype.hh"
 
-using namespace ::boost::multi_index;
-
 namespace pdns
 {
+using namespace ::boost::multi_index;
 
 // ATM we have one task type, if we get more, the unique key in the index needs to be adapted
 struct ResolveTask
@@ -48,6 +47,10 @@ struct ResolveTask
   bool d_refreshMode; // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
   std::function<void(const struct timeval& now, bool logErrors, const ResolveTask& task)> d_func;
 
+  bool operator<(const ResolveTask& a) const
+  {
+    return tie(d_qname, d_qtype, d_refreshMode) < tie(d_qname, d_qtype, d_refreshMode);
+  }
   bool run(bool logErrors);
 };
 
@@ -86,9 +89,11 @@ private:
   struct HashTag
   {
   };
+
   struct SequencedTag
   {
   };
+
   typedef multi_index_container<
     ResolveTask,
     indexed_by<

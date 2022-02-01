@@ -558,3 +558,7 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
 {
   g_test_tasks.push({qname, qtype, deadline, true, nullptr});
 }
+
+void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t deadline)
+{
+}
