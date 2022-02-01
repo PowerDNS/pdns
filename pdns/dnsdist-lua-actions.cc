@@ -273,31 +273,48 @@ void TeeAction::worker()
 class PoolAction : public DNSAction
 {
 public:
-  PoolAction(const std::string& pool) : d_pool(pool) {}
+  PoolAction(const std::string& pool, bool stopProcessing) : d_pool(pool), d_stopProcessing(stopProcessing) {}
+
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    *ruleresult=d_pool;
-    return Action::Pool;
+    if (d_stopProcessing) {
+      /* we need to do it that way to keep compatiblity with custom Lua actions returning DNSAction.Pool, 'poolname' */
+      *ruleresult = d_pool;
+      return Action::Pool;
+    }
+    else {
+      dq->poolname = d_pool;
+      return Action::None;
+    }
   }
+
   std::string toString() const override
   {
-    return "to pool "+d_pool;
+    return "to pool " + d_pool;
   }
 
 private:
-  std::string d_pool;
+  const std::string d_pool;
+  const bool d_stopProcessing;
 };
 
 
 class QPSPoolAction : public DNSAction
 {
 public:
-  QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(QPSLimiter(limit, limit)), d_pool(pool) {}
+  QPSPoolAction(unsigned int limit, const std::string& pool, bool stopProcessing) : d_qps(QPSLimiter(limit, limit)), d_pool(pool), d_stopProcessing(stopProcessing) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if (d_qps.lock()->check()) {
-      *ruleresult = d_pool;
-      return Action::Pool;
+      if (d_stopProcessing) {
+        /* we need to do it that way to keep compatiblity with custom Lua actions returning DNSAction.Pool, 'poolname' */
+        *ruleresult = d_pool;
+        return Action::Pool;
+      }
+      else {
+        dq->poolname = d_pool;
+        return Action::None;
+      }
     }
     else {
       return Action::None;
@@ -305,12 +322,13 @@ public:
   }
   std::string toString() const override
   {
-    return "max " +std::to_string(d_qps.lock()->getRate())+" to pool "+d_pool;
+    return "max " + std::to_string(d_qps.lock()->getRate()) + " to pool " + d_pool;
   }
 
 private:
   mutable LockGuarded<QPSLimiter> d_qps;
   const std::string d_pool;
+  const bool d_stopProcessing;
 };
 
 class RCodeAction : public DNSAction
@@ -2141,16 +2159,16 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
     });
 
-  luaCtx.writeFunction("PoolAction", [](const std::string& a) {
-      return std::shared_ptr<DNSAction>(new PoolAction(a));
+  luaCtx.writeFunction("PoolAction", [](const std::string& a, boost::optional<bool> stopProcessing) {
+      return std::shared_ptr<DNSAction>(new PoolAction(a, stopProcessing.get_value_or(true)));
     });
 
   luaCtx.writeFunction("QPSAction", [](int limit) {
       return std::shared_ptr<DNSAction>(new QPSAction(limit));
     });
 
-  luaCtx.writeFunction("QPSPoolAction", [](int limit, const std::string& a) {
-      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
+  luaCtx.writeFunction("QPSPoolAction", [](int limit, const std::string& a, boost::optional<bool> stopProcessing) {
+      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a, stopProcessing.get_value_or(true)));
     });
 
   luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {

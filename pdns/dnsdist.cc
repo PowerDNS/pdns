@@ -833,7 +833,9 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Pool:
-    dq.poolname=ruleresult;
+    /* we need to keep this because a custom Lua action can return
+       DNSAction.Spoof, 'poolname' */
+    dq.poolname = ruleresult;
     return true;
     break;
   case DNSAction::Action::NoRecurse:

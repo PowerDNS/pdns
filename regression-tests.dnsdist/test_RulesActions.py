@@ -1334,10 +1334,11 @@ class TestAdvancedContinueAction(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
+            expectedQuery.id = receivedQuery.id
             self.assertEqual(receivedQuery, expectedQuery)
             self.assertEqual(receivedResponse, expectedResponse)
 
-    def testNoContinue(self):
+    def testContinue(self):
         """
         Advanced: Query routed to pool, ContinueAction() should not stop the processing
         """
