@@ -23,7 +23,7 @@ End of life statements
    * - 1.4
      - November 20 2019
      - May 2021
-     - January 17 2022
+     - EOL (January 17 2022)
    * - 1.3
      - March 30 2018
      - EOL
