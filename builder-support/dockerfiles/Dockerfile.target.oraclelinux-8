@@ -1,0 +1,26 @@
+# First do the source builds
+@INCLUDE Dockerfile.target.sdist
+
+# This defines the distribution base layer
+# Put only the bare minimum of common commands here, without dev tools
+@IF [ ${BUILDER_TARGET} = oraclelinux-8 -o ${BUILDER_TARGET} = el-8 ]
+FROM oraclelinux:8 as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = oraclelinux-8-amd64 -o ${BUILDER_TARGET} = el-8-amd64 ]
+FROM amd64/oraclelinux:8 as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = oraclelinux-8-arm64 -o ${BUILDER_TARGET} = el-8-arm64 ]
+FROM arm64v8/oraclelinux:8 as dist-base
+@ENDIF
+
+ARG BUILDER_CACHE_BUSTER=
+RUN touch /var/lib/rpm/* && dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+    dnf install -y 'dnf-command(config-manager)' yum && \
+    dnf config-manager --set-enabled ol8_codeready_builder
+
+# Do the actual rpm build
+@INCLUDE Dockerfile.rpmbuild
+
+# Do a test install and verify
+# Can be skipped with skiptests=1 in the environment
+# @EXEC [ "$skiptests" = "" ] && include Dockerfile.rpmtest
