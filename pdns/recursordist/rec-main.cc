@@ -1795,16 +1795,52 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-static void houseKeeping(void*)
+class PeriodicTask
 {
-  static thread_local time_t t_last_trustAnchorUpdate{0}; // all threads
-  static thread_local struct timeval t_last_prune
+public:
+  PeriodicTask(const string& n, time_t p) :
+    period{p, 0}, name(n)
+  {
+    if (p <= 0) {
+      throw PDNSException("Invalid period of periodic task " + n);
+    }
+  }
+  void runIfDue(struct timeval& now, const std::function<void()>& f)
+  {
+    if (last_run < now - period) {
+      // cerr << RecThreadInfo::id() << ' ' << name << ' ' << now.tv_sec << '.' << now.tv_usec << " running" << endl;
+      f();
+      Utility::gettimeofday(&last_run);
+      now = last_run;
+    }
+  }
+  void setPeriod(time_t p)
+  {
+    period.tv_sec = p;
+  }
+
+  void updateLastRun()
+  {
+    Utility::gettimeofday(&last_run);
+  }
+
+  bool hasRun() const
+  {
+    return last_run.tv_sec != 0 || last_run.tv_usec != 0;
+  }
+
+private:
+  struct timeval last_run
   {
     0, 0
-  }; // all threads
-  static thread_local int t_cleanCounter{0}; // all threads
-  static thread_local bool t_running{false}; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
-  auto luaconfsLocal = g_luaconfs.getLocal();
+  };
+  struct timeval period;
+  const string name;
+};
+
+static void houseKeeping(void*)
+{
+  static thread_local bool t_running; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
 
   try {
     if (t_running) {
@@ -1812,63 +1848,82 @@ static void houseKeeping(void*)
     }
     t_running = true;
 
-    if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
-      // Loading the Lua config file already "refreshed" the TAs
-      t_last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
-    }
+    struct timeval now;
+    Utility::gettimeofday(&now);
 
-    struct timeval now, past;
-    Utility::gettimeofday(&now, nullptr);
-    past = now;
-    past.tv_sec -= 5;
-    if (t_last_prune < past) {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
+    // Below are the tasks that run for every recursorThread, including handler and taskThread
+    static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
+    packetCacheTask.runIfDue(now, []() {
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
+    });
 
-      time_t limit;
-      if (!((t_cleanCounter++) % 40)) { // this is a full scan!
-        limit = now.tv_sec - 300;
-        SyncRes::pruneNSSpeeds(limit);
-      }
-      limit = now.tv_sec - 2 * 3600;
-      SyncRes::pruneEDNSStatuses(limit);
+    // This is a full scan
+    static thread_local PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 100};
+    pruneNSpeedTask.runIfDue(now, [now]() {
+      SyncRes::pruneNSSpeeds(now.tv_sec - 300);
+    });
+
+    static thread_local PeriodicTask pruneEDNSTask{"pruneEDNSTask", 5}; // period could likely be longer
+    pruneEDNSTask.runIfDue(now, [now]() {
+      SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
+    });
+
+    static thread_local PeriodicTask pruneThrottledTask{"pruneThrottledTask", 5};
+    pruneThrottledTask.runIfDue(now, []() {
       SyncRes::pruneThrottledServers();
-      t_tcp_manager.cleanup(now);
-      Utility::gettimeofday(&t_last_prune, nullptr);
-    }
+    });
 
     const auto& info = RecThreadInfo::self();
 
-    if (RecThreadInfo::self().isTaskThread()) {
-      static time_t s_last_ZTC_prune{0};
+    // Below are the thread specific tasks for the handler and the taskThread
+    // Likley a few handler tasks could be moved to the taskThread
+    if (info.isTaskThread()) {
+      // TaskQueue is run always
       runTaskOnce(g_logCommonErrors);
-      if (now.tv_sec - s_last_ZTC_prune > 60) {
-        s_last_ZTC_prune = now.tv_sec;
-        static map<DNSName, RecZoneToCache::State> ztcStates;
+
+      static PeriodicTask ztcTask{"ZTC", 60};
+      static map<DNSName, RecZoneToCache::State> ztcStates;
+      auto luaconfsLocal = g_luaconfs.getLocal();
+      ztcTask.runIfDue(now, [&luaconfsLocal]() {
         RecZoneToCache::maintainStates(luaconfsLocal->ztcConfigs, ztcStates, luaconfsLocal->generation);
         for (auto& ztc : luaconfsLocal->ztcConfigs) {
           RecZoneToCache::ZoneToCache(ztc.second, ztcStates.at(ztc.first));
         }
-      }
+      });
     }
-
-    if (info.isHandler()) {
-      static time_t t_last_rootupdate{0}, t_last_secpoll{0};
-      static time_t s_last_RC_prune{0};
-      if (now.tv_sec - s_last_RC_prune > 5) {
+    else if (info.isHandler()) {
+      static PeriodicTask recordCachePruneTask{"RecordCachePruneTask", 5};
+      recordCachePruneTask.runIfDue(now, []() {
         g_recCache->doPrune(g_maxCacheEntries);
+      });
+
+      static PeriodicTask negCachePruneTask{"NegCachePrunteTask", 5};
+      negCachePruneTask.runIfDue(now, []() {
         g_negCache->prune(g_maxCacheEntries / 10);
+      });
+
+      static PeriodicTask aggrNSECPruneTask{"AggrNSECPruneTask", 5};
+      aggrNSECPruneTask.runIfDue(now, [now]() {
         if (g_aggressiveNSECCache) {
           g_aggressiveNSECCache->prune(now.tv_sec);
         }
+      });
+
+      static PeriodicTask pruneFailedServersTask{"pruneFailedServerTask", 5};
+      pruneFailedServersTask.runIfDue(now, [now]() {
         SyncRes::pruneFailedServers(now.tv_sec - SyncRes::s_serverdownthrottletime * 10);
+      });
+
+      static PeriodicTask pruneNonResolvingTask{"pruneNonResolvingTask", 5};
+      pruneNonResolvingTask.runIfDue(now, [now]() {
         SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
-        s_last_RC_prune = now.tv_sec;
-      }
+      });
+
       // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
-      if (now.tv_sec - t_last_rootupdate > max(SyncRes::s_maxcachettl / 12, 10U)) {
-        int res = SyncRes::getRootNS(g_now, nullptr, 0);
+      static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl / 12, 10U)};
+      rootUpdateTask.runIfDue(now, [now]() {
+        int res = SyncRes::getRootNS(now, nullptr, 0);
         if (res == 0) {
-          t_last_rootupdate = now.tv_sec;
           try {
             primeRootNSZones(g_dnssecmode, 0);
           }
@@ -1888,9 +1943,11 @@ static void houseKeeping(void*)
             g_log << Logger::Error << "Exception while priming the root NS zones" << endl;
           }
         }
-      }
+      });
 
-      if (now.tv_sec - t_last_secpoll >= 3600) {
+      static PeriodicTask secpollTask{"secpollTask", 3600};
+      static time_t t_last_secpoll;
+      secpollTask.runIfDue(now, []() {
         try {
           doSecPoll(&t_last_secpoll);
         }
@@ -1909,23 +1966,32 @@ static void houseKeeping(void*)
         catch (...) {
           g_log << Logger::Error << "Exception while performing security poll" << endl;
         }
-      }
+      });
 
-      if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0 && g_now.tv_sec - t_last_trustAnchorUpdate >= (luaconfsLocal->trustAnchorFileInfo.interval * 3600)) {
-        g_log << Logger::Debug << "Refreshing Trust Anchors from file" << endl;
-        try {
-          map<DNSName, dsmap_t> dsAnchors;
-          if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors)) {
-            g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
-              lci.dsAnchors = dsAnchors;
-            });
-          }
-          t_last_trustAnchorUpdate = now.tv_sec;
-        }
-        catch (const PDNSException& pe) {
-          g_log << Logger::Error << "Unable to update Trust Anchors: " << pe.reason << endl;
-        }
+      auto luaconfsLocal = g_luaconfs.getLocal();
+      static PeriodicTask trustAnchorTask{"trustAnchorTask", std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval) * 3600};
+      if (!trustAnchorTask.hasRun()) {
+        // Loading the Lua config file already "refreshed" the TAs
+        trustAnchorTask.updateLastRun();
       }
+      // interval might have ben updated
+      trustAnchorTask.setPeriod(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval) * 3600);
+      trustAnchorTask.runIfDue(now, [&luaconfsLocal]() {
+        if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
+          g_log << Logger::Debug << "Refreshing Trust Anchors from file" << endl;
+          try {
+            map<DNSName, dsmap_t> dsAnchors;
+            if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors)) {
+              g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
+                lci.dsAnchors = dsAnchors;
+              });
+            }
+          }
+          catch (const PDNSException& pe) {
+            g_log << Logger::Error << "Unable to update Trust Anchors: " << pe.reason << endl;
+          }
+        }
+      });
     }
     t_running = false;
   }
