@@ -69,6 +69,15 @@ authorization methods, and you are expected to take care of everything
 yourself. See :ref:`dnsupdate-update-policy` for details and
 examples.
 
+.. _dnsupdate-lua-dnsupdate-policy-script-strict-mode:
+
+``lua-dnsupdate-policy-script-strict-mode``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When turning this setting on, PowerDNS will handle DNS updates as atomic,
+rolling back an update when a single record in an update causes the
+configured lua script to return false, and returning `REFUSED` to the client.
+
 The semantics are that first a dynamic update has to be allowed either
 by the global :ref:`setting-allow-dnsupdate-from` setting, or by a per-zone
 ``ALLOW-DNSUPDATE-FROM`` metadata setting.
