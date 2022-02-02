@@ -9,13 +9,13 @@ This can be raised using the ``ulimit`` command or via the ``LimitNOFILE`` unit 
 FreeBSD has a default limit that is high enough for even very heavy duty use.
 
 Limit the size of the caches to a sensible value.
-Cache hit rate does not improve meaningfully beyond 4 million :ref:`setting-max-cache-entries` per thread, reducing the memory footprint reduces CPU cache misses.
+Cache hit rate does not improve meaningfully beyond a few million :ref:`setting-max-cache-entries`, reducing the memory footprint reduces CPU cache misses.
 See below for more information about the various caches.
 
 When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values.
 Please check and if necessary raise ``sysctl net.ipv6.route.max_size``.
 
-Set :ref:`setting-threads` to your number of CPU cores (but values above 8 rarely improve performance). 
+Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads (but values above 8 rarely improve performance).
 
 Threading and distribution of queries
 -------------------------------------
@@ -107,6 +107,40 @@ The settings can be made permanent by using the ``--permanent`` flag::
 
 Following the instructions above, you should be able to attain very high query rates.
 
+Tuning Incoming TCP and Out-of-Order processing
+-----------------------------------------------
+
+In general TCP uses more resources than UDP, so beware!
+It is impossible to give hard numbers for the various parameters as each site is different.
+Instead we describe the mechanism and relevant metrics so you can study your setup and change the proper settings if needed.
+
+Each incoming TCP connection uses a file descriptor in addition to the file descriptors for other purposes, like contacting authoritative servers.
+When the recursor starts up, it will check if enough file descriptors are available and complain if not.
+
+When a query is received over a TCP connection, first the packet cache is consulted.
+If an answer is found it will be returned immediately.
+If no answer is found, the Recursor will process :ref:`setting-max-concurrent-requests-per-tcp-connection` queries per incoming TCP connection concurrently.
+If more than this number of queries is pending for this TCP connection, the remaining queries will stay in the TCP receive buffer to be processed later.
+Each of the queries processed will consume an mthread until processing is done.
+A response to a query is sent immediately when it becomes available; the response can be sent before other responses to queries that were received earlier by the Recursor.
+This is the Out-of-Order feature which greatly enhances performance, as a single slow query does not prevent other queries to be processed.
+
+The maximum number of mthreads consumed by TCP queries is :ref:`setting-max-tcp-clients` times :ref:`setting-max-concurrent-requests-per-tcp-connection`.
+This number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
+
+If you expect few clients, you can increase :ref:`setting-max-concurrent-requests-per-tcp-connection`, to allow more concurrency per TCP connection.
+If you expect many clients and you have increased :ref:`setting-max-tcp-clients`, reduce :ref:`setting-max-concurrent-requests-per-tcp-connection` number to prevent mthread starvation or increase the maximum number of mthreads.
+
+To increase the maximum number of concurrent queries consider increasing  :ref:`setting-max-mthreads`, but be aware that each active mthread consumes more than 200k of memory.
+To see the current number of mthreads in use consult the :ref:`stat-concurrent-queries` metric.
+If a query could not be handled due to mthread shortage, the :ref:`stat-over-capacity-drops` metric is increased.
+
+As an example, if you have typically 200 TCP clients, and the default maximum number of mthreads of 2048, a good number of concurrent requests per TCP connection would be 5. Assuming a worst case packet cache hit ratio, if all 200 TCP clients fill their connections with queries, about half (5 * 200) of the mthreads would be used by incoming TCP queries, leaving the other half for incoming UDP queries.
+
+The total number of incoming TCP connections is limited by :ref:`setting-max-tcp-clients`.
+There is also a per client address limit: :ref:`setting-max-tcp-per-client` to limit the impact of a single client.
+Consult the :ref:`stat-tcp-clients` metric for the current number of TCP connections and the :ref:`stat-tcp-client-overflow` metric to see if client connection attempts were rejected because there were too many existing connections from a single address.
+
 .. _tcp-fast-open-support:
 
 TCP Fast Open Support
@@ -178,7 +212,7 @@ Recursor Cache
 ^^^^^^^^^^^^^^
 
 The Recursor Cache contains all DNS knowledge gathered over time.
-This is also known as a "record cache".
+This is also known as the "record cache".
 
 Packet Cache
 ^^^^^^^^^^^^

@@ -265,6 +265,8 @@ client-parse-errors
 ^^^^^^^^^^^^^^^^^^^
 counts number of client packets that could   not be parsed
 
+.. _stat-concurrent-queries:
+
 concurrent-queries
 ^^^^^^^^^^^^^^^^^^
 shows the number of MThreads currently   running
@@ -574,6 +576,8 @@ outgoing6-timeouts
 ^^^^^^^^^^^^^^^^^^
 counts the number of timeouts on outgoing UDP   IPv6 queries since starting (since 4.0)
 
+.. _stat-over-capacity-drops:
+
 over-capacity-drops
 ^^^^^^^^^^^^^^^^^^^
 questions dropped because over maximum   concurrent query limit (since 3.2)
@@ -711,9 +715,13 @@ taskqueue-size
 
 number of tasks currently in the taskqueues
 
+.. _stat-tcp-client-overflow:
+
 tcp-client-overflow
 ^^^^^^^^^^^^^^^^^^^
 number of times an IP address was denied TCP   access because it already had too many connections
+
+.. _stat-tcp-clients:
 
 tcp-clients
 ^^^^^^^^^^^
