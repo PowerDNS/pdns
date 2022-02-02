@@ -2794,7 +2794,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_LIBSSL */
 
-  luaCtx.writeFunction("newThread", [](const std::string& code) {
+  luaCtx.writeFunction("newThread", [client, configCheck](const std::string& code) {
+    if (client || configCheck) {
+      return;
+    }
     std::thread newThread(LuaThread, code);
     newThread.detach();
   });

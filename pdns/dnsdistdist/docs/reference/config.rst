@@ -1608,6 +1608,7 @@ Other functions
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
+  Note that this function does nothing in 'client' or 'config-check' modes.
 
 .. function:: submitToMainThread(cmd, dict)
 
