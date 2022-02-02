@@ -869,7 +869,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {
-          const bool rfc2136_strict_mode = ::arg().mustDo("lua-dnsupdate-policy-script-strict-mode");
+          const static bool rfc2136_strict_mode = ::arg().mustDo("lua-dnsupdate-policy-script-strict-mode");
           if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Not permitted by policy"<<endl;
             if (rfc2136_strict_mode) {
