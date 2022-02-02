@@ -146,10 +146,18 @@ class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
+    @staticmethod
+    def sniCallback(sslSocket, sni, sslContext):
+        assert(sni == 'powerdns.com')
+        return None
+
     @classmethod
     def startResponders(cls):
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tlsContext.load_cert_chain('server.chain', 'server.key')
+        # requires Python 3.7+
+        if hasattr(tlsContext, 'sni_callback'):
+            tlsContext.sni_callback = cls.sniCallback
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
