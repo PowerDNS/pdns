@@ -386,7 +386,7 @@ static uint64_t* pleaseDumpNonResolvingNS(int fd)
 }
 
 // Generic dump to file command
-static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
+static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name, bool threads = true)
 {
   auto fdw = getfd(s);
 
@@ -396,8 +396,15 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 
   uint64_t total = 0;
   try {
-    int fd = fdw;
-    total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
+    if (threads) {
+      int fd = fdw;
+      total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
+    }
+    else {
+      auto ret = function(fdw);
+      total = *ret;
+      delete ret;
+    }
   }
   catch (std::exception& e) {
     return {1, name + ": error dumping data: " + string(e.what()) + "\n"};
@@ -964,17 +971,6 @@ static uint64_t getNegCacheSize()
   return g_negCache->size();
 }
 
-static uint64_t* pleaseGetFailedHostsSize()
-{
-  uint64_t tmp = (SyncRes::getThrottledServersSize());
-  return new uint64_t(tmp);
-}
-
-static uint64_t getFailedHostsSize()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetFailedHostsSize);
-}
-
 uint64_t* pleaseGetNsSpeedsSize()
 {
   return new uint64_t(SyncRes::getNSSpeedsSize());
@@ -983,11 +979,6 @@ uint64_t* pleaseGetNsSpeedsSize()
 static uint64_t getNsSpeedsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
-}
-
-uint64_t* pleaseGetFailedServersSize()
-{
-  return new uint64_t(SyncRes::getFailedServersSize());
 }
 
 uint64_t* pleaseGetEDNSStatusesSize()
@@ -1250,7 +1241,8 @@ static void registerAllStats1()
   addGetStat("throttle-entries", getThrottleSize);
 
   addGetStat("nsspeeds-entries", getNsSpeedsSize);
-  addGetStat("failed-host-entries", getFailedHostsSize);
+  addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
+  addGetStat("non-resolving-nameserver-entries", SyncRes::getNonResolvingNSSize);
 
   addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);
@@ -1987,7 +1979,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpNSSpeeds, cmd);
   }
   if (cmd == "dump-failedservers") {
-    return doDumpToFile(s, pleaseDumpFailedServers, cmd);
+    return doDumpToFile(s, pleaseDumpFailedServers, cmd, false);
   }
   if (cmd == "dump-rpz") {
     return doDumpRPZ(s, begin, end);
@@ -1996,7 +1988,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
   }
   if (cmd == "dump-non-resolving") {
-    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd);
+    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd, false);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
     return {0, doWipeCache(begin, end, 0xffff)};

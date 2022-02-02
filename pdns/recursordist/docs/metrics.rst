@@ -491,7 +491,7 @@ number of servers that sent an invalid EDNS   PING response
 
 failed-host-entries
 ^^^^^^^^^^^^^^^^^^^
-number of servers that failed to resolve
+number of addresses in the failed NS cache.
 
 .. _stat-fd-usage:
 
@@ -547,6 +547,10 @@ number of queries sent out without EDNS
 noerror-answers
 ^^^^^^^^^^^^^^^
 counts the number of times it answered NOERROR   since starting
+
+non-resolving-nameserver-entries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+number of entries in the non-resolving NS name cache
 
 noping-outqueries
 ^^^^^^^^^^^^^^^^^

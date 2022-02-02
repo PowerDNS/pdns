@@ -196,7 +196,7 @@ template<class T>
 class fails_t : public boost::noncopyable
 {
 public:
-  typedef unsigned long long counter_t;
+  typedef uint64_t counter_t;
   struct value_t {
     value_t(const T &a) : key(a) {}
     T key;
@@ -210,9 +210,10 @@ public:
                                   ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
                                   >> cont_t;
 
-  cont_t getMap() const {
+  cont_t getMapCopy() const {
     return d_cont;
   }
+
   counter_t value(const T& t) const
   {
     auto i = d_cont.find(t);
@@ -406,12 +407,13 @@ public:
 
   };
 
+  static LockGuarded<fails_t<ComboAddress>> s_fails;
+  static LockGuarded<fails_t<DNSName>> s_nonresolving;
+
   struct ThreadLocalStorage {
     nsspeeds_t nsSpeeds;
     throttle_t throttle;
     ednsstatus_t ednsstatus;
-    fails_t<ComboAddress> fails;
-    fails_t<DNSName> nonresolving;
     std::shared_ptr<domainmap_t> domainmap;
   };
 
@@ -542,31 +544,31 @@ public:
   }
   static uint64_t getFailedServersSize()
   {
-    return t_sstorage.fails.size();
+    return s_fails.lock()->size();
   }
   static uint64_t getNonResolvingNSSize()
   {
-    return t_sstorage.nonresolving.size();
+    return s_nonresolving.lock()->size();
   }
   static void clearFailedServers()
   {
-    t_sstorage.fails.clear();
+    s_fails.lock()->clear();
   }
   static void clearNonResolvingNS()
   {
-    t_sstorage.nonresolving.clear();
+    s_nonresolving.lock()->clear();
   }
   static void pruneFailedServers(time_t cutoff)
   {
-    t_sstorage.fails.prune(cutoff);
+    s_fails.lock()->prune(cutoff);
   }
   static unsigned long getServerFailsCount(const ComboAddress& server)
   {
-    return t_sstorage.fails.value(server);
+    return s_fails.lock()->value(server);
   }
   static void pruneNonResolving(time_t cutoff)
   {
-    t_sstorage.nonresolving.prune(cutoff);
+    s_nonresolving.lock()->prune(cutoff);
   }
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {

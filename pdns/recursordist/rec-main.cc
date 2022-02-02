@@ -771,7 +771,7 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: throttle map: "
           << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
           << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize) << ", failed ns: "
-          << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize) << ", ednsmap: "
+          << SyncRes::getFailedServersSize() << ", ednsmap: "
           << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << endl;
     g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries) << "%";
     g_log << Logger::Notice << ", " << ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries) << "% throttled" << endl;
@@ -1797,14 +1797,11 @@ static void houseKeeping(void*)
         limit = now.tv_sec - 300;
         SyncRes::pruneNSSpeeds(limit);
       }
-      limit = now.tv_sec - SyncRes::s_serverdownthrottletime * 10;
-      SyncRes::pruneFailedServers(limit);
       limit = now.tv_sec - 2 * 3600;
       SyncRes::pruneEDNSStatuses(limit);
       SyncRes::pruneThrottledServers();
-      SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
-      Utility::gettimeofday(&t_last_prune, nullptr);
       t_tcp_manager.cleanup(now);
+      Utility::gettimeofday(&t_last_prune, nullptr);
     }
 
     if (isHandlerThread()) {
@@ -1823,6 +1820,8 @@ static void houseKeeping(void*)
         if (g_aggressiveNSECCache) {
           g_aggressiveNSECCache->prune(now.tv_sec);
         }
+        SyncRes::pruneFailedServers(now.tv_sec - SyncRes::s_serverdownthrottletime * 10);
+        SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
         s_last_RC_prune = now.tv_sec;
       }
       // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
