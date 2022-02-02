@@ -351,6 +351,13 @@ public:
 
   IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
+    if (!d_feContext && !d_connected) {
+      if (d_ktls) {
+        /* work-around to get kTLS to be started, as we cannot do that until after the socket has been connected */
+        SSL_set_fd(d_conn.get(), SSL_get_fd(d_conn.get()));
+      }
+    }
+
     do {
       int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
       if (res <= 0) {
@@ -361,6 +368,11 @@ public:
       }
     }
     while (pos < toWrite);
+
+    if (!d_connected) {
+      d_connected = true;
+    }
+
     return IOState::Done;
   }
 
@@ -562,6 +574,11 @@ public:
     d_tlsSessions.push_back(std::make_unique<OpenSSLSession>(std::unique_ptr<SSL_SESSION, void (*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
   }
 
+  void enableKTLS()
+  {
+    d_ktls = true;
+  }
+
   static int s_tlsConnIndex;
 
 private:
@@ -575,6 +592,8 @@ private:
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
   std::string d_hostname;
   struct timeval d_timeout;
+  bool d_connected{false};
+  bool d_ktls{false};
 };
 
 std::atomic_flag OpenSSLTLSConnection::s_initTLSConnIndex = ATOMIC_FLAG_INIT;
@@ -644,6 +663,13 @@ public:
 #elif defined(SSL_OP_NO_CLIENT_RENEGOTIATION)
       sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
 #endif
+    }
+
+    if (params.d_ktls) {
+#ifdef SSL_OP_ENABLE_KTLS
+      sslOptions |= SSL_OP_ENABLE_KTLS;
+      d_ktls = true;
+#endif /* SSL_OP_ENABLE_KTLS */
     }
 
     registerOpenSSLUser();
@@ -773,7 +799,11 @@ public:
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
   {
-    return std::make_unique<OpenSSLTLSConnection>(host, hostIsAddr, socket, timeout, d_tlsCtx);
+    auto conn = std::make_unique<OpenSSLTLSConnection>(host, hostIsAddr, socket, timeout, d_tlsCtx);
+    if (d_ktls) {
+      conn->enableKTLS();
+    }
+    return conn;
   }
 
   void rotateTicketsKey(time_t now) override
@@ -876,6 +906,7 @@ private:
   std::shared_ptr<OpenSSLFrontendContext> d_feContext{nullptr};
   std::shared_ptr<SSL_CTX> d_tlsCtx{nullptr}; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
   bool (*d_nextProtocolSelectCallback)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen){nullptr};
+  bool d_ktls{false};
 };
 
 #endif /* HAVE_LIBSSL */

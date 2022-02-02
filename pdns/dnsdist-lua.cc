@@ -223,6 +223,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   getOptionalValue<bool>(vars, "releaseBuffers", config.d_releaseBuffers);
   getOptionalValue<bool>(vars, "enableRenegotiation", config.d_enableRenegotiation);
   getOptionalValue<bool>(vars, "tlsAsyncMode", config.d_asyncMode);
+  getOptionalValue<bool>(vars, "ktls", config.d_ktls);
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -522,6 +523,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "validateCertificates", config.d_tlsParams.d_validateCertificates);
                          getOptionalValue<bool>(vars, "releaseBuffers", config.d_tlsParams.d_releaseBuffers);
                          getOptionalValue<bool>(vars, "enableRenegotiation", config.d_tlsParams.d_enableRenegotiation);
+                         getOptionalValue<bool>(vars, "ktls", config.d_tlsParams.d_ktls);
                          getOptionalValue<std::string>(vars, "subjectName", config.d_tlsSubjectName);
 
                          if (getOptionalValue<std::string>(vars, "subjectAddr", valueStr) > 0) {
