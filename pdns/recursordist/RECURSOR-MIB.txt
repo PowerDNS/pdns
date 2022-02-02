@@ -1232,7 +1232,10 @@ recGroup OBJECT-GROUP
         udp6SndbufErrors,
         udp6NoportErrors,
         udp6inErrors,
-        udp6InCsumErrors
+        udp6InCsumErrors,
+        sourceDisallowedNotify,
+        zoneDisallowedNotify,
+        nonResolvingNameserverEntries
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

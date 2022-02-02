@@ -547,7 +547,7 @@ noerror-answers
 counts the number of times it answered NOERROR   since starting
 
 non-resolving-nameserver-entries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 number of entries in the non-resolving NS name cache
 
 noping-outqueries
