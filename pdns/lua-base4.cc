@@ -245,7 +245,7 @@ void BaseLua4::prepareContext() {
                                        {"NXRRSET",  RCode::NXRRSet  },
                                        {"NOTAUTH",  RCode::NotAuth  },
                                        {"NOTZONE",  RCode::NotZone  },
-                                       {"DROP",    -2               }}; // To give backport-incompatibilityy warning
+                                       {"DROP",    -2               }}; // To give backport-incompatibility warning
   for(const auto& rcode : rcodes)
     d_pd.push_back({rcode.first, rcode.second});
 

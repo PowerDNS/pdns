@@ -500,7 +500,7 @@ void RecursorLua4::getFeatures(Features& features)
 static void warnDrop(const RecursorLua4::DNSQuestion& dq)
 {
   if (dq.rcode == -2) {
-    g_log << Logger::Error << "Returing -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl;
+    g_log << Logger::Error << "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl;
     // We *could* set policy here, but that would also mean interfering with rcode and the return code of the hook.
     // So leave it at the error message.
   }
