@@ -28,20 +28,9 @@
 namespace pdns
 {
 
-bool TaskQueue::empty() const
-{
-  return d_queue.empty();
-}
-
-size_t TaskQueue::size() const
-{
-  return d_queue.size();
-}
-
 void TaskQueue::push(ResolveTask&& task)
 {
   // Insertion fails if it's already there, no problem since we're already scheduled
-  // and the deadline would remain the same anyway.
   auto result = d_queue.insert(std::move(task));
   if (result.second) {
     d_pushes++;
@@ -55,34 +44,23 @@ ResolveTask TaskQueue::pop()
   return ret;
 }
 
-bool TaskQueue::runOnce(bool logErrors)
+bool ResolveTask::run(bool logErrors)
 {
-  if (d_queue.empty()) {
+  if (!d_func) {
+    g_log << Logger::Debug << "TaskQueue: null task for " << d_qname.toString() << '|' << QType(d_qtype).toString() << endl;
     return false;
-  }
-  ResolveTask task = pop();
-  if (task.func == nullptr) {
-    g_log << Logger::Debug << "TaskQueue: null task for " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
-    return true;
   }
   struct timeval now;
   Utility::gettimeofday(&now);
-  if (task.d_deadline >= now.tv_sec) {
-    task.func(now, logErrors, task);
+  if (d_deadline >= now.tv_sec) {
+    d_func(now, logErrors, *this);
   }
   else {
     // Deadline passed
-    g_log << Logger::Debug << "TaskQueue: deadline for " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << " passed" << endl;
-    d_expired++;
+    g_log << Logger::Debug << "TaskQueue: deadline for " << d_qname.toString() << '|' << QType(d_qtype).toString() << " passed" << endl;
+    return true;
   }
-  return true;
-}
-
-void TaskQueue::runAll(bool logErrors)
-{
-  while (runOnce(logErrors)) {
-    /* empty */
-  }
+  return false;
 }
 
 } /* namespace pdns */

@@ -71,7 +71,18 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
 
 void runTaskOnce(bool logErrors)
 {
-  s_taskQueue.lock()->runOnce(logErrors);
+  pdns::ResolveTask task;
+  {
+    auto lock = s_taskQueue.lock();
+    if (lock->empty()) {
+      return;
+    }
+    task = lock->pop();
+  }
+  bool expired = task.run(logErrors);
+  if (expired) {
+    s_taskQueue.lock()->incExpired();
+  }
 }
 
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
