@@ -4,8 +4,15 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.5.x to 4.6.0 or master
-------------------------
+4.6.x to master
+---------------
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed.
+
+4.5.x to 4.6.0
+--------------
 
 Offensive language
 ^^^^^^^^^^^^^^^^^^
