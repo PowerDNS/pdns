@@ -28,7 +28,8 @@
 #include "dolog.hh"
 #include "sstuff.hh"
 
-namespace dnsdist {
+namespace dnsdist
+{
 
 const DNSName ServiceDiscovery::s_discoveryDomain{"_dns.resolver.arpa."};
 const QType ServiceDiscovery::s_discoveryType{QType::SVCB};
@@ -67,12 +68,12 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
 
   size_t idx = 0;
   /* consume qd */
-  for(; idx < qdcount; idx++) {
+  for (; idx < qdcount; idx++) {
     rrname = pr.getName();
     rrtype = pr.get16BitInt();
     rrclass = pr.get16BitInt();
-    (void) rrtype;
-    (void) rrclass;
+    (void)rrtype;
+    (void)rrclass;
   }
 
   /* parse AN */
@@ -91,7 +92,7 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
         pr.xfrSvcParamKeyVals(params);
       }
 
-      resolvers[prio] = { std::move(target), std::move(params), {} };
+      resolvers[prio] = {std::move(target), std::move(params), {}};
     }
     else {
       pr.xfrBlob(blob);
@@ -192,7 +193,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
       }
     }
 
-    if (tempConfig.d_protocol == dnsdist::Protocol::DoH){
+    if (tempConfig.d_protocol == dnsdist::Protocol::DoH) {
 #ifndef HAVE_DNS_OVER_HTTPS
       continue;
 #endif
@@ -246,7 +247,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     pw.addOpt(4096, 0, 0);
 
     uint16_t querySize = static_cast<uint16_t>(packet.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
     packet.insert(packet.begin(), sizeBytes, sizeBytes + 2);
 
     Socket sock(addr.sin4.sin_family, SOCK_STREAM);
@@ -281,7 +282,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     packet.resize(ntohs(responseSize));
 
-    got = sock.readWithTimeout(reinterpret_cast<char *>(packet.data()), packet.size(), backend->d_config.tcpRecvTimeout);
+    got = sock.readWithTimeout(reinterpret_cast<char*>(packet.data()), packet.size(), backend->d_config.tcpRecvTimeout);
     if (got < 0 || static_cast<size_t>(got) != packet.size()) {
       if (g_verbose) {
         warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toString(), got);
@@ -445,7 +446,7 @@ void ServiceDiscovery::worker()
     auto upgradeables = *(s_upgradeableBackends.lock());
     std::set<std::shared_ptr<DownstreamState>> upgradedBackends;
 
-    for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end(); ) {
+    for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end();) {
       try {
         auto& backend = *backendIt;
         if (backend.d_nextCheck > now) {
@@ -471,10 +472,9 @@ void ServiceDiscovery::worker()
       }
     }
 
-
     {
       auto backends = s_upgradeableBackends.lock();
-      for (auto it = backends->begin(); it != backends->end(); ) {
+      for (auto it = backends->begin(); it != backends->end();) {
         if (upgradedBackends.count(it->d_ds) != 0) {
           it = backends->erase(it);
         }

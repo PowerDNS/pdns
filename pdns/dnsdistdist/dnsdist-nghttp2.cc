@@ -191,7 +191,7 @@ bool DoHConnectionToBackend::reachedMaxStreamID() const
 
 bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
 {
-  //cerr<<"Got "<<getConcurrentStreamsCount()<<" concurrent streams, max is "<<nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS)<<endl;
+  // cerr<<"Got "<<getConcurrentStreamsCount()<<" concurrent streams, max is "<<nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS)<<endl;
   if (nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS) <= getConcurrentStreamsCount()) {
     return true;
   }
@@ -726,9 +726,9 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
     conn->handleResponseError(std::move(request), now);
   }
 
-  //cerr<<"we now have "<<conn->getConcurrentStreamsCount()<<" concurrent connections"<<endl;
+  // cerr<<"we now have "<<conn->getConcurrentStreamsCount()<<" concurrent connections"<<endl;
   if (conn->isIdle()) {
-    //cerr<<"stopping IO"<<endl;
+    // cerr<<"stopping IO"<<endl;
     conn->stopIO();
     conn->watchForRemoteHostClosingConnection();
   }
@@ -742,9 +742,9 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 
   const std::string status(":status");
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
-    //cerr<<"got header for "<<frame->hd.stream_id<<":"<<endl;
-    //cerr<<"- "<<std::string(reinterpret_cast<const char*>(name), namelen)<<endl;
-    //cerr<<"- "<<std::string(reinterpret_cast<const char*>(value), valuelen)<<endl;
+    // cerr<<"got header for "<<frame->hd.stream_id<<":"<<endl;
+    // cerr<<"- "<<std::string(reinterpret_cast<const char*>(name), namelen)<<endl;
+    // cerr<<"- "<<std::string(reinterpret_cast<const char*>(value), valuelen)<<endl;
     if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
       auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
       if (stream == conn->d_currentStreams.end()) {

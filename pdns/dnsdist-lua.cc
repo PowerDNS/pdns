@@ -576,15 +576,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            tlsCtx = getTLSContext(tlsParams);
 
                            if (vars.count("dohPath")) {
-#ifdef HAVE_NGHTTP2
+#ifndef HAVE_NGHTTP2
+                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
+#endif
+
                              config.d_dohPath = boost::get<string>(vars.at("dohPath"));
 
                              if (vars.count("addXForwardedHeaders")) {
                                config.d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
                              }
-#else /* HAVE_NGHTTP2 */
-                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
-#endif /* HAVE_NGHTTP2 */
                            }
                          }
 

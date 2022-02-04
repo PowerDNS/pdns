@@ -30,12 +30,12 @@
 
 struct DownstreamState;
 
-namespace dnsdist {
+namespace dnsdist
+{
 
 class ServiceDiscovery
 {
 public:
-
   static bool addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade);
 
   /* starts a background thread if needed */
