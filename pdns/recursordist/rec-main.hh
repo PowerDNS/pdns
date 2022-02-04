@@ -384,7 +384,7 @@ public:
     t_id = id;
   }
 
-  std::string getname() const
+  std::string getName() const
   {
     return name;
   }
@@ -458,6 +458,7 @@ public:
 private:
   void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap);
 
+  std::string name;
   std::thread thread;
   int exitCode{0};
 
@@ -471,7 +472,6 @@ private:
   bool taskThread{false};
 
   static thread_local unsigned int t_id;
-  std::string name;
   static std::vector<RecThreadInfo> s_threadInfos;
   static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
   static unsigned int s_numDistributorThreads;
