@@ -39,8 +39,8 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.rcode
 
-      current DNS Result Code, which can be overridden, including to several magical values
-      The rcode can be set to ``pdns.DROP`` to drop the query.
+      current DNS Result Code, which can be overridden, including to several magical values.
+      Before 4.4.0, the rcode can be set to ``pdns.DROP`` to drop the query, for later versions refer to :ref:`hook-semantics`.
       Other statuses are normal DNS return codes, like ``pdns.NOERROR``, ``pdns.NXDOMAIN`` etc.
 
   .. attribute:: DNSQuestion.isTcp
