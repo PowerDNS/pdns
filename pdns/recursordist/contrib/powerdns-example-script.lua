@@ -18,9 +18,9 @@ badips:addMask("127.1.0.0/16")
 
 -- this check is applied before any packet parsing is done
 function ipfilter(rem, loc, dh)
-  pdnslog("ipfilter called, rem: "..rem:toStringWithPort().."loc: "..loc:toStringWithPort().."match:"..badips:match(rem))
-  pdnslog("id: "..dh:getID().."aa: "..dh:getAA().."ad: "..dh:getAD().."arcount: "..dh:getARCOUNT())
-  pdnslog("ports: "..rem:getPort()..loc:getPort())
+  pdnslog("ipfilter called, rem: "..rem:toStringWithPort().."loc: "..loc:toStringWithPort().." match:"..tostring(badips:match(rem)))
+  pdnslog("id: "..dh:getID().."aa: "..tostring(dh:getAA()).."ad: "..tostring(dh:getAD()).." arcount: "..dh:getARCOUNT())
+  pdnslog("ports: "..rem:getPort().." "..loc:getPort())
   return badips:match(rem)
 end
 
@@ -35,7 +35,6 @@ function preresolve(dq)
   then
     pdnslog("Packet EDNS subnet source: "..ednssubnet:toString()..", "..ednssubnet:getNetwork():toString())
   end
-
 
   local a = dq:getEDNSOption(3)
   if a
@@ -57,10 +56,10 @@ function preresolve(dq)
     pdnslog("not magic..")
   end
 
-  if dq.qname:__eq(magic2)  -- we hope to improve this syntax
+  if dq.qname == magic2
   then
     pdnslog("Faster magic") -- compares against existing DNSName
-  end                       -- sadly, dq.qname == magic2 won't work yet
+  end
 
   if blockset:check(dq.qname)
   then
@@ -85,10 +84,9 @@ function preresolve(dq)
     dq.followupFunction = "followCNAMERecords"    -- this makes PowerDNS lookup your CNAME
     return true;
   end
-  
+
   return false;
 end
-
 
 -- this implements DNS64
 
@@ -117,7 +115,7 @@ function postresolve(dq)
   pdnslog("postresolve called for "..dq.qname:toString())
   local records = dq:getRecords()
   for k,v in pairs(records) do
-    pdnslog(k, v.name:toString()..v:getContent())
+    pdnslog(k.." "..v.name:toString().." "..v:getContent())
     if v.type == pdns.A and v:getContent() == "185.31.17.73"
     then
       pdnslog("Changing content!")
