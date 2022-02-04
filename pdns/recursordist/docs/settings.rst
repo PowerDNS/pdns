@@ -892,7 +892,12 @@ If set, EDNS options in incoming queries are extracted and passed to the :func:`
 -  Path
 -  Default: empty
 
+.. versionchanged:: 4.7.0
+
+  Introduced the value ``no`` to disable root-hints processing.
+
 If set, the root-hints are read from this file. If empty, the default built-in root hints are used.
+
 In some special cases, processing the root hints is not needed, for example when forwarding all queries to another recursor.
 For these special cases, it is possible to disable the processing of root hints by setting the value to ``no``.
 
