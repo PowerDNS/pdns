@@ -495,6 +495,15 @@ void RecursorLua4::getFeatures(Features& features)
   features.emplace_back("PR8001_devicename", true);
 }
 
+static void warnDrop(const RecursorLua4::DNSQuestion& dq)
+{
+  if (dq.rcode == -2) {
+    g_log << Logger::Error << "Returing -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl;
+    // We *could* set policy here, but that would also mean interfering with rcode and the return code of the hook.
+    // So leave it at the error message.
+  }
+}
+
 void RecursorLua4::maintenance() const
 {
   if (d_maintenance) {
@@ -510,6 +519,7 @@ bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret, RecEventTrace& et) const
   et.add(RecEventTrace::LuaPreRPZ);
   bool ok = genhook(d_prerpz, dq, ret);
   et.add(RecEventTrace::LuaPreRPZ, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
@@ -521,6 +531,7 @@ bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret, RecEventTrace& et) cons
   et.add(RecEventTrace::LuaPreResolve);
   bool ok = genhook(d_preresolve, dq, ret);
   et.add(RecEventTrace::LuaPreResolve, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
@@ -532,6 +543,7 @@ bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret, RecEventTrace& et) const
   et.add(RecEventTrace::LuaNXDomain);
   bool ok = genhook(d_nxdomain, dq, ret);
   et.add(RecEventTrace::LuaNXDomain, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
@@ -543,6 +555,7 @@ bool RecursorLua4::nodata(DNSQuestion& dq, int& ret, RecEventTrace& et) const
   et.add(RecEventTrace::LuaNoData);
   bool ok = genhook(d_nodata, dq, ret);
   et.add(RecEventTrace::LuaNoData, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
@@ -554,6 +567,7 @@ bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret, RecEventTrace& et) con
   et.add(RecEventTrace::LuaPostResolve);
   bool ok = genhook(d_postresolve, dq, ret);
   et.add(RecEventTrace::LuaPostResolve, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
@@ -571,6 +585,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   et.add(RecEventTrace::LuaPreOutQuery);
   bool ok = genhook(d_preoutquery, dq, ret);
   et.add(RecEventTrace::LuaPreOutQuery, ok, false);
+  warnDrop(dq);
   return ok;
 }
 
