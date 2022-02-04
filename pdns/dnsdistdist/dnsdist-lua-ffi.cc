@@ -564,12 +564,12 @@ uint64_t dnsdist_ffi_server_get_outstanding(const dnsdist_ffi_server_t* server)
 
 int dnsdist_ffi_server_get_weight(const dnsdist_ffi_server_t* server)
 {
-  return server->server->weight;
+  return server->server->d_config.d_weight;
 }
 
 int dnsdist_ffi_server_get_order(const dnsdist_ffi_server_t* server)
 {
-  return server->server->order;
+  return server->server->d_config.order;
 }
 
 double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server)

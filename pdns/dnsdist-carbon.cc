@@ -83,13 +83,13 @@ void carbonDumpThread()
           }
           auto states = g_dstates.getLocal();
           for(const auto& state : *states) {
-            string serverName = state->getName().empty() ? state->remote.toStringWithPort() : state->getName();
+            string serverName = state->getName().empty() ? state->d_config.remote.toStringWithPort() : state->getName();
             boost::replace_all(serverName, ".", "_");
             const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
             str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
             str<<base<<"responses" << ' ' << state->responses.load() << " " << now << "\r\n";
             str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
-            str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
+            str<<base<<"latency" << ' ' << (state->d_config.availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
             str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
             str<<base<<"outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
             str<<base<<"tcpdiedsendingquery" << ' '<< state->tcpDiedSendingQuery.load() << " " << now << "\r\n";

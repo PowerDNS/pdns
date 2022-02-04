@@ -118,7 +118,7 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
   if (!downstream) {
     /* we don't have a connection to this backend owned yet, let's get one (it might not be a fresh one, though) */
     downstream = t_downstreamTCPConnectionsManager.getConnectionToDownstream(d_threadData.mplexer, ds, now, std::string());
-    if (ds->useProxyProtocol) {
+    if (ds->d_config.useProxyProtocol) {
       registerOwnedDownstreamConnection(downstream);
     }
   }
@@ -254,9 +254,9 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     const auto& ds = currentResponse.d_connection->getDS();
     const auto& ids = currentResponse.d_idstate;
     double udiff = ids.sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
+    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
 
-    ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->getProtocol());
+    ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->d_config.remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->getProtocol());
 
     updateTCPLatency(ds, udiff);
   }
@@ -489,7 +489,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 {
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
 
-  if (response.d_connection && response.d_connection->getDS() && response.d_connection->getDS()->useProxyProtocol) {
+  if (response.d_connection && response.d_connection->getDS() && response.d_connection->getDS()->d_config.useProxyProtocol) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool as no one else will be able to use it anyway
     if (!response.d_connection->willBeReusable(true)) {
       // if it can't be reused even by us, well
@@ -770,7 +770,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
     /* we need to do this _before_ creating the cross protocol query because
        after that the buffer will have been moved */
-    if (ds->useProxyProtocol) {
+    if (ds->d_config.useProxyProtocol) {
       proxyProtocolPayload = getProxyProtocolPayload(dq);
     }
 
@@ -786,7 +786,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
 
-  if (ds->useProxyProtocol) {
+  if (ds->d_config.useProxyProtocol) {
     /* if we ever sent a TLV over a connection, we can never go back */
     if (!state->d_proxyProtocolPayloadHasTLV) {
       state->d_proxyProtocolPayloadHasTLV = dq.proxyProtocolValues && !dq.proxyProtocolValues->empty();

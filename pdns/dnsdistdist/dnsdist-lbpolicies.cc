@@ -43,7 +43,7 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
   size_t position = 0;
   for(const auto& d : servers) {
     if(d.second->isUp()) {
-      poss.emplace_back(std::make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), position);
+      poss.emplace_back(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), position);
     }
     ++position;
   }
@@ -83,7 +83,7 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
     for (const auto& pair : servers) {
       if (pair.second->isUp()) {
         currentLoad += pair.second->outstanding;
-        totalWeight += pair.second->weight;
+        totalWeight += pair.second->d_config.d_weight;
       }
     }
 
@@ -93,12 +93,12 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   }
 
   for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->weight)))) {
+    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
-      if (d.second->weight > max - sum) {
+      if (d.second->d_config.d_weight > max - sum) {
         sum = max;
       } else {
-        sum += d.second->weight;
+        sum += d.second->d_config.d_weight;
       }
 
       poss.emplace_back(sum, d.first);
@@ -151,7 +151,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
     for (const auto& pair : servers) {
       if (pair.second->isUp()) {
         currentLoad += pair.second->outstanding;
-        totalWeight += pair.second->weight;
+        totalWeight += pair.second->d_config.d_weight;
       }
     }
 
@@ -161,7 +161,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
   }
 
   for (const auto& d: servers) {
-    if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->weight))) {
+    if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->d_config.d_weight))) {
       // make sure hashes have been computed
       if (!d.second->hashesComputed) {
         d.second->hash();

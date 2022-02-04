@@ -623,7 +623,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         int origFD = ids->origFD;
 
         unsigned int qnameWireLength = 0;
-        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
+        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->d_config.remote, qnameWireLength)) {
           continue;
         }
 
@@ -681,9 +681,9 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         }
 
         double udiff = ids->sentTime.udiff();
-        vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+        vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->d_config.remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
-        handleResponseSent(*ids, udiff, *dr.remote, dss->remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
+        handleResponseSent(*ids, udiff, *dr.remote, dss->d_config.remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
         dss->releaseState(queryId);
 
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
@@ -692,7 +692,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       }
     }
     catch (const std::exception& e){
-      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
+      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->d_config.remote.toStringWithPort(), queryId, e.what());
     }
   }
 }
@@ -1006,22 +1006,22 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
 {
   ssize_t result;
 
-  if (ss->sourceItf == 0) {
+  if (ss->d_config.sourceItf == 0) {
     result = send(sd, request.data(), request.size(), 0);
   }
   else {
     struct msghdr msgh;
     struct iovec iov;
     cmsgbuf_aligned cbuf;
-    ComboAddress remote(ss->remote);
+    ComboAddress remote(ss->d_config.remote);
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(reinterpret_cast<const char *>(request.data())), request.size(), &remote);
-    addCMsgSrcAddr(&msgh, &cbuf, &ss->sourceAddr, ss->sourceItf);
+    addCMsgSrcAddr(&msgh, &cbuf, &ss->d_config.sourceAddr, ss->d_config.sourceItf);
     result = sendmsg(sd, &msgh, 0);
   }
 
   if (result == -1) {
     int savederrno = errno;
-    vinfolog("Error sending request to backend %s: %d", ss->remote.toStringWithPort(), savederrno);
+    vinfolog("Error sending request to backend %s: %d", ss->d_config.remote.toStringWithPort(), savederrno);
 
     /* This might sound silly, but on Linux send() might fail with EINVAL
        if the interface the socket was bound to doesn't exist anymore.
@@ -1209,11 +1209,11 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       dq.dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
     }
 
-    if (dq.useECS && ((selectedBackend && selectedBackend->useECS) || (!selectedBackend && serverPool->getECS()))) {
+    if (dq.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (dq.packetCache && !dq.skipCache && (!selectedBackend || !selectedBackend->disableZeroScope) && dq.packetCache->isECSParsingEnabled()) {
+      if (dq.packetCache && !dq.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dq.packetCache->isECSParsingEnabled()) {
         if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKeyNoECS, dq.subnet, dq.dnssecOK, !dq.overTCP(), allowExpired)) {
 
           if (!prepareOutgoingResponse(holders, cs, dq, true)) {
@@ -1288,8 +1288,8 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
     dq.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader());
 
-    if (dq.addXPF && selectedBackend->xpfRRCode != 0) {
-      addXPF(dq, selectedBackend->xpfRRCode);
+    if (dq.addXPF && selectedBackend->d_config.xpfRRCode != 0) {
+      addXPF(dq, selectedBackend->d_config.xpfRRCode);
     }
 
     selectedBackend->incQueriesCount();
@@ -1357,9 +1357,9 @@ public:
     }
 
     double udiff = ids.sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", d_ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
+    vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", d_ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(ids, udiff, *dr.remote, d_ds->remote, response.d_buffer.size(), cleartextDH, d_ds->getProtocol());
+    handleResponseSent(ids, udiff, *dr.remote, d_ds->d_config.remote, response.d_buffer.size(), cleartextDH, d_ds->getProtocol());
 
     d_ds->latencyUsec = (127.0 * d_ds->latencyUsec / 128.0) + udiff/128.0;
 
@@ -1503,7 +1503,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       std::string proxyProtocolPayload;
       /* we need to do this _before_ creating the cross protocol query because
          after that the buffer will have been moved */
-      if (ss->useProxyProtocol) {
+      if (ss->d_config.useProxyProtocol) {
         proxyProtocolPayload = getProxyProtocolPayload(dq);
       }
 
@@ -1544,7 +1544,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     dh = dq.getHeader();
     dh->id = idOffset;
 
-    if (ss->useProxyProtocol) {
+    if (ss->d_config.useProxyProtocol) {
       addProxyProtocol(dq);
     }
 
@@ -1829,13 +1829,13 @@ static void healthChecksThread()
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if (++dss->lastCheck < dss->checkInterval) {
+      if (++dss->lastCheck < dss->d_config.checkInterval) {
         continue;
       }
 
       dss->lastCheck = 0;
 
-      if (dss->availability == DownstreamState::Availability::Auto) {
+      if (dss->d_config.availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss)) {
           updateHealthCheckResult(dss, false, false);
         }
@@ -2419,8 +2419,8 @@ int main(int argc, char** argv)
         // pre compute hashes
         auto backends = g_dstates.getLocal();
         for (auto& backend: *backends) {
-          if (backend->weight < 100) {
-            vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->weight);
+          if (backend->d_config.d_weight < 100) {
+            vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
           }
 
           backend->hash();
@@ -2566,13 +2566,12 @@ int main(int argc, char** argv)
     createPoolIfNotExists(localPools, "");
     if (g_cmdLine.remotes.size()) {
       for (const auto& address : g_cmdLine.remotes) {
-        auto ret = std::make_shared<DownstreamState>(ComboAddress(address, 53));
-        ret->connectUDPSockets(1);
+        DownstreamState::Config config;
+        config.remote = ComboAddress(address, 53);
+        auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
         addServerToPool(localPools, "", ret);
-        if (ret->connected && !ret->threadStarted.test_and_set()) {
-          ret->tid = thread(responderThread, ret);
-        }
-        g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
+        ret->start();
+        g_dstates.modify([&ret](servers_t& servers) { servers.push_back(std::move(ret)); });
       }
     }
     g_pools.setState(localPools);
@@ -2585,8 +2584,8 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
-    for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
-      if (dss->availability == DownstreamState::Availability::Auto) {
+    for (auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
+      if (dss->d_config.availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss, true)) {
           dss->setUpStatus(false);
           warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());

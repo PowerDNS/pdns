@@ -246,7 +246,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 {
   auto payloadSize = std::to_string(query.d_buffer.size());
 
-  bool addXForwarded = d_ds->d_addXForwardedHeaders;
+  bool addXForwarded = d_ds->d_config.d_addXForwardedHeaders;
 
   /* We use nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_NAME and nghttp2_nv_flag.NGHTTP2_NV_FLAG_NO_COPY_VALUE
      to avoid a copy and lowercasing but we need to make sure that the data will outlive the request (nghttp2_on_frame_send_callback called), and that it is already lowercased. */
@@ -259,8 +259,8 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   /* Pseudo-headers need to come first (rfc7540 8.1.2.1) */
   addStaticHeader(headers, "method-name", "method-value");
   addStaticHeader(headers, "scheme-name", "scheme-value");
-  addDynamicHeader(headers, "authority-name", d_ds->d_tlsSubjectName);
-  addDynamicHeader(headers, "path-name", d_ds->d_dohPath);
+  addDynamicHeader(headers, "authority-name", d_ds->d_config.d_tlsSubjectName);
+  addDynamicHeader(headers, "path-name", d_ds->d_config.d_dohPath);
   addStaticHeader(headers, "accept-name", "accept-value");
   addStaticHeader(headers, "content-type-name", "content-type-value");
   addStaticHeader(headers, "user-agent-name", "user-agent-value");
@@ -716,7 +716,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
   conn->d_currentStreams.erase(stream->first);
 
   // cerr<<"Query has "<<request.d_query.d_downstreamFailures<<" failures, backend limit is "<<conn->d_ds->d_retries<<endl;
-  if (request.d_query.d_downstreamFailures < conn->d_ds->d_retries) {
+  if (request.d_query.d_downstreamFailures < conn->d_ds->d_config.d_retries) {
     // cerr<<"in "<<__PRETTY_FUNCTION__<<", looking for a connection to send a query of size "<<request.d_query.d_buffer.size()<<endl;
     ++request.d_query.d_downstreamFailures;
     auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
