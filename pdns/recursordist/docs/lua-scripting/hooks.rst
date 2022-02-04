@@ -211,13 +211,15 @@ Interception Functions
 
   :param :class:`PolicyEvent` event: The event to handle
 
-Semantics
-^^^^^^^^^
-The `ipfilter` and `preresolve` must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with its regular query-processing.
+ .. _hooksemantics:
+
+Callback Semantics
+^^^^^^^^^^^^^^^^^^
+The :func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing.
 When a function returns ``false``, the nameserver will process the query normally until a new function is called.
 
 If a function has taken over a request, it should set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
-An interesting rcode is NXDOMAIN (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
+An interesting rcode is `NXDOMAIN` (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
 
 The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
 
@@ -241,8 +243,8 @@ A minimal sample script:
 **Warning**: Please do NOT use the above sample script in production!
 Responsible NXDomain redirection requires more attention to detail.
 
-Useful 'rcodes' include 0 for "no error" and ``pdns.NXDOMAIN`` for "NXDOMAIN". Before 4.4.0, ``pdns.DROP`` can also be used to drop the question without any further processing.
-Such a drop is accounted in the 'policy-drops' metric.
+Useful ``rcodes`` include 0 or ``pdns.NOERROR`` for no error and ``pdns.NXDOMAIN`` for ``NXDOMAIN``. Before 4.4.0, ``pdns.DROP`` can also be used to drop the question without any further processing.
+Such a drop is accounted in the ``policy-drops`` metric.
 
 Starting with recursor 4.4.0, the method to drop a request is to set the ``dq.appliedPolicy.policyKind`` to the value ``pdns.policykinds.Drop``.
 
@@ -257,7 +259,7 @@ Starting with recursor 4.4.0, the method to drop a request is to set the ``dq.ap
         return false
     end
 
-**Note**: to drop a query from ``preresolve``, set ``policyKind`` and return false, to indicate the Recursor should process the Drop action.
+**Note**: to drop a query set ``policyKind`` and return ``false``, to indicate the Recursor should process the ``Drop`` action.
 
 DNS64
 -----

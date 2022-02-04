@@ -114,6 +114,10 @@ To conform better to the standard, RPZ processing has been modified.
 This has consequences for the points in the resolving process where matches are checked and callbacks are called.
 See :ref:`rpz` for details. Additionally a new type of callback has been introduced: :func:`policyEventFilter`.
 
+Dropping queries from Lua callbacks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The method to drop a query from a Lua callback has been changed.
+Previously, you could set `rcode` to `pdns.DROP`. See :ref:`hooksemantics` for the new method.
 
 Parsing of unknown record types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
