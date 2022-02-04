@@ -211,7 +211,7 @@ Interception Functions
 
   :param :class:`PolicyEvent` event: The event to handle
 
- .. _hooksemantics:
+ .. _hook-semantics:
 
 Callback Semantics
 ^^^^^^^^^^^^^^^^^^

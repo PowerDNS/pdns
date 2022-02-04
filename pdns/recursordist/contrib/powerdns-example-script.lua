@@ -3,7 +3,7 @@ pdnslog("pdns-recursor Lua script starting!", pdns.loglevels.Warning)
 blockset = newDS()
 blockset:add{"powerdns.org", "xxx"}
 
-dropset = newDS();
+dropset = newDS()
 dropset:add("123.cn")
 
 malwareset = newDS()
@@ -67,14 +67,15 @@ function preresolve(dq)
     if dq.qtype == pdns.A then
       dq:addAnswer(pdns.A, "1.2.3.4")
       dq:addAnswer(pdns.TXT, "\"Hello!\"", 3601) -- ttl
-      return true;
+      return true
     end
   end
 
   if dropset:check(dq.qname)
   then
-    dq.rcode = pdns.DROP
-   return true;
+   pdnslog("dopping query")
+   dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+   return false -- recursor still needs to handle the policy
   end
 
   if malwareset:check(dq.qname)
@@ -82,10 +83,10 @@ function preresolve(dq)
     dq:addAnswer(pdns.CNAME, "blog.powerdns.com.")
     dq.rcode = 0
     dq.followupFunction = "followCNAMERecords"    -- this makes PowerDNS lookup your CNAME
-    return true;
+    return true
   end
 
-  return false;
+  return false
 end
 
 -- this implements DNS64
