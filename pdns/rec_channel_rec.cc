@@ -1118,7 +1118,9 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  for (unsigned int n = 0; n < g_numThreads; ++n) {
+  // Only distr and worker threads, I think we should revisit this as we now not only have the handler thread but also
+  // taskThread(s).
+  for (unsigned int n = 0; n < RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers(); ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)});
@@ -1667,7 +1669,7 @@ static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSNam
 
 static string* nopFunction()
 {
-  return new string("pong\n");
+  return new string("pong " + RecThreadInfo::self().getName() + '\n');
 }
 
 static string getDontThrottleNames()

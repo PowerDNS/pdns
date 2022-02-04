@@ -35,6 +35,7 @@
 #include "syncres.hh"
 #include "rec-snmp.hh"
 #include "rec_channel.hh"
+#include "threadname.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -138,7 +139,7 @@ struct DNSComboWriter
   std::map<std::string, RecursorLua4::MetaValue> d_meta;
 };
 
-extern thread_local FDMultiplexer* t_fdm;
+extern thread_local unique_ptr<FDMultiplexer> t_fdm;
 extern uint16_t g_minUdpSourcePort;
 extern uint16_t g_maxUdpSourcePort;
 
@@ -199,7 +200,6 @@ extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 extern thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;
 extern thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
-extern bool g_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 extern bool g_useIncomingECS;
 extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
@@ -208,8 +208,6 @@ extern bool g_addExtendedResolutionDNSErrors;
 extern uint16_t g_xpfRRCode;
 extern NetmaskGroup g_proxyProtocolACL;
 extern std::atomic<bool> g_statsWanted;
-extern unsigned int g_numDistributorThreads;
-extern unsigned int g_numWorkerThreads;
 extern uint32_t g_disthashseed;
 extern int g_argc;
 extern char** g_argv;
@@ -258,13 +256,6 @@ inline MT_t* getMT()
   return MT ? MT.get() : nullptr;
 }
 
-extern thread_local unsigned int t_id;
-
-inline unsigned int getRecursorThreadId()
-{
-  return t_id;
-}
-
 /* this function is called with both a string and a vector<uint8_t> representing a packet */
 template <class T>
 static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const T& packet)
@@ -299,8 +290,11 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const
   return hadError;
 }
 
-// for communicating with our threads
-// effectively readonly after startup
+// For communicating with our threads effectively readonly after
+// startup.
+// First we have the handler thread, t_id == 0 (some other helper
+// threads like SNMP might have t_id == 0 as well) then the
+// distributor threads if any and finally the workers
 struct RecThreadInfo
 {
   struct ThreadPipeSet
@@ -313,26 +307,175 @@ struct RecThreadInfo
     int readQueriesToThread{-1};
   };
 
-  /* FD corresponding to TCP sockets this thread is listening
-     on.
-     These FDs are also in deferredAdds when we have one
-     socket per listener, and in g_deferredAdds instead. */
+public:
+  static RecThreadInfo& self()
+  {
+    return s_threadInfos.at(t_id);
+  }
+
+  static RecThreadInfo& info(unsigned int i)
+  {
+    return s_threadInfos.at(i);
+  }
+
+  static vector<RecThreadInfo>& infos()
+  {
+    return s_threadInfos;
+  }
+
+  bool isDistributor() const
+  {
+    if (t_id == 0) {
+      return false;
+    }
+    return s_weDistributeQueries && listener;
+  }
+
+  bool isHandler() const
+  {
+    if (t_id == 0) {
+      return true;
+    }
+    return handler;
+  }
+
+  bool isWorker() const
+  {
+    return worker;
+  }
+
+  bool isListener() const
+  {
+    return listener;
+  }
+
+  bool isTaskThread() const
+  {
+    return taskThread;
+  }
+
+  void setHandler()
+  {
+    handler = true;
+  }
+
+  void setWorker()
+  {
+    worker = true;
+  }
+
+  void setListener(bool flag = true)
+  {
+    listener = flag;
+  }
+
+  void setTaskThread()
+  {
+    taskThread = true;
+  }
+
+  static unsigned int id()
+  {
+    return t_id;
+  }
+
+  static void setThreadId(unsigned int id)
+  {
+    t_id = id;
+  }
+
+  std::string getName() const
+  {
+    return name;
+  }
+
+  static unsigned int numHandlers()
+  {
+    return 1;
+  }
+
+  static unsigned int numTaskThreads()
+  {
+    return 1;
+  }
+
+  static unsigned int numWorkers()
+  {
+    return s_numWorkerThreads;
+  }
+
+  static unsigned int numDistributors()
+  {
+    return s_numDistributorThreads;
+  }
+
+  static bool weDistributeQueries()
+  {
+    return s_weDistributeQueries;
+  }
+
+  static void setWeDistributeQueries(bool flag)
+  {
+    s_weDistributeQueries = flag;
+  }
+
+  static void setNumWorkerThreads(unsigned int n)
+  {
+    s_numWorkerThreads = n;
+  }
+
+  static void setNumDistributorThreads(unsigned int n)
+  {
+    s_numDistributorThreads = n;
+  }
+
+  static unsigned int numRecursorThreads()
+  {
+    return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
+  }
+
+  static int runThreads();
+  static void makeThreadPipes();
+
+  void setExitCode(int e)
+  {
+    exitCode = e;
+  }
+
+  // FD corresponding to TCP sockets this thread is listening on.
+  // These FDs are also in deferredAdds when we have one socket per
+  // listener, and in g_deferredAdds instead.
   std::set<int> tcpSockets;
-  /* FD corresponding to listening sockets if we have one socket per
-     listener (with reuseport), otherwise all listeners share the
-     same FD and g_deferredAdds is then used instead */
+  // FD corresponding to listening sockets if we have one socket per
+  // listener (with reuseport), otherwise all listeners share the
+  // same FD and g_deferredAdds is then used instead
   deferredAdd_t deferredAdds;
+
   struct ThreadPipeSet pipes;
-  std::thread thread;
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
+
+private:
+  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap);
+
+  std::string name;
+  std::thread thread;
   int exitCode{0};
-  /* handle the web server, carbon, statistics and the control channel */
-  bool isHandler{false};
-  /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
-  bool isListener{false};
-  /* process queries */
-  bool isWorker{false};
+
+  // handle the web server, carbon, statistics and the control channel
+  bool handler{false};
+  // accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set)
+  bool listener{false};
+  // process queries
+  bool worker{false};
+  // run async tasks: from TastQueue and ZoneToCache
+  bool taskThread{false};
+
+  static thread_local unsigned int t_id;
+  static std::vector<RecThreadInfo> s_threadInfos;
+  static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
+  static unsigned int s_numDistributorThreads;
+  static unsigned int s_numWorkerThreads;
 };
 
 struct ThreadMSG
@@ -340,30 +483,6 @@ struct ThreadMSG
   pipefunc_t func;
   bool wantAnswer;
 };
-
-/* first we have the handler thread, t_id == 0 (some other
-   helper threads like SNMP might have t_id == 0 as well)
-   then the distributor threads if any
-   and finally the workers */
-extern std::vector<RecThreadInfo> g_threadInfos;
-
-inline bool isDistributorThread()
-{
-  if (t_id == 0) {
-    return false;
-  }
-
-  return g_weDistributeQueries && g_threadInfos.at(t_id).isListener;
-}
-
-inline bool isHandlerThread()
-{
-  if (t_id == 0) {
-    return true;
-  }
-
-  return g_threadInfos.at(t_id).isHandler;
-}
 
 PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
@@ -397,7 +516,6 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
 
 void makeUDPServerSockets(deferredAdd_t& deferredAdds);
-void* recursorThread(unsigned int n, const string& threadName);
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"

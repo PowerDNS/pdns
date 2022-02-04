@@ -34,7 +34,6 @@
 #include "validate-recursor.hh"
 #include "pubsuffix.hh"
 #include "opensslsigners.hh"
-#include "threadname.hh"
 #include "ws-recursor.hh"
 #include "rec-taskqueue.hh"
 #include "secpoll-recursor.hh"
@@ -78,9 +77,7 @@ thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 #endif /* NOD_ENABLED */
 
 std::atomic<bool> statsWanted;
-unsigned int g_numWorkerThreads;
 uint32_t g_disthashseed;
-bool g_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 bool g_useIncomingECS;
 uint16_t g_xpfRRCode{0};
 NetmaskGroup g_proxyProtocolACL;
@@ -91,8 +88,6 @@ std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setu
 std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
 std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 bool g_logRPZChanges{false};
-unsigned int g_numDistributorThreads;
-unsigned int g_numThreads;
 static time_t s_statisticsInterval;
 bool g_addExtendedResolutionDNSErrors;
 static std::atomic<uint32_t> s_counter;
@@ -106,7 +101,238 @@ deferredAdd_t g_deferredAdds;
    helper threads like SNMP might have t_id == 0 as well)
    then the distributor threads if any
    and finally the workers */
-std::vector<RecThreadInfo> g_threadInfos;
+std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
+
+bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
+unsigned int RecThreadInfo::s_numDistributorThreads;
+unsigned int RecThreadInfo::s_numWorkerThreads;
+thread_local unsigned int RecThreadInfo::t_id;
+
+static std::map<unsigned int, std::set<int>> parseCPUMap()
+{
+  std::map<unsigned int, std::set<int>> result;
+
+  const std::string value = ::arg()["cpu-map"];
+
+  if (!value.empty() && !isSettingThreadCPUAffinitySupported()) {
+    g_log << Logger::Warning << "CPU mapping requested but not supported, skipping" << endl;
+    return result;
+  }
+
+  std::vector<std::string> parts;
+
+  stringtok(parts, value, " \t");
+
+  for (const auto& part : parts) {
+    if (part.find('=') == string::npos)
+      continue;
+
+    try {
+      auto headers = splitField(part, '=');
+      boost::trim(headers.first);
+      boost::trim(headers.second);
+
+      unsigned int threadId = pdns_stou(headers.first);
+      std::vector<std::string> cpus;
+
+      stringtok(cpus, headers.second, ",");
+
+      for (const auto& cpu : cpus) {
+        int cpuId = std::stoi(cpu);
+
+        result[threadId].insert(cpuId);
+      }
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Error << "Error parsing cpu-map entry '" << part << "': " << e.what() << endl;
+    }
+  }
+
+  return result;
+}
+
+static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsigned int n, pthread_t tid)
+{
+  const auto& cpuMapping = cpusMap.find(n);
+  if (cpuMapping == cpusMap.cend()) {
+    return;
+  }
+  int rc = mapThreadToCPUList(tid, cpuMapping->second);
+  if (rc == 0) {
+    g_log << Logger::Info << "CPU affinity for thread " << n << " has been set to CPU map:";
+    for (const auto cpu : cpuMapping->second) {
+      g_log << Logger::Info << " " << cpu;
+    }
+    g_log << Logger::Info << endl;
+  }
+  else {
+    g_log << Logger::Warning << "Error setting CPU affinity for thread " << n << " to CPU map:";
+    for (const auto cpu : cpuMapping->second) {
+      g_log << Logger::Info << " " << cpu;
+    }
+    g_log << Logger::Info << ' ' << strerror(rc) << endl;
+  }
+}
+
+static void recursorThread();
+
+void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<unsigned int, std::set<int>>& cpusMap)
+{
+  name = tname;
+  thread = std::thread([id, tname] {
+    t_id = id;
+    const string threadPrefix = "rec/";
+    setThreadName(threadPrefix + tname);
+    recursorThread();
+  });
+  setCPUMap(cpusMap, id, thread.native_handle());
+}
+
+int RecThreadInfo::runThreads()
+{
+  int ret = EXIT_SUCCESS;
+  unsigned int currentThreadId = 1;
+  const auto cpusMap = parseCPUMap();
+
+  if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
+    g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl;
+
+#ifdef HAVE_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
+
+    /* This thread handles the web server, carbon, statistics and the control channel */
+    auto& handlerInfo = RecThreadInfo::info(0);
+    handlerInfo.setHandler();
+    handlerInfo.start(0, "web+stat", cpusMap);
+    auto& taskInfo = RecThreadInfo::info(2);
+    taskInfo.setTaskThread();
+    taskInfo.start(2, "taskThread", cpusMap);
+
+    auto& info = RecThreadInfo::info(currentThreadId);
+    info.setListener();
+    info.setWorker();
+    info.setThreadId(currentThreadId++);
+    recursorThread();
+
+    handlerInfo.thread.join();
+    if (handlerInfo.exitCode != 0) {
+      ret = handlerInfo.exitCode;
+    }
+    taskInfo.thread.join();
+    if (taskInfo.exitCode != 0) {
+      ret = taskInfo.exitCode;
+    }
+  }
+  else {
+    // Setup RecThreadInfo objects
+    unsigned int tmp = currentThreadId;
+    if (RecThreadInfo::weDistributeQueries()) {
+      for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
+        RecThreadInfo::info(tmp++).setListener();
+      }
+    }
+    for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
+      auto& info = RecThreadInfo::info(tmp++);
+      info.setListener(!RecThreadInfo::weDistributeQueries());
+      info.setWorker();
+    }
+    for (unsigned int n = 0; n < RecThreadInfo::numTaskThreads(); ++n) {
+      auto& info = RecThreadInfo::info(tmp++);
+      info.setTaskThread();
+    }
+
+    // And now start the actual threads
+    if (RecThreadInfo::weDistributeQueries()) {
+      g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl;
+      for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
+        auto& info = RecThreadInfo::info(currentThreadId);
+        info.start(currentThreadId++, "distr", cpusMap);
+      }
+    }
+
+    g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl;
+
+    for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
+      auto& info = RecThreadInfo::info(currentThreadId);
+      info.start(currentThreadId++, "worker", cpusMap);
+    }
+
+    for (unsigned int n = 0; n < RecThreadInfo::numTaskThreads(); ++n) {
+      auto& info = RecThreadInfo::info(currentThreadId);
+      info.start(currentThreadId++, "taskThread", cpusMap);
+    }
+
+#ifdef HAVE_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
+
+    /* This thread handles the web server, carbon, statistics and the control channel */
+    auto& info = RecThreadInfo::info(0);
+    info.setHandler();
+    info.start(0, "web+stat", cpusMap);
+
+    for (auto& ti : RecThreadInfo::infos()) {
+      ti.thread.join();
+      if (ti.exitCode != 0) {
+        ret = ti.exitCode;
+      }
+    }
+  }
+  return ret;
+}
+
+void RecThreadInfo::makeThreadPipes()
+{
+  auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
+  if (pipeBufferSize > 0) {
+    g_log << Logger::Info << "Resizing the buffer of the distribution pipe to " << pipeBufferSize << endl;
+  }
+
+  /* thread 0 is the handler / SNMP, worker threads start at 1 */
+  for (unsigned int n = 0; n < numRecursorThreads(); ++n) {
+    auto& threadInfo = info(n);
+
+    int fd[2];
+    if (pipe(fd) < 0)
+      unixDie("Creating pipe for inter-thread communications");
+
+    threadInfo.pipes.readToThread = fd[0];
+    threadInfo.pipes.writeToThread = fd[1];
+
+    // handler thread only gets first pipe, not the others
+    if (n == 0) {
+      continue;
+    }
+
+    if (pipe(fd) < 0)
+      unixDie("Creating pipe for inter-thread communications");
+
+    threadInfo.pipes.readFromThread = fd[0];
+    threadInfo.pipes.writeFromThread = fd[1];
+
+    if (pipe(fd) < 0)
+      unixDie("Creating pipe for inter-thread communications");
+
+    threadInfo.pipes.readQueriesToThread = fd[0];
+    threadInfo.pipes.writeQueriesToThread = fd[1];
+
+    if (pipeBufferSize > 0) {
+      if (!setPipeBufferSize(threadInfo.pipes.writeQueriesToThread, pipeBufferSize)) {
+        int err = errno;
+        g_log << Logger::Warning << "Error resizing the buffer of the distribution pipe for thread " << n << " to " << pipeBufferSize << ": " << strerror(err) << endl;
+        auto existingSize = getPipeBufferSize(threadInfo.pipes.writeQueriesToThread);
+        if (existingSize > 0) {
+          g_log << Logger::Warning << "The current size of the distribution pipe's buffer for thread " << n << " is " << existingSize << endl;
+        }
+      }
+    }
+
+    if (!setNonBlocking(threadInfo.pipes.writeQueriesToThread)) {
+      unixDie("Making pipe for inter-thread communications non-blocking");
+    }
+  }
+}
 
 ArgvMap& arg()
 {
@@ -426,71 +652,6 @@ static void writePid(void)
   }
 }
 
-static std::map<unsigned int, std::set<int>> parseCPUMap()
-{
-  std::map<unsigned int, std::set<int>> result;
-
-  const std::string value = ::arg()["cpu-map"];
-
-  if (!value.empty() && !isSettingThreadCPUAffinitySupported()) {
-    g_log << Logger::Warning << "CPU mapping requested but not supported, skipping" << endl;
-    return result;
-  }
-
-  std::vector<std::string> parts;
-
-  stringtok(parts, value, " \t");
-
-  for (const auto& part : parts) {
-    if (part.find('=') == string::npos)
-      continue;
-
-    try {
-      auto headers = splitField(part, '=');
-      boost::trim(headers.first);
-      boost::trim(headers.second);
-
-      unsigned int threadId = pdns_stou(headers.first);
-      std::vector<std::string> cpus;
-
-      stringtok(cpus, headers.second, ",");
-
-      for (const auto& cpu : cpus) {
-        int cpuId = std::stoi(cpu);
-
-        result[threadId].insert(cpuId);
-      }
-    }
-    catch (const std::exception& e) {
-      g_log << Logger::Error << "Error parsing cpu-map entry '" << part << "': " << e.what() << endl;
-    }
-  }
-
-  return result;
-}
-
-static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsigned int n, pthread_t tid)
-{
-  const auto& cpuMapping = cpusMap.find(n);
-  if (cpuMapping != cpusMap.cend()) {
-    int rc = mapThreadToCPUList(tid, cpuMapping->second);
-    if (rc == 0) {
-      g_log << Logger::Info << "CPU affinity for worker " << n << " has been set to CPU map:";
-      for (const auto cpu : cpuMapping->second) {
-        g_log << Logger::Info << " " << cpu;
-      }
-      g_log << Logger::Info << endl;
-    }
-    else {
-      g_log << Logger::Warning << "Error setting CPU affinity for worker " << n << " to CPU map:";
-      for (const auto cpu : cpuMapping->second) {
-        g_log << Logger::Info << " " << cpu;
-      }
-      g_log << Logger::Info << strerror(rc) << endl;
-    }
-  }
-}
-
 static void checkSocketDir(void)
 {
   struct stat st;
@@ -629,8 +790,8 @@ static void checkLinuxIPv6Limits()
 static void checkOrFixFDS()
 {
   unsigned int availFDs = getFilenumLimit();
-  unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads + 25; // even healthier margin then before
-  wantFDs += g_numWorkerThreads * TCPOutConnectionManager::s_maxIdlePerThread;
+  unsigned int wantFDs = g_maxMThreads * RecThreadInfo::numWorkers() + 25; // even healthier margin then before
+  wantFDs += RecThreadInfo::numWorkers() * TCPOutConnectionManager::s_maxIdlePerThread;
 
   if (wantFDs > availFDs) {
     unsigned int hardlimit = getFilenumLimit(true);
@@ -639,7 +800,7 @@ static void checkOrFixFDS()
       g_log << Logger::Warning << "Raised soft limit on number of filedescriptors to " << wantFDs << " to match max-mthreads and threads settings" << endl;
     }
     else {
-      int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / g_numWorkerThreads;
+      int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / RecThreadInfo::numWorkers();
       g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
@@ -689,58 +850,6 @@ static void loggerBackend(const Logging::Entry& entry)
   g_log << u << buf.str() << endl;
 }
 
-static void makeThreadPipes()
-{
-  auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
-  if (pipeBufferSize > 0) {
-    g_log << Logger::Info << "Resizing the buffer of the distribution pipe to " << pipeBufferSize << endl;
-  }
-
-  /* thread 0 is the handler / SNMP, worker threads start at 1 */
-  for (unsigned int n = 0; n <= (g_numWorkerThreads + g_numDistributorThreads); ++n) {
-    auto& threadInfos = g_threadInfos.at(n);
-
-    int fd[2];
-    if (pipe(fd) < 0)
-      unixDie("Creating pipe for inter-thread communications");
-
-    threadInfos.pipes.readToThread = fd[0];
-    threadInfos.pipes.writeToThread = fd[1];
-
-    // handler thread only gets first pipe, not the others
-    if (n == 0) {
-      continue;
-    }
-
-    if (pipe(fd) < 0)
-      unixDie("Creating pipe for inter-thread communications");
-
-    threadInfos.pipes.readFromThread = fd[0];
-    threadInfos.pipes.writeFromThread = fd[1];
-
-    if (pipe(fd) < 0)
-      unixDie("Creating pipe for inter-thread communications");
-
-    threadInfos.pipes.readQueriesToThread = fd[0];
-    threadInfos.pipes.writeQueriesToThread = fd[1];
-
-    if (pipeBufferSize > 0) {
-      if (!setPipeBufferSize(threadInfos.pipes.writeQueriesToThread, pipeBufferSize)) {
-        int err = errno;
-        g_log << Logger::Warning << "Error resizing the buffer of the distribution pipe for thread " << n << " to " << pipeBufferSize << ": " << strerror(err) << endl;
-        auto existingSize = getPipeBufferSize(threadInfos.pipes.writeQueriesToThread);
-        if (existingSize > 0) {
-          g_log << Logger::Warning << "The current size of the distribution pipe's buffer for thread " << n << " is " << existingSize << endl;
-        }
-      }
-    }
-
-    if (!setNonBlocking(threadInfos.pipes.writeQueriesToThread)) {
-      unixDie("Making pipe for inter-thread communications non-blocking");
-    }
-  }
-}
-
 static int ratePercentage(uint64_t nom, uint64_t denom)
 {
   if (denom == 0) {
@@ -782,8 +891,8 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, SyncRes::s_queries) << "% packet cache hits" << endl;
 
     size_t idx = 0;
-    for (const auto& threadInfo : g_threadInfos) {
-      if (threadInfo.isWorker) {
+    for (const auto& threadInfo : RecThreadInfo::infos()) {
+      if (threadInfo.isWorker()) {
         g_log << Logger::Notice << "stats: thread " << idx << " has been distributed " << threadInfo.numberOfDistributedQueries << " queries" << endl;
         ++idx;
       }
@@ -936,7 +1045,7 @@ void broadcastFunction(const pipefunc_t& func)
      for the initialization of ACLs and domain maps. After that it should only
      be called by the handler. */
 
-  if (g_threadInfos.empty() && isHandlerThread()) {
+  if (RecThreadInfo::infos().empty() && RecThreadInfo::id() == 0) {
     /* the handler and  distributors will call themselves below, but
        during startup we get called while g_threadInfos has not been
        populated yet to update the ACL or domain maps, so we need to
@@ -946,8 +1055,8 @@ void broadcastFunction(const pipefunc_t& func)
   }
 
   unsigned int n = 0;
-  for (const auto& threadInfo : g_threadInfos) {
-    if (n++ == t_id) {
+  for (const auto& threadInfo : RecThreadInfo::infos()) {
+    if (n++ == RecThreadInfo::id()) {
       func(); // don't write to ourselves!
       continue;
     }
@@ -990,22 +1099,23 @@ static vector<pair<DNSName, uint16_t>>& operator+=(vector<pair<DNSName, uint16_t
   return a;
 }
 
-/*
-  This function should only be called by the handler to gather metrics, wipe the cache,
-  reload the Lua script (not the Lua config) or change the current trace regex,
-  and by the SNMP thread to gather metrics. */
+// This function should only be called by the handler to gather
+// metrics, wipe the cache, reload the Lua script (not the Lua config)
+// or change the current trace regex, and by the SNMP thread to gather
+// metrics.
+// Note that this currently skips the handler, but includes the taskThread(s).
 template <class T>
 T broadcastAccFunction(const boost::function<T*()>& func)
 {
-  if (!isHandlerThread()) {
-    g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << t_id << ")" << endl;
+  if (!RecThreadInfo::self().isHandler()) {
+    g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << RecThreadInfo::id() << ")" << endl;
     _exit(1);
   }
 
   unsigned int n = 0;
   T ret = T();
-  for (const auto& threadInfo : g_threadInfos) {
-    if (n++ == t_id) {
+  for (const auto& threadInfo : RecThreadInfo::infos()) {
+    if (n++ == RecThreadInfo::id()) {
       continue;
     }
 
@@ -1041,8 +1151,6 @@ template ThreadTimes broadcastAccFunction(const boost::function<ThreadTimes*()>&
 
 static int serviceMain(int argc, char* argv[])
 {
-  int ret = EXIT_SUCCESS;
-
   g_slogStructured = ::arg().mustDo("structured-logging");
 
   g_log.setName(g_programname);
@@ -1148,8 +1256,8 @@ static int serviceMain(int argc, char* argv[])
   }
 
   /* this needs to be done before parseACLs(), which call broadcastFunction() */
-  g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
-  if (g_weDistributeQueries) {
+  RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
+  if (RecThreadInfo::weDistributeQueries()) {
     g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl;
   }
 
@@ -1323,14 +1431,13 @@ static int serviceMain(int argc, char* argv[])
   }
   g_paddingTag = ::arg().asNum("edns-padding-tag");
 
-  g_numDistributorThreads = ::arg().asNum("distributor-threads");
-  g_numWorkerThreads = ::arg().asNum("threads");
-  if (g_numWorkerThreads < 1) {
+  RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
+  RecThreadInfo::setNumWorkerThreads(::arg().asNum("threads"));
+  if (RecThreadInfo::numWorkers() < 1) {
     g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl;
-    g_numWorkerThreads = 1;
+    RecThreadInfo::setNumWorkerThreads(1);
   }
 
-  g_numThreads = g_numDistributorThreads + g_numWorkerThreads;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
   int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
@@ -1425,23 +1532,25 @@ static int serviceMain(int argc, char* argv[])
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
 
-  g_threadInfos.resize(g_numDistributorThreads + g_numWorkerThreads + /* handler */ 1);
+  RecThreadInfo::infos().resize(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() + RecThreadInfo::numTaskThreads());
 
   if (g_reusePort) {
-    if (g_weDistributeQueries) {
+    if (RecThreadInfo::weDistributeQueries()) {
       /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= g_numDistributorThreads; threadId++) {
-        auto& deferredAdds = g_threadInfos.at(threadId).deferredAdds;
-        auto& tcpSockets = g_threadInfos.at(threadId).tcpSockets;
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
+        auto& info = RecThreadInfo::info(threadId);
+        auto& deferredAdds = info.deferredAdds;
+        auto& tcpSockets = info.tcpSockets;
         makeUDPServerSockets(deferredAdds);
         makeTCPServerSockets(deferredAdds, tcpSockets);
       }
     }
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= g_numWorkerThreads; threadId++) {
-        auto& deferredAdds = g_threadInfos.at(threadId).deferredAdds;
-        auto& tcpSockets = g_threadInfos.at(threadId).tcpSockets;
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
+        auto& info = RecThreadInfo::info(threadId);
+        auto& deferredAdds = info.deferredAdds;
+        auto& tcpSockets = info.tcpSockets;
         makeUDPServerSockets(deferredAdds);
         makeTCPServerSockets(deferredAdds, tcpSockets);
       }
@@ -1456,16 +1565,16 @@ static int serviceMain(int argc, char* argv[])
 
     /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
        needs to listen to the shared sockets */
-    if (g_weDistributeQueries) {
+    if (RecThreadInfo::weDistributeQueries()) {
       /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= g_numDistributorThreads; threadId++) {
-        g_threadInfos.at(threadId).tcpSockets = tcpSockets;
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
+        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
       }
     }
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= g_numWorkerThreads; threadId++) {
-        g_threadInfos.at(threadId).tcpSockets = tcpSockets;
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
+        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
       }
     }
   }
@@ -1577,7 +1686,7 @@ static int serviceMain(int argc, char* argv[])
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
   delayedLuaThreads.rpzPrimaryThreads.clear(); // no longer needed
 
-  makeThreadPipes();
+  RecThreadInfo::makeThreadPipes();
 
   g_tcpTimeout = ::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient = ::arg().asNum("max-tcp-per-client");
@@ -1628,81 +1737,7 @@ static int serviceMain(int argc, char* argv[])
     g_avoidUdpSourcePorts.insert(port);
   }
 
-  unsigned int currentThreadId = 1;
-  const auto cpusMap = parseCPUMap();
-
-  if (g_numThreads == 1) {
-    g_log << Logger::Warning << "Operating unthreaded" << endl;
-#ifdef HAVE_SYSTEMD
-    sd_notify(0, "READY=1");
-#endif
-
-    /* This thread handles the web server, carbon, statistics and the control channel */
-    auto& handlerInfos = g_threadInfos.at(0);
-    handlerInfos.isHandler = true;
-    handlerInfos.thread = std::thread(recursorThread, 0, "web+stat");
-
-    setCPUMap(cpusMap, currentThreadId, pthread_self());
-
-    auto& infos = g_threadInfos.at(currentThreadId);
-    infos.isListener = true;
-    infos.isWorker = true;
-    recursorThread(currentThreadId++, "worker");
-
-    handlerInfos.thread.join();
-    if (handlerInfos.exitCode != 0) {
-      ret = handlerInfos.exitCode;
-    }
-  }
-  else {
-
-    if (g_weDistributeQueries) {
-      for (unsigned int n = 0; n < g_numDistributorThreads; ++n) {
-        auto& infos = g_threadInfos.at(currentThreadId + n);
-        infos.isListener = true;
-      }
-    }
-    for (unsigned int n = 0; n < g_numWorkerThreads; ++n) {
-      auto& infos = g_threadInfos.at(currentThreadId + (g_weDistributeQueries ? g_numDistributorThreads : 0) + n);
-      infos.isListener = !g_weDistributeQueries;
-      infos.isWorker = true;
-    }
-
-    if (g_weDistributeQueries) {
-      g_log << Logger::Warning << "Launching " << g_numDistributorThreads << " distributor threads" << endl;
-      for (unsigned int n = 0; n < g_numDistributorThreads; ++n) {
-        auto& infos = g_threadInfos.at(currentThreadId);
-        infos.thread = std::thread(recursorThread, currentThreadId++, "distr");
-        setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
-      }
-    }
-
-    g_log << Logger::Warning << "Launching " << g_numWorkerThreads << " worker threads" << endl;
-
-    for (unsigned int n = 0; n < g_numWorkerThreads; ++n) {
-      auto& infos = g_threadInfos.at(currentThreadId);
-      infos.thread = std::thread(recursorThread, currentThreadId++, "worker");
-      setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
-    }
-
-#ifdef HAVE_SYSTEMD
-    sd_notify(0, "READY=1");
-#endif
-
-    /* This thread handles the web server, carbon, statistics and the control channel */
-    auto& infos = g_threadInfos.at(0);
-    infos.isHandler = true;
-    infos.thread = std::thread(recursorThread, 0, "web+stat");
-
-    for (auto& ti : g_threadInfos) {
-      ti.thread.join();
-      if (ti.exitCode != 0) {
-        ret = ti.exitCode;
-      }
-    }
-  }
-
-  return ret;
+  return RecThreadInfo::runThreads();
 }
 
 static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
@@ -1726,8 +1761,7 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
       g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl; // but what if they wanted an answer.. we send 0
   }
   if (tmsg->wantAnswer) {
-    const auto& threadInfo = g_threadInfos.at(t_id);
-    if (write(threadInfo.pipes.writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
+    if (write(RecThreadInfo::self().pipes.writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
       delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
     }
@@ -1763,19 +1797,14 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 
 static void houseKeeping(void*)
 {
-  static thread_local time_t t_last_rootupdate, t_last_secpoll, t_last_trustAnchorUpdate{0};
-  static thread_local struct timeval t_last_prune;
-
-  static thread_local int t_cleanCounter = 0;
-  static thread_local bool t_running; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
-  static time_t s_last_RC_prune = 0;
-  static time_t s_last_ZTC_prune = 0;
+  static thread_local time_t t_last_trustAnchorUpdate{0}; // all threads
+  static thread_local struct timeval t_last_prune
+  {
+    0, 0
+  }; // all threads
+  static thread_local int t_cleanCounter{0}; // all threads
+  static thread_local bool t_running{false}; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   auto luaconfsLocal = g_luaconfs.getLocal();
-
-  if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
-    // Loading the Lua config file already "refreshed" the TAs
-    t_last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
-  }
 
   try {
     if (t_running) {
@@ -1783,14 +1812,17 @@ static void houseKeeping(void*)
     }
     t_running = true;
 
-    runTaskOnce(g_logCommonErrors);
+    if (t_last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
+      // Loading the Lua config file already "refreshed" the TAs
+      t_last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
+    }
 
     struct timeval now, past;
     Utility::gettimeofday(&now, nullptr);
     past = now;
     past.tv_sec -= 5;
     if (t_last_prune < past) {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (g_numWorkerThreads + g_numDistributorThreads));
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
 
       time_t limit;
       if (!((t_cleanCounter++) % 40)) { // this is a full scan!
@@ -1804,7 +1836,11 @@ static void houseKeeping(void*)
       Utility::gettimeofday(&t_last_prune, nullptr);
     }
 
-    if (isHandlerThread()) {
+    const auto& info = RecThreadInfo::self();
+
+    if (RecThreadInfo::self().isTaskThread()) {
+      static time_t s_last_ZTC_prune{0};
+      runTaskOnce(g_logCommonErrors);
       if (now.tv_sec - s_last_ZTC_prune > 60) {
         s_last_ZTC_prune = now.tv_sec;
         static map<DNSName, RecZoneToCache::State> ztcStates;
@@ -1813,7 +1849,11 @@ static void houseKeeping(void*)
           RecZoneToCache::ZoneToCache(ztc.second, ztcStates.at(ztc.first));
         }
       }
+    }
 
+    if (info.isHandler()) {
+      static time_t t_last_rootupdate{0}, t_last_secpoll{0};
+      static time_t s_last_RC_prune{0};
       if (now.tv_sec - s_last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);
@@ -1901,230 +1941,220 @@ static void houseKeeping(void*)
   }
 }
 
-void* recursorThread(unsigned int n, const string& threadName)
-try {
-  t_id = n;
-  auto& threadInfo = g_threadInfos.at(t_id);
+static void recursorThread()
+{
+  try {
+    auto& threadInfo = RecThreadInfo::self();
+    {
+      SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
+      SyncRes::setDomainMap(g_initialDomainMap);
+      t_allowFrom = g_initialAllowFrom;
+      t_allowNotifyFrom = g_initialAllowNotifyFrom;
+      t_allowNotifyFor = g_initialAllowNotifyFor;
+      t_udpclientsocks = std::make_unique<UDPClientSocks>();
+      t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
 
-  static string threadPrefix = "pdns-r/";
-  setThreadName(threadPrefix + threadName);
-
-  SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
-  SyncRes::setDomainMap(g_initialDomainMap);
-  t_allowFrom = g_initialAllowFrom;
-  t_allowNotifyFrom = g_initialAllowNotifyFrom;
-  t_allowNotifyFor = g_initialAllowNotifyFor;
-  t_udpclientsocks = std::make_unique<UDPClientSocks>();
-  t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
-
-  if (threadInfo.isHandler) {
-    if (!primeHints()) {
-      threadInfo.exitCode = EXIT_FAILURE;
-      RecursorControlChannel::stop = 1;
-      g_log << Logger::Critical << "Priming cache failed, stopping" << endl;
-      return nullptr;
+      if (threadInfo.isHandler()) {
+        if (!primeHints()) {
+          threadInfo.setExitCode(EXIT_FAILURE);
+          RecursorControlChannel::stop = 1;
+          g_log << Logger::Critical << "Priming cache failed, stopping" << endl;
+        }
+        g_log << Logger::Debug << "Done priming cache with root hints" << endl;
+      }
     }
-    g_log << Logger::Debug << "Done priming cache with root hints" << endl;
-  }
 
-  t_packetCache = std::make_unique<RecursorPacketCache>();
+    t_packetCache = std::make_unique<RecursorPacketCache>();
 
 #ifdef NOD_ENABLED
-  if (threadInfo.isWorker)
-    setupNODThread();
+    if (threadInfo.isWorker())
+      setupNODThread();
 #endif /* NOD_ENABLED */
 
-  /* the listener threads handle TCP queries */
-  if (threadInfo.isWorker || threadInfo.isListener) {
-    try {
-      if (!::arg()["lua-dns-script"].empty()) {
-        t_pdl = std::make_shared<RecursorLua4>();
-        t_pdl->loadFile(::arg()["lua-dns-script"]);
-        g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl;
-      }
-    }
-    catch (std::exception& e) {
-      g_log << Logger::Error << "Failed to load 'lua' script from '" << ::arg()["lua-dns-script"] << "': " << e.what() << endl;
-      _exit(99);
-    }
-  }
-
-  unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
-  if (ringsize) {
-    t_remotes = std::make_unique<addrringbuf_t>();
-    if (g_weDistributeQueries)
-      t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / g_numDistributorThreads);
-    else
-      t_remotes->set_capacity(ringsize);
-    t_servfailremotes = std::make_unique<addrringbuf_t>();
-    t_servfailremotes->set_capacity(ringsize);
-    t_bogusremotes = std::make_unique<addrringbuf_t>();
-    t_bogusremotes->set_capacity(ringsize);
-    t_largeanswerremotes = std::make_unique<addrringbuf_t>();
-    t_largeanswerremotes->set_capacity(ringsize);
-    t_timeouts = std::make_unique<addrringbuf_t>();
-    t_timeouts->set_capacity(ringsize);
-
-    t_queryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
-    t_queryring->set_capacity(ringsize);
-    t_servfailqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
-    t_servfailqueryring->set_capacity(ringsize);
-    t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
-    t_bogusqueryring->set_capacity(ringsize);
-  }
-  MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
-  threadInfo.mt = MT.get();
-
-  /* start protobuf export threads if needed */
-  auto luaconfsLocal = g_luaconfs.getLocal();
-  checkProtobufExport(luaconfsLocal);
-  checkOutgoingProtobufExport(luaconfsLocal);
-#ifdef HAVE_FSTRM
-  checkFrameStreamExport(luaconfsLocal);
-#endif
-
-  PacketID pident;
-
-  t_fdm = getMultiplexer();
-
-  RecursorWebServer* rws = nullptr;
-
-  t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
-
-  if (threadInfo.isHandler) {
-    if (::arg().mustDo("webserver")) {
-      g_log << Logger::Warning << "Enabling web server" << endl;
+    /* the listener threads handle TCP queries */
+    if (threadInfo.isWorker() || threadInfo.isListener()) {
       try {
-        rws = new RecursorWebServer(t_fdm);
+        if (!::arg()["lua-dns-script"].empty()) {
+          t_pdl = std::make_shared<RecursorLua4>();
+          t_pdl->loadFile(::arg()["lua-dns-script"]);
+          g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl;
+        }
       }
-      catch (const PDNSException& e) {
-        g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl;
+      catch (std::exception& e) {
+        g_log << Logger::Error << "Failed to load 'lua' script from '" << ::arg()["lua-dns-script"] << "': " << e.what() << endl;
         _exit(99);
       }
     }
-    g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl;
-  }
-  else {
-    t_fdm->addReadFD(threadInfo.pipes.readQueriesToThread, handlePipeRequest);
 
-    if (threadInfo.isListener) {
-      if (g_reusePort) {
-        /* then every listener has its own FDs */
-        for (const auto& deferred : threadInfo.deferredAdds) {
-          t_fdm->addReadFD(deferred.first, deferred.second);
+    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numWorkers();
+    if (ringsize) {
+      t_remotes = std::make_unique<addrringbuf_t>();
+      if (RecThreadInfo::weDistributeQueries())
+        t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numDistributors());
+      else
+        t_remotes->set_capacity(ringsize);
+      t_servfailremotes = std::make_unique<addrringbuf_t>();
+      t_servfailremotes->set_capacity(ringsize);
+      t_bogusremotes = std::make_unique<addrringbuf_t>();
+      t_bogusremotes->set_capacity(ringsize);
+      t_largeanswerremotes = std::make_unique<addrringbuf_t>();
+      t_largeanswerremotes->set_capacity(ringsize);
+      t_timeouts = std::make_unique<addrringbuf_t>();
+      t_timeouts->set_capacity(ringsize);
+
+      t_queryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
+      t_queryring->set_capacity(ringsize);
+      t_servfailqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
+      t_servfailqueryring->set_capacity(ringsize);
+      t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
+      t_bogusqueryring->set_capacity(ringsize);
+    }
+    MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
+    threadInfo.mt = MT.get();
+
+    /* start protobuf export threads if needed */
+    auto luaconfsLocal = g_luaconfs.getLocal();
+    checkProtobufExport(luaconfsLocal);
+    checkOutgoingProtobufExport(luaconfsLocal);
+#ifdef HAVE_FSTRM
+    checkFrameStreamExport(luaconfsLocal);
+#endif
+
+    t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer());
+
+    std::unique_ptr<RecursorWebServer> rws;
+
+    t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
+
+    if (threadInfo.isHandler()) {
+      if (::arg().mustDo("webserver")) {
+        g_log << Logger::Warning << "Enabling web server" << endl;
+        try {
+          rws = make_unique<RecursorWebServer>(t_fdm.get());
+        }
+        catch (const PDNSException& e) {
+          g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl;
+          _exit(99);
         }
       }
-      else {
-        /* otherwise all listeners are listening on the same ones */
-        for (const auto& deferred : g_deferredAdds) {
-          t_fdm->addReadFD(deferred.first, deferred.second);
-        }
-      }
+      g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl;
     }
-  }
+    else {
+      t_fdm->addReadFD(threadInfo.pipes.readQueriesToThread, handlePipeRequest);
 
-  registerAllStats();
-
-  if (threadInfo.isHandler) {
-    t_fdm->addReadFD(g_rcc.d_fd, handleRCC); // control channel
-  }
-
-  unsigned int maxTcpClients = ::arg().asNum("max-tcp-clients");
-
-  bool listenOnTCP(true);
-
-  time_t last_stat = 0;
-  time_t last_carbon = 0, last_lua_maintenance = 0;
-  time_t carbonInterval = ::arg().asNum("carbon-interval");
-  time_t luaMaintenanceInterval = ::arg().asNum("lua-maintenance-interval");
-  s_counter.store(0); // used to periodically execute certain tasks
-
-  while (!RecursorControlChannel::stop) {
-    while (MT->schedule(&g_now))
-      ; // MTasker letting the mthreads do their thing
-
-    // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
-    // We want to call handler thread often, it gets scheduled about 2 times per second
-    if ((threadInfo.isHandler && s_counter % 11 == 0) || s_counter % 499 == 0) {
-      MT->makeThread(houseKeeping, 0);
-    }
-
-    if (!(s_counter % 55)) {
-      typedef vector<pair<int, FDMultiplexer::funcparam_t>> expired_t;
-      expired_t expired = t_fdm->getTimeouts(g_now);
-
-      for (expired_t::iterator i = expired.begin(); i != expired.end(); ++i) {
-        shared_ptr<TCPConnection> conn = boost::any_cast<shared_ptr<TCPConnection>>(i->second);
-        if (g_logCommonErrors)
-          g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl;
-        t_fdm->removeReadFD(i->first);
-      }
-    }
-
-    s_counter++;
-
-    if (threadInfo.isHandler) {
-      if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
-        doStats();
-        last_stat = g_now.tv_sec;
-      }
-
-      Utility::gettimeofday(&g_now, nullptr);
-
-      if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
-        MT->makeThread(doCarbonDump, 0);
-        last_carbon = g_now.tv_sec;
-      }
-    }
-    if (t_pdl != nullptr) {
-      // lua-dns-script directive is present, call the maintenance callback if needed
-      /* remember that the listener threads handle TCP queries */
-      if (threadInfo.isWorker || threadInfo.isListener) {
-        // Only on threads processing queries
-        if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
-          t_pdl->maintenance();
-          last_lua_maintenance = g_now.tv_sec;
-        }
-      }
-    }
-
-    t_fdm->run(&g_now);
-    // 'run' updates g_now for us
-
-    if (threadInfo.isListener) {
-      if (listenOnTCP) {
-        if (TCPConnection::getCurrentConnections() > maxTcpClients) { // shutdown, too many connections
-          for (const auto fd : threadInfo.tcpSockets) {
-            t_fdm->removeReadFD(fd);
+      if (threadInfo.isListener()) {
+        if (g_reusePort) {
+          /* then every listener has its own FDs */
+          for (const auto& deferred : threadInfo.deferredAdds) {
+            t_fdm->addReadFD(deferred.first, deferred.second);
           }
-          listenOnTCP = false;
+        }
+        else {
+          /* otherwise all listeners are listening on the same ones */
+          for (const auto& deferred : g_deferredAdds) {
+            t_fdm->addReadFD(deferred.first, deferred.second);
+          }
         }
       }
-      else {
-        if (TCPConnection::getCurrentConnections() <= maxTcpClients) { // reenable
-          for (const auto fd : threadInfo.tcpSockets) {
-            t_fdm->addReadFD(fd, handleNewTCPQuestion);
+    }
+
+    registerAllStats();
+
+    if (threadInfo.isHandler()) {
+      t_fdm->addReadFD(g_rcc.d_fd, handleRCC); // control channel
+    }
+
+    unsigned int maxTcpClients = ::arg().asNum("max-tcp-clients");
+
+    bool listenOnTCP{true};
+
+    time_t last_stat = 0;
+    time_t last_carbon = 0, last_lua_maintenance = 0;
+    time_t carbonInterval = ::arg().asNum("carbon-interval");
+    time_t luaMaintenanceInterval = ::arg().asNum("lua-maintenance-interval");
+    s_counter.store(0); // used to periodically execute certain tasks
+
+    while (!RecursorControlChannel::stop) {
+      while (MT->schedule(&g_now))
+        ; // MTasker letting the mthreads do their thing
+
+      // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+      // We want to call handler thread often, it gets scheduled about 2 times per second
+      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
+        MT->makeThread(houseKeeping, 0);
+      }
+
+      if (!(s_counter % 55)) {
+        typedef vector<pair<int, FDMultiplexer::funcparam_t>> expired_t;
+        expired_t expired = t_fdm->getTimeouts(g_now);
+
+        for (expired_t::iterator i = expired.begin(); i != expired.end(); ++i) {
+          shared_ptr<TCPConnection> conn = boost::any_cast<shared_ptr<TCPConnection>>(i->second);
+          if (g_logCommonErrors)
+            g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl;
+          t_fdm->removeReadFD(i->first);
+        }
+      }
+
+      s_counter++;
+
+      if (threadInfo.isHandler()) {
+        if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
+          doStats();
+          last_stat = g_now.tv_sec;
+        }
+
+        Utility::gettimeofday(&g_now, nullptr);
+
+        if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
+          MT->makeThread(doCarbonDump, 0);
+          last_carbon = g_now.tv_sec;
+        }
+      }
+      if (t_pdl != nullptr) {
+        // lua-dns-script directive is present, call the maintenance callback if needed
+        /* remember that the listener threads handle TCP queries */
+        if (threadInfo.isWorker() || threadInfo.isListener()) {
+          // Only on threads processing queries
+          if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
+            t_pdl->maintenance();
+            last_lua_maintenance = g_now.tv_sec;
           }
-          listenOnTCP = true;
+        }
+      }
+
+      t_fdm->run(&g_now);
+      // 'run' updates g_now for us
+
+      if (threadInfo.isListener()) {
+        if (listenOnTCP) {
+          if (TCPConnection::getCurrentConnections() > maxTcpClients) { // shutdown, too many connections
+            for (const auto fd : threadInfo.tcpSockets) {
+              t_fdm->removeReadFD(fd);
+            }
+            listenOnTCP = false;
+          }
+        }
+        else {
+          if (TCPConnection::getCurrentConnections() <= maxTcpClients) { // reenable
+            for (const auto fd : threadInfo.tcpSockets) {
+              t_fdm->addReadFD(fd, handleNewTCPQuestion);
+            }
+            listenOnTCP = true;
+          }
         }
       }
     }
   }
-  delete rws;
-  delete t_fdm;
-  return 0;
-}
-catch (PDNSException& ae) {
-  g_log << Logger::Error << "Exception: " << ae.reason << endl;
-  return 0;
-}
-catch (std::exception& e) {
-  g_log << Logger::Error << "STL Exception: " << e.what() << endl;
-  return 0;
-}
-catch (...) {
-  g_log << Logger::Error << "any other exception in main: " << endl;
-  return 0;
+  catch (PDNSException& ae) {
+    g_log << Logger::Error << "Exception: " << ae.reason << endl;
+  }
+  catch (std::exception& e) {
+    g_log << Logger::Error << "STL Exception: " << e.what() << endl;
+  }
+  catch (...) {
+    g_log << Logger::Error << "any other exception in main: " << endl;
+  }
 }
 
 int main(int argc, char** argv)
@@ -2516,25 +2546,25 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
   try {
     if (fname.empty()) {
       t_pdl.reset();
-      g_log << Logger::Info << t_id << " Unloaded current lua script" << endl;
+      g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl;
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
     else {
       t_pdl = std::make_shared<RecursorLua4>();
       int err = t_pdl->loadFile(fname);
       if (err != 0) {
-        string msg = std::to_string(t_id) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
+        string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
         g_log << Logger::Error << msg << endl;
         return new RecursorControlChannel::Answer{1, msg + "\n"};
       }
     }
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << t_id << " Retaining current script, error from '" << fname << "': " << e.what() << endl;
+    g_log << Logger::Error << RecThreadInfo::id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl;
     return new RecursorControlChannel::Answer{1, string("retaining current script, error from '" + fname + "': " + e.what() + "\n")};
   }
 
-  g_log << Logger::Warning << t_id << " (Re)loaded lua script from '" << fname << "'" << endl;
+  g_log << Logger::Warning << RecThreadInfo::id() << " (Re)loaded lua script from '" << fname << "'" << endl;
   return new RecursorControlChannel::Answer{0, string("(re)loaded '" + fname + "'\n")};
 }
 

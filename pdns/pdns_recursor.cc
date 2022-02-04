@@ -43,7 +43,6 @@
 #endif /* NOD_ENABLED */
 
 thread_local std::shared_ptr<RecursorLua4> t_pdl;
-thread_local unsigned int t_id = 0;
 thread_local std::shared_ptr<Regex> t_traceRegex;
 thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers{nullptr};
 thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
@@ -53,7 +52,7 @@ std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-thread_local FDMultiplexer* t_fdm{nullptr};
+thread_local std::unique_ptr<FDMultiplexer> t_fdm;
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
 thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t>>> t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
@@ -964,7 +963,7 @@ void startDoResolve(void* p)
     }
 
     if (!g_quiet || tracedQuery) {
-      g_log << Logger::Warning << t_id << " [" << MT->getTid() << "/" << MT->numProcesses() << "] " << (dc->d_tcp ? "TCP " : "") << "question for '" << dc->d_mdp.d_qname << "|"
+      g_log << Logger::Warning << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] " << (dc->d_tcp ? "TCP " : "") << "question for '" << dc->d_mdp.d_qname << "|"
             << QType(dc->d_mdp.d_qtype) << "' from " << dc->getRemote();
       if (!dc->d_ednssubnet.source.empty()) {
         g_log << " (ecs " << dc->d_ednssubnet.source.toString() << ")";
@@ -1555,7 +1554,7 @@ void startDoResolve(void* p)
     // Now it always uses an integral number of microseconds, except for averages, which use doubles
     uint64_t spentUsec = uSec(sr.getNow() - dc->d_now);
     if (!g_quiet) {
-      g_log << Logger::Error << t_id << " [" << MT->getTid() << "/" << MT->numProcesses() << "] answer to " << (dc->d_mdp.d_header.rd ? "" : "non-rd ") << "question '" << dc->d_mdp.d_qname << "|" << DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
+      g_log << Logger::Error << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] answer to " << (dc->d_mdp.d_header.rd ? "" : "non-rd ") << "question '" << dc->d_mdp.d_qname << "|" << DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log << "': " << ntohs(pw.getHeader()->ancount) << " answers, " << ntohs(pw.getHeader()->arcount) << " additional, took " << sr.d_outqueries << " packets, " << sr.d_totUsec / 1000.0 << " netw ms, " << spentUsec / 1000.0 << " tot ms, " << sr.d_throttledqueries << " throttled, " << sr.d_timeouts << " timeouts, " << sr.d_tcpoutqueries << "/" << sr.d_dotoutqueries << " tcp/dot connections, rcode=" << res;
 
       if (!shouldNotValidate && sr.isDNSSECValidationRequested()) {
@@ -1757,7 +1756,7 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
-  if (write(g_threadInfos[0].pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+  if (write(RecThreadInfo::info(0).pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
     delete tmsg;
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -1771,7 +1770,7 @@ bool expectProxyProtocol(const ComboAddress& from)
 
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
 {
-  ++g_threadInfos[t_id].numberOfDistributedQueries;
+  ++(RecThreadInfo::self().numberOfDistributedQueries);
   gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
     struct timeval diff = g_now - tv;
@@ -1907,7 +1906,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
       if (cacheHit) {
         if (!g_quiet) {
-          g_log << Logger::Notice << t_id << " question answered from packet cache tag=" << ctag << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+          g_log << Logger::Notice << RecThreadInfo::id() << " question answered from packet cache tag=" << ctag << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
         }
         struct msghdr msgh;
         struct iovec iov;
@@ -1952,7 +1951,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool ipf = t_pdl->ipfilter(source, destination, *dh, eventTrace);
     if (ipf) {
       if (!g_quiet) {
-        g_log << Logger::Notice << t_id << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " based on policy" << endl;
+        g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " based on policy" << endl;
       }
       g_stats.policyDrops++;
       return 0;
@@ -1970,7 +1969,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     if (!g_quiet) {
-      g_log << Logger::Notice << t_id << " got NOTIFY for " << qname.toLogString() << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+      g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
     }
 
     requestWipeCaches(qname);
@@ -1984,7 +1983,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if (MT->numProcesses() > g_maxMThreads) {
     if (!g_quiet)
-      g_log << Logger::Notice << t_id << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl;
+      g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl;
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -2188,7 +2187,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             destination = dest;
           }
 
-          if (g_weDistributeQueries) {
+          if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
             distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace]() mutable {
               return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
@@ -2323,8 +2322,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
 static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 {
-  auto& targetInfo = g_threadInfos[target];
-  if (!targetInfo.isWorker) {
+  auto& targetInfo = RecThreadInfo::info(target);
+  if (!targetInfo.isWorker()) {
     g_log << Logger::Error << "distributeAsyncFunction() tried to assign a query to a non-worker thread" << endl;
     _exit(1);
   }
@@ -2354,7 +2353,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto mt = g_threadInfos[/* skip handler */ 1 + g_numDistributorThreads + workerIdx].mt;
+  const auto mt = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).mt;
   if (mt != nullptr) {
     return mt->numProcesses();
   }
@@ -2364,39 +2363,36 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 static unsigned int selectWorker(unsigned int hash)
 {
   if (g_balancingFactor == 0) {
-    return /* skip handler */ 1 + g_numDistributorThreads + (hash % g_numWorkerThreads);
+    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numWorkers());
   }
 
   /* we start with one, representing the query we are currently handling */
   double currentLoad = 1;
-  std::vector<unsigned int> load(g_numWorkerThreads);
-  for (size_t idx = 0; idx < g_numWorkerThreads; idx++) {
+  std::vector<unsigned int> load(RecThreadInfo::numWorkers());
+  for (size_t idx = 0; idx < RecThreadInfo::numWorkers(); idx++) {
     load[idx] = getWorkerLoad(idx);
     currentLoad += load[idx];
-    // cerr<<"load for worker "<<idx<<" is "<<load[idx]<<endl;
   }
 
-  double targetLoad = (currentLoad / g_numWorkerThreads) * g_balancingFactor;
-  // cerr<<"total load is "<<currentLoad<<", number of workers is "<<g_numWorkerThreads<<", target load is "<<targetLoad<<endl;
+  double targetLoad = (currentLoad / RecThreadInfo::numWorkers()) * g_balancingFactor;
 
-  unsigned int worker = hash % g_numWorkerThreads;
+  unsigned int worker = hash % RecThreadInfo::numWorkers();
   /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
     ++g_stats.rebalancedQueries;
     do {
-      // cerr<<"worker "<<worker<<" is above the target load, selecting another one"<<endl;
-      worker = (worker + 1) % g_numWorkerThreads;
+      worker = (worker + 1) % RecThreadInfo::numWorkers();
     } while (load[worker] > targetLoad);
   }
 
-  return /* skip handler */ 1 + g_numDistributorThreads + worker;
+  return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + worker;
 }
 
 // This function is only called by the distributor threads, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
-  if (!isDistributorThread()) {
-    g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << t_id << ")" << endl;
+  if (!RecThreadInfo::self().isDistributor()) {
+    g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << RecThreadInfo::id() << ")" << endl;
     _exit(1);
   }
 
@@ -2412,7 +2408,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
        was full, let's try another one */
     unsigned int newTarget = 0;
     do {
-      newTarget = /* skip handler */ 1 + g_numDistributorThreads + dns_random(g_numWorkerThreads);
+      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numWorkers());
     } while (newTarget == target);
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {

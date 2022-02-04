@@ -21,11 +21,12 @@
  */
 #include "rec-taskqueue.hh"
 #include "taskqueue.hh"
+#include "lock.hh"
 #include "logger.hh"
 #include "stat_t.hh"
 #include "syncres.hh"
 
-static thread_local pdns::TaskQueue t_taskQueue;
+static LockGuarded<pdns::TaskQueue> s_taskQueue;
 static pdns::stat_t s_almost_expired_tasks_pushed;
 static pdns::stat_t s_almost_expired_tasks_run;
 static pdns::stat_t s_almost_expired_tasks_exceptions;
@@ -70,29 +71,40 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
 
 void runTaskOnce(bool logErrors)
 {
-  t_taskQueue.runOnce(logErrors);
+  pdns::ResolveTask task;
+  {
+    auto lock = s_taskQueue.lock();
+    if (lock->empty()) {
+      return;
+    }
+    task = lock->pop();
+  }
+  bool expired = task.run(logErrors);
+  if (expired) {
+    s_taskQueue.lock()->incExpired();
+  }
 }
 
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
   ++s_almost_expired_tasks_pushed;
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
-  t_taskQueue.push(std::move(task));
+  s_taskQueue.lock()->push(std::move(task));
 }
 
 uint64_t getTaskPushes()
 {
-  return broadcastAccFunction<uint64_t>([] { return t_taskQueue.getPushes(); });
+  return s_taskQueue.lock()->getPushes();
 }
 
 uint64_t getTaskExpired()
 {
-  return broadcastAccFunction<uint64_t>([] { return t_taskQueue.getExpired(); });
+  return s_taskQueue.lock()->getExpired();
 }
 
 uint64_t getTaskSize()
 {
-  return broadcastAccFunction<uint64_t>([] { return t_taskQueue.getSize(); });
+  return s_taskQueue.lock()->size();
 }
 
 uint64_t getAlmostExpiredTasksPushed()
