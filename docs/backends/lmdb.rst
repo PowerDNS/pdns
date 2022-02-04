@@ -84,6 +84,16 @@ PowerDNS Version  LMDB Schema version
 4.4.x and up      3
 ================  ===================
 
+.. _settings-lmdb-random-ids:
+
+``lmdb-random-ids``
+^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 4.7.0
+
+Numeric IDs inside the database are generated randomly instead of sequentially.
+If some external process is synchronising databases between systems, this will avoid conflicts when objects (domains, keys, etc.) get added.
+
 LMDB Structure
 --------------
 

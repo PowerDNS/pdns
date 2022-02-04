@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+rootPath=$(readlink -f $(dirname $0))
+
+for random in no yes
+do
+  workdir=$(mktemp -d)
+
+  cat << EOF > "${workdir}/pdns-lmdb.conf"
+  module-dir=../regression-tests/modules
+  launch=lmdb
+  lmdb-filename=${workdir}/pdns.lmdb
+  lmdb-shards=2
+  lmdb-random-ids=${random}
+EOF
+
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb create-zone example.com
+  ids=$( for i in a b c ; do $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb add-zone-key example.com ksk ; done | xargs )
+  if [ $random = no ]
+  then
+    if [ "$ids" = "1 2 3" ]
+    then
+      echo "sequential generator generated 1 2 3 correctly"
+    else
+      echo "sequential generator: expected 1 2 3, but got $ids"
+    fi
+  else
+    if [ "$ids" = "1 2 3" ]
+    then
+      echo "random generator generated 1 2 3, this is unlikely"
+    else
+      echo "random generator generated something other than 1 2 3, good"
+    fi
+  fi
+done

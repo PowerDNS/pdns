@@ -69,6 +69,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
   string syncMode = toLower(getArg("sync-mode"));
 
+  d_random_ids = mustDo("random-ids");
+
   if (syncMode == "nosync")
     d_asyncFlag = MDB_NOSYNC;
   else if (syncMode == "nometasync")
@@ -978,7 +980,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     di.masters = masters;
     di.account = account;
 
-    txn.put(di);
+    txn.put(di, 0, d_random_ids);
     txn.commit();
   }
 
@@ -1069,7 +1071,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 
   for (const auto& m : meta) {
     DomainMeta dm{name, kind, m};
-    txn.put(dm);
+    txn.put(dm, 0, d_random_ids);
   }
   txn.commit();
   return true;
@@ -1106,7 +1108,7 @@ bool LMDBBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb{name, key.content, key.flags, key.active, key.published};
-  id = txn.put(kdb);
+  id = txn.put(kdb, 0, d_random_ids);
   txn.commit();
 
   return true;
@@ -1712,7 +1714,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
   tk.algorithm = algorithm;
   tk.key = content;
 
-  txn.put(tk);
+  txn.put(tk, 0, d_random_ids);
   txn.commit();
 
   return true;
@@ -1751,6 +1753,7 @@ public:
     // there just is no room for more on 32 bit
     declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
+    declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
   }
   DNSBackend* make(const string& suffix = "") override
   {
