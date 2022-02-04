@@ -79,7 +79,7 @@ function preresolve(dq)
 
   if malwareset:check(dq.qname)
   then
-    dq:addAnswer(pdns.CNAME, "xs.powerdns.com.")
+    dq:addAnswer(pdns.CNAME, "blog.powerdns.com.")
     dq.rcode = 0
     dq.followupFunction = "followCNAMERecords"    -- this makes PowerDNS lookup your CNAME
     return true;
