@@ -1827,10 +1827,10 @@ static void houseKeeping(void*)
       // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
       if (now.tv_sec - t_last_rootupdate > max(SyncRes::s_maxcachettl / 12, 10U)) {
         int res = SyncRes::getRootNS(g_now, nullptr, 0);
-        if (!res) {
+        if (res == 0) {
           t_last_rootupdate = now.tv_sec;
           try {
-            primeRootNSZones(g_dnssecmode != DNSSECMode::Off, 0);
+            primeRootNSZones(g_dnssecmode, 0);
           }
           catch (const std::exception& e) {
             g_log << Logger::Error << "Exception while priming the root NS zones: " << e.what() << endl;
@@ -1924,7 +1924,7 @@ try {
       g_log << Logger::Critical << "Priming cache failed, stopping" << endl;
       return nullptr;
     }
-    g_log << Logger::Warning << "Done priming cache with root hints" << endl;
+    g_log << Logger::Debug << "Done priming cache with root hints" << endl;
   }
 
   t_packetCache = std::make_unique<RecursorPacketCache>();
