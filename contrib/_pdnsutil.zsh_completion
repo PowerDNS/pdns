@@ -1,0 +1,322 @@
+#compdef pdnsutil
+
+#
+# put file '_pdnsutil' somewhere into $fpath,
+#       e.g. /usr/share/zsh/vendor-completions/
+#
+# command completion for pdns-auth
+#
+
+(( $+functions[_pdnsutil_commands] )) ||
+    _pdnsutil_commands() {
+        local -a _pdnsutil_cmds
+        _pdnsutil_cmds=(
+            'activate-tsig-key:Enable TSIG authenticated AXFR using the key NAME for ZONE'
+            'activate-zone-key:Activate the key with key id KEY-ID in ZONE'
+            'add-record:Add one or more records to ZONE'
+            'add-autoprimary:Add a new autoprimary'
+            'remove-autoprimary:Remove an autoprimary'
+            'list-autoprimaries:List all autoprimaries'
+            'add-zone-key:Add a ZSK or KSK to zone and specify algo&bits'
+            'backend-cmd:Perform one or more backend commands'
+            'b2b-migrate:Move all data from one backend to another'
+            'bench-db:Bench database backend with queries, one zone per line'
+            'check-zone:Check a zone for correctness'
+            'check-all-zones:Check all zones for correctness'
+            'clear-zone:Clear all records of a zone, but keep everything else'
+            'create-bind-db:Create DNSSEC db for BIND backend (bind-dnssec-db)'
+            'create-secondary-zone:Create secondary zone ZONE with primary IP address primary-ip'
+            'change-secondary-zone-primary:Change secondary zone ZONE primary IP address to primary-ip'
+            'create-zone:Create empty zone ZONE'
+            'deactivate-tsig-key:Disable TSIG authenticated AXFR using the key NAME for ZONE'
+            'deactivate-zone-key:Deactivate the key with key id KEY-ID in ZONE'
+            'delete-rrset:Delete named RRSET from zone'
+            'delete-tsig-key:Delete TSIG key (warning! will not unmap key!)'
+            'delete-zone:Delete the zone'
+            'disable-dnssec:Deactivate all keys and unset PRESIGNED in ZONE'
+            'edit-zone:Edit zone contents using $EDITOR'
+            'export-zone-dnskey:Export to stdout the public DNSKEY described'
+            'export-zone-ds:Export to stdout all KSK DS records for ZONE'
+            'export-zone-key:Export to stdout the private key described'
+            'export-zone-key-pem:Export to stdout in PEM the private key described'
+            'generate-tsig-key:Generate new TSIG key'
+            'generate-zone-key:Generate a ZSK or KSK to stdout with specified ALGORITHM and BITS'
+            'get-meta:Get zone metadata. If no KIND given, lists all known'
+            'hash-password:Ask for a plaintext password or api key and output a hashed and salted version'
+            'hash-zone-record:Calculate the NSEC3 hash for RNAME in ZONE'
+            'increase-serial:Increases the SOA-serial by 1. Uses SOA-EDIT'
+            'import-tsig-key:Import TSIG key'
+            'import-zone-key:Import from a file a private key, ZSK or KSK'
+            'import-zone-key-pem:Import from a file a private key in PEM, ZSK or KSK'
+            'ipdecrypt:Decrypt IP address using passphrase or base64 key'
+            'ipencrypt:Encrypt IP address using passphrase or base64 key'
+            'load-zone:Load ZONE from FILE, possibly creating zone or atomically replacing contents'
+            'list-algorithms:List all DNSSEC algorithms supported, optionally also listing the crypto library used'
+            'list-keys:List DNSSEC keys for ZONE. When ZONE is unset, display all keys for all active zones'
+            'list-zone:List zone contents'
+            'list-all-zones:List all active zone names'
+            'list-tsig-keys:List all TSIG keys'
+            'publish-zone-key:Publish the zone key with key id KEY-ID in ZONE'
+            'rectify-zone:Fix up DNSSEC fields (order, auth)'
+            'rectify-all-zones:Rectify all zones. Optionally quiet output with errors only'
+            'remove-zone-key:Remove key with KEY-ID from ZONE'
+            'replace-rrset:Replace named RRSET from zone'
+            'secure-all-zones:Secure all zones without keys'
+            'secure-zone:Add DNSSEC to zone ZONE'
+            'set-kind:Change the kind of ZONE to KIND (priamry, secondary, native)'
+            'set-account:Change the account (owner) of ZONE to ACCOUNT'
+            'set-nsec3:Enable NSEC3 with PARAMS. Optionally narrow'
+            'set-presigned:Use presigned RRSIGs from storage'
+            'set-publish-cdnskey:Enable sending CDNSKEY responses for ZONE. Add "delete" to publish a CDNSKEY with a DNSSEC delete algorithm'
+            'set-publish-cds:Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms'
+            'add-meta:Add zone metadata, this adds to the existing KIND'
+            'set-meta:Set zone metadata, optionally providing a value. *No* value clears meta'
+            'show-zone:Show DNSSEC (public) key details about a zone'
+            'unpublish-zone-key:Unpublish the zone key with key id KEY-ID in ZONE'
+            'unset-nsec3:Switch back to NSEC'
+            'unset-presigned:No longer use presigned RRSIGs'
+            'unset-publish-cdnskey:Disable sending CDNSKEY responses for ZONE'
+            'unset-publish-cds:Disable sending CDS responses for ZONE'
+            'test-schema:Test DB schema - will create ZONE'
+            "raw-lua-from-content:Display record contents in a form suitable for dnsdist's \`SpoofRawAction\`"
+            'zonemd-verify-file:Validate ZONEMD for ZONE'
+        )
+
+        if (( CURRENT == 1 )); then
+            _describe -t commands 'pdnsutil command' _pdnsutil_cmds
+        else
+            local curcontext="$curcontext"
+            cmd="${${_pdnsutil_cmds[(r)$words[1]:*]%%:*}}"
+
+            # command dispatcher
+            case $cmd in
+                (activate-zone-key|add-record|check-zone|clear-zone|create-secondary-zone|change-secondary-zone-primary|create-zone|deactivate-zone-key|delete-rrset|delete-zone|disable-dnssec|edit-zone|export-zone-dnskey|export-zone-ds|export-zone-key|export-zone-key-pem|hash-zone-record|increase-serial|list-keys|list-zone|publish-zone-key|remove-zone-key|replace-rrset|set-account|set-nsec3|set-presigned|set-publish-cds|show-zone|unpublish-zone-key|unset-nsec3|unset-presigned|unset-publish-cdnskey|unset-publish-cds|test-schema)
+                    _pdnsutil_cmd_singlezonearg
+                    ;;
+                (rectify-zone|secure-zone)
+                    _pdnsutil_cmd_multizonearg
+                    ;;
+                (bench-db|create-bind-db)
+                    _pdnsutil_cmd_filearg
+                    ;;
+                (activate-tsig-key|add-zone-key|check-all-zones|deactivate-tsig-key|delete-tsig-key|generate-tsig-key|generate-zone-key|get-meta|import-tsig-key|import-zone-key|import-zone-key-pem|load-zone|list-algorithms|list-all-zones|rectify-all-zones|secure-all-zones|set-kind|set-publish-cdnskey|add-meta|set-meta|zonemd-verify-file)
+                    _pdnsutil_cmd_$cmd
+                    ;;
+                *)
+                    # no completion for everything else
+                    ;;
+            esac
+        fi
+    }
+
+# fetch available zones for completion
+(( $+functions[_pdnsutil_zones] )) ||
+    _pdnsutil_zones() {
+        local -a _zones
+        _zones=( "${(f)$(pdnsutil list-all-zones 2> /dev/null)}" )
+        if [[ -n "$_zones" ]]; then
+            _describe -t zones 'zones' _zones
+        else
+            _message "no zones"
+        fi
+    }
+
+# fetch available tsig keys for completion
+(( $+functions[_pdnsutil_tsigkeys] )) ||
+    _pdnsutil_tsigkeys() {
+        local -a _tsigkeys
+        _tsigkeys=( ${"${(f)$(pdnsutil list-tsig-keys 2> /dev/null)}"%%. *} )
+        if [[ -n "$_tsigkeys" ]]; then
+            _describe -t tsigkeys 'tsigkeys' _tsigkeys
+        else
+            _message "no tsigkeys"
+        fi
+    }
+
+# all subcommands with only a single zone argument to complete
+(( $+functions[_pdnsutil_cmd_singlezonearg] )) ||
+    _pdnsutil_cmd_singlezonearg() {
+        _arguments ":zone:_pdnsutil_zones"
+    }
+
+# all subcommands with multiple zones as argument to complete
+(( $+functions[_pdnsutil_cmd_multizonearg] )) ||
+    _pdnsutil_cmd_multizonearg() {
+        _arguments "*:zone:_pdnsutil_zones"
+    }
+
+# all subcommands with a filename as argument
+(( $+functions[_pdnsutil_cmd_filearg] )) ||
+    _pdnsutil_cmd_filearg() {
+        _arguments ":filename:_files"
+    }
+
+# command-specific functions below
+#
+
+(( $+functions[_pdnsutil_cmd_activate-tsig-key] )) ||
+    _pdnsutil_cmd_activate-tsig-key() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':key:_pdnsutil_tsigkeys' \
+            ':type:(primary secondary)'
+    }
+
+(( $+functions[_pdnsutil_cmd_add-zone-key] )) ||
+    _pdnsutil_cmd_add-zone-key() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':type:(zsk ksk)' \
+            ':bits:' \
+            ':state:(active inactive)' \
+            ':pub:(published unpublished)' \
+            ':algorithm:(rsasha1 rsasha1-nsec3-sha1 rsasha256 rsasha512 ecdsa256 ecdsa384 ed25519 ed448)'
+    }
+
+(( $+functions[_pdnsutil_cmd_check-all-zones] )) ||
+    _pdnsutil_cmd_check-all-zones() {
+        _arguments \
+            ':flag:(exit-on-error)'
+    }
+
+(( $+functions[_pdnsutil_cmd_deactivate-tsig-key] )) ||
+    _pdnsutil_cmd_deactivate-tsig-key() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':key:_pdnsutil_tsigkeys' \
+            ':type:(primary secondary)'
+    }
+
+(( $+functions[_pdnsutil_cmd_delete-tsig-key] )) ||
+    _pdnsutil_cmd_delete-tsig-key() {
+        _arguments \
+            ':key:_pdnsutil_tsigkeys'
+    }
+
+(( $+functions[_pdnsutil_cmd_generate-tsig-key] )) ||
+    _pdnsutil_cmd_generate-tsig-key() {
+        _arguments \
+            ':name:' \
+            ':algorithm:(hmac-md5 hmac-sha1 hmac-sha224 hmac-sha256 hmac-sha384 hmac-sha512)'
+    }
+
+(( $+functions[_pdnsutil_cmd_generate-zone-key] )) ||
+    _pdnsutil_cmd_generate-zone-key() {
+        _arguments \
+            ':type:(zsk ksk)' \
+            ':algorithm:(rsasha1 rsasha1-nsec3-sha1 rsasha256 rsasha512 ecdsa256 ecdsa384 ed25519 ed448)' \
+            ':bits:'
+    }
+
+(( $+functions[_pdnsutil_cmd_get-meta] )) ||
+    _pdnsutil_cmd_get-meta() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':kind:(ALLOW-AXFR-FROM API-RECTIFY AXFR-SOURCE ALLOW-DNSUPDATE-FROM TSIG-ALLOW-DNSUPDATE FORWARD-DNSUPDATE SOA-EDIT-DNSUPDATE NOTIFY-DNSUPDATE ALSO-NOTIFY AXFR-MASTER-TSIG GSS-ALLOW-AXFR-PRINCIPAL GSS-ACCEPTOR-PRINCIPAL IXFR LUA-AXFR-SCRIPT NSEC3NARROW NSEC3PARAM PRESIGNED PUBLISH-CDNSKEY PUBLISH-CDS SLAVE-RENOTIFY SOA-EDIT SOA-EDIT-API TSIG-ALLOW-AXFR TSIG-ALLOW-DNSUPDATE)'
+    }
+
+(( $+functions[_pdnsutil_cmd_import-tsig-key] )) ||
+    _pdnsutil_cmd_import-tsig-key() {
+        _arguments \
+            ':name:' \
+            ':algorithm:(hmac-md5 hmac-sha1 hmac-sha224 hmac-sha256 hmac-sha384 hmac-sha512)' \
+            ':key:'
+    }
+
+(( $+functions[_pdnsutil_cmd_import-zone-key] )) ||
+    _pdnsutil_cmd_import-zone-key() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':filename:_files' \
+            ':state:(active inactive)' \
+            ':type:(zsk ksk)' \
+            ':pub:(published unpublished)'
+    }
+
+(( $+functions[_pdnsutil_cmd_import-zone-key-pem] )) ||
+    _pdnsutil_cmd_import-zone-key-pem() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':filename:_files' \
+            ':algorithm:(rsasha1 rsasha1-nsec3-sha1 rsasha256 rsasha512 ecdsa256 ecdsa384 ed25519 ed448)' \
+            ':type:(zsk ksk)'
+    }
+
+(( $+functions[_pdnsutil_cmd_load-zone] )) ||
+    _pdnsutil_cmd_load-zone() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':filename:_files'
+    }
+
+(( $+functions[_pdnsutil_cmd_list-algorithms] )) ||
+    _pdnsutil_cmd_list-algorithms() {
+        _arguments \
+            ':flag:(with-backend)'
+    }
+
+(( $+functions[_pdnsutil_cmd_list-all-zones] )) ||
+    _pdnsutil_cmd_list-all-zones() {
+        _arguments \
+            ':type:(primary secondary native)'
+    }
+
+(( $+functions[_pdnsutil_cmd_rectify-all-zones] )) ||
+    _pdnsutil_cmd_rectify-all-zones() {
+        _arguments \
+            ':flag:(quiet)'
+    }
+
+(( $+functions[_pdnsutil_cmd_secure-all-zones] )) ||
+    _pdnsutil_cmd_secure-all-zones() {
+        _arguments \
+            ':flag:(increase-serial)'
+    }
+
+(( $+functions[_pdnsutil_cmd_set-kind] )) ||
+    _pdnsutil_cmd_set-kind() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':type:(primary secondary native)'
+    }
+
+(( $+functions[_pdnsutil_cmd_set-publish-cdnskey] )) ||
+    _pdnsutil_cmd_set-publish-cdnskey() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':flag:(delete)'
+    }
+
+(( $+functions[_pdnsutil_cmd_add-meta] )) ||
+    _pdnsutil_cmd_add-meta() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':kind:(ALLOW-AXFR-FROM API-RECTIFY AXFR-SOURCE ALLOW-DNSUPDATE-FROM TSIG-ALLOW-DNSUPDATE FORWARD-DNSUPDATE SOA-EDIT-DNSUPDATE NOTIFY-DNSUPDATE ALSO-NOTIFY AXFR-MASTER-TSIG GSS-ALLOW-AXFR-PRINCIPAL GSS-ACCEPTOR-PRINCIPAL IXFR LUA-AXFR-SCRIPT NSEC3NARROW NSEC3PARAM PRESIGNED PUBLISH-CDNSKEY PUBLISH-CDS SLAVE-RENOTIFY SOA-EDIT SOA-EDIT-API TSIG-ALLOW-AXFR TSIG-ALLOW-DNSUPDATE)' \
+            '*:value:'
+    }
+
+(( $+functions[_pdnsutil_cmd_set-meta] )) ||
+    _pdnsutil_cmd_set-meta() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':kind:(ALLOW-AXFR-FROM API-RECTIFY AXFR-SOURCE ALLOW-DNSUPDATE-FROM TSIG-ALLOW-DNSUPDATE FORWARD-DNSUPDATE SOA-EDIT-DNSUPDATE NOTIFY-DNSUPDATE ALSO-NOTIFY AXFR-MASTER-TSIG GSS-ALLOW-AXFR-PRINCIPAL GSS-ACCEPTOR-PRINCIPAL IXFR LUA-AXFR-SCRIPT NSEC3NARROW NSEC3PARAM PRESIGNED PUBLISH-CDNSKEY PUBLISH-CDS SLAVE-RENOTIFY SOA-EDIT SOA-EDIT-API TSIG-ALLOW-AXFR TSIG-ALLOW-DNSUPDATE)' \
+            '*:value:'
+    }
+
+(( $+functions[_pdnsutil_cmd_zonemd-verify-file] )) ||
+    _pdnsutil_cmd_zonemd-verify-file() {
+        _arguments \
+            ':zone:_pdnsutil_zones' \
+            ':filename:_files'
+    }
+
+
+# pre-subcmd arguments
+_arguments \
+    '(- *)'{-h,--help}'[produce help message]' \
+    '(- *)--version[show version]' \
+    {-v,--verbose}'[be verbose]' \
+    '--force[force an action]' \
+    '--config-name[virtual configuration name]:filename:_files' \
+    '--config-dir[location of pdns.conf]:dirname:_files -/' \
+    '*::pdnsutil commands:_pdnsutil_commands'
