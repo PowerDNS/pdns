@@ -10,11 +10,6 @@
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
 
-RecursorPacketCache::RecursorPacketCache()
-{
-  d_hits = d_misses = 0;
-}
-
 unsigned int RecursorPacketCache::s_refresh_ttlperc{0};
 
 int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, bool subtree)
@@ -97,7 +92,8 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       return true;
     }
     else {
-      moveCacheItemToFront<SequencedTag>(d_packetCache, iter);
+      // We used to move the item to the fron ot the to be deleted sequence,
+      // but we're very likely will update the entry very soon, so leave it
       d_misses++;
       break;
     }
@@ -194,14 +190,15 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
 
   d_packetCache.insert(e);
+
+  if (d_packetCache.size() > d_maxSize) {
+    auto it = d_packetCache.begin();
+    d_packetCache.erase(it);
+  }
+
 }
 
-uint64_t RecursorPacketCache::size()
-{
-  return d_packetCache.size();
-}
-
-uint64_t RecursorPacketCache::bytes()
+uint64_t RecursorPacketCache::bytes() const
 {
   uint64_t sum = 0;
   for (const auto& e : d_packetCache) {

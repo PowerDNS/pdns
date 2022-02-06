@@ -1867,11 +1867,13 @@ static void houseKeeping(void*)
     struct timeval now;
     Utility::gettimeofday(&now);
 
+    // Below are the tasks that run for every recursorThread, including handler and taskThread
     if (t_packetCache) {
-      // Below are the tasks that run for every recursorThread, including handler and taskThread
       static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
       packetCacheTask.runIfDue(now, []() {
-        t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
+        size_t sz = g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors());
+        t_packetCache->setMaxSize(sz); // might have changed by rec_control
+        t_packetCache->doPruneTo(sz);
       });
     }
 
@@ -2060,7 +2062,7 @@ static void recursorThread()
     }
 
     if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
-      t_packetCache = std::make_unique<RecursorPacketCache>();
+      t_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
     }
 
 #ifdef NOD_ENABLED

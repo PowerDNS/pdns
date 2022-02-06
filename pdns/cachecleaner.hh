@@ -28,10 +28,10 @@
 
 // this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
-// on a miss, move it to the beginning
+// and optionally, on a miss, move it to the beginning
 template <typename S, typename C, typename T> void pruneCollection(C& container, T& collection, size_t maxCached, size_t scanFraction = 1000)
 {
-  const time_t now = time(0);
+  const time_t now = time(nullptr);
   size_t toTrim = 0;
   const size_t cacheSize = collection.size();
 
