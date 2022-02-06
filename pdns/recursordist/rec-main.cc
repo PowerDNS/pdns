@@ -2707,7 +2707,7 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 
 static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_packetCache ? 0 : t_packetCache->doWipePacketCache(canon, qtype, subtree));
+  return new uint64_t(t_packetCache ? t_packetCache->doWipePacketCache(canon, qtype, subtree) : 0);
 }
 
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)

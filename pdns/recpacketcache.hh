@@ -59,8 +59,8 @@ public:
   };
   typedef boost::optional<PBData> OptPBData;
 
-  RecursorPacketCache(size_t maxsize)
-    : d_maxSize(maxsize)
+  RecursorPacketCache(size_t maxsize) :
+    d_maxSize(maxsize)
   {
   }
 

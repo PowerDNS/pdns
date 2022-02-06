@@ -24,7 +24,6 @@
 ./pdns/bindparserclasses.hh
 ./pdns/bpf-filter.cc
 ./pdns/bpf-filter.hh
-./pdns/cachecleaner.hh
 ./pdns/calidns.cc
 ./pdns/capabilities.cc
 ./pdns/cdb.cc

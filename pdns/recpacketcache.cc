@@ -92,8 +92,8 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       return true;
     }
     else {
-      // We used to move the item to the fron ot the to be deleted sequence,
-      // but we're very likely will update the entry very soon, so leave it
+      // We used to move the item to the front of "the to be deleted" sequence,
+      // but we very likely will update the entry very soon, so leave it
       d_misses++;
       break;
     }
