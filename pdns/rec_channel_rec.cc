@@ -354,7 +354,7 @@ static uint64_t dumpAggressiveNSECCache(int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_packetCache->doDump(fd));
+  return new uint64_t(t_packetCache ? t_packetCache->doDump(fd) : 0);
 }
 
 static uint64_t* pleaseDumpEDNSMap(int fd)
@@ -855,6 +855,9 @@ static string setMaxPacketCacheEntries(T begin, T end)
 {
   if (end - begin != 1)
     return "Need to supply new packet cache size\n";
+  if (::arg().mustDo("disable-packetcache")) {
+    return "Packet cache is disabled\n";
+  }
   try {
     g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
     return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";

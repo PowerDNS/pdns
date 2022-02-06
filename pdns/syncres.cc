@@ -204,7 +204,6 @@ bool SyncRes::s_ecsipv6nevercache;
 
 bool SyncRes::s_doIPv4;
 bool SyncRes::s_doIPv6;
-bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 bool SyncRes::s_qnameminimization;

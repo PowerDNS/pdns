@@ -49,6 +49,7 @@
 #include "ednssubnet.hh"
 #include "query-local-address.hh"
 #include "tcpiohandler.hh"
+#include "ednsoptions.hh"
 
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"

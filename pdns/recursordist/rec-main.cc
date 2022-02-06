@@ -1298,9 +1298,6 @@ static int serviceMain(int argc, char* argv[])
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
   SyncRes::s_minimumECSTTL = ::arg().asNum("ecs-minimum-ttl-override");
-
-  SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
-
   SyncRes::s_maxnegttl = ::arg().asNum("max-negative-ttl");
   SyncRes::s_maxbogusttl = ::arg().asNum("max-cache-bogus-ttl");
   SyncRes::s_maxcachettl = max(::arg().asNum("max-cache-ttl"), 15);
@@ -1870,11 +1867,13 @@ static void houseKeeping(void*)
     struct timeval now;
     Utility::gettimeofday(&now);
 
-    // Below are the tasks that run for every recursorThread, including handler and taskThread
-    static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
-    packetCacheTask.runIfDue(now, []() {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
-    });
+    if (t_packetCache) {
+      // Below are the tasks that run for every recursorThread, including handler and taskThread
+      static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
+      packetCacheTask.runIfDue(now, []() {
+        t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
+      });
+    }
 
     // This is a full scan
     static thread_local PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 100};
@@ -2060,7 +2059,9 @@ static void recursorThread()
       }
     }
 
-    t_packetCache = std::make_unique<RecursorPacketCache>();
+    if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
+      t_packetCache = std::make_unique<RecursorPacketCache>();
+    }
 
 #ifdef NOD_ENABLED
     if (threadInfo.isWorker())
@@ -2704,7 +2705,7 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 
 static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
+  return new uint64_t(t_packetCache ? 0 : t_packetCache->doWipePacketCache(canon, qtype, subtree));
 }
 
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
