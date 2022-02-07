@@ -37,7 +37,7 @@ const uint16_t ServiceDiscovery::s_defaultDoHSVCKey{7};
 
 bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade)
 {
-  s_upgradeableBackends.lock()->emplace_back(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade});
+  s_upgradeableBackends.lock()->push_back(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade});
   return true;
 }
 
@@ -344,6 +344,43 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
   return false;
 }
 
+static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
+{
+  try {
+    Socket sock(ds->d_config.remote.sin4.sin_family, SOCK_STREAM);
+    sock.setNonBlocking();
+
+    if (!IsAnyAddress(ds->d_config.sourceAddr)) {
+      sock.setReuseAddr();
+#ifdef IP_BIND_ADDRESS_NO_PORT
+      if (ds->d_config.ipBindAddrNoPort) {
+        SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+      }
+#endif
+
+      if (!ds->d_config.sourceItfName.empty()) {
+#ifdef SO_BINDTODEVICE
+        setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->d_config.sourceItfName.c_str(), ds->d_config.sourceItfName.length());
+#endif
+      }
+      sock.bind(ds->d_config.sourceAddr);
+    }
+
+    time_t now = time(nullptr);
+    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx, now);
+    handler->connect(ds->d_config.tcpFastOpen, ds->d_config.remote, timeval{ds->d_config.checkTimeout, 0});
+    return true;
+  }
+  catch (const std::exception& e) {
+    vinfolog("Exception when trying to use a newly upgraded backend %s: %s", ds->getNameWithAddr(), e.what());
+  }
+  catch (...) {
+    vinfolog("Exception when trying to use a newly upgraded backend %s", ds->getNameWithAddr());
+  }
+
+  return false;
+}
+
 bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 {
   ServiceDiscovery::DiscoveredResolverConfig discoveredConfig;
@@ -372,7 +409,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
   ComboAddress::addressOnlyEqual comparator;
   config.d_dohPath = discoveredConfig.d_dohPath;
-  if (comparator(config.remote, backend.d_ds->d_config.remote)) {
+  if (!discoveredConfig.d_subjectName.empty() && comparator(config.remote, backend.d_ds->d_config.remote)) {
     /* same address, we can used the supplied name for validation */
     config.d_tlsSubjectName = discoveredConfig.d_subjectName;
   }
@@ -396,6 +433,12 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
     TLSContextParameters tlsParams;
     auto tlsCtx = getTLSContext(tlsParams);
     auto newServer = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), true);
+
+    /* check that we can connect to the backend (including certificate validation */
+    if (!checkBackendUsability(newServer)) {
+      vinfolog("Failed to use the automatically upgraded server %s, skipping for now", newServer->getNameWithAddr());
+      return false;
+    }
 
     infolog("Added automatically upgraded server %s", newServer->getNameWithAddr());
 
@@ -447,8 +490,8 @@ void ServiceDiscovery::worker()
     std::set<std::shared_ptr<DownstreamState>> upgradedBackends;
 
     for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end();) {
+      auto& backend = *backendIt;
       try {
-        auto& backend = *backendIt;
         if (backend.d_nextCheck > now) {
           ++backendIt;
           continue;
@@ -458,10 +501,7 @@ void ServiceDiscovery::worker()
         if (upgraded) {
           upgradedBackends.insert(backend.d_ds);
           backendIt = upgradeables.erase(backendIt);
-        }
-        else {
-          backend.d_nextCheck = now + backend.d_interval;
-          ++backendIt;
+          continue;
         }
       }
       catch (const std::exception& e) {
@@ -470,6 +510,9 @@ void ServiceDiscovery::worker()
       catch (...) {
         vinfolog("Exception in the Service Discovery thread");
       }
+
+      backend.d_nextCheck = now + backend.d_interval;
+      ++backendIt;
     }
 
     {
