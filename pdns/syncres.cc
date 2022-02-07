@@ -150,25 +150,24 @@ static const std::map<QType, std::pair<std::set<QType>, SyncRes::AddtionalMode>>
   {QType::NAPTR, {{QType::A, QType::AAAA, QType::SRV}, SyncRes::AddtionalMode::ResolveImmediately}}
 };
 
-void SyncRes::getAdditionals(const DNSName& qname, QType qtype, AddtionalMode mode, std::set<DNSRecord>& additionals, unsigned int depth)
+void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AddtionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
 {
   vector<DNSRecord> addRecords;
 
   vState state = vState::Indeterminate;
   switch (mode) {
   case AddtionalMode::ResolveImmediately: {
-    set<GetBestNSAnswer> lbeenthere;
-    int res = doResolve(qname, qtype, addRecords, depth, lbeenthere, state);
+    set<GetBestNSAnswer> beenthere;
+    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
     if (res != 0) {
       return;
     }
     if (vStateIsBogus(state)) {
       return;
     }
-    for (auto rec : addRecords) {
+    for (const auto& rec : addRecords) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
-        rec.d_place = DNSResourceRecord::ADDITIONAL;
-        additionals.insert(rec);
+        additionals.push_back(rec);
       }
     }
     break;
@@ -182,20 +181,97 @@ void SyncRes::getAdditionals(const DNSName& qname, QType qtype, AddtionalMode mo
     if (vStateIsBogus(state)) {
       return;
     }
-    for (auto rec : addRecords) {
+    for (auto& rec : addRecords) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
-        rec.d_place = DNSResourceRecord::ADDITIONAL;
         rec.d_ttl -= d_now.tv_sec ;
-        additionals.insert(rec);
+        additionals.push_back(rec);
       }
     }
     break;
   }
   case AddtionalMode::ResolveDeferred:
     // Not yet implemented
+    // Look in cache for authoritative answer, if available return it
+    // If not, look in nergache and submit if not there as well. The logic should be the same as
+    // #11294, which is in review atm.
     break;
   case AddtionalMode::Ignore:
     break;
+  }
+}
+
+// The main (recursive) function to add additonals
+// qtype: the original query type to expand
+// start: records to start from
+// This function uses to state sets to avoid infinite recursion
+// depth is the main recursion depth
+// additionaldepth is the depth for addAdditionals itself
+void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::pair<DNSName, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
+{
+  if (additionaldepth >= 5 || start.empty()) {
+    return;
+  }
+  const auto it = additionalTypes.find(qtype);
+  if (it == additionalTypes.end()) {
+    return;
+  }
+  std::unordered_set<DNSName> addnames;
+  for (const auto& rec : start) {
+    if (rec.d_place == DNSResourceRecord::ANSWER) {
+      // currently, this funtion only knows about names, we could also take the target types that are dependent on
+      // reord contents into account
+      // e.g. for NAPTR records, go only for SRV for flag value "s", or A/AAAA for flag value "a"
+      allowAdditionalEntry(addnames, rec);
+    }
+  }
+
+  auto mode = it->second.second;
+  for (const auto& targettype : it->second.first) {
+    for (const auto& addname : addnames) {
+      if ((targettype == QType::A && !s_doIPv4) || (targettype == QType::AAAA && !s_doIPv6)) {
+        continue;
+      }
+      std::vector<DNSRecord> records;
+      if (uniqueCalls.count(std::pair(addname, targettype)) == 0) {
+        uniqueCalls.emplace(addname, targettype);
+        resolveAdditionals(addname, targettype, mode, records, depth);
+      }
+      if (!records.empty()) {
+        for (auto r = records.begin(); r != records.end(); ) {
+          if (uniqueResults.count(std::pair(r->d_name, QType(r->d_type))) > 0) {
+            // A bit expensive for vectors, but they are small
+            r = records.erase(r);
+          } else {
+            ++r;
+          }
+        }
+        for (const auto& r : records) {
+          additionals.push_back(r);
+          uniqueResults.emplace(r.d_name, r.d_type);
+        }
+        addAdditionals(targettype, records, additionals, uniqueCalls, uniqueResults, depth, additionaldepth + 1);
+      }
+    }
+  }
+}
+
+// The entry point for other code
+void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int depth)
+{
+  // The additional records of interest
+  std::vector<DNSRecord> additionals;
+
+  // We only call resolve for a specific name/type combo once
+  std::set<std::pair<DNSName, QType>> uniqueCalls;
+
+  // Collect multiple name/qtype from a single resolve but do not add a new set from new resolve calls
+  std::set<std::pair<DNSName, QType>> uniqueResults;
+
+  addAdditionals(qtype, ret, additionals, uniqueCalls, uniqueResults, depth, 0);
+
+  for (auto& rec : additionals) {
+    rec.d_place = DNSResourceRecord::ADDITIONAL;
+    ret.push_back(rec);
   }
 }
 
@@ -248,28 +324,8 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
-  const auto it = additionalTypes.find(qtype);
-  if (it != additionalTypes.end()) {
-    std::unordered_set<DNSName> addnames;
-    for (const auto& rec : ret) {
-      if (rec.d_place == DNSResourceRecord::ANSWER) {
-        allowAdditionalEntry(addnames, rec);
-      }
-    }
-    std::set<DNSRecord> additionals;
-    auto mode = it->second.second;
-    for (const auto& targettype : it->second.first) {
-      for (const auto& addname : addnames) {
-        vector<DNSRecord> addRecords;
-        if ((targettype == QType::A && !s_doIPv4) || (targettype == QType::AAAA && !s_doIPv6)) {
-          continue;
-        }
-        getAdditionals(addname, targettype, mode, additionals, depth);
-      }
-    }
-    for (const auto& rec : additionals) {
-      ret.push_back(rec);
-    }
+  if (qclass == QClass::IN && additionalTypes.find(qtype) != additionalTypes.end()) {
+    addAdditionals(qtype, ret, depth);
   }
   d_eventTrace.add(RecEventTrace::SyncRes, res, false);
   return res;
