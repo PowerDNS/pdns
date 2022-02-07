@@ -374,9 +374,15 @@ Changelogs for 4.5.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: 9766, 9844, 9919, 10074
+    :pullreq: 9766, 9844, 9919
 
     Fixed bugs in the implementations of the ``SVCB``, ``HTTPS``, ``IPSECKEY`` and ``APL`` types.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10074
+
+    ``SVCB`` improvements, including a new ``svc-autohints`` setting
 
   .. change::
     :tags: New Features
