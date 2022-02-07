@@ -11,6 +11,9 @@ Automatic hints
 PowerDNS can automatically fill in ``ipv4hint`` and ``ipv6hint`` parameters in SVCB records based on A and AAAA records already present in the zone.
 This can be enabled by setting :ref:`setting-svc-autohints` to 'yes'.
 
+.. versionadded:: 4.5.0
+  The ``svc-autohints`` setting was added in 4.5.0
+
 Consider the following zone content::
 
   example.org      IN HTTPS 0 www.example.org

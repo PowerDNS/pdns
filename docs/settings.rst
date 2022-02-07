@@ -1660,6 +1660,8 @@ Turn on supermaster support. See :ref:`supermaster-operation`.
 - Boolean
 - Default: no
 
+.. versionadded:: 4.5.0
+
 Whether or not to enable IPv4 and IPv6 :ref:`autohints <svc-autohints>`.
 
 .. _setting-tcp-control-address:
