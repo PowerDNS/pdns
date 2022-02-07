@@ -245,6 +245,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     pw.getHeader()->id = id;
     pw.getHeader()->rd = 1;
     pw.addOpt(4096, 0, 0);
+    pw.commit();
 
     uint16_t querySize = static_cast<uint16_t>(packet.size());
     const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
@@ -275,7 +276,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     auto got = sock.readWithTimeout(reinterpret_cast<char*>(&responseSize), sizeof(responseSize), backend->d_config.tcpRecvTimeout);
     if (got < 0 || static_cast<size_t>(got) != sizeof(responseSize)) {
       if (g_verbose) {
-        warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toString(), got);
+        warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got);
       }
       return false;
     }
@@ -285,14 +286,14 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     got = sock.readWithTimeout(reinterpret_cast<char*>(packet.data()), packet.size(), backend->d_config.tcpRecvTimeout);
     if (got < 0 || static_cast<size_t>(got) != packet.size()) {
       if (g_verbose) {
-        warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toString(), got);
+        warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got);
       }
       return false;
     }
 
     if (packet.size() <= sizeof(struct dnsheader)) {
       if (g_verbose) {
-        warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toString());
+        warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort());
       }
       return false;
     }
@@ -301,14 +302,14 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     memcpy(&d, packet.data(), sizeof(d));
     if (d.id != id) {
       if (g_verbose) {
-        warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toString());
+        warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toStringWithPort());
       }
       return false;
     }
 
     if (d.rcode != RCode::NoError) {
       if (g_verbose) {
-        warnlog("Response code '%s' received from the backend %s for '%s'", RCode::to_s(d.rcode), addr.toString(), s_discoveryDomain);
+        warnlog("Response code '%s' received from the backend %s for '%s'", RCode::to_s(d.rcode), addr.toStringWithPort(), s_discoveryDomain);
       }
 
       return false;
@@ -316,7 +317,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     if (ntohs(d.qdcount) != 1) {
       if (g_verbose) {
-        warnlog("Invalid answer (qdcount %d) received from the backend %s", ntohs(d.qdcount), addr.toString());
+        warnlog("Invalid answer (qdcount %d) received from the backend %s", ntohs(d.qdcount), addr.toStringWithPort());
       }
       return false;
     }
@@ -327,7 +328,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     if (receivedName != s_discoveryDomain || receivedType != s_discoveryType || receivedClass != QClass::IN) {
       if (g_verbose) {
-        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toString());
+        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toStringWithPort());
       }
       return false;
     }
@@ -372,10 +373,10 @@ static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
     return true;
   }
   catch (const std::exception& e) {
-    vinfolog("Exception when trying to use a newly upgraded backend %s: %s", ds->getNameWithAddr(), e.what());
+    vinfolog("Exception when trying to use a newly upgraded backend %s (subject %s): %s", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName, e.what());
   }
   catch (...) {
-    vinfolog("Exception when trying to use a newly upgraded backend %s", ds->getNameWithAddr());
+    vinfolog("Exception when trying to use a newly upgraded backend %s (subject %s)", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName);
   }
 
   return false;
