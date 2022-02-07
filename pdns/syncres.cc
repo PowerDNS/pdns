@@ -140,32 +140,62 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 {
 }
 
-static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
+static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
 
-void SyncRes::getAdditionals(const DNSName& qname, QType qtype, bool requireAuth, std::set<DNSRecord>& additionals, unsigned int depth)
+static const std::map<QType, std::pair<std::set<QType>, SyncRes::AddtionalMode>> additionalTypes = {
+  {QType::MX, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnlyRequireAuth}},
+  {QType::SRV, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::ResolveImmediately}},
+  {QType::SVCB, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
+  {QType::HTTPS, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
+  {QType::NAPTR, {{QType::A, QType::AAAA, QType::SRV}, SyncRes::AddtionalMode::ResolveImmediately}}
+};
+
+void SyncRes::getAdditionals(const DNSName& qname, QType qtype, AddtionalMode mode, std::set<DNSRecord>& additionals, unsigned int depth)
 {
   vector<DNSRecord> addRecords;
 
   vState state = vState::Indeterminate;
-  if (requireAuth) {
+  switch (mode) {
+  case AddtionalMode::ResolveImmediately: {
     set<GetBestNSAnswer> lbeenthere;
     int res = doResolve(qname, qtype, addRecords, depth, lbeenthere, state);
     if (res != 0) {
       return;
     }
-  } else {
-    // Peek into cache for non-auth data
-    if (g_recCache->get(d_now.tv_sec, qname, qtype,  false, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+    if (vStateIsBogus(state)) {
       return;
     }
-  }
-  if (vStateIsBogus(state)) {
-    return;
-  }
-  for (const auto& rec : addRecords) {
-    if (rec.d_place == DNSResourceRecord::ANSWER) {
-      additionals.insert(rec);
+    for (auto rec : addRecords) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        rec.d_place = DNSResourceRecord::ADDITIONAL;
+        additionals.insert(rec);
+      }
     }
+    break;
+  }
+  case AddtionalMode::CacheOnly:
+  case AddtionalMode::CacheOnlyRequireAuth: {
+    // Peek into cache
+    if (g_recCache->get(d_now.tv_sec, qname, qtype, mode == AddtionalMode::CacheOnlyRequireAuth, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+      return;
+    }
+    if (vStateIsBogus(state)) {
+      return;
+    }
+    for (auto rec : addRecords) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        rec.d_place = DNSResourceRecord::ADDITIONAL;
+        rec.d_ttl -= d_now.tv_sec ;
+        additionals.insert(rec);
+      }
+    }
+    break;
+  }
+  case AddtionalMode::ResolveDeferred:
+    // Not yet implemented
+    break;
+  case AddtionalMode::Ignore:
+    break;
   }
 }
 
@@ -218,15 +248,6 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
-  const std::map<QType, std::pair<std::set<QType>, bool>> additionalTypes = {
-    {QType::MX, {{QType::A, QType::AAAA}, false}},
-    //{QType::NS, {{QType::A, QType::AAAA}, false}},
-    {QType::SRV, {{QType::A, QType::AAAA}, false}},
-    {QType::SVCB, {{QType::A, QType::AAAA}, false}},
-    {QType::HTTPS, {{QType::A, QType::AAAA}, false}},
-    {QType::NAPTR, {{}, false}}
-  };
-
   const auto it = additionalTypes.find(qtype);
   if (it != additionalTypes.end()) {
     std::unordered_set<DNSName> addnames;
@@ -236,19 +257,17 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
       }
     }
     std::set<DNSRecord> additionals;
-    bool requireAuth = it->second.second;
+    auto mode = it->second.second;
     for (const auto& targettype : it->second.first) {
       for (const auto& addname : addnames) {
         vector<DNSRecord> addRecords;
         if ((targettype == QType::A && !s_doIPv4) || (targettype == QType::AAAA && !s_doIPv6)) {
           continue;
         }
-        getAdditionals(addname, targettype, requireAuth, additionals, depth);
+        getAdditionals(addname, targettype, mode, additionals, depth);
       }
     }
-    for (auto rec : additionals) {
-      rec.d_place =  DNSResourceRecord::ADDITIONAL;
-      rec.d_ttl -= d_now.tv_sec;
+    for (const auto& rec : additionals) {
       ret.push_back(rec);
     }
   }
@@ -3107,30 +3126,24 @@ void SyncRes::fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSNam
   }
 }
 
-static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
+static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
 {
   switch(rec.d_type) {
   case QType::MX:
-  {
     if (auto mxContent = getRR<MXRecordContent>(rec)) {
       allowedAdditionals.insert(mxContent->d_mxname);
     }
-    return true;
-  }
+    break;
   case QType::NS:
-  {
     if (auto nsContent = getRR<NSRecordContent>(rec)) {
       allowedAdditionals.insert(nsContent->getNS());
     }
-    return true;
-  }
+    break;
   case QType::SRV:
-  {
     if (auto srvContent = getRR<SRVRecordContent>(rec)) {
       allowedAdditionals.insert(srvContent->d_target);
     }
-    return true;
-  }
+    break;
   case QType::SVCB: /* fall-through */
   case QType::HTTPS:
     if (auto svcbContent = getRR<SVCBBaseRecordContent>(rec)) {
@@ -3140,18 +3153,23 @@ static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
           target = rec.d_name;
         }
         allowedAdditionals.insert(target);
-        return true;
       }
       else {
         // Alias mode not implemented yet
-        return false;
       }
     }
     break;
   case QType::NAPTR:
-    // To be done
+    if (auto naptrContent = getRR<NAPTRRecordContent>(rec)) {
+      auto flags = naptrContent->getFlags();
+      toLowerInPlace(flags);
+      if (flags.find('a') || flags.find('s')) {
+        allowedAdditionals.insert(naptrContent->getReplacement());
+      }
+    }
+    break;
   default:
-    return false;
+    break;
   }
 }
 

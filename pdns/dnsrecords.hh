@@ -51,6 +51,14 @@ public:
 
   includeboilerplate(NAPTR)
   template<class Convertor> void xfrRecordContent(Convertor& conv);
+  string getFlags() const
+  {
+    return d_flags;
+  }
+  DNSName getReplacement() const
+  {
+    return d_replacement;
+  }
 private:
   uint16_t d_order, d_preference;
   string d_flags, d_services, d_regexp;
