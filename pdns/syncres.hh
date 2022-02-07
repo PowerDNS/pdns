@@ -598,6 +598,7 @@ public:
 
   explicit SyncRes(const struct timeval& now);
 
+  void getAdditionals(const DNSName& qname, QType qtype, bool requireAuth, std::set<DNSRecord>& additionals, unsigned int depth);
   int beginResolve(const DNSName &qname, QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth = 0);
 
   void setId(int id)

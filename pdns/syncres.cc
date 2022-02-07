@@ -140,6 +140,35 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 {
 }
 
+static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
+
+void SyncRes::getAdditionals(const DNSName& qname, QType qtype, bool requireAuth, std::set<DNSRecord>& additionals, unsigned int depth)
+{
+  vector<DNSRecord> addRecords;
+
+  vState state = vState::Indeterminate;
+  if (requireAuth) {
+    set<GetBestNSAnswer> lbeenthere;
+    int res = doResolve(qname, qtype, addRecords, depth, lbeenthere, state);
+    if (res != 0) {
+      return;
+    }
+  } else {
+    // Peek into cache for non-auth data
+    if (g_recCache->get(d_now.tv_sec, qname, qtype,  false, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+      return;
+    }
+  }
+  if (vStateIsBogus(state)) {
+    return;
+  }
+  for (const auto& rec : addRecords) {
+    if (rec.d_place == DNSResourceRecord::ANSWER) {
+      additionals.insert(rec);
+    }
+  }
+}
+
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth)
 {
@@ -189,6 +218,40 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
+  const std::map<QType, std::pair<std::set<QType>, bool>> additionalTypes = {
+    {QType::MX, {{QType::A, QType::AAAA}, false}},
+    //{QType::NS, {{QType::A, QType::AAAA}, false}},
+    {QType::SRV, {{QType::A, QType::AAAA}, false}},
+    {QType::SVCB, {{}, false}},
+    {QType::HTTPS, {{}, false}},
+    {QType::NAPTR, {{}, false}}
+  };
+
+  const auto it = additionalTypes.find(qtype);
+  if (it != additionalTypes.end()) {
+    std::unordered_set<DNSName> addnames;
+    for (const auto& rec : ret) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        allowAdditionalEntry(addnames, rec);
+      }
+    }
+    std::set<DNSRecord> additionals;
+    bool requireAuth = it->second.second;
+    for (const auto& targettype : it->second.first) {
+      for (const auto& addname : addnames) {
+        vector<DNSRecord> addRecords;
+        if ((targettype == QType::A && !s_doIPv4) || (targettype == QType::AAAA && !s_doIPv6)) {
+          continue;
+        }
+        getAdditionals(addname, targettype, requireAuth, additionals, depth);
+      }
+    }
+    for (auto rec : additionals) {
+      rec.d_place =  DNSResourceRecord::ADDITIONAL;
+      rec.d_ttl -= d_now.tv_sec;
+      ret.push_back(rec);
+    }
+  }
   d_eventTrace.add(RecEventTrace::SyncRes, res, false);
   return res;
 }
@@ -3068,6 +3131,10 @@ static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
     }
     return true;
   }
+  // Record ttypes below are candidates for this
+  case QType::SVCB:
+  case QType::HTTPS:
+  case QType::NAPTR:
   default:
     return false;
   }
