@@ -1796,13 +1796,14 @@ std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params)
     }
 #endif /* HAVE_LIBSSL */
   }
-#ifdef HAVE_GNUTLS
-  return std::make_shared<GnuTLSIOCtx>(params);
-#else /* HAVE_GNUTLS */
+
 #ifdef HAVE_LIBSSL
   return std::make_shared<OpenSSLTLSIOCtx>(params);
-#endif /* HAVE_LIBSSL */
+#else /* HAVE_LIBSSL */
+#ifdef HAVE_GNUTLS
+  return std::make_shared<GnuTLSIOCtx>(params);
 #endif /* HAVE_GNUTLS */
+#endif /* HAVE_LIBSSL */
 
 #endif /* HAVE_DNS_OVER_TLS */
   return nullptr;
