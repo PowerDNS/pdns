@@ -145,6 +145,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
 {
   std::map<uint16_t, DesignatedResolvers> resolvers;
   if (!parseSVCParams(answer, resolvers)) {
+    vinfolog("No configuration found in response for backend %s", existingAddr.toStringWithPort());
     return false;
   }
 
@@ -198,6 +199,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
       continue;
 #endif
       if (tempConfig.d_dohPath.empty()) {
+        vinfolog("Got a DoH upgrade offered for %s but no path, skipping", existingAddr.toStringWithPort());
         continue;
       }
     }
@@ -211,7 +213,6 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
     }
 
     /* we have a config that we can use! */
-
     for (const auto& hint : resolver.hints) {
       tentativeAddresses.insert(hint);
     }
@@ -386,6 +387,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 {
   ServiceDiscovery::DiscoveredResolverConfig discoveredConfig;
 
+  vinfolog("Trying to discover configuration for backend %s", backend.d_ds->getNameWithAddr());
   if (!ServiceDiscovery::getDiscoveredConfig(backend, discoveredConfig)) {
     return false;
   }
@@ -431,8 +433,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
   try {
     /* create new backend, put it into the right pool(s) */
-    TLSContextParameters tlsParams;
-    auto tlsCtx = getTLSContext(tlsParams);
+    auto tlsCtx = getTLSContext(config.d_tlsParams);
     auto newServer = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), true);
 
     /* check that we can connect to the backend (including certificate validation */

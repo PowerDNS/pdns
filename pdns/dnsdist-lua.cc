@@ -544,36 +544,31 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          std::shared_ptr<TLSCtx> tlsCtx;
+                         if (vars.count("ciphers")) {
+                           config.d_tlsParams.d_ciphers = boost::get<string>(vars.at("ciphers"));
+                         }
+                         if (vars.count("ciphers13")) {
+                           config.d_tlsParams.d_ciphers13 = boost::get<string>(vars.at("ciphers13"));
+                         }
+                         if (vars.count("caStore")) {
+                           config.d_tlsParams.d_caStore = boost::get<string>(vars.at("caStore"));
+                         }
+                         if (vars.count("validateCertificates")) {
+                           config.d_tlsParams.d_validateCertificates = boost::get<bool>(vars.at("validateCertificates"));
+                         }
+                         if (vars.count("releaseBuffers")) {
+                           config.d_tlsParams.d_releaseBuffers = boost::get<bool>(vars.at("releaseBuffers"));
+                         }
+                         if (vars.count("enableRenegotiation")) {
+                           config.d_tlsParams.d_enableRenegotiation = boost::get<bool>(vars.at("enableRenegotiation"));
+                         }
+                         if (vars.count("subjectName")) {
+                           config.d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
+                         }
+
                          if (vars.count("tls")) {
-                           TLSContextParameters tlsParams;
-                           std::string ciphers;
-                           std::string ciphers13;
-
-                           tlsParams.d_provider = boost::get<string>(vars.at("tls"));
-
-                           if (vars.count("ciphers")) {
-                             tlsParams.d_ciphers = boost::get<string>(vars.at("ciphers"));
-                           }
-                           if (vars.count("ciphers13")) {
-                             tlsParams.d_ciphers13 = boost::get<string>(vars.at("ciphers13"));
-                           }
-                           if (vars.count("caStore")) {
-                             tlsParams.d_caStore = boost::get<string>(vars.at("caStore"));
-                           }
-                           if (vars.count("validateCertificates")) {
-                             tlsParams.d_validateCertificates = boost::get<bool>(vars.at("validateCertificates"));
-                           }
-                           if (vars.count("releaseBuffers")) {
-                             tlsParams.d_releaseBuffers = boost::get<bool>(vars.at("releaseBuffers"));
-                           }
-                           if (vars.count("enableRenegotiation")) {
-                             tlsParams.d_enableRenegotiation = boost::get<bool>(vars.at("enableRenegotiation"));
-                           }
-                           if (vars.count("subjectName")) {
-                             config.d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
-                           }
-
-                           tlsCtx = getTLSContext(tlsParams);
+                           config.d_tlsParams.d_provider = boost::get<string>(vars.at("tls"));
+                           tlsCtx = getTLSContext(config.d_tlsParams);
 
                            if (vars.count("dohPath")) {
 #ifndef HAVE_NGHTTP2

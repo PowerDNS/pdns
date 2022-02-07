@@ -707,6 +707,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     {
     }
 
+    TLSContextParameters d_tlsParams;
     set<string> pools;
     std::set<int> d_cpus;
     checkfunc_t checkFunction;
