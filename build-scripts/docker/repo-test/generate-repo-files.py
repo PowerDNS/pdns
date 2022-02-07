@@ -72,11 +72,13 @@ def write_dockerfile (os, os_version, release):
 
     if os == 'raspbian':
         os_image = 'resin/rpi-raspbian'
+    elif os == 'el':
+        os_image = 'oraclelinux'
     else:
         os_image = os
 
     if release.startswith('auth-'):
-        if os == 'centos':
+        if os in ('centos', 'el'):
             pkg = 'pdns'
         else:
             pkg = 'pdns-server'
@@ -156,7 +158,7 @@ def write_release_files (release):
     if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-master',
                    'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
-        write_dockerfile('centos', '8', release)
+        write_dockerfile('el', '8', release)
         write_dockerfile('debian', 'buster', release)
         write_list_file('debian', 'buster', release)
 
