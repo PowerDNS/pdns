@@ -603,7 +603,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          bool autoUpgrade = false;
                          bool keepAfterUpgrade = false;
                          uint32_t upgradeInterval = 3600;
-                         uint16_t upgradeDoHKey = 7;
+                         uint16_t upgradeDoHKey = dnsdist::ServiceDiscovery::s_defaultDoHSVCKey;
                          std::string upgradePool;
 
                          if (vars.count("autoUpgrade") && boost::get<bool>(vars.at("autoUpgrade"))) {

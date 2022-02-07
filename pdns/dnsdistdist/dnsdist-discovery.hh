@@ -50,10 +50,11 @@ public:
     dnsdist::Protocol d_protocol;
   };
 
+  static const uint16_t s_defaultDoHSVCKey;
+
 private:
   static const DNSName s_discoveryDomain;
   static const QType s_discoveryType;
-  static const uint16_t s_defaultDoHSVCKey;
 
   struct UpgradeableBackend
   {
