@@ -222,8 +222,8 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     {QType::MX, {{QType::A, QType::AAAA}, false}},
     //{QType::NS, {{QType::A, QType::AAAA}, false}},
     {QType::SRV, {{QType::A, QType::AAAA}, false}},
-    {QType::SVCB, {{}, false}},
-    {QType::HTTPS, {{}, false}},
+    {QType::SVCB, {{QType::A, QType::AAAA}, false}},
+    {QType::HTTPS, {{QType::A, QType::AAAA}, false}},
     {QType::NAPTR, {{}, false}}
   };
 
@@ -3131,10 +3131,25 @@ static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
     }
     return true;
   }
-  // Record ttypes below are candidates for this
-  case QType::SVCB:
+  case QType::SVCB: /* fall-through */
   case QType::HTTPS:
+    if (auto svcbContent = getRR<SVCBBaseRecordContent>(rec)) {
+      if (svcbContent->getPriority() > 0) {
+        DNSName target = svcbContent->getTarget();
+        if (target.isRoot()) {
+          target = rec.d_name;
+        }
+        allowedAdditionals.insert(target);
+        return true;
+      }
+      else {
+        // Alias mode not implemented yet
+        return false;
+      }
+    }
+    break;
   case QType::NAPTR:
+    // To be done
   default:
     return false;
   }
