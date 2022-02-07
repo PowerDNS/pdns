@@ -983,8 +983,8 @@ Setting this to any value less than or equal to 0 will set no limit.
 ``master``
 ----------
 
-+.. deprecated:: 4.5.0
-+  Renamed to :ref:`setting-primary`.
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-primary`.
  
 -  Boolean
 -  Default: no
@@ -1839,7 +1839,7 @@ Webserver/API access is only allowed from these subnets.
 
 ``webserver-hash-plaintext-credentials``
 ----------------------------------------
-..versionadded:: 4.6.0
+.. versionadded:: 4.6.0
 
 -  Boolean
 -  Default: no

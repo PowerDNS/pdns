@@ -2264,7 +2264,7 @@ of /32 or /128.
 
 ``webserver-hash-plaintext-credentials``
 ----------------------------------------
-..versionadded:: 4.6.0
+.. versionadded:: 4.6.0
 
 -  Boolean
 -  Default: no
