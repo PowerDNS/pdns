@@ -369,7 +369,7 @@ static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
     }
 
     time_t now = time(nullptr);
-    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx, now);
+    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx, now);
     handler->connect(ds->d_config.tcpFastOpen, ds->d_config.remote, timeval{ds->d_config.checkTimeout, 0});
     return true;
   }
@@ -424,6 +424,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
        extension."
     */
     config.d_tlsSubjectName = backend.d_ds->d_config.remote.toString();
+    config.d_tlsSubjectIsAddr = true;
   }
 
   if (!backend.d_poolAfterUpgrade.empty()) {

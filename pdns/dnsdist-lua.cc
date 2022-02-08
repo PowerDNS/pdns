@@ -565,6 +565,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (vars.count("subjectName")) {
                            config.d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
                          }
+                         else if (vars.count("subjectAddr")) {
+                           try {
+                             ComboAddress ca(boost::get<string>(vars.at("subjectAddr")));
+                             config.d_tlsSubjectName = ca.toString();
+                             config.d_tlsSubjectIsAddr = true;
+                           }
+                           catch (const std::exception& e) {
+                             errlog("Error creating new server: downstream subjectAddr value must be a valid IP address");
+                             return std::shared_ptr<DownstreamState>();
+                           }
+                         }
 
                          if (vars.count("tls")) {
                            config.d_tlsParams.d_provider = boost::get<string>(vars.at("tls"));
