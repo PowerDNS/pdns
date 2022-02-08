@@ -687,6 +687,11 @@ public:
     d_pdl = pdl;
   }
 
+  shared_ptr<RecursorLua4> getLuaEngine()
+  {
+    return d_pdl;
+  }
+
   bool wasVariable() const
   {
     return d_wasVariable;
