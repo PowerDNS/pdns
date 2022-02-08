@@ -53,7 +53,7 @@ class TLSTests(object):
         names = []
         for entry in altNames:
             names.append(entry[1])
-        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com', '127.0.0.1'])
         serialNumber = cert['serialNumber']
 
         self.generateNewCertificateAndKey()
@@ -82,7 +82,7 @@ class TLSTests(object):
         names = []
         for entry in altNames:
             names.append(entry[1])
-        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com', '127.0.0.1'])
 
         # and that the serial is different
         self.assertNotEqual(serialNumber, cert['serialNumber'])
