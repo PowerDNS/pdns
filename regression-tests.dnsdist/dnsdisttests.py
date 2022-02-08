@@ -297,7 +297,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1'):
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -307,7 +307,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
-            sock.bind(("127.0.0.1", port))
+            sock.bind((listeningAddr, port))
         except socket.error as e:
             print("Error binding in the TCP responder: %s" % str(e))
             sys.exit(1)
@@ -339,9 +339,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     @classmethod
     def handleDoHConnection(cls, config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol):
         ignoreTrailing = trailingDataResponse is True
-        h2conn = h2.connection.H2Connection(config=config)
-        h2conn.initiate_connection()
-        conn.sendall(h2conn.data_to_send())
+        try:
+          h2conn = h2.connection.H2Connection(config=config)
+          h2conn.initiate_connection()
+          conn.sendall(h2conn.data_to_send())
+        except ssl.SSLEOFError as e:
+          print("Unexpected EOF: %s" % (e))
+          return
+
         dnsData = {}
 
         if useProxyProtocol:
