@@ -454,7 +454,6 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
     else {
       addServerToPool(localPools, "", newServer);
     }
-    g_pools.setState(localPools);
 
     newServer->start();
 
@@ -468,12 +467,21 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
           break;
         }
       }
+
+      for (const string& poolName : backend.d_ds->d_config.pools) {
+        removeServerFromPool(localPools, poolName, backend.d_ds);
+      }
+      /* the server might also be in the default pool */
+      removeServerFromPool(localPools, "", backend.d_ds);
     }
 
     std::stable_sort(states.begin(), states.end(), [](const decltype(newServer)& a, const decltype(newServer)& b) {
       return a->d_config.order < b->d_config.order;
     });
+
+    g_pools.setState(localPools);
     g_dstates.setState(states);
+    backend.d_ds->stop();
 
     return true;
   }

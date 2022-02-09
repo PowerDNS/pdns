@@ -112,6 +112,9 @@ bool DownstreamState::reconnect()
 
 void DownstreamState::stop()
 {
+  if (d_stopped) {
+    return;
+  }
   d_stopped = true;
 
   {
