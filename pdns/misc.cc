@@ -51,6 +51,7 @@
 #include "pdnsexception.hh"
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 #include "iputils.hh"
 #include "dnsparser.hh"
 #include <sys/types.h>

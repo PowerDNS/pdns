@@ -30,6 +30,7 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 
 #include <sys/socket.h>
 #include <netinet/in.h>

@@ -22,6 +22,7 @@
 
 #include <cinttypes>
 #include <iostream>
+#include <boost/format.hpp>
 
 #include "filterpo.hh"
 #include "namespaces.hh"
