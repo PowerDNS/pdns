@@ -44,7 +44,7 @@ struct Entry
 
   bool operator<(const struct Entry& rhs) const 
   {
-    return tie(ip, port, id) < tie(rhs.ip, rhs.port, rhs.id);
+    return std::tie(ip, port, id) < std::tie(rhs.ip, rhs.port, rhs.id);
   }
 };
 

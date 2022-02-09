@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
 
         for(const auto& rr : remove) {
           report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.d_content->getZoneRepresentation()<<endl;
-          auto range = records.equal_range(tie(rr.d_name, rr.d_type, rr.d_class, rr.d_content));
+          auto range = records.equal_range(std::tie(rr.d_name, rr.d_type, rr.d_class, rr.d_content));
           if(range.first == range.second) {
             cout<<endl<<" !! Could not find record "<<rr.d_name<<" to remove!!"<<endl;
             //	  stop=true;
