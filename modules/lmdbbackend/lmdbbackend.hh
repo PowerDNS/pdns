@@ -219,9 +219,9 @@ public:
   {
     DNSName domain;
     std::string content;
-    unsigned int flags;
-    bool active;
-    bool published;
+    unsigned int flags{0};
+    bool active{true};
+    bool published{true};
   };
   class LMDBResourceRecord : public DNSResourceRecord
   {
