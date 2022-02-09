@@ -30,7 +30,6 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/tag.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 
 #include "dnsname.hh"
 #include "qtype.hh"

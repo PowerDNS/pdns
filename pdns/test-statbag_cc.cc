@@ -7,7 +7,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 
-#include <boost/tuple/tuple.hpp>
 #include <stdint.h>
 #include <thread>
 #include "misc.hh"

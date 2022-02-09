@@ -504,14 +504,14 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
-boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
     // ::read() calls ::exists() which throws a PDNSException when the key does not exist
     return S.read(name);
   }
-  catch(...) {
-    return boost::none;
+  catch (...) {
+    return std::nullopt;
   }
 }
 

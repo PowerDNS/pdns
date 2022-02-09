@@ -102,7 +102,7 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
   map<string, string> stormap;
 
   while (std::getline(str, sline)) {
-    tie(key,value) = splitField(sline, ':');
+    std::tie(key,value) = splitField(sline, ':');
     boost::trim(value);
 
     toLowerInPlace(key);
@@ -303,7 +303,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
     map<string, string> stormap;
 
     while(std::getline(str, sline)) {
-      tie(key,value)=splitField(sline, ':');
+      std::tie(key,value)=splitField(sline, ':');
       boost::trim(value);
       if(pdns_iequals(key,"algorithm")) {
         algorithm = pdns_stou(value);

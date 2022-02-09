@@ -26,8 +26,6 @@
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <map>
 #include <set>
 #include <fstream>

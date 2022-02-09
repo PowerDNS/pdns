@@ -29,8 +29,6 @@
 #include <mutex>
 #include <boost/utility.hpp>
 
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -69,7 +67,7 @@ struct Bind2DNSRecord
       return false;
     if (qtype == QType::SOA && rhs.qtype != QType::SOA)
       return true;
-    return tie(qtype, content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
+    return std::tie(qtype, content, ttl) < std::tie(rhs.qtype, rhs.content, rhs.ttl);
   }
 };
 

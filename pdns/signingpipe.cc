@@ -100,12 +100,12 @@ namespace {
 bool
 dedupLessThan(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) < make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
+  return std::make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) < std::make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 
 bool dedupEqual(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) == make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
+  return std::make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) == std::make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 }
 

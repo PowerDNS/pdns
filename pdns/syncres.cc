@@ -303,7 +303,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, con
 //! This is the 'out of band resolver', in other words, the authoritative server
 void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
 {
-  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(boost::make_tuple(getName(), QType::SOA));
+  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(std::make_tuple(getName(), QType::SOA));
   if (ziter != d_records.end()) {
     DNSRecord dr = *ziter;
     dr.d_place = DNSResourceRecord::AUTHORITY;
@@ -358,7 +358,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
   DNSName wcarddomain(qname);
   while(wcarddomain != getName() && wcarddomain.chopOff()) {
     // cerr<<qname<<": trying '*."<<wcarddomain<<"' in "<<getName()<<endl;
-    range = d_records.equal_range(boost::make_tuple(g_wildcarddnsname + wcarddomain));
+    range = d_records.equal_range(std::make_tuple(g_wildcarddnsname + wcarddomain));
     if (range.first==range.second)
       continue;
 
@@ -383,7 +383,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
   /* Nothing for this name, no wildcard, let's see if there is some NS */
   DNSName nsdomain(qname);
   while (nsdomain.chopOff() && nsdomain != getName()) {
-    range = d_records.equal_range(boost::make_tuple(nsdomain,QType::NS));
+    range = d_records.equal_range(std::make_tuple(nsdomain,QType::NS));
     if(range.first == range.second)
       continue;
 
@@ -516,7 +516,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
     count++;
     char tmp[26];
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.thing.get<0>().toString().c_str(), i.thing.get<1>().toLogString().c_str(), i.thing.get<2>(), i.count, ctime_r(&i.ttd, tmp));
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", std::get<0>(i.thing).toString().c_str(), std::get<1>(i.thing).toLogString().c_str(), std::get<2>(i.thing), i.count, ctime_r(&i.ttd, tmp));
   }
 
   return count;
@@ -2414,12 +2414,12 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType qtype, bool pierceDontQuery)
 {
-  if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0))) {
+  if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, std::make_tuple(remoteIP, g_rootdnsname, 0))) {
     LOG(prefix<<qname<<": server throttled "<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
-  else if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()))) {
+  else if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()))) {
     LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
@@ -4069,15 +4069,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, g_rootdnsname, 0), s_serverdownthrottletime, 10000);
       }
       else if (resolveret == LWResult::Result::Timeout) {
         // unreachable, 1 minute or 100 queries
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
       }
       else {
         // timeout, 10 seconds or 5 queries
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 5);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 10, 5);
       }
     }
 
@@ -4093,10 +4093,10 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
       if (doTCP) {
         // we can be more heavy-handed over TCP
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 10);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 10);
       }
       else {
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 2);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 10, 2);
       }
     }
     return false;
@@ -4113,7 +4113,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
           t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
         }
         else {
-          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+          t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
         }
       }
       return false;
@@ -4132,7 +4132,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
       if (!dontThrottle) {
         /* let's treat that as a ServFail answer from this server */
-        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+        t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
       }
       return false;
     }
@@ -4527,7 +4527,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             break;
           }
           /* was lame */
-          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
+          t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
         }
 
         if (gotNewServers) {
