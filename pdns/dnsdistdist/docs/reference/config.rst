@@ -1600,6 +1600,14 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: getResolvers(path)
+
+  .. versionadded:: 1.8.0
+
+  This function can be used to get a Lua table of name servers from a file in the resolv.conf format.
+
+  :param str path: The path to the file, usually /etc/resolv.conf
+
 .. function:: maintenance()
 
   If this function exists, it is called every second to do regular tasks.
