@@ -431,7 +431,7 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   for(unsigned int n = 0; n < 100000; ++n) {
     packet.clear();
     DNSPacketWriter dpw(packet, DNSName(std::to_string(n) + "." + std::to_string(n*2) + "."), QType::AAAA);
-    BOOST_CHECK(ok);
+    assert(ok);
     counts[hashQuestion(&packet[0], packet.size() - 4, 0, ok) % counts.size()]++;
   }
 
