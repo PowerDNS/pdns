@@ -82,4 +82,16 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
 
     listener->start();
   });
+
+  luaCtx.writeFunction("getResolvers", [](const std::string& resolvConfPath) -> LuaArray<std::string> {
+    auto resolvers = getResolvers(resolvConfPath);
+    LuaArray<std::string> result;
+    result.reserve(resolvers.size());
+    int counter = 1;
+    for (const auto& resolver : resolvers) {
+      result.emplace_back(counter, resolver.toString());
+      counter++;
+    }
+    return result;
+  });
 };
