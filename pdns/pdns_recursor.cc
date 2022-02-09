@@ -2396,7 +2396,13 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
     _exit(1);
   }
 
-  unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed);
+  bool ok;
+  unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed, ok);
+  if (!ok) {
+    // hashQuestion does detect invalid names, so we might as well punt here instead of in the worker thread
+    g_stats.ignoredCount++;
+    throw MOADNSException("too-short (" + std::to_string(packet.length()) + ") or invalid name");
+  }
   unsigned int target = selectWorker(hash);
 
   ThreadMSG* tmsg = new ThreadMSG();

@@ -80,9 +80,10 @@ std::string Opcode::to_s(uint8_t opcode) {
 }
 
 // goal is to hash based purely on the question name, and turn error into 'default'
-uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init)
+uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init, bool& ok)
 {
   if (packet_len < sizeof(dnsheader)) {
+    ok = false;
     return init;
   }
   // C++ 17 does not have std::u8string_view
@@ -92,12 +93,14 @@ uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init)
   while (len < name.length()) {
     uint8_t labellen = name[len++];
     if (labellen == 0) {
+      ok = true;
       // len is name.length() at max as it was < before the increment
       return burtleCI(name.data(), len, init);
     }
     len += labellen;
   }
   // We've encountered a label that is too long
+  ok = false;
   return init;
 }
 
