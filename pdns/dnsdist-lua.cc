@@ -480,7 +480,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("id")) {
-                           ret->setId(boost::uuids::string_generator()((boost::get<string>(vars["id"]))));
+                           ret->setId(boost::uuids::string_generator()(boost::get<string>(vars["id"])));
                          }
 
                          if (vars.count("checkName")) {
