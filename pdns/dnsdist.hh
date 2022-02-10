@@ -738,10 +738,11 @@ struct DownstreamState
 private:
   std::string name;
   std::string nameWithAddr;
+  LockGuarded<std::map<uint16_t, IDState>> d_idStatesMap;
+  vector<IDState> idStates;
 public:
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::vector<int> sockets;
-  vector<IDState> idStates;
   set<string> pools;
   std::mutex connectLock;
   std::thread tid;
@@ -882,7 +883,10 @@ public:
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
   int pickSocketForSending();
   void pickSocketsReadyForReceiving(std::vector<int>& ready);
+  void handleTimeouts();
   IDState* getIDState(unsigned int& id, int64_t& generation);
+  IDState* getExistingState(unsigned int id);
+  void releaseState(unsigned int id);
 
   dnsdist::Protocol getProtocol() const
   {
@@ -898,8 +902,11 @@ public:
     return dnsdist::Protocol::DoUDP;
   }
 
+  static int s_udpTimeout;
   static bool s_randomizeSockets;
   static bool s_randomizeIDs;
+private:
+  void handleTimeout(IDState& ids);
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -998,7 +1005,6 @@ extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
-extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern boost::optional<uint64_t> g_maxTCPClientThreads;

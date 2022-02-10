@@ -1279,7 +1279,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout = timeout; });
 
-  luaCtx.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout = timeout; });
+  luaCtx.writeFunction("setUDPTimeout", [](int timeout) { DownstreamState::s_udpTimeout = timeout; });
 
   luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
     if (!g_configurationDone) {

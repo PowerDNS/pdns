@@ -137,7 +137,6 @@ GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
-int g_udpTimeout{2};
 
 bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
@@ -597,11 +596,11 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
         queryId = dh->id;
 
-        if (queryId >= dss->idStates.size()) {
+        IDState* ids = dss->getExistingState(queryId);
+        if (ids == nullptr) {
           continue;
         }
 
-        IDState* ids = &dss->idStates[queryId];
         int64_t usageIndicator = ids->usageIndicator;
 
         if (!IDState::isInUse(usageIndicator)) {
@@ -684,6 +683,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
         handleResponseSent(*ids, udiff, *dr.remote, dss->remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
+        dss->releaseState(queryId);
 
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
@@ -1846,41 +1846,7 @@ static void healthChecksThread()
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
 
-      for (IDState& ids  : dss->idStates) { // timeouts
-        int64_t usageIndicator = ids.usageIndicator;
-        if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
-          /* We mark the state as unused as soon as possible
-             to limit the risk of racing with the
-             responder thread.
-          */
-          auto oldDU = ids.du;
-
-          if (!ids.tryMarkUnused(usageIndicator)) {
-            /* this state has been altered in the meantime,
-               don't go anywhere near it */
-            continue;
-          }
-          ids.du = nullptr;
-          handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-          oldDU = nullptr;
-          ids.age = 0;
-          dss->reuseds++;
-          --dss->outstanding;
-          ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
-          vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
-                   dss->remote.toStringWithPort(), dss->getName(),
-                   ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
-
-          struct timespec ts;
-          gettime(&ts);
-
-          struct dnsheader fake;
-          memset(&fake, 0, sizeof(fake));
-          fake.id = ids.origID;
-
-          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
-        }
-      }
+      dss->handleTimeouts();
     }
 
     handleQueuedHealthChecks(*mplexer);
