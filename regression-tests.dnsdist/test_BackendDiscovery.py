@@ -200,8 +200,9 @@ class TestBackendDiscovery(DNSDistTest):
         """
 
         # enough time for discovery to happen
-        time.sleep(5)
+        # 5s is not enough with TSAN
+        time.sleep(10)
         if not self.checkBackendsUpgraded():
-            # 5s is not enough with TSAN
+            # let's wait a bit longer
             time.sleep(5)
             self.assertTrue(self.checkBackendsUpgraded())
