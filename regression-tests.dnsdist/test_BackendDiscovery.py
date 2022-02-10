@@ -163,13 +163,7 @@ class TestBackendDiscovery(DNSDistTest):
         # and NO corresponding DoT responder
         # this is not a mistake!
 
-        # enough time for discovery to happen
-        time.sleep(5)
-
-    def testBackendUpgrade(self):
-        """
-        Backend Discovery: Upgrade
-        """
+    def checkBackendsUpgraded(self):
         output = self.sendConsoleCommand('showServers()')
         print(output)
 
@@ -197,4 +191,17 @@ class TestBackendDiscovery(DNSDistTest):
             '127.0.0.1:10653': '',
             '127.0.0.2:10654': ''
         }
-        self.assertEquals(backends, expected)
+        print(backends)
+        return backends == expected
+
+    def testBackendUpgrade(self):
+        """
+        Backend Discovery: Upgrade
+        """
+
+        # enough time for discovery to happen
+        time.sleep(5)
+        if not self.checkBackendsUpgraded():
+            # 5s is not enough with TSAN
+            time.sleep(5)
+            self.assertTrue(self.checkBackendsUpgraded())
