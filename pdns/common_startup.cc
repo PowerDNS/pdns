@@ -487,6 +487,7 @@ try
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   shared_ptr<UDPNameserver> NS;
   std::string buffer;
+  ComboAddress accountremote;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
@@ -517,7 +518,11 @@ try
 
       numreceived++;
 
-      if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
+      accountremote = question.d_remote;
+      if (question.d_inner_remote)
+        accountremote = *question.d_inner_remote;
+
+      if (accountremote.sin4.sin_family == AF_INET)
         numreceived4++;
       else
         numreceived6++;
@@ -547,6 +552,7 @@ try
           if(logDNSQueries)
             g_log<<": packetcache HIT"<<endl;
           cached.setRemote(&question.d_remote);  // inlined
+          cached.d_inner_remote = question.d_inner_remote;
           cached.setSocket(question.getSocket());                               // inlined
           cached.d_anyLocal = question.d_anyLocal;
           cached.setMaxReplyLen(question.getMaxReplyLen());
