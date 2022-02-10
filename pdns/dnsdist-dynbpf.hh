@@ -27,6 +27,7 @@
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/member.hpp>
 
 class DynBPFFilter
 {
@@ -59,12 +60,12 @@ private:
     ComboAddress d_addr;
     struct timespec d_until;
   };
-  typedef multi_index_container<BlockEntry,
-                                indexed_by <
-                                  ordered_unique< member<BlockEntry,ComboAddress,&BlockEntry::d_addr>, ComboAddress::addressOnlyLessThan >,
-                                  ordered_non_unique< member<BlockEntry,struct timespec,&BlockEntry::d_until> >
-                                  >
-                                > container_t;
+  typedef boost::multi_index_container<BlockEntry,
+                                       boost::multi_index::indexed_by <
+                                         boost::multi_index::ordered_unique< boost::multi_index::member<BlockEntry,ComboAddress,&BlockEntry::d_addr>, ComboAddress::addressOnlyLessThan >,
+                                         boost::multi_index::ordered_non_unique< boost::multi_index::member<BlockEntry,struct timespec,&BlockEntry::d_until> >
+                                         >
+                                       > container_t;
   struct Data {
     container_t d_entries;
     std::shared_ptr<BPFFilter> d_bpf{nullptr};

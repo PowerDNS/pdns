@@ -173,7 +173,7 @@ uint64_t signatureCacheSize(const std::string& str)
 
 static bool rrsigncomp(const DNSZoneRecord& a, const DNSZoneRecord& b)
 {
-  return tie(a.dr.d_place, a.dr.d_type) < tie(b.dr.d_place, b.dr.d_type);
+  return std::tie(a.dr.d_place, a.dr.d_type) < std::tie(b.dr.d_place, b.dr.d_type);
 }
 
 static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name, DNSName& auth)

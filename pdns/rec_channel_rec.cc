@@ -12,9 +12,6 @@
 #include "recursor_cache.hh"
 #include "syncres.hh"
 #include "negcache.hh"
-#include <boost/function.hpp>
-#include <boost/optional.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -158,9 +155,9 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   return ret.d_ptr;
 }
 
-static boost::optional<uint64_t> get(const string& name)
+static std::optional<uint64_t> get(const string& name)
 {
-  boost::optional<uint64_t> ret;
+  std::optional<uint64_t> ret;
 
   if (d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
@@ -188,7 +185,7 @@ static boost::optional<uint64_t> get(const string& name)
   return ret;
 }
 
-boost::optional<uint64_t> getStatByName(const std::string& name)
+std::optional<uint64_t> getStatByName(const std::string& name)
 {
   return get(name);
 }
@@ -248,7 +245,7 @@ static string doGet(T begin, T end)
   string ret;
 
   for (T i = begin; i != end; ++i) {
-    boost::optional<uint64_t> num = get(*i);
+    std::optional<uint64_t> num = get(*i);
     if (num)
       ret += std::to_string(*num) + "\n";
     else
@@ -1497,8 +1494,8 @@ vector<pair<DNSName, uint16_t>>* pleaseGetBogusQueryRing()
   return ret;
 }
 
-typedef boost::function<vector<ComboAddress>*()> pleaseremotefunc_t;
-typedef boost::function<vector<pair<DNSName, uint16_t>>*()> pleasequeryfunc_t;
+typedef std::function<vector<ComboAddress>*()> pleaseremotefunc_t;
+typedef std::function<vector<pair<DNSName, uint16_t>>*()> pleasequeryfunc_t;
 
 vector<ComboAddress>* pleaseGetRemotes()
 {
@@ -1632,7 +1629,7 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const DNSName&)> filter = nopFilter)
+static string doGenericTopQueries(pleasequeryfunc_t func, std::function<DNSName(const DNSName&)> filter = nopFilter)
 {
   typedef pair<DNSName, uint16_t> query_t;
   typedef map<query_t, int> counts_t;

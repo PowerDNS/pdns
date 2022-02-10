@@ -40,9 +40,7 @@
 #include "sstuff.hh"
 #include "recursor_cache.hh"
 #include "recpacketcache.hh"
-#include <boost/tuple/tuple.hpp>
 #include <boost/optional.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
 #include "validate-recursor.hh"
@@ -376,7 +374,7 @@ public:
   };
 
   typedef std::unordered_map<DNSName, AuthDomain> domainmap_t;
-  typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
+  typedef Throttle<std::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
 
   struct EDNSStatus {
     EDNSStatus(const ComboAddress &arg) : address(arg) {}
@@ -532,15 +530,15 @@ public:
   }
   static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, uint16_t qtype)
   {
-    return t_sstorage.throttle.shouldThrottle(now, boost::make_tuple(server, target, qtype));
+    return t_sstorage.throttle.shouldThrottle(now, std::make_tuple(server, target, qtype));
   }
   static bool isThrottled(time_t now, const ComboAddress& server)
   {
-    return t_sstorage.throttle.shouldThrottle(now, boost::make_tuple(server, "", 0));
+    return t_sstorage.throttle.shouldThrottle(now, std::make_tuple(server, g_rootdnsname, 0));
   }
   static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
   {
-    t_sstorage.throttle.throttle(now, boost::make_tuple(server, "", 0), duration, tries);
+    t_sstorage.throttle.throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
   }
   static uint64_t getFailedServersSize()
   {
@@ -832,8 +830,8 @@ private:
     uint8_t qtype;
     bool operator<(const GetBestNSAnswer &b) const
     {
-      return boost::tie(qtype, qname, bestns) <
-	boost::tie(b.qtype, b.qname, b.bestns);
+      return std::tie(qtype, qname, bestns) <
+	std::tie(b.qtype, b.qname, b.bestns);
     }
   };
 
@@ -1002,14 +1000,14 @@ struct PacketIDCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
   {
-    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) < std::tie(b->remote, b->tcpsock, b->type)) {
       return true;
     }
-    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) > std::tie(b->remote, b->tcpsock, b->type)) {
       return false;
     }
 
-    return tie(a->domain, a->fd, a->id) < tie(b->domain, b->fd, b->id);
+    return std::tie(a->domain, a->fd, a->id) < std::tie(b->domain, b->fd, b->id);
   }
 };
 
@@ -1017,10 +1015,10 @@ struct PacketIDBirthdayCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& a, const std::shared_ptr<PacketID>& b) const
   {
-    if (tie(a->remote, a->tcpsock, a->type) < tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) < std::tie(b->remote, b->tcpsock, b->type)) {
       return true;
     }
-    if (tie(a->remote, a->tcpsock, a->type) > tie(b->remote, b->tcpsock, b->type)) {
+    if (std::tie(a->remote, a->tcpsock, a->type) > std::tie(b->remote, b->tcpsock, b->type)) {
       return false;
     }
     return a->domain < b->domain;

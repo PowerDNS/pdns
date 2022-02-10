@@ -504,14 +504,14 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
-boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
     // ::read() calls ::exists() which throws a PDNSException when the key does not exist
     return S.read(name);
   }
-  catch(...) {
-    return boost::none;
+  catch (...) {
+    return std::nullopt;
   }
 }
 
@@ -2048,7 +2048,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
-    set<tuple<DNSName, QType, string>> seen;
+    set<std::tuple<DNSName, QType, string>> seen;
 
     for (const auto& rrset : rrsets.array_items()) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));

@@ -26,14 +26,8 @@
 #include <regex.h>
 #include <limits.h>
 #include <type_traits>
-#include <boost/algorithm/string.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
-#include <boost/multi_index/key_extractors.hpp>
-#include <boost/multi_index/sequenced_index.hpp>
 
-using namespace ::boost::multi_index;
+#include <boost/algorithm/string.hpp>
 
 #include "dns.hh"
 #include <atomic>
@@ -320,16 +314,16 @@ inline uint64_t uSec(const struct timeval& tv)
 
 inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
 {
-  return tie(lhs.tv_sec, lhs.tv_usec) < tie(rhs.tv_sec, rhs.tv_usec);
+  return std::tie(lhs.tv_sec, lhs.tv_usec) < std::tie(rhs.tv_sec, rhs.tv_usec);
 }
 inline bool operator<=(const struct timeval& lhs, const struct timeval& rhs)
 {
-  return tie(lhs.tv_sec, lhs.tv_usec) <= tie(rhs.tv_sec, rhs.tv_usec);
+  return std::tie(lhs.tv_sec, lhs.tv_usec) <= std::tie(rhs.tv_sec, rhs.tv_usec);
 }
 
 inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
 {
-  return tie(lhs.tv_sec, lhs.tv_nsec) < tie(rhs.tv_sec, rhs.tv_nsec);
+  return std::tie(lhs.tv_sec, lhs.tv_nsec) < std::tie(rhs.tv_sec, rhs.tv_nsec);
 }
 
 

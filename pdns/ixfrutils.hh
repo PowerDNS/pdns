@@ -22,7 +22,11 @@
 #pragma once
 
 #include <sys/types.h>
+
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 

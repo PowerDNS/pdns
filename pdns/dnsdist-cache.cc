@@ -88,7 +88,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint
 
   std::unordered_map<uint32_t,CacheValue>::iterator it;
   bool result;
-  tie(it, result) = map.insert({key, newValue});
+  std::tie(it, result) = map.insert({key, newValue});
 
   if (result) {
     ++shard.d_entriesCount;

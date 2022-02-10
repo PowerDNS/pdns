@@ -27,8 +27,6 @@
 #include "dnspcap.hh"
 #include "dnsrecords.hh"
 #include "dnsparser.hh"
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <map>
 #include <set>
 #include <fstream>

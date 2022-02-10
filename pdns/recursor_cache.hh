@@ -32,7 +32,6 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
@@ -73,8 +72,8 @@ public:
 private:
   struct CacheEntry
   {
-    CacheEntry(const boost::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
-      d_qname(key.get<0>()), d_netmask(key.get<3>().getNormalized()), d_rtag(key.get<2>()), d_state(vState::Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth), d_submitted(false)
+    CacheEntry(const std::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
+      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_state(vState::Indeterminate), d_ttd(0), d_qtype(std::get<1>(key)), d_auth(auth), d_submitted(false)
     {
     }
 
@@ -261,7 +260,7 @@ public:
       return;
     }
 
-    auto key = tie(entry.d_qname, entry.d_qtype);
+    auto key = std::tie(entry.d_qname, entry.d_qtype);
     auto ecsIndexEntry = map.d_ecsIndex.find(key);
     if (ecsIndexEntry != map.d_ecsIndex.end()) {
       ecsIndexEntry->removeNetmask(entry.d_netmask);

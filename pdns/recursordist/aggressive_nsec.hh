@@ -28,6 +28,8 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 
+using namespace ::boost::multi_index;
+
 #include "base32.hh"
 #include "dnsname.hh"
 #include "dnsrecords.hh"

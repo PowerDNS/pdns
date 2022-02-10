@@ -32,8 +32,6 @@
 #include "misc.hh"
 #include <netdb.h>
 #include <sstream>
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 
 #include "namespaces.hh"
 
@@ -91,7 +89,7 @@ union ComboAddress {
 
   bool operator==(const ComboAddress& rhs) const
   {
-    if(boost::tie(sin4.sin_family, sin4.sin_port) != boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    if(std::tie(sin4.sin_family, sin4.sin_port) != std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr == rhs.sin4.sin_addr.s_addr;
@@ -109,9 +107,9 @@ union ComboAddress {
     if(sin4.sin_family == 0) {
       return false;
     }
-    if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    if(std::tie(sin4.sin_family, sin4.sin_port) < std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return true;
-    if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    if(std::tie(sin4.sin_family, sin4.sin_port) > std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
 
     if(sin4.sin_family == AF_INET)
@@ -614,7 +612,7 @@ public:
 
   bool operator==(const Netmask& rhs) const
   {
-    return tie(d_network, d_bits) == tie(rhs.d_network, rhs.d_bits);
+    return std::tie(d_network, d_bits) == std::tie(rhs.d_network, rhs.d_bits);
   }
 
   bool empty() const
@@ -1552,7 +1550,7 @@ public:
 
   bool operator==(const AddressAndPortRange& rhs) const
   {
-    return tie(d_addr, d_addrMask, d_portMask) == tie(rhs.d_addr, rhs.d_addrMask, rhs.d_portMask);
+    return std::tie(d_addr, d_addrMask, d_portMask) == std::tie(rhs.d_addr, rhs.d_addrMask, rhs.d_portMask);
   }
 
   bool operator<(const AddressAndPortRange& rhs) const

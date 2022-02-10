@@ -50,9 +50,7 @@
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
-#include "dnswriter.hh"
 #include "dolog.hh"
-#include "lock.hh"
 #include "sodcrypto.hh"
 
 #ifdef HAVE_LIBSSL
@@ -60,7 +58,7 @@
 #endif
 
 #include <boost/logic/tribool.hpp>
-#include <boost/lexical_cast.hpp>
+#include <boost/uuid/string_generator.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -482,7 +480,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("id")) {
-                           ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                           ret->setId(boost::uuids::string_generator()(boost::get<string>(vars["id"])));
                          }
 
                          if (vars.count("checkName")) {
@@ -2287,6 +2285,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
     return result;
   });
+
   luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int, std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string>>>> urls, boost::optional<localbind_t> vars) {
     if (client) {
       return;

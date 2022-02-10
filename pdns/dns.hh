@@ -20,11 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
-#include <boost/multi_index/key_extractors.hpp>
-#include <boost/multi_index/sequenced_index.hpp>
 #include "qtype.hh"
 #include "dnsname.hh"
 #include <time.h>

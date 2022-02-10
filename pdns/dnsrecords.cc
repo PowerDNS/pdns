@@ -82,8 +82,8 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
   string rcontent=toLower(rhs.content);
 
   return
-    tie(qname, qtype, lcontent, ttl) ==
-    tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
+    std::tie(qname, qtype, lcontent, ttl) ==
+    std::tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
 boilerplate_conv(A, conv.xfrIP(d_ip));

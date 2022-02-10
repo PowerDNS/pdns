@@ -467,7 +467,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       if (line[0] == '#') // Comment line, skip to the next line
         continue;
       string domain, instructions;
-      tie(domain, instructions) = splitField(line, '=');
+      std::tie(domain, instructions) = splitField(line, '=');
       instructions = splitField(instructions, '#').first; // Remove EOL comments
       boost::trim(domain);
       boost::trim(instructions);

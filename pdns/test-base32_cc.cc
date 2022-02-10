@@ -6,13 +6,12 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 
-#include <boost/tuple/tuple.hpp>
 #include "base32.hh"
 
 BOOST_AUTO_TEST_SUITE(test_base32_cc)
 
 BOOST_AUTO_TEST_CASE(test_base32_basic) {
-  typedef boost::tuple<const std::string, const std::string> case_t;
+  typedef std::tuple<const std::string, const std::string> case_t;
   typedef std::list<case_t> cases_t;
 
   // RFC test vectors
@@ -28,10 +27,10 @@ BOOST_AUTO_TEST_CASE(test_base32_basic) {
 
   for(const case_t& val :  cases) {
      std::string res;
-     res = toBase32Hex(val.get<0>());
-     BOOST_CHECK_EQUAL(res, val.get<1>());
-     res = fromBase32Hex(val.get<1>());
-     BOOST_CHECK_EQUAL(res, val.get<0>());
+     res = toBase32Hex(std::get<0>(val));
+     BOOST_CHECK_EQUAL(res, std::get<1>(val));
+     res = fromBase32Hex(std::get<1>(val));
+     BOOST_CHECK_EQUAL(res, std::get<0>(val));
   }
 };
 

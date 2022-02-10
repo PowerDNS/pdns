@@ -23,7 +23,10 @@
 
 #include <vector>
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
 #include <boost/optional.hpp>
 #include "dnsparser.hh"
 #include "dnsname.hh"

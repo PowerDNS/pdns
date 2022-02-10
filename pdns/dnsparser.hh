@@ -29,8 +29,6 @@
 // #include <netinet/in.h>
 #include "misc.hh"
 
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include "dns.hh"
 #include "dnswriter.hh"
 #include "dnsname.hh"
@@ -303,10 +301,10 @@ struct DNSRecord
 
   bool operator<(const DNSRecord& rhs) const
   {
-    if(tie(d_name, d_type, d_class, d_ttl) < tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
+    if(std::tie(d_name, d_type, d_class, d_ttl) < std::tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
       return true;
     
-    if(tie(d_name, d_type, d_class, d_ttl) != tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
+    if(std::tie(d_name, d_type, d_class, d_ttl) != std::tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
       return false;
     
     string lzrp, rzrp;
@@ -329,10 +327,10 @@ struct DNSRecord
     if(b.d_name.canonCompare(a.d_name))
       return false;
 
-    if(tie(aType, a.d_class, a.d_ttl) < tie(bType, b.d_class, b.d_ttl))
+    if(std::tie(aType, a.d_class, a.d_ttl) < std::tie(bType, b.d_class, b.d_ttl))
       return true;
     
-    if(tie(aType, a.d_class, a.d_ttl) != tie(bType, b.d_class, b.d_ttl))
+    if(std::tie(aType, a.d_class, a.d_ttl) != std::tie(bType, b.d_class, b.d_ttl))
       return false;
     
     string lzrp, rzrp;

@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> zone_indices{
+  vector<std::tuple<DNSName, int>> zone_indices{
     {DNSName("example.org."), 1},
   };
   cache.setReplacePending();
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> zone_indices{
+  vector<std::tuple<DNSName, int>> zone_indices{
     {DNSName("powerdns.org."), 1}};
   cache.setReplacePending();
   cache.add(DNSName("example.org."), 2);
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(test_remove_while_pending_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> zone_indices{
+  vector<std::tuple<DNSName, int>> zone_indices{
     {DNSName("powerdns.org."), 1}};
   cache.setReplacePending();
   cache.remove(DNSName("powerdns.org."));
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> zone_indices{
+  vector<std::tuple<DNSName, int>> zone_indices{
     {DNSName("powerdns.org."), 1},
     {DNSName("example.org."), 2},
   };

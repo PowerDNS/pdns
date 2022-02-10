@@ -278,7 +278,7 @@ void UeberBackend::updateZoneCache() {
     return;
   }
 
-  vector<tuple<DNSName, int>> zone_indices;
+  vector<std::tuple<DNSName, int>> zone_indices;
   g_zoneCache.setReplacePending();
 
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )

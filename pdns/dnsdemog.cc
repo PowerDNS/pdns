@@ -26,8 +26,6 @@
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <map>
 #include <set>
 #include <fstream>
@@ -46,7 +44,7 @@ struct Entry
 
   bool operator<(const struct Entry& rhs) const 
   {
-    return tie(ip, port, id) < tie(rhs.ip, rhs.port, rhs.id);
+    return std::tie(ip, port, id) < std::tie(rhs.ip, rhs.port, rhs.id);
   }
 };
 

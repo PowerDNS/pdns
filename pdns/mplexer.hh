@@ -20,10 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/function.hpp>
 #include <boost/any.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -55,7 +52,7 @@ class FDMultiplexer
 {
 public:
   typedef boost::any funcparam_t;
-  typedef boost::function<void(int, funcparam_t&)> callbackfunc_t;
+  typedef std::function<void(int, funcparam_t&)> callbackfunc_t;
   enum class EventKind : uint8_t
   {
     Read,
@@ -196,11 +193,11 @@ public:
   std::vector<std::pair<int, funcparam_t>> getTimeouts(const struct timeval& tv, bool writes = false)
   {
     std::vector<std::pair<int, funcparam_t>> ret;
-    const auto tied = boost::tie(tv.tv_sec, tv.tv_usec);
+    const auto tied = std::tie(tv.tv_sec, tv.tv_usec);
     auto& idx = writes ? d_writeCallbacks.get<TTDOrderedTag>() : d_readCallbacks.get<TTDOrderedTag>();
 
     for (auto it = idx.begin(); it != idx.end(); ++it) {
-      if (it->d_ttd.tv_sec == 0 || tied <= boost::tie(it->d_ttd.tv_sec, it->d_ttd.tv_usec)) {
+      if (it->d_ttd.tv_sec == 0 || tied <= std::tie(it->d_ttd.tv_sec, it->d_ttd.tv_usec)) {
         break;
       }
       ret.emplace_back(it->d_fd, it->d_parameter);
