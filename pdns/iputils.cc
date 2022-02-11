@@ -22,8 +22,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "iputils.hh"
-#include <sys/socket.h> 
+
+#include <sys/socket.h>
+#include <boost/format.hpp>
 
 #if HAVE_GETIFADDRS
 #include <ifaddrs.h>

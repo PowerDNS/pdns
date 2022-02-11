@@ -22,6 +22,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <boost/format.hpp>
+
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"

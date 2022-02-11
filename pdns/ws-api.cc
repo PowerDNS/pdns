@@ -24,6 +24,8 @@
 #endif
 
 #include <boost/tokenizer.hpp>
+#include <boost/format.hpp>
+
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"

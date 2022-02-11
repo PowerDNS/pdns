@@ -29,6 +29,7 @@
 #include <regex.h>
 #include <glob.h>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/format.hpp>
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 

@@ -31,6 +31,7 @@
 #include "dnspcap.hh"
 #include "dnsparser.hh"
 #include "dnsname.hh"
+#include <boost/format.hpp>
 #include <map>
 #include <set>
 #include <fstream>

@@ -25,6 +25,7 @@
 #include "minicurl.hh"
 #include <curl/curl.h>
 #include <stdexcept>
+#include <boost/format.hpp>
 
 void MiniCurl::init()
 {

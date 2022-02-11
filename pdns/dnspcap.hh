@@ -42,8 +42,7 @@
 #else
 #include <net/ethernet.h>
 #endif
-#include <vector>
-#include <boost/format.hpp>
+
 #include "namespaces.hh"
 
 struct pdns_pcap_file_header {

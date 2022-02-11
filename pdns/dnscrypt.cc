@@ -22,6 +22,7 @@
 #include "config.h"
 #ifdef HAVE_DNSCRYPT
 #include <fstream>
+#include <boost/format.hpp>
 #include "dolog.hh"
 #include "dnscrypt.hh"
 #include "dnswriter.hh"
