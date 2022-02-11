@@ -2328,8 +2328,14 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
 
-  luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max) {
-      return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max));
+  luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max, boost::optional<LuaArray<uint16_t>> types) {
+      std::set<QType> capTypes;
+      if (types) {
+        for (const auto& [idx, type] : *types) {
+          capTypes.insert(QType(type));
+        }
+      }
+      return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, capTypes));
     });
 
   luaCtx.writeFunction("SetMinTTLResponseAction", [](uint32_t min) {

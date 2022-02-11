@@ -99,13 +99,17 @@ class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyab
 public:
   LimitTTLResponseAction() {}
 
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max()) : d_min(min), d_max(max)
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), std::set<QType> types = {}) : d_types(types), d_min(min), d_max(max)
   {
   }
 
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      if (!d_types.empty() && qclass == QClass::IN && d_types.count(qtype) == 0) {
+        return ttl;
+      }
+
       if (d_min > 0) {
         if (ttl < d_min) {
           ttl = d_min;
@@ -122,10 +126,27 @@ public:
 
   std::string toString() const override
   {
-    return "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max) + ")";
+    std::string result = "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max);
+    if (!d_types.empty()) {
+      bool first = true;
+      result += ", types in [";
+      for (const auto& type : d_types) {
+        if (first) {
+          first = false;
+        }
+        else {
+          result += " ";
+        }
+        result += type.toString();
+      }
+      result += "]";
+    }
+    result += + ")";
+    return result;
   }
 
 private:
+  std::set<QType> d_types;
   uint32_t d_min{0};
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };

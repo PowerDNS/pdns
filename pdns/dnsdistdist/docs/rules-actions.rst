@@ -1089,7 +1089,7 @@ The following actions exist.
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
 
-.. function:: LimitTTLResponseAction(min[, max])
+.. function:: LimitTTLResponseAction(min[, max [, types]])
 
   .. versionadded:: 1.8.0
 
@@ -1097,6 +1097,7 @@ The following actions exist.
 
   :param int min: The minimum allowed value
   :param int max: The maximum allowed value
+  :param list of int: The record types to cap the TTL for. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
