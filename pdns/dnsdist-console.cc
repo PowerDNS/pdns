@@ -447,7 +447,7 @@ void doConsole()
   }
 }
 
-#if defined(HAVE_LIBEDIT) and not defined(DISABLE_COMPLETION)
+#ifndef DISABLE_COMPLETION
 /**** CARGO CULT CODE AHEAD ****/
 const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
@@ -769,6 +769,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "wrandom", false, "", "Weighted random over available servers, based on the server 'weight' parameter" },
 };
 
+#if defined(HAVE_LIBEDIT)
 extern "C" {
 static char* my_generator(const char* text, int state)
 {
@@ -808,6 +809,7 @@ char** my_completion( const char * text , int start,  int end)
   return matches;
 }
 }
+#endif /* HAVE_LIBEDIT */
 #endif /* DISABLE_COMPLETION */
 
 static void controlClientThread(ConsoleConnection&& conn)
