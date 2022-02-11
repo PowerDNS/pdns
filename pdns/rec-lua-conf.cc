@@ -682,6 +682,45 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   });
 #endif /* HAVE_FSTRM */
 
+  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, std::unordered_map<int, int> targetqtypes, boost::optional<std::map<std::string, std::string>> options) {
+    switch (qtype) {
+    case QType::MX:
+    case QType::SRV:
+    case QType::SVCB:
+    case QType::HTTPS:
+    case QType::NAPTR:
+      break;
+    default:
+      g_log << Logger::Error << "addAllowedAdditionalQType does not support " << QType(qtype).toString() << endl;
+      return;
+    }
+
+    std::set<QType> targets;
+    for (const auto& t : targetqtypes) {
+      targets.emplace(QType(t.second));
+    }
+
+    AdditionalMode mode = AdditionalMode::CacheOnlyRequireAuth; // Always cheap and should be safe
+
+    if (options) {
+      if (const auto it = options->find("mode"); it != options->end()) {
+        const map<string, AdditionalMode> modeMap = {
+          {"Ignore", AdditionalMode::Ignore},
+          {"CacheOnly", AdditionalMode::CacheOnly},
+          {"CacheOnlyRequireAuth", AdditionalMode::CacheOnlyRequireAuth},
+          {"ResolveImmediately", AdditionalMode::ResolveImmediately},
+          {"ResolveDeferred", AdditionalMode::ResolveDeferred}
+        };
+        if (modeMap.find(it->second) == modeMap.end()) {
+          g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl;
+          return;
+        }
+        mode = modeMap.at(it->second);
+      }
+    }
+    lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
+  });
+
   try {
     Lua->executeCode(ifs);
     g_luaconfs.setState(std::move(lci));

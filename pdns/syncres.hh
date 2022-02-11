@@ -68,6 +68,8 @@ extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 extern GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 
+enum class AdditionalMode : uint8_t; // defined in rec-lua-conf.hh
+
 class RecursorLua4;
 
 typedef std::unordered_map<
@@ -268,14 +270,6 @@ public:
   typedef std::function<LWResult::Result(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
 
   enum class HardenNXD { No, DNSSEC, Yes };
-
-  enum class AddtionalMode : uint8_t {
-    Ignore,
-    CacheOnly,
-    CacheOnlyRequireAuth,
-    ResolveImmediately,
-    ResolveDeferred
-  };
 
   //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
   /** Modelled to work mostly like the underlying DecayingEwma */
@@ -846,7 +840,7 @@ private:
   typedef std::map<DNSName,vState> zonesStates_t;
   enum StopAtDelegation { DontStop, Stop, Stopped };
 
-  void resolveAdditionals(const DNSName& qname, QType qtype, AddtionalMode, std::vector<DNSRecord>& additionals, unsigned int depth);
+  void resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode, std::vector<DNSRecord>& additionals, unsigned int depth);
   void addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&addditionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::pair<DNSName, QType>>& uniqueResults, unsigned int depth, unsigned int adddepth);
   void addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int depth);
 

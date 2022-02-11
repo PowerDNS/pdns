@@ -142,27 +142,32 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
 
-static const std::map<QType, std::pair<std::set<QType>, SyncRes::AddtionalMode>> additionalTypes = {
-  {QType::MX, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnlyRequireAuth}},
-  {QType::SRV, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::ResolveImmediately}},
-  {QType::SVCB, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
-  {QType::HTTPS, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
-  {QType::NAPTR, {{QType::A, QType::AAAA, QType::SRV}, SyncRes::AddtionalMode::ResolveImmediately}}
-};
+// static const std::map<QType, std::pair<std::set<QType>, SyncRes::AddtionalMode>> additionalTypes = {
+//   {QType::MX, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
+//   {QType::SRV, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::ResolveImmediately}},
+//   {QType::SVCB, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
+//   {QType::HTTPS, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
+//   {QType::NAPTR, {{QType::A, QType::AAAA, QType::SRV}, SyncRes::AddtionalMode::ResolveImmediately}}
+// };
 
-void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AddtionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
+void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
 {
   vector<DNSRecord> addRecords;
 
   vState state = vState::Indeterminate;
   switch (mode) {
-  case AddtionalMode::ResolveImmediately: {
+  case AdditionalMode::ResolveImmediately: {
     set<GetBestNSAnswer> beenthere;
     int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
     if (res != 0) {
       return;
     }
+    // We're conservative here. We do not add Bogus records in any circumstance, we add Indeterminates only if no
+    // validation is required.
     if (vStateIsBogus(state)) {
+      return;
+    }
+    if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
       return;
     }
     for (const auto& rec : addRecords) {
@@ -172,13 +177,17 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AddtionalMod
     }
     break;
   }
-  case AddtionalMode::CacheOnly:
-  case AddtionalMode::CacheOnlyRequireAuth: {
+  case AdditionalMode::CacheOnly:
+  case AdditionalMode::CacheOnlyRequireAuth: {
     // Peek into cache
-    if (g_recCache->get(d_now.tv_sec, qname, qtype, mode == AddtionalMode::CacheOnlyRequireAuth, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+    if (g_recCache->get(d_now.tv_sec, qname, qtype, mode == AdditionalMode::CacheOnlyRequireAuth, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
       return;
     }
+    // See the comment for the ResolveImmediately case
     if (vStateIsBogus(state)) {
+      return;
+    }
+    if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
       return;
     }
     for (auto& rec : addRecords) {
@@ -189,13 +198,13 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AddtionalMod
     }
     break;
   }
-  case AddtionalMode::ResolveDeferred:
+  case AdditionalMode::ResolveDeferred:
     // Not yet implemented
     // Look in cache for authoritative answer, if available return it
     // If not, look in nergache and submit if not there as well. The logic should be the same as
     // #11294, which is in review atm.
     break;
-  case AddtionalMode::Ignore:
+  case AdditionalMode::Ignore:
     break;
   }
 }
@@ -211,15 +220,17 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
   if (additionaldepth >= 5 || start.empty()) {
     return;
   }
-  const auto it = additionalTypes.find(qtype);
-  if (it == additionalTypes.end()) {
+
+  auto luaLocal = g_luaconfs.getLocal();
+  const auto it = luaLocal->allowAdditionalQTypes.find(qtype);
+  if (it == luaLocal->allowAdditionalQTypes.end()) {
     return;
   }
   std::unordered_set<DNSName> addnames;
   for (const auto& rec : start) {
     if (rec.d_place == DNSResourceRecord::ANSWER) {
-      // currently, this funtion only knows about names, we could also take the target types that are dependent on
-      // reord contents into account
+      // currently, this function only knows about names, we could also take the target types that are dependent on
+      // record contents into account
       // e.g. for NAPTR records, go only for SRV for flag value "s", or A/AAAA for flag value "a"
       allowAdditionalEntry(addnames, rec);
     }
@@ -324,7 +335,8 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
-  if (qclass == QClass::IN && additionalTypes.find(qtype) != additionalTypes.end()) {
+  auto luaLocal = g_luaconfs.getLocal();
+  if (res == 0 && qclass == QClass::IN && luaLocal->allowAdditionalQTypes.find(qtype) != luaLocal->allowAdditionalQTypes.end()) {
     addAdditionals(qtype, ret, depth);
   }
   d_eventTrace.add(RecEventTrace::SyncRes, res, false);
