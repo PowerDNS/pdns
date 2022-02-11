@@ -1873,6 +1873,11 @@ static void houseKeeping(void*)
       SyncRes::pruneThrottledServers();
     });
 
+    static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
+    pruneThrottledTask.runIfDue(now, [now]() {
+      t_tcp_manager.cleanup(now);
+    });
+
     const auto& info = RecThreadInfo::self();
 
     // Below are the thread specific tasks for the handler and the taskThread
