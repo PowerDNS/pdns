@@ -20,7 +20,11 @@ BuildRequires: systemd-devel
 
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
+%if 0%{?rhel} < 8
+BuildRequires: boost169-devel
+%else
 BuildRequires: boost-devel
+%endif
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -181,6 +185,11 @@ This package contains the ixfrdist program.
 
 %build
 export CPPFLAGS="-DLDAP_DEPRECATED"
+
+%if 0%{?rhel} < 8
+export CPPFLAGS=-I/usr/include/boost169
+export LDFLAGS=-L/usr/lib64/boost169
+%endif
 
 %configure \
   --enable-option-checking=fatal \

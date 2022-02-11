@@ -11,14 +11,19 @@ BuildRequires: libedit-devel
 BuildRequires: openssl-devel
 
 %if 0%{?suse_version}
-BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
-%if 0%{?rhel} >= 7
+
+%if 0%{?rhel} < 8
+BuildRequires: boost169-devel
+%else
 BuildRequires: boost-devel
+%endif
+
+%if 0%{?rhel} >= 7
 BuildRequires: gnutls-devel
 BuildRequires: libcap-devel
 BuildRequires: libnghttp2-devel
@@ -59,6 +64,11 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.in
 
 %build
+%if 0%{?rhel} < 8
+export CPPFLAGS=-I/usr/include/boost169
+export LDFLAGS=-L/usr/lib64/boost169
+%endif
+
 %configure \
   --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
