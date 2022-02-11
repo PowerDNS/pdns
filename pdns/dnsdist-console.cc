@@ -447,7 +447,7 @@ void doConsole()
   }
 }
 
-#ifndef DISABLE_COMPLETION
+#if defined(HAVE_LIBEDIT) and not defined(DISABLE_COMPLETION)
 /**** CARGO CULT CODE AHEAD ****/
 const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
