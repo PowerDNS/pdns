@@ -9,7 +9,11 @@ Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 
 Provides: powerdns-recursor = %{version}-%{release}
 
+%if 0%{?rhel} < 8
+BuildRequires: boost169-devel
+%else
 BuildRequires: boost-devel
+%endif
 BuildRequires: libcap-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
@@ -43,6 +47,11 @@ package if you need a dns cache for your network.
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION} 
 
 %build
+%if 0%{?rhel} < 8
+export CPPFLAGS=-I/usr/include/boost169
+export LDFLAGS=-L/usr/lib64/boost169
+%endif
+
 %configure \
     --enable-option-checking=fatal \
     --sysconfdir=%{_sysconfdir}/%{name} \
