@@ -2438,6 +2438,8 @@ try
     cout<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cout<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cout<<"       [active|inactive] [ksk|zsk] [published|unpublished] Defaults to KSK, active and published"<<endl;
+    cout<<"import-zone-key-pem ZONE FILE      Import a private key from a PEM file."<<endl;
+    cout<<"        ALGORITHM {ksk|zsk}"<<endl;
     cout<<"ipdecrypt IP passphrase/key [key]  Decrypt IP address using passphrase or base64 key"<<endl;
     cout<<"ipencrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key"<<endl;
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
