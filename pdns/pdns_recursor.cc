@@ -631,7 +631,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
     return rcode;
   }
 
-  rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl); // XXX correct to use t_pdl?
+  rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl);
 
   for (DNSRecord& rr : resolved) {
     ret.push_back(std::move(rr));
@@ -645,7 +645,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
      again, possibly encountering the same CNAME(s), and we don't want to trigger the CNAME
      loop detection. */
   vector<DNSRecord> newRecords;
-  int rcode = directResolve(qname, QType::A, QClass::IN, newRecords, t_pdl); // XXX correct to use t_pdl?
+  int rcode = directResolve(qname, QType::A, QClass::IN, newRecords, t_pdl);
 
   ret.reserve(ret.size() + newRecords.size());
   for (auto& record : newRecords) {
@@ -725,7 +725,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
   ret.push_back(rr);
 
-  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl); // XXX correct to use t_pdl?
+  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl);
 
   g_stats.dns64prefixanswers++;
   return rcode;
@@ -877,8 +877,8 @@ void startDoResolve(void* p)
     sr.setId(MT->getTid());
 
     bool DNSSECOK = false;
-    if (t_pdl) {
-      sr.setLuaEngine(t_pdl);
+    if (dc->d_luaContext) {
+      sr.setLuaEngine(dc->d_luaContext);
     }
     if (g_dnssecmode != DNSSECMode::Off) {
       sr.setDoDNSSEC(true);
@@ -944,7 +944,6 @@ void startDoResolve(void* p)
     dq.meta = std::move(dc->d_meta);
     dq.fromAuthIP = &sr.d_fromAuthIP;
 
-    auto srLua = sr.getLuaEngine();
     RunningResolveGuard tcpGuard(dc);
 
     if (ednsExtRCode != 0 || dc->d_mdp.d_header.opcode == Opcode::Notify) {
@@ -976,8 +975,8 @@ void startDoResolve(void* p)
       sr.setCacheOnly();
     }
 
-    if (srLua) {
-      srLua->prerpz(dq, res, sr.d_eventTrace);
+    if (dc->d_luaContext) {
+      dc->d_luaContext->prerpz(dq, res, sr.d_eventTrace);
     }
 
     // Check if the client has a policy attached to it
@@ -1024,7 +1023,7 @@ void startDoResolve(void* p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if (!srLua || !srLua->preresolve(dq, res, sr.d_eventTrace)) {
+    if (!dc->d_luaContext || !dc->d_luaContext->preresolve(dq, res, sr.d_eventTrace)) {
 
       if (!g_dns64PrefixReverse.empty() && dq.qtype == QType::PTR && dq.qname.isPartOf(g_dns64PrefixReverse)) {
         res = getFakePTRRecords(dq.qname, ret);
@@ -1035,7 +1034,7 @@ void startDoResolve(void* p)
 
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
 
-        if (srLua && srLua->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
+        if (dc->d_luaContext && dc->d_luaContext->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
           /* reset to no match */
           appliedPolicy = DNSFilterEngine::Policy();
         }
@@ -1110,10 +1109,10 @@ void startDoResolve(void* p)
         }
       }
 
-      if (srLua || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
+      if (dc->d_luaContext || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (srLua && srLua->nodata(dq, res, sr.d_eventTrace)) {
+            if (dc->d_luaContext && dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
               auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
               if (policyResult == PolicyResult::HaveAnswer) {
@@ -1129,7 +1128,7 @@ void startDoResolve(void* p)
             }
           }
         }
-        else if (res == RCode::NXDomain && srLua && srLua->nxdomain(dq, res, sr.d_eventTrace)) {
+        else if (res == RCode::NXDomain && dc->d_luaContext && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           if (policyResult == PolicyResult::HaveAnswer) {
@@ -1140,11 +1139,11 @@ void startDoResolve(void* p)
           }
         }
 
-        if (srLua) {
-          if (srLua->d_postresolve_ffi) {
+        if (dc->d_luaContext) {
+          if (dc->d_luaContext->d_postresolve_ffi) {
             RecursorLua4::PostResolveFFIHandle handle(dq);
             sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
-            bool pr = srLua->postresolve_ffi(handle);
+            bool pr = dc->d_luaContext->postresolve_ffi(handle);
             sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, pr, false);
             if (pr) {
               shouldNotValidate = true;
@@ -1155,7 +1154,7 @@ void startDoResolve(void* p)
               }
             }
           }
-          else if (srLua->postresolve(dq, res, sr.d_eventTrace)) {
+          else if (dc->d_luaContext->postresolve(dq, res, sr.d_eventTrace)) {
             shouldNotValidate = true;
             auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
             // haveAnswer case redundant
@@ -1166,7 +1165,7 @@ void startDoResolve(void* p)
         }
       }
     }
-    else if (srLua) {
+    else if (dc->d_luaContext) {
       // preresolve returned true
       shouldNotValidate = true;
       auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
@@ -1991,7 +1990,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), std::move(data), std::move(records));
+  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), t_pdl, std::move(data), std::move(records));
   dc->setSocket(fd);
   dc->d_tag = ctag;
   dc->d_qhash = qhash;
