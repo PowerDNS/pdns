@@ -48,8 +48,8 @@
 //! used to send information to a newborn mthread
 struct DNSComboWriter
 {
-  DNSComboWriter(const std::string& query, const struct timeval& now) :
-    d_mdp(true, query), d_now(now), d_query(query)
+  DNSComboWriter(const std::string& query, const struct timeval& now, shared_ptr<RecursorLua4> luaContext) :
+    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(luaContext)
   {
   }
 
