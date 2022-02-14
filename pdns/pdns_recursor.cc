@@ -1259,7 +1259,7 @@ void startDoResolve(void* p)
       }
 
       if (ret.size()) {
-        pdns::orderAndShuffle(ret);
+        pdns::orderAndShuffle(ret, false);
         if (auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_source)) {
           stable_sort(ret.begin(), ret.end(), *sl);
           variableAnswer = true;

@@ -709,8 +709,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
           {"CacheOnly", AdditionalMode::CacheOnly},
           {"CacheOnlyRequireAuth", AdditionalMode::CacheOnlyRequireAuth},
           {"ResolveImmediately", AdditionalMode::ResolveImmediately},
-          {"ResolveDeferred", AdditionalMode::ResolveDeferred}
-        };
+          {"ResolveDeferred", AdditionalMode::ResolveDeferred}};
         if (modeMap.find(it->second) == modeMap.end()) {
           g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl;
           return;
