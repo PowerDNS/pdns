@@ -483,7 +483,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
   output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
   output << "dnsdist_latency_sum " << g_stats.latencySum << "\n";
-  output << "dnsdist_latency_count " << getLatencyCount(std::string()) << "\n";
+  output << "dnsdist_latency_count " << g_stats.latencyCount << "\n";
 
   auto states = g_dstates.getLocal();
   const string statesbase = "dnsdist_server_";

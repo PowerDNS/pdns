@@ -230,6 +230,7 @@ void doLatencyStats(double udiff)
   else if(udiff < 1000000) ++g_stats.latency100_1000;
   else ++g_stats.latencySlow;
   g_stats.latencySum += udiff / 1000;
+  ++g_stats.latencyCount;
 
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
@@ -2783,9 +2784,4 @@ int main(int argc, char** argv)
     _exit(EXIT_FAILURE);
 #endif
   }
-}
-
-uint64_t getLatencyCount(const std::string&)
-{
-    return g_stats.responses + g_stats.selfAnswered + g_stats.cacheHits;
 }
