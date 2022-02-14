@@ -877,8 +877,8 @@ void startDoResolve(void* p)
     sr.setId(MT->getTid());
 
     bool DNSSECOK = false;
-    if (t_pdl) {
-      sr.setLuaEngine(t_pdl);
+    if (dc->d_luaContext) {
+      sr.setLuaEngine(dc->d_luaContext);
     }
     if (g_dnssecmode != DNSSECMode::Off) {
       sr.setDoDNSSEC(true);
@@ -975,8 +975,8 @@ void startDoResolve(void* p)
       sr.setCacheOnly();
     }
 
-    if (t_pdl) {
-      t_pdl->prerpz(dq, res, sr.d_eventTrace);
+    if (dc->d_luaContext) {
+      dc->d_luaContext->prerpz(dq, res, sr.d_eventTrace);
     }
 
     // Check if the client has a policy attached to it
@@ -1023,7 +1023,7 @@ void startDoResolve(void* p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if (!t_pdl || !t_pdl->preresolve(dq, res, sr.d_eventTrace)) {
+    if (!dc->d_luaContext || !dc->d_luaContext->preresolve(dq, res, sr.d_eventTrace)) {
 
       if (!g_dns64PrefixReverse.empty() && dq.qtype == QType::PTR && dq.qname.isPartOf(g_dns64PrefixReverse)) {
         res = getFakePTRRecords(dq.qname, ret);
@@ -1034,7 +1034,7 @@ void startDoResolve(void* p)
 
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
 
-        if (t_pdl && t_pdl->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
+        if (dc->d_luaContext && dc->d_luaContext->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
           /* reset to no match */
           appliedPolicy = DNSFilterEngine::Policy();
         }
@@ -1109,10 +1109,10 @@ void startDoResolve(void* p)
         }
       }
 
-      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
+      if (dc->d_luaContext || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (t_pdl && t_pdl->nodata(dq, res, sr.d_eventTrace)) {
+            if (dc->d_luaContext && dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
               auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
               if (policyResult == PolicyResult::HaveAnswer) {
@@ -1128,7 +1128,7 @@ void startDoResolve(void* p)
             }
           }
         }
-        else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res, sr.d_eventTrace)) {
+        else if (res == RCode::NXDomain && dc->d_luaContext && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           if (policyResult == PolicyResult::HaveAnswer) {
@@ -1139,11 +1139,11 @@ void startDoResolve(void* p)
           }
         }
 
-        if (t_pdl) {
-          if (t_pdl->d_postresolve_ffi) {
+        if (dc->d_luaContext) {
+          if (dc->d_luaContext->d_postresolve_ffi) {
             RecursorLua4::PostResolveFFIHandle handle(dq);
             sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
-            bool pr = t_pdl->postresolve_ffi(handle);
+            bool pr = dc->d_luaContext->postresolve_ffi(handle);
             sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, pr, false);
             if (pr) {
               shouldNotValidate = true;
@@ -1154,7 +1154,7 @@ void startDoResolve(void* p)
               }
             }
           }
-          else if (t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
+          else if (dc->d_luaContext->postresolve(dq, res, sr.d_eventTrace)) {
             shouldNotValidate = true;
             auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
             // haveAnswer case redundant
@@ -1165,7 +1165,7 @@ void startDoResolve(void* p)
         }
       }
     }
-    else if (t_pdl) {
+    else if (dc->d_luaContext) {
       // preresolve returned true
       shouldNotValidate = true;
       auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
@@ -1843,6 +1843,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
+    // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
     if (needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi)) || dh->opcode == Opcode::Notify) {
       try {
         EDNSOptionViewMap ednsOptions;
@@ -1989,7 +1990,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), std::move(data), std::move(records));
+  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), t_pdl, std::move(data), std::move(records));
   dc->setSocket(fd);
   dc->d_tag = ctag;
   dc->d_qhash = qhash;

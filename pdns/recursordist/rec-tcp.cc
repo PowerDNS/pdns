@@ -329,7 +329,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state = TCPConnection::BYTE0;
       std::unique_ptr<DNSComboWriter> dc;
       try {
-        dc = std::make_unique<DNSComboWriter>(conn->data, g_now);
+        dc = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
       }
       catch (const MOADNSException& mde) {
         g_stats.clientParseError++;

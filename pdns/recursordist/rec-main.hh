@@ -48,13 +48,13 @@
 //! used to send information to a newborn mthread
 struct DNSComboWriter
 {
-  DNSComboWriter(const std::string& query, const struct timeval& now) :
-    d_mdp(true, query), d_now(now), d_query(query)
+  DNSComboWriter(const std::string& query, const struct timeval& now, shared_ptr<RecursorLua4> luaContext) :
+    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(luaContext)
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
-    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, shared_ptr<RecursorLua4> luaContext, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
+    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(luaContext), d_data(std::move(data))
   {
   }
 
@@ -119,7 +119,11 @@ struct DNSComboWriter
   std::unordered_set<std::string> d_policyTags;
   std::string d_routingTag;
   std::vector<DNSRecord> d_records;
+
+  // d_data is tied to this LuaContext so we need to keep it alive and use it, not a newer one, as long as d_data exists
+  shared_ptr<RecursorLua4> d_luaContext;
   LuaContext::LuaObject d_data;
+
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
   boost::optional<uint16_t> d_extendedErrorCode{boost::none};
