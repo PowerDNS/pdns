@@ -52,7 +52,7 @@ SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k, bool &generi
     catch (...) {
     }
   }
-  throw std::invalid_argument("SvcParam '" + k + "'is not recognized or in keyNNNN format");
+  throw std::invalid_argument("SvcParam '" + k + "' is not recognized or in keyNNNN format");
 }
 
 std::string SvcParam::keyToString(const SvcParam::SvcParamKey& k) {
