@@ -35,6 +35,12 @@
 */
 unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 
+/** Return a randomly generated ID that is unique and not zero.
+    May throw if the database is very full.
+*/
+unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
+
+
 /** This is our serialization interface.
     You can define your own serToString for your type if you know better
 */
@@ -588,12 +594,17 @@ public:
     }
 
     // insert something, with possibly a specific id
-    uint32_t put(const T& t, uint32_t id=0)
+    uint32_t put(const T& t, uint32_t id, bool random_ids=false)
     {
       int flags = 0;
       if(!id) {
-        id = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
-        flags = MDB_APPEND;
+        if(random_ids) {
+          id = MDBGetRandomID(*d_txn, d_parent->d_main);
+        }
+        else {
+          id = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
+          flags = MDB_APPEND;
+        }
       }
       (*d_txn)->put(d_parent->d_main, id, serToString(t), flags);
 
