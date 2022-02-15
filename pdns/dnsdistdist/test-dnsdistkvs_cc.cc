@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 
   const string dbPath("/tmp/test_lmdb.XXXXXX");
   {
-    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
+    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600, 50);
     auto transaction = env.getRWTransaction();
     auto dbi = transaction->openDB("db-name", MDB_CREATE);
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   }
 
   {
-    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
+    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600, 50);
     auto transaction = env.getRWTransaction();
     auto dbi = transaction->openDB("range-db-name", MDB_CREATE);
     /* range-based lookups */
