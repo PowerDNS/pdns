@@ -3296,6 +3296,10 @@ try
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromPEMString(drc, raw));
+    if (!key) {
+      cerr << "Could not convert key from PEM to internal format" << endl;
+      return 1;
+    }
     dpk.setKey(key);
 
     dpk.d_algorithm = pdns_stou(cmds.at(3));

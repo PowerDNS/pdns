@@ -21,8 +21,6 @@ public:
   int getBits() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
-  {}
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
