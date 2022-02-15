@@ -62,7 +62,8 @@ struct TrustAnchorFileInfo
   std::string fname;
 };
 
-enum class AdditionalMode : uint8_t {
+enum class AdditionalMode : uint8_t
+{
   Ignore,
   CacheOnly,
   CacheOnlyRequireAuth,
