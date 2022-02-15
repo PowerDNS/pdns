@@ -142,14 +142,6 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
 
-// static const std::map<QType, std::pair<std::set<QType>, SyncRes::AddtionalMode>> additionalTypes = {
-//   {QType::MX, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
-//   {QType::SRV, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::ResolveImmediately}},
-//   {QType::SVCB, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
-//   {QType::HTTPS, {{QType::A, QType::AAAA}, SyncRes::AddtionalMode::CacheOnly}},
-//   {QType::NAPTR, {{QType::A, QType::AAAA, QType::SRV}, SyncRes::AddtionalMode::ResolveImmediately}}
-// };
-
 void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
 {
   vector<DNSRecord> addRecords;
@@ -215,7 +207,7 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
 // This function uses to state sets to avoid infinite recursion
 // depth is the main recursion depth
 // additionaldepth is the depth for addAdditionals itself
-void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::pair<DNSName, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
+void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
 {
   if (additionaldepth >= 5 || start.empty()) {
     return;
@@ -239,9 +231,6 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
   auto mode = it->second.second;
   for (const auto& targettype : it->second.first) {
     for (const auto& addname : addnames) {
-      if ((targettype == QType::A && !s_doIPv4) || (targettype == QType::AAAA && !s_doIPv6)) {
-        continue;
-      }
       std::vector<DNSRecord> records;
       if (uniqueCalls.count(std::pair(addname, targettype)) == 0) {
         uniqueCalls.emplace(addname, targettype);
@@ -249,7 +238,13 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
       }
       if (!records.empty()) {
         for (auto r = records.begin(); r != records.end(); ) {
-          if (uniqueResults.count(std::pair(r->d_name, QType(r->d_type))) > 0) {
+          QType covered = QType::ENT;
+          if (r->d_type == QType::RRSIG) {
+            if (auto rsig = getRR<RRSIGRecordContent>(*r); rsig != nullptr) {
+              covered = rsig->d_type;
+            }
+          }
+          if (uniqueResults.count(std::tuple(r->d_name, QType(r->d_type), covered)) > 0) {
             // A bit expensive for vectors, but they are small
             r = records.erase(r);
           } else {
@@ -258,7 +253,13 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
         }
         for (const auto& r : records) {
           additionals.push_back(r);
-          uniqueResults.emplace(r.d_name, r.d_type);
+          QType covered = QType::ENT;
+          if (r.d_type == QType::RRSIG) {
+            if (auto rsig = getRR<RRSIGRecordContent>(r); rsig != nullptr) {
+              covered = rsig->d_type;
+            }
+          }
+          uniqueResults.emplace(r.d_name, r.d_type, covered);
         }
         addAdditionals(targettype, records, additionals, uniqueCalls, uniqueResults, depth, additionaldepth + 1);
       }
@@ -276,7 +277,8 @@ void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int de
   std::set<std::pair<DNSName, QType>> uniqueCalls;
 
   // Collect multiple name/qtype from a single resolve but do not add a new set from new resolve calls
-  std::set<std::pair<DNSName, QType>> uniqueResults;
+  // For RRSIGs, the type covered is stored in the second Qtype
+  std::set<std::tuple<DNSName, QType, QType>> uniqueResults;
 
   addAdditionals(qtype, ret, additionals, uniqueCalls, uniqueResults, depth, 0);
 
