@@ -82,7 +82,14 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   else
     throw std::runtime_error("Unknown sync mode " + syncMode + " requested for LMDB backend");
 
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600), "domains");
+  uint64_t mapSize = 0;
+  try {
+    mapSize = std::stoll(getArg("map-size"));
+  }
+  catch (const std::exception& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
+  }
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600, mapSize), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
@@ -1751,9 +1758,10 @@ public:
     declare(suffix, "filename", "Filename for lmdb", "./pdns.lmdb");
     declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, mapasync, sync", "mapasync");
     // there just is no room for more on 32 bit
-    declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
+    declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(void*) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
+    declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
   }
   DNSBackend* make(const string& suffix = "") override
   {
