@@ -34,8 +34,7 @@ Redhat-based Systems
 ~~~~~~~~~~~~~~~~~~~~
 
 On RedHat based systems there are 3 options to install PowerDNS, from
-`EPEL <https://fedoraproject.org/wiki/EPEL>`__, the `repository from
-Kees Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
+`EPEL <https://fedoraproject.org/wiki/EPEL>`__, 
 or from `the PowerDNS repositories <https://repo.powerdns.com>`__:
 
 Add either to your list of repositories and install PowerDNS by issuing:
