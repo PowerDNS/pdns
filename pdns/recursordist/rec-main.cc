@@ -1818,6 +1818,7 @@ public:
       throw PDNSException("Invalid period of periodic task " + n);
     }
   }
+
   void runIfDue(struct timeval& now, const std::function<void()>& f)
   {
     if (last_run < now - period) {
@@ -1827,6 +1828,12 @@ public:
       now = last_run;
     }
   }
+
+  time_t getPeriod() const
+  {
+    return period.tv_sec;
+  }
+
   void setPeriod(time_t p)
   {
     period.tv_sec = p;
@@ -1952,11 +1959,14 @@ static void houseKeeping(void*)
         SyncRes::pruneSaveParentsNSSets(now.tv_sec);
       });
 
-      // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
-      static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl / 12, 10U)};
-      rootUpdateTask.runIfDue(now, [now]() {
+      // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s
+      const unsigned int minRootRefreshInterval = 10;
+      static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval)};
+      rootUpdateTask.runIfDue(now, [=]() {
         int res = SyncRes::getRootNS(now, nullptr, 0);
         if (res == 0) {
+          // Success, go back to the defaut period
+          rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
           try {
             primeRootNSZones(g_dnssecmode, 0);
           }
@@ -1975,6 +1985,12 @@ static void houseKeeping(void*)
           catch (...) {
             g_log << Logger::Error << "Exception while priming the root NS zones" << endl;
           }
+        }
+        else {
+          // On failure, go to the middle of the remaining period (initially 80% / 8 = 10%) and shorten the interval on each
+          // failure by dividing the existing interval by 8, keeping the minimum interval at 10s.
+          // So with a 1 day period and failures we'll see a refresh attempt at 69120, 69120+11520, 69120+11520+1440, ...
+          rootUpdateTask.setPeriod(std::max<time_t>(rootUpdateTask.getPeriod() / 8, minRootRefreshInterval));
         }
       });
 
