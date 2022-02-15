@@ -629,12 +629,27 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   }
 
   DNSZoneRecord rr;
+#ifdef HAVE_LUA_RECORDS
+  bool first{true};
+  bool doLua{false};
+#endif
 
   B.lookup(QType(QType::ANY), name, d_sd.domain_id);
   while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-    if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname))
+    if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.qname)) {
+      first = false;
+      doLua = g_doLuaRecord;
+      if (!doLua) {
+        string val;
+        d_dk.getFromMeta(d_sd.qname, "ENABLE-LUA-RECORDS", val);
+        doLua = (val == "1");
+      }
+    }
+
+    if (rr.dr.d_type == QType::LUA && doLua) {
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
+    }
     else
 #endif
       if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
@@ -699,11 +714,27 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
       }
     }
 
+#ifdef HAVE_LUA_RECORDS
+    bool first{true};
+    bool doLua{false};
+#endif
+
     B.lookup(QType(QType::ANY), name, d_sd.domain_id);
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-      if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname))
+      if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.qname)) {
+        first = false;
+        doLua = g_doLuaRecord;
+        if (!doLua) {
+          string val;
+          d_dk.getFromMeta(d_sd.qname, "ENABLE-LUA-RECORDS", val);
+          doLua = (val == "1");
+        }
+      }
+
+      if (rr.dr.d_type == QType::LUA && doLua) {
         n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
+      }
       else
 #endif
         if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
