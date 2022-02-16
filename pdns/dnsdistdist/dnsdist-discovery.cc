@@ -481,7 +481,9 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
     g_pools.setState(localPools);
     g_dstates.setState(states);
-    backend.d_ds->stop();
+    if (!backend.keepAfterUpgrade) {
+      backend.d_ds->stop();
+    }
 
     return true;
   }
