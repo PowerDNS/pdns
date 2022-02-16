@@ -691,9 +691,9 @@ struct CrossProtocolQuery;
 struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
 {
   DownstreamState(const DownstreamState&) = delete;
-  DownstreamState(DownstreamState&&) = default;
+  DownstreamState(DownstreamState&&) = delete;
   DownstreamState& operator=(const DownstreamState&) = delete;
-  DownstreamState& operator=(DownstreamState&&) = default;
+  DownstreamState& operator=(DownstreamState&&) = delete;
 
   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
   enum class Availability : uint8_t { Up, Down, Auto};
