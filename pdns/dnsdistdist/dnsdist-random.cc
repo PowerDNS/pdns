@@ -39,7 +39,7 @@ namespace dnsdist
 void initRandom()
 {
 #ifdef HAVE_LIBSODIUM
-  srandom(randombytes_uniform(0xffffffff));
+  srandom(randombytes_random());
 #else
   {
     auto getSeed = []() {
