@@ -21,7 +21,10 @@
  */
 #pragma once
 
-#include "dnsname.hh"
+#include <cstdint>
+#include <time.h>
+
+class DNSName;
 
 void runTaskOnce(bool logErrors);
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline);

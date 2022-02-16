@@ -1416,8 +1416,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  /* we do store empty results */
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  /* we don't store empty results */
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)

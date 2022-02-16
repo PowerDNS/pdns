@@ -26,12 +26,66 @@
 #include "stat_t.hh"
 #include "syncres.hh"
 
-struct Queues
+// For rate lmiting, we maintain a set of tasks recently submitted.
+class TimedSet
+{
+public:
+  TimedSet(time_t t) :
+    d_expiry_seconds(t)
+  {
+  }
+  bool insert(time_t now, const pdns::ResolveTask& task)
+  {
+    time_t ttd = now + d_expiry_seconds;
+    bool inserted = d_set.emplace(task, ttd).second;
+    if (!inserted) {
+      // Instead of a periodic clean, we always do it on a hit
+      // the operation should be cheap as we just walk the ordered time_t index
+      // There is a slim chance if we never hit a rate limiting case we'll never clean... oh well
+      auto& ind = d_set.template get<time_t>();
+      auto it = ind.begin();
+      bool erased = false;
+      while (it != ind.end()) {
+        if (it->d_ttd < now) {
+          erased = true;
+          it = ind.erase(it);
+        }
+        else {
+          break;
+        }
+      }
+      // Try again if the loop deleted at least one entry
+      if (erased) {
+        inserted = d_set.emplace(task, ttd).second;
+      }
+    }
+    return inserted;
+  }
+
+private:
+  struct Entry
+  {
+    Entry(const pdns::ResolveTask& task, time_t ttd) :
+      d_task(task), d_ttd(ttd) {}
+    pdns::ResolveTask d_task;
+    time_t d_ttd;
+  };
+
+  typedef multi_index_container<Entry,
+                                indexed_by<
+                                  ordered_unique<tag<pdns::ResolveTask>, member<Entry, pdns::ResolveTask, &Entry::d_task>>,
+                                  ordered_non_unique<tag<time_t>, member<Entry, time_t, &Entry::d_ttd>>>>
+    timed_set_t;
+  timed_set_t d_set;
+  time_t d_expiry_seconds;
+};
+
+struct Queue
 {
   pdns::TaskQueue queue;
-  std::set<pdns::ResolveTask> running;
+  TimedSet rateLimitSet{60};
 };
-static LockGuarded<Queues> s_taskQueue;
+static LockGuarded<Queue> s_taskQueue;
 
 struct taskstats
 {
@@ -55,7 +109,7 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
     log->info(Logr::Debug, "resolving");
     int res = sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
     ex = false;
-    log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records",  Logging::Loggable(ret.size()));
+    log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records", Logging::Loggable(ret.size()));
   }
   catch (const std::exception& e) {
     log->error(Logr::Error, msg, e.what());
@@ -103,10 +157,8 @@ void runTaskOnce(bool logErrors)
       return;
     }
     task = lock->queue.pop();
-    lock->running.insert(task);
   }
   bool expired = task.run(logErrors);
-  s_taskQueue.lock()->running.erase(task);
   if (expired) {
     s_taskQueue.lock()->queue.incExpired();
   }
@@ -116,7 +168,7 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
 {
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
   auto lock = s_taskQueue.lock();
-  bool running = lock->running.count(task) > 0;
+  bool running = !lock->rateLimitSet.insert(time(nullptr), task);
   if (!running) {
     ++s_almost_expired_tasks.pushed;
     lock->queue.push(std::move(task));
@@ -127,7 +179,7 @@ void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
   pdns::ResolveTask task{qname, qtype, deadline, false, resolve};
   auto lock = s_taskQueue.lock();
-  bool running = lock->running.count(task) > 0;
+  bool running = !lock->rateLimitSet.insert(time(nullptr), task);
   if (!running) {
     ++s_resolve_tasks.pushed;
     lock->queue.push(std::move(task));

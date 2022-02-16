@@ -3642,18 +3642,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   uint32_t dnameTTL = 0;
   bool referralOnDS = false;
 
-  if (lwr.d_rcode == 0 && qtype.getCode() != 0 && lwr.d_records.size() == 0) {
-    // NODATA and no SOA, put that into the negcache for a while
-    NegCache::NegCacheEntry ne;
-    ne.d_auth = auth;
-    ne.d_name = qname;
-    ne.d_qtype = qtype;
-    ne.d_ttd = d_now.tv_sec + std::max(s_minimumTTL, 60U);
-    ne.d_validationState = vState::BogusMissingNegativeIndication;
-    LOG(prefix<<qname<<": got an completely empty response for"<<qname<<"/"<<qtype<<", putting into negcache"<<endl);
-    g_negCache->add(ne);
-  }
-
   for (auto& rec : lwr.d_records) {
     if (rec.d_type != QType::OPT && rec.d_class != QClass::IN) {
       continue;

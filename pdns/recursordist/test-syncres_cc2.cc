@@ -311,10 +311,6 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_with_non_resolving)
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(SyncRes::getNonResolvingNSSize(), 2U);
 
-  // Originally empty NoData results where not cached, now they are
-  BOOST_CHECK_EQUAL(g_negCache->size(), 4U);
-  g_negCache->clear();
-
   // Again, should not change anything
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
@@ -323,10 +319,6 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_with_non_resolving)
   //BOOST_CHECK_EQUAL(ret[0].d_name, target);
 
   BOOST_CHECK_EQUAL(SyncRes::getNonResolvingNSSize(), 2U);
-
-  // Originally empty NoData results where not cached, now they are
-  BOOST_CHECK_EQUAL(g_negCache->size(), 4U);
-  g_negCache->clear();
 
   // Again, but now things should start working because of the queryCounter getting high enough
   // and one entry remains in the non-resolving cache

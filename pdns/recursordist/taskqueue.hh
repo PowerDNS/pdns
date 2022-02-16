@@ -45,11 +45,12 @@ struct ResolveTask
   uint16_t d_qtype;
   time_t d_deadline;
   bool d_refreshMode; // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
-  std::function<void(const struct timeval& now, bool logErrors, const ResolveTask& task)> d_func;
+  // Use a function ponter as comparing std::functions is a nuisance
+  void (*d_func)(const struct timeval& now, bool logErrors, const ResolveTask& task);
 
   bool operator<(const ResolveTask& a) const
   {
-    return std::tie(d_qname, d_qtype, d_refreshMode) < std::tie(d_qname, d_qtype, d_refreshMode);
+    return std::tie(d_qname, d_qtype, d_refreshMode, d_func) < std::tie(a.d_qname, a.d_qtype, a.d_refreshMode, a.d_func);
   }
   bool run(bool logErrors);
 };

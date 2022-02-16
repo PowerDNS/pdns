@@ -46,7 +46,7 @@ ResolveTask TaskQueue::pop()
 
 bool ResolveTask::run(bool logErrors)
 {
-  if (!d_func) {
+  if (d_func == nullptr) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
     log->error(Logr::Debug, "null task");
     return false;
