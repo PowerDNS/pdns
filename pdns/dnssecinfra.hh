@@ -37,7 +37,7 @@ class DNSCryptoKeyEngine
     explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
     virtual ~DNSCryptoKeyEngine() {};
     virtual string getName() const = 0;
-    
+
     typedef std::map<std::string, std::string> stormap_t;
     typedef std::vector<std::pair<std::string, std::string > > storvector_t;
     virtual void create(unsigned int bits)=0;
@@ -50,7 +50,7 @@ class DNSCryptoKeyEngine
        return msg;
     }
     virtual bool verify(const std::string& msg, const std::string& signature) const =0;
-    
+
     virtual std::string getPubKeyHash()const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
@@ -58,7 +58,7 @@ class DNSCryptoKeyEngine
     {
       return d_algorithm;
     }
- 
+
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap)=0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
     {
@@ -76,16 +76,16 @@ class DNSCryptoKeyEngine
     static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
-    
+
     typedef std::unique_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
-    
+
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static void testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
     static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
     static bool testAll();
     static bool testOne(int algo);
   private:
-    
+
     typedef std::map<unsigned int, maker_t*> makers_t;
     typedef std::map<unsigned int, vector<maker_t*> > allmakers_t;
     static makers_t& getMakers()
@@ -108,12 +108,12 @@ struct DNSSECPrivateKey
   {
     return getDNSKEY().getTag();
   }
-  
+
   const std::shared_ptr<DNSCryptoKeyEngine>& getKey() const
   {
     return d_key;
   }
-  
+
   void setKey(std::shared_ptr<DNSCryptoKeyEngine>& key)
   {
     d_key = key;
@@ -144,10 +144,10 @@ struct CanonicalCompare
 
     stringtok(avect, a, ".");
     stringtok(bvect, b, ".");
-    
+
     reverse(avect.begin(), avect.end());
     reverse(bvect.begin(), bvect.end());
-    
+
     return avect < bvect;
   }
 };
@@ -164,7 +164,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
 
 DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, uint8_t digest);
 
-class DNSSECKeeper; 
+class DNSSECKeeper;
 
 uint32_t getStartOfWeek();
 

@@ -160,8 +160,8 @@ ZONE MANIPULATION COMMANDS
 --------------------------
 
 add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
-    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
-    and optional *TTL*. If *TTL* is not set, default will be used. 
+    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
+    and optional *TTL*. If *TTL* is not set, default will be used.
 add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
     Add a autoprimary entry into the backend. This enables receiving zone updates from other servers.
 remove-autoprimary *IP* *NAMESERVER*
@@ -253,9 +253,9 @@ test-schema *ZONE*
     Test database schema, this creates the zone *ZONE*
 unset-presigned *ZONE*
     Disables presigned operation for *ZONE*.
-raw-lua-from-content *TYPE* *CONTENT*  
+raw-lua-from-content *TYPE* *CONTENT*
     Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
-zonemd-verify-file *ZONE* *FILE*  
+zonemd-verify-file *ZONE* *FILE*
     Validate ZONEMD for *ZONE* read from *FILE*.
 
 DEBUGGING TOOLS
