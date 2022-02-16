@@ -1830,11 +1830,12 @@ static void healthChecksThread()
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if (++dss->lastCheck < dss->d_config.checkInterval) {
+      if (dss->d_nextCheck > 0) {
+        --dss->d_nextCheck;
         continue;
       }
 
-      dss->lastCheck = 0;
+      dss->d_nextCheck = dss->d_config.checkInterval;
 
       if (dss->d_config.availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss)) {
@@ -2587,6 +2588,7 @@ int main(int argc, char** argv)
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     for (auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
       if (dss->d_config.availability == DownstreamState::Availability::Auto) {
+        dss->d_nextCheck = dss->d_config.checkInterval;
         if (!queueHealthCheck(mplexer, dss, true)) {
           dss->setUpStatus(false);
           warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
