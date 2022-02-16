@@ -22,7 +22,7 @@
 
 #include "taskqueue.hh"
 
-#include "logger.hh"
+#include "logging.hh"
 #include "syncres.hh"
 
 namespace pdns
@@ -47,7 +47,8 @@ ResolveTask TaskQueue::pop()
 bool ResolveTask::run(bool logErrors)
 {
   if (!d_func) {
-    g_log << Logger::Debug << "TaskQueue: null task for " << d_qname.toString() << '|' << QType(d_qtype).toString() << endl;
+    auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
+    log->error(Logr::Debug, "null task");
     return false;
   }
   struct timeval now;
@@ -57,7 +58,8 @@ bool ResolveTask::run(bool logErrors)
   }
   else {
     // Deadline passed
-    g_log << Logger::Debug << "TaskQueue: deadline for " << d_qname.toString() << '|' << QType(d_qtype).toString() << " passed" << endl;
+    auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
+    log->error(Logr::Debug, "deadline passed");
     return true;
   }
   return false;

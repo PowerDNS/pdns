@@ -22,7 +22,7 @@
 #include "rec-taskqueue.hh"
 #include "taskqueue.hh"
 #include "lock.hh"
-#include "logger.hh"
+#include "logging.hh"
 #include "stat_t.hh"
 #include "syncres.hh"
 
@@ -45,35 +45,36 @@ static struct taskstats s_resolve_tasks;
 
 static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
 {
+  auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()));
   const string msg = "Exception while running a background ResolveTask";
   SyncRes sr(now);
   vector<DNSRecord> ret;
   sr.setRefreshAlmostExpired(task.d_refreshMode);
   bool ex = true;
   try {
-    g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
+    log->info(Logr::Debug, "resolving");
     int res = sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
     ex = false;
-    g_log << Logger::Debug << "TaskQueue: DONE resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << ": " << res << endl;
+    log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records",  Logging::Loggable(ret.size()));
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << msg << ": " << e.what() << endl;
+    log->error(Logr::Error, msg, e.what());
   }
   catch (const PDNSException& e) {
-    g_log << Logger::Notice << msg << ": " << e.reason << endl;
+    log->error(Logr::Error, msg, e.reason);
   }
   catch (const ImmediateServFailException& e) {
     if (logErrors) {
-      g_log << Logger::Notice << msg << ": " << e.reason << endl;
+      log->error(Logr::Error, msg, e.reason);
     }
   }
   catch (const PolicyHitException& e) {
     if (logErrors) {
-      g_log << Logger::Notice << msg << ": PolicyHit" << endl;
+      log->error(Logr::Notice, msg, "PolicyHit");
     }
   }
   catch (...) {
-    g_log << Logger::Error << msg << endl;
+    log->error(Logr::Error, msg, "Unexpectec exception");
   }
   if (ex) {
     if (task.d_refreshMode) {

@@ -49,7 +49,7 @@ struct ResolveTask
 
   bool operator<(const ResolveTask& a) const
   {
-    return tie(d_qname, d_qtype, d_refreshMode) < tie(d_qname, d_qtype, d_refreshMode);
+    return std::tie(d_qname, d_qtype, d_refreshMode) < std::tie(d_qname, d_qtype, d_refreshMode);
   }
   bool run(bool logErrors);
 };
