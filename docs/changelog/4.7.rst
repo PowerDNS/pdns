@@ -1,0 +1,79 @@
+Changelogs for 4.7.x
+====================
+
+.. changelog::
+  :version: 4.7.0-alpha1
+  :released: 17th of February 2022
+
+  This is version 4.7.0-alpha1 of the Authoritative Server.
+  This release contains a few new features compared to 4.6, and a couple of other fixes/changes.
+
+  New features:
+
+  * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
+  * lmdbbackend databases now optionally use random IDs for objects
+  * a new LUA function called ``ifurlextup``
+  * autoprimary management in ``pdnsutil`` and the HTTP API
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11309
+
+    lmdb: add random ID generation feature
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11315
+
+    el7 builds: switch to boost 1.69
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11306
+
+    lmdb: default values for KeyDataDB members, thanks ubsan
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11227
+
+    auth LUA: add ifurlextup function
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11262
+
+    builder: migrate EL8 builds to oraclelinux, rename centos8 to el8 where possible
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11241
+
+    auth lmdb: add a UUID to newly created databases
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11100
+
+    new ``pdnsutil zonemd-verify-file`` command
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11102
+
+    auth: add autoprimary management in API & pdnsutil
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11108
+
+    libssl: fix compilation issues on older openssl versions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11101
+
+    save errno value as close(2) might clobber it
+
