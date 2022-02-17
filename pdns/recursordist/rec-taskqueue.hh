@@ -28,7 +28,7 @@ class DNSName;
 
 void runTaskOnce(bool logErrors);
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline);
-void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t deadline);
+void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline);
 
 // General task stats
 uint64_t getTaskPushes();

@@ -1177,7 +1177,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       }
       if (s_doIPv6) { // s_doIPv6 **IMPLIES** pdns::isQueryLocalAddressFamilyEnabled(AF_INET6) returned true
         if (ret.empty()) {
-          // We only go out imediately to find IPv6 records if we did not find any IPv4 ones.
+          // We only go out immediately to find IPv6 records if we did not find any IPv4 ones.
           newState = vState::Indeterminate;
           cset.clear();
           if (doResolve(qname, QType::AAAA, cset, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
@@ -1205,18 +1205,18 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       }
     }
     if (s_doIPv6 && !seenV6 && !cacheOnly) {
-      // No IPv6 NS records in cache, chek negcache and submit async task if negache does not have the data
+      // No IPv6 records in cache, check negcache and submit async task if negache does not have the data
       // so that the next time the cache or the negcache will have data
       NegCache::NegCacheEntry ne;
       bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, true);
       if (!inNegCache) {
-        pushResolveTask(qname, QType::AAAA, d_now.tv_sec + 60);
+        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60);
       }
     }
   }
-  catch (const PolicyHitException& e) {
-    /* we ignore a policy hit while trying to retrieve the addresses
-       of a NS and keep processing the current query */
+  catch (const PolicyHitException&) {
+    // We ignore a policy hit while trying to retrieve the addresses
+    // of a NS and keep processing the current query
   }
 
   if (ret.empty() && d_outqueries > startqueries) {

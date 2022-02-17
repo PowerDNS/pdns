@@ -167,22 +167,18 @@ void runTaskOnce(bool logErrors)
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
-  auto lock = s_taskQueue.lock();
-  bool running = !lock->rateLimitSet.insert(time(nullptr), task);
-  if (!running) {
-    ++s_almost_expired_tasks.pushed;
-    lock->queue.push(std::move(task));
-  }
+  s_taskQueue.lock()->queue.push(std::move(task));
+  ++s_almost_expired_tasks.pushed;
 }
 
-void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t deadline)
+void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline)
 {
   pdns::ResolveTask task{qname, qtype, deadline, false, resolve};
   auto lock = s_taskQueue.lock();
-  bool running = !lock->rateLimitSet.insert(time(nullptr), task);
-  if (!running) {
-    ++s_resolve_tasks.pushed;
+  bool inserted = lock->rateLimitSet.insert(now, task);
+  if (inserted) {
     lock->queue.push(std::move(task));
+    ++s_resolve_tasks.pushed;
   }
 }
 

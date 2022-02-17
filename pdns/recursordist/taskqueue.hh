@@ -45,7 +45,7 @@ struct ResolveTask
   uint16_t d_qtype;
   time_t d_deadline;
   bool d_refreshMode; // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
-  // Use a function ponter as comparing std::functions is a nuisance
+  // Use a function pointer as comparing std::functions is a nuisance
   void (*d_func)(const struct timeval& now, bool logErrors, const ResolveTask& task);
 
   bool operator<(const ResolveTask& a) const
