@@ -1830,7 +1830,7 @@ static void healthChecksThread()
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if (dss->d_nextCheck > 0) {
+      if (dss->d_nextCheck > 1) {
         --dss->d_nextCheck;
         continue;
       }

@@ -235,6 +235,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
       infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror());
     }
     updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    return;
   }
 
   /* we are using a connected socket but hey.. */
@@ -243,6 +244,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
       infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), data->d_ds->d_config.remote.toStringWithPort());
     }
     updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    return;
   }
 
   updateHealthCheckResult(data->d_ds, data->d_initial, handleResponse(data));
