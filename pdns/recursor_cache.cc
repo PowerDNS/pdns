@@ -252,7 +252,13 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
       }
       else {
         if (!entry->d_submitted) {
-          pushAlmostExpiredTask(qname, qtype, entry->d_ttd);
+          if (qtype == QType::ADDR) {
+            pushAlmostExpiredTask(qname, QType::A, entry->d_ttd);
+            pushAlmostExpiredTask(qname, QType::AAAA, entry->d_ttd);
+          }
+	  else {
+            pushAlmostExpiredTask(qname, qtype, entry->d_ttd);
+          }
           entry->d_submitted = true;
         }
       }
