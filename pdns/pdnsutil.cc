@@ -1234,7 +1234,7 @@ static int editZone(const DNSName &zone) {
   }
   if(checkZone(dk, B, zone, &checkrr)) {
   reAsk:;
-    cerr<<"\x1b[31;1mThere was a problem with your zone\x1b[0m\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: "<<endl;
+    cerr<<endl<<"\x1b[31;1mThere was a problem with your zone\x1b[0m\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: "<<std::flush;
     int c=read1char();
     cerr<<"\n";
     if(c!='a')
@@ -1276,7 +1276,7 @@ static int editZone(const DNSName &zone) {
     if (changed.find({zone, QType::SOA}) == changed.end()) {
      reAsk3:;
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
-      cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit:"<<endl;
+      cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit: "<<std::flush;
       int c = read1char();
       switch(c) {
         case 'y':
