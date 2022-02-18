@@ -256,7 +256,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
             pushAlmostExpiredTask(qname, QType::A, entry->d_ttd);
             pushAlmostExpiredTask(qname, QType::AAAA, entry->d_ttd);
           }
-	  else {
+          else {
             pushAlmostExpiredTask(qname, qtype, entry->d_ttd);
           }
           entry->d_submitted = true;
