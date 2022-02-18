@@ -32,6 +32,14 @@ void runTaskOnce(bool logErrors)
 
 void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
+  switch (qtype) {
+    // Internal types
+  case QType::ENT:
+  case QType::ADDR:
+  case QType::ALIAS:
+  case QType::LUA:
+    return;
+  }
   t_taskQueue.push({qname, qtype, deadline, true});
 }
 
