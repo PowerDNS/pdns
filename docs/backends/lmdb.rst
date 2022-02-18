@@ -94,6 +94,17 @@ PowerDNS Version  LMDB Schema version
 Numeric IDs inside the database are generated randomly instead of sequentially.
 If some external process is synchronising databases between systems, this will avoid conflicts when objects (domains, keys, etc.) get added.
 
+.. _settings-lmdb-map-size:
+
+``lmdb-random-ids``
+^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 4.7.0
+
+Size, in megabytes, of each LMDB database.
+This number can be increased later, but never decreased.
+Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
+
 LMDB Structure
 --------------
 
