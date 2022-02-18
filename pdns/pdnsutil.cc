@@ -1317,7 +1317,7 @@ static int editZone(const DNSName &zone) {
     cout<<endl<<"No changes to apply."<<endl;
     return(EXIT_SUCCESS);
   }
-  cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: ";
+  cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: "<<std::flush;
   int c=read1char();
   post.clear();
   cerr<<'\n';
