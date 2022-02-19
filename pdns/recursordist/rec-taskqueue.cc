@@ -34,28 +34,37 @@ public:
     d_expiry_seconds(t)
   {
   }
+
+  uint64_t purge(time_t now)
+  {
+    // This purge is relatively sleep, as we're walking an ordered index
+    uint64_t erased = 0;
+    auto& ind = d_set.template get<time_t>();
+    auto it = ind.begin();
+    while (it != ind.end()) {
+      if (it->d_ttd < now) {
+        ++erased;
+        it = ind.erase(it);
+      }
+      else {
+        break;
+      }
+    }
+    return erased;
+  }
+
   bool insert(time_t now, const pdns::ResolveTask& task)
   {
+    // We periodically purge
+    if (++d_count % 1024 == 0) {
+      purge(now);
+    }
     time_t ttd = now + d_expiry_seconds;
     bool inserted = d_set.emplace(task, ttd).second;
     if (!inserted) {
-      // Instead of a periodic clean, we always do it on a hit
-      // the operation should be cheap as we just walk the ordered time_t index
-      // There is a slim chance if we never hit a rate limiting case we'll never clean... oh well
-      auto& ind = d_set.template get<time_t>();
-      auto it = ind.begin();
-      bool erased = false;
-      while (it != ind.end()) {
-        if (it->d_ttd < now) {
-          erased = true;
-          it = ind.erase(it);
-        }
-        else {
-          break;
-        }
-      }
-      // Try again if the loop deleted at least one entry
-      if (erased) {
+      uint64_t erased = purge(now);
+      // Try again if the purge deleted at least one entry
+      if (erased > 0) {
         inserted = d_set.emplace(task, ttd).second;
       }
     }
@@ -78,6 +87,7 @@ private:
     timed_set_t;
   timed_set_t d_set;
   time_t d_expiry_seconds;
+  unsigned int d_count{0};
 };
 
 struct Queue
