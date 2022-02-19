@@ -1136,7 +1136,34 @@ static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
-static int editZone(const DNSName &zone) {
+class PDNSColors
+{
+public:
+  PDNSColors(bool nocolors)
+    : d_colors(!nocolors && isatty(STDOUT_FILENO) && getenv("NO_COLORS") == nullptr)
+  {
+  }
+  [[nodiscard]] string red() const
+  {
+    return d_colors ? "\x1b[31m" : "";
+  }
+  [[nodiscard]] string green() const
+  {
+    return d_colors ? "\x1b[32m" : "";
+  }
+  [[nodiscard]] string bold() const
+  {
+    return d_colors ? "\x1b[1m" : "";
+  }
+  [[nodiscard]] string rst() const
+  {
+    return d_colors ? "\x1b[0m" : "";
+  }
+private:
+  bool d_colors;
+};
+
+static int editZone(const DNSName &zone, const PDNSColors& col) {
   UeberBackend B;
   DomainInfo di;
   DNSSECKeeper dk(&B);
@@ -1234,7 +1261,7 @@ static int editZone(const DNSName &zone) {
   }
   if(checkZone(dk, B, zone, &checkrr)) {
   reAsk:;
-    cerr<<endl<<"\x1b[31;1mThere was a problem with your zone\x1b[0m\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: "<<std::flush;
+    cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
     int c=read1char();
     cerr<<"\n";
     if(c!='a')
@@ -1256,7 +1283,7 @@ static int editZone(const DNSName &zone) {
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
-    str<<"\033[0;31m-"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+    str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}] += str.str();
 
   }
@@ -1265,7 +1292,7 @@ static int editZone(const DNSName &zone) {
   for(const auto& d : diff) {
     ostringstream str;
 
-    str<<"\033[0;32m+"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+    str<<col.green() << "+" << d.d_name << " " << d.d_ttl << " IN " <<DNSRecordContent::NumberToType(d.d_type) << " " << d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
   cout<<"Detected the following changes:"<<endl;
@@ -1283,7 +1310,7 @@ static int editZone(const DNSName &zone) {
           {
             DNSRecord oldSoaDR = grouped[{zone, QType::SOA}].at(0); // there should be only one SOA record, so we can use .at(0);
             ostringstream str;
-            str<<"\033[0;31m-"<< oldSoaDR.d_name <<" "<<oldSoaDR.d_ttl<<" IN "<<DNSRecordContent::NumberToType(oldSoaDR.d_type)<<" "<<oldSoaDR.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+            str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.d_content->getZoneRepresentation(true) << col.rst() <<endl;
 
             SOAData sd;
             B.getSOAUncached(zone, sd);
@@ -1295,7 +1322,7 @@ static int editZone(const DNSName &zone) {
             DNSResourceRecord rr;
             makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
             DNSRecord dr(rr);
-            str<<"\033[0;32m+"<< dr.d_name <<" "<<dr.d_ttl<<" IN "<<DNSRecordContent::NumberToType(dr.d_type)<<" "<<dr.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+            str << col.green() << "+" << dr.d_name << " " << dr.d_ttl<< " IN " <<DNSRecordContent::NumberToType(dr.d_type) << " " <<dr.d_content->getZoneRepresentation(true) << col.rst() <<endl;
 
             changed[{dr.d_name, dr.d_type}]+=str.str();
             grouped[{dr.d_name, dr.d_type}].at(0) = dr;
@@ -2440,6 +2467,7 @@ try
     ("force", "force an action")
     ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
+    ("no-colors", "do not use colors in output")
     ("commands", po::value<vector<string> >());
 
   po::positional_options_description p;
@@ -3092,7 +3120,8 @@ try
     if (cmds.at(1) == ".")
       cmds.at(1).clear();
 
-    return editZone(DNSName(cmds.at(1)));
+    PDNSColors col(g_vm.count("no-colors"));
+    return editZone(DNSName(cmds.at(1)), col);
   }
   else if (cmds.at(0) == "clear-zone") {
     if(cmds.size() != 2) {
