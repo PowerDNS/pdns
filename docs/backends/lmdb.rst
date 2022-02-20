@@ -96,8 +96,8 @@ If some external process is synchronising databases between systems, this will a
 
 .. _settings-lmdb-map-size:
 
-``lmdb-random-ids``
-^^^^^^^^^^^^^^^^^^^
+``lmdb-map-size``
+^^^^^^^^^^^^^^^^^
 
   .. versionadded:: 4.7.0
 
