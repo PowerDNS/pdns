@@ -1999,6 +1999,16 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
 
   auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), t_pdl, std::move(data), std::move(records));
+
+  if (SyncRes::isUnsupported(dc->d_mdp.d_qtype)) {
+    g_stats.ignoredCount++;
+    if (!g_quiet) {
+      g_log << Logger::Notice << RecThreadInfo::id() << " Unsupported qtype " << dc->d_mdp.d_qtype << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+    }
+
+    return 0;
+  }
+
   dc->setSocket(fd);
   dc->d_tag = ctag;
   dc->d_qhash = qhash;

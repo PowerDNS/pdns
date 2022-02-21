@@ -181,13 +181,8 @@ void runTaskOnce(bool logErrors)
 
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
-  switch (qtype) {
-    // Internal types
-  case QType::ENT:
-  case QType::ADDR:
-  case QType::ALIAS:
-  case QType::LUA:
-    g_log << Logger::Debug << "Cannot push task for " << QType(qtype).toString() << endl;
+  if (SyncRes::isUnsupported(qtype)) {
+    g_log << Logger::Error << "Cannot push task for " << QType(qtype).toString() << endl;
     return;
   }
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
