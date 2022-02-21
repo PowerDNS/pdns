@@ -107,7 +107,7 @@ int main(int argc, char **argv)
   cleanSlashes(socketname);
 
   try {
-    string command=commands[0];
+    string command = commands[0];
     shared_ptr<DynMessenger> D;
     if(::arg()["remote-address"].empty())
       D=shared_ptr<DynMessenger>(new DynMessenger(socketname));
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
       try {
         pdns::checked_stoi_into(port, ::arg()["remote-port"]);
       }
-      catch(...) {
-        cerr<<"Unable to convert '"<<::arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
+      catch (...) {
+        cerr << "Unable to convert '" << ::arg()["remote-port"] << "' to a port number for connecting to remote PowerDNS\n";
         exit(99);
       }
 

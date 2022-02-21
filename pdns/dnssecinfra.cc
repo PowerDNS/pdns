@@ -188,10 +188,11 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
   makers_t::const_iterator iter = makers.find(algo);
-  if (iter != makers.cend())
+  if (iter != makers.cend()) {
     return (iter->second)(algo);
+  }
   else {
-    throw runtime_error("Request to create key object for unknown algorithm number "+std::to_string(algo));
+    throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
   }
 }
 
@@ -368,22 +369,20 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(
   return dpk;
 }
 
-
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
+  for (const makers_t::value_type& val : getMakers()) {
+    std::unique_ptr<DNSCryptoKeyEngine> ret = nullptr;
 
-  for (const makers_t::value_type& val : getMakers())
-  {
-    std::unique_ptr<DNSCryptoKeyEngine> ret=nullptr;
     try {
       ret = val.second(val.first);
       ret->fromPEMString(drc, raw);
       return ret;
     }
-    catch(...)
-    {
+    catch (...) {
     }
   }
+
   return nullptr;
 }
 

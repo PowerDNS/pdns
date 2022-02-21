@@ -59,13 +59,13 @@ class DNSCryptoKeyEngine
       return d_algorithm;
     }
 
-    virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap)=0;
+    virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) = 0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
     {
       throw std::runtime_error("Can't import from PEM string");
     }
     virtual void fromPublicKeyString(const std::string& content) = 0;
-    virtual bool checkKey(vector<string> *errorMessages = nullptr) const
+    virtual bool checkKey(vector<string>* errorMessages = nullptr) const
     {
       return true;
     }
