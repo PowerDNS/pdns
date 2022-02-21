@@ -168,6 +168,23 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
   return dpk;
 }
 
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+{
+  for (const makers_t::value_type& maker : getMakers()) {
+    std::unique_ptr<DNSCryptoKeyEngine> ret = nullptr;
+
+    try {
+      ret = maker.second(maker.first);
+      ret->fromPEMString(drc, raw);
+      return ret;
+    }
+    catch (...) {
+    }
+  }
+
+  return nullptr;
+}
+
 std::string DNSCryptoKeyEngine::convertToISC() const
 {
   storvector_t storvector = this->convertToISCVector();
@@ -367,23 +384,6 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(
   auto dpk = make(algorithm);
   dpk->fromPublicKeyString(content);
   return dpk;
-}
-
-std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-{
-  for (const makers_t::value_type& val : getMakers()) {
-    std::unique_ptr<DNSCryptoKeyEngine> ret = nullptr;
-
-    try {
-      ret = val.second(val.first);
-      ret->fromPEMString(drc, raw);
-      return ret;
-    }
-    catch (...) {
-    }
-  }
-
-  return nullptr;
 }
 
 /**

@@ -3286,9 +3286,10 @@ try
 
     string zone = cmds.at(1);
     string fname = cmds.at(2);
-    string line;
+
     ifstream ifs(fname.c_str());
-    string tmp, interim, raw;
+    string line;
+    string interim;
     while (getline(ifs, line)) {
       if (line[0] == '-') {
         continue;
@@ -3296,7 +3297,10 @@ try
       boost::trim(line);
       interim += line;
     }
+
+    string raw;
     B64Decode(interim, raw);
+
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromPEMString(drc, raw));
