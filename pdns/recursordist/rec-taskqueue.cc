@@ -187,7 +187,7 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
   case QType::ADDR:
   case QType::ALIAS:
   case QType::LUA:
-    g_log << Logger::Error << "Cannot push task for " << QType(qtype).toString() << endl;
+    g_log << Logger::Debug << "Cannot push task for " << QType(qtype).toString() << endl;
     return;
   }
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
