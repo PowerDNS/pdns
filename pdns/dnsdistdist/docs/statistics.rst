@@ -126,11 +126,11 @@ average response time over all queries.
 
 latency-count
 -------------
-Number of queries contributing to response time histogram
+Number of queries contributing to response time histogram and latency sum.
 
 latency-bucket
 --------------
-Number of queries contributing to response time histogram per latency bucket
+Histogram of response time latencies.
 
 latency0-1
 ----------
