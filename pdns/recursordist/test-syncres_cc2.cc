@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "test-syncres_cc.hh"
+#include "taskqueue.hh"
 #include "rec-taskqueue.hh"
 
 BOOST_AUTO_TEST_SUITE(syncres_cc2)
@@ -1822,9 +1823,9 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
   BOOST_CHECK_EQUAL(ttl, 29U);
 
   // One task should be submitted
-  BOOST_CHECK_EQUAL(g_test_tasks.size(), 1U);
+  BOOST_CHECK_EQUAL(getTaskSize(), 1U);
 
-  auto task = g_test_tasks.pop();
+  auto task = taskQueuePop();
 
   // Refresh the almost expired record, its NS records also gets updated
   sr->setRefreshAlmostExpired(task.d_refreshMode);

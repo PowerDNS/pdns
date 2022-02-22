@@ -36,6 +36,7 @@
 #include "syncres.hh"
 #include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
+#include "rec-taskqueue.hh"
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
@@ -1136,13 +1137,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
   bool oldFollowCNAME = d_followCNAME;
+  bool seenV6 = false;
   const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
   d_followCNAME = true;
 
   try {
-    // First look for both A and AAAA in the cache and be satisfied if we find anything
+    // First look for both A and AAAA in the cache
     res_t cset;
     if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
       for (const auto &i : cset) {
@@ -1154,14 +1156,16 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<AAAARecordContent>(i)) {
+          seenV6 = true;
           ret.push_back(rec->getCA(53));
         }
       }
     }
     if (ret.empty()) {
-      // Nothing in the cache...
+      // Neither A nor AAAA in the cache...
       vState newState = vState::Indeterminate;
       cset.clear();
+      // Go out to get A's
       if (s_doIPv4 && doResolve(qname, QType::A, cset, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
         for (auto const &i : cset) {
           if (i.d_type == QType::A) {
@@ -1173,25 +1177,26 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       }
       if (s_doIPv6) { // s_doIPv6 **IMPLIES** pdns::isQueryLocalAddressFamilyEnabled(AF_INET6) returned true
         if (ret.empty()) {
-          // We only go out to find IPv6 records if we did not find any IPv4 ones.
-          // Once IPv6 adoption matters, this needs to be revisited
+          // We only go out immediately to find IPv6 records if we did not find any IPv4 ones.
           newState = vState::Indeterminate;
           cset.clear();
           if (doResolve(qname, QType::AAAA, cset, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
             for (const auto &i : cset) {
               if (i.d_type == QType::AAAA) {
-                if (auto rec = getRR<AAAARecordContent>(i))
+                if (auto rec = getRR<AAAARecordContent>(i)) {
+                  seenV6 = true;
                   ret.push_back(rec->getCA(53));
+                }
               }
             }
           }
         } else {
-          // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache, we might have
-          // encountered some IPv6 glue
+          // We have some IPv4 records, consult the cache, we might have encountered some IPv6 glue
           cset.clear();
           if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
             for (const auto &i : cset) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
+                seenV6 = true;
                 ret.push_back(rec->getCA(53));
               }
             }
@@ -1199,10 +1204,19 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         }
       }
     }
+    if (s_doIPv6 && !seenV6 && !cacheOnly) {
+      // No IPv6 records in cache, check negcache and submit async task if negache does not have the data
+      // so that the next time the cache or the negcache will have data
+      NegCache::NegCacheEntry ne;
+      bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, true);
+      if (!inNegCache) {
+        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60);
+      }
+    }
   }
-  catch (const PolicyHitException& e) {
-    /* we ignore a policy hit while trying to retrieve the addresses
-       of a NS and keep processing the current query */
+  catch (const PolicyHitException&) {
+    // We ignore a policy hit while trying to retrieve the addresses
+    // of a NS and keep processing the current query
   }
 
   if (ret.empty() && d_outqueries > startqueries) {

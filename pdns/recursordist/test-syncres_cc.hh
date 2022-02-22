@@ -28,7 +28,6 @@
 #include "syncres.hh"
 #include "test-common.hh"
 #include "validate-recursor.hh"
-#include "taskqueue.hh"
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
@@ -75,5 +74,3 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
 LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut = true, boost::optional<time_t> now = boost::none, bool nsec3 = false, bool optOut = false);
 
 LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type);
-
-extern pdns::TaskQueue g_test_tasks;
