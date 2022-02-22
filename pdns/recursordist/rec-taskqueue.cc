@@ -26,7 +26,7 @@
 #include "stat_t.hh"
 #include "syncres.hh"
 
-// For rate lmiting, we maintain a set of tasks recently submitted.
+// For rate limiting purposes we maintain a set of tasks recently submitted.
 class TimedSet
 {
 public:
@@ -37,7 +37,7 @@ public:
 
   uint64_t purge(time_t now)
   {
-    // This purge is relatively sleep, as we're walking an ordered index
+    // This purge is relatively cheap, as we're walking an ordered index
     uint64_t erased = 0;
     auto& ind = d_set.template get<time_t>();
     auto it = ind.begin();
