@@ -141,6 +141,159 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 {
 }
 
+static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
+
+void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
+{
+  vector<DNSRecord> addRecords;
+
+  vState state = vState::Indeterminate;
+  switch (mode) {
+  case AdditionalMode::ResolveImmediately: {
+    set<GetBestNSAnswer> beenthere;
+    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
+    if (res != 0) {
+      return;
+    }
+    // We're conservative here. We do not add Bogus records in any circumstance, we add Indeterminates only if no
+    // validation is required.
+    if (vStateIsBogus(state)) {
+      return;
+    }
+    if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
+      return;
+    }
+    for (auto& rec : addRecords) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        additionals.push_back(std::move(rec));
+      }
+    }
+    break;
+  }
+  case AdditionalMode::CacheOnly:
+  case AdditionalMode::CacheOnlyRequireAuth: {
+    // Peek into cache
+    if (g_recCache->get(d_now.tv_sec, qname, qtype, mode == AdditionalMode::CacheOnlyRequireAuth, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+      return;
+    }
+    // See the comment for the ResolveImmediately case
+    if (vStateIsBogus(state)) {
+      return;
+    }
+    if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
+      return;
+    }
+    for (auto& rec : addRecords) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        rec.d_ttl -= d_now.tv_sec ;
+        additionals.push_back(std::move(rec));
+      }
+    }
+    break;
+  }
+  case AdditionalMode::ResolveDeferred:
+    // FIXME: Not yet implemented
+    // Look in cache for authoritative answer, if available return it
+    // If not, look in nergache and submit if not there as well. The logic should be the same as
+    // #11294, which is in review atm.
+    break;
+  case AdditionalMode::Ignore:
+    break;
+  }
+}
+
+// The main (recursive) function to add additionals
+// qtype: the original query type to expand
+// start: records to start from
+// This function uses to state sets to avoid infinite recursion and allow depulication
+// depth is the main recursion depth
+// additionaldepth is the depth for addAdditionals itself
+void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
+{
+  if (additionaldepth >= 5 || start.empty()) {
+    return;
+  }
+
+  auto luaLocal = g_luaconfs.getLocal();
+  const auto it = luaLocal->allowAdditionalQTypes.find(qtype);
+  if (it == luaLocal->allowAdditionalQTypes.end()) {
+    return;
+  }
+  std::unordered_set<DNSName> addnames;
+  for (const auto& rec : start) {
+    if (rec.d_place == DNSResourceRecord::ANSWER) {
+      // currently, this function only knows about names, we could also take the target types that are dependent on
+      // record contents into account
+      // e.g. for NAPTR records, go only for SRV for flag value "s", or A/AAAA for flag value "a"
+      allowAdditionalEntry(addnames, rec);
+    }
+  }
+
+  // We maintain two sets for deduplication:
+  // - uniqueCalls makes sure we never resolve a qname/qtype twice
+  // - uniqueResults makes sure we never add the same qname/qytype RRSet to the result twice,
+  //   but note that that set might contain multiple elements.
+
+  auto mode = it->second.second;
+  for (const auto& targettype : it->second.first) {
+    for (const auto& addname : addnames) {
+      std::vector<DNSRecord> records;
+      bool inserted = uniqueCalls.emplace(addname, targettype).second;
+      if (inserted) {
+        resolveAdditionals(addname, targettype, mode, records, depth);
+      }
+      if (!records.empty()) {
+        for (auto r = records.begin(); r != records.end(); ) {
+          QType covered = QType::ENT;
+          if (r->d_type == QType::RRSIG) {
+            if (auto rsig = getRR<RRSIGRecordContent>(*r); rsig != nullptr) {
+              covered = rsig->d_type;
+            }
+          }
+          if (uniqueResults.count(std::tuple(r->d_name, QType(r->d_type), covered)) > 0) {
+            // A bit expensive for vectors, but they are small
+            r = records.erase(r);
+          } else {
+            ++r;
+          }
+        }
+        for (const auto& r : records) {
+          additionals.push_back(r);
+          QType covered = QType::ENT;
+          if (r.d_type == QType::RRSIG) {
+            if (auto rsig = getRR<RRSIGRecordContent>(r); rsig != nullptr) {
+              covered = rsig->d_type;
+            }
+          }
+          uniqueResults.emplace(r.d_name, r.d_type, covered);
+        }
+        addAdditionals(targettype, records, additionals, uniqueCalls, uniqueResults, depth, additionaldepth + 1);
+      }
+    }
+  }
+}
+
+// The entry point for other code
+void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int depth)
+{
+  // The additional records of interest
+  std::vector<DNSRecord> additionals;
+
+  // We only call resolve for a specific name/type combo once
+  std::set<std::pair<DNSName, QType>> uniqueCalls;
+
+  // Collect multiple name/qtype from a single resolve but do not add a new set from new resolve calls
+  // For RRSIGs, the type covered is stored in the second Qtype
+  std::set<std::tuple<DNSName, QType, QType>> uniqueResults;
+
+  addAdditionals(qtype, ret, additionals, uniqueCalls, uniqueResults, depth, 0);
+
+  for (auto& rec : additionals) {
+    rec.d_place = DNSResourceRecord::ADDITIONAL;
+    ret.push_back(std::move(rec));
+  }
+}
+
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth)
 {
@@ -190,6 +343,11 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
+  // Avoid calling addAdditionals() if we know we won't find anything
+  auto luaLocal = g_luaconfs.getLocal();
+  if (res == 0 && qclass == QClass::IN && luaLocal->allowAdditionalQTypes.find(qtype) != luaLocal->allowAdditionalQTypes.end()) {
+    addAdditionals(qtype, ret, depth);
+  }
   d_eventTrace.add(RecEventTrace::SyncRes, res, false);
   return res;
 }
@@ -3058,32 +3216,50 @@ void SyncRes::fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSNam
   }
 }
 
-static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
+static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
 {
   switch(rec.d_type) {
   case QType::MX:
-  {
     if (auto mxContent = getRR<MXRecordContent>(rec)) {
       allowedAdditionals.insert(mxContent->d_mxname);
     }
-    return true;
-  }
+    break;
   case QType::NS:
-  {
     if (auto nsContent = getRR<NSRecordContent>(rec)) {
       allowedAdditionals.insert(nsContent->getNS());
     }
-    return true;
-  }
+    break;
   case QType::SRV:
-  {
     if (auto srvContent = getRR<SRVRecordContent>(rec)) {
       allowedAdditionals.insert(srvContent->d_target);
     }
-    return true;
-  }
+    break;
+  case QType::SVCB: /* fall-through */
+  case QType::HTTPS:
+    if (auto svcbContent = getRR<SVCBBaseRecordContent>(rec)) {
+      if (svcbContent->getPriority() > 0) {
+        DNSName target = svcbContent->getTarget();
+        if (target.isRoot()) {
+          target = rec.d_name;
+        }
+        allowedAdditionals.insert(target);
+      }
+      else {
+        // FIXME: Alias mode not implemented yet
+      }
+    }
+    break;
+  case QType::NAPTR:
+    if (auto naptrContent = getRR<NAPTRRecordContent>(rec)) {
+      auto flags = naptrContent->getFlags();
+      toLowerInPlace(flags);
+      if (flags.find('a') || flags.find('s')) {
+        allowedAdditionals.insert(naptrContent->getReplacement());
+      }
+    }
+    break;
   default:
-    return false;
+    break;
   }
 }
 

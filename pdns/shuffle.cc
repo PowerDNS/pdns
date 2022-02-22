@@ -73,7 +73,7 @@ void pdns::shuffle(std::vector<DNSZoneRecord>& rrs)
 }
 
 // shuffle, maintaining some semblance of order
-static void shuffle(std::vector<DNSRecord>& rrs)
+static void shuffle(std::vector<DNSRecord>& rrs, bool includingAdditionals)
 {
   // This shuffles in the same style as the above method, keeping CNAME in the front and RRSIGs at the end
   std::vector<DNSRecord>::iterator first, second;
@@ -91,6 +91,10 @@ static void shuffle(std::vector<DNSRecord>& rrs)
   pdns::dns_random_engine r;
   if (second - first > 1) {
     shuffle(first, second, r);
+  }
+
+  if (!includingAdditionals) {
+    return;
   }
 
   // now shuffle the additional records
@@ -123,10 +127,10 @@ static uint16_t mapTypesToOrder(uint16_t type)
 
 // make sure rrs is sorted in d_place order to avoid surprises later
 // then shuffle the parts that desire shuffling
-void pdns::orderAndShuffle(vector<DNSRecord>& rrs)
+void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
 {
   std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord& a, const DNSRecord& b) {
     return std::make_tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::make_tuple(b.d_place, mapTypesToOrder(b.d_type));
   });
-  shuffle(rrs);
+  shuffle(rrs, includingAdditionals);
 }

@@ -161,8 +161,24 @@ cname-custom-a-target.example.      3600 IN A 192.0.2.102
 secure.example.          3600 IN SOA  {soa}
 secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
+secure.example.          3600 IN MX   10 mx1.secure.example.
+secure.example.          3600 IN MX   20 mx2.secure.example.
+
+naptr.secure.example.    60   IN NAPTR   10 10 "a" "X" "A" s1.secure.example.
+naptr.secure.example.    60   IN NAPTR   10 10 "s" "Y" "B" service1.secure.example.
+naptr.secure.example.    60   IN NAPTR   10 10 "s" "Z" "C" service2.secure.example.
+service1.secure.example. 60   IN SRV     20 100 8080 a.secure.example.
+service2.secure.example. 60   IN SRV     20 100 8080 b.secure.example.
+
 
 secure.example.          3600 IN A    192.0.2.17
+mx1.secure.example.      3600 IN A    192.0.2.18
+mx2.secure.example.      3600 IN AAAA    1::2
+s1.secure.example.       3600 IN A    192.0.2.19
+a.secure.example.        3600 IN A    192.0.2.20
+a.secure.example.        3600 IN A    192.0.2.22
+b.secure.example.        3600 IN A    192.0.2.21
+b.secure.example.        3600 IN AAAA  1::3
 
 host1.secure.example.    3600 IN A    192.0.2.2
 cname.secure.example.    3600 IN CNAME host1.secure.example.
@@ -863,6 +879,30 @@ distributor-threads={threads}""".format(confdir=confdir,
         if not found:
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
+    def assertRRsetInAdditional(self, msg, rrset):
+        """Asserts the rrset (without comparing TTL) exists in the
+        additional section of msg
+
+        @param msg: the dns.message.Message to check
+        @param rrset: a dns.rrset.RRset object"""
+
+        ret = ''
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message")
+
+        if not isinstance(rrset, dns.rrset.RRset):
+            raise TypeError("rrset is not a dns.rrset.RRset")
+
+        found = False
+        for ans in msg.additional:
+            ret += "%s\n" % ans.to_text()
+            if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
+                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                found = True
+
+        if not found:
+            raise AssertionError("RRset not found in additional section\n\n%s" % ret)
+
     def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):
         """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
         that covers that RRset. If keys is not None, this function will also try to
@@ -904,6 +944,47 @@ distributor-threads={threads}""".format(confdir=confdir,
             except dns.dnssec.ValidationFailure as e:
                 raise AssertionError("Signature validation failed for %s:\n%s" % (msg.question[0].to_text(), e))
 
+    def assertMatchingRRSIGInAdditional(self, msg, coveredRRset, keys=None):
+        """Looks for coveredRRset in the additional section and if there is an RRSIG RRset
+        that covers that RRset. If keys is not None, this function will also try to
+        validate the RRset against the RRSIG
+
+        @param msg: The dns.message.Message to check
+        @param coveredRRset: The RRSet to check for
+        @param keys: a dictionary keyed by dns.name.Name with node or rdataset values to use for validation"""
+
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message")
+
+        if not isinstance(coveredRRset, dns.rrset.RRset):
+            raise TypeError("coveredRRset is not a dns.rrset.RRset")
+
+        msgRRsigRRSet = None
+        msgRRSet = None
+
+        ret = ''
+        for ans in msg.additional:
+            ret += ans.to_text() + "\n"
+
+            if ans.match(coveredRRset.name, coveredRRset.rdclass, coveredRRset.rdtype, 0, None):
+                msgRRSet = ans
+            if ans.match(coveredRRset.name, dns.rdataclass.IN, dns.rdatatype.RRSIG, coveredRRset.rdtype, None):
+                msgRRsigRRSet = ans
+            if msgRRSet and msgRRsigRRSet:
+                break
+
+        if not msgRRSet:
+            raise AssertionError("RRset for '%s' not found in additional" % msg.question[0].to_text())
+
+        if not msgRRsigRRSet:
+            raise AssertionError("No RRSIGs found in additional for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
+
+        if keys:
+            try:
+                dns.dnssec.validate(msgRRSet, msgRRsigRRSet.to_rdataset(), keys)
+            except dns.dnssec.ValidationFailure as e:
+                raise AssertionError("Signature validation failed for %s:\n%s" % (msg.question[0].to_text(), e))
+
     def assertNoRRSIGsInAnswer(self, msg):
         """Checks if there are _no_ RRSIGs in the answer section of msg"""
 
@@ -920,6 +1001,9 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     def assertAnswerEmpty(self, msg):
         self.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+
+    def assertAdditionalEmpty(self, msg):
+        self.assertTrue(len(msg.additional) == 0, "Data found in the the additional section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.additional])))
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):
