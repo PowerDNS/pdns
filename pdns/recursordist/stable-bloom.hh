@@ -168,7 +168,7 @@ private:
     // MurmurHash3 assumes the data is uint32_t aligned, so fixup if needed
     // It does handle string lengths that are not a multiple of sizeof(uint32_t) correctly
     if (reinterpret_cast<uintptr_t>(data.data()) % sizeof(uint32_t) != 0) {
-      NoInitVector<uint32_t> x((data.length() / sizeof(int32_t)) + 1);
+      NoInitVector<uint32_t> x((data.length() / sizeof(uint32_t)) + 1);
       memcpy(x.data(), data.data(), data.length());
       MurmurHash3_x86_32(x.data(), data.length(), 1, &h1);
       MurmurHash3_x86_32(x.data(), data.length(), 2, &h2);
