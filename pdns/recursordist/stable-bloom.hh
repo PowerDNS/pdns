@@ -28,6 +28,7 @@
 #include <arpa/inet.h>
 #include <boost/dynamic_bitset.hpp>
 #include "misc.hh"
+#include "noinitvector.hh"
 #include "ext/probds/murmur3.h"
 
 namespace bf
@@ -164,8 +165,18 @@ private:
   std::vector<uint32_t> hash(const std::string& data) const
   {
     uint32_t h1, h2;
-    MurmurHash3_x86_32(data.c_str(), data.length(), 1, (void*)&h1);
-    MurmurHash3_x86_32(data.c_str(), data.length(), 2, (void*)&h2);
+    // MurmurHash3 assumes the data is uint32_t aligned, so fixup if needed
+    // It does handle string lengths that are not a multiple of sizeof(uint32_t) correctly
+    if (reinterpret_cast<uintptr_t>(data.data()) % sizeof(uint32_t) != 0) {
+      NoInitVector<uint32_t> x((data.length() / sizeof(uint32_t)) + 1);
+      memcpy(x.data(), data.data(), data.length());
+      MurmurHash3_x86_32(x.data(), data.length(), 1, &h1);
+      MurmurHash3_x86_32(x.data(), data.length(), 2, &h2);
+    }
+    else {
+      MurmurHash3_x86_32(data.data(), data.length(), 1, &h1);
+      MurmurHash3_x86_32(data.data(), data.length(), 2, &h2);
+    }
     std::vector<uint32_t> ret_hashes(d_k);
     for (size_t i = 0; i < d_k; ++i) {
       ret_hashes[i] = h1 + i * h2;
