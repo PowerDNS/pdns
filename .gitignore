@@ -57,3 +57,4 @@ __pycache__
 .env
 compile_commands.*
 /.cache
+/.clang-tidy
