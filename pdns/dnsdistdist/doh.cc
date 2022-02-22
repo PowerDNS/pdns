@@ -661,33 +661,9 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
     }
 
     ComboAddress dest = du->ids.origDest;
-    unsigned int idOffset = (du->downstream->idOffset++) % du->downstream->idStates.size();
-    IDState* ids = &du->downstream->idStates[idOffset];
-    ids->age = 0;
-    DOHUnit* oldDU = nullptr;
-    if (ids->isInUse()) {
-      /* that means that the state was in use, possibly with an allocated
-         DOHUnit that we will need to handle, but we can't touch it before
-         confirming that we now own this state */
-      oldDU = ids->du;
-    }
-
-    /* we atomically replace the value, we now own this state */
-    int64_t generation = ids->generation++;
-    if (!ids->markAsUsed(generation)) {
-      /* the state was not in use.
-         we reset 'oldDU' because it might have still been in use when we read it. */
-      oldDU = nullptr;
-      ++du->downstream->outstanding;
-    }
-    else {
-      ids->du = nullptr;
-      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
-         to handle it because it's about to be overwritten. */
-      ++du->downstream->reuseds;
-      ++g_stats.downstreamTimeouts;
-      handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-    }
+    unsigned int idOffset = 0;
+    int64_t generation;
+    IDState* ids = du->downstream->getIDState(idOffset, generation);
 
     ids->origFD = 0;
     /* increase the ref count since we are about to store the pointer */
@@ -724,7 +700,8 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       }
     }
 
-    int fd = pickBackendSocketForSending(du->downstream);
+    int fd = du->downstream->pickSocketForSending();
+    ids->backendFD = fd;
     try {
       /* you can't touch du after this line, unless the call returned a non-negative value,
          because it might already have been freed */

@@ -54,6 +54,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
+#include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-tcp.hh"
@@ -136,7 +137,6 @@ GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
-int g_udpTimeout{2};
 
 bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
@@ -538,23 +538,6 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
   return true;
 }
 
-int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state)
-{
-  return state->sockets[state->socketsOffset++ % state->sockets.size()];
-}
-
-static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<DownstreamState>& state, std::vector<int>& ready)
-{
-  ready.clear();
-
-  if (state->sockets.size() == 1) {
-    ready.push_back(state->sockets[0]);
-    return ;
-  }
-
-  (*state->mplexer.lock())->getAvailableFDs(ready, 1000);
-}
-
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
 {
   struct timespec ts;
@@ -593,7 +576,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
   for(;;) {
     try {
-      pickBackendSocketsReadyForReceiving(dss, sockets);
+      dss->pickSocketsReadyForReceiving(sockets);
       if (dss->isStopped()) {
         break;
       }
@@ -614,11 +597,11 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
         queryId = dh->id;
 
-        if (queryId >= dss->idStates.size()) {
+        IDState* ids = dss->getExistingState(queryId);
+        if (ids == nullptr) {
           continue;
         }
 
-        IDState* ids = &dss->idStates[queryId];
         int64_t usageIndicator = ids->usageIndicator;
 
         if (!IDState::isInUse(usageIndicator)) {
@@ -640,7 +623,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         int origFD = ids->origFD;
 
         unsigned int qnameWireLength = 0;
-        if (!responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
+        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
           continue;
         }
 
@@ -701,6 +684,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
         handleResponseSent(*ids, udiff, *dr.remote, dss->remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
+        dss->releaseState(queryId);
 
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
@@ -1541,33 +1525,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
-    IDState* ids = &ss->idStates[idOffset];
-    ids->age = 0;
-    DOHUnitUniquePtr du(nullptr, DOHUnit::release);
-
-    /* that means that the state was in use, possibly with an allocated
-       DOHUnit that we will need to handle, but we can't touch it before
-       confirming that we now own this state */
-    if (ids->isInUse()) {
-      du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
-    }
-
-    /* we atomically replace the value, we now own this state */
-    if (!ids->markAsUsed()) {
-      /* the state was not in use.
-         we reset 'du' because it might have still been in use when we read it. */
-      du.release();
-      ++ss->outstanding;
-    }
-    else {
-      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
-         to handle it because it's about to be overwritten. */
-      ids->du = nullptr;
-      ++ss->reuseds;
-      ++g_stats.downstreamTimeouts;
-      handleDOHTimeout(std::move(du));
-    }
+    unsigned int idOffset = 0;
+    int64_t generation;
+    IDState* ids = ss->getIDState(idOffset, generation);
 
     ids->cs = &cs;
     ids->origFD = cs.udpFD;
@@ -1588,7 +1548,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       addProxyProtocol(dq);
     }
 
-    int fd = pickBackendSocketForSending(ss);
+    int fd = ss->pickSocketForSending();
+    ids->backendFD = fd;
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query);
 
     if(ret < 0) {
@@ -1756,16 +1717,6 @@ static void udpClientThread(ClientState* cs)
   }
 }
 
-
-uint16_t getRandomDNSID()
-{
-#ifdef HAVE_LIBSODIUM
-  return randombytes_uniform(65536);
-#else
-  return (random() % 65536);
-#endif
-}
-
 boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
 pdns::stat16_t g_cacheCleaningDelay{60};
 pdns::stat16_t g_cacheCleaningPercentage{100};
@@ -1896,41 +1847,7 @@ static void healthChecksThread()
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
 
-      for (IDState& ids  : dss->idStates) { // timeouts
-        int64_t usageIndicator = ids.usageIndicator;
-        if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
-          /* We mark the state as unused as soon as possible
-             to limit the risk of racing with the
-             responder thread.
-          */
-          auto oldDU = ids.du;
-
-          if (!ids.tryMarkUnused(usageIndicator)) {
-            /* this state has been altered in the meantime,
-               don't go anywhere near it */
-            continue;
-          }
-          ids.du = nullptr;
-          handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-          oldDU = nullptr;
-          ids.age = 0;
-          dss->reuseds++;
-          --dss->outstanding;
-          ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
-          vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
-                   dss->remote.toStringWithPort(), dss->getName(),
-                   ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
-
-          struct timespec ts;
-          gettime(&ts);
-
-          struct dnsheader fake;
-          memset(&fake, 0, sizeof(fake));
-          fake.id = ids.origID;
-
-          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
-        }
-      }
+      dss->handleTimeouts();
     }
 
     handleQueuedHealthChecks(*mplexer);
@@ -2270,17 +2187,10 @@ int main(int argc, char** argv)
       cerr<<"Unable to initialize crypto library"<<endl;
       exit(EXIT_FAILURE);
     }
-    g_hashperturb=randombytes_uniform(0xffffffff);
-    srandom(randombytes_uniform(0xffffffff));
-#else
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
-      g_hashperturb=random();
-    }
-
 #endif
+    dnsdist::initRandom();
+    g_hashperturb = dnsdist::getRandomValue(0xffffffff);
+
     ComboAddress clientAddress = ComboAddress();
     g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
     struct option longopts[]={

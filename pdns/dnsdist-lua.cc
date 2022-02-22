@@ -1279,7 +1279,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout = timeout; });
 
-  luaCtx.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout = timeout; });
+  luaCtx.writeFunction("setUDPTimeout", [](int timeout) { DownstreamState::s_udpTimeout = timeout; });
 
   luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
     if (!g_configurationDone) {
@@ -2777,6 +2777,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     g_socketUDPSendBuffer = snd;
     g_socketUDPRecvBuffer = recv;
+  });
+
+  luaCtx.writeFunction("setRandomizedOutgoingSockets", [](bool randomized) {
+    DownstreamState::s_randomizeSockets = randomized;
+  });
+
+  luaCtx.writeFunction("setRandomizedIdsOverUDP", [](bool randomized) {
+    DownstreamState::s_randomizeIDs = randomized;
   });
 
 #if defined(HAVE_LIBSSL)

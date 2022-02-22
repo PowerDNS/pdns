@@ -690,7 +690,7 @@ struct CrossProtocolQuery;
 
 struct DownstreamState
 {
-   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
 
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string()) {}
@@ -736,10 +736,11 @@ struct DownstreamState
 private:
   std::string name;
   std::string nameWithAddr;
+  LockGuarded<std::map<uint16_t, IDState>> d_idStatesMap;
+  vector<IDState> idStates;
 public:
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::vector<int> sockets;
-  vector<IDState> idStates;
   set<string> pools;
   std::mutex connectLock;
   std::thread tid;
@@ -878,6 +879,13 @@ public:
   }
 
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
+  int pickSocketForSending();
+  void pickSocketsReadyForReceiving(std::vector<int>& ready);
+  void handleTimeouts();
+  IDState* getIDState(unsigned int& id, int64_t& generation);
+  IDState* getExistingState(unsigned int id);
+  void releaseState(unsigned int id);
+
   dnsdist::Protocol getProtocol() const
   {
     if (isDoH()) {
@@ -891,6 +899,12 @@ public:
     }
     return dnsdist::Protocol::DoUDP;
   }
+
+  static int s_udpTimeout;
+  static bool s_randomizeSockets;
+  static bool s_randomizeIDs;
+private:
+  void handleTimeout(IDState& ids);
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -989,7 +1003,6 @@ extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
-extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern boost::optional<uint64_t> g_maxTCPClientThreads;
@@ -1052,8 +1065,6 @@ extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
-uint16_t getRandomDNSID();
-
 #include "dnsdist-snmp.hh"
 
 extern bool g_snmpEnabled;
@@ -1071,7 +1082,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
-int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol);
 

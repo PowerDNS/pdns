@@ -24,6 +24,7 @@
 #include "tcpiohandler-mplexer.hh"
 #include "dnswriter.hh"
 #include "dolog.hh"
+#include "dnsdist-random.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-session-cache.hh"
@@ -325,7 +326,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 {
   try
   {
-    uint16_t queryID = getRandomDNSID();
+    uint16_t queryID = dnsdist::getRandomDNSID();
     DNSName checkName = ds->checkName;
     uint16_t checkType = ds->checkType.getCode();
     uint16_t checkClass = ds->checkClass;

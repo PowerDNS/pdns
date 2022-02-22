@@ -22,6 +22,8 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-random.hh"
+#include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
 #include "dolog.hh"
 
@@ -174,7 +176,12 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
 
 void DownstreamState::connectUDPSockets(size_t numberOfSockets)
 {
-  idStates.resize(g_maxOutstanding);
+  if (s_randomizeIDs) {
+    idStates.clear();
+  }
+  else {
+    idStates.resize(g_maxOutstanding);
+  }
   sockets.resize(numberOfSockets);
 
   if (sockets.size() > 1) {
@@ -210,6 +217,197 @@ void DownstreamState::incCurrentConnectionsCount()
   if (currentConnectionsCount > tcpMaxConcurrentConnections) {
     tcpMaxConcurrentConnections.store(currentConnectionsCount);
   }
+}
+
+int DownstreamState::pickSocketForSending()
+{
+  size_t numberOfSockets = sockets.size();
+  if (numberOfSockets == 1) {
+    return sockets[0];
+  }
+
+  size_t idx;
+  if (s_randomizeSockets) {
+    idx = dnsdist::getRandomValue(numberOfSockets);
+  }
+  else {
+    idx = socketsOffset++;
+  }
+
+  return sockets[idx % numberOfSockets];
+}
+
+void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
+{
+  ready.clear();
+
+  if (sockets.size() == 1) {
+    ready.push_back(sockets[0]);
+    return ;
+  }
+
+  (*mplexer.lock())->getAvailableFDs(ready, 1000);
+}
+
+bool DownstreamState::s_randomizeSockets{false};
+bool DownstreamState::s_randomizeIDs{false};
+int DownstreamState::s_udpTimeout{2};
+
+static bool isIDSExpired(IDState& ids)
+{
+  auto age = ids.age++;
+  return age > DownstreamState::s_udpTimeout;
+}
+
+void DownstreamState::handleTimeout(IDState& ids)
+{
+  /* We mark the state as unused as soon as possible
+     to limit the risk of racing with the
+     responder thread.
+  */
+  auto oldDU = ids.du;
+
+  ids.du = nullptr;
+  handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
+  oldDU = nullptr;
+  ids.age = 0;
+  reuseds++;
+  --outstanding;
+  ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
+  vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
+           remote.toStringWithPort(), getName(),
+           ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
+
+  struct timespec ts;
+  gettime(&ts);
+
+  struct dnsheader fake;
+  memset(&fake, 0, sizeof(fake));
+  fake.id = ids.origID;
+
+  g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, remote, getProtocol());
+}
+
+void DownstreamState::handleTimeouts()
+{
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+    for (auto it = map->begin(); it != map->end(); ) {
+      auto& ids = it->second;
+      if (isIDSExpired(ids)) {
+        handleTimeout(ids);
+        it = map->erase(it);
+        continue;
+      }
+      ++it;
+    }
+  }
+  else {
+    for (IDState& ids : idStates) {
+      int64_t usageIndicator = ids.usageIndicator;
+      if (IDState::isInUse(usageIndicator) && isIDSExpired(ids)) {
+        if (!ids.tryMarkUnused(usageIndicator)) {
+          /* this state has been altered in the meantime,
+             don't go anywhere near it */
+          continue;
+        }
+
+        handleTimeout(ids);
+      }
+    }
+  }
+}
+
+IDState* DownstreamState::getExistingState(unsigned int stateId)
+{
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+    auto it = map->find(stateId);
+    if (it == map->end()) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+  else {
+    if (stateId >= idStates.size()) {
+      return nullptr;
+    }
+    return &idStates[stateId];
+  }
+}
+
+void DownstreamState::releaseState(unsigned int stateId)
+{
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+    auto it = map->find(stateId);
+    if (it == map->end()) {
+      return;
+    }
+    if (it->second.isInUse()) {
+      return;
+    }
+    map->erase(it);
+  }
+}
+
+IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generation)
+{
+  DOHUnitUniquePtr du(nullptr, DOHUnit::release);
+  IDState* ids = nullptr;
+  if (s_randomizeIDs) {
+    /* if the state is already in use we will retry,
+       up to 5 five times. The last selected one is used
+       even if it was already in use */
+    size_t remainingAttempts = 5;
+    auto map = d_idStatesMap.lock();
+
+    bool done = false;
+    do {
+      selectedID = dnsdist::getRandomValue(std::numeric_limits<uint16_t>::max());
+      auto [it, inserted] = map->insert({selectedID, IDState()});
+      ids = &it->second;
+      if (inserted) {
+        done = true;
+      }
+      else {
+        remainingAttempts--;
+      }
+    }
+    while (!done && remainingAttempts > 0);
+  }
+  else {
+    selectedID = (idOffset++) % idStates.size();
+    ids = &idStates[selectedID];
+  }
+
+  ids->age = 0;
+
+  /* that means that the state was in use, possibly with an allocated
+     DOHUnit that we will need to handle, but we can't touch it before
+     confirming that we now own this state */
+  if (ids->isInUse()) {
+    du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
+  }
+
+  /* we atomically replace the value, we now own this state */
+  generation = ids->generation++;
+  if (!ids->markAsUsed(generation)) {
+    /* the state was not in use.
+       we reset 'du' because it might have still been in use when we read it. */
+    du.release();
+    ++outstanding;
+  }
+  else {
+    /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+       to handle it because it's about to be overwritten. */
+    ids->du = nullptr;
+    ++reuseds;
+    ++g_stats.downstreamTimeouts;
+    handleDOHTimeout(std::move(du));
+  }
+
+  return ids;
 }
 
 size_t ServerPool::countServers(bool upOnly)
