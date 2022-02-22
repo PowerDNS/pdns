@@ -283,6 +283,7 @@ testrunner_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
+	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
@@ -321,6 +322,7 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
+	test-rec-taskqueue.cc \
 	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \

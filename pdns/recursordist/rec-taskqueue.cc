@@ -71,6 +71,11 @@ public:
     return inserted;
   }
 
+  void clear()
+  {
+    d_set.clear();
+  }
+
 private:
   struct Entry
   {
@@ -205,6 +210,18 @@ uint64_t getTaskExpired()
 uint64_t getTaskSize()
 {
   return s_taskQueue.lock()->queue.size();
+}
+
+void taskQueueClear()
+{
+  auto lock = s_taskQueue.lock();
+  lock->queue.clear();
+  lock->rateLimitSet.clear();
+}
+
+pdns::ResolveTask taskQueuePop()
+{
+  return s_taskQueue.lock()->queue.pop();
 }
 
 uint64_t getAlmostExpiredTasksPushed()

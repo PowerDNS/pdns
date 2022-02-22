@@ -86,6 +86,11 @@ public:
     d_expired++;
   }
 
+  void clear()
+  {
+    d_queue.clear();
+  }
+
 private:
   struct HashTag
   {

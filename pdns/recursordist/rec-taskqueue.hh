@@ -25,10 +25,15 @@
 #include <time.h>
 
 class DNSName;
-
+namespace pdns
+{
+struct ResolveTask;
+}
 void runTaskOnce(bool logErrors);
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline);
 void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline);
+void taskQueueClear();
+pdns::ResolveTask taskQueuePop();
 
 // General task stats
 uint64_t getTaskPushes();

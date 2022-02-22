@@ -17,7 +17,10 @@ GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
 bool g_lowercaseOutgoing = false;
-
+#if 0
+pdns::TaskQueue g_test_tasks;
+pdns::TaskQueue g_resolve_tasks;
+#endif
 /* Fake some required functions we didn't want the trouble to
    link with */
 ArgvMap& arg()
@@ -207,6 +210,7 @@ void initSR(bool debug)
   g_maxNSEC3Iterations = 2500;
 
   g_aggressiveNSECCache.reset();
+  taskQueueClear();
 
   ::arg().set("version-string", "string reported on version.pdns or version.bind") = "PowerDNS Unit Tests";
   ::arg().set("rng") = "auto";
@@ -550,15 +554,4 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
     return LWResult::Result::Success;
   }
   return LWResult::Result::Timeout;
-}
-
-pdns::TaskQueue g_test_tasks;
-
-void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
-{
-  g_test_tasks.push({qname, qtype, deadline, true, nullptr});
-}
-
-void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline)
-{
 }
