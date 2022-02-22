@@ -162,9 +162,9 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
     if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
       return;
     }
-    for (const auto& rec : addRecords) {
+    for (auto& rec : addRecords) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
-        additionals.push_back(rec);
+        additionals.push_back(std::move(rec));
       }
     }
     break;
@@ -185,13 +185,13 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
     for (auto& rec : addRecords) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
         rec.d_ttl -= d_now.tv_sec ;
-        additionals.push_back(rec);
+        additionals.push_back(std::move(rec));
       }
     }
     break;
   }
   case AdditionalMode::ResolveDeferred:
-    // Not yet implemented
+    // FIXME: Not yet implemented
     // Look in cache for authoritative answer, if available return it
     // If not, look in nergache and submit if not there as well. The logic should be the same as
     // #11294, which is in review atm.
@@ -201,10 +201,10 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
   }
 }
 
-// The main (recursive) function to add additonals
+// The main (recursive) function to add additionals
 // qtype: the original query type to expand
 // start: records to start from
-// This function uses to state sets to avoid infinite recursion
+// This function uses to state sets to avoid infinite recursion and allow depulication
 // depth is the main recursion depth
 // additionaldepth is the depth for addAdditionals itself
 void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
@@ -228,12 +228,17 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
     }
   }
 
+  // We maintain two sets for deduplication:
+  // - uniqueCalls makes sure we never resolve a qname/qtype twice
+  // - uniqueResults makes sure we never add the same qname/qytype RRSet to the result twice,
+  //   but note that that set might contain multiple elements.
+
   auto mode = it->second.second;
   for (const auto& targettype : it->second.first) {
     for (const auto& addname : addnames) {
       std::vector<DNSRecord> records;
-      if (uniqueCalls.count(std::pair(addname, targettype)) == 0) {
-        uniqueCalls.emplace(addname, targettype);
+      bool inserted = uniqueCalls.emplace(addname, targettype).second;
+      if (inserted) {
         resolveAdditionals(addname, targettype, mode, records, depth);
       }
       if (!records.empty()) {
@@ -284,7 +289,7 @@ void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int de
 
   for (auto& rec : additionals) {
     rec.d_place = DNSResourceRecord::ADDITIONAL;
-    ret.push_back(rec);
+    ret.push_back(std::move(rec));
   }
 }
 
@@ -337,6 +342,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
+  // Avoid calling addAdditionals() if we know we won't find anything
   auto luaLocal = g_luaconfs.getLocal();
   if (res == 0 && qclass == QClass::IN && luaLocal->allowAdditionalQTypes.find(qtype) != luaLocal->allowAdditionalQTypes.end()) {
     addAdditionals(qtype, ret, depth);
@@ -3225,7 +3231,7 @@ static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
         allowedAdditionals.insert(target);
       }
       else {
-        // Alias mode not implemented yet
+        // FIXME: Alias mode not implemented yet
       }
     }
     break;

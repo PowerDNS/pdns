@@ -1,4 +1,4 @@
-Lua Configuration: Trustanchors, Query Logging, RPZs, Sortlist and Zone to Cache
+Advanced Configuration Using Lua
 ================================================================================
 
 Since version 4.0.0, the PowerDNS Recursor supports additional configuration options that have to be loaded through :ref:`setting-lua-config-file`.

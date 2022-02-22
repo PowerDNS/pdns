@@ -27,27 +27,33 @@ An example of a configuration:
 .. code-block:: Lua
 
   addAllowedAdditionalQType(pdns.MX, {pdns.A, pdns.AAAA})
-  addAllowedAdditionalQType(pdns.NAPTR, {pdns.A, pdns.AAAA, pdns.SRV}, {mode="ResolveImmediately"})
+  addAllowedAdditionalQType(pdns.NAPTR, {pdns.A, pdns.AAAA, pdns.SRV}, {mode=pdns.AdditionalMode.ResolveImmediately})
 
 The first line specifies that additional records should be added to the results of ``MX`` queries using the default mode.
 The qtype of the records to be added are ``A`` and ``AAAA``.
-The default mode is ``CacheOnlyRequireAuth``, this mode will only look in the record cache.
+The default mode is ``pdns.AdditionalMode.CacheOnlyRequireAuth``, this mode will only look in the record cache.
 
 The second line specifies that three record types should be added to ``NAPTR`` answers.
 If needed, the Recursor will do an active resolve to retrieve these records.
 
 The modes available are:
-  * ``Ignore`` Do not do any additional processing for this qtype. This is equivalent to not calling :func:`addAllowedAdditionalQType` for the qtype.
-  * ``CacheOnly`` Look in the record cache for available records. Allow non-authoritative (learned from additional sections received from authoritative servers) records to be added.
-  * ``CacheOnlyRequireAuth`` Look in the record cache for available records. Only authoritative records will be added. These are records received from the nameservers for the specific domain.
-  * ``ResolveImmediately`` Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache, actively try to resolve the target name/qtype. This will delay the answer to the client.
-  * ``ResolveDeferred`` Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache and the negative cache also has no entry, schedule a background task to resolve the target name/qtype. The next time the query is processed, the cache might hold the relevant information. This mode is not implemented yet.
 
-If an additional record is not available at that time the query is stored into the packet cache the answer packet stored in the packer cache will not contain the additional record.
+``pdns.AdditionalMode.Ignore``
+  Do not do any additional processing for this qtype. This is equivalent to not calling :func:`addAllowedAdditionalQType` for the qtype.
+``pdns.AdditionalMode.CacheOnly``
+  Look in the record cache for available records. Allow non-authoritative (learned from additional sections received from authoritative servers) records to be added.
+``pdns.AdditionalMode.CacheOnlyRequireAuth``
+  Look in the record cache for available records. Only authoritative records will be added. These are records received from the nameservers for the specific domain.
+``pdns.AdditionalMode.ResolveImmediately``
+  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache, actively try to resolve the target name/qtype. This will delay the answer to the client.
+``pdns.AdditionalMode.ResolveDeferred``
+  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache and the negative cache also has no entry, schedule a background task to resolve the target name/qtype. The next time the query is processed, the cache might hold the relevant information. This mode is not implemented yet.
+
+If an additional record is not available at that time the query is stored into the packet cache the answer packet stored in the packet cache will not contain the additional record.
 Clients repeating the same question will get an answer from the packet cache if the question is still in the packet cache.
-These answers do not have the additional record, even if in the meantime the record cache has learned it.
-Clients wil only see the additional record once the packet cache entry expires and the record cache is consulted again.
-The ``ResolveImmediately`` will not have this issue, at the cost of delaying the first query to resolve the additional records needed.
+These answers do not have the additional record, even if the record cache has learned it in the meantime .
+Clients will only see the additional record once the packet cache entry expires and the record cache is consulted again.
+The ``pdns.AdditionalMode.ResolveImmediately`` mode will not have this issue, at the cost of delaying the first query to resolve the additional records needed.
 
 Configuring additional record processing
 ----------------------------------------
@@ -65,6 +71,6 @@ Calling  :func:`addAllowedAdditionalQType` multiple times with a specific qtype 
   :param int qtype:  the qtype number to enable additional record processing for. Supported are: ``pdns.MX``, ``pdns.SRV``, ``pdns.SVCB``, ``pdns.HTTPS`` and ``pdns.NAPTR``.
   :param targets: the target qtypes to look for when adding the additionals. For example ``{pdns.A, pdns.AAAA}``.
   :type targets: list of qtype numbers
-  :param table options: a table of options. Currently the only option is ``mode`` having a string value. For the available modes, see above. If no mode is specified, the default ``"CacheOnlyRequireAuth"`` mode is used.
+  :param table options: a table of options. Currently the only option is ``mode`` having an integer value. For the available modes, see above. If no mode is specified, the default ``pdns.AdditionalMode.CacheOnlyRequireAuth`` mode is used.
 
 

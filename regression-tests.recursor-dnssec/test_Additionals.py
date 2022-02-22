@@ -47,9 +47,9 @@ class testAdditionalsResolveImmediately(RecursorTest):
     disable-packetcache
     """
     _lua_config_file = """
-    addAllowedAdditionalQType(pdns.MX, {pdns.A, pdns.AAAA}, { mode = "ResolveImmediately"})
-    addAllowedAdditionalQType(pdns.NAPTR, {pdns.A, pdns.AAAA, pdns.SRV}, { mode = "ResolveImmediately"})
-    addAllowedAdditionalQType(pdns.SRV, {pdns.A, pdns.AAAA}, { mode = "ResolveImmediately"})
+    addAllowedAdditionalQType(pdns.MX, {pdns.A, pdns.AAAA}, { mode = pdns.AdditionalMode.ResolveImmediately})
+    addAllowedAdditionalQType(pdns.NAPTR, {pdns.A, pdns.AAAA, pdns.SRV}, { mode = pdns.AdditionalMode.ResolveImmediately})
+    addAllowedAdditionalQType(pdns.SRV, {pdns.A, pdns.AAAA}, { mode = pdns.AdditionalMode.ResolveImmediately})
     """
 
     def testMX(self):
@@ -109,7 +109,7 @@ class testAdditionalsResolveCacheOnly(RecursorTest):
     disable-packetcache
     """
     _lua_config_file = """
-    addAllowedAdditionalQType(pdns.MX, {pdns.A, pdns.AAAA}, { mode = "ResolveImmediately"})
+    addAllowedAdditionalQType(pdns.MX, {pdns.A, pdns.AAAA}, { mode = pdns.AdditionalMode.ResolveImmediately})
     """
 
     def testMX(self):

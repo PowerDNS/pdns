@@ -332,6 +332,14 @@ public:
   }
   void postPrepareContext() override
   {
+    // clang-format off
+    d_pd.push_back({"AdditionalMode", in_t{
+          {"Ignore", static_cast<int>(AdditionalMode::Ignore)},
+          {"CacheOnly", static_cast<int>(AdditionalMode::CacheOnly)},
+          {"CacheOnlyRequireAuth", static_cast<int>(AdditionalMode::CacheOnlyRequireAuth)},
+          {"ResolveImmediately", static_cast<int>(AdditionalMode::ResolveImmediately)},
+          {"ResolveDeferred", static_cast<int>(AdditionalMode::ResolveDeferred)}
+        }});
   }
   void postLoad() override
   {
@@ -682,7 +690,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   });
 #endif /* HAVE_FSTRM */
 
-  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, std::unordered_map<int, int> targetqtypes, boost::optional<std::map<std::string, std::string>> options) {
+  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, std::unordered_map<int, int> targetqtypes, boost::optional<std::map<std::string, int>> options) {
     switch (qtype) {
     case QType::MX:
     case QType::SRV:
@@ -704,17 +712,10 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
     if (options) {
       if (const auto it = options->find("mode"); it != options->end()) {
-        const map<string, AdditionalMode> modeMap = {
-          {"Ignore", AdditionalMode::Ignore},
-          {"CacheOnly", AdditionalMode::CacheOnly},
-          {"CacheOnlyRequireAuth", AdditionalMode::CacheOnlyRequireAuth},
-          {"ResolveImmediately", AdditionalMode::ResolveImmediately},
-          {"ResolveDeferred", AdditionalMode::ResolveDeferred}};
-        if (modeMap.find(it->second) == modeMap.end()) {
+        mode = static_cast<AdditionalMode>(it->second);
+        if (mode > AdditionalMode::ResolveDeferred) {
           g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl;
-          return;
         }
-        mode = modeMap.at(it->second);
       }
     }
     lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
