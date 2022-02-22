@@ -594,7 +594,7 @@ Servers
       addXForwardedHeaders=BOOL,-- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
       releaseBuffers=BOOL,      -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
       enableRenegotiation=BOOL, -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
-      autoUpgrade=BOOL,         -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade an Do53 backend to DoT or DoH. Default to false.
+      autoUpgrade=BOOL,         -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend. Default to false.
       autoUpgradeInterval=NUM,  -- If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds.
       autoUpgradeKeep=BOOL,     -- If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one.
       autoUpgradePool=STRING,   -- If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool.
