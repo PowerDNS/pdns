@@ -329,8 +329,6 @@ extern GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockN
 
 extern vector<pair<struct timeval, std::string> > g_confDelta;
 
-extern uint64_t getLatencyCount(const std::string&);
-
 using pdns::stat_t;
 
 struct DNSDistStats
@@ -359,7 +357,7 @@ struct DNSDistStats
   stat_t noPolicy{0};
   stat_t cacheHits{0};
   stat_t cacheMisses{0};
-  stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0}, latencySum{0};
+  stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0}, latencySum{0}, latencyCount{0};
   stat_t securityStatus{0};
   stat_t dohQueryPipeFull{0};
   stat_t dohResponsePipeFull{0};
@@ -437,7 +435,7 @@ struct DNSDistStats
     {"tcp-cross-protocol-response-pipe-full", &tcpCrossProtocolResponsePipeFull},
     // Latency histogram
     {"latency-sum", &latencySum},
-    {"latency-count", getLatencyCount},
+    {"latency-count", &latencyCount},
   };
 };
 
