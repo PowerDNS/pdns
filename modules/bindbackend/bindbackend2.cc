@@ -1177,11 +1177,6 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, vector<DNSRe
   if (mustlog)
     g_log << Logger::Warning << "Found a zone '" << domain << "' (with id " << bbd.d_id << ") that might contain data " << endl;
 
-  d_handle.id = bbd.d_id;
-  d_handle.qname = qname.makeRelative(domain); // strip domain name
-  d_handle.qtype = qtype;
-  d_handle.domain = std::move(domain);
-
   if (!bbd.d_loaded) {
     throw DBException("Zone for '" + domain.toLogString() + "' in '" + bbd.d_filename + "' temporarily not available (file missing, or master dead)"); // fsck
   }
