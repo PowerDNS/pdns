@@ -138,6 +138,7 @@ dnsdist_SOURCES = \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-console.cc dnsdist-console.hh \
+	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \

@@ -307,7 +307,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDWEIGHT:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->weight);
+                                            server->d_config.d_weight);
         break;
       case COLUMN_BACKENDOUTSTANDING:
         DNSDistSNMPAgent::setCounter64Value(request,
@@ -331,7 +331,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
       }
       case COLUMN_BACKENDADDRESS:
       {
-        std::string addr(server->remote.toStringWithPort());
+        std::string addr(server->d_config.remote.toStringWithPort());
         snmp_set_var_typed_value(request->requestvb,
                                  ASN_OCTET_STR,
                                  addr.c_str(),
@@ -341,10 +341,11 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
       case COLUMN_BACKENDPOOLS:
       {
         std::string pools;
-        for(auto& p : server->pools) {
-          if(!pools.empty())
+        for (const auto& p : server->d_config.pools) {
+          if (!pools.empty()) {
             pools+=" ";
-          pools+=p;
+          }
+          pools += p;
         }
         snmp_set_var_typed_value(request->requestvb,
                                  ASN_OCTET_STR,
@@ -359,7 +360,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         DNSDistSNMPAgent::setCounter64Value(request, server->queries.load());
         break;
       case COLUMN_BACKENDORDER:
-        DNSDistSNMPAgent::setCounter64Value(request, server->order);
+        DNSDistSNMPAgent::setCounter64Value(request, server->d_config.order);
         break;
       default:
         netsnmp_set_request_error(reqinfo,
@@ -377,7 +378,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState>& dss)
 {
 #ifdef HAVE_NET_SNMP
-  const string backendAddress = dss->remote.toStringWithPort();
+  const string backendAddress = dss->d_config.remote.toStringWithPort();
   const string backendStatus = dss->getStatus();
   netsnmp_variable_list* varList = nullptr;
 

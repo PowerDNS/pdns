@@ -536,15 +536,17 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   for (const auto& state : *states) {
     string serverName;
 
-    if (state->getName().empty())
-      serverName = state->remote.toStringWithPort();
-    else
+    if (state->getName().empty()) {
+      serverName = state->d_config.remote.toStringWithPort();
+    }
+    else {
       serverName = state->getName();
+    }
 
     boost::replace_all(serverName, ".", "_");
 
     const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
-                                         % serverName % state->remote.toStringWithPort());
+                                         % serverName % state->d_config.remote.toStringWithPort());
 
     output << statesbase << "status"                       << label << " " << (state->isUp() ? "1" : "0")        << "\n";
     output << statesbase << "queries"                      << label << " " << state->queries.load()              << "\n";
@@ -554,8 +556,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         output << statesbase << "latency"                  << label << " " << state->latencyUsec/1000.0          << "\n";
     output << statesbase << "senderrors"                   << label << " " << state->sendErrors.load()           << "\n";
     output << statesbase << "outstanding"                  << label << " " << state->outstanding.load()          << "\n";
-    output << statesbase << "order"                        << label << " " << state->order                       << "\n";
-    output << statesbase << "weight"                       << label << " " << state->weight                      << "\n";
+    output << statesbase << "order"                        << label << " " << state->d_config.order              << "\n";
+    output << statesbase << "weight"                       << label << " " << state->d_config.d_weight           << "\n";
     output << statesbase << "tcpdiedsendingquery"          << label << " " << state->tcpDiedSendingQuery         << "\n";
     output << statesbase << "tcpdiedreadingresponse"       << label << " " << state->tcpDiedReadingResponse      << "\n";
     output << statesbase << "tcpgaveup"                    << label << " " << state->tcpGaveUp                   << "\n";
@@ -922,10 +924,10 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<DownstreamState>& a)
 {
   string status;
-  if (a->availability == DownstreamState::Availability::Up) {
+  if (a->d_config.availability == DownstreamState::Availability::Up) {
     status = "UP";
   }
-  else if (a->availability == DownstreamState::Availability::Down) {
+  else if (a->d_config.availability == DownstreamState::Availability::Down) {
     status = "DOWN";
   }
   else {
@@ -933,21 +935,21 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
   }
 
   Json::array pools;
-  for(const auto& p: a->pools) {
+  for (const auto& p: a->d_config.pools) {
     pools.push_back(p);
   }
 
   Json::object server {
     {"id", id},
     {"name", a->getName()},
-    {"address", a->remote.toStringWithPort()},
+    {"address", a->d_config.remote.toStringWithPort()},
     {"state", status},
     {"qps", (double)a->queryLoad},
     {"qpsLimit", (double)a->qps.getRate()},
     {"outstanding", (double)a->outstanding},
     {"reuseds", (double)a->reuseds},
-    {"weight", (double)a->weight},
-    {"order", (double)a->order},
+    {"weight", (double)a->d_config.d_weight},
+    {"order", (double)a->d_config.order},
     {"pools", pools},
     {"latency", (double)(a->latencyUsec/1000.0)},
     {"queries", (double)a->queries},
@@ -970,7 +972,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
   };
 
   /* sending a latency for a DOWN server doesn't make sense */
-  if (a->availability == DownstreamState::Availability::Down) {
+  if (a->d_config.availability == DownstreamState::Availability::Down) {
     server["latency"] = nullptr;
   }
 

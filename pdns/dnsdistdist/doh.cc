@@ -467,9 +467,9 @@ public:
     }
 
     double udiff = du->ids.sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
 
     ++g_stats.responses;
     if (du->ids.cs) {
@@ -636,7 +636,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       std::string proxyProtocolPayload;
       /* we need to do this _before_ creating the cross protocol query because
          after that the buffer will have been moved */
-      if (du->downstream->useProxyProtocol) {
+      if (du->downstream->d_config.useProxyProtocol) {
         proxyProtocolPayload = getProxyProtocolPayload(dq);
       }
 
@@ -693,7 +693,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       ids->destHarvested = false;
     }
 
-    if (du->downstream->useProxyProtocol) {
+    if (du->downstream->d_config.useProxyProtocol) {
       size_t payloadSize = 0;
       if (addProxyProtocol(dq)) {
         du->proxyProtocolPayloadSize = payloadSize;
@@ -1642,9 +1642,9 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
     }
 
     double udiff = du->ids.sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
 
     ++g_stats.responses;
     if (du->ids.cs) {

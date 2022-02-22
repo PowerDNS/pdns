@@ -92,7 +92,17 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   return DNSAction::Action::None;
 }
 
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>&)
+{
+  return true;
+}
+
+void responderThread(std::shared_ptr<DownstreamState> dss)
+{
+}
+
 string g_outputBuffer;
+std::atomic<bool> g_configurationDone{false};
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
@@ -200,8 +210,8 @@ BOOST_AUTO_TEST_CASE(test_firstAvailableWithOrderAndQPS) {
      we need to keep them ordered!).
      However the first server has a QPS limit at 10 qps, so any query above that should be routed 
      to the second server. */
-  servers.at(0).second->order = 1;
-  servers.at(1).second->order = 2;
+  servers.at(0).second->d_config.order = 1;
+  servers.at(1).second->d_config.order = 2;
   servers.at(0).second->qps = QPSLimiter(qpsLimit, qpsLimit);
   /* mark the servers as 'up' */
   servers.at(0).second->setUp();
@@ -361,16 +371,16 @@ BOOST_AUTO_TEST_CASE(test_wrandom) {
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1);
   }
 
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1);
   }
   /* change the weight of the last server to 100, default is 1 */
-  servers.at(servers.size()-1).second->weight = 100;
+  servers.at(servers.size()-1).second->d_config.d_weight = 100;
 
   for (size_t idx = 0; idx < 1000; idx++) {
     auto server = pol.getSelectedBackend(servers, dq);
@@ -382,12 +392,12 @@ BOOST_AUTO_TEST_CASE(test_wrandom) {
   uint64_t totalW = 0;
   for (const auto& entry : serversMap) {
     total += entry.second;
-    totalW += entry.first->weight;
+    totalW += entry.first->d_config.d_weight;
   }
   BOOST_CHECK_EQUAL(total, 1000U);
   auto last = servers.at(servers.size()-1).second;
   const auto got = serversMap[last];
-  float expected = (1000 * 1.0 * last->weight) / totalW;
+  float expected = (1000 * 1.0 * last->d_config.d_weight) / totalW;
   BOOST_CHECK_GT(got, expected / 2);
   BOOST_CHECK_LT(got, expected * 2);
 }
@@ -429,7 +439,7 @@ BOOST_AUTO_TEST_CASE(test_whashed) {
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1);
   }
 
   /* request 1000 times the same name, we should go to the same server every time */
@@ -444,7 +454,7 @@ BOOST_AUTO_TEST_CASE(test_whashed) {
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1);
   }
   /* change the weight of the last server to 100, default is 1 */
   servers.at(servers.size()-1).second->setWeight(100);
@@ -460,12 +470,12 @@ BOOST_AUTO_TEST_CASE(test_whashed) {
   uint64_t totalW = 0;
   for (const auto& entry : serversMap) {
     total += entry.second;
-    totalW += entry.first->weight;
+    totalW += entry.first->d_config.d_weight;
   }
   BOOST_CHECK_EQUAL(total, names.size());
   auto last = servers.at(servers.size()-1).second;
   const auto got = serversMap[last];
-  float expected = (names.size() * 1.0 * last->weight) / totalW;
+  float expected = (names.size() * 1.0 * last->d_config.d_weight) / totalW;
   BOOST_CHECK_GT(got, expected / 2);
   BOOST_CHECK_LT(got, expected * 2);
 }
@@ -514,7 +524,7 @@ BOOST_AUTO_TEST_CASE(test_chashed) {
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1000);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1000);
   }
 
   /* request 1000 times the same name, we should go to the same server every time */
@@ -529,7 +539,7 @@ BOOST_AUTO_TEST_CASE(test_chashed) {
   /* reset */
   for (auto& entry : serversMap) {
     entry.second = 0;
-    BOOST_CHECK_EQUAL(entry.first->weight, 1000);
+    BOOST_CHECK_EQUAL(entry.first->d_config.d_weight, 1000);
   }
   /* change the weight of the last server to 100000, others stay at 1000 */
   servers.at(servers.size()-1).second->setWeight(100000);
@@ -545,12 +555,12 @@ BOOST_AUTO_TEST_CASE(test_chashed) {
   uint64_t totalW = 0;
   for (const auto& entry : serversMap) {
     total += entry.second;
-    totalW += entry.first->weight;
+    totalW += entry.first->d_config.d_weight;
   }
   BOOST_CHECK_EQUAL(total, names.size());
   auto last = servers.at(servers.size()-1).second;
   const auto got = serversMap[last];
-  float expected = (names.size() * 1.0 * last->weight) / totalW;
+  float expected = (names.size() * 1.0 * last->d_config.d_weight) / totalW;
   BOOST_CHECK_GT(got, expected / 2);
   BOOST_CHECK_LT(got, expected * 2);
 

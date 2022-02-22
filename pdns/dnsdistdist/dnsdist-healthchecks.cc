@@ -70,7 +70,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
     if (!dss->upStatus) {
       /* we were marked as down */
       dss->consecutiveSuccessfulChecks++;
-      if (dss->consecutiveSuccessfulChecks < dss->minRiseSuccesses) {
+      if (dss->consecutiveSuccessfulChecks < dss->d_config.minRiseSuccesses) {
         /* if we need more than one successful check to rise
            and we didn't reach the threshold yet,
            let's stay down */
@@ -85,7 +85,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
     if (dss->upStatus) {
       /* we are currently up */
       dss->currentCheckFailures++;
-      if (dss->currentCheckFailures < dss->maxCheckFailures) {
+      if (dss->currentCheckFailures < dss->d_config.maxCheckFailures) {
         /* we need more than one failure to be marked as down,
            and we did not reach the threshold yet, let's stay up */
         newState = true;
@@ -96,12 +96,9 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool i
   if (newState != dss->upStatus) {
     warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 
-    if (newState && !dss->isTCPOnly() && (!dss->connected || dss->reconnectOnUp)) {
+    if (newState && !dss->isTCPOnly() && (!dss->connected || dss->d_config.reconnectOnUp)) {
       newState = dss->reconnect();
-
-      if (dss->connected && !dss->threadStarted.test_and_set()) {
-        dss->tid = std::thread(responderThread, dss);
-      }
+      dss->start();
     }
 
     dss->setUpStatus(newState);
@@ -146,7 +143,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
       return false;
     }
 
-    if (ds->mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
+    if (ds->d_config.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
       if (g_verboseHealthChecks) {
         infolog("Backend %s responded to health check with %s while mustResolve is set", ds->getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
       }
@@ -229,23 +226,25 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
   data->d_mplexer.removeReadFD(fd);
 
   ComboAddress from;
-  from.sin4.sin_family = data->d_ds->remote.sin4.sin_family;
+  from.sin4.sin_family = data->d_ds->d_config.remote.sin4.sin_family;
   auto fromlen = from.getSocklen();
   data->d_buffer.resize(512);
   auto got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr *>(&from), &fromlen);
   if (got < 0) {
     if (g_verboseHealthChecks) {
-      infolog("Error receiving health check response from %s: %s", data->d_ds->remote.toStringWithPort(), stringerror());
+      infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror());
     }
     updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    return;
   }
 
   /* we are using a connected socket but hey.. */
-  if (from != data->d_ds->remote) {
+  if (from != data->d_ds->d_config.remote) {
     if (g_verboseHealthChecks) {
-      infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), data->d_ds->remote.toStringWithPort());
+      infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), data->d_ds->d_config.remote.toStringWithPort());
     }
     updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    return;
   }
 
   updateHealthCheckResult(data->d_ds, data->d_initial, handleResponse(data));
@@ -327,9 +326,9 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
   try
   {
     uint16_t queryID = dnsdist::getRandomDNSID();
-    DNSName checkName = ds->checkName;
-    uint16_t checkType = ds->checkType.getCode();
-    uint16_t checkClass = ds->checkClass;
+    DNSName checkName = ds->d_config.checkName;
+    uint16_t checkType = ds->d_config.checkType.getCode();
+    uint16_t checkClass = ds->d_config.checkClass;
     dnsheader checkHeader;
     memset(&checkHeader, 0, sizeof(checkHeader));
 
@@ -337,13 +336,13 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     checkHeader.id = queryID;
 
     checkHeader.rd = true;
-    if (ds->setCD) {
+    if (ds->d_config.setCD) {
       checkHeader.cd = true;
     }
 
-    if (ds->checkFunction) {
+    if (ds->d_config.checkFunction) {
       auto lock = g_lua.lock();
-      auto ret = ds->checkFunction(checkName, checkType, checkClass, &checkHeader);
+      auto ret = ds->d_config.checkFunction(checkName, checkType, checkClass, &checkHeader);
       checkName = std::get<0>(ret);
       checkType = std::get<1>(ret);
       checkClass = std::get<2>(ret);
@@ -358,7 +357,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     uint16_t packetSize = packet.size();
     std::string proxyProtocolPayload;
     size_t proxyProtocolPayloadSize = 0;
-    if (ds->useProxyProtocol) {
+    if (ds->d_config.useProxyProtocol) {
       proxyProtocolPayload = makeLocalProxyHeader();
       proxyProtocolPayloadSize = proxyProtocolPayload.size();
       if (!ds->isDoH()) {
@@ -366,41 +365,41 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       }
     }
 
-    Socket sock(ds->remote.sin4.sin_family, ds->doHealthcheckOverTCP() ? SOCK_STREAM : SOCK_DGRAM);
+    Socket sock(ds->d_config.remote.sin4.sin_family, ds->doHealthcheckOverTCP() ? SOCK_STREAM : SOCK_DGRAM);
 
     sock.setNonBlocking();
-    if (!IsAnyAddress(ds->sourceAddr)) {
+    if (!IsAnyAddress(ds->d_config.sourceAddr)) {
       sock.setReuseAddr();
 #ifdef IP_BIND_ADDRESS_NO_PORT
-      if (ds->ipBindAddrNoPort) {
+      if (ds->d_config.ipBindAddrNoPort) {
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
 #endif
 
-      if (!ds->sourceItfName.empty()) {
+      if (!ds->d_config.sourceItfName.empty()) {
 #ifdef SO_BINDTODEVICE
-        int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
+        int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->d_config.sourceItfName.c_str(), ds->d_config.sourceItfName.length());
         if (res != 0 && g_verboseHealthChecks) {
           infolog("Error setting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
         }
 #endif
       }
-      sock.bind(ds->sourceAddr);
+      sock.bind(ds->d_config.sourceAddr);
     }
 
     auto data = std::make_shared<HealthCheckData>(*mplexer, ds, std::move(checkName), checkType, checkClass, queryID);
     data->d_initial = initialCheck;
 
     gettimeofday(&data->d_ttd, nullptr);
-    data->d_ttd.tv_sec += ds->checkTimeout / 1000; /* ms to seconds */
-    data->d_ttd.tv_usec += (ds->checkTimeout % 1000) * 1000; /* remaining ms to us */
+    data->d_ttd.tv_sec += ds->d_config.checkTimeout / 1000; /* ms to seconds */
+    data->d_ttd.tv_usec += (ds->d_config.checkTimeout % 1000) * 1000; /* remaining ms to us */
     if (data->d_ttd.tv_usec > 1000000) {
       ++data->d_ttd.tv_sec;
       data->d_ttd.tv_usec -= 1000000;
     }
 
     if (!ds->doHealthcheckOverTCP()) {
-      sock.connect(ds->remote);
+      sock.connect(ds->d_config.remote);
       data->d_udpSocket = std::move(sock);
       ssize_t sent = udpClientSendRequestToBackend(ds, data->d_udpSocket.getHandle(), packet, true);
       if (sent < 0) {
@@ -423,7 +422,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     }
     else {
       time_t now = time(nullptr);
-      data->d_tcpHandler = std::make_unique<TCPIOHandler>(ds->d_tlsSubjectName, sock.releaseHandle(), timeval{ds->checkTimeout,0}, ds->d_tlsCtx, now);
+      data->d_tcpHandler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout,0}, ds->d_tlsCtx, now);
       data->d_ioState = std::make_unique<IOStateHandler>(*mplexer, data->d_tcpHandler->getDescriptor());
       if (ds->d_tlsCtx) {
         try {
@@ -436,7 +435,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
           vinfolog("Unable to restore a TLS session for the DoT healthcheck: %s", e.what());
         }
       }
-      data->d_tcpHandler->tryConnect(ds->tcpFastOpen, ds->remote);
+      data->d_tcpHandler->tryConnect(ds->d_config.tcpFastOpen, ds->d_config.remote);
 
       const uint8_t sizeBytes[] = { static_cast<uint8_t>(packetSize / 256), static_cast<uint8_t>(packetSize % 256) };
       packet.insert(packet.begin() + proxyProtocolPayloadSize, sizeBytes, sizeBytes + 2);

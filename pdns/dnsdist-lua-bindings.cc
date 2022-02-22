@@ -105,13 +105,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       auto localPools = g_pools.getCopy();
       addServerToPool(localPools, pool, s);
       g_pools.setState(localPools);
-      s->pools.insert(pool);
+      s->d_config.pools.insert(pool);
     });
   luaCtx.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](std::shared_ptr<DownstreamState> s, string pool) {
       auto localPools = g_pools.getCopy();
       removeServerFromPool(localPools, pool, s);
       g_pools.setState(localPools);
-      s->pools.erase(pool);
+      s->d_config.pools.erase(pool);
     });
   luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
   luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getDrops", [](const DownstreamState& s) { return s.reuseds.load(); });
@@ -129,12 +129,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
   luaCtx.registerMember("upStatus", &DownstreamState::upStatus);
   luaCtx.registerMember<int (DownstreamState::*)>("weight",
-    [](const DownstreamState& s) -> int {return s.weight;},
-    [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
+    [](const DownstreamState& s) -> int {return s.d_config.d_weight;},
+    [](DownstreamState& s, int newWeight) { s.setWeight(newWeight); }
   );
-  luaCtx.registerMember("order", &DownstreamState::order);
+  luaCtx.registerMember<int (DownstreamState::*)>("order",
+    [](const DownstreamState& s) -> int {return s.d_config.order; },
+    [](DownstreamState& s, int newOrder) { s.d_config.order = newOrder; }
+  );
   luaCtx.registerMember<const std::string(DownstreamState::*)>("name", [](const DownstreamState& backend) -> const std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(*s.d_config.id); });
 #endif /* DISABLE_DOWNSTREAM_BINDINGS */
 
 #ifndef DISABLE_DNSHEADER_BINDINGS

@@ -78,7 +78,7 @@ public:
   }
   virtual ~TLSCtx() {}
   virtual std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) = 0;
-  virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) = 0;
+  virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) = 0;
   virtual void rotateTicketsKey(time_t now) = 0;
   virtual void loadTicketsKeys(const std::string& file)
   {
@@ -233,10 +233,10 @@ class TCPIOHandler
 public:
   enum class Type : uint8_t { Client, Server };
 
-  TCPIOHandler(const std::string& host, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
     if (ctx) {
-      d_conn = ctx->getClientConnection(host, d_socket, timeout);
+      d_conn = ctx->getClientConnection(host, hostIsAddr, d_socket, timeout);
     }
   }
 

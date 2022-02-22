@@ -15,7 +15,7 @@
 class ConnectionToBackend : public std::enable_shared_from_this<ConnectionToBackend>
 {
 public:
-  ConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_connectionStartTime(now), d_lastDataReceivedTime(now), d_ds(ds), d_mplexer(mplexer), d_enableFastOpen(ds->tcpFastOpen)
+  ConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now): d_connectionStartTime(now), d_lastDataReceivedTime(now), d_ds(ds), d_mplexer(mplexer), d_enableFastOpen(ds->d_config.tcpFastOpen)
   {
     reconnect();
   }
@@ -48,7 +48,7 @@ public:
 
   const ComboAddress& getRemote() const
   {
-    return d_ds->remote;
+    return d_ds->d_config.remote;
   }
 
   const std::string& getBackendName() const
@@ -88,7 +88,7 @@ public:
        - it cannot be reused for a different client
        - we might have different TLV values for each query
     */
-    if (d_ds && d_ds->useProxyProtocol == true && !sameClient) {
+    if (d_ds && d_ds->d_config.useProxyProtocol == true && !sameClient) {
       return false;
     }
 
@@ -110,7 +110,7 @@ public:
       return false;
     }
 
-    if (d_ds && d_ds->useProxyProtocol == true) {
+    if (d_ds && d_ds->d_config.useProxyProtocol == true) {
       return sameClient;
     }
 
@@ -151,13 +151,13 @@ protected:
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
     }
-    if (d_ds->checkTimeout == 0) {
+    if (d_ds->d_config.checkTimeout == 0) {
       return boost::none;
     }
 
     struct timeval res = now;
-    res.tv_sec += d_ds->checkTimeout / 1000; /* ms to s */
-    res.tv_usec += (d_ds->checkTimeout % 1000) / 1000; /* remaining ms to µs */
+    res.tv_sec += d_ds->d_config.checkTimeout / 1000; /* ms to s */
+    res.tv_usec += (d_ds->d_config.checkTimeout % 1000) / 1000; /* remaining ms to µs */
 
     return res;
   }
@@ -167,12 +167,12 @@ protected:
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
     }
-    if (d_ds->tcpRecvTimeout == 0) {
+    if (d_ds->d_config.tcpRecvTimeout == 0) {
       return boost::none;
     }
 
     struct timeval res = now;
-    res.tv_sec += d_ds->tcpRecvTimeout;
+    res.tv_sec += d_ds->d_config.tcpRecvTimeout;
 
     return res;
   }
@@ -182,12 +182,12 @@ protected:
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendWriteTTD() called without any backend selected");
     }
-    if (d_ds->tcpSendTimeout == 0) {
+    if (d_ds->d_config.tcpSendTimeout == 0) {
       return boost::none;
     }
 
     struct timeval res = now;
-    res.tv_sec += d_ds->tcpSendTimeout;
+    res.tv_sec += d_ds->d_config.tcpSendTimeout;
 
     return res;
   }
@@ -197,12 +197,12 @@ protected:
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendConnectTTD() called without any backend selected");
     }
-    if (d_ds->tcpConnectTimeout == 0) {
+    if (d_ds->d_config.tcpConnectTimeout == 0) {
       return boost::none;
     }
 
     struct timeval res = now;
-    res.tv_sec += d_ds->tcpConnectTimeout;
+    res.tv_sec += d_ds->d_config.tcpConnectTimeout;
 
     return res;
   }
@@ -247,7 +247,7 @@ public:
   bool reachedMaxConcurrentQueries() const override
   {
     const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size();
-    if (concurrent > 0 && concurrent >= d_ds->d_maxInFlightQueriesPerConn) {
+    if (concurrent > 0 && concurrent >= d_ds->d_config.d_maxInFlightQueriesPerConn) {
       return true;
     }
     return false;
@@ -284,7 +284,7 @@ private:
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
   bool needProxyProtocolPayload() const
   {
-    return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
+    return !d_proxyProtocolPayloadSent && (d_ds && d_ds->d_config.useProxyProtocol);
   }
 
   class PendingRequest
@@ -350,7 +350,7 @@ public:
 
     cleanupClosedConnections(now);
 
-    const bool haveProxyProtocol = ds->useProxyProtocol || !proxyProtocolPayload.empty();
+    const bool haveProxyProtocol = ds->d_config.useProxyProtocol || !proxyProtocolPayload.empty();
     if (!haveProxyProtocol) {
       const auto& it = d_downstreamConnections.find(backendId);
       if (it != d_downstreamConnections.end()) {

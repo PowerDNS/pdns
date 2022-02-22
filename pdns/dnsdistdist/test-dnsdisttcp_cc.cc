@@ -306,7 +306,7 @@ public:
     return std::make_unique<MockupTLSConnection>(socket);
   }
 
-  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
+  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
   {
     return std::make_unique<MockupTLSConnection>(socket, true);
   }
@@ -1265,7 +1265,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     struct timeval later = now;
-    later.tv_sec += backend->tcpSendTimeout + 1;
+    later.tv_sec += backend->d_config.tcpSendTimeout + 1;
     auto expiredWriteConns = threadData.mplexer->getTimeouts(later, true);
     BOOST_CHECK_EQUAL(expiredWriteConns.size(), 1U);
     for (const auto& cbData : expiredWriteConns) {
@@ -1311,7 +1311,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     struct timeval later = now;
-    later.tv_sec += backend->tcpRecvTimeout + 1;
+    later.tv_sec += backend->d_config.tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -1535,7 +1535,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
-    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_retries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_config.d_retries);
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
@@ -1596,7 +1596,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
     BOOST_CHECK(s_writeBuffer == query);
-    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_retries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * backend->d_config.d_retries);
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
@@ -1725,9 +1725,9 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* enable out-of-order on the backend side as well */
-  backend->d_maxInFlightQueriesPerConn = 65536;
+  backend->d_config.d_maxInFlightQueriesPerConn = 65536;
   /* shorter than the client one */
-  backend->tcpRecvTimeout = 1;
+  backend->d_config.tcpRecvTimeout = 1;
 
   TCPClientThreadData threadData;
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
@@ -2024,7 +2024,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     }
 
     struct timeval later = now;
-    later.tv_sec += backend->tcpRecvTimeout + 1;
+    later.tv_sec += backend->d_config.tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2279,7 +2279,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     }
 
     struct timeval later = now;
-    later.tv_sec += backend->tcpRecvTimeout + 1;
+    later.tv_sec += backend->d_config.tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2395,7 +2395,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     appendPayloadEditingID(expectedWriteBuffer, responses.at(4), 4);
 
     /* make sure that the backend's timeout is longer than the client's */
-    backend->tcpRecvTimeout = 30;
+    backend->d_config.tcpRecvTimeout = 30;
 
     bool timeout = false;
     int backendDescriptor = -1;
@@ -3127,8 +3127,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
-    proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
-    proxyEnabledBackend->useProxyProtocol = true;
+    proxyEnabledBackend->d_config.d_maxInFlightQueriesPerConn = 65536;
+    proxyEnabledBackend->d_config.useProxyProtocol = true;
 
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
     appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
@@ -3254,8 +3254,8 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
     /* enable out-of-order on the backend side as well */
-    proxyEnabledBackend->d_maxInFlightQueriesPerConn = 65536;
-    proxyEnabledBackend->useProxyProtocol = true;
+    proxyEnabledBackend->d_config.d_maxInFlightQueriesPerConn = 65536;
+    proxyEnabledBackend->d_config.useProxyProtocol = true;
 
     expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), proxyPayload.begin(), proxyPayload.end());
     appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(0), 0);
@@ -3334,7 +3334,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
     /* make sure that the backend's timeout is shorter than the client's */
-    backend->tcpConnectTimeout = 1;
+    backend->d_config.tcpConnectTimeout = 1;
     g_tcpRecvTimeout = 5;
 
     bool timeout = false;
@@ -3378,7 +3378,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     }
 
     struct timeval later = now;
-    later.tv_sec += backend->tcpConnectTimeout + 1;
+    later.tv_sec += backend->d_config.tcpConnectTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, true);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -3393,7 +3393,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
     /* restore */
-    backend->tcpSendTimeout = 30;
+    backend->d_config.tcpSendTimeout = 30;
     g_tcpRecvTimeout = 2;
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
@@ -3436,7 +3436,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     auto backend1 = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     backend1->d_tlsCtx = tlsCtx;
     /* only two queries in flight! */
-    backend1->d_maxInFlightQueriesPerConn = 2;
+    backend1->d_config.d_maxInFlightQueriesPerConn = 2;
 
     int backend1Desc = -1;
     int backend2Desc = -1;
@@ -3688,7 +3688,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
   backend->d_tlsCtx = tlsCtx;
   /* shorter than the client one */
-  backend->tcpRecvTimeout = 1;
+  backend->d_config.tcpRecvTimeout = 1;
 
   TCPClientThreadData threadData;
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();

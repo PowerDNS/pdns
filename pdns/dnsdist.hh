@@ -688,15 +688,79 @@ struct ClientState
 
 struct CrossProtocolQuery;
 
-struct DownstreamState
+struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
 {
+  DownstreamState(const DownstreamState&) = delete;
+  DownstreamState(DownstreamState&&) = delete;
+  DownstreamState& operator=(const DownstreamState&) = delete;
+  DownstreamState& operator=(DownstreamState&&) = delete;
+
   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+  enum class Availability : uint8_t { Up, Down, Auto};
 
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string()) {}
+  struct Config
+  {
+    Config()
+    {
+    }
+    Config(const ComboAddress& remote_): remote(remote_)
+    {
+    }
+
+    TLSContextParameters d_tlsParams;
+    set<string> pools;
+    std::set<int> d_cpus;
+    checkfunc_t checkFunction;
+    std::optional<boost::uuids::uuid> id;
+    DNSName checkName{"a.root-servers.net."};
+    ComboAddress remote;
+    ComboAddress sourceAddr;
+    std::string sourceItfName;
+    std::string d_tlsSubjectName;
+    std::string d_dohPath;
+    std::string name;
+    std::string nameWithAddr;
+    size_t d_numberOfSockets{1};
+    size_t d_maxInFlightQueriesPerConn{1};
+    size_t d_tcpConcurrentConnectionsLimit{0};
+    int order{1};
+    int d_weight{1};
+    int tcpConnectTimeout{5};
+    int tcpRecvTimeout{30};
+    int tcpSendTimeout{30};
+    int d_qpsLimit{0};
+    unsigned int checkInterval{1};
+    unsigned int sourceItf{0};
+    QType checkType{QType::A};
+    uint16_t checkClass{QClass::IN};
+    uint16_t d_retries{5};
+    uint16_t xpfRRCode{0};
+    uint16_t checkTimeout{1000}; /* in milliseconds */
+    uint8_t maxCheckFailures{1};
+    uint8_t minRiseSuccesses{1};
+    Availability availability{Availability::Auto};
+    bool d_tlsSubjectIsAddr{false};
+    bool mustResolve{false};
+    bool useECS{false};
+    bool useProxyProtocol{false};
+    bool setCD{false};
+    bool disableZeroScope{false};
+    bool tcpFastOpen{false};
+    bool ipBindAddrNoPort{true};
+    bool reconnectOnUp{false};
+    bool d_tcpCheck{false};
+    bool d_tcpOnly{false};
+    bool d_addXForwardedHeaders{false}; // for DoH backends
+  };
+
+  DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);
+  DownstreamState(const ComboAddress& remote): DownstreamState(DownstreamState::Config(remote), nullptr, false)
+  {
+  }
+
   ~DownstreamState();
-  void connectUDPSockets(size_t numberOfSockets);
 
+  Config d_config;
   stat_t sendErrors{0};
   stat_t outstanding{0};
   stat_t reuseds{0};
@@ -725,116 +789,96 @@ struct DownstreamState
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   pdns::stat_t_trait<double> queryLoad{0.0};
   pdns::stat_t_trait<double> dropRate{0.0};
-  boost::uuids::uuid id;
-  const ComboAddress remote;
-  const ComboAddress sourceAddr;
+
   SharedLockGuarded<std::vector<unsigned int>> hashes;
   LockGuarded<std::unique_ptr<FDMultiplexer>> mplexer{nullptr};
-  const std::string sourceItfName;
-  std::string d_tlsSubjectName;
-  std::string d_dohPath;
 private:
-  std::string name;
-  std::string nameWithAddr;
   LockGuarded<std::map<uint16_t, IDState>> d_idStatesMap;
   vector<IDState> idStates;
 public:
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::vector<int> sockets;
-  set<string> pools;
-  std::mutex connectLock;
-  std::thread tid;
-  checkfunc_t checkFunction;
-  DNSName checkName{"a.root-servers.net."};
   StopWatch sw;
   QPSLimiter qps;
   std::atomic<uint64_t> idOffset{0};
   size_t socketsOffset{0};
-  size_t d_maxInFlightQueriesPerConn{1};
-  size_t d_tcpConcurrentConnectionsLimit{0};
   double latencyUsec{0.0};
   double latencyUsecTCP{0.0};
-  int order{1};
-  int weight{1};
-  int tcpConnectTimeout{5};
-  int tcpRecvTimeout{30};
-  int tcpSendTimeout{30};
-  unsigned int checkInterval{1};
-  unsigned int lastCheck{0};
-  const unsigned int sourceItf{0};
-  QType checkType{QType::A};
-  uint16_t checkClass{QClass::IN};
-  uint16_t d_retries{5};
-  uint16_t xpfRRCode{0};
-  uint16_t checkTimeout{1000}; /* in milliseconds */
+  unsigned int d_nextCheck{0};
   uint8_t currentCheckFailures{0};
   uint8_t consecutiveSuccessfulChecks{0};
-  uint8_t maxCheckFailures{1};
-  uint8_t minRiseSuccesses{1};
-  enum class Availability : uint8_t { Up, Down, Auto} availability{Availability::Auto};
+  std::atomic<bool> hashesComputed{false};
+  std::atomic<bool> connected{false};
+  bool upStatus{false};
+
 private:
+  void connectUDPSockets();
+
+  std::thread tid;
+  std::mutex connectLock;
+  std::atomic_flag threadStarted;
   bool d_stopped{false};
 public:
-  std::atomic<bool> hashesComputed{false};
-  bool mustResolve{false};
-  bool upStatus{false};
-  bool useECS{false};
-  bool useProxyProtocol{false};
-  bool setCD{false};
-  bool disableZeroScope{false};
-  std::atomic<bool> connected{false};
-  std::atomic_flag threadStarted;
-  bool tcpFastOpen{false};
-  bool ipBindAddrNoPort{true};
-  bool reconnectOnUp{false};
-  bool d_tcpCheck{false};
-  bool d_tcpOnly{false};
-  bool d_addXForwardedHeaders{false}; // for DoH backends
+
+  void start();
 
   bool isUp() const
   {
-    if(availability == Availability::Down)
+    if (d_config.availability == Availability::Down) {
       return false;
-    if(availability == Availability::Up)
+    }
+    else if (d_config.availability == Availability::Up) {
       return true;
+    }
     return upStatus;
   }
-  void setUp() { availability = Availability::Up; }
+
+  void setUp() {
+    d_config.availability = Availability::Up;
+  }
+
   void setUpStatus(bool newStatus)
   {
     upStatus = newStatus;
-    if (!upStatus)
+    if (!upStatus) {
       latencyUsec = 0.0;
+    }
   }
   void setDown()
   {
-    availability = Availability::Down;
+    d_config.availability = Availability::Down;
     latencyUsec = 0.0;
   }
-  void setAuto() { availability = Availability::Auto; }
+  void setAuto() {
+    d_config.availability = Availability::Auto;
+  }
   const string& getName() const {
-    return name;
+    return d_config.name;
   }
   const string& getNameWithAddr() const {
-    return nameWithAddr;
+    return d_config.nameWithAddr;
   }
   void setName(const std::string& newName)
   {
-    name = newName;
-    nameWithAddr = newName.empty() ? remote.toStringWithPort() : (name + " (" + remote.toStringWithPort()+ ")");
+    d_config.name = newName;
+    d_config.nameWithAddr = newName.empty() ? d_config.remote.toStringWithPort() : (d_config.name + " (" + d_config.remote.toStringWithPort()+ ")");
   }
 
   string getStatus() const
   {
     string status;
-    if(availability == DownstreamState::Availability::Up)
+    if (d_config.availability == DownstreamState::Availability::Up) {
       status = "UP";
-    else if(availability == DownstreamState::Availability::Down)
+    }
+    else if (d_config.availability == DownstreamState::Availability::Down) {
       status = "DOWN";
-    else
+    }
+    else {
       status = (upStatus ? "up" : "down");
+    }
     return status;
   }
+
   bool reconnect();
   void hash();
   void setId(const boost::uuids::uuid& newId);
@@ -846,7 +890,7 @@ public:
   }
   const boost::uuids::uuid& getID() const
   {
-    return id;
+    return *d_config.id;
   }
 
   void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
@@ -865,17 +909,17 @@ public:
 
   bool doHealthcheckOverTCP() const
   {
-    return d_tcpOnly || d_tcpCheck || d_tlsCtx != nullptr;
+    return d_config.d_tcpOnly || d_config.d_tcpCheck || d_tlsCtx != nullptr;
   }
 
   bool isTCPOnly() const
   {
-    return d_tcpOnly || d_tlsCtx != nullptr;
+    return d_config.d_tcpOnly || d_tlsCtx != nullptr;
   }
 
   bool isDoH() const
   {
-    return !d_dohPath.empty();
+    return !d_config.d_dohPath.empty();
   }
 
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
@@ -906,7 +950,7 @@ public:
 private:
   void handleTimeout(IDState& ids);
 };
-using servers_t =vector<std::shared_ptr<DownstreamState>>;
+using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
 void responderThread(std::shared_ptr<DownstreamState> state);
 extern LockGuarded<LuaContext> g_lua;

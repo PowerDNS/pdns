@@ -34,30 +34,31 @@
 
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
-static void RuntimeError(const boost::format& fmt)
+static void RuntimeError(std::string&& error)
 {
-  throw runtime_error(fmt.str());
+  throw runtime_error(std::move(error));
 }
 
-static void NetworkErr(const boost::format& fmt)
+static void NetworkErr(std::string&& error)
 {
-  throw NetworkError(fmt.str());
+  throw NetworkError(std::move(error));
 }
 
 int SSocket(int family, int type, int flags)
 {
   int ret = socket(family, type, flags);
-  if(ret < 0)
-    RuntimeError(boost::format("creating socket of type %d: %s") % family % stringerror());
+  if (ret < 0) {
+    RuntimeError("creating socket of type " + std::to_string(family) + ": " + stringerror());
+  }
   return ret;
 }
 
 int SConnect(int sockfd, const ComboAddress& remote)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
-    RuntimeError(boost::format("connecting socket to %s: %s") % remote.toStringWithPort() % strerror(savederrno));
+    RuntimeError("connecting socket to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
   }
   return ret;
 }
@@ -81,26 +82,26 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
           savederrno = 0;
           socklen_t errlen = sizeof(savederrno);
           if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&savederrno, &errlen) == 0) {
-            NetworkErr(boost::format("connecting to %s failed: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+            NetworkErr("connecting to " + remote.toStringWithPort() + " failed: " + stringerror(savederrno));
           }
           else {
-            NetworkErr(boost::format("connecting to %s failed") % remote.toStringWithPort());
+            NetworkErr("connecting to " + remote.toStringWithPort() + " failed");
           }
         }
         if (disconnected) {
-          NetworkErr(boost::format("%s closed the connection") % remote.toStringWithPort());
+          NetworkErr(remote.toStringWithPort() + " closed the connection");
         }
         return 0;
       }
       else if (res == 0) {
-        NetworkErr(boost::format("timeout while connecting to %s") % remote.toStringWithPort());
+        NetworkErr("timeout while connecting to " + remote.toStringWithPort());
       } else if (res < 0) {
         savederrno = errno;
-        NetworkErr(boost::format("waiting to connect to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+        NetworkErr("waiting to connect to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
       }
     }
     else {
-      NetworkErr(boost::format("connecting to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+      NetworkErr("connecting to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
     }
   }
 
@@ -110,9 +111,9 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
 int SBind(int sockfd, const ComboAddress& local)
 {
   int ret = bind(sockfd, (struct sockaddr*)&local, local.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
-    RuntimeError(boost::format("binding socket to %s: %s") % local.toStringWithPort() % strerror(savederrno));
+    RuntimeError("binding socket to " + local.toStringWithPort() + ": " + stringerror(savederrno));
   }
   return ret;
 }
@@ -122,24 +123,27 @@ int SAccept(int sockfd, ComboAddress& remote)
   socklen_t remlen = remote.getSocklen();
 
   int ret = accept(sockfd, (struct sockaddr*)&remote, &remlen);
-  if(ret < 0)
-    RuntimeError(boost::format("accepting new connection on socket: %s") % stringerror());
+  if (ret < 0) {
+    RuntimeError("accepting new connection on socket: " + stringerror());
+  }
   return ret;
 }
 
 int SListen(int sockfd, int limit)
 {
   int ret = listen(sockfd, limit);
-  if(ret < 0)
-    RuntimeError(boost::format("setting socket to listen: %s") % stringerror());
+  if (ret < 0) {
+    RuntimeError("setting socket to listen: " + stringerror());
+  }
   return ret;
 }
 
 int SSetsockopt(int sockfd, int level, int opname, int value)
 {
   int ret = setsockopt(sockfd, level, opname, &value, sizeof(value));
-  if(ret < 0)
-    RuntimeError(boost::format("setsockopt for level %d and opname %d to %d failed: %s") % level % opname % value % stringerror());
+  if (ret < 0) {
+    RuntimeError("setsockopt for level " + std::to_string(level) + " and opname " + std::to_string(opname) + " to " + std::to_string(value) + " failed: " + stringerror());
+  }
   return ret;
 }
 
