@@ -65,8 +65,8 @@ struct Rings {
 
   struct Shard
   {
-    LockGuarded<boost::circular_buffer<Query>> queryRing{boost::circular_buffer<Query>()};
-    LockGuarded<boost::circular_buffer<Response>> respRing{boost::circular_buffer<Response>()};
+    LockGuarded<boost::circular_buffer<Query>> queryRing;
+    LockGuarded<boost::circular_buffer<Response>> respRing;
   };
 
   Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_capacity(capacity), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
