@@ -20,6 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',
@@ -57,7 +61,7 @@ public:
   bool isMetadataType() const;
 
   static uint16_t chartocode(const char* p);
-  
+
   enum typeenum : uint16_t {
     ENT = 0,
     A = 1,
@@ -123,8 +127,10 @@ public:
     CAA = 257,
     DLV = 32769,
     ADDR = 65400,
+#if !defined(RECURSOR)
     ALIAS = 65401,
     LUA = 65402
+#endif
   };
 
   const static map<const string, uint16_t> names;
