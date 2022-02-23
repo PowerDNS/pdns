@@ -445,13 +445,7 @@ static std::vector<DNSZoneRecord> getRecords(UeberBackend& ub, const DNSName& na
 {
   std::vector<DNSZoneRecord> result;
 
-  ub.lookup(QType(qtype), name, zoneId, const_cast<DNSPacket*>(pkt));
-
-  DNSZoneRecord dzr;
-  while (ub.get(dzr))
-  {
-    result.push_back(std::move(dzr));
-  }
+  ub.lookup(QType(qtype), name, result, zoneId, const_cast<DNSPacket*>(pkt));
 
   return result;
 }
