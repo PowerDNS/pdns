@@ -354,7 +354,10 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
               conn->d_currentQuery = std::move(query);
             }
 
-            for (auto& pending : conn->d_pendingResponses) {
+            /* if we notify the sender it might terminate us so we need to move these first */
+            auto pendingResponses = std::move(conn->d_pendingResponses);
+            conn->d_pendingResponses.clear();
+            for (auto& pending : pendingResponses) {
               --conn->d_ds->outstanding;
 
               if (pending.second.d_query.isXFR() && pending.second.d_query.d_xfrStarted) {
@@ -374,7 +377,6 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
                 conn->d_pendingQueries.push_back(std::move(pending.second));
               }
             }
-            conn->d_pendingResponses.clear();
             conn->d_currentPos = 0;
 
             if (conn->d_state == State::sendingQueryToBackend) {
