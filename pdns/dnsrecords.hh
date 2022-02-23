@@ -266,6 +266,7 @@ private:
   DNSName d_content;
 };
 
+#if !defined(RECURSOR)
 class ALIASRecordContent : public DNSRecordContent
 {
 public:
@@ -273,7 +274,7 @@ public:
 
   DNSName d_content;
 };
-
+#endif
 
 class DNAMERecordContent : public DNSRecordContent
 {

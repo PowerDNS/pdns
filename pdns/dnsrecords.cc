@@ -140,7 +140,9 @@ boilerplate_conv(AAAA, conv.xfrIP6(d_ip6); );
 boilerplate_conv(NS, conv.xfrName(d_content, true));
 boilerplate_conv(PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, conv.xfrName(d_content, true));
+#if !defined(RECURSOR)
 boilerplate_conv(ALIAS, conv.xfrName(d_content, false));
+#endif
 boilerplate_conv(DNAME, conv.xfrName(d_content));
 boilerplate_conv(MB, conv.xfrName(d_madname, true));
 boilerplate_conv(MG, conv.xfrName(d_mgmname, true));
@@ -930,7 +932,9 @@ void reportOtherTypes()
    MRRecordContent::report();
    AFSDBRecordContent::report();
    DNAMERecordContent::report();
+#if !defined(RECURSOR)
    ALIASRecordContent::report();
+#endif
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    KXRecordContent::report();

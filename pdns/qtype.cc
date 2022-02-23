@@ -94,8 +94,10 @@ const map<const string, uint16_t> QType::names = {
   {"CAA", 257},
   {"DLV", 32769},
   {"ADDR", 65400},
+#if !defined(RECURSOR)
   {"ALIAS", 65401},
   {"LUA", 65402},
+#endif
 };
 
 static map<uint16_t, const string> swapElements(const map<const string, uint16_t>& names) {
