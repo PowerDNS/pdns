@@ -16,4 +16,8 @@ set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
+if [ "$1" = "recursor" ]; then
+  # Create a rec-specific test zone, as rec does not know ALIAS
+    fgrep -v ALIAS ../regression-tests/zones/example.com > ../regression-tests/zones/example.com.rec
+fi
 exec ./runtests.py "$@"
