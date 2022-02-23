@@ -345,18 +345,20 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   bool found = false;
   int cstat;
   DNSName shorter(target);
+  Question question;
+  vector<DNSZoneRecord> zrs;
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), pair(target.wirelength()+1, SOAData()));
   do {
     int zoneId{-1};
     if(cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
-        // Zone exists in zone cache, directly look up SOA.
-        DNSZoneRecord zr;
-        lookup(QType(QType::SOA), shorter, zoneId, nullptr);
-        if (!get(zr)) {
+        // Zone exists in zone cache, directly look up SOA.=
+        lookup(QType(QType::SOA), shorter, zrs, zoneId, nullptr);
+        if (zrs.empty()) {
           DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
           continue;
         }
+        auto zr = zrs[0];
         if (zr.dr.d_name != shorter) {
           throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+zr.dr.d_name.toLogString()+"' is not equal to looked up zone '"+shorter.toLogString()+"'");
         }
@@ -367,8 +369,6 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         }
         catch (...) {
           g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
-          while (get(zr))
-            ;
           continue;
         }
         if (backends.size() == 1) {
@@ -378,25 +378,23 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
           sd->db = nullptr;
         }
         // leave database handle in a consistent state
-        while (get(zr))
-          ;
         goto found;
       }
       // zone does not exist, try again with shorter name
       continue;
     }
 
-    d_question.qtype = QType::SOA;
-    d_question.qname = shorter;
-    d_question.zoneId = zoneId;
+    question.qtype = QType::SOA;
+    question.qname = shorter;
+    question.zoneId = zoneId;
 
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
-      cstat = cacheHas(d_question,d_answers);
+      cstat = cacheHas(question,zrs);
 
-      if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
+      if(cstat == 1 && !zrs.empty() && d_cache_ttl) {
         DLOG(g_log<<Logger::Error<<"has pos cache entry: "<<shorter<<endl);
-        fillSOAData(d_answers[0], *sd);
+        fillSOAData(zrs[0], *sd);
 
         if (backends.size() == 1) {
           sd->db = *backends.begin();
@@ -448,15 +446,15 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
       if(i == backends.end()) {
         if(d_negcache_ttl) {
           DLOG(g_log<<Logger::Error<<"add neg cache entry:"<<shorter<<endl);
-          d_question.qname=shorter;
-          addNegCache(d_question);
+          question.qname=shorter;
+          addNegCache(question);
         }
         continue;
       } else if(d_cache_ttl) {
         DLOG(g_log<<Logger::Error<<"add pos cache entry: "<<sd->qname<<endl);
-        d_question.qtype = QType::SOA;
-        d_question.qname = sd->qname;
-        d_question.zoneId = zoneId;
+        question.qtype = QType::SOA;
+        question.qname = sd->qname;
+        question.zoneId = zoneId;
 
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;
@@ -465,7 +463,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
 
-        addCache(d_question, {rr});
+        addCache(question, {rr});
       }
     }
 
@@ -484,9 +482,10 @@ found:
 
 bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 {
-  d_question.qtype=QType::SOA;
-  d_question.qname=domain;
-  d_question.zoneId=-1;
+  Question question;
+  question.qtype=QType::SOA;
+  question.qname=domain;
+  question.zoneId=-1;
 
   for(auto backend : backends)
     if(backend->getSOA(domain, sd)) {
@@ -501,14 +500,14 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
         rr.dr.d_ttl = sd.ttl;
         rr.domain_id = sd.domain_id;
 
-        addCache(d_question, {rr});
+        addCache(question, {rr});
 
       }
       return true;
     }
 
   if(d_negcache_ttl)
-    addNegCache(d_question);
+    addNegCache(question);
   return false;
 }
 
@@ -550,11 +549,8 @@ UeberBackend::UeberBackend(const string &pname)
     d_instances.lock()->push_back(this); // report to the static list of ourself
   }
 
-  d_negcached=false;
-  d_cached=false;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
-  d_qtype = 0;
   d_stale = false;
 
   backends=BackendMakers().all(pname=="key-only");
@@ -642,7 +638,7 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, DNSPacket *pkt_p)
+void UeberBackend::lookup(const QType &qtype,const DNSName &qname, vector<DNSZoneRecord> &rrs, int zoneId, DNSPacket *pkt_p)
 {
   if(d_stale) {
     g_log<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
@@ -657,26 +653,24 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     g_log<<Logger::Error<<"Broadcast received, unblocked"<<endl;
   }
 
-  d_qtype=qtype.getCode();
-
   if(!backends.size()) {
     g_log<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
     d_stale=true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {
-    d_question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
-    d_question.qname=qname;
-    d_question.zoneId=zoneId;
+    Question question;
+    question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
+    question.qname=qname;
+    question.zoneId=zoneId;
 
-    int cstat=cacheHas(d_question, d_answers);
+    int cstat=cacheHas(question, rrs);
     if(cstat<0) { // nothing
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
-      d_negcached=d_cached=false;
-      d_answers.clear();
+      rrs.clear();
       for (const auto& backend: backends) {
-        backend->lookup(d_question.qtype, d_question.qname, d_answers, d_question.zoneId, pkt_p);
-        if (!d_answers.empty()) {
+        backend->lookup(question.qtype, question.qname, rrs, question.zoneId, pkt_p);
+        if (!rrs.empty()) {
           // We only want answers from one backend
           break;
         }
@@ -684,43 +678,39 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       ++(*s_backendQueries);
 
       // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-      if(d_answers.empty()) {
+      if(rrs.empty()) {
         // cout<<"adding negcache"<<endl;
-        addNegCache(d_question);
-        d_negcached = true;
+        addNegCache(question);
       }
       else {
         // cout<<"adding query cache"<<endl;
         bool wontBeCached = false;
-        for (const auto& rr: d_answers) {
+        for (const auto& rr: rrs) {
           if (rr.dr.d_ttl <= 0 || rr.scopeMask) {
             wontBeCached = true;
             break;
           }
         }
         if (isQueryCacheActive() && !wontBeCached) {
-          addCache(d_question, std::move(d_answers));
-          int newcstat = cacheHas(d_question, d_answers);
+          addCache(question, std::move(rrs));
+          int newcstat = cacheHas(question, rrs);
           if (newcstat <= 0) {
             g_log<<Logger::Error<<"We just inserted something into the cache and now its not there, cstat is "<<newcstat<<endl;
             throw PDNSException("We just inserted something into the cache and now its not there");
           }
         }
-        d_cached = true;
-        d_cachehandleiter = d_answers.begin();
+        for (auto iter = rrs.begin(); iter != rrs.end();) {
+          if (qtype.getCode() != QType::ANY && (*iter).dr.d_type != qtype.getCode()) {
+            rrs.erase(iter);
+          } else {
+            ++iter;
+          }
+        }
       }
     } 
     else if(cstat==0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
-      d_negcached=true;
-      d_cached=false;
-      d_answers.clear();
-    }
-    else {
-      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
-      d_negcached=false;
-      d_cached=true;
-      d_cachehandleiter = d_answers.begin();
+      rrs.clear();
     }
   }
 }
@@ -731,26 +721,6 @@ void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
   {
     backend->getAllDomains(domains, getSerial, include_disabled);
   }
-}
-
-bool UeberBackend::get(DNSZoneRecord &rr)
-{
-  // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;
-  if(d_negcached) {
-    return false; 
-  }
-
-  if(d_cached) {
-    while(d_cachehandleiter != d_answers.end()) {
-      rr=*d_cachehandleiter++;;
-      if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  return false;
 }
 
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)

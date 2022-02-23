@@ -69,13 +69,12 @@ public:
 
   void cleanup();
 
-  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *pkt_p=nullptr);
+  void lookup(const QType &, const DNSName &qdomain, vector<DNSZoneRecord> &rrs, int zoneId, DNSPacket *pkt_p=nullptr);
 
   /** Determines if we are authoritative for a zone, and at what level */
   bool getAuth(const DNSName &target, const QType &qtype, SOAData* sd, bool cachedOk=true);
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const DNSName &domain, SOAData &sd);
-  bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
@@ -111,9 +110,6 @@ public:
 
   bool inTransaction();
 private:
-  vector<DNSZoneRecord> d_answers;
-  vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
-
   static std::mutex d_mut;
   static std::condition_variable d_cond;
 
@@ -122,13 +118,10 @@ private:
     DNSName qname;
     int zoneId;
     QType qtype;
-  }d_question;
+  };
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  uint16_t d_qtype;
 
-  bool d_negcached;
-  bool d_cached;
   static AtomicCounter* s_backendQueries;
   static bool d_go;
   bool d_stale;

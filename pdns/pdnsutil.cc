@@ -206,19 +206,15 @@ static void dbBench(const std::string& fname)
     domains.push_back("powerdns.com");
 
   int n=0;
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
   DTime dt;
   dt.set();
   unsigned int hits=0, misses=0;
   for(; n < 10000; ++n) {
     DNSName domain(domains[dns_random(domains.size())]);
-    B.lookup(QType(QType::NS), domain, -1);
-    while(B.get(rr)) {
-      hits++;
-    }
-    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain, -1);
-    while(B.get(rr)) {
-    }
+    B.lookup(QType(QType::NS), domain, rrs, -1);
+    hits += rrs.size();
+    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain, rrs, -1);
     misses++;
 
   }
@@ -333,9 +329,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     SOAData sd_p;
     if(B.getSOAUncached(parent, sd_p)) {
       bool ns=false;
-      DNSZoneRecord zr;
-      B.lookup(QType(QType::ANY), zone, sd_p.domain_id);
-      while(B.get(zr))
+      vector<DNSZoneRecord> zrs;
+      B.lookup(QType(QType::ANY), zone, zrs, sd_p.domain_id);
+      for(auto zr: zrs)
         ns |= (zr.dr.d_type == QType::NS);
       if (!ns) {
         cout<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;

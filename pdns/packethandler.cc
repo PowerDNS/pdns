@@ -140,11 +140,12 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDNSKEY), p.qdomain, d_sd.domain_id, &p);
+    vector<DNSZoneRecord> rrs;
+    B.lookup(QType(QType::CDNSKEY), p.qdomain, rrs, d_sd.domain_id, &p);
 
-    while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
-      r->addRecord(std::move(rr));
+    for(auto lrr: rrs) {
+      lrr.dr.d_ttl=d_sd.minimum;
+      r->addRecord(std::move(lrr));
       haveOne=true;
     }
   }
@@ -178,11 +179,12 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::DNSKEY), p.qdomain, d_sd.domain_id, &p);
+    vector<DNSZoneRecord> rrs;
+    B.lookup(QType(QType::DNSKEY), p.qdomain, rrs, d_sd.domain_id, &p);
 
-    while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
-      r->addRecord(std::move(rr));
+    for(auto lrr: rrs) {
+      lrr.dr.d_ttl=d_sd.minimum;
+      r->addRecord(std::move(lrr));
       haveOne=true;
     }
   }
@@ -236,11 +238,12 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDS), p.qdomain, d_sd.domain_id, &p);
+    vector<DNSZoneRecord> rrs;
+    B.lookup(QType(QType::CDS), p.qdomain, rrs, d_sd.domain_id, &p);
 
-    while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
-      r->addRecord(std::move(rr));
+    for(auto lrr: rrs) {
+      lrr.dr.d_ttl=d_sd.minimum;
+      r->addRecord(std::move(lrr));
       haveOne=true;
     }
   }
@@ -325,15 +328,12 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
 vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSName &target)
 {
   vector<DNSZoneRecord> ret;
-  DNSZoneRecord rr;
+
   DNSName subdomain(target);
   do {
     if(subdomain == d_sd.qname) // stop at SOA
       break;
-    B.lookup(QType(QType::NS), subdomain, d_sd.domain_id, &p);
-    while(B.get(rr)) {
-      ret.push_back(rr); // this used to exclude auth NS records for some reason
-    }
+    B.lookup(QType(QType::NS), subdomain, ret, d_sd.domain_id, &p);
     if(!ret.empty())
       return ret;
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
@@ -343,15 +343,13 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSNa
 void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZoneRecord> &ret)
 {
   ret.clear();
-  DNSZoneRecord rr;
   DNSName prefix;
   DNSName subdomain(target);
   do {
     DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", d_sd.qname="<<d_sd.qname<<endl);
 
-    B.lookup(QType(QType::DNAME), subdomain, d_sd.domain_id, &p);
-    while(B.get(rr)) {
-      ret.push_back(rr);  // put in the original
+    B.lookup(QType(QType::DNAME), subdomain, ret, d_sd.domain_id, &p);
+    for(auto rr: ret) {
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
@@ -375,7 +373,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
 bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName &wildcard, vector<DNSZoneRecord>* ret)
 {
   ret->clear();
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
   DNSName subdomain(target);
   bool haveSomething=false;
 
@@ -391,11 +389,11 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
-      B.lookup(QType(QType::ANY), g_wildcarddnsname, d_sd.domain_id, &p);
+      B.lookup(QType(QType::ANY), g_wildcarddnsname, rrs, d_sd.domain_id, &p);
     } else {
-      B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, d_sd.domain_id, &p);
+      B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, rrs, d_sd.domain_id, &p);
     }
-    while(B.get(rr)) {
+    for(auto rr: rrs) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA) {
         if(!doLua) {
@@ -412,19 +410,12 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
         if(rec->d_type == QType::CNAME || rec->d_type == p.qtype.getCode() || (p.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           //    noCache=true;
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
-          try {
-            auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type);
-            for(const auto& r : recvec) {
-              rr.dr.d_type = rec->d_type; // might be CNAME
-              rr.dr.d_content = r;
-              rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
-              ret->push_back(rr);
-            }
-          }
-          catch (std::exception &e) {
-            while (B.get(rr)) ;                 // don't leave DB handle in bad state
-
-            throw;
+          auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type);
+          for(const auto& r : recvec) {
+            rr.dr.d_type = rec->d_type; // might be CNAME
+            rr.dr.d_content = r;
+            rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
+            ret->push_back(rr);
           }
         }
       }
@@ -441,10 +432,10 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     if ( subdomain == d_sd.qname || haveSomething ) // stop at SOA or result
       break;
 
-    B.lookup(QType(QType::ANY), subdomain, d_sd.domain_id, &p);
-    if (B.get(rr)) {
+    rrs.clear();
+    B.lookup(QType(QType::ANY), subdomain, rrs, d_sd.domain_id, &p);
+    if (rrs.empty()) {
       DLOG(g_log<<"No wildcard match, ancestor exists"<<endl);
-      while (B.get(rr)) ;
       break;
     }
     wildcard=subdomain;
@@ -458,15 +449,15 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
   size_t ctr = 5; // Max 5 SVCB Aliasforms per query
   bool done = false;
   while (!done && ctr > 0) {
-    DNSZoneRecord rr;
+    vector<DNSZoneRecord> rrs;
     done = true;
 
     if(!ret.isPartOf(d_sd.qname)) {
       continue;
     }
 
-    B.lookup(QType(qtype), ret, d_sd.domain_id);
-    while (B.get(rr)) {
+    B.lookup(QType(qtype), ret, rrs, d_sd.domain_id);
+    for (auto rr: rrs)  {
       rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
       switch (qtype) {
         case QType::SVCB: /* fall-through */
@@ -480,8 +471,6 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
           break;
         }
         default:
-          while (B.get(rr)) ;              // don't leave DB handle in bad state
-
           throw PDNSException("Unknown type (" + QType(qtype).toString() + ") for additional service processing");
       }
     }
@@ -569,10 +558,10 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     }
   }
 
-  DNSZoneRecord dzr;
+  vector<DNSZoneRecord> dzrs;
   for(const auto& name : lookup) {
-    B.lookup(QType(QType::ANY), name, d_sd.domain_id, &p);
-    while(B.get(dzr)) {
+    B.lookup(QType(QType::ANY), name, dzrs, d_sd.domain_id, &p);
+    for(auto dzr: dzrs) {
       if(dzr.dr.d_type == QType::A || dzr.dr.d_type == QType::AAAA) {
         dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         r->addRecord(std::move(dzr));
@@ -583,12 +572,12 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
 
 vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const uint16_t qtype) {
   vector<ComboAddress> ret;
+  vector<DNSZoneRecord> rrs;
   if (qtype != QType::A && qtype != QType::AAAA) {
     return ret;
   }
-  B.lookup(qtype, target, d_sd.domain_id);
-  DNSZoneRecord rr;
-  while (B.get(rr)) {
+  B.lookup(qtype, target, rrs, d_sd.domain_id);
+  for(auto rr: rrs) {
     if (qtype == QType::AAAA) {
       auto aaaarrc = getRR<AAAARecordContent>(rr.dr);
       ret.push_back(aaaarrc->getCA());
@@ -628,10 +617,10 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
     }
   }
 
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
 
-  B.lookup(QType(QType::ANY), name, d_sd.domain_id);
-  while(B.get(rr)) {
+  B.lookup(QType(QType::ANY), name, rrs, d_sd.domain_id);
+  for(auto rr: rrs) {
 #ifdef HAVE_LUA_RECORDS   
     if(rr.dr.d_type == QType::LUA)
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
@@ -653,6 +642,8 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
     }
   }
 
+  DNSZoneRecord rr;
+
   rr.dr.d_name = name;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
   rr.dr.d_type = QType::NSEC;
@@ -672,7 +663,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   n3rc.d_salt = ns3prc.d_salt;
   n3rc.d_nexthash = nexthash;
 
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
 
   if(!name.empty()) {
     if (d_sd.qname == name) {
@@ -697,8 +688,8 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
       }
     }
 
-    B.lookup(QType(QType::ANY), name, d_sd.domain_id);
-    while(B.get(rr)) {
+    B.lookup(QType(QType::ANY), name, rrs, d_sd.domain_id);
+    for(auto rr: rrs) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA)
         n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
@@ -726,6 +717,8 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   if (numberOfTypesSet != 0 && !(numberOfTypesSet == 1 && n3rc.isSet(QType::NS))) {
     n3rc.set(QType::RRSIG);
   }
+
+  DNSZoneRecord rr;
 
   rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
@@ -816,10 +809,10 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
       DLOG(g_log<<"No matching NSEC3, do closest (provable) encloser"<<endl);
 
       bool doBreak = false;
-      DNSZoneRecord rr;
       while( closest.chopOff() && (closest != d_sd.qname))  { // stop at SOA
-        B.lookup(QType(QType::ANY), closest, d_sd.domain_id, &p);
-        while(B.get(rr))
+        vector<DNSZoneRecord> rrs;
+        B.lookup(QType(QType::ANY), closest, rrs, d_sd.domain_id, &p);
+        for(auto rr: rrs)
           if (rr.auth)
             doBreak = true;
         if(doBreak)
@@ -1159,11 +1152,11 @@ void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
 
 bool PacketHandler::addDSforNS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& dsname)
 {
+  vector<DNSZoneRecord> rrs;
   //cerr<<"Trying to find a DS for '"<<dsname<<"', domain_id = "<<d_sd.domain_id<<endl;
-  B.lookup(QType(QType::DS), dsname, d_sd.domain_id, &p);
-  DNSZoneRecord rr;
+  B.lookup(QType(QType::DS), dsname, rrs, d_sd.domain_id, &p);
   bool gotOne=false;
-  while(B.get(rr)) {
+  for(auto rr: rrs) {
     gotOne=true;
     rr.dr.d_place = DNSResourceRecord::AUTHORITY;
     r->addRecord(std::move(rr));
@@ -1270,7 +1263,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
 std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 {
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
 
   int retargetcount=0;
   set<DNSName> authSet;
@@ -1480,6 +1473,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
 
     if(p.qtype.getCode() == QType::SOA && d_sd.qname==p.qdomain) {
+      DNSZoneRecord rr;
       rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
       r->addRecord(std::move(rr));
       goto sendit;
@@ -1514,13 +1508,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 #endif
 
     // see what we get..
-    B.lookup(QType(QType::ANY), target, d_sd.domain_id, &p);
+    B.lookup(QType(QType::ANY), target, rrs, d_sd.domain_id, &p);
     rrset.clear();
     haveAlias.trimToLabels(0);
     aliasScopeMask = 0;
     weDone = weRedirected = weHaveUnauth =  false;
     
-    while(B.get(rr)) {
+    for(auto rr: rrs) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA) {
         if(!doLua)
@@ -1546,9 +1540,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
                 weDone = true;
             }
           }
-          catch(std::exception &e) {
-            while (B.get(rr)) ;              // don't leave DB handle in bad state
-
+          catch(std::exception &e) {\
             r=p.replyPacket();
             r->setRcode(RCode::ServFail);
 
@@ -1591,8 +1583,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     /* Add in SOA if required */
     if(target==d_sd.qname) {
-        rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
-        rrset.push_back(rr);
+      DNSZoneRecord rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
+      rrset.push_back(rr);
     }
 
 

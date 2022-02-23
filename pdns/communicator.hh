@@ -252,11 +252,12 @@ public:
     this->resolve_name(&addresses, name);
     
     if(b) {
-        b->lookup(QType(QType::ANY),name,-1);
-        DNSZoneRecord rr;
-        while(b->get(rr))
-          if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
-            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+      vector<DNSZoneRecord> rrs;
+      b->lookup(QType(QType::ANY), name, rrs, -1);
+      for (auto rr : rrs) {
+        if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)
+          addresses.push_back(rr.dr.d_content->getZoneRepresentation()); // SOL if you have a CNAME for an NS
+      }
     }
     return addresses;
   }
