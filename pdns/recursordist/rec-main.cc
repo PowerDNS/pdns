@@ -903,7 +903,7 @@ static void doStats(void)
 
     uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
     uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
-    g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, SyncRes::s_queries) << "% packet cache hits" << endl;
+    g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, g_stats.qcounter) << "% packet cache hits" << endl;
 
     size_t idx = 0;
     for (const auto& threadInfo : RecThreadInfo::infos()) {
@@ -916,10 +916,10 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl;
     time_t now = time(0);
     if (lastOutputTime && lastQueryCount && now != lastOutputTime) {
-      g_log << Logger::Notice << "stats: " << (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl;
+      g_log << Logger::Notice << "stats: " << (g_stats.qcounter - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl;
     }
     lastOutputTime = now;
-    lastQueryCount = SyncRes::s_queries;
+    lastQueryCount = g_stats.qcounter;
   }
   else if (statsWanted)
     g_log << Logger::Notice << "stats: no stats yet!" << endl;
@@ -1872,7 +1872,7 @@ static void houseKeeping(void*)
       static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
       packetCacheTask.runIfDue(now, []() {
         size_t sz = g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors());
-        t_packetCache->setMaxSize(sz); // might have changed by rec_control
+        t_packetCache->setMaxSize(sz); // g_maxPacketCacheEntries might have changed by rec_control
         t_packetCache->doPruneTo(sz);
       });
     }
@@ -2062,6 +2062,7 @@ static void recursorThread()
     }
 
     if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
+      // Only enable packet cache for thread processing queries from the outside world
       t_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
     }
 
