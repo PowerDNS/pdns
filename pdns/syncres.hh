@@ -742,8 +742,6 @@ public:
       // Internal types
     case QType::ENT:
     case QType::ADDR:
-    case QType::ALIAS:
-    case QType::LUA:
       return true;
     }
     return false;
