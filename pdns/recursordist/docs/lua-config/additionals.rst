@@ -1,3 +1,5 @@
+.. _additionals:
+
 Adding Additional Records to Results
 ====================================
 Starting with version 4.7.0, the PowerDNS Recursor has the ability to add additional records to query results.

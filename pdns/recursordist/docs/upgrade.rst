@@ -7,9 +7,20 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.6.x to master
 ---------------
 
+Zone to Cache Changes
+^^^^^^^^^^^^^^^^^^^^^
+The :ref:`ztc` feature now validates ``ZONEMD`` records. This means that zones containing invalid ``ZONEMD`` record will
+be rejected by default, while previously the ``ZONEMD`` records would be ignored. For more detail, refer to :ref:`ztc`.
+
+Asynchronous retrieval of ``AAAA`` records for nameservers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If IPv6 is enabled in for outgoing queries using :ref:`setting-query-local-address` the Recursor will schedule an asynchronous task to resolve IPv6 addresses of nameservers it did not learn otherwise.
+These addresses will then be used for future queries to authoritative nameservers.
+This has the consequence that authoritative nameservers will be contacted over IPv6 in more case than before.
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
--  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed.
+-  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed. The hint processing code is also made less verbose.
 
 4.5.x to 4.6.0
 --------------
