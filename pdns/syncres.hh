@@ -736,6 +736,19 @@ public:
     d_queryReceivedOverTCP = tcp;
   }
 
+  static bool isUnsupported(QType qtype)
+  {
+    switch (qtype.getCode()) {
+      // Internal types
+    case QType::ENT:
+    case QType::ADDR:
+    case QType::ALIAS:
+    case QType::LUA:
+      return true;
+    }
+    return false;
+  }
+
   static thread_local ThreadLocalStorage t_sstorage;
 
   static pdns::stat_t s_queries;
