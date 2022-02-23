@@ -182,7 +182,8 @@ void runTaskOnce(bool logErrors)
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
   if (SyncRes::isUnsupported(qtype)) {
-    g_log << Logger::Error << "Cannot push task for " << QType(qtype).toString() << endl;
+    auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()));
+    log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve};
@@ -192,6 +193,11 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
 
 void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline)
 {
+  if (SyncRes::isUnsupported(qtype)) {
+    auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()));
+    log->error(Logr::Error, "Cannot push task", "qtype unsupported");
+    return;
+  }
   pdns::ResolveTask task{qname, qtype, deadline, false, resolve};
   auto lock = s_taskQueue.lock();
   bool inserted = lock->rateLimitSet.insert(now, task);
