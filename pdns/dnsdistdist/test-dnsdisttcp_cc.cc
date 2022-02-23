@@ -2859,7 +2859,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
 
     auto proxyEnabledBackend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
     proxyEnabledBackend->d_tlsCtx = tlsCtx;
-    proxyEnabledBackend->useProxyProtocol = true;
+    proxyEnabledBackend->d_config.useProxyProtocol = true;
 
     GenericDNSPacketWriter<PacketBuffer> pwAXFRQuery(axfrQuery, DNSName("powerdns.com."), QType::AXFR, QClass::IN, 0);
     pwAXFRQuery.getHeader()->rd = 0;

@@ -521,7 +521,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   try {
     auto& ids = response.d_idstate;
     unsigned int qnameWireLength;
-    if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
+    if (!response.d_connection || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
       state->terminateClientConnection();
       return;
     }

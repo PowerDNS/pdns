@@ -642,7 +642,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
                          if (!(client || configCheck)) {
-                           infolog("Added downstream server %s", config.remote.toStringWithPort());
+                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
 
                          if (autoUpgrade) {
