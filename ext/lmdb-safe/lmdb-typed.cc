@@ -19,9 +19,9 @@ unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi)
   for(int attempts=0; attempts<20; attempts++) {
     MDBOutVal key, content;
 
-    // dns_random generates a random number in [0..type_max-1]. We add 1 to avoid 0 and allow type_max.
+    // dns_random generates a random number in [0..signed_int_max-1]. We add 1 to avoid 0 and allow type_max.
     // 0 is avoided because the put() interface uses it to mean "please allocate a number for me"
-    id = dns_random(std::numeric_limits<decltype(id)>::max()) + 1;
+    id = dns_random(std::numeric_limits<signed int>::max()) + 1;
     if(cursor.find(MDBInVal(id), key, content)) {
       return id;
     }
