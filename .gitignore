@@ -55,3 +55,6 @@ built_pkgs
 __pycache__
 .circleci/config.yml-local
 .env
+compile_commands.*
+/.cache
+/.clang-tidy
