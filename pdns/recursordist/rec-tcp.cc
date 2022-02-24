@@ -433,7 +433,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc->d_tag = g_paddingTag;
       }
 
-      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
+      const dnsheader_aligned headerdata(conn->data.data());
+      const struct dnsheader* dh = headerdata.get();
 
       if (t_protobufServers || t_outgoingProtobufServers) {
         dc->d_requestorId = requestorId;

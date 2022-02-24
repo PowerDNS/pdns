@@ -207,6 +207,30 @@ struct dnsheader {
 
 static_assert(sizeof(dnsheader) == 12, "dnsheader size must be 12");
 
+class dnsheader_aligned
+{
+public:
+  dnsheader_aligned(const void* mem)
+  {
+    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {
+      d_p = reinterpret_cast<const dnsheader*>(mem);
+    }
+    else {
+      memcpy(&d_h, mem, sizeof(dnsheader));
+      d_p = &d_h;
+    }
+  }
+
+  const dnsheader* get() const
+  {
+    return d_p;
+  }
+
+private:
+  dnsheader d_h;
+  const dnsheader *d_p;
+};
+
 inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
 {
   return (uint16_t*) (((char *) dh) + sizeof(uint16_t));
