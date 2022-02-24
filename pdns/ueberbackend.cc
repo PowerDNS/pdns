@@ -390,6 +390,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
 
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
+      zrs.clear();
       cstat = cacheHas(question,zrs);
 
       if(cstat == 1 && !zrs.empty() && d_cache_ttl) {
@@ -659,18 +660,19 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, vector<DNSZon
     throw PDNSException("We are stale, please recycle");
   }
   else {
+    vector<DNSZoneRecord> dzrs;
     Question question;
     question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
     question.qname=qname;
     question.zoneId=zoneId;
 
-    int cstat=cacheHas(question, rrs);
+    int cstat=cacheHas(question, dzrs);
     if(cstat<0) { // nothing
-      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
-      rrs.clear();
+      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
+      dzrs.clear();
       for (const auto& backend: backends) {
-        backend->lookup(question.qtype, question.qname, rrs, question.zoneId, pkt_p);
-        if (!rrs.empty()) {
+        backend->lookup(question.qtype, question.qname, dzrs, question.zoneId, pkt_p);
+        if (!dzrs.empty()) {
           // We only want answers from one backend
           break;
         }
@@ -678,39 +680,44 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, vector<DNSZon
       ++(*s_backendQueries);
 
       // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-      if(rrs.empty()) {
+      if(dzrs.empty()) {
         // cout<<"adding negcache"<<endl;
         addNegCache(question);
       }
       else {
         // cout<<"adding query cache"<<endl;
         bool wontBeCached = false;
-        for (const auto& rr: rrs) {
+        for (const auto& rr: dzrs) {
           if (rr.dr.d_ttl <= 0 || rr.scopeMask) {
             wontBeCached = true;
             break;
           }
         }
         if (isQueryCacheActive() && !wontBeCached) {
-          addCache(question, std::move(rrs));
-          int newcstat = cacheHas(question, rrs);
+          addCache(question, std::move(dzrs));
+          int newcstat = cacheHas(question, dzrs);
           if (newcstat <= 0) {
             g_log<<Logger::Error<<"We just inserted something into the cache and now its not there, cstat is "<<newcstat<<endl;
             throw PDNSException("We just inserted something into the cache and now its not there");
           }
         }
-        for (auto iter = rrs.begin(); iter != rrs.end();) {
-          if (qtype.getCode() != QType::ANY && (*iter).dr.d_type != qtype.getCode()) {
-            rrs.erase(iter);
-          } else {
-            ++iter;
-          }
-        }
       }
     } 
     else if(cstat==0) {
-      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
-      rrs.clear();
+      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
+      dzrs.clear();
+    } else {
+      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
+    }
+
+    if (qtype.getCode() == QType::ANY) {
+      rrs = dzrs;
+    } else {
+      for (auto rr: dzrs) {
+        if (rr.dr.d_type == qtype.getCode()) {
+          rrs.push_back(rr);
+        }
+      }
     }
   }
 }

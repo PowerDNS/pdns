@@ -250,7 +250,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 
   sd.db = nullptr;
 
-  for (const auto rr: rrs) {
+  for (const auto &rr: rrs) {
     if (rr.dr.d_type != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
     fillSOAData(rr, sd);
