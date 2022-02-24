@@ -4,6 +4,7 @@ case $context in
 module-dir=./modules
 launch=lmdb
 lmdb-filename=./pdns.lmdb
+lmdb-random-ids=yes
 __EOF__
 
         rm -f pdns.lmdb*
