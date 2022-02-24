@@ -49,7 +49,7 @@ This will bring up a USAGE-page which will explain how to build the different re
 COMPILING Authoritative Server
 ------------------------------
 The PowerDNS Authoritative Server depends on Boost, OpenSSL and Lua, and requires a
-compiler with C++-2011 support.
+compiler with C++-2017 support.
 
 On Debian 9, the following is useful:
 
@@ -144,10 +144,10 @@ FreeBSD Notes
 -------------
 You need to compile using gmake - regular make only appears to work, but doesn't in fact. Use gmake, not make.
 
-The clang compiler installed through FreeBSD's package manager does not expose all of the C++11 features needed under `std=gnuc++11`. Force the compiler to use `std=c++11` mode instead.
+The clang compiler installed through FreeBSD's package manager does not expose all of the C++17 features needed under `std=gnuc++11`. Force the compiler to use `std=c++17` mode instead.
 
 ```sh
-export CXXFLAGS=-std=c++11
+export CXXFLAGS=-std=c++17
 ```
 
 macOS Notes
