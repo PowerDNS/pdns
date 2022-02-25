@@ -343,13 +343,15 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSNa
 void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZoneRecord> &ret)
 {
   ret.clear();
+  vector<DNSZoneRecord> rrs;
   DNSName prefix;
   DNSName subdomain(target);
   do {
     DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", d_sd.qname="<<d_sd.qname<<endl);
 
-    B.lookup(QType(QType::DNAME), subdomain, ret, d_sd.domain_id, &p);
-    for(auto rr: ret) {
+    B.lookup(QType(QType::DNAME), subdomain, rrs, d_sd.domain_id, &p);
+    for(auto rr: rrs) {
+      ret.push_back(rr);
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
@@ -592,6 +594,7 @@ vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const
 void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
 {
   NSECRecordContent nrc;
+  DNSZoneRecord rr;
   nrc.d_next = next;
 
   nrc.set(QType::NSEC);
@@ -620,7 +623,8 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   vector<DNSZoneRecord> rrs;
 
   B.lookup(QType(QType::ANY), name, rrs, d_sd.domain_id);
-  for(auto rr: rrs) {
+  for(auto iter = rrs.begin(); iter != rrs.end(); iter++) {
+    rr = (*iter);
 #ifdef HAVE_LUA_RECORDS   
     if(rr.dr.d_type == QType::LUA)
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
@@ -642,8 +646,6 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
     }
   }
 
-  DNSZoneRecord rr;
-
   rr.dr.d_name = name;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
   rr.dr.d_type = QType::NSEC;
@@ -664,6 +666,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   n3rc.d_nexthash = nexthash;
 
   vector<DNSZoneRecord> rrs;
+  DNSZoneRecord rr;
 
   if(!name.empty()) {
     if (d_sd.qname == name) {
@@ -689,7 +692,8 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
     }
 
     B.lookup(QType(QType::ANY), name, rrs, d_sd.domain_id);
-    for(auto rr: rrs) {
+    for(auto iter= rrs.begin(); iter != rrs.end(); iter++) {
+      rr = (*iter);
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA)
         n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
@@ -717,8 +721,6 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   if (numberOfTypesSet != 0 && !(numberOfTypesSet == 1 && n3rc.isSet(QType::NS))) {
     n3rc.set(QType::RRSIG);
   }
-
-  DNSZoneRecord rr;
 
   rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
