@@ -16,7 +16,7 @@ Changelogs for 4.7.X
     :tags: Bug Fixes
     :pullreq: 11347
 
-    Fix unaligned access is murmur hash code used by the Newly Observed Domain feature.
+    Fix unaligned access in murmur hash code used by the Newly Observed Domain feature.
 
   .. change::
     :tags: Improvements
@@ -45,7 +45,7 @@ Changelogs for 4.7.X
     Read the base Lua definitions into the Lua context for reading the Lua config.
 
   .. change::
-    :tags:  Bug Fixes
+    :tags: Bug Fixes
     :pullreq: 11300
     :tickets: 11289
 
@@ -80,7 +80,7 @@ Changelogs for 4.7.X
     :tags: Improvements
     :pullreq: 11283
 
-    Allow disabling of processing the root hints and lower log level of some related messages.
+    Allow disabling of processing root hints and lower log level of some related messages.
 
   .. change::
     :tags: Improvements
