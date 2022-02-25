@@ -807,6 +807,7 @@ public:
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
   static int s_event_trace_enabled;
+  static bool s_prefer_forward_over_cached_ns;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
@@ -867,6 +868,7 @@ private:
   bool doOOBResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   bool isRecursiveForwardOrAuth(const DNSName &qname) const;
   bool isForwardOrAuth(const DNSName &qname) const;
+  bool isAnyForwardOrAuth(const DNSName &qname) const;
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
   bool doCNAMECacheCheck(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse);
   bool doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);

@@ -4,8 +4,8 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.6.x to master
----------------
+4.6.1 to master branch
+----------------------
 
 Zone to Cache Changes
 ^^^^^^^^^^^^^^^^^^^^^
@@ -17,6 +17,14 @@ Asynchronous retrieval of ``AAAA`` records for nameservers
 If IPv6 is enabled for outgoing queries using :ref:`setting-query-local-address`, the Recursor will schedule an asynchronous task to resolve IPv6 addresses of nameservers it did not otherwise learn.
 These addresses will then be used for future queries to authoritative nameservers.
 This has the consequence that authoritative nameservers will be contacted over IPv6 in more case than before.
+
+4.6.0 to 4.6.1
+--------------
+
+New Settings
+^^^^^^^^^^^^
+- The :ref:`setting-prefer-forward-over-cached-ns` has been introduced, to indicate a matching forwarder should be used even
+  if a more specific ``NS`` record is present in the cache.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

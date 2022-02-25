@@ -1562,6 +1562,20 @@ The dnsdist docs have `more information about the PROXY protocol <https://dnsdis
 
 The maximum size, in bytes, of a Proxy Protocol payload (header, addresses and ports, and TLV values). Queries with a larger payload will be dropped.
 
+.. _setting-prefer-forward-over-cached-ns:
+
+``prefer-forward-over-cached-ns``
+---------------------------------
+.. versionadded:: 4.6.1
+
+- Boolean
+- Default: no
+
+Prefer to forward a query to a matching forwarder, even if a more specific ``NS`` record is found in the cache,
+making the behavior of forwarding match what was done prior to 4.4.0.
+If this option is set, qname minimization wil also be disabled for forwarded names.
+Note that to be able to use a locally cached (root) zone, this option must *not* be enabled.
+
 .. _setting-public-suffix-list-file:
 
 ``public-suffix-list-file``

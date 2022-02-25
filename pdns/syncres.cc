@@ -104,6 +104,7 @@ int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
 bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
+bool SyncRes::s_prefer_forward_over_cached_ns;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -602,6 +603,12 @@ bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
   return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || !iter->second.shouldRecurse());
 }
 
+bool SyncRes::isAnyForwardOrAuth(const DNSName &qname) const {
+  DNSName authname(qname);
+  domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+  return iter != t_sstorage.domainmap->end();
+}
+
 uint64_t SyncRes::doEDNSDump(int fd)
 {
   int newfd = dup(fd);
@@ -899,7 +906,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
   initZoneCutsFromTA(qname);
 
   // In the auth or recursive forward case, it does not make sense to do qname-minimization
-  if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
+  if (!getQNameMinimization() || (!s_prefer_forward_over_cached_ns && isRecursiveForwardOrAuth(qname)) || (s_prefer_forward_over_cached_ns && isAnyForwardOrAuth(qname))) {
     return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
   }
 
@@ -1556,11 +1563,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType qtype
       return authOrForwDomain;
     }
     else {
-      if (iter->second.shouldRecurse()) {
+      if (iter->second.shouldRecurse() || s_prefer_forward_over_cached_ns) {
         // Again, picked up in doResolveAt. An empty DNSName, combined with a
         // non-empty vector of ComboAddresses means 'this is a forwarded domain'
         // This is actually picked up in retrieveAddressesForNS called from doResolveAt.
-        nsset.insert({DNSName(), {iter->second.d_servers, true }});
+        nsset.insert({DNSName(), {iter->second.d_servers,  iter->second.shouldRecurse() }});
         return authOrForwDomain;
       }
     }
