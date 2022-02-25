@@ -1639,7 +1639,8 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
 {
   const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
   const bool lookForECS = ednssubnet != nullptr;
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(question.c_str());
+  const dnsheader_aligned dnshead(question.data());
+  const dnsheader* dh = dnshead.get();
   size_t questionLen = question.length();
   unsigned int consumed = 0;
   *dnsname = DNSName(question.c_str(), questionLen, sizeof(dnsheader), false, qtype, qclass, &consumed);
@@ -1795,7 +1796,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     g_stats.ipv6qcounter++;
 
   string response;
-  const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+  const dnsheader_aligned headerdata(question.data());
+  const dnsheader* dh = headerdata.get();
   unsigned int ctag = 0;
   uint32_t qhash = 0;
   bool needECS = false;
@@ -2149,7 +2151,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       try {
-        dnsheader* dh = (dnsheader*)&data[0];
+        const dnsheader_aligned headerdata(data.data());
+        const dnsheader* dh = headerdata.get();
 
         if (dh->qr) {
           g_stats.ignoredCount++;
