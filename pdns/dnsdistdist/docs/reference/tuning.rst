@@ -6,6 +6,7 @@ Tuning related functions
   .. versionadded:: 1.7.0
 
   Set how often, in seconds, the outgoing DoH connections to backends of a given worker thread are scanned to expunge the ones that are no longer usable. The default is 60 so once per minute and per worker thread.
+
   :param int interval: The interval in seconds.
 
 .. function:: setDoHDownstreamMaxIdleTime(max)
