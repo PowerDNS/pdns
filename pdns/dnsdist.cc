@@ -2238,6 +2238,11 @@ static void usage()
 }
 
 #ifdef COVERAGE
+extern "C"
+{
+  void __gcov_dump(void);
+}
+
 static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make
@@ -2254,7 +2259,8 @@ static void cleanupLuaObjects()
 static void sigTermHandler(int)
 {
   cleanupLuaObjects();
-  exit(EXIT_SUCCESS);
+  __gcov_dump();
+  _exit(EXIT_SUCCESS);
 }
 #else /* COVERAGE */
 static void sigTermHandler(int)
