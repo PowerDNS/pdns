@@ -353,6 +353,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     if(cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
         // Zone exists in zone cache, directly look up SOA.=
+        zrs.clear();
         lookup(QType(QType::SOA), shorter, zrs, zoneId, nullptr);
         if (zrs.empty()) {
           DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
@@ -706,13 +707,13 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, vector<DNSZon
     else if(cstat==0) {
       // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
       dzrs.clear();
-    } else {
-      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
     }
 
     if (qtype.getCode() == QType::ANY) {
       rrs = dzrs;
     } else {
+      // Make sure we the vector is empty
+      rrs.clear();
       for (auto rr: dzrs) {
         if (rr.dr.d_type == qtype.getCode()) {
           rrs.push_back(rr);

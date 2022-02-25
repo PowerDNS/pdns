@@ -355,7 +355,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
       rr.auth = false; // don't sign CNAME
       target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
-      ret.push_back(rr); 
+      ret.push_back(rr);
     }
     if(!ret.empty())
       return;
@@ -434,7 +434,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
 
     rrs.clear();
     B.lookup(QType(QType::ANY), subdomain, rrs, d_sd.domain_id, &p);
-    if (rrs.empty()) {
+    if (!rrs.empty()) {
       DLOG(g_log<<"No wildcard match, ancestor exists"<<endl);
       break;
     }
@@ -521,7 +521,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     }
   }
 
-  for(auto& rr : extraRecords) {
+  for(auto &rr : extraRecords) {
     r->addRecord(std::move(rr));
   }
   extraRecords.clear();
@@ -1540,7 +1540,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
                 weDone = true;
             }
           }
-          catch(std::exception &e) {\
+          catch(std::exception &e) {
             r=p.replyPacket();
             r->setRcode(RCode::ServFail);
 
