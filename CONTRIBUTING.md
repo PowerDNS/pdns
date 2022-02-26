@@ -90,3 +90,23 @@ To format all files that are supposed to be formatted, run `make format-code` in
 * Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated
 * Never hesitate to write comments on anything that might not be immediately clear just from reading the code
 * When adding whole new things, consider putting them in a `pdns::X` namespace. Look for `namespace pdns` in the codebase for examples.
+
+## Code Checkers
+
+Even though we don't automatically run any of the code checkers listed below as part of our CI, it might make sense to run them manually, not only on newly added code, but to also improve existing code.
+
+### `clang-tidy`
+
+`clang-tidy` requires a [compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html) to work.
+See the ["Compilation Database" section of the DEVELOPMENT document](DEVELOPMENT.md#compilation-database) on how to generate a compilation database.
+
+Once the compilation database has been generated, you can pick one of the two available `clang-tidy` configuration files to run checks on source files.
+Picking a configuration file is a matter of creating a symbolic link called `.clang-tidy` to said file in the topmost level of the sub-project you're working on (or the toplevel repository directory if you're working on PowerDNS auth).
+
+We provide two configuration files for `clang-tidy`:
+
+1. A minimal [.clang-tidy.bugs](.clang-tidy.bugs) which only enables a few checks for common bugs.
+   This configuration can be enabled using `ln -sf .clang-tidy.bugs .clang-tidy`.
+
+2. A more complete [.clang-tidy.full](.clang-tidy.full) which enables almost all available checks.
+   This configuration can be enabled using `ln -sf .clang-tidy.full .clang-tidy` and is recommended for all new code.
