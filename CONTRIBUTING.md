@@ -110,3 +110,7 @@ We provide two configuration files for `clang-tidy`:
 
 2. A more complete [.clang-tidy.full](.clang-tidy.full) which enables almost all available checks.
    This configuration can be enabled using `ln -sf .clang-tidy.full .clang-tidy` and is recommended for all new code.
+
+# Development Environment
+
+Information about setting up a development environment using a language server like [`clangd`](https://clangd.llvm.org/) or [`ccls`](https://github.com/MaskRay/ccls) can be found in [DEVELOPMENT.md](DEVELOPMENT.md).
