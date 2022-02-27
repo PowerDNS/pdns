@@ -114,3 +114,23 @@ We provide two configuration files for `clang-tidy`:
 # Development Environment
 
 Information about setting up a development environment using a language server like [`clangd`](https://clangd.llvm.org/) or [`ccls`](https://github.com/MaskRay/ccls) can be found in [DEVELOPMENT.md](DEVELOPMENT.md).
+
+# Debugging
+
+## Using GDB
+
+To get a good debugging experience with `gdb`, it is recommended to build PowerDNS using the following flags:
+
+* `CC` and `CXX` set to `gcc` and `g++`, respectively.
+* `CFLAGS` and `CXXFLAGS` set to `-ggdb -Og -fno-inline`.
+
+These variables need to be set during the `configure` step, as follows:
+
+```sh
+export CC=clang CXX=clang++
+export CFLAGS="-ggdb -Og -fno-inline" CXXFLAGS="-ggdb -Og -fno-inline"
+./configure --with-modules=gsqlite3 --disable-lua-records --enable-unit-tests
+make -j 8
+```
+
+[GDB Dashboard](https://github.com/cyrus-and/gdb-dashboard) can be used to vastly improve the GDB debugging experience.
