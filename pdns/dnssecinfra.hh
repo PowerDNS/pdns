@@ -41,6 +41,10 @@ class DNSCryptoKeyEngine
     typedef std::map<std::string, std::string> stormap_t;
     typedef std::vector<std::pair<std::string, std::string > > storvector_t;
     virtual void create(unsigned int bits)=0;
+    virtual void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp)
+    {
+      throw std::runtime_error("Can't create key from PEM file");
+    }
     virtual storvector_t convertToISCVector() const =0;
     std::string convertToISC() const ;
     virtual std::string sign(const std::string& msg) const =0;
@@ -60,18 +64,36 @@ class DNSCryptoKeyEngine
     }
 
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) = 0;
-    virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-    {
-      throw std::runtime_error("Can't import from PEM string");
-    }
     virtual void fromPublicKeyString(const std::string& content) = 0;
     virtual bool checkKey(vector<string>* errorMessages = nullptr) const
     {
       return true;
     }
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
+
+    /**
+     * \brief Creates a key engine from a PEM file.
+     *
+     * Receives an open file handle with PEM contents and creates a key
+     * engine corresponding to the algorithm requested.
+     *
+     * \param[in] drc Key record contents to be populated.
+     *
+     * \param[in] filename Only used for providing filename information
+     * in error messages.
+     *
+     * \param[in] fp An open file handle to a file containing PEM
+     * contents.
+     *
+     * \param[in] algorithm Which algorithm to use. See
+     * https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+     *
+     * \return A key engine corresponding to the requested algorithm and
+     * populated with the contents of the PEM file.
+     */
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp, uint8_t algorithm);
+
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
     static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);

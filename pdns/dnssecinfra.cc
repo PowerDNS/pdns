@@ -168,21 +168,11 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
   return dpk;
 }
 
-std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp, const uint8_t algorithm)
 {
-  for (const makers_t::value_type& maker : getMakers()) {
-    std::unique_ptr<DNSCryptoKeyEngine> ret = nullptr;
-
-    try {
-      ret = maker.second(maker.first);
-      ret->fromPEMString(drc, raw);
-      return ret;
-    }
-    catch (...) {
-    }
-  }
-
-  return nullptr;
+  auto maker = DNSCryptoKeyEngine::make(algorithm);
+  maker->createFromPEMFile(drc, filename, fp);
+  return maker;
 }
 
 std::string DNSCryptoKeyEngine::convertToISC() const

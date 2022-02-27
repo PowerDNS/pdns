@@ -59,7 +59,6 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) override;
 
-    void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override { throw "Unimplemented"; };
     void fromPublicKeyString(const std::string& content) override { throw "Unimplemented"; };
 
     static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);

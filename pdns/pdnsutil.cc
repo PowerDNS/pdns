@@ -30,6 +30,7 @@
 #include "zonemd.hh"
 #include <fstream>
 #include <utility>
+#include <cerrno>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
 #ifdef HAVE_LIBSODIUM
@@ -3284,34 +3285,28 @@ try
       return 1;
     }
 
-    string zone = cmds.at(1);
-    string fname = cmds.at(2);
+    const string zone = cmds.at(1);
+    const string filename = cmds.at(2);
+    const auto algorithm = pdns::checked_stoi<unsigned int>(cmds.at(3));
 
-    ifstream ifs(fname.c_str());
-    string line;
-    string interim;
-    while (getline(ifs, line)) {
-      if (line[0] == '-') {
-        continue;
-      }
-      boost::trim(line);
-      interim += line;
+    errno = 0;
+    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp{std::fopen(filename.c_str(), "r"), &std::fclose};
+    if (fp == nullptr) {
+      auto errMsg = pdns::getMessageFromErrno(errno);
+      throw runtime_error("Failed to open PEM file `" + filename + "`: " + errMsg);
     }
 
-    string raw;
-    B64Decode(interim, raw);
-
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
-    shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromPEMString(drc, raw));
+    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, filename, *fp, algorithm)};
     if (!key) {
       cerr << "Could not convert key from PEM to internal format" << endl;
       return 1;
     }
+
+    DNSSECPrivateKey dpk;
     dpk.setKey(key);
 
     pdns::checked_stoi_into(dpk.d_algorithm, cmds.at(3));
-
     if (dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
       dpk.d_algorithm = DNSSECKeeper::RSASHA1;
     }

@@ -35,6 +35,7 @@
 #include <openssl/rsa.h>
 #include <openssl/opensslv.h>
 #include <openssl/err.h>
+#include <openssl/pem.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
@@ -592,6 +593,26 @@ public:
   int getBits() const override { return d_len << 3; }
 
   void create(unsigned int bits) override;
+
+  /**
+   * \brief Creates an ECDSA key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an ECDSA
+   * key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information
+   * in error messages.
+   *
+   * \param[in] fp An open file handle to a file containing ECDSA PEM
+   * contents.
+   *
+   * \return An ECDSA key engine populated with the contents of the PEM
+   * file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
   storvector_t convertToISCVector() const override;
   std::string hash(const std::string& hash) const override;
   std::string sign(const std::string& hash) const override;
@@ -627,6 +648,39 @@ void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
   }
 }
 
+void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+{
+  drc.d_algorithm = d_algorithm;
+  d_eckey = std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)>(PEM_read_ECPrivateKey(&fp, nullptr, nullptr, nullptr), &EC_KEY_free);
+  if (d_eckey == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
+
+  int ret = EC_KEY_set_group(d_eckey.get(), d_ecgroup.get());
+  if (ret != 1) {
+    throw runtime_error(getName() + " setting key group failed");
+  }
+
+  const BIGNUM* privateKeyBN = EC_KEY_get0_private_key(d_eckey.get());
+
+  auto pub_key = std::unique_ptr<EC_POINT, void (*)(EC_POINT*)>(EC_POINT_new(d_ecgroup.get()), EC_POINT_free);
+  if (!pub_key) {
+    throw runtime_error(getName() + " allocation of public key point failed");
+  }
+
+  ret = EC_POINT_mul(d_ecgroup.get(), pub_key.get(), privateKeyBN, nullptr, nullptr, nullptr);
+  if (ret != 1) {
+    throw runtime_error(getName() + " computing public key from private failed");
+  }
+
+  ret = EC_KEY_set_public_key(d_eckey.get(), pub_key.get());
+  if (ret != 1) {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error(getName() + " setting public key failed");
+  }
+
+  EC_KEY_set_asn1_flag(d_eckey.get(), OPENSSL_EC_NAMED_CURVE);
+}
 
 DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVector() const
 {
