@@ -47,7 +47,7 @@ def init_argparser():
                                  'auth-47', 'auth-master',
                                  # Recursor
                                  'rec-43', 'rec-44', 'rec-45', 'rec-46',
-                                 'rec-master',
+                                 'rec-47', 'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
                                  'dnsdist-master'
@@ -145,7 +145,8 @@ def write_release_files (release):
 
     if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
                    'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
+                   'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('centos', '7', release)
         write_dockerfile('ubuntu', 'bionic', release)
@@ -158,7 +159,8 @@ def write_release_files (release):
 
     if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
                    'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
+                   'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('el', '8', release)
         write_dockerfile('debian', 'buster', release)
@@ -166,13 +168,14 @@ def write_release_files (release):
 
     if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
                    'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-master',
+                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
+                   'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'focal', release)
         write_list_file('ubuntu', 'focal', release)
 
     if release in ['auth-46', 'auth-47', 'auth-master',
-                   'rec-45', 'rec-46', 'rec-master',
+                   'rec-45', 'rec-46', 'rec-47', 'rec-master',
                    'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
