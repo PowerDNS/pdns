@@ -181,6 +181,7 @@ void initSR(bool debug)
   SyncRes::s_nonresolvingnsmaxfails = 0;
   SyncRes::s_nonresolvingnsthrottletime = 0;
   SyncRes::s_refresh_ttlperc = 0;
+  SyncRes::s_prefer_forward_over_cached_ns = false;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);

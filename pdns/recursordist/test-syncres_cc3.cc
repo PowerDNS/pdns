@@ -1576,4 +1576,139 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_ds)
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_forward_zone_ns)
+{
+  // Check to see if a cached NS for a subdomain of a forwarder domain is used
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  const DNSName sub("sub.powerdns.com.");
+  const ComboAddress forwardedNS("192.0.2.42:53");
+  const ComboAddress inCacheNS("192.0.2.43:53");
+
+  size_t queriesCount = 0;
+  SyncRes::AuthDomain ad;
+  ad.d_rdForward = false;
+  ad.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
+
+  sr->setAsyncCallback([forwardedNS, inCacheNS, sub, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (ip == forwardedNS && type == QType::A) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.42");
+      return LWResult::Result::Success;
+    }
+
+    if (ip == forwardedNS && domain == sub && type == QType::NS) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "ns.powerdns.com");
+      addRecordToLW(res, DNSName("ns.powerdns.com"), QType::A, "192.0.2.43", DNSResourceRecord::ADDITIONAL);
+      return LWResult::Result::Success;
+    }
+
+    if (ip == inCacheNS && domain == sub && type == QType::A) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.44");
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), "192.0.2.42");
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  // Insert an appropriate NS and A record into the cache, normally this would come from a learned delegation
+  ret.clear();
+  res = sr->beginResolve(sub, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  // Should see the alternative result
+  ret.clear();
+  res = sr->beginResolve(sub, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), "192.0.2.44");
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+}
+
+BOOST_AUTO_TEST_CASE(test_forward_zone_ns_prefer_forward)
+{
+  // Check to see if a cached NS for a subdomain of a forwarder domain is not used if `s_prefer_forward_over_cached_ns` is true
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+  SyncRes::s_prefer_forward_over_cached_ns = true;
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  const DNSName sub("sub.powerdns.com.");
+  const ComboAddress forwardedNS("192.0.2.42:53");
+  const ComboAddress inCacheNS("192.0.2.43:53");
+
+  size_t queriesCount = 0;
+  SyncRes::AuthDomain ad;
+  ad.d_rdForward = false;
+  ad.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
+
+  sr->setAsyncCallback([forwardedNS, inCacheNS, sub, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (ip == forwardedNS && type == QType::A) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.42");
+      return LWResult::Result::Success;
+    }
+
+    if (ip == forwardedNS && domain == sub && type == QType::NS) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "ns.powerdns.com");
+      addRecordToLW(res, DNSName("ns.powerdns.com"), QType::A, "192.0.2.43", DNSResourceRecord::ADDITIONAL);
+      return LWResult::Result::Success;
+    }
+
+    if (ip == inCacheNS && domain == sub && type == QType::A) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.44");
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), "192.0.2.42");
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  // Insert an appropriate NS record into the cache
+  ret.clear();
+  res = sr->beginResolve(sub, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  // Should still see the result from the forwarder
+  ret.clear();
+  res = sr->beginResolve(sub, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), "192.0.2.42");
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
