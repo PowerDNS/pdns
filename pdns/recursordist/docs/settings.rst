@@ -1573,7 +1573,7 @@ The maximum size, in bytes, of a Proxy Protocol payload (header, addresses and p
 
 Prefer to forward a query to a matching forwarder, even if a more specific ``NS`` record is found in the cache,
 making the behavior of forwarding match what was done prior to 4.4.0.
-If this option is set, qname minimization wil also be disabled for forwarded names.
+If this option is set, qname minimization will also be disabled for forwarded names.
 Note that to be able to use a locally cached (root) zone, this option must *not* be enabled.
 
 .. _setting-public-suffix-list-file:
