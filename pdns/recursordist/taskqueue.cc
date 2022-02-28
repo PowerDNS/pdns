@@ -59,7 +59,7 @@ bool ResolveTask::run(bool logErrors)
   else {
     // Deadline passed
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
-    log->error(Logr::Debug, "deadline passed");
+    log->info(Logr::Debug, "deadline passed");
     return true;
   }
   return false;

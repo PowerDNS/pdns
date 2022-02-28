@@ -1304,14 +1304,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   try {
     // First look for both A and AAAA in the cache
     res_t cset;
-    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<ARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
         }
       }
     }
-    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<AAAARecordContent>(i)) {
           seenV6 = true;
@@ -1351,7 +1351,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         } else {
           // We have some IPv4 records, consult the cache, we might have encountered some IPv6 glue
           cset.clear();
-          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
             for (const auto &i : cset) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
                 seenV6 = true;
@@ -1444,7 +1444,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, false, d_routingTag) > 0) {
       bestns.reserve(ns.size());
 
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
@@ -1460,7 +1460,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
-                                                                          false, doLog() ? &aset : 0, d_cacheRemote, d_refresh, d_routingTag) > 5)) {
+                                                                          false, doLog() ? &aset : 0, d_cacheRemote, false, d_routingTag) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -1661,7 +1661,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
   QType foundQT = QType::ENT;
 
   /* we don't require auth data for forward-recurse lookups */
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, false, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
   }
@@ -1677,7 +1677,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, false, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
         foundName = dnameName;
         foundQT = QType::DNAME;
         break;
