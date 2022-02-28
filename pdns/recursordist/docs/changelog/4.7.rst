@@ -1,0 +1,135 @@
+Changelogs for 4.7.X
+====================
+
+.. changelog::
+  :version: 4.7.0-alpha1
+  :released: 28th of February 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11338, 11349
+    :tickets: 11337
+
+    QType ADDR is supposed to be used internally only.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11347
+
+    Fix unaligned access in murmur hash code used by the Newly Observed Domain feature.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11302
+    :tickets: 11294
+
+    Add Additional records to query results if appropriate and configured.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11294
+
+    Resolve AAAA for NS in an async task if applicable.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11327
+    :tickets: 11320
+
+    A Lua followCNAME result might need native dns64 processing.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11319
+
+    Read the base Lua definitions into the Lua context for reading the Lua config.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11300
+    :tickets: 11289
+
+    Use the Lua context stored in SyncRes when calling hooks.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11307
+
+    Add SNI information to outgoing DoT if available.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11305
+
+    Detect a malformed question early so we can drop it as soon as possible.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11252
+
+    Thread management re-factoring.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11288
+    :tickets: 11287
+
+    Document changes to policy.DROP better and warn on using the now unsupported way.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11283
+
+    Allow disabling of processing root hints and lower log level of some related messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11269
+
+    Move two maps (failed servers and non-resolving nameservers) from thread_local to shared.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11245
+
+    A CNAME answer on DS query should abort DS retrieval.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11189,11100
+
+    ZONEMD validation for Zone to Cache function.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11186
+    :tickets: 11178
+
+    By default, build with symbol visibility hidden.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11164
+
+    Update protozero to 1.7.1.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11074
+
+    Add Lua postresolve_ffi hook.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11036
+
+    Compute step sizes for Query Minimization according to RFC 9156.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11030
+    :tickets: 11021
+
+    Make incoming TCP bookkeeping more correct.
+
+
