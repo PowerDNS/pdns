@@ -1195,7 +1195,7 @@ uint16_t dnsdist_ffi_dnspacket_get_records_count_in_section(const dnsdist_ffi_dn
 
 void dnsdist_ffi_dnspacket_get_record_name_raw(const dnsdist_ffi_dnspacket_t* packet, size_t idx, const char** name, size_t* nameSize)
 {
-  if (packet == nullptr || name == nullptr || nameSize == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || name == nullptr || nameSize == nullptr || idx >= packet->overlay.d_records.size()) {
     return;
   }
   const auto& storage = packet->overlay.d_records.at(idx).d_name.getStorage();
@@ -1205,7 +1205,7 @@ void dnsdist_ffi_dnspacket_get_record_name_raw(const dnsdist_ffi_dnspacket_t* pa
 
 uint16_t dnsdist_ffi_dnspacket_get_record_type(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
 {
-  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || idx >= packet->overlay.d_records.size()) {
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_type;
@@ -1213,7 +1213,7 @@ uint16_t dnsdist_ffi_dnspacket_get_record_type(const dnsdist_ffi_dnspacket_t* pa
 
 uint16_t dnsdist_ffi_dnspacket_get_record_class(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
 {
-  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || idx >= packet->overlay.d_records.size()) {
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_class;
@@ -1221,7 +1221,7 @@ uint16_t dnsdist_ffi_dnspacket_get_record_class(const dnsdist_ffi_dnspacket_t* p
 
 uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
 {
-  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || idx >= packet->overlay.d_records.size()) {
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_ttl;
@@ -1229,7 +1229,7 @@ uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* pac
 
 uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
 {
-  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || idx >= packet->overlay.d_records.size()) {
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_contentLength;
@@ -1237,7 +1237,7 @@ uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspa
 
 uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx)
 {
-  if (packet == nullptr || idx > packet->overlay.d_records.size()) {
+  if (packet == nullptr || idx >= packet->overlay.d_records.size()) {
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_contentOffset;
