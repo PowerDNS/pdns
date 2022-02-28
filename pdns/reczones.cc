@@ -53,7 +53,12 @@ bool primeHints(time_t ignored)
 
   time_t now = time(nullptr);
 
-  if (::arg()["hint-file"].empty()) {
+  const string hintfile = ::arg()["hint-file"];
+  if (hintfile == "no") {
+    g_log << Logger::Debug << "Priming root disabled by hint-file=no" << endl;
+    return true;
+  }
+  if (hintfile.empty()) {
     DNSRecord arr, aaaarr, nsrr;
     nsrr.d_name = g_rootdnsname;
     arr.d_type = QType::A;
@@ -97,7 +102,7 @@ bool primeHints(time_t ignored)
     }
   }
   else {
-    ZoneParserTNG zpt(::arg()["hint-file"]);
+    ZoneParserTNG zpt(hintfile);
     zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
     zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
     DNSResourceRecord rr;
@@ -168,16 +173,14 @@ bool primeHints(time_t ignored)
 // servers are authoritative for root-servers.net, and some
 // implementations reply not with a delegation on a root-servers.net
 // DS query, but with a NODATA response (the domain is unsigned).
-void primeRootNSZones(bool dnssecmode, unsigned int depth)
+void primeRootNSZones(DNSSECMode mode, unsigned int depth)
 {
   struct timeval now;
   gettimeofday(&now, 0);
   SyncRes sr(now);
 
-  if (dnssecmode) {
-    sr.setDoDNSSEC(true);
-    sr.setDNSSECValidationRequested(true);
-  }
+  sr.setDoDNSSEC(mode != DNSSECMode::Off);
+  sr.setDNSSECValidationRequested(mode != DNSSECMode::Off && mode != DNSSECMode::ProcessNoValidate);
 
   // beginResolve() can yield to another mthread that could trigger t_rootNSZones updates,
   // so make a local copy
