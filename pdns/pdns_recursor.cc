@@ -1469,6 +1469,8 @@ static bool udrCheckUniqueDNSRecord(const shared_ptr<Logr::Logger>& nodlogger, c
 }
 #endif /* NOD_ENABLED */
 
+static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records);
+
 int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
 {
   vector<DNSRecord> resolved;
@@ -1489,8 +1491,14 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
 
   rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl);
 
-  for(DNSRecord& rr :  resolved) {
-    ret.push_back(std::move(rr));
+  if (g_dns64Prefix && qtype == QType::AAAA && answerIsNOData(qtype, rcode, resolved)) {
+    rcode = getFakeAAAARecords(target, *g_dns64Prefix, resolved);
+  }
+
+  for (DNSRecord& rr : resolved) {
+    if (rr.d_place == DNSResourceRecord::ANSWER) {
+      ret.push_back(std::move(rr));
+    }
   }
   return rcode;
 }
