@@ -3253,7 +3253,7 @@ static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
     if (auto naptrContent = getRR<NAPTRRecordContent>(rec)) {
       auto flags = naptrContent->getFlags();
       toLowerInPlace(flags);
-      if (flags.find('a') || flags.find('s')) {
+      if (flags.find('a') != string::npos || flags.find('s') != string::npos) {
         allowedAdditionals.insert(naptrContent->getReplacement());
       }
     }
