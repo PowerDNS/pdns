@@ -1873,6 +1873,12 @@ static string setEventTracing(T begin, T end)
   }
 }
 
+static void* pleaseSupplantProxyMapping(std::shared_ptr<ProxyMapping> pm)
+{
+  t_proxyMapping = pm;
+  return nullptr;
+}
+
 RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
 {
   *command = nop;
@@ -2012,8 +2018,11 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 
     try {
       luaConfigDelayedThreads delayedLuaThreads;
-      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
+      ProxyMapping proxyMapping;
+      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
       startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
+      std::shared_ptr<ProxyMapping> ptr = proxyMapping.empty() ? nullptr : std::make_shared<ProxyMapping>(proxyMapping);
+      broadcastFunction([=] { return pleaseSupplantProxyMapping(ptr); });
       g_log << Logger::Warning << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl;
       return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }

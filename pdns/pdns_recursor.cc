@@ -923,7 +923,7 @@ void startDoResolve(void* p)
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
-    sr.setQuerySource(dc->d_source, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
+    sr.setQuerySource(dc->d_mappedSource, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
     sr.setQueryReceivedOverTCP(dc->d_tcp);
 
     bool tracedQuery = false; // we could consider letting Lua know about this too
@@ -1516,11 +1516,23 @@ void startDoResolve(void* p)
         pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
       }
       pbMessage.setMessageIdentity(dc->d_uuid);
-      pbMessage.setSocketFamily(dc->d_source.sin4.sin_family);
       pbMessage.setSocketProtocol(dc->d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP);
-      Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-      ComboAddress requestor = requestorNM.getMaskedNetwork();
-      pbMessage.setFrom(requestor);
+
+      if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
+        pbMessage.setSocketFamily(dc->d_source.sin4.sin_family);
+        Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        ComboAddress requestor = requestorNM.getMaskedNetwork();
+        pbMessage.setFrom(requestor);
+        pbMessage.setFromPort(dc->d_source.getPort());
+      }
+      else {
+        pbMessage.setSocketFamily(dc->d_mappedSource.sin4.sin_family);
+        Netmask requestorNM(dc->d_mappedSource, dc->d_mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        ComboAddress requestor = requestorNM.getMaskedNetwork();
+        pbMessage.setFrom(requestor);
+        pbMessage.setFromPort(dc->d_mappedSource.getPort());
+      }
+
       pbMessage.setTo(dc->d_destination);
       pbMessage.setId(dc->d_mdp.d_header.id);
 
@@ -1529,7 +1541,6 @@ void startDoResolve(void* p)
       pbMessage.setRequestorId(dq.requestorId);
       pbMessage.setDeviceId(dq.deviceId);
       pbMessage.setDeviceName(dq.deviceName);
-      pbMessage.setFromPort(dc->d_source.getPort());
       pbMessage.setToPort(dc->d_destination.getPort());
 
       for (const auto& m : dq.meta) {
@@ -1777,7 +1788,12 @@ bool expectProxyProtocol(const ComboAddress& from)
   return g_proxyProtocolACL.match(from);
 }
 
-static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
+// fromaddr: the address the query is coming from
+// destaddr: the address the query was received on
+// source: the address we assume the query is coming from, might be set by proxy protocol
+// destination: the address we assume the query was sent to, might be set by proxy protocol
+// mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
+static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace)
 {
   ++(RecThreadInfo::self().numberOfDistributedQueries);
   gettimeofday(&g_now, nullptr);
@@ -1900,7 +1916,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta);
       }
     }
 
@@ -1932,7 +1948,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-          protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+          protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
         }
 
         if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
@@ -2014,10 +2030,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->setSocket(fd);
   dc->d_tag = ctag;
   dc->d_qhash = qhash;
-  dc->setRemote(fromaddr);
-  dc->setSource(source);
-  dc->setLocal(destaddr);
-  dc->setDestination(destination);
+  dc->setRemote(fromaddr); // the address the query is coming from
+  dc->setSource(source); // the address we assume the query is coming from, might be set by proxy protocol
+  dc->setLocal(destaddr); // the address the query was received on
+  dc->setDestination(destination); // the address we assume the query is sent to, might be set by proxy protocol
+  dc->setMappedSource(mappedSource); // the address we assume the query is coming from. Differs from source if table-based mapping has been applied
   dc->d_tcp = false;
   dc->d_ecsFound = ecsFound;
   dc->d_ecsParsed = ecsParsed;
@@ -2052,9 +2069,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   ssize_t len;
   static const size_t maxIncomingQuerySize = g_proxyProtocolACL.empty() ? 512 : (512 + g_proxyProtocolMaximumSize);
   static thread_local std::string data;
-  ComboAddress fromaddr;
-  ComboAddress source;
-  ComboAddress destination;
+  ComboAddress fromaddr; // the address the query is coming from
+  ComboAddress source; // the address we assume the query is coming from, might be set by proxy protocol
+  ComboAddress destination; // the address we assume the query was sent to, might be set by proxy protocol
   struct msghdr msgh;
   struct iovec iov;
   cmsgbuf_aligned cbuf;
@@ -2126,14 +2143,19 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (!proxyProto) {
         source = fromaddr;
       }
-
+      ComboAddress mappedSource = source;
+      if (t_proxyMapping) {
+        if (auto it = t_proxyMapping->lookup(source)) {
+          mappedSource = it->second;
+        }
+      }
       if (t_remotes) {
         t_remotes->push_back(fromaddr);
       }
 
-      if (t_allowFrom && !t_allowFrom->match(&source)) {
+      if (t_allowFrom && !t_allowFrom->match(&mappedSource)) {
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << source.toString() << ", address not matched by allow-from" << endl;
+          g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << mappedSource.toString() << ", address not matched by allow-from" << endl;
         }
 
         g_stats.unauthorizedUDP++;
@@ -2174,9 +2196,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         else {
           if (dh->opcode == Opcode::Notify) {
-            if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(&source)) {
+            if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(&mappedSource)) {
               if (!g_quiet) {
-                g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << source.toString() << ", address not matched by allow-notify-from" << endl;
+                g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << mappedSource.toString() << ", address not matched by allow-notify-from" << endl;
               }
 
               g_stats.sourceDisallowedNotify++;
@@ -2186,7 +2208,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           struct timeval tv = {0, 0};
           HarvestTimestamp(&msgh, &tv);
-          ComboAddress dest;
+          ComboAddress dest; // the address the query was sent to to
           dest.reset(); // this makes sure we ignore this address if not returned by recvmsg above
           auto loc = rplookup(g_listenSocketsAddresses, fd);
           if (HarvestDestinationAddress(&msgh, &dest)) {
@@ -2211,12 +2233,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
-            distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace]() mutable {
-              return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
+            distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, mappedSource, tv, fd, proxyProtocolValues, eventTrace]() mutable {
+              return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, mappedSource, tv, fd, proxyProtocolValues, eventTrace);
             });
           }
           else {
-            doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues, eventTrace);
+            doProcessUDPQuestion(data, fromaddr, dest, source, destination, mappedSource, tv, fd, proxyProtocolValues, eventTrace);
           }
         }
       }

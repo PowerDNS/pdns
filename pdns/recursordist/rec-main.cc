@@ -103,6 +103,9 @@ deferredAdd_t g_deferredAdds;
    and finally the workers */
 std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
 
+std::shared_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
+thread_local std::shared_ptr<ProxyMapping> t_proxyMapping;
+
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numWorkerThreads;
@@ -443,15 +446,23 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedRemote, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
 {
   if (!t_protobufServers) {
     return;
   }
 
-  Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-  ComboAddress requestor = requestorNM.getMaskedNetwork();
-  requestor.setPort(remote.getPort());
+  ComboAddress requestor;
+  if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
+    Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+    requestor = requestorNM.getMaskedNetwork();
+    requestor.setPort(remote.getPort());
+  }
+  else {
+    Netmask requestorNM(mappedRemote, mappedRemote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+    requestor = requestorNM.getMaskedNetwork();
+    requestor.setPort(mappedRemote.getPort());
+  }
 
   pdns::ProtoZero::RecMessage m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
   m.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
@@ -490,6 +501,7 @@ void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
 void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
+                         const ComboAddress& mappedSource,
                          const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
@@ -512,10 +524,19 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
   }
 
   // In message part
-  Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-  ComboAddress requestor = requestorNM.getMaskedNetwork();
+  if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
+    Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+    auto requestor = requestorNM.getMaskedNetwork();
+    pbMessage.setFrom(requestor);
+    pbMessage.setFromPort(source.getPort());
+  }
+  else {
+    Netmask requestorNM(mappedSource, mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+    auto requestor = requestorNM.getMaskedNetwork();
+    pbMessage.setFrom(requestor);
+    pbMessage.setFromPort(mappedSource.getPort());
+  }
   pbMessage.setMessageIdentity(uniqueId);
-  pbMessage.setFrom(requestor);
   pbMessage.setTo(destination);
   pbMessage.setSocketProtocol(tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP);
   pbMessage.setId(dh->id);
@@ -525,7 +546,6 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
   pbMessage.setRequestorId(requestorId);
   pbMessage.setDeviceId(deviceId);
   pbMessage.setDeviceName(deviceName);
-  pbMessage.setFromPort(source.getPort());
   pbMessage.setToPort(destination.getPort());
   for (const auto& m : meta) {
     pbMessage.setMeta(m.first, m.second.stringVal, m.second.intVal);
@@ -1229,7 +1249,10 @@ static int serviceMain(int argc, char* argv[])
 
   luaConfigDelayedThreads delayedLuaThreads;
   try {
-    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
+    ProxyMapping proxyMapping;
+    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+    // Initial proxy mapping
+    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_shared<ProxyMapping>(proxyMapping);
   }
   catch (PDNSException& e) {
     g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl;
@@ -2024,6 +2047,7 @@ static void recursorThread()
       t_allowNotifyFor = g_initialAllowNotifyFor;
       t_udpclientsocks = std::make_unique<UDPClientSocks>();
       t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
+      t_proxyMapping = g_proxyMapping;
 
       if (threadInfo.isHandler()) {
         if (!primeHints()) {

@@ -11,5 +11,6 @@ Since version 4.0.0, the PowerDNS Recursor supports additional configuration opt
     sortlist
     ztc
     additionals
+    proxymapping
 
 In addition, :func:`pdnslog` together with ``pdns.loglevels`` is also supported in the Lua configuration file.

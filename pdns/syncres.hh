@@ -1140,6 +1140,7 @@ public:
   const ComboAddress d_remote;
   ComboAddress d_source;
   ComboAddress d_destination;
+  ComboAddress d_mappedSource;
   size_t queriesCount{0};
   size_t proxyProtocolGot{0};
   ssize_t proxyProtocolNeed{0};

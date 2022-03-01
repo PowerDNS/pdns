@@ -146,6 +146,10 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
     config.logResponses = boost::get<bool>((*vars)["logResponses"]);
   }
 
+  if (vars->count("logMappedFrom")) {
+    config.logMappedFrom = boost::get<bool>((*vars)["logMappedFrom"]);
+  }
+
   if (vars->count("exportTypes")) {
     config.exportTypes.clear();
 
@@ -350,7 +354,7 @@ public:
   }
 };
 
-void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
+void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads, ProxyMapping& proxyMapping)
 {
   LuaConfigItems lci;
 
@@ -719,6 +723,20 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     }
     lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
+  });
+
+  Lua->writeFunction("addProxyMapping", [&proxyMapping](const string& netmaskArg, const string& addressArg) {
+    try {
+      Netmask netmask(netmaskArg);
+      ComboAddress address(addressArg);
+      proxyMapping.insert_or_assign(netmask, address);
+    }
+    catch (std::exception& e) {
+      g_log << Logger::Error << "Error processing addProxyMapping: " << e.what() << endl;
+    }
+    catch (PDNSException& e) {
+      g_log << Logger::Error << "Error processing addProxyMapping: " << e.reason << endl;
+    }
   });
 
   try {
