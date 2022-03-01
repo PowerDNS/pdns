@@ -293,11 +293,11 @@ struct ThreadMSG
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now), d_query(query)
+  DNSComboWriter(const std::string& query, const struct timeval& now, shared_ptr<RecursorLua4> luaContext): d_mdp(true, query), d_now(now), d_query(query), d_luaContext(luaContext)
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, shared_ptr<RecursorLua4> luaContext, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(luaContext), d_data(std::move(data))
   {
   }
 
@@ -359,7 +359,11 @@ struct DNSComboWriter {
   std::unordered_set<std::string> d_policyTags;
   std::string d_routingTag;
   std::vector<DNSRecord> d_records;
+
+  // d_data is tied to this LuaContext so we need to keep it alive and use it, not a newer one, as long as d_data exists
+  shared_ptr<RecursorLua4> d_luaContext;
   LuaContext::LuaObject d_data;
+
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
   boost::optional<uint16_t> d_extendedErrorCode{boost::none};
@@ -1741,8 +1745,8 @@ static void startDoResolve(void *p)
     sr.setId(MT->getTid());
 
     bool DNSSECOK=false;
-    if(t_pdl) {
-      sr.setLuaEngine(t_pdl);
+    if(dc->d_luaContext) {
+      sr.setLuaEngine(dc->d_luaContext);
     }
     if(g_dnssecmode != DNSSECMode::Off) {
       sr.setDoDNSSEC(true);
@@ -1835,8 +1839,8 @@ static void startDoResolve(void *p)
       sr.setCacheOnly();
     }
 
-    if (t_pdl) {
-      t_pdl->prerpz(dq, res, sr.d_eventTrace);
+    if (dc->d_luaContext) {
+      dc->d_luaContext->prerpz(dq, res, sr.d_eventTrace);
     }
 
     // Check if the client has a policy attached to it
@@ -1883,7 +1887,7 @@ static void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if (!t_pdl || !t_pdl->preresolve(dq, res, sr.d_eventTrace)) {
+    if (!dc->d_luaContext || !dc->d_luaContext->preresolve(dq, res, sr.d_eventTrace)) {
 
       if (!g_dns64PrefixReverse.empty() && dq.qtype == QType::PTR && dq.qname.isPartOf(g_dns64PrefixReverse)) {
         res = getFakePTRRecords(dq.qname, ret);
@@ -1894,7 +1898,7 @@ static void startDoResolve(void *p)
 
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
 
-        if (t_pdl && t_pdl->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
+        if (dc->d_luaContext && dc->d_luaContext->policyHitEventFilter(dc->d_source, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
           /* reset to no match */
           appliedPolicy = DNSFilterEngine::Policy();
         }
@@ -1969,10 +1973,10 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
+      if (dc->d_luaContext || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (t_pdl && t_pdl->nodata(dq, res, sr.d_eventTrace)) {
+            if (dc->d_luaContext && dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
               auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
               if (policyResult == PolicyResult::HaveAnswer) {
@@ -1988,7 +1992,7 @@ static void startDoResolve(void *p)
             }
           }
 	}
-	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res, sr.d_eventTrace)) {
+	else if (res == RCode::NXDomain && dc->d_luaContext && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           if (policyResult == PolicyResult::HaveAnswer) {
@@ -1999,7 +2003,7 @@ static void startDoResolve(void *p)
           }
         }
 
-	if (t_pdl && t_pdl->postresolve(dq, res, sr.d_eventTrace)) {
+	if (dc->d_luaContext && dc->d_luaContext->postresolve(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           // haveAnswer case redundant
@@ -2009,7 +2013,7 @@ static void startDoResolve(void *p)
         }
       }
     }
-    else if (t_pdl) {
+    else if (dc->d_luaContext) {
       // preresolve returned true
       shouldNotValidate = true;
       auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
@@ -2789,7 +2793,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state = TCPConnection::BYTE0;
       std::unique_ptr<DNSComboWriter> dc;
       try {
-        dc = std::make_unique<DNSComboWriter>(conn->data, g_now);
+        dc = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
       }
       catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
@@ -3336,7 +3340,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), std::move(data), std::move(records));
+  auto dc = std::make_unique<DNSComboWriter>(question, g_now, std::move(policyTags), t_pdl, std::move(data), std::move(records));
   dc->setSocket(fd);
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
