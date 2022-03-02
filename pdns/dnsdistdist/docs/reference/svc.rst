@@ -26,7 +26,7 @@ SVCRecordParameters
 
     {
       mandatory={STRING},   -- The mandatory keys. the table of strings must be the key names (like "port" and "key998").
-      alpn={STRING},        -- alpns for this record, like "doh" or "h2".
+      alpn={STRING},        -- alpns for this record, like "dot" or "h2".
       noDefaultAlpn=BOOL,   -- When true, the no-default-alpn key is included in the record, false or absent means it does not exist in the record.
       port=NUM,             -- Port parameter to include.
       ipv4hint={STRING},    -- IPv4 hints to include into the record.
