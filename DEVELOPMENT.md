@@ -43,6 +43,8 @@ Note that the process of generating the compilation database file only needs to 
 
 This section explains how to set up [Emacs](https://www.gnu.org/software/emacs/) with [LSP Mode](https://emacs-lsp.github.io/) for C/C++ development using `clangd` which supports [on-the-fly checking](https://www.flycheck.org/en/latest/) and [auto-completion](https://company-mode.github.io/), among many other features.
 
+Instructions for an alternative, more minimal, setup using [Eglot](https://github.com/joaotavora/eglot) [are also available](#minimal-emacs).
+
 Code snippets below should be added to your Emacs init file (e.g. `~/.config/emacs/init`).
 
 We'll start by enabling Emacs package repositories and declaring which packages we would like to have installed:
@@ -264,6 +266,40 @@ And finally, set up the C/C++ programming mode with a few settings:
 * Add `which-key` support.
 * Add `ivy` support.
 * Add `company-prescient` for auto-completion ranking.
+
+## Minimal Emacs
+
+Code snippets below should be added to your Emacs init file (e.g. `~/.config/emacs/init`).
+
+We'll start by enabling Emacs package repositories and declaring which packages we would like to have installed:
+
+```elisp
+(with-eval-after-load 'package
+ (setq package-archives
+  '(("gnu"   . "https://elpa.gnu.org/packages/")
+    ("melpa" . "https://melpa.org/packages/")))
+ (push 'company package-selected-packages)
+ (push 'eglot   package-selected-packages))
+```
+
+To avoid restarting Emacs, you can evaluate that previous s-expression by pointing at the last parenthesis and using `C-x C-e` or selecting the block and using `M-x eval-region`.
+
+Once done, run `M-x package-refresh-contents`, then `M-x package-install-selected-packages`.
+This should install some packages for you.
+
+Now, let's set up Eglot and Company:
+
+```elisp
+(require 'eglot)
+(add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
+(add-hook 'c-mode-hook 'eglot-ensure)
+(add-hook 'c++-mode-hook 'eglot-ensure)
+
+(with-eval-after-load 'prog-mode
+  (add-hook 'prog-mode-hook #'company-mode))
+```
+
+That's it.
 
 # Code Checkers
 
