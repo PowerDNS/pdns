@@ -32,6 +32,7 @@
 
 bool g_verbose{false};
 bool g_syslog{true};
+bool g_logtimestamps{false};
 
 BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 
