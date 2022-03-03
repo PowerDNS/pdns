@@ -402,7 +402,17 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
     // load all records + sort
     {
       DNSResourceRecord rr;
-      di.backend->list(zonename, di.id, true); // incl. disabled
+      if (req->getvars.count("rrset_name") == 0) {
+        di.backend->list(zonename, di.id, true); // incl. disabled
+      } else {
+        QType qt;
+        if (req->getvars.count("rrset_type") == 0) {
+          qt = QType::ANY;
+        } else {
+          qt = req->getvars["rrset_type"];
+        }
+        di.backend->lookup(qt, DNSName(req->getvars["rrset_name"]), di.id);
+      }
       while(di.backend->get(rr)) {
         if (!rr.qtype.getCode())
           continue; // skip empty non-terminals
