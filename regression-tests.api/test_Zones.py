@@ -1,5 +1,6 @@
 from __future__ import print_function
 import json
+import operator
 import time
 import unittest
 from copy import deepcopy
@@ -730,6 +731,97 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
         self.assertEqual(data['name'], 'example.com.')
+
+    def test_get_zone_rrset(self):
+        rz = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        domains = rz.json()
+        example_com = [domain for domain in domains if domain['name'] == u'example.com.'][0]
+
+        # verify single record from name that has a single record
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + example_com['id'] + "?rrset_name=host-18000.example.com."))
+        self.assert_success_json(r)
+        data = r.json()
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
+            self.assertIn(k, data)
+        self.assertEqual(data['rrsets'],
+            [
+                {
+                    'comments': [],
+                    'name': 'host-18000.example.com.',
+                    'records':
+                    [
+                        {
+                            'content': '192.168.1.80',
+                            'disabled': False
+                        }
+                    ],
+                    'ttl': 120,
+                    'type': 'A'
+                }
+            ]
+        )
+
+        # verify two RRsets from a name that has two types with one record each
+        powerdnssec_org = [domain for domain in domains if domain['name'] == u'powerdnssec.org.'][0]
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + powerdnssec_org['id'] + "?rrset_name=localhost.powerdnssec.org."))
+        self.assert_success_json(r)
+        data = r.json()
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
+            self.assertIn(k, data)
+        self.assertEqual(sorted(data['rrsets'], key=operator.itemgetter('type')),
+            [
+                {
+                    'comments': [],
+                    'name': 'localhost.powerdnssec.org.',
+                    'records':
+                    [
+                        {
+                            'content': '127.0.0.1',
+                            'disabled': False
+                        }
+                    ],
+                    'ttl': 3600,
+                    'type': 'A'
+                },
+                {
+                    'comments': [],
+                    'name': 'localhost.powerdnssec.org.',
+                    'records':
+                    [
+                        {
+                            'content': '::1',
+                            'disabled': False
+                        }
+                    ],
+                    'ttl': 3600,
+                    'type': 'AAAA'
+                },
+            ]
+        )
+
+        # verify one RRset with one record from a name that has two, then filtered by type
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + powerdnssec_org['id'] + "?rrset_name=localhost.powerdnssec.org.&rrset_type=AAAA"))
+        self.assert_success_json(r)
+        data = r.json()
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
+            self.assertIn(k, data)
+        self.assertEqual(data['rrsets'],
+            [
+                {
+                    'comments': [],
+                    'name': 'localhost.powerdnssec.org.',
+                    'records':
+                    [
+                        {
+                            'content': '::1',
+                            'disabled': False
+                        }
+                    ],
+                    'ttl': 3600,
+                    'type': 'AAAA'
+                }
+            ]
+        )
 
     def test_import_zone_broken(self):
         payload = {
