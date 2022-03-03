@@ -348,7 +348,7 @@ static bool shouldDoRRSets(HttpRequest* req) {
   throw ApiException("'rrsets' request parameter value '"+req->getvars["rrsets"]+"' is not supported");
 }
 
-static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* resp, bool doRRSets) {
+static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* resp, HttpRequest* req) {
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di)) {
     throw HttpNotFoundException();
@@ -395,7 +395,7 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   }
   doc["slave_tsig_key_ids"] = tsig_slave_keys;
 
-  if (doRRSets) {
+  if (shouldDoRRSets(req)) {
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
 
@@ -1817,7 +1817,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     g_zoneCache.add(zonename, di.id); // make new zone visible
 
-    fillZone(B, zonename, resp, shouldDoRRSets(req));
+    fillZone(B, zonename, resp, req);
     resp->status = 201;
     return;
   }
@@ -1913,7 +1913,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     patchZone(B, req, resp);
     return;
   } else if (req->method == "GET") {
-    fillZone(B, zonename, resp, shouldDoRRSets(req));
+    fillZone(B, zonename, resp, req);
     return;
   }
   throw HttpMethodNotAllowedException();
