@@ -735,7 +735,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (!dk.unSecureZone(zonename, error, info)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
-        isDNSSECZone = dk.isSecuredZone(zonename, false); 
+        isDNSSECZone = dk.isSecuredZone(zonename, false);
         if (isDNSSECZone) {
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }

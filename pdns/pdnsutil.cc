@@ -1079,7 +1079,7 @@ static int listZone(const DNSName &zone) {
   DNSResourceRecord rr;
   cout<<"$ORIGIN ."<<endl;
   cout.sync_with_stdio(false);
-  
+
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode()) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.')
@@ -1648,7 +1648,7 @@ static int addSuperMaster(const std::string &IP, const std::string &nameserver, 
   UeberBackend B("default");
   const AutoPrimary primary(IP, nameserver, account);
   if ( B.superMasterAdd(primary) ){
-    return EXIT_SUCCESS; 
+    return EXIT_SUCCESS;
   }
   cerr<<"could not find a backend with autosecondary support"<<endl;
   return EXIT_FAILURE;

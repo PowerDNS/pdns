@@ -303,7 +303,6 @@ static void parseService6(const string &descr, ServiceTuple &st)
     st.port=pdns_stou(descr.substr(pos+2));
 }
 
-
 void parseService(const string &descr, ServiceTuple &st)
 {
   if(descr.empty())
@@ -1346,7 +1345,7 @@ uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
   DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
-  if(!dirhdl) 
+  if(!dirhdl)
     return 0;
 
   struct dirent *entry;
@@ -1383,7 +1382,7 @@ uint64_t getRealMemoryUsage(const std::string&)
   ifs >> size >> resident >> shared >> text >> lib >> data;
 
   // We used to use "data" here, but it proves unreliable and even is marked "broken"
-  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html 
+  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html
   return resident * getpagesize();
 #else
   struct rusage ru;
@@ -1432,7 +1431,7 @@ double DiffTime(const struct timespec& first, const struct timespec& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int nseconds=second.tv_nsec - first.tv_nsec;
-  
+
   if(nseconds < 0) {
     seconds-=1;
     nseconds+=1000000000;
@@ -1444,7 +1443,7 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int useconds=second.tv_usec - first.tv_usec;
-  
+
   if(useconds < 0) {
     seconds-=1;
     useconds+=1000000;

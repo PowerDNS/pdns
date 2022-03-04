@@ -888,7 +888,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     d_getTSIGKeyQuery_stmt->
       bind("key_name", name)->
       execute();
-  
+
     SSqlStatement::row_t row;
 
     content->clear();
@@ -955,7 +955,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
       execute();
 
     SSqlStatement::row_t row;
-  
+
     while(d_getTSIGKeysQuery_stmt->hasNextRow()) {
       d_getTSIGKeysQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-keys-query", row, 3);
@@ -990,7 +990,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
     d_ListDomainKeysQuery_stmt->
       bind("domain", name)->
       execute();
-  
+
     SSqlStatement::row_t row;
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
@@ -1007,7 +1007,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
       keys.push_back(kd);
     }
 
-    d_ListDomainKeysQuery_stmt->reset();    
+    d_ListDomainKeysQuery_stmt->reset();
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to list keys: "+e.txtReason());
@@ -1035,7 +1035,7 @@ bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
       execute();
 
     SSqlStatement::row_t row;
-  
+
     while(d_GetAllDomainMetadataQuery_stmt->hasNextRow()) {
       d_GetAllDomainMetadataQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-all-domain-metadata-query", row, 2);
@@ -1066,9 +1066,9 @@ bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind
       bind("domain", name)->
       bind("kind", kind)->
       execute();
-  
+
     SSqlStatement::row_t row;
-    
+
     while(d_GetDomainMetadataQuery_stmt->hasNextRow()) {
       d_GetDomainMetadataQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-domain-metadata-query", row, 1);
@@ -1111,7 +1111,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to set metadata kind '" + kind + "' for domain '" + name.toLogString() + "': "+e.txtReason());
   }
-  
+
   return true;
 }
 
@@ -1199,7 +1199,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
       bind("zone", zone)->
       bind("wildzone", wildzone)->
       bind("domain_id", domain_id)->
-      execute();      
+      execute();
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
@@ -1251,7 +1251,7 @@ bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
   try{
     reconnectIfNeeded();
 
-    d_AddSuperMaster_stmt -> 
+    d_AddSuperMaster_stmt ->
       bind("ip",primary.ip)->
       bind("nameserver",primary.nameserver)->
       bind("account",primary.account)->
@@ -1260,7 +1260,7 @@ bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
 
   }
   catch (SSqlException &e){
-    throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason()); 
+    throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason());
   }
   return true;
 
@@ -1470,7 +1470,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
         g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
         di.kind = DomainInfo::Native;
       }
-  
+
       if (!row[4].empty()) {
         vector<string> masters;
         stringtok(masters, row[4], " ,\t");
@@ -1568,7 +1568,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   for(const auto& rr: rrset) {
     feedRecord(rr, DNSName());
   }
-  
+
   return true;
 }
 
@@ -1614,7 +1614,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to feed record " + r.qname.toLogString() + "|" + r.qtype.toString() + ": "+e.txtReason());
   }
-  return true; // XXX FIXME this API should not return 'true' I think -ahu 
+  return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
 bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
@@ -1983,6 +1983,6 @@ void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
   comment.content = std::move(row[5]);
 }
 
-SSqlStatement::~SSqlStatement() { 
-// make sure vtable won't break 
+SSqlStatement::~SSqlStatement() {
+// make sure vtable won't break
 }

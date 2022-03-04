@@ -373,7 +373,7 @@ inline bool pdns_iequals_ch(const char a, const char b)
 typedef unsigned long AtomicCounterInner;
 typedef std::atomic<AtomicCounterInner> AtomicCounter ;
 
-// FIXME400 this should probably go? 
+// FIXME400 this should probably go?
 struct CIStringCompare
 {
   bool operator()(const string& a, const string& b) const
@@ -487,7 +487,7 @@ public:
   SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
   {
   }
- 
+
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend) const
   {
     for(;;++mi) {
