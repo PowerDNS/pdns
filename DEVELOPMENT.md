@@ -18,8 +18,9 @@ Ensure that you have all three binaries available and running on your system.
 
 For projects with non-trivial build systems, like PowerDNS, `clangd` requires a [compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
 
-Since PowerDNS' autotools-based build system does not have native support for generating such a database, an external tool like [Bear (the Build EAR)](https://github.com/rizsotto/Bear) can be used.
+Since PowerDNS' autotools-based build system does not have native support for generating such a database, an external tool like [Bear (the Build EAR)](https://github.com/rizsotto/Bear) or [compiledb](https://pypi.org/project/compiledb) can be used.
 
+## Using Bear
 Once you have `bear` installed, configure a build of your choice (either the PowerDNS `auth`, `recursor` or `dnsdist`) using `clang` and `clang++`:
 
 ```sh
@@ -32,6 +33,20 @@ We can now build PowerDNS using `bear` and `make` which produces a compilation d
 ```sh
 bear --append -- make -j 8
 ```
+
+## Using compiledb
+Once you have `compiledb` installed, configure the build and run compiledb:
+
+```sh
+make distclean    # Ensure we rebuild all files so that bear can pick them up.
+CC=clang CXX=clang++ ./configure ...
+make -nwk  | /path/to/compiledb -o- > compile_commands.json
+```
+
+to generate the compilation database.
+For the authoritative server, the configure command is run in the top level directory, while the compiledb command should be run in the `pdns` subdirectory.
+
+# Seting up the LSP client
 
 Once the compilation database is generated, you can now move onto setting up an LSP client in your editor or IDE.
 
