@@ -257,10 +257,11 @@ public:
     n2typemap_t::const_iterator iter = getN2Typemap().find(toUpper(name));
     if(iter != getN2Typemap().end())
       return iter->second.second;
-    
-    if (isUnknownType(name))
-      return (uint16_t) pdns_stou(name.substr(4));
-    
+
+    if (isUnknownType(name)) {
+      return (uint16_t)pdns_stou(name.substr(4));
+    }
+
     throw runtime_error("Unknown DNS type '"+name+"'");
   }
 

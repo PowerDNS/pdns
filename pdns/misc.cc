@@ -281,26 +281,30 @@ bool stripDomainSuffix(string *qname, const string &domain)
   return true;
 }
 
-static void parseService4(const string &descr, ServiceTuple &st)
+static void parseService4(const string& descr, ServiceTuple& st)
 {
-  vector<string>parts;
-  stringtok(parts,descr,":");
-  if(parts.empty())
-    throw PDNSException("Unable to parse '"+descr+"' as a service");
-  st.host=parts[0];
-  if(parts.size()>1)
-    st.port=pdns_stou(parts[1]);
+  vector<string> parts;
+  stringtok(parts, descr, ":");
+  if (parts.empty()) {
+    throw PDNSException("Unable to parse '" + descr + "' as a service");
+  }
+  st.host = parts[0];
+  if (parts.size() > 1) {
+    st.port = pdns_stou(parts[1]);
+  }
 }
 
-static void parseService6(const string &descr, ServiceTuple &st)
+static void parseService6(const string& descr, ServiceTuple& st)
 {
-  string::size_type pos=descr.find(']');
-  if(pos == string::npos)
-    throw PDNSException("Unable to parse '"+descr+"' as an IPv6 service");
+  string::size_type pos = descr.find(']');
+  if (pos == string::npos) {
+    throw PDNSException("Unable to parse '" + descr + "' as an IPv6 service");
+  }
 
-  st.host=descr.substr(1, pos-1);
-  if(pos + 2 < descr.length())
-    st.port=pdns_stou(descr.substr(pos+2));
+  st.host = descr.substr(1, pos - 1);
+  if (pos + 2 < descr.length()) {
+    st.port = pdns_stou(descr.substr(pos + 2));
+  }
 }
 
 void parseService(const string &descr, ServiceTuple &st)
@@ -1509,21 +1513,24 @@ gid_t strToGID(const string &str)
   return result;
 }
 
-unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
+unsigned int pdns_stou(const std::string& str, size_t* idx, int base)
 {
-  if (str.empty()) return 0; // compatibility
+  if (str.empty()) {
+    return 0; // compatibility
+  }
+
   unsigned long result;
   try {
     result = std::stoul(str, idx, base);
   }
-  catch(std::invalid_argument& e) {
-    throw std::invalid_argument(string(e.what()) + "; (invalid argument during std::stoul); data was \""+str+"\"");
+  catch (std::invalid_argument& e) {
+    throw std::invalid_argument(string(e.what()) + "; (invalid argument during std::stoul); data was \"" + str + "\"");
   }
-  catch(std::out_of_range& e) {
-    throw std::out_of_range(string(e.what()) + "; (out of range during std::stoul); data was \""+str+"\"");
+  catch (std::out_of_range& e) {
+    throw std::out_of_range(string(e.what()) + "; (out of range during std::stoul); data was \"" + str + "\"");
   }
   if (result > std::numeric_limits<unsigned int>::max()) {
-    throw std::out_of_range("stoul returned result out of unsigned int range; data was \""+str+"\"");
+    throw std::out_of_range("stoul returned result out of unsigned int range; data was \"" + str + "\"");
   }
   return static_cast<unsigned int>(result);
 }
