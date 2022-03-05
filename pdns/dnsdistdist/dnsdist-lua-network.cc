@@ -35,9 +35,18 @@ NetworkListener::NetworkListener() :
 void NetworkListener::readCB(int desc, FDMultiplexer::funcparam_t& param)
 {
   auto cbData = boost::any_cast<std::shared_ptr<NetworkListener::CBData>>(param);
-  /* reuse ? */
   std::string packet;
-  packet.resize(65535);
+
+#ifdef MSG_TRUNC
+  /* first we peek to avoid allocating a very large buffer. "MSG_TRUNC [...] return the real length of the datagram, even when it was longer than the passed buffer" */
+  auto peeked = recvfrom(desc, nullptr, 0, MSG_PEEK | MSG_TRUNC, nullptr, 0);
+  if (peeked > 0) {
+    packet.resize(static_cast<size_t>(peeked));
+  }
+#endif
+  if (packet.size() == 0) {
+    packet.resize(65535);
+  }
 
   struct sockaddr_un from;
   memset(&from, 0, sizeof(from));
