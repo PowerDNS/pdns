@@ -48,13 +48,13 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   bool hasQueuedItem=false;
   set<string> ips;
   set<DNSName> nsset;
-  DNSZoneRecord rr;
+  vector<DNSZoneRecord> rrs;
   FindNS fns;
 
   try {
   if (d_onlyNotify.size()) {
-    B->lookup(QType(QType::NS), di.zone, di.id);
-    while(B->get(rr))
+    B->lookup(QType(QType::NS), di.zone, rrs, di.id);
+    for(auto rr: rrs)
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
 
     for(const auto & ns : nsset) {

@@ -48,24 +48,24 @@ BOOST_AUTO_TEST_SUITE(test_remotebackend_so)
 BOOST_AUTO_TEST_CASE(test_method_lookup)
 {
   BOOST_TEST_MESSAGE("Testing lookup method");
-  DNSResourceRecord rr;
-  be->lookup(QType(QType::SOA), DNSName("unit.test."));
+  vector<DNSResourceRecord> rrs;
+  be->lookup(QType(QType::SOA), DNSName("unit.test."), rrs);
   // then try to get()
-  BOOST_CHECK(be->get(rr)); // and this should be TRUE.
+  BOOST_CHECK(!rrs.empty()); // and this should be TRUE.
   // then we check rr contains what we expect
-  BOOST_CHECK_EQUAL(rr.qname.toString(), "unit.test.");
-  BOOST_CHECK_MESSAGE(rr.qtype == QType::SOA, "returned qtype was not SOA");
-  BOOST_CHECK_EQUAL(rr.content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5");
-  BOOST_CHECK_EQUAL(rr.ttl, 300);
+  BOOST_CHECK_EQUAL(rrs[0].qname.toString(), "unit.test.");
+  BOOST_CHECK_MESSAGE(rrs[0].qtype == QType::SOA, "returned qtype was not SOA");
+  BOOST_CHECK_EQUAL(rrs[0].content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5");
+  BOOST_CHECK_EQUAL(rrs[0].ttl, 300);
 }
 
 BOOST_AUTO_TEST_CASE(test_method_lookup_empty)
 {
   BOOST_TEST_MESSAGE("Testing lookup method with empty result");
-  DNSResourceRecord rr;
-  be->lookup(QType(QType::SOA), DNSName("empty.unit.test."));
+  vector<DNSResourceRecord> rrs;
+  be->lookup(QType(QType::SOA), DNSName("empty.unit.test."), rrs);
   // then try to get()
-  BOOST_CHECK(!be->get(rr)); // and this should be FALSE
+  BOOST_CHECK(rrs.empty()); // and this should be FALSE
 }
 
 BOOST_AUTO_TEST_CASE(test_method_list)

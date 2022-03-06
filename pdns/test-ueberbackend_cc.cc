@@ -130,7 +130,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket *pkt_p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId = -1, DNSPacket *pkt_p = nullptr) override
   {
     d_currentScopeMask = 0;
     findZone(qdomain, zoneId, d_records, d_currentZone);
@@ -146,15 +146,33 @@ public:
       }
 
       auto& idx = d_records->get<OrderedNameTypeTag>();
+      RecordStorage::index<OrderedNameTypeTag>::type::const_iterator iter;
+      RecordStorage::index<OrderedNameTypeTag>::type::const_iterator end;
       if (qtype == QType::ANY) {
         auto range = idx.equal_range(qdomain);
-        d_iter = range.first;
-        d_end = range.second;
+        iter = range.first;
+        end = range.second;
       }
       else {
-        auto range = idx.equal_range(std::make_tuple(qdomain, qtype.getCode()));
-        d_iter = range.first;
-        d_end = range.second;
+        auto range = idx.equal_range(boost::make_tuple(qdomain, qtype.getCode()));
+        iter = range.first;
+        end = range.second;
+      }
+
+      while (iter != end) {
+        DNSResourceRecord drr;
+        drr.qname = iter->d_name;
+        drr.domain_id = d_currentZone;
+        drr.content = iter->d_content;
+        drr.qtype = iter->d_type;
+        drr.ttl = iter->d_ttl;
+
+        // drr.auth = d_iter->auth; might bring pain at some point, let's not cross that bridge until then
+        drr.auth = true;
+        drr.scopeMask = d_currentScopeMask;
+
+        rrs.push_back(drr);
+        ++iter;
       }
     }
   }
@@ -427,13 +445,7 @@ static std::vector<DNSZoneRecord> getRecords(UeberBackend& ub, const DNSName& na
 {
   std::vector<DNSZoneRecord> result;
 
-  ub.lookup(QType(qtype), name, zoneId, const_cast<DNSPacket*>(pkt));
-
-  DNSZoneRecord dzr;
-  while (ub.get(dzr))
-  {
-    result.push_back(std::move(dzr));
-  }
+  ub.lookup(QType(qtype), name, result, zoneId, const_cast<DNSPacket*>(pkt));
 
   return result;
 }

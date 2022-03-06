@@ -149,11 +149,11 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
       for(const auto& g : grouped) {
         vector<DNSRecord> rrset;
         {
-          DNSZoneRecord zrr;
-          di.backend->lookup(QType(g.first.second), g.first.first+domain, di.id);
-          while(di.backend->get(zrr)) {
-            zrr.dr.d_name.makeUsRelative(domain);
-            rrset.push_back(zrr.dr);
+          vector<DNSZoneRecord> dzrs;
+          di.backend->lookup(QType(g.first.second), g.first.first+domain, dzrs, di.id);
+          for (auto& dzr : dzrs) {
+            dzr.dr.d_name.makeUsRelative(domain);
+            rrset.push_back(dzr.dr);
           }
         }
         // O(N^2)!
@@ -972,12 +972,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     SOAData sd;
     try {
       // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
-      B->lookup(QType(QType::SOA), di.zone, di.id, nullptr);
-      DNSZoneRecord zr;
-      hasSOA = B->get(zr);
+      vector<DNSZoneRecord> zrs;
+      B->lookup(QType(QType::SOA), di.zone, zrs, di.id, nullptr);
+      hasSOA = !zrs.empty();
       if (hasSOA) {
+        auto zr = zrs[0];
         fillSOAData(zr, sd);
-        while(B->get(zr));
       }
     }
     catch(...) {}
@@ -993,9 +993,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
-        DNSZoneRecord zr;
-        while(B->get(zr)) {
+        vector<DNSZoneRecord> zrs;
+        B->lookup(QType(QType::RRSIG), di.zone, zrs, di.id); // can't use DK before we are done with this lookup!
+        for(auto zr: zrs) {
           auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
           if(rrsig->d_type == QType::SOA) {
             maxInception = std::max(maxInception, rrsig->d_siginception);

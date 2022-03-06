@@ -644,11 +644,11 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
 
   const auto rr = *rrs.rbegin();
 
-  DNSZoneRecord dzr;
+  vector<DNSZoneRecord> dzrs;
   std::shared_ptr<RRSIGRecordContent> rrsig;
 
-  db.lookup(QType(QType::RRSIG), !rr.wildcardname.empty() ? rr.wildcardname : rr.dr.d_name, rr.domain_id);
-  while(db.get(dzr)) {
+  db.lookup(QType(QType::RRSIG), !rr.wildcardname.empty() ? rr.wildcardname : rr.dr.d_name, dzrs, rr.domain_id);
+  for(auto dzr: dzrs) {
     rrsig = getRR<RRSIGRecordContent>(dzr.dr);
     if(rrsig->d_type == rr.dr.d_type) {
       if(!rr.wildcardname.empty()) {

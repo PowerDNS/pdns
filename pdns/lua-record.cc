@@ -459,10 +459,7 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   vector<DNSZoneRecord> ret;
   {
     auto ub = s_ub.lock();
-    ub->lookup(QType(qtype), name, zoneid);
-    while (ub->get(dr)) {
-      ret.push_back(dr);
-    }
+    ub->lookup(QType(qtype), name, ret, zoneid);
   }
   return ret;
 }
