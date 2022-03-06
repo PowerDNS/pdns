@@ -408,27 +408,6 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   return ret.str();
 }
 
-#ifdef HAVE_P11KIT1
-extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
-#endif
-
-string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
-{
-#ifndef HAVE_P11KIT1
-  return "PKCS#11 support not compiled in";
-#else
-  if (parts.size() != 4) {
-    return "invalid number of parameters, needs 4, got " + std::to_string(parts.size());
-  }
-
-  if (PKCS11ModuleSlotLogin(parts[1], parts[2], parts[3])) {
-    return "logged in";
-  } else {
-    return "could not log in, check logs";
-  }
-#endif
-}
-
 string DLSuckRequests(const vector<string> &parts, Utility::pid_t ppid) {
   string ret;
   for (auto const &d: Communicator.getSuckRequests()) {

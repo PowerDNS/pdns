@@ -315,7 +315,8 @@ pdns_server_LDADD += $(SQLITE3_LIBS)
 endif
 
 if PKCS11
-pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh
+pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh \
+	pkcs11infra.cc pkcs11infra.hh
 pdns_server_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -363,7 +364,8 @@ pdnsutil_SOURCES = \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
-	pdnsutil.cc \
+	pdnsutil-hsm.cc \
+	pdnsutil.cc pdnsutil.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	serialtweaker.cc \
@@ -415,7 +417,8 @@ pdnsutil_LDADD += $(SQLITE3_LIBS)
 endif
 
 if PKCS11
-pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh \
+	pkcs11infra.cc pkcs11infra.hh
 pdnsutil_LDADD += $(P11KIT1_LIBS)
 endif
 

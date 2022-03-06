@@ -92,9 +92,13 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
     { "slot", KeyTypes::str },
     { "pin", KeyTypes::str },
     { "label", KeyTypes::str },
-    { "publabel", KeyTypes::str },
+    { "publiclabel", KeyTypes::str },
     { "private-key-format", KeyTypes::str },
-    { "flags", KeyTypes::numeric }
+    { "flags", KeyTypes::numeric },
+    { "id", KeyTypes::base64 },
+    { "publicid", KeyTypes::str },
+    { "tokenlabel", KeyTypes::str },
+    { "tokenserial", KeyTypes::str },
   };
   unsigned int algorithm = 0;
   string sline, key, value, raw;

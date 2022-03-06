@@ -21,14 +21,34 @@
  */
 #pragma once
 
+#include "pkcs11infra.hh"
+
 class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
+  private:
+    pdns::Pkcs11Slot& GetSlot();
+    pdns::Pkcs11Slot& GetSlot() const;
+    void copyValues(const PKCS11DNSCryptoKeyEngine& orig);
+    void createAttributes();
+
   protected:
-    std::string d_module;
-    std::string d_slot_id;
+    std::shared_ptr<pdns::Pkcs11Module> d_module;
+    unsigned long d_slot_id;
     std::string d_pin;
     std::string d_label;
+    std::string d_id;
+    std::string d_pub_id;
     std::string d_pub_label;
+    std::string d_token_serial;
+    std::string d_token_label;
+
+    std::vector<pdns::P11KitAttribute> d_priv_attr;
+    std::vector<pdns::P11KitAttribute> d_pub_attr;
+
+    // cached:
+    unsigned long d_cached_slot_id;
+
+    std::string hash_locked(const std::string& msg, std::shared_ptr<pdns::Pkcs11Session>& session) const;
 
   public:
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
@@ -39,6 +59,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
       return false;
     }
     PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig);
+    PKCS11DNSCryptoKeyEngine& operator=(const PKCS11DNSCryptoKeyEngine& orig) { copyValues(orig); return *this; };
 
     string getName() const override { return "P11 Kit PKCS#11"; };
 
@@ -64,5 +85,3 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);
 };
-
-bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
