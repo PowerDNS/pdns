@@ -702,7 +702,7 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
     count++;
     char tmp[26];
     ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
   }
 
   return count;
@@ -729,7 +729,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
     count++;
     char tmp[26];
     ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
   }
 
   return count;
