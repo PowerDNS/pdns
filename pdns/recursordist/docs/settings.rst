@@ -2354,6 +2354,7 @@ If a PID file should be written to `socket-dir`_
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
+  This is a deprecated feature that will be removed in the near future.
 
 The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
 and will adjust queries' source and destination accordingly. This is especially useful when the recursor
@@ -2372,6 +2373,7 @@ should be done on the proxy.
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
+  This is a deprecated feature that will be removed in the near future.
 
 This option sets the resource record code to use for XPF records, as long as an official code has not been assigned to it.
 0 means that XPF is disabled.

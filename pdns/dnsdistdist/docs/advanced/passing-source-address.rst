@@ -49,6 +49,9 @@ In addition to the drawback that it can only pass the source IP address, and the
 X-Proxied-For
 -------------
 
+.. note::
+  This is a deprecated feature that will be removed in the near future.
+
 The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
 
 In order to provide the downstream server with the address of the real client, or at least the one talking to dnsdist, the ``addXPF`` parameter can be used when creating a :func:`new server <newServer>`.
