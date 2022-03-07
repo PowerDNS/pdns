@@ -11,6 +11,8 @@ trap cleanup EXIT
   2>&1 | tee "$LOGFILE") &
 
 echo "Waiting for pdns_server to start..."
-while grep "About to" "$LOGFILE"; do
+while grep "Done launching threads" "$LOGFILE"; do
   sleep 2
 done
+# final 2 second sleep just in case.
+sleep 2
