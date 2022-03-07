@@ -2,6 +2,31 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.9
+  :released: 4th of April 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11419
+    :tickets: 11371
+
+    Be more careful using refresh mode only for the record asked.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11384
+    :tickets: 11300
+
+    Use the Lua context stored in SyncRes when calling hooks.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11024
+    :tickets: 10994, 11010
+
+    Do cache negative results, even when wasVariable() is true.
+
+.. changelog::
   :version: 4.5.8
   :released: 25th of March 2022
 

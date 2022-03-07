@@ -4,7 +4,7 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.6.x to master
+4.6.2 to master
 ---------------
 
 Zone to Cache Changes
@@ -22,11 +22,14 @@ New settings
 ^^^^^^^^^^^^
 - The :ref:`setting-save-parent-ns-set` setting has been introduced, enabling fallback cases if the parent ``NS`` set contains names not in the child ``NS`` set.
 
+4.6.1 to 4.6.2
+--------------
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 -  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed. The hint processing code is also made less verbose.
 
-4.5.x to 4.6.0
+4.5.x to 4.6.1
 --------------
 
 Offensive language
