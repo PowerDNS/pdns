@@ -46,3 +46,4 @@ html-docs.tar.bz2
 doctrees/
 latex/
 .doctrees/
+/.cache
