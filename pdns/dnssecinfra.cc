@@ -123,7 +123,7 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
       }
       else if (it->second == KeyTypes::numeric) {
         try {
-          unsigned int num = pdns_stou(value);
+          auto num = pdns::checked_stoi<unsigned int>(value);
           stormap[key] = std::to_string(num);
           if (key == "algorithm") {
             algorithm = num;
@@ -306,7 +306,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
       std::tie(key,value)=splitField(sline, ':');
       boost::trim(value);
       if(pdns_iequals(key,"algorithm")) {
-        algorithm = pdns_stou(value);
+        pdns::checked_stoi_into(algorithm, value);
         stormap["algorithm"]=std::to_string(algorithm);
         continue;
       } else if (pdns_iequals(key,"pin")) {

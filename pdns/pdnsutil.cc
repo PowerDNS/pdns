@@ -2490,7 +2490,7 @@ try
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;
       return 0;
     }
-    if (testAlgorithm(pdns_stou(cmds.at(1))))
+    if (testAlgorithm(pdns::checked_stoi<int>(cmds.at(1))))
       return 0;
     return 1;
   }
@@ -2587,7 +2587,7 @@ try
     uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
     if (cmds.size() > 1) {
       try {
-        workFactor = pdns_stou(cmds.at(1));
+        pdns::checked_stoi_into(workFactor, cmds.at(1));
       }
       catch (const std::exception& e) {
         cerr<<"Unable to parse the supplied work factor: "<<e.what()<<endl;
@@ -2692,7 +2692,7 @@ try
       cerr << "Syntax: pdnsutil test-speed numcores [signing-server]"<<endl;
       return 0;
     }
-    testSpeed(dk, DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns_stou(cmds.at(2)));
+    testSpeed(dk, DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
   }
   else if (cmds.at(0) == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -2734,7 +2734,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns_stou, the error gets worse
+    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns::checked_stoi, the error gets worse
     if(!id)
     {
       cerr << "Invalid KEY-ID '" << cmds.at(2) << "'" << endl;
@@ -2758,7 +2758,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    unsigned int id = pdns_stou(cmds.at(2));
+    auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     if(!id)
     {
       cerr<<"Invalid KEY-ID"<<endl;
@@ -2782,7 +2782,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns_stou, the error gets worse
+    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns::checked_stoi, the error gets worse
     if(!id)
     {
       cerr << "Invalid KEY-ID '" << cmds.at(2) << "'" << endl;
@@ -2806,7 +2806,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns_stou, the error gets worse
+    unsigned int id = atoi(cmds.at(2).c_str()); // if you make this pdns::checked_stoi, the error gets worse
     if(!id)
     {
       cerr << "Invalid KEY-ID '" << cmds.at(2) << "'" << endl;
@@ -2876,8 +2876,8 @@ try
       else if (pdns_iequals(cmds.at(n), "unpublished")) {
         published = false;
       }
-      else if (pdns_stou(cmds.at(n))) {
-        bits = pdns_stou(cmds.at(n));
+      else if (pdns::checked_stoi<int>(cmds.at(n)) != 0) {
+        pdns::checked_stoi_into(bits, cmds.at(n));
       }
       else {
         cerr << "Unknown algorithm, key flag or size '" << cmds.at(n) << "'" << endl;
@@ -2907,7 +2907,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    unsigned int id = pdns_stou(cmds.at(2));
+    auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     if (!dk.removeKey(zone, id)) {
        cerr<<"Cannot remove key " << id << " from " << zone <<endl;
       return 1;
@@ -3265,7 +3265,7 @@ try
     }
 
     string zone = cmds.at(1);
-    unsigned int id = pdns_stou(cmds.at(2));
+    auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     DNSSECPrivateKey dpk=dk.getKeyById(DNSName(zone), id);
     cout << dpk.getKey()->convertToISC() <<endl;
   }
@@ -3302,7 +3302,7 @@ try
     }
     dpk.setKey(key);
 
-    dpk.d_algorithm = pdns_stou(cmds.at(3));
+    pdns::checked_stoi_into(dpk.d_algorithm, cmds.at(3));
 
     if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
       dpk.d_algorithm = DNSSECKeeper::RSASHA1;
@@ -3393,7 +3393,7 @@ try
     }
 
     DNSName zone(cmds.at(1));
-    unsigned int id = pdns_stou(cmds.at(2));
+    auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << zone<<" IN DNSKEY "<<dpk.getDNSKEY().getZoneRepresentation() <<endl;
   }
@@ -3422,8 +3422,8 @@ try
       else if ((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds.at(n))) > 0) {
         algorithm = tmp_algo;
       }
-      else if (pdns_stou(cmds.at(n)))
-        bits = pdns_stou(cmds.at(n));
+      else if (pdns::checked_stoi<int>(cmds.at(n)) != 0)
+        pdns::checked_stoi_into(bits, cmds.at(n));
       else {
         cerr << "Unknown algorithm, key flag or size '" << cmds.at(n) << "'" << endl;
         return 0;
@@ -3779,7 +3779,7 @@ try
         return 1;
       }
 
-      id = pdns_stou(cmds.at(3));
+      pdns::checked_stoi_into(id, cmds.at(3));
       std::vector<DNSBackend::KeyData> keys;
       if (!B.getDomainKeys(zone, keys)) {
         cerr << "No keys found for zone " << zone << std::endl;
@@ -3801,7 +3801,7 @@ try
         return 1;
       }
       if (cmds.size() > 4) {
-        bits = pdns_stou(cmds.at(4));
+        pdns::checked_stoi_into(bits, cmds.at(4));
       }
       if (bits < 1) {
         cerr << "Invalid bit size " << bits << "given, must be positive integer";

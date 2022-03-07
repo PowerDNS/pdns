@@ -923,10 +923,10 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             DNSBackend::KeyData kd;
-            kd.id = pdns_stou(glob_result.gl_pathv[i] + regm[3].rm_so);
+            pdns::checked_stoi_into(kd.id, glob_result.gl_pathv[i] + regm[3].rm_so);
             kd.active = !strncmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1", 1);
             kd.published = true;
-            kd.flags = pdns_stou(glob_result.gl_pathv[i] + regm[2].rm_so);
+            pdns::checked_stoi_into(kd.flags, glob_result.gl_pathv[i] + regm[2].rm_so);
             ifstream ifs(glob_result.gl_pathv[i]);
             ostringstream content;
             char buffer[1024];
@@ -968,7 +968,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
       if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            unsigned int kid = pdns_stou(glob_result.gl_pathv[i] + regm[3].rm_so);
+            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
             if (kid == id) {
               if (unlink(glob_result.gl_pathv[i])) {
                 cerr << "Cannot delete key:" << strerror(errno) << endl;
@@ -1004,7 +1004,7 @@ bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
       if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            unsigned int kid = pdns_stou(glob_result.gl_pathv[i] + regm[3].rm_so);
+            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
             if (kid >= nextid)
               nextid = kid + 1;
           }
@@ -1040,10 +1040,10 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
       if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            unsigned int kid = pdns_stou(glob_result.gl_pathv[i] + regm[3].rm_so);
+            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
             if (kid == id && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0")) {
               ostringstream newpath;
-              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".1.key";
+              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".1.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
                 cerr << "Cannot activate key: " << strerror(errno) << endl;
               }
@@ -1075,10 +1075,10 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
       if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            unsigned int kid = pdns_stou(glob_result.gl_pathv[i] + regm[3].rm_so);
+            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
             if (kid == id && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1")) {
               ostringstream newpath;
-              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".0.key";
+              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".0.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
                 cerr << "Cannot deactivate key: " << strerror(errno) << endl;
               }

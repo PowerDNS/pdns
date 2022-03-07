@@ -323,8 +323,8 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys
     SSqlStatement::row_t row;
     while (d_getDomainKeysQuery_stmt->hasNextRow()) {
       d_getDomainKeysQuery_stmt->nextRow(row);
-      kd.id = pdns_stou(row[0]);
-      kd.flags = pdns_stou(row[1]);
+      pdns::checked_stoi_into(kd.id, row[0]);
+      pdns::checked_stoi_into(kd.flags, row[1]);
       kd.active = (row[2] == "1");
       kd.published = (row[3] == "1");
       kd.content = row[4];

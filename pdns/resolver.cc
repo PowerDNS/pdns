@@ -361,7 +361,7 @@ void Resolver::getSoaSerial(const ComboAddress& ipport, const DNSName &domain, u
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced an unparseable response");
 
   try {
-    *serial=pdns_stou(parts[2]);
+    *serial = pdns::checked_stoi<uint32_t>(parts[2]);
   }
   catch(const std::out_of_range& oor) {
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced an unparseable serial");

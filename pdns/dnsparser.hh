@@ -259,7 +259,7 @@ public:
       return iter->second.second;
 
     if (isUnknownType(name)) {
-      return (uint16_t)pdns_stou(name.substr(4));
+      return pdns::checked_stoi<uint16_t>(name.substr(4));
     }
 
     throw runtime_error("Unknown DNS type '"+name+"'");

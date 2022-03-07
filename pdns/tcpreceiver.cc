@@ -707,7 +707,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
             zrrs.push_back(zrr);
           } else {
             for(auto const &digestAlgo : digestAlgos) {
-              zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
+              zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo)));
               zrrs.push_back(zrr);
             }
           }
@@ -1100,7 +1100,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       stringtok(parts, rr->d_content->getZoneRepresentation());
       if (parts.size() >= 3) {
         try {
-          serial=pdns_stou(parts[2]);
+          pdns::checked_stoi_into(serial, parts[2]);
         }
         catch(const std::out_of_range& oor) {
           g_log<<Logger::Warning<<logPrefix<<"invalid serial in IXFR query"<<endl;

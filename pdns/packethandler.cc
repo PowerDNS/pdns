@@ -229,7 +229,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
+      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo)));
       r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }

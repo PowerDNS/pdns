@@ -59,9 +59,9 @@ static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, 
   string retval;
   g_numRecords++;
   string content(ocontent);
-  if(qtype == "MX" || qtype == "SRV") { 
-    prio=pdns_stou(content);
-    
+  if(qtype == "MX" || qtype == "SRV") {
+    pdns::checked_stoi_into(prio, content);
+
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
       boost::erase_head(content, pos);

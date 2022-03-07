@@ -506,7 +506,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
 {
   if (input[0] == '[') { // case 1
     auto both = splitField(input.substr(1), ']');
-    return ComboAddress(both.first, both.second.empty() ? port : static_cast<uint16_t>(pdns_stou(both.second.substr(1))));
+    return ComboAddress(both.first, both.second.empty() ? port : pdns::checked_stoi<uint16_t>(both.second.substr(1)));
   }
 
   string::size_type count = 0;
@@ -527,7 +527,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
     both.first = input.substr(0, cpos);
     both.second = input.substr(cpos + 1);
 
-    uint16_t newport = static_cast<uint16_t>(pdns_stou(both.second));
+    auto newport = pdns::checked_stoi<uint16_t>(both.second);
     return ComboAddress(both.first, newport);
   }
   default: // case 4

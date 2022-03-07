@@ -132,7 +132,7 @@ static std::map<unsigned int, std::set<int>> parseCPUMap()
       boost::trim(headers.first);
       boost::trim(headers.second);
 
-      unsigned int threadId = pdns_stou(headers.first);
+      auto threadId = pdns::checked_stoi<unsigned int>(headers.first);
       std::vector<std::string> cpus;
 
       stringtok(cpus, headers.second, ",");

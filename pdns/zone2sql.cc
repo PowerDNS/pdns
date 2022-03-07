@@ -162,8 +162,8 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
     return; // NSECs do not go in the database
 
   if((qtype == "MX" || qtype == "SRV")) {
-    prio=pdns_stou(content);
-    
+    pdns::checked_stoi_into(prio, content);
+
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
       boost::erase_head(content, pos);

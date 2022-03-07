@@ -99,7 +99,8 @@ public:
     > MetaDataStorage;
 
   // Initialize our backend ID from the suffix, skipping the '-' that DNSBackend adds there
-  SimpleBackend(const std::string& suffix): d_suffix(suffix), d_backendId(pdns_stou(suffix.substr(1)))
+  SimpleBackend(const std::string& suffix) :
+    d_suffix(suffix), d_backendId(pdns::checked_stoi<decltype(d_backendId)>(suffix.substr(1)))
   {
   }
 

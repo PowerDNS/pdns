@@ -617,7 +617,105 @@ double DiffTime(const struct timeval& first, const struct timeval& second);
 uid_t strToUID(const string &str);
 gid_t strToGID(const string &str);
 
-unsigned int pdns_stou(const std::string& str, size_t* idx = 0, int base = 10);
+namespace pdns
+{
+/**
+ * \brief Does a checked conversion from one integer type to another.
+ *
+ * \warning The source type `F` and target type `T` must have the same
+ * signedness, otherwise a compilation error is thrown.
+ *
+ * \exception std::out_of_range Thrown if the source value does not fit
+ * in the target type.
+ *
+ * \param[in] from The source value of type `F`.
+ *
+ * \return The target value of type `T`.
+ */
+template <typename T, typename F>
+auto checked_conv(F from) -> T
+{
+  static_assert(std::numeric_limits<F>::is_integer, "checked_conv: The `F` type must be an integer");
+  static_assert(std::numeric_limits<T>::is_integer, "checked_conv: The `T` type must be an integer");
+  static_assert((std::numeric_limits<F>::is_signed && std::numeric_limits<T>::is_signed) || (!std::numeric_limits<F>::is_signed && !std::numeric_limits<T>::is_signed),
+                "checked_conv: The `T` and `F` types must either both be signed or unsigned");
+
+  if (from < std::numeric_limits<T>::min() || from > std::numeric_limits<T>::max()) {
+    throw std::out_of_range("checked_conv: conversion from value that is out of range for target type");
+  }
+
+  return static_cast<T>(from);
+}
+
+/**
+ * \brief Performs a conversion from `std::string&` to integer.
+ *
+ * This function internally calls `std::stoll` and `std::stoull` to do
+ * the conversion from `std::string&` and calls `pdns::checked_conv` to
+ * do the checked conversion from `long long`/`unsigned long long` to
+ * `T`.
+ *
+ * \warning The target type `T` must be an integer, otherwise a
+ * compilation error is thrown.
+ *
+ * \exception std:stoll Throws what std::stoll throws.
+ *
+ * \exception std::stoull Throws what std::stoull throws.
+ *
+ * \exception pdns::checked_conv Throws what pdns::checked_conv throws.
+ *
+ * \param[in] str The input string to be converted.
+ *
+ * \param[in] idx Location to store the index at which processing
+ * stopped.
+ *
+ * \param[in] base The numerical base for conversion.
+ *
+ * \return `str` converted to integer `T`, or 0 if `str` is empty.
+ */
+template <typename T>
+auto checked_stoi(const std::string& str, size_t* idx = nullptr, int base = 10) -> T
+{
+  static_assert(std::numeric_limits<T>::is_integer, "checked_stoi: The `T` type must be an integer");
+
+  if (str.empty()) {
+    return 0; // compatibility
+  }
+
+  if constexpr (std::is_unsigned_v<T>) {
+    return pdns::checked_conv<T>(std::stoull(str, idx, base));
+  }
+  else {
+    return pdns::checked_conv<T>(std::stoll(str, idx, base));
+  }
+}
+
+/**
+ * \brief Performs a conversion from `std::string&` to integer.
+ *
+ * This function internally calls `pdns::checked_stoi` and stores its
+ * result in `out`.
+ *
+ * \exception pdns::checked_stoi Throws what pdns::checked_stoi throws.
+ *
+ * \param[out] out `str` converted to integer `T`, or 0 if `str` is
+ * empty.
+ *
+ * \param[in] str The input string to be converted.
+ *
+ * \param[in] idx Location to store the index at which processing
+ * stopped.
+ *
+ * \param[in] base The numerical base for conversion.
+ *
+ * \return `str` converted to integer `T`, or 0 if `str` is empty.
+ */
+template <typename T>
+auto checked_stoi_into(T& out, const std::string& str, size_t* idx = nullptr, int base = 10)
+{
+  out = checked_stoi<T>(str, idx, base);
+}
+}
 
 bool isSettingThreadCPUAffinitySupported();
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);

@@ -347,11 +347,11 @@ void fillSOAData(const string &content, SOAData &data)
   try {
     data.nameserver = DNSName(parts.at(0));
     data.hostmaster = DNSName(parts.at(1));
-    data.serial = pdns_stou(parts.at(2).c_str());
-    data.refresh = pdns_stou(parts.at(3).c_str());
-    data.retry = pdns_stou(parts.at(4).c_str());
-    data.expire = pdns_stou(parts.at(5).c_str());
-    data.minimum = pdns_stou(parts.at(6).c_str());
+    pdns::checked_stoi_into(data.serial, parts.at(2));
+    pdns::checked_stoi_into(data.refresh, parts.at(3));
+    pdns::checked_stoi_into(data.retry, parts.at(4));
+    pdns::checked_stoi_into(data.expire, parts.at(5));
+    pdns::checked_stoi_into(data.minimum, parts.at(6));
   }
   catch(const std::out_of_range& oor) {
     throw PDNSException("Out of range exception parsing '" + content + "'");

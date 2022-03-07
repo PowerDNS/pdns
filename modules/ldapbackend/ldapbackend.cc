@@ -207,7 +207,7 @@ void LdapBackend::extract_entry_results(const DNSName& domain, const DNSResult& 
             if (qtype2 != QType(local_result.qtype).toString())
               continue;
 
-            local_result.ttl = pdns_stou(rdata.substr(pos + 1));
+            pdns::checked_stoi_into(local_result.ttl, rdata.substr(pos + 1));
           }
         }
 

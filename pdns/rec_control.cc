@@ -114,7 +114,7 @@ int main(int argc, char** argv)
       uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
       if (commands.size() > 1) {
         try {
-          workFactor = pdns_stou(commands.at(1));
+          pdns::checked_stoi_into(workFactor, commands.at(1));
         }
         catch (const std::exception& e) {
           cerr << "Unable to parse the supplied work factor: " << e.what() << endl;

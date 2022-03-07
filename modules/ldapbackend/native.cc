@@ -372,12 +372,12 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getS
     di.zone = DNSName(domain);
 
     if (result.count("PdnsDomainLastCheck") && !result["PdnsDomainLastCheck"].empty())
-      di.last_check = pdns_stou(result["PdnsDomainLastCheck"][0]);
+      pdns::checked_stoi_into(di.last_check, result["PdnsDomainLastCheck"][0]);
     else
       di.last_check = 0;
 
     if (result.count("PdnsDomainNotifiedSerial") && !result["PdnsDomainNotifiedSerial"].empty())
-      di.notified_serial = pdns_stou(result["PdnsDomainNotifiedSerial"][0]);
+      pdns::checked_stoi_into(di.notified_serial, result["PdnsDomainNotifiedSerial"][0]);
     else
       di.notified_serial = 0;
 

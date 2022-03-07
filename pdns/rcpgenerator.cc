@@ -93,8 +93,8 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
     throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
   size_t pos;
-  val=pdns_stou(d_string.c_str()+d_pos, &pos);
- 
+  val = pdns::checked_stoi<uint32_t>(d_string.c_str() + d_pos, &pos);
+
   d_pos += pos;
 }
 
