@@ -16,6 +16,7 @@ mkdir -p configs
 
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
+export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
 
 export PREFIX=127.0.0
 

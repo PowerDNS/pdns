@@ -174,13 +174,21 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   std::shared_ptr<SOARecordContent> primarySOA = nullptr;
   vector<DNSRecord> records;
   size_t receivedBytes = 0;
-  int8_t ixfrInProgress = -2;
   std::string reply;
 
+  enum transferStyle { Unknown, AXFR, IXFR } style = Unknown;
+  const unsigned int expectedSOAForAXFR = 2;
+  const unsigned int expectedSOAForIXFR = 3;
+  unsigned int primarySOACount = 0;
+
   for(;;) {
-    // IXFR end
-    if (ixfrInProgress >= 0)
+    // IXFR or AXFR style end reached? We don't want to process trailing data after the closing SOA
+    if (style == AXFR && primarySOACount == expectedSOAForAXFR) {
       break;
+    }
+    else if (style == IXFR && primarySOACount == expectedSOAForIXFR) {
+      break;
+    }
 
     if(s.read((char*)&len, sizeof(len)) != sizeof(len))
       break;
@@ -225,16 +233,31 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
           return ret;
         }
         primarySOA = sr;
+        ++primarySOACount;
       } else if (r.first.d_type == QType::SOA) {
         auto sr = getRR<SOARecordContent>(r.first);
         if (!sr) {
           throw std::runtime_error("Error getting the content of SOA record of IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"'");
         }
 
-        // we hit the last SOA record
-        // IXFR is considered to be done if we hit the last SOA record twice
+        // we hit a marker SOA record
         if (primarySOA->d_st.serial == sr->d_st.serial) {
-          ixfrInProgress++;
+          ++primarySOACount;
+        }
+      }
+      // When we see the 2nd record, we can decide what the style is
+      if (records.size() == 1 && style == Unknown) {
+        if (r.first.d_type != QType::SOA) {
+          // Non-empty AXFR style has a non-SOA record following the first SOA
+          style = AXFR;
+        }
+        else if (primarySOACount == expectedSOAForAXFR) {
+          // Empty zone AXFR style: start SOA is immediately followed by end marker SOA
+          style = AXFR;
+        }
+        else {
+          // IXFR has a 2nd SOA (with different serial) following the first
+          style = IXFR;
         }
       }
 
@@ -253,7 +276,21 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     }
   }
 
-  //  cout<<"Got "<<records.size()<<" records"<<endl;
+  switch (style) {
+  case IXFR:
+    if (primarySOACount != expectedSOAForIXFR) {
+      throw std::runtime_error("Incomplete IXFR transfer for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+    }
+    break;
+  case AXFR:
+    if (primarySOACount != expectedSOAForAXFR){
+      throw std::runtime_error("Incomplete AXFR style transfer for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+    }
+    break;
+  case Unknown:
+    throw std::runtime_error("Incomplete XFR for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+    break;
+  }
 
   return processIXFRRecords(primary, zone, records, primarySOA);
 }
