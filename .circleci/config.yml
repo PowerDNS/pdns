@@ -281,7 +281,7 @@ commands:
     parameters:
       version:
         type: string
-        default: "42"
+        default: "45"
       distro:
         type: string
         default: "debian"
