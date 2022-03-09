@@ -45,7 +45,7 @@ RUN apt-get install -y --no-install-recommends devscripts equivs git curl && apt
 
 # We use the dependencies from this control file
 # TODO: control file is not in tarballs at all right now
-COPY builder-support/debian/recursor/debian-buster/control /source/builder-support/debian/recursor/debian-buster/control 
+COPY builder-support/debian /source/builder-support/debian
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
     apt-get clean
 

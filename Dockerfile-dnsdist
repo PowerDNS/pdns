@@ -1,5 +1,38 @@
-# our chosen base image
-FROM debian:10-slim AS builder
+# USAGE
+
+#   docker build --build-arg MAKEFLAGS=-j8 -t dnsdist -f docker/Dockerfile-dnsdist .
+#   docker run -p 3053:53 -p 3053:53/udp -p 3199:5199/tcp -p 3083:8083/tcp -ti --rm dnsdist
+
+# CROSS COMPILING:
+#   docker build --build-arg MAKEFLAGS=-j8 -t dnsdist -f docker/Dockerfile-dnsdist --platform=linux/arm64/v8 .
+#   docker build --build-arg MAKEFLAGS=-j8 -t dnsdist -f docker/Dockerfile-dnsdist --platform=linux/arm/v7 .
+#   docker build --build-arg MAKEFLAGS=-j8 -t dnsdist -f docker/Dockerfile-dnsdist --platform=linux/amd64 .
+#   docker build --build-arg MAKEFLAGS=-j8 -t dnsdist -f docker/Dockerfile-dnsdist --platform=linux/386 .
+
+
+# Bundles the right cross compiler and other tools as native binaries for this build host.
+# It bundles nothing when the build platform is the same as the target platform.
+FROM --platform=$BUILDPLATFORM debian:10-slim AS native-tools
+RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+# Use this to disable native tool bundling, e.g. for debugging, or if you like to take it slow.
+ARG NO_NATIVE=0
+COPY builder-support/cross/bundle-native-tools.sh /bundle-native-tools.sh
+RUN /bundle-native-tools.sh
+
+
+# -------------------------------------------------------------------------
+# Builder
+# This image uses the target platform. if this differs from the build host platform,
+# it requires emulation. Not all architectures are supported for QEMU emulation and
+# are more reliable than others. 
+# Emulation requires QEMU to be installed on the build host and binfmt misc registrations.
+FROM --platform=$TARGETPLATFORM debian:10-slim AS builderbase
+
+# Overwrite the local filesystem with native binaries if we are cross compiling.
+COPY --from=native-tools /native.tar /native.tar
+RUN tar -C / -xvf /native.tar
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -11,12 +44,18 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
-COPY builder-support /source/builder-support
+# We use the dependencies from this control file
+# TODO: control file is not in tarballs at all right now
+COPY builder-support/debian /source/builder-support/debian
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-buster/control && \
     apt-get clean
 
+# Again, because the install overwrote the compiler and other things with target arch binaries
+RUN tar -C / -xvf /native.tar
+
+COPY builder-support /source/builder-support
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
@@ -40,8 +79,12 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
+# -------------------------------------------------------------------------
+FROM builderbase as builder
+
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    . /buildenv.sh && \
     ./configure \
       --with-lua=${LUAVER} \
       LDFLAGS=-rdynamic \
@@ -50,10 +93,14 @@ RUN mkdir /build && \
       --enable-dnscrypt \
       --enable-dns-over-tls \
       --enable-dns-over-https \
-      --with-re2 && \
-    make clean && \
+      --with-re2 \
+      --host=${DEB_HOST_GNU_TYPE}
+
+RUN make clean && \
+    . /buildenv.sh && \
     make $MAKEFLAGS install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/*
+
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
@@ -61,8 +108,9 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     equivs-build debian/control && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
+# -------------------------------------------------------------------------
 # Runtime
-
+FROM --platform=$TARGETPLATFORM debian:10-slim AS dist
 FROM debian:10-slim
 
 # Reusable layer for base update - Should be cached from builder
