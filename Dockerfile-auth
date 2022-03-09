@@ -34,7 +34,7 @@ FROM --platform=$TARGETPLATFORM debian:10-slim AS builderbase
 COPY --from=native-tools /native.tar /native.tar
 RUN tar -C / -xvf /native.tar
 
-ENV NO_LUA_JIT="s390x arm64"
+ENV NO_LUA_JIT="s390x arm64 mips64el"
 
 # TODO: make sure /source looks roughly the same from git or tar
 
