@@ -36,7 +36,7 @@
 #include "misc.hh"
 #include <vector>
 #include <sstream>
-#include <errno.h>
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <sys/types.h>
@@ -196,6 +196,32 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct 
   while (pos < len);
 
   return len;
+}
+
+auto pdns::getMessageFromErrno(const int errnum) -> std::string
+{
+  const size_t errLen = 2048;
+  std::string errMsgData{};
+  errMsgData.resize(errLen);
+
+  const char* errMsg = nullptr;
+#ifdef _GNU_SOURCE
+  errMsg = strerror_r(errnum, errMsgData.data(), errMsgData.length());
+#else
+  // This can fail, and when it does, it sets errno. We ignore that and
+  // set our own error message instead.
+  int res = strerror_r(errnum, errMsgData.data(), errMsgData.length());
+  errMsg = errMsgData.c_str();
+  if (res != 0) {
+    errMsg = "Unknown (the exact error could not be retrieved)";
+  }
+#endif
+
+  // We make a copy here because `strerror_r()` might return a static
+  // immutable buffer for an error message. The copy shouldn't be
+  // critical though, we're on the bailout/error-handling path anyways.
+  std::string message{errMsg};
+  return message;
 }
 
 string nowTime()

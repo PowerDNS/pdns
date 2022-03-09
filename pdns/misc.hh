@@ -46,6 +46,22 @@
 
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 
+namespace pdns
+{
+/**
+ * \brief Retrieves the errno-based error message in a reentrant way.
+ *
+ * This internally handles the portability issues around using
+ * `strerror_r` and returns a `std::string` that owns the error
+ * message's contents.
+ *
+ * \param[in] errnum The errno value.
+ *
+ * \return The `std::string` error message.
+ */
+auto getMessageFromErrno(int errnum) -> std::string;
+}
+
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
