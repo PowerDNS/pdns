@@ -657,6 +657,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           // DoH query, we cannot touch du after that
           handleUDPResponseForDoH(std::move(du), std::move(response), std::move(*ids));
 #endif
+          dss->releaseState(queryId);
           continue;
         }
 
@@ -667,6 +668,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
         if (!processResponse(response, localRespRuleActions, dr, ids->cs && ids->cs->muted, true)) {
+          dss->releaseState(queryId);
           continue;
         }
 
