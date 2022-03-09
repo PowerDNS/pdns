@@ -1831,7 +1831,15 @@ static void healthChecksThread()
 
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
-    for(auto& dss : *states) {
+    for (auto& dss : *states) {
+      auto delta = dss->sw.udiffAndSet()/1000000.0;
+      dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
+      dss->dropRate.store(1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta);
+      dss->prev.queries.store(dss->queries.load());
+      dss->prev.reuseds.store(dss->reuseds.load());
+
+      dss->handleTimeouts();
+
       if (dss->d_nextCheck > 1) {
         --dss->d_nextCheck;
         continue;
@@ -1844,14 +1852,6 @@ static void healthChecksThread()
           updateHealthCheckResult(dss, false, false);
         }
       }
-
-      auto delta = dss->sw.udiffAndSet()/1000000.0;
-      dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
-      dss->dropRate.store(1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta);
-      dss->prev.queries.store(dss->queries.load());
-      dss->prev.reuseds.store(dss->reuseds.load());
-
-      dss->handleTimeouts();
     }
 
     handleQueuedHealthChecks(*mplexer);
