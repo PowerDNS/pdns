@@ -290,7 +290,7 @@ struct DoTStatus
 {
   enum Status : uint8_t { Unknown, Busy, Bad, Good };
   DNSName d_auth;
-  time_t d_last;
+  time_t d_ttd;
   Status d_status{Unknown};
   std::string toString() const
   {
@@ -300,15 +300,16 @@ struct DoTStatus
   }
 };
 
+// FIXME: Pruning NYI
 class DotMap: public map<ComboAddress, DoTStatus>
 {
 public:
   uint64_t d_numBusy{0};
 };
-LockGuarded<DotMap> s_dotMap;
+static LockGuarded<DotMap> s_dotMap;
 
-const time_t dotFailWait = 24 * 3600;
-const time_t dotSuccessWait = 3 * 24 * 3600;
+static const time_t dotFailWait = 24 * 3600;
+static const time_t dotSuccessWait = 3 * 24 * 3600;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -362,6 +363,7 @@ bool SyncRes::s_tcp_fast_open_connect;
 bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
 bool SyncRes::s_save_parent_ns_set;
+unsigned int SyncRes::s_max_busy_dot_probes;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -1186,17 +1188,21 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; DoT probing map follows\n");
-  fprintf(fp.get(), "; ip\tstatus\ttimestamp\n");
+  fprintf(fp.get(), "; DoT probing map follows");
+  fprintf(fp.get(), "; ip\tstatus\tttd\n");
   uint64_t count=0;
 
   // We get a copy, so the I/O does not need to happen while holding the lock
-  for (const auto& i : *s_dotMap.lock()) {
+  DotMap copy;
+  {
+    copy = *s_dotMap.lock();
+  }
+  fprintf(fp.get(), "; %" PRIu64 " Busy entries\n", copy.d_numBusy);
+  for (const auto& i : copy) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%s\t%s\t%s", i.first.toString().c_str(), i.second.d_auth.toString().c_str(), i.second.toString().c_str(), ctime_r(&i.second.d_last, tmp));
+    fprintf(fp.get(), "%s\t%s\t%s\t%s", i.first.toString().c_str(), i.second.d_auth.toString().c_str(), i.second.toString().c_str(), ctime_r(&i.second.d_ttd, tmp));
   }
-
   return count;
 }
 
@@ -4703,27 +4709,26 @@ static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t n
   }
   address.setPort(853);
   auto lock = s_dotMap.lock();
-  auto it = lock->emplace(address, DoTStatus{auth, now}).first;
+  if (lock->d_numBusy >= SyncRes::s_max_busy_dot_probes) {
+    return;
+  }
+  auto it = lock->emplace(address, DoTStatus{auth, now + dotFailWait}).first;
   if (it->second.d_status == DoTStatus::Busy) {
-    cerr << "Already probing DoT for " << address.toString() << endl << endl;
     return;
   }
-  if (it->second.d_status == DoTStatus::Bad && it->second.d_last + dotFailWait > now) {
-    cerr << "Bad DoT for " << address.toString()<< endl << endl;
-    return;
+  if (it->second.d_ttd > now) {
+    if (it->second.d_status == DoTStatus::Bad) {
+      return;
+    }
+    if (it->second.d_status == DoTStatus::Good) {
+      return;
+    }
   }
-  if (it->second.d_status == DoTStatus::Good && it->second.d_last + dotSuccessWait > now) {
-    cerr << "Good DoT for " << address.toString() << endl << endl;
-    return;
-  }
-  it->second.d_last = now;
+  it->second.d_ttd = now + dotFailWait;
   bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max());
   if (pushed) {
-    cerr << "Probing DoT for " << address.toString() << endl << endl;
     it->second.d_status = DoTStatus::Busy;
     ++lock->d_numBusy;
-  } else {
-    cerr << "NOT Probing DoT for " << address.toString() << endl << endl;
   }
 }
 
@@ -4731,16 +4736,12 @@ static bool shouldDoDoT(ComboAddress address, time_t now)
 {
   address.setPort(853);
   auto lock = s_dotMap.lock();
-  if (lock->d_numBusy > 1) {
-    cerr << "Busy DoT for " << address.toString() << endl << endl;
-    return false;
-  }
   auto it = lock->find(address);
   if (it == lock->end()) {
+    // Pruned...
     return false;
   }
-  if (it->second.d_status == DoTStatus::Good && it->second.d_last + dotSuccessWait > now) {
-    cerr << "Doing DoT for " << address.toString() << endl << endl;
+  if (it->second.d_status == DoTStatus::Good && it->second.d_ttd > now) {
     return true;
   }
   return false;
@@ -4757,12 +4758,14 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& aut
   ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
 
   auto lock = s_dotMap.lock();
-  --lock->d_numBusy;
   auto it = lock->find(address);
+  // If an entry was removed by pruning, we do not adjust d_numBusy; it's the job of the pruning code to do that
   if (it != lock->end()) {
-    cerr << "DoT for " << address.toString() << ": " << ok << endl << endl;
     it->second.d_status = ok ? DoTStatus::Good : DoTStatus::Bad;
+    it->second.d_ttd = now + (ok ? dotSuccessWait : dotFailWait);
+    --lock->d_numBusy;
   }
+
   return ok;
 }
 

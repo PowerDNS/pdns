@@ -27,7 +27,7 @@
 union ComboAddress;
 namespace boost
 {
-  size_t hash_value(const ComboAddress&);
+size_t hash_value(const ComboAddress&);
 }
 
 #include <boost/multi_index_container.hpp>
@@ -40,7 +40,6 @@ namespace boost
 #include "dnsname.hh"
 #include "iputils.hh"
 #include "qtype.hh"
-
 
 namespace pdns
 {
@@ -129,4 +128,3 @@ private:
 };
 
 }
-
