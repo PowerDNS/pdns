@@ -286,6 +286,30 @@ const std::unordered_set<QType> SyncRes::s_redirectionQTypes = {QType::CNAME, QT
 static LockGuarded<fails_t<ComboAddress>> s_fails;
 static LockGuarded<fails_t<DNSName>> s_nonresolving;
 
+struct DoTStatus
+{
+  enum Status : uint8_t { Unknown, Busy, Bad, Good };
+  DNSName d_auth;
+  time_t d_last;
+  Status d_status{Unknown};
+  std::string toString() const
+  {
+    const std::string n[] = { "Unknown", "Busy", "Bad", "Good"};
+    unsigned int v = static_cast<unsigned int>(d_status);
+    return v >= sizeof(n) ? "?" : n[v];
+  }
+};
+
+class DotMap: public map<ComboAddress, DoTStatus>
+{
+public:
+  uint64_t d_numBusy{0};
+};
+LockGuarded<DotMap> s_dotMap;
+
+const time_t dotFailWait = 24 * 3600;
+const time_t dotSuccessWait = 3 * 24 * 3600;
+
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
 unsigned int SyncRes::s_maxcachettl;
@@ -1147,6 +1171,30 @@ uint64_t SyncRes::doDumpSavedParentNSSets(int fd)
     count++;
     char tmp[26];
     fprintf(fp.get(), "%s\t%" PRIu64 "\t%s\n", i.d_domain.toString().c_str(), i.d_count, timestamp(i.d_ttd, tmp, sizeof(tmp)));
+  }
+  return count;
+}
+
+uint64_t SyncRes::doDumpDoTProbeMap(int fd)
+{
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
+  fprintf(fp.get(), "; DoT probing map follows\n");
+  fprintf(fp.get(), "; ip\tstatus\ttimestamp\n");
+  uint64_t count=0;
+
+  // We get a copy, so the I/O does not need to happen while holding the lock
+  for (const auto& i : *s_dotMap.lock()) {
+    count++;
+    char tmp[26];
+    fprintf(fp.get(), "%s\t%s\t%s\t%s", i.first.toString().c_str(), i.second.d_auth.toString().c_str(), i.second.toString().c_str(), ctime_r(&i.second.d_last, tmp));
   }
 
   return count;
@@ -4647,6 +4695,77 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
+
+static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t now)
+{
+  if (address.getPort() == 853) {
+    return;
+  }
+  address.setPort(853);
+  auto lock = s_dotMap.lock();
+  auto it = lock->emplace(address, DoTStatus{auth, now}).first;
+  if (it->second.d_status == DoTStatus::Busy) {
+    cerr << "Already probing DoT for " << address.toString() << endl << endl;
+    return;
+  }
+  if (it->second.d_status == DoTStatus::Bad && it->second.d_last + dotFailWait > now) {
+    cerr << "Bad DoT for " << address.toString()<< endl << endl;
+    return;
+  }
+  if (it->second.d_status == DoTStatus::Good && it->second.d_last + dotSuccessWait > now) {
+    cerr << "Good DoT for " << address.toString() << endl << endl;
+    return;
+  }
+  it->second.d_last = now;
+  bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max());
+  if (pushed) {
+    cerr << "Probing DoT for " << address.toString() << endl << endl;
+    it->second.d_status = DoTStatus::Busy;
+    ++lock->d_numBusy;
+  } else {
+    cerr << "NOT Probing DoT for " << address.toString() << endl << endl;
+  }
+}
+
+static bool shouldDoDoT(ComboAddress address, time_t now)
+{
+  address.setPort(853);
+  auto lock = s_dotMap.lock();
+  if (lock->d_numBusy > 1) {
+    cerr << "Busy DoT for " << address.toString() << endl << endl;
+    return false;
+  }
+  auto it = lock->find(address);
+  if (it == lock->end()) {
+    return false;
+  }
+  if (it->second.d_status == DoTStatus::Good && it->second.d_last + dotSuccessWait > now) {
+    cerr << "Doing DoT for " << address.toString() << endl << endl;
+    return true;
+  }
+  return false;
+}
+
+bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& auth, const DNSName& nsName, ComboAddress address, time_t now)
+{
+  LWResult lwr;
+  bool truncated;
+  bool spoofed;
+  boost::optional<Netmask> nm;
+  address.setPort(853);
+  bool ok = doResolveAtThisIP("", qname, qtype, lwr, nm, auth, false, false, nsName, address, true, true, truncated, spoofed);
+  ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
+
+  auto lock = s_dotMap.lock();
+  --lock->d_numBusy;
+  auto it = lock->find(address);
+  if (it != lock->end()) {
+    cerr << "DoT for " << address.toString() << ": " << ok << endl << endl;
+    it->second.d_status = ok ? DoTStatus::Good : DoTStatus::Bad;
+  }
+  return ok;
+}
+
 bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
 {
   bool chained = false;
@@ -5183,8 +5302,14 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
           }
+          if (!doDoT && shouldDoDoT(*remoteIP, d_now.tv_sec)) {
+              doDoT = true;
+          }
           bool forceTCP = doDoT;
 
+          if (!doDoT) {
+            submitTryDotTask(*remoteIP, auth, d_now.tv_sec);
+          }
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, false, false, truncated, spoofed);

@@ -387,6 +387,11 @@ static uint64_t* pleaseDumpNonResolvingNS(int fd)
   return new uint64_t(SyncRes::doDumpNonResolvingNS(fd));
 }
 
+static uint64_t* pleaseDumpDoTProbeMap(int fd)
+{
+  return new uint64_t(SyncRes::doDumpDoTProbeMap(fd));
+}
+
 // Generic dump to file command
 static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name, bool threads = true)
 {
@@ -1904,6 +1909,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
             "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
             "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
             "dump-cache <filename>            dump cache contents to the named file\n"
+            "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
             "dump-edns [status] <filename>    dump EDNS status to the named file\n"
             "dump-failedservers <filename>    dump the failed servers to the named file\n"
             "dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
@@ -1976,6 +1982,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "dump-cache") {
     return doDumpCache(s);
+  }
+  if (cmd == "dump-dot-probe-map") {
+    return doDumpToFile(s, pleaseDumpDoTProbeMap, cmd, false);
   }
   if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
     return doDumpToFile(s, pleaseDumpEDNSMap, cmd);

@@ -253,6 +253,7 @@ public:
   static uint64_t doDumpFailedServers(int fd);
   static uint64_t doDumpNonResolvingNS(int fd);
   static uint64_t doDumpSavedParentNSSets(int fd);
+  static uint64_t doDumpDoTProbeMap(int fd);
 
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
   static void addDontQuery(const std::string& mask)
@@ -395,6 +396,7 @@ public:
   explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const DNSName &qname, QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth = 0);
+  bool tryDoT(const DNSName& qname, QType qtype, const DNSName& auth, const DNSName& nsName, ComboAddress address, time_t);
 
   void setId(int id)
   {
