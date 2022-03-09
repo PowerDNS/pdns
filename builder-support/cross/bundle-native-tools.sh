@@ -43,6 +43,7 @@ fi
 # there: https://hub.docker.com/_/busybox?tab=tags
 # For debian architecture names, I used `apt search crossbuild`.
 # WARNING: Not all of these will actually work in QEMU, which is no worse than without these tools.
+# TODO: mips mipsel powerpc (all 32 bit and currently not building because of time_t)
 case "$TARGETPLATFORM" in
 linux/amd64)
     debianarch=amd64
@@ -68,6 +69,9 @@ linux/arm/v5)
     ;;
 linux/ppc64le)
     debianarch=ppc64el
+    ;;
+linux/mips64le)
+    debianarch=mips64el
     ;;
 linux/riscv64)
     debianarch=riscv64
