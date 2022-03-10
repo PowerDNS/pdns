@@ -22,6 +22,7 @@
 #pragma once
 #include <iostream>
 #include <sstream>
+#include "config.h"
 #if !defined(RECURSOR)
 #include <syslog.h>
 #else
@@ -75,6 +76,9 @@ void dolog(std::ostream& os, const char* s, T value, Args... args)
 
 extern bool g_verbose;
 extern bool g_syslog;
+#ifdef DNSDIST
+extern bool g_logtimestamps;
+#endif
 
 inline void setSyslogFacility(int facility)
 {
@@ -88,8 +92,24 @@ void genlog(int level, const char* s, Args... args)
 {
   std::ostringstream str;
   dolog(str, s, args...);
+
   if(g_syslog)
     syslog(level, "%s", str.str().c_str());
+
+#ifdef DNSDIST
+  if (g_logtimestamps) {
+    char buffer[50] = "";
+    struct tm tm;
+    time_t t;
+    time(&t);
+    localtime_r(&t, &tm);
+    if (strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm) == 0) {
+      buffer[0] = '\0';
+    }
+    std::cout<<buffer;
+  }
+#endif
+
   std::cout<<str.str()<<std::endl;
 }
 

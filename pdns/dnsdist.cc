@@ -95,6 +95,7 @@ struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
+bool g_logtimestamps{false};
 bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
@@ -2140,6 +2141,7 @@ static void usage()
   cout<<"                        (use with e.g. systemd and daemontools)\n";
   cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
   cout<<"                        (use with e.g. systemd)\n";
+  cout<<"--log-timestamps      Prepend timestamps to messages logged to stdout.\n";
   cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
   cout<<"-v,--verbose          Enable verbose mode\n";
   cout<<"-V,--version          Show dnsdist version information and exit\n";
@@ -2207,6 +2209,7 @@ int main(int argc, char** argv)
       {"gid", required_argument, 0, 'g'},
       {"help", no_argument, 0, 'h'},
       {"local", required_argument, 0, 'l'},
+      {"log-timestamps", no_argument, 0, 4},
       {"setkey", required_argument, 0, 'k'},
       {"supervised", no_argument, 0, 3},
       {"uid", required_argument, 0, 'u'},
@@ -2229,6 +2232,9 @@ int main(int argc, char** argv)
         break;
       case 3:
         g_cmdLine.beSupervised=true;
+        break;
+      case 4:
+        g_logtimestamps=true;
         break;
       case 'C':
         g_cmdLine.config=optarg;
