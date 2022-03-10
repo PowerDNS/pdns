@@ -103,7 +103,9 @@ void genlog(int level, const char* s, Args... args)
     time_t t;
     time(&t);
     localtime_r(&t, &tm);
-    strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm);
+    if (strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm) == 0) {
+      buffer[0] = '\0';
+    }
     std::cout<<buffer;
   }
 #endif
