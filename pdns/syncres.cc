@@ -4245,7 +4245,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       spoofed = true;
     }
     else {
-      /* -1 means server unreachable */
+      /* LWResult::Result::PermanentError */
       s_unreachables++;
       d_unreachables++;
       // XXX questionable use of errno
@@ -4263,7 +4263,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         // mark server as down
         t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, g_rootdnsname, 0), s_serverdownthrottletime, 10000);
       }
-      else if (resolveret == LWResult::Result::Timeout) {
+      else if (resolveret == LWResult::Result::PermanentError) {
         // unreachable, 1 minute or 100 queries
         t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
       }
