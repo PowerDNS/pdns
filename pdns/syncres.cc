@@ -1439,7 +1439,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
   QType foundQT = QType::ENT;
 
   /* we don't require auth data for forward-recurse lookups */
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, false, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
   }
@@ -1455,7 +1455,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, false, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
         foundName = dnameName;
         foundQT = QType::DNAME;
         break;
