@@ -51,7 +51,7 @@ template<class Answer, class Question, class Backend> class Distributor
 {
 public:
   static Distributor* Create(int n=1); //!< Create a new Distributor with \param n threads
-  typedef std::function<void(std::unique_ptr<Answer>&)> callback_t;
+  typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   virtual int question(Question&, callback_t callback) =0; //!< Submit a question to the Distributor
   virtual int getQueueSize() =0; //!< Returns length of question queue
   virtual bool isOverloaded() =0;
@@ -65,7 +65,7 @@ public:
   SingleThreadDistributor(const SingleThreadDistributor&) = delete;
   void operator=(const SingleThreadDistributor&) = delete;
   SingleThreadDistributor();
-  typedef std::function<void(std::unique_ptr<Answer>&)> callback_t;
+  typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   int question(Question&, callback_t callback) override; //!< Submit a question to the Distributor
   int getQueueSize() override {
     return 0;
@@ -87,7 +87,7 @@ public:
   MultiThreadDistributor(const MultiThreadDistributor&) = delete;
   void operator=(const MultiThreadDistributor&) = delete;
   MultiThreadDistributor(int n);
-  typedef std::function<void(std::unique_ptr<Answer>&)> callback_t;
+  typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   int question(Question&, callback_t callback) override; //!< Submit a question to the Distributor
   void distribute(int n);
   int getQueueSize() override {
@@ -98,11 +98,13 @@ public:
   {
     QuestionData(const Question& query): Q(query)
     {
+      start = Q.d_dt.udiff();
     }
 
     Question Q;
     callback_t callback{nullptr};
     int id{0};
+    int start{0};
   };
 
   bool isOverloaded() override
@@ -242,7 +244,7 @@ retry:
         }
       }
 
-      QD->callback(a);
+      QD->callback(a, QD->start);
       QD.reset();
     }
 
@@ -264,6 +266,7 @@ retry:
 
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question& q, callback_t callback)
 {
+  int start = q.d_dt.udiff();
   std::unique_ptr<Answer> a = nullptr;
   bool allowRetry=true;
 retry:
@@ -302,7 +305,7 @@ retry:
       goto retry;
     }
   }
-  callback(a);
+  callback(a, start);
   return 0;
 }
 

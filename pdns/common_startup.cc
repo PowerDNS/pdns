@@ -60,7 +60,7 @@ std::unique_ptr<DNSProxy> DP{nullptr};
 std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
 shared_ptr<UDPNameserver> N;
-double avg_latency{0.0};
+double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 unique_ptr<TCPNameserver> TN;
 static vector<DNSDistributor*> g_distributors;
 vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
@@ -315,6 +315,26 @@ static uint64_t getLatency(const std::string& str)
   return round(avg_latency);
 }
 
+static uint64_t getReceiveLatency(const std::string& str)
+{
+  return round(receive_latency);
+}
+
+static uint64_t getCacheLatency(const std::string& str)
+{
+  return round(cache_latency);
+}
+
+static uint64_t getBackendLatency(const std::string& str)
+{
+  return round(backend_latency);
+}
+
+static uint64_t getSendLatency(const std::string& str)
+{
+  return round(send_latency);
+}
+
 void declareStats()
 {
   S.declare("udp-queries","Number of UDP queries received");
@@ -395,6 +415,10 @@ void declareStats()
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("unauth-packets", "Number of times a zone we are not auth for was queried");
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
+  S.declare("receive-latency", "Average number of microseconds needed to receive a query", getReceiveLatency, StatType::gauge);
+  S.declare("cache-latency", "Average number of microseconds needed for a packet cache lookup", getCacheLatency, StatType::gauge);
+  S.declare("backend-latency", "Average number of microseconds needed for a backend lookup", getBackendLatency, StatType::gauge);
+  S.declare("send-latency", "Average number of microseconds needed to send the answer", getSendLatency, StatType::gauge);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling", StatType::gauge);
   S.declare(
@@ -417,16 +441,22 @@ int isGuarded(char **argv)
   return !!p;
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a)
+static void sendout(std::unique_ptr<DNSPacket>& a, int start)
 {
   if(!a)
     return;
 
   try {
+    int diff = a->d_dt.udiffNoReset();
+    backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
+    start = diff;
+
     N->send(*a);
 
-    int diff=a->d_dt.udiff();
-    avg_latency=0.999*avg_latency+0.001*diff;
+    diff = a->d_dt.udiff();
+    send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
+
+    avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0);
   }
   catch (const std::exception& e) {
     g_log<<Logger::Error<<"Caught unhandled exception while sending a response: "<<e.what()<<endl;
@@ -453,10 +483,11 @@ try
   AtomicCounter &numreceived6=*S.getPointer("udp6-queries");
   AtomicCounter &overloadDrops=*S.getPointer("overload-drops");
 
-  int diff;
+  int diff, start;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   shared_ptr<UDPNameserver> NS;
   std::string buffer;
+  ComboAddress accountremote;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
@@ -482,9 +513,16 @@ try
         continue;                    // packet was broken, try again
       }
 
+      diff = question.d_dt.udiffNoReset();
+      receive_latency = 0.999 * receive_latency + 0.001 * std::max(diff, 0);
+
       numreceived++;
 
-      if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
+      accountremote = question.d_remote;
+      if (question.d_inner_remote)
+        accountremote = *question.d_inner_remote;
+
+      if (accountremote.sin4.sin_family == AF_INET)
         numreceived4++;
       else
         numreceived6++;
@@ -508,22 +546,33 @@ try
       }
 
       if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
+        start = diff;
         bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
         if (haveSomething) {
           if(logDNSQueries)
             g_log<<": packetcache HIT"<<endl;
           cached.setRemote(&question.d_remote);  // inlined
+          cached.d_inner_remote = question.d_inner_remote;
           cached.setSocket(question.getSocket());                               // inlined
           cached.d_anyLocal = question.d_anyLocal;
           cached.setMaxReplyLen(question.getMaxReplyLen());
           cached.d.rd=question.d.rd; // copy in recursion desired bit
           cached.d.id=question.d.id;
           cached.commitD(); // commit d to the packet                        inlined
+
+          diff = question.d_dt.udiffNoReset();
+          cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0);
+          start = diff;
+
           NS->send(cached); // answer it then                              inlined
+
           diff=question.d_dt.udiff();
-          avg_latency=0.999*avg_latency+0.001*diff; // 'EWMA'
+          send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
+          avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
           continue;
         }
+        diff = question.d_dt.udiffNoReset();
+        cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0);
       }
 
       if(distributor->isOverloaded()) {
