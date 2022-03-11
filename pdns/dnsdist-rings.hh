@@ -69,43 +69,19 @@ struct Rings {
     LockGuarded<boost::circular_buffer<Response>> respRing{boost::circular_buffer<Response>()};
   };
 
-  Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
+  Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_capacity(capacity), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
   {
-    setCapacity(capacity, numberOfShards);
   }
 
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
+  /* this function should not be called after init() has been called */
+  void setCapacity(size_t newCapacity, size_t numberOfShards);
+
   /* This function should only be called at configuration time before any query or response has been inserted */
-  void setCapacity(size_t newCapacity, size_t numberOfShards)
-  {
-    if (numberOfShards <= 1) {
-      d_nbLockTries = 0;
-    }
+  void init();
 
-    d_shards.resize(numberOfShards);
-    d_numberOfShards = numberOfShards;
-
-    /* resize all the rings */
-    for (auto& shard : d_shards) {
-      shard = std::make_unique<Shard>();
-      shard->queryRing.lock()->set_capacity(newCapacity / numberOfShards);
-      shard->respRing.lock()->set_capacity(newCapacity / numberOfShards);
-    }
-
-    /* we just recreated the shards so they are now empty */
-    d_nbQueryEntries = 0;
-    d_nbResponseEntries = 0;
-  }
-
-  void setNumberOfLockRetries(size_t retries)
-  {
-    if (d_numberOfShards <= 1) {
-      d_nbLockTries = 0;
-    } else {
-      d_nbLockTries = retries;
-    }
-  }
+  void setNumberOfLockRetries(size_t retries);
 
   size_t getNumberOfShards() const
   {
@@ -199,6 +175,13 @@ struct Rings {
     d_deferredResponseInserts.store(0);
   }
 
+  /* this should be called in the unit tests, and never at runtime */
+  void reset()
+  {
+    clear();
+    d_initialized = false;
+  }
+
   /* load the content of the ring buffer from a file in the format emitted by grepq(),
      only useful for debugging purposes */
   size_t loadFromFile(const std::string& filepath, const struct timespec& now);
@@ -251,7 +234,9 @@ private:
   std::atomic<size_t> d_nbQueryEntries;
   std::atomic<size_t> d_nbResponseEntries;
   std::atomic<size_t> d_currentShardId;
+  std::atomic<bool> d_initialized{false};
 
+  size_t d_capacity;
   size_t d_numberOfShards;
   size_t d_nbLockTries = 5;
   bool d_keepLockingStats{false};
