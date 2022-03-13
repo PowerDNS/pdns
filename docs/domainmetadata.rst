@@ -175,7 +175,7 @@ the quotes). Any other value will not signal presignedness.
 PUBLISH-CDNSKEY, PUBLISH-CDS
 ----------------------------
 
-Whether to publish CDNSKEY and/or CDS recording defined in :rfc:`7344`.
+Whether to publish CDNSKEY and/or CDS records as defined in :rfc:`7344`.
 
 To publish CDNSKEY records of the KSKs for the zone, set
 ``PUBLISH-CDNSKEY`` to ``1``.
