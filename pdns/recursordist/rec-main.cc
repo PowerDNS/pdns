@@ -1874,7 +1874,7 @@ static void houseKeeping(void*)
     });
 
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
-    pruneThrottledTask.runIfDue(now, [now]() {
+    pruneTCPTask.runIfDue(now, [now]() {
       t_tcp_manager.cleanup(now);
     });
 
