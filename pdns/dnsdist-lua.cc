@@ -327,26 +327,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            serverAddressStr = boost::get<string>(vars["address"]);
                          }
 
-                         try {
-                           config.remote = ComboAddress(serverAddressStr, 53);
-                         }
-                         catch (const PDNSException& e) {
-                           g_outputBuffer = "Error creating new server: " + string(e.reason);
-                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
-                           return std::shared_ptr<DownstreamState>();
-                         }
-                         catch (const std::exception& e) {
-                           g_outputBuffer = "Error creating new server: " + string(e.what());
-                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
-                           return std::shared_ptr<DownstreamState>();
-                         }
-
-                         if (IsAnyAddress(config.remote)) {
-                           g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
-                           errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
-                           return std::shared_ptr<DownstreamState>();
-                         }
-
                          if (vars.count("source")) {
                            /* handle source in the following forms:
                               - v4 address ("192.0.2.1")
@@ -577,7 +557,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
+                         uint16_t serverPort = 53;
+
                          if (vars.count("tls")) {
+                           serverPort = 853;
                            config.d_tlsParams.d_provider = boost::get<string>(vars.at("tls"));
                            tlsCtx = getTLSContext(config.d_tlsParams);
 
@@ -586,12 +569,33 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
 #endif
 
+                             serverPort = 443;
                              config.d_dohPath = boost::get<string>(vars.at("dohPath"));
 
                              if (vars.count("addXForwardedHeaders")) {
                                config.d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
                              }
                            }
+                         }
+
+                         try {
+                           config.remote = ComboAddress(serverAddressStr, serverPort);
+                         }
+                         catch (const PDNSException& e) {
+                           g_outputBuffer = "Error creating new server: " + string(e.reason);
+                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
+                           return std::shared_ptr<DownstreamState>();
+                         }
+                         catch (const std::exception& e) {
+                           g_outputBuffer = "Error creating new server: " + string(e.what());
+                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
+                           return std::shared_ptr<DownstreamState>();
+                         }
+
+                         if (IsAnyAddress(config.remote)) {
+                           g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
+                           errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
+                           return std::shared_ptr<DownstreamState>();
                          }
 
                          if (vars.count("pool")) {
