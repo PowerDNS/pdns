@@ -47,6 +47,10 @@ class DNSCryptoKeyEngine
     }
     virtual storvector_t convertToISCVector() const =0;
     std::string convertToISC() const ;
+    virtual void convertToPEM(std::FILE& fp) const
+    {
+      throw std::runtime_error(getName() + ": Conversion to PEM not supported");
+    };
     virtual std::string sign(const std::string& msg) const =0;
     virtual std::string hash(const std::string& msg) const
     {

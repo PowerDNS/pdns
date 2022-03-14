@@ -3272,6 +3272,17 @@ try
     DNSSECPrivateKey dpk = dk.getKeyById(DNSName(zone), id);
     cout << dpk.getKey()->convertToISC() << endl;
   }
+  else if (cmds.at(0) == "export-zone-key-pem") {
+    if (cmds.size() < 3) {
+      cerr << "Syntax: pdnsutil export-zone-key-pem ZONE KEY-ID" << endl;
+      return 1;
+    }
+
+    string zone = cmds.at(1);
+    auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
+    DNSSECPrivateKey dpk = dk.getKeyById(DNSName(zone), id);
+    dpk.getKey()->convertToPEM(*stdout);
+  }
   else if (cmds.at(0) == "increase-serial") {
     if (cmds.size() < 2) {
       cerr << "Syntax: pdnsutil increase-serial ZONE" << endl;
