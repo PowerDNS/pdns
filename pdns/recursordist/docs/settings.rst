@@ -819,7 +819,7 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
     forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530;[2001:DB8::1:3]:5300
 
 Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning that this setting is intended to forward queries to authoritative servers.
-If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set wil be used to determine addresses for name servers of the subzone.
+If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
 This allows e.g. a forward to a local authoritative server holding a copy of the root zone, delegations received from that server will work.
 
 **IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
