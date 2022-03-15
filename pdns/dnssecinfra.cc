@@ -279,7 +279,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   cout<<"Testing algorithm "<<algo<<"("<<DNSSECKeeper::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
   if(algo <= 10)
-    bits=1024;
+    bits=2048;
   else if(algo == DNSSECKeeper::ECCGOST || algo == DNSSECKeeper::ECDSA256 || algo == DNSSECKeeper::ED25519)
     bits = 256;
   else if(algo == DNSSECKeeper::ECDSA384)
