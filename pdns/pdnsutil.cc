@@ -2424,6 +2424,7 @@ try
     cout << "export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described" << endl;
     cout << "export-zone-ds ZONE                Export to stdout all KSK DS records for ZONE" << endl;
     cout << "export-zone-key ZONE KEY-ID        Export to stdout the private key described" << endl;
+    cout << "export-zone-key-pem ZONE KEY-ID    Export to stdout in PEM the private key described" << endl;
     cout << "generate-tsig-key NAME ALGORITHM   Generate new TSIG key" << endl;
     cout << "generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]" << endl;
     cout << "                                   Generate a ZSK or KSK to stdout with specified ALGORITHM and BITS" << endl;
@@ -2440,6 +2441,8 @@ try
     cout << "import-tsig-key NAME ALGORITHM KEY Import TSIG key" << endl;
     cout << "import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK" << endl;
     cout << "       [active|inactive] [ksk|zsk] [published|unpublished] Defaults to KSK, active and published" << endl;
+    cout << "import-zone-key-pem ZONE FILE      Import a private key from a PEM file" << endl;
+    cout << "        ALGORITHM {ksk|zsk}" << endl;
     cout << "ipdecrypt IP passphrase/key [key]  Decrypt IP address using passphrase or base64 key" << endl;
     cout << "ipencrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key" << endl;
     cout << "load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically" << endl;
