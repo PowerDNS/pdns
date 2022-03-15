@@ -281,28 +281,31 @@ bool stripDomainSuffix(string *qname, const string &domain)
   return true;
 }
 
-static void parseService4(const string &descr, ServiceTuple &st)
+static void parseService4(const string& descr, ServiceTuple& st)
 {
-  vector<string>parts;
-  stringtok(parts,descr,":");
-  if(parts.empty())
-    throw PDNSException("Unable to parse '"+descr+"' as a service");
-  st.host=parts[0];
-  if(parts.size()>1)
-    st.port=pdns_stou(parts[1]);
+  vector<string> parts;
+  stringtok(parts, descr, ":");
+  if (parts.empty()) {
+    throw PDNSException("Unable to parse '" + descr + "' as a service");
+  }
+  st.host = parts[0];
+  if (parts.size() > 1) {
+    pdns::checked_stoi_into(st.port, parts[1]);
+  }
 }
 
-static void parseService6(const string &descr, ServiceTuple &st)
+static void parseService6(const string& descr, ServiceTuple& st)
 {
-  string::size_type pos=descr.find(']');
-  if(pos == string::npos)
-    throw PDNSException("Unable to parse '"+descr+"' as an IPv6 service");
+  string::size_type pos = descr.find(']');
+  if (pos == string::npos) {
+    throw PDNSException("Unable to parse '" + descr + "' as an IPv6 service");
+  }
 
-  st.host=descr.substr(1, pos-1);
-  if(pos + 2 < descr.length())
-    st.port=pdns_stou(descr.substr(pos+2));
+  st.host = descr.substr(1, pos - 1);
+  if (pos + 2 < descr.length()) {
+    pdns::checked_stoi_into(st.port, descr.substr(pos + 2));
+  }
 }
-
 
 void parseService(const string &descr, ServiceTuple &st)
 {
@@ -680,7 +683,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     return -1;
   string ourAddr(addr);
   bool portSet = false;
-  unsigned int port;
+  uint16_t port;
   if(addr[0]=='[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
     if(pos == string::npos)
@@ -690,7 +693,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
       if (pos + 2 > addr.size() || addr[pos+1]!=':')
         return -1;
       try {
-        port = pdns_stou(addr.substr(pos+2));
+        pdns::checked_stoi_into(port, addr.substr(pos + 2));
         portSet = true;
       }
       catch(const std::out_of_range&) {
@@ -1346,7 +1349,7 @@ uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
   DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
-  if(!dirhdl) 
+  if(!dirhdl)
     return 0;
 
   struct dirent *entry;
@@ -1354,7 +1357,7 @@ uint64_t getOpenFileDescriptors(const std::string&)
   while((entry = readdir(dirhdl))) {
     uint32_t num;
     try {
-      num = pdns_stou(entry->d_name);
+      pdns::checked_stoi_into(num, entry->d_name);
     } catch (...) {
       continue; // was not a number.
     }
@@ -1383,7 +1386,7 @@ uint64_t getRealMemoryUsage(const std::string&)
   ifs >> size >> resident >> shared >> text >> lib >> data;
 
   // We used to use "data" here, but it proves unreliable and even is marked "broken"
-  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html 
+  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html
   return resident * getpagesize();
 #else
   struct rusage ru;
@@ -1432,7 +1435,7 @@ double DiffTime(const struct timespec& first, const struct timespec& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int nseconds=second.tv_nsec - first.tv_nsec;
-  
+
   if(nseconds < 0) {
     seconds-=1;
     nseconds+=1000000000;
@@ -1444,7 +1447,7 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int useconds=second.tv_usec - first.tv_usec;
-  
+
   if(useconds < 0) {
     seconds-=1;
     useconds+=1000000;
@@ -1508,25 +1511,6 @@ gid_t strToGID(const string &str)
   }
 
   return result;
-}
-
-unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
-{
-  if (str.empty()) return 0; // compatibility
-  unsigned long result;
-  try {
-    result = std::stoul(str, idx, base);
-  }
-  catch(std::invalid_argument& e) {
-    throw std::invalid_argument(string(e.what()) + "; (invalid argument during std::stoul); data was \""+str+"\"");
-  }
-  catch(std::out_of_range& e) {
-    throw std::out_of_range(string(e.what()) + "; (out of range during std::stoul); data was \""+str+"\"");
-  }
-  if (result > std::numeric_limits<unsigned int>::max()) {
-    throw std::out_of_range("stoul returned result out of unsigned int range; data was \""+str+"\"");
-  }
-  return static_cast<unsigned int>(result);
 }
 
 bool isSettingThreadCPUAffinitySupported()

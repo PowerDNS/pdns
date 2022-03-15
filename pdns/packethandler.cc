@@ -50,8 +50,8 @@
 #if 0
 #undef DLOG
 #define DLOG(x) x
-#endif 
- 
+#endif
+
 AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
 set<string> PacketHandler::s_forwardNotify;
@@ -229,7 +229,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
+      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo)));
       r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }
@@ -357,7 +357,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
       rr.auth = false; // don't sign CNAME
       target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
-      ret.push_back(rr); 
+      ret.push_back(rr);
     }
     if(!ret.empty())
       return;
@@ -387,7 +387,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     doLua = (val=="1");
   }
 #endif
-  
+
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
@@ -632,7 +632,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
 
   B.lookup(QType(QType::ANY), name, d_sd.domain_id);
   while(B.get(rr)) {
-#ifdef HAVE_LUA_RECORDS   
+#ifdef HAVE_LUA_RECORDS
     if(rr.dr.d_type == QType::LUA)
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
     else
@@ -899,15 +899,15 @@ void PacketHandler::addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const D
 }
 
 /* Semantics:
-   
+
 - only one backend owns the SOA of a zone
 - only one AXFR per zone at a time - double startTransaction should fail
 - backends need to implement transaction semantics
 
 
 How BindBackend would implement this:
-   startTransaction makes a file 
-   feedRecord sends everything to that file 
+   startTransaction makes a file
+   feedRecord sends everything to that file
    commitTransaction moves that file atomically over the regular file, and triggers a reload
    rollbackTransaction removes the file
 
@@ -920,8 +920,8 @@ How PostgreSQLBackend would implement this:
 
 How MySQLBackend would implement this:
    (good question!)
-   
-*/     
+
+*/
 
 int PacketHandler::trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname)
 {
@@ -1119,7 +1119,7 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
   }
 
   if(p.d.rd) {
-    static AtomicCounter &rdqueries=*S.getPointer("rd-queries");  
+    static AtomicCounter &rdqueries=*S.getPointer("rd-queries");
     rdqueries++;
   }
 
@@ -1255,7 +1255,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
         retargeted=true;
         target=getRR<CNAMERecordContent>(rr.dr)->getTarget();
       }
-  
+
       rr.dr.d_place=DNSResourceRecord::ANSWER;
       r->addRecord(std::move(rr));
     }
@@ -1286,7 +1286,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
 #endif
-  
+
   if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
@@ -1345,7 +1345,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     p.setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
   }
-  
+
   r=p.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
 
   if (p.qtype == QType::TKEY) {
@@ -1353,7 +1353,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     return r;
   }
 
-  try {    
+  try {
 
     // XXX FIXME do this in DNSPacket::parse ?
 
@@ -1388,15 +1388,15 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         }
         return nullptr;
       }
-      
+
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
 
-      r->setRcode(RCode::NotImp); 
-      return r; 
+      r->setRcode(RCode::NotImp);
+      return r;
     }
 
     // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
-    
+
     if(p.qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::Refused);
       return r;
@@ -1437,7 +1437,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       r->setRcode(RCode::ServFail);
       return r;
     }
-    
+
     if(!B.getAuth(target, p.qtype, &d_sd)) {
       DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(!retargetcount) {
@@ -1519,7 +1519,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     haveAlias.trimToLabels(0);
     aliasScopeMask = 0;
     weDone = weRedirected = weHaveUnauth =  false;
-    
+
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA) {
@@ -1564,13 +1564,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         continue; // TODO: this actually means addRRSig should check if the RRSig is already there
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.toString()<<endl;
-      if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth) 
+      if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth)
         weDone=true;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
       if((rr.dr.d_type == p.qtype.getCode() && !rr.auth) || (rr.dr.d_type == QType::NS && (!rr.auth || !(d_sd.qname==rr.dr.d_name))))
         weHaveUnauth=true;
 
-      if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME) 
+      if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
         weRedirected=true;
 
       if(DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY)) {
@@ -1655,7 +1655,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           retargetcount++;
           goto retargeted;
         }
-        if(nodata) 
+        if(nodata)
           makeNOError(p, r, target, wildcard, 2);
 
         goto sendit;
@@ -1676,7 +1676,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
       goto sendit;
     }
-                                       
+
     if(weRedirected) {
       for(auto& loopRR: rrset) {
         if(loopRR.dr.d_type == QType::CNAME) {
@@ -1724,7 +1724,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       DLOG(g_log<<"Have some data, but not the right data"<<endl);
       makeNOError(p, r, target, DNSName(), 0);
     }
-    
+
   sendit:;
     doAdditionalProcessing(p, r);
 
@@ -1736,7 +1736,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
     if(doSigs)
       addRRSigs(d_dk, B, authSet, r->getRRS());
-      
+
     if(PC.enabled() && !noCache && p.couldBeCached())
       PC.insert(p, *r, r->getMinTTL()); // in the packet cache
   }
@@ -1758,6 +1758,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries", p.qdomain, p.qtype);
   }
-  return r; 
+  return r;
 
 }

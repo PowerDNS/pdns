@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
     unsigned int ttl;
     std::getline(ifs, host, ' ');
     std::getline(ifs, type, ' ');
-    ttl = pdns_stou(type);
+    pdns::checked_stoi_into(ttl, type);
     std::getline(ifs, type, ' ');
     std::getline(ifs, type, ' ');
     std::getline(ifs, data, '\n');

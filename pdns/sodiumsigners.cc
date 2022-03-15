@@ -71,7 +71,7 @@ void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=
   */
 
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
+  pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
   string privateKey = stormap["privatekey"];
 
   if (privateKey.length() != crypto_sign_ed25519_SEEDBYTES)

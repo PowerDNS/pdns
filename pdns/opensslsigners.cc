@@ -459,7 +459,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   auto dmq1 = parse(stormap, "exponent2");
   auto iqmp = parse(stormap, "coefficient");
 
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
+  pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
 
   if (drc.d_algorithm != d_algorithm) {
     throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");

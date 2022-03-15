@@ -434,7 +434,7 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
         break;
         /* non-terminal actions follow */
       case DNSResponseAction::Action::Delay:
-        dr.delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+        pdns::checked_stoi_into(dr.delayMsec, ruleresult); // sorry
         break;
       case DNSResponseAction::Action::None:
         break;
@@ -833,7 +833,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     break;
     /* non-terminal actions follow */
   case DNSAction::Action::Delay:
-    dq.delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+    pdns::checked_stoi_into(dq.delayMsec, ruleresult); // sorry
     break;
   case DNSAction::Action::None:
     /* fall-through */

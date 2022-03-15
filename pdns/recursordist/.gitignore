@@ -54,3 +54,4 @@ latex
 PowerDNS-Recursor.pdf
 /*.pb.cc
 /*.pb.h
+/.cache

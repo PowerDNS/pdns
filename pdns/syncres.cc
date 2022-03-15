@@ -702,7 +702,7 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
     count++;
     char tmp[26];
     ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
   }
 
   return count;
@@ -729,7 +729,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
     count++;
     char tmp[26];
     ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
   }
 
   return count;
@@ -748,10 +748,10 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
    Another cause of "No answer" may simply be a network condition.
    Nonsense answers are a clearer indication this host won't be able to do DNSSEC evah.
 
-   Previous implementations have suffered from turning off DNSSEC questions for an authoritative server based on timeouts. 
+   Previous implementations have suffered from turning off DNSSEC questions for an authoritative server based on timeouts.
    A clever idea is to only turn off DNSSEC if we know a domain isn't signed anyhow. The problem with that really
-   clever idea however is that at this point in PowerDNS, we may simply not know that yet. All the DNSSEC thinking happens 
-   elsewhere. It may not have happened yet. 
+   clever idea however is that at this point in PowerDNS, we may simply not know that yet. All the DNSSEC thinking happens
+   elsewhere. It may not have happened yet.
 
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
@@ -762,19 +762,19 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
      the goal is to get as many remotes as possible on the highest level of EDNS support
      The levels are:
 
-     0) UNKNOWN Unknown state 
+     0) UNKNOWN Unknown state
      1) EDNS: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
      3) NOEDNS: Generates FORMERR on EDNS queries
 
      Everybody starts out assumed to be '0'.
      If '0', send out EDNS0
-        If you FORMERR us, go to '3', 
+        If you FORMERR us, go to '3',
         If no EDNS in response, go to '2'
      If '1', send out EDNS0
         If FORMERR, downgrade to 3
      If '2', keep on including EDNS0, see what happens
-        Same behaviour as 0 
+        Same behaviour as 0
      If '3', send bare queries
   */
 
@@ -799,7 +799,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   LWResult::Result ret;
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
-    
+
     if (*mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0; // level != mode
@@ -848,7 +848,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     if (oldmode != *mode || !ednsstatus->modeSetAt) {
       t_sstorage.ednsstatus.setTS(ind, ednsstatus, d_now.tv_sec);
     }
-    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
+    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;
     return LWResult::Result::Success;
   }
   return ret;
@@ -2143,7 +2143,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       DNSRecord dr;
       dr.d_type=QType::RRSIG;
       dr.d_name=sqname;
-      dr.d_ttl=ttl; 
+      dr.d_ttl=ttl;
       dr.d_content=signature;
       dr.d_place = DNSResourceRecord::ANSWER;
       dr.d_class=QClass::IN;
@@ -4849,7 +4849,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
     g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got an exception"<<endl;
     ret.clear();
   }
-  
+
   return res;
 }
 

@@ -47,7 +47,7 @@ SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k, bool &generi
   if (k.substr(0, 3) == "key") {
     try {
       generic = true;
-      return SvcParam::SvcParamKey(pdns_stou(k.substr(3)));
+      return SvcParam::SvcParamKey(pdns::checked_stoi<uint16_t>(k.substr(3)));
     }
     catch (...) {
     }

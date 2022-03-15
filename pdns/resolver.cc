@@ -55,7 +55,7 @@ using pdns::resolver::parseResult;
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 {
   ComboAddress ourLocal(local);
-  
+
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
   if(sock < 0) {
     if(errno == EAFNOSUPPORT && local.sin4.sin_family == AF_INET6) {
@@ -74,8 +74,8 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
     int tries=10;
     while(--tries) {
       ourLocal.sin4.sin_port = htons(10000+(dns_random(10000)));
-    
-      if (::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) >= 0) 
+
+      if (::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) >= 0)
         break;
     }
     // cerr<<"bound udp port "<<ourLocal.sin4.sin_port<<", "<<tries<<" tries left"<<endl;
@@ -200,7 +200,7 @@ namespace pdns {
         return mdp.d_header.rcode;
 
       if(origQname.countLabels()) {  // not AXFR
-        if(mdp.d_header.id != id) 
+        if(mdp.d_header.id != id)
           throw ResolverException("Remote nameserver replied with wrong id");
         if(mdp.d_header.qdcount != 1)
           throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp.d_header.qdcount)+")");
@@ -269,13 +269,13 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   MOADNSParser mdp(false, (char*)buf, err);
   *id=mdp.d_header.id;
   *domain = mdp.d_qname;
-  
+
   if(domain->empty())
     throw ResolverException("SOA query to '" + remote->toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
 
   if(mdp.d_answers.empty())
     throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
-  
+
   if(mdp.d_qtype != QType::SOA)
     throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
 
@@ -310,20 +310,20 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
   try {
     int sock = -1;
     int id = sendResolve(to, local, domain, type, &sock);
-    int err=waitForData(sock, 0, 3000000); 
-  
+    int err=waitForData(sock, 0, 3000000);
+
     if(!err) {
       throw ResolverException("Timeout waiting for answer");
     }
     if(err < 0)
       throw ResolverException("Error waiting for answer: "+stringerror());
-  
+
     ComboAddress from;
     socklen_t addrlen = sizeof(from);
     char buffer[3000];
     int len;
 
-    if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
+    if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0)
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
 
     if (from != to) {
@@ -348,11 +348,11 @@ void Resolver::getSoaSerial(const ComboAddress& ipport, const DNSName &domain, u
 {
   vector<DNSResourceRecord> res;
   int ret = resolve(ipport, domain, QType::SOA, &res);
-  
+
   if(ret || res.empty())
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no answers");
 
-  if(res[0].qtype.getCode() != QType::SOA) 
+  if(res[0].qtype.getCode() != QType::SOA)
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.toString()+" record");
 
   vector<string>parts;
@@ -361,10 +361,9 @@ void Resolver::getSoaSerial(const ComboAddress& ipport, const DNSName &domain, u
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced an unparseable response");
 
   try {
-    *serial=pdns_stou(parts[2]);
+    *serial = pdns::checked_stoi<uint32_t>(parts[2]);
   }
   catch(const std::out_of_range& oor) {
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced an unparseable serial");
   }
 }
-

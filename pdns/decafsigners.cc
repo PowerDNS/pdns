@@ -81,7 +81,7 @@ void DecafED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
     PrivateKey: ODIyNjAzODQ2MjgwODAxMjI2NDUxOTAyMDQxNDIyNjI=
   */
 
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
+  pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
   string privateKey = stormap["privatekey"];
 
   if (privateKey.length() != DECAF_EDDSA_25519_PRIVATE_BYTES)
@@ -217,7 +217,7 @@ void DecafED448DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
     PrivateKey: xZ+5Cgm463xugtkY5B0Jx6erFTXp13rYegst0qRtNsOYnaVpMx0Z/c5EiA9x8wWbDDct/U3FhYWA
   */
 
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
+  pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
   string privateKey = stormap["privatekey"];
 
   if (privateKey.length() != DECAF_EDDSA_448_PRIVATE_BYTES)

@@ -315,8 +315,8 @@ bool PipeBackend::get(DNSResourceRecord& r)
         }
         r.qname = DNSName(parts[1 + extraFields]);
         r.qtype = parts[3 + extraFields];
-        r.ttl = pdns_stou(parts[4 + extraFields]);
-        r.domain_id = std::stoi(parts[5 + extraFields]);
+        pdns::checked_stoi_into(r.ttl, parts[4 + extraFields]);
+        pdns::checked_stoi_into(r.domain_id, parts[5 + extraFields]);
 
         if (r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
           r.content.clear();

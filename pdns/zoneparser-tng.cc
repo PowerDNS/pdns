@@ -41,7 +41,7 @@
 const static string g_INstr("IN");
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir, bool upgradeContent):
-  d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600), 
+  d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
 {
@@ -129,7 +129,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
 
   unsigned int val;
   try {
-    val=pdns_stou(str);
+    pdns::checked_stoi_into(val, str);
   }
   catch (const std::out_of_range& oor) {
     throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
@@ -175,8 +175,8 @@ bool ZoneParserTNG::getTemplateLine()
       retline+=" ";
 
     string part=makeString(d_templateline, *iter);
-    
-    /* a part can contain a 'naked' $, an escaped $ (\$), or ${offset,width,radix}, with width defaulting to 0, 
+
+    /* a part can contain a 'naked' $, an escaped $ (\$), or ${offset,width,radix}, with width defaulting to 0,
        and radix being 'd', 'o', 'x' or 'X', defaulting to 'd' (so ${offset} is valid).
 
        The width is zero-padded, so if the counter is at 1, the offset is 15, width is 3, and the radix is 'x',
@@ -194,7 +194,7 @@ bool ZoneParserTNG::getTemplateLine()
         inescape=false;
         continue;
       }
-        
+
       if(part[pos]=='\\') {
         inescape=true;
         continue;
@@ -204,14 +204,14 @@ bool ZoneParserTNG::getTemplateLine()
           outpart.append(std::to_string(d_templatecounter));
           continue;
         }
-        
-        // need to deal with { case 
-        
+
+        // need to deal with { case
+
         pos+=2;
         string::size_type startPos=pos;
         for(; pos < part.size() && part[pos]!='}' ; ++pos)
           ;
-        
+
         if(pos == part.size()) // partial spec
           break;
 
@@ -275,9 +275,9 @@ static void chopComment(string& line)
   string::size_type pos, len = line.length();
   bool inQuote=false;
   for(pos = 0 ; pos < len; ++pos) {
-    if(line[pos]=='\\') 
+    if(line[pos]=='\\')
       pos++;
-    else if(line[pos]=='"') 
+    else if(line[pos]=='"')
       inQuote=!inQuote;
     else if(line[pos]==';' && !inQuote)
       break;
@@ -291,9 +291,9 @@ static bool findAndElide(string& line, char c)
   string::size_type pos, len = line.length();
   bool inQuote=false;
   for(pos = 0 ; pos < len; ++pos) {
-    if(line[pos]=='\\') 
+    if(line[pos]=='\\')
       pos++;
-    else if(line[pos]=='"') 
+    else if(line[pos]=='"')
       inQuote=!inQuote;
     else if(line[pos]==c && !inQuote)
       break;
@@ -350,7 +350,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') // line consisting of nothing but comments
     goto retry;
 
-  if(d_line[0]=='$') { 
+  if(d_line[0]=='$') {
     string command=makeString(d_line, d_parts[0]);
     if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
       d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), boost::is_any_of(";")));
@@ -466,7 +466,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     rr.qname=d_prevqname;
     prevqname=true;
   }else {
-    rr.qname=DNSName(qname); 
+    rr.qname=DNSName(qname);
     d_parts.pop_front();
     if(qname.empty() || qname[0]==';')
       goto retry;
@@ -481,7 +481,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     throw exception("Line with too little parts "+getLineOfFile());
 
   string nextpart;
-  
+
   rr.ttl=d_defaultttl;
   bool haveTTL{false}, haveQTYPE{false};
   string qtypeString;
@@ -512,7 +512,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       // cout<<"ttl is probably: "<<rr.ttl<<endl;
       continue;
     }
-    if(haveQTYPE) 
+    if(haveQTYPE)
       break;
 
     try {
@@ -528,7 +528,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
                           "' doesn't look like a qtype, stopping loop");
     }
   }
-  if(!haveQTYPE) 
+  if(!haveQTYPE)
     throw exception("Malformed line "+getLineOfFile()+": '"+d_line+"'");
 
   //  rr.content=d_line.substr(range.first);
@@ -545,7 +545,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         boost::trim_right(d_line);
         chopComment(d_line);
         boost::trim(d_line);
-        
+
         bool ended = findAndElide(d_line, ')');
         rr.content+=" "+d_line;
         if(ended)
@@ -574,7 +574,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
-  
+
   case QType::RP:
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
@@ -597,8 +597,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
     }
     break;
-  
-    
+
+
   case QType::NS:
   case QType::CNAME:
   case QType::DNAME:

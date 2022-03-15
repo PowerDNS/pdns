@@ -327,7 +327,7 @@ class Pkcs11Token {
     }
 
   public:
-    Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label); 
+    Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label);
     ~Pkcs11Token();
 
     bool Login(const std::string& pin) {
@@ -984,7 +984,7 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
 };
 
 void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
+  pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
   d_module = stormap["engine"];
   d_slot_id = stormap["slot"];
   boost::trim(d_slot_id);

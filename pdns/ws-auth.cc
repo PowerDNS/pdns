@@ -735,7 +735,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (!dk.unSecureZone(zonename, error, info)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
-        isDNSSECZone = dk.isSecuredZone(zonename, false); 
+        isDNSSECZone = dk.isSecuredZone(zonename, false);
         if (isDNSSECZone) {
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }
@@ -1124,7 +1124,7 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
 
     std::set<unsigned int> CDSalgos;
     for(auto const &digestAlgo : digestAlgos) {
-      CDSalgos.insert(pdns_stou(digestAlgo));
+      CDSalgos.insert(pdns::checked_stoi<unsigned int>(digestAlgo));
     }
 
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {

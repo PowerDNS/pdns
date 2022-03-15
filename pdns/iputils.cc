@@ -214,12 +214,12 @@ bool setReusePort(int sockfd)
   return false;
 }
 
-bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 {
 #ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) &&
 	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
       return true;
@@ -248,7 +248,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
       struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
-      destination->sin4.sin_family = AF_INET;      
+      destination->sin4.sin_family = AF_INET;
       return true;
     }
 #endif
@@ -269,7 +269,7 @@ bool IsAnyAddress(const ComboAddress& addr)
     return addr.sin4.sin_addr.s_addr == 0;
   else if(addr.sin4.sin_family == AF_INET6)
     return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
-  
+
   return false;
 }
 int sendOnNBSocket(int fd, const struct msghdr *msgh)
@@ -328,7 +328,7 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, s
   iov->iov_len  = datalen;
 
   memset(msgh, 0, sizeof(struct msghdr));
-  
+
   msgh->msg_control = cbuf;
   msgh->msg_controllen = cbufsize;
   msgh->msg_name = addr;
@@ -359,12 +359,12 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   auto tozero= len*8 - bits; // if set to 22, this will clear 1 byte, as it should
 
   memset(start + len - tozero/8, 0, tozero/8); // blot out the whole bytes on the right
-  
+
   auto bitsleft=tozero % 8; // 2 bits left to clear
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
-  uint8_t* place = start + len - 1 - tozero/8; 
+  uint8_t* place = start + len - 1 - tozero/8;
   *place &= (~((1<<bitsleft)-1));
 }
 
@@ -506,7 +506,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
 {
   if (input[0] == '[') { // case 1
     auto both = splitField(input.substr(1), ']');
-    return ComboAddress(both.first, both.second.empty() ? port : static_cast<uint16_t>(pdns_stou(both.second.substr(1))));
+    return ComboAddress(both.first, both.second.empty() ? port : pdns::checked_stoi<uint16_t>(both.second.substr(1)));
   }
 
   string::size_type count = 0;
@@ -527,7 +527,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
     both.first = input.substr(0, cpos);
     both.second = input.substr(cpos + 1);
 
-    uint16_t newport = static_cast<uint16_t>(pdns_stou(both.second));
+    auto newport = pdns::checked_stoi<uint16_t>(both.second);
     return ComboAddress(both.first, newport);
   }
   default: // case 4

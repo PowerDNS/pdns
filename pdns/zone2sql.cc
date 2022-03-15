@@ -57,11 +57,11 @@ static int g_numRecords;
 
 
 /* this is an official wart. We don't terminate domains on a . in PowerDNS,
-   which is fine as it goes, except for encoding the root, it would end up as '', 
+   which is fine as it goes, except for encoding the root, it would end up as '',
    which leads to ambiguities in the content field. Therefore, if we encounter
-   the root as a . in a BIND zone, we leave it as a ., and don't replace it by 
+   the root as a . in a BIND zone, we leave it as a ., and don't replace it by
    an empty string. Back in 1999 we made the wrong choice. */
-   
+
 static string stripDotContent(const string& content)
 {
   if(boost::ends_with(content, " .") || content==".")
@@ -73,7 +73,7 @@ static string sqlstr(const string &name)
 {
   if(g_mode == SQLITE)
     return "'"+boost::replace_all_copy(name, "'", "''")+"'";
-  
+
   string a;
 
   for(char i : name) {
@@ -94,8 +94,8 @@ static void startNewTransaction()
 {
   if(!::arg().mustDo("transactions"))
     return;
-   
-  if(g_intransaction) { 
+
+  if(g_intransaction) {
     if(g_mode==POSTGRES) {
       cout<<"COMMIT WORK;"<<endl;
     }
@@ -104,7 +104,7 @@ static void startNewTransaction()
     }
   }
   g_intransaction=true;
-  
+
   if(g_mode == MYSQL)
     cout<<"BEGIN;"<<endl;
   else
@@ -162,8 +162,8 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
     return; // NSECs do not go in the database
 
   if((qtype == "MX" || qtype == "SRV")) {
-    prio=pdns_stou(content);
-    
+    pdns::checked_stoi_into(prio, content);
+
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
       boost::erase_head(content, pos);
@@ -182,7 +182,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
 }
 
 
-/* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
+/* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN)
    1 further mode: --mysql
 */
 
@@ -198,7 +198,7 @@ try
 {
     reportAllTypes();
     std::ios_base::sync_with_stdio(false);
-  
+
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
@@ -229,7 +229,7 @@ try
       cerr<<"zone2sql "<<VERSION<<endl;
       exit(0);
     }
-  
+
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;
       cout<<::arg().helpstring()<<endl;
@@ -241,12 +241,12 @@ try
       cerr<<::arg().helpstring()<<endl;
       exit(1);
     }
-  
+
     bool filterDupSOA = ::arg().mustDo("filter-duplicate-soa");
 
     g_doJSONComments=::arg().mustDo("json-comments");
-      
-    if(::arg().mustDo("gmysql")) 
+
+    if(::arg().mustDo("gmysql"))
       g_mode=MYSQL;
     else if(::arg().mustDo("gpgsql"))
       g_mode=POSTGRES;
@@ -268,7 +268,7 @@ try
       BindParser BP;
       BP.setVerbose(::arg().mustDo("verbose"));
       BP.parse(namedfile.empty() ? "./named.conf" : namedfile);
-    
+
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
       for(auto & domain : domains) {
@@ -277,12 +277,12 @@ try
           domain.d_ino = st.st_ino;
         }
       }
-      
+
       sort(domains.begin(), domains.end()); // put stuff in inode order
 
       int numdomains=domains.size();
       int tick=numdomains/100;
-    
+
       for(const auto & domain : domains)
         {
           if(domain.type!="master" && domain.type!="slave") {
@@ -291,9 +291,9 @@ try
           }
           try {
             startNewTransaction();
-            
+
             emitDomain(domain.name, &(domain.masters));
-            
+
             ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
             zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
@@ -323,7 +323,7 @@ try
               cerr<<ae.reason<<endl;
           }
 
-          
+
           if(!tick || !((count++)%tick))
             cerr<<"\r"<<count*100/numdomains<<"% done ("<<domain.filename<<")\033\133\113";
         }
@@ -361,7 +361,7 @@ try
       num_domainsdone=1;
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";
-    
+
   if(::arg().mustDo("transactions") && g_intransaction) {
     if(g_mode != SQLITE)
       cout<<"COMMIT WORK;"<<endl;

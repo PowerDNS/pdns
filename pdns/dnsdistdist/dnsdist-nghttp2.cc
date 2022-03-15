@@ -753,7 +753,7 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
       try {
-        stream->second.d_responseCode = pdns_stou(std::string(reinterpret_cast<const char*>(value), valuelen));
+        pdns::checked_stoi_into(stream->second.d_responseCode, std::string(reinterpret_cast<const char*>(value), valuelen));
       }
       catch (...) {
         vinfolog("Error parsing the status header for stream ID %d", frame->hd.stream_id);

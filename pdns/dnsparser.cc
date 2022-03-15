@@ -41,7 +41,7 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
   }
 
   const string& relevant = (parts.size() > 2) ? parts.at(2) : "";
-  unsigned int total = pdns_stou(parts.at(1));
+  auto total = pdns::checked_stoi<unsigned int>(parts.at(1));
   if (relevant.size() % 2 || (relevant.size() / 2) != total) {
     throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
   }

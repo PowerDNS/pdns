@@ -809,7 +809,7 @@ static string setMinimumTTL(T begin, T end)
   if (end - begin != 1)
     return "Need to supply new minimum TTL number\n";
   try {
-    SyncRes::s_minimumTTL = pdns_stou(*begin);
+    pdns::checked_stoi_into(SyncRes::s_minimumTTL, *begin);
     return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
   }
   catch (const std::exception& e) {
@@ -823,7 +823,7 @@ static string setMinimumECSTTL(T begin, T end)
   if (end - begin != 1)
     return "Need to supply new ECS minimum TTL number\n";
   try {
-    SyncRes::s_minimumECSTTL = pdns_stou(*begin);
+    pdns::checked_stoi_into(SyncRes::s_minimumECSTTL, *begin);
     return "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n";
   }
   catch (const std::exception& e) {
@@ -837,7 +837,7 @@ static string setMaxCacheEntries(T begin, T end)
   if (end - begin != 1)
     return "Need to supply new cache size\n";
   try {
-    g_maxCacheEntries = pdns_stou(*begin);
+    g_maxCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
     return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
   }
   catch (const std::exception& e) {
@@ -851,7 +851,7 @@ static string setMaxPacketCacheEntries(T begin, T end)
   if (end - begin != 1)
     return "Need to supply new packet cache size\n";
   try {
-    g_maxPacketCacheEntries = pdns_stou(*begin);
+    g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
     return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
   }
   catch (const std::exception& e) {
@@ -1865,7 +1865,7 @@ static string setEventTracing(T begin, T end)
     return "No event trace enabled value specified\n";
   }
   try {
-    SyncRes::s_event_trace_enabled = pdns_stou(*begin);
+    pdns::checked_stoi_into(SyncRes::s_event_trace_enabled, *begin);
     return "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n";
   }
   catch (const std::exception& e) {

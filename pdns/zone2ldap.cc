@@ -294,7 +294,7 @@ int main( int argc, char* argv[] )
                 }
 
                 if ( !args["domainid"].empty() )
-                        g_domainid = pdns_stou( args["domainid"] );
+                        pdns::checked_stoi_into(g_domainid, args["domainid"]);
                 else
                         g_domainid = 1;
 

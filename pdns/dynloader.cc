@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  if(::arg()["config-name"]!="") 
+  if(::arg()["config-name"]!="")
     s_programname+="-"+::arg()["config-name"];
 
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
   socketname += "/" + s_programname + ".controlsocket";
   cleanSlashes(socketname);
-  
+
   try {
     string command=commands[0];
     shared_ptr<DynMessenger> D;
@@ -114,13 +114,13 @@ int main(int argc, char **argv)
     else {
       uint16_t port;
       try {
-        port = static_cast<uint16_t>(pdns_stou(::arg()["remote-port"]));
+        pdns::checked_stoi_into(port, ::arg()["remote-port"]);
       }
       catch(...) {
         cerr<<"Unable to convert '"<<::arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
         exit(99);
       }
-      
+
       D=shared_ptr<DynMessenger>(new DynMessenger(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]));
     }
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
         message+=" ";
       message+=*i;
     }
-    
+
     if(command=="show") {
       message="SHOW ";
       for(unsigned int n=1;n<commands.size();n++) {
@@ -151,19 +151,19 @@ int main(int argc, char **argv)
     else if(command=="version" || command=="VERSION") {
       message="VERSION";
     }
-    
-    
+
+
     if(D->send(message)<0) {
       cerr<<"Error sending command"<<endl;
       return 1;
     }
-    
+
     string resp=D->receive();
     if(resp.compare(0, 7, "Unknown") == 0) {
       cerr<<resp<<endl;
       return 1;
     }
-    
+
     cout<<resp<<endl;
   }
   catch(TimeoutException &ae) {
@@ -180,5 +180,3 @@ int main(int argc, char **argv)
   }
   return 0;
 }
-
-

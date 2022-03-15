@@ -70,7 +70,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
-  d_AddSuperMaster=getArg("supermaster-add"); 
+  d_AddSuperMaster=getArg("supermaster-add");
   d_RemoveAutoPrimaryQuery=getArg("autoprimary-remove");
   d_ListAutoPrimariesQuery=getArg("list-autoprimaries");
   d_InsertZoneQuery=getArg("insert-zone-query");
@@ -110,7 +110,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_GetLastInsertedKeyIdQuery = getArg("get-last-inserted-key-id-query");
   d_ListDomainKeysQuery = getArg("list-domain-keys-query");
 
-  d_GetAllDomainMetadataQuery = getArg("get-all-domain-metadata-query");  
+  d_GetAllDomainMetadataQuery = getArg("get-all-domain-metadata-query");
   d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
   d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
   d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
@@ -315,7 +315,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 
   ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 7);
 
-  di.id=pdns_stou(d_result[0][0]);
+  pdns::checked_stoi_into(di.id, d_result[0][0]);
   try {
     di.zone=DNSName(d_result[0][1]);
   } catch (...) {
@@ -329,8 +329,8 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   stringtok(masters, d_result[0][2], " ,\t");
   for(const auto& m : masters)
     di.masters.emplace_back(m, 53);
-  di.last_check=pdns_stou(d_result[0][3]);
-  di.notified_serial = pdns_stou(d_result[0][4]);
+  pdns::checked_stoi_into(di.last_check, d_result[0][3]);
+  pdns::checked_stoi_into(di.notified_serial, d_result[0][4]);
   di.backend=this;
 
   di.serial = 0;
@@ -389,7 +389,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
 
     try {
-      sd.id=pdns_stou(row[0]);
+      pdns::checked_stoi_into(sd.id, row[0]);
     } catch (const std::exception &e) {
       g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
       continue;
@@ -410,7 +410,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
 
     try {
-      sd.last_check=pdns_stou(row[3]);
+      pdns::checked_stoi_into(sd.last_check, row[3]);
     } catch (const std::exception &e) {
       g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
       continue;
@@ -473,11 +473,11 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
     stringtok( parts, d_result[n][3] );
 
     try {
-      uint32_t serial = parts.size() > 2 ? pdns_stou(parts[2]) : 0;
-      uint32_t notified_serial = pdns_stou( d_result[n][2] );
+      uint32_t serial = parts.size() > 2 ? pdns::checked_stoi<uint32_t>(parts[2]) : 0;
+      auto notified_serial = pdns::checked_stoi<uint32_t>(d_result[n][2]);
 
       if( serial != notified_serial ) {
-        di.id = pdns_stou( d_result[n][0] );
+        pdns::checked_stoi_into(di.id, d_result[n][0]);
         di.zone = DNSName( d_result[n][1] );
         di.serial = serial;
         di.notified_serial = notified_serial;
@@ -888,7 +888,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     d_getTSIGKeyQuery_stmt->
       bind("key_name", name)->
       execute();
-  
+
     SSqlStatement::row_t row;
 
     content->clear();
@@ -955,7 +955,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
       execute();
 
     SSqlStatement::row_t row;
-  
+
     while(d_getTSIGKeysQuery_stmt->hasNextRow()) {
       d_getTSIGKeysQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-keys-query", row, 3);
@@ -990,7 +990,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
     d_ListDomainKeysQuery_stmt->
       bind("domain", name)->
       execute();
-  
+
     SSqlStatement::row_t row;
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
@@ -999,15 +999,15 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
       //~ for(const auto& val: row) {
         //~ cerr<<"'"<<val<<"'"<<endl;
       //~ }
-      kd.id = pdns_stou(row[0]);
-      kd.flags = pdns_stou(row[1]);
+      pdns::checked_stoi_into(kd.id, row[0]);
+      pdns::checked_stoi_into(kd.flags, row[1]);
       kd.active = row[2] == "1";
       kd.published = row[3] == "1";
       kd.content = row[4];
       keys.push_back(kd);
     }
 
-    d_ListDomainKeysQuery_stmt->reset();    
+    d_ListDomainKeysQuery_stmt->reset();
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to list keys: "+e.txtReason());
@@ -1035,7 +1035,7 @@ bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
       execute();
 
     SSqlStatement::row_t row;
-  
+
     while(d_GetAllDomainMetadataQuery_stmt->hasNextRow()) {
       d_GetAllDomainMetadataQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-all-domain-metadata-query", row, 2);
@@ -1066,9 +1066,9 @@ bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind
       bind("domain", name)->
       bind("kind", kind)->
       execute();
-  
+
     SSqlStatement::row_t row;
-    
+
     while(d_GetDomainMetadataQuery_stmt->hasNextRow()) {
       d_GetDomainMetadataQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-domain-metadata-query", row, 1);
@@ -1111,7 +1111,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to set metadata kind '" + kind + "' for domain '" + name.toLogString() + "': "+e.txtReason());
   }
-  
+
   return true;
 }
 
@@ -1199,7 +1199,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
       bind("zone", zone)->
       bind("wildzone", wildzone)->
       bind("domain_id", domain_id)->
-      execute();      
+      execute();
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
@@ -1251,7 +1251,7 @@ bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
   try{
     reconnectIfNeeded();
 
-    d_AddSuperMaster_stmt -> 
+    d_AddSuperMaster_stmt ->
       bind("ip",primary.ip)->
       bind("nameserver",primary.nameserver)->
       bind("account",primary.account)->
@@ -1260,7 +1260,7 @@ bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
 
   }
   catch (SSqlException &e){
-    throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason()); 
+    throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason());
   }
   return true;
 
@@ -1453,7 +1453,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       d_getAllDomainsQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-all-domains-query", row, 8);
       DomainInfo di;
-      di.id = pdns_stou(row[0]);
+      pdns::checked_stoi_into(di.id, row[0]);
       try {
         di.zone = DNSName(row[1]);
       } catch (...) {
@@ -1470,7 +1470,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
         g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
         di.kind = DomainInfo::Native;
       }
-  
+
       if (!row[4].empty()) {
         vector<string> masters;
         stringtok(masters, row[4], " ,\t");
@@ -1495,8 +1495,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       }
 
       try {
-        di.notified_serial = pdns_stou(row[5]);
-        di.last_check = pdns_stou(row[6]);
+        pdns::checked_stoi_into(di.notified_serial, row[5]);
+        pdns::checked_stoi_into(di.last_check, row[6]);
       } catch(...) {
         continue;
       }
@@ -1568,7 +1568,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   for(const auto& rr: rrset) {
     feedRecord(rr, DNSName());
   }
-  
+
   return true;
 }
 
@@ -1579,7 +1579,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   if (r.qtype == QType::MX || r.qtype == QType::SRV) {
     string::size_type pos = content.find_first_not_of("0123456789");
     if (pos != string::npos) {
-      prio=pdns_stou(content.substr(0,pos));
+      pdns::checked_stoi_into(prio, content.substr(0,pos));
       boost::erase_head(content, pos);
     }
     boost::trim_left(content);
@@ -1614,7 +1614,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to feed record " + r.qname.toLogString() + "|" + r.qtype.toString() + ": "+e.txtReason());
   }
-  return true; // XXX FIXME this API should not return 'true' I think -ahu 
+  return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
 bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
@@ -1929,7 +1929,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   if (row[1].empty())
       r.ttl = defaultTTL;
   else
-      r.ttl=pdns_stou(row[1]);
+      pdns::checked_stoi_into(r.ttl, row[1]);
 
   if(!d_qname.empty())
     r.qname=d_qname;
@@ -1958,7 +1958,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.disabled = !row[5].empty() && row[5][0]=='1';
 
-  r.domain_id=pdns_stou(row[4]);
+  pdns::checked_stoi_into(r.domain_id, row[4]);
 
   if (row.size() > 8) {   // if column 8 exists, it holds an ordername
     if (!row.at(8).empty()) {
@@ -1975,14 +1975,14 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
 void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
 {
-  comment.domain_id = pdns_stou(row[0]);
+  pdns::checked_stoi_into(comment.domain_id, row[0]);
   comment.qname = DNSName(row[1]);
   comment.qtype = row[2];
-  comment.modified_at = pdns_stou(row[3]);
+  pdns::checked_stoi_into(comment.modified_at, row[3]);
   comment.account = std::move(row[4]);
   comment.content = std::move(row[5]);
 }
 
-SSqlStatement::~SSqlStatement() { 
-// make sure vtable won't break 
+SSqlStatement::~SSqlStatement() {
+// make sure vtable won't break
 }

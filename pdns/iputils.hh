@@ -498,7 +498,7 @@ public:
     d_network = makeComboAddress(split.first);
 
     if (!split.second.empty()) {
-      setBits(static_cast<uint8_t>(pdns_stou(split.second)));
+      setBits(pdns::checked_stoi<uint8_t>(split.second));
     }
     else if (d_network.sin4.sin_family == AF_INET) {
       setBits(32);
