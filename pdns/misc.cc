@@ -683,7 +683,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     return -1;
   string ourAddr(addr);
   bool portSet = false;
-  unsigned int port;
+  uint16_t port;
   if(addr[0]=='[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
     if(pos == string::npos)
