@@ -3481,8 +3481,8 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
     auto content = getRR<NSRecordContent>(ns);
     authSet.insert(content->getNS());
   }
-  // The glue IPs could also differ, but we're not checking that yet, we're only looking for child NS records not
-  // in the parent set
+  // The glue IPs could also differ, but we're not checking that yet, we're only looking for parent NS records not
+  // in the child set
   bool shouldSave = false;
   for (const auto& ns : existing) {
     auto content = getRR<NSRecordContent>(ns);
@@ -4739,12 +4739,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
       }
       else {
-        if (fallBack == nullptr) {
-          /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
+        if (fallBack != nullptr) {
+          if (auto it = fallBack->find(tns->first); it != fallBack->end()) {
+            remoteIPs = it->second;
+          }
+        }
+        if (remoteIPs.size() == 0) {
           remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
-        } else {
-          // should be safe, caller makes sure nameservers and fallback contain the same names
-          remoteIPs = fallBack->at(tns->first);
         }
 
         if(remoteIPs.empty()) {
