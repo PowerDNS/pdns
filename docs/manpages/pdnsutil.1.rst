@@ -71,6 +71,10 @@ export-zone-key *ZONE* *KEY-ID*
     Export to standard output full (private) key with key id *KEY-ID*
     within zone called *ZONE*. The format used is compatible with BIND
     and NSD/LDNS.
+export-zone-key-pem *ZONE* *KEY-ID*
+    Export to standard output full (private) key with key id *KEY-ID*
+    within zone called *ZONE* in the PEM file format. The format is
+    compatible with many non-DNS software products.
 generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     Generate a ZSK or KSK to stdout with specified algorithm and bits
     and print it on STDOUT. If *ALGORITHM* is not set, ECDSA256 is
@@ -83,6 +87,12 @@ import-zone-key *ZONE* *FILE* {**KSK**,\ **ZSK**}
     format used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK**
     specifies the flags this key should have on import. Prints the id of
     the added key.
+import-zone-key-pem *ZONE* *FILE* *ALGORITHM* {**KSK**,\**ZSK**}
+    Import from PEM *FILE* a full (private) key for the zone called
+    *ZONE* with a specified *ALGORITHM*. The format used is compatible
+    with many non-DNS software products. **KSK** or **ZSK** specifies
+    the flags this key should have on import. Prints the id of the added
+    key.
 publish-zone-key *ZONE* *KEY-ID*
     Publish the key with id *KEY-ID* within a zone called *ZONE*.
 remove-zone-key *ZONE* *KEY-ID*
