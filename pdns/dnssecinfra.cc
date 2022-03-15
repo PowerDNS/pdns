@@ -297,7 +297,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
 
   { // FIXME: this block copy/pasted from makeFromISCString
     DNSKEYRecordContent dkrc;
-    int algorithm = 0;
+    unsigned int algorithm = 0;
     string sline, key, value, raw;
     std::istringstream str(dckeCreate->convertToISC());
     map<string, string> stormap;
