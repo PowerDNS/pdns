@@ -818,7 +818,9 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
 
     forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530;[2001:DB8::1:3]:5300
 
-Forwarded queries have the 'recursion desired' bit set to 0, meaning that this setting is intended to forward queries to authoritative servers.
+Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning that this setting is intended to forward queries to authoritative servers.
+If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
+This allows e.g. a forward to a local authoritative server holding a copy of the root zone, delegations received from that server will work.
 
 **IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
 To prevent this, add a Negative Trust Anchor (NTA) for this zone in the `lua-config-file`_ with ``addNTA("your.zone", "A comment")``.
@@ -858,7 +860,9 @@ list. Both prefix characters can be used if desired, in any order.
 -------------------------
 -  'zonename=IP' pairs, comma separated
 
-Like regular `forward-zones`_, but forwarded queries have the 'recursion desired' bit set to 1, meaning that this setting is intended to forward queries to other recursive servers.
+Like regular `forward-zones`_, but forwarded queries have the ``recursion desired (RD)`` bit set to ``1``, meaning that this setting is intended to forward queries to other recursive servers.
+In contrast to regular forwarding, the rule that delegations of the forwarded subzones are respected is not active.
+This is because we rely on the forwarder to resolve the query fully.
 
 See `forward-zones`_ for additional options (such as supplying multiple recursive servers) and an important note about DNSSEC.
 
