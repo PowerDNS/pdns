@@ -3487,7 +3487,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
   for (const auto& ns : existing) {
     auto content = getRR<NSRecordContent>(ns);
     if (authSet.count(content->getNS()) == 0) {
-      LOG(d_prefix << domain << ": at least one child NS was not in the parent NS set, remembering parent NS set and cached IPs" << endl);
+      LOG(d_prefix << domain << ": at least one parent-side NS was not in the child-side NS set, remembering parent NS set and cached IPs" << endl);
       shouldSave = true;
       break;
     }
@@ -4743,7 +4743,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
           remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
         } else {
-          // should be save, caller makes sure nameservers and fallback contain the same names
+          // should be safe, caller makes sure nameservers and fallback contain the same names
           remoteIPs = fallBack->at(tns->first);
         }
 
