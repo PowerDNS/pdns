@@ -748,9 +748,6 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   }
 
   if(portSet) {
-    if(port > 65535)
-      return -1;
-
     ret->sin6_port = htons(port);
   }
 
