@@ -12,5 +12,6 @@ Guides and How Tos
   kskroll
   kskrollcdnskey
   zskroll
+  algoroll
   addingrecords
 

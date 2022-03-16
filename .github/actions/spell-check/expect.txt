@@ -31,6 +31,7 @@ Aki
 Alenichev
 alexa
 algo
+algoroll
 aliceblue
 allocs
 Altpeter
@@ -416,6 +417,7 @@ dnstcpbench
 dnstree
 dnsttl
 dnsupdate
+dnsviz
 dnswasher
 dnszone
 dnt
