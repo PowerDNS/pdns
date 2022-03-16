@@ -703,39 +703,45 @@ string stripDot(const string& dom)
 
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
 {
-  if (addr.empty())
+  if (addr.empty()) {
     return -1;
+  }
+
   string ourAddr(addr);
-  bool portSet = false;
-  uint16_t port;
+  std::optional<uint16_t> port = std::nullopt;
+
   if (addr[0] == '[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
-    if (pos == string::npos)
+    if (pos == string::npos) {
       return -1;
+    }
+
     ourAddr.assign(addr.c_str() + 1, pos - 1);
     if (pos + 1 != addr.size()) { // complete after ], no port specified
-      if (pos + 2 > addr.size() || addr[pos + 1] != ':')
+      if (pos + 2 > addr.size() || addr[pos + 1] != ':') {
         return -1;
+      }
+
       try {
-        pdns::checked_stoi_into(port, addr.substr(pos + 2));
-        portSet = true;
+        auto tmpPort = pdns::checked_stoi<uint16_t>(addr.substr(pos + 2));
+        port = std::make_optional(tmpPort);
       }
       catch (const std::out_of_range&) {
         return -1;
       }
     }
   }
+
   ret->sin6_scope_id = 0;
   ret->sin6_family = AF_INET6;
 
   if (inet_pton(AF_INET6, ourAddr.c_str(), (void*)&ret->sin6_addr) != 1) {
-    struct addrinfo* res;
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_family = AF_INET6;
+    struct addrinfo hints{};
+    std::memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_flags = AI_NUMERICHOST;
+    hints.ai_family = AF_INET6;
 
+    struct addrinfo* res = nullptr;
     // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
     if (getaddrinfo(ourAddr.c_str(), nullptr, &hints, &res) != 0) {
       return -1;
@@ -745,8 +751,8 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     freeaddrinfo(res);
   }
 
-  if (portSet) {
-    ret->sin6_port = htons(port);
+  if (port.has_value()) {
+    ret->sin6_port = htons(*port);
   }
 
   return 0;
