@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
@@ -459,4 +459,3 @@ CheckOptions:
   - key:             llvm-else-after-return.WarnOnUnfixable
     value:           'false'
 ...
-

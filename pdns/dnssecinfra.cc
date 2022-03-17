@@ -168,6 +168,13 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
   return dpk;
 }
 
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp, const uint8_t algorithm)
+{
+  auto maker = DNSCryptoKeyEngine::make(algorithm);
+  maker->createFromPEMFile(drc, filename, fp);
+  return maker;
+}
+
 std::string DNSCryptoKeyEngine::convertToISC() const
 {
   storvector_t storvector = this->convertToISCVector();
@@ -188,10 +195,11 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
   makers_t::const_iterator iter = makers.find(algo);
-  if (iter != makers.cend())
+  if (iter != makers.cend()) {
     return (iter->second)(algo);
+  }
   else {
-    throw runtime_error("Request to create key object for unknown algorithm number "+std::to_string(algo));
+    throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
   }
 }
 
@@ -366,25 +374,6 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(
   auto dpk = make(algorithm);
   dpk->fromPublicKeyString(content);
   return dpk;
-}
-
-
-std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-{
-
-  for (const makers_t::value_type& val : getMakers())
-  {
-    std::unique_ptr<DNSCryptoKeyEngine> ret=nullptr;
-    try {
-      ret = val.second(val.first);
-      ret->fromPEMString(drc, raw);
-      return ret;
-    }
-    catch(...)
-    {
-    }
-  }
-  return nullptr;
 }
 
 /**

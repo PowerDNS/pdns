@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,concurrency-*'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,concurrency-*,-modernize-use-trailing-return-type'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
@@ -161,4 +161,3 @@ CheckOptions:
   - key:             bugprone-not-null-terminated-result.WantToUseSafeFunctions
     value:           'true'
 ...
-

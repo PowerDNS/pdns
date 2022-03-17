@@ -36,7 +36,7 @@
 #include "misc.hh"
 #include <vector>
 #include <sstream>
-#include <errno.h>
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <sys/types.h>
@@ -196,6 +196,32 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct 
   while (pos < len);
 
   return len;
+}
+
+auto pdns::getMessageFromErrno(const int errnum) -> std::string
+{
+  const size_t errLen = 2048;
+  std::string errMsgData{};
+  errMsgData.resize(errLen);
+
+  const char* errMsg = nullptr;
+#ifdef _GNU_SOURCE
+  errMsg = strerror_r(errnum, errMsgData.data(), errMsgData.length());
+#else
+  // This can fail, and when it does, it sets errno. We ignore that and
+  // set our own error message instead.
+  int res = strerror_r(errnum, errMsgData.data(), errMsgData.length());
+  errMsg = errMsgData.c_str();
+  if (res != 0) {
+    errMsg = "Unknown (the exact error could not be retrieved)";
+  }
+#endif
+
+  // We make a copy here because `strerror_r()` might return a static
+  // immutable buffer for an error message. The copy shouldn't be
+  // critical though, we're on the bailout/error-handling path anyways.
+  std::string message{errMsg};
+  return message;
 }
 
 string nowTime()
@@ -675,43 +701,47 @@ string stripDot(const string& dom)
   return dom.substr(0,dom.size()-1);
 }
 
-
-
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
 {
-  if(addr.empty())
+  if (addr.empty()) {
     return -1;
+  }
+
   string ourAddr(addr);
-  bool portSet = false;
-  uint16_t port;
-  if(addr[0]=='[') { // [::]:53 style address
+  std::optional<uint16_t> port = std::nullopt;
+
+  if (addr[0] == '[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
-    if(pos == string::npos)
+    if (pos == string::npos) {
       return -1;
-    ourAddr.assign(addr.c_str() + 1, pos-1);
+    }
+
+    ourAddr.assign(addr.c_str() + 1, pos - 1);
     if (pos + 1 != addr.size()) { // complete after ], no port specified
-      if (pos + 2 > addr.size() || addr[pos+1]!=':')
+      if (pos + 2 > addr.size() || addr[pos + 1] != ':') {
         return -1;
-      try {
-        pdns::checked_stoi_into(port, addr.substr(pos + 2));
-        portSet = true;
       }
-      catch(const std::out_of_range&) {
+
+      try {
+        auto tmpPort = pdns::checked_stoi<uint16_t>(addr.substr(pos + 2));
+        port = std::make_optional(tmpPort);
+      }
+      catch (const std::out_of_range&) {
         return -1;
       }
     }
   }
-  ret->sin6_scope_id=0;
-  ret->sin6_family=AF_INET6;
 
-  if(inet_pton(AF_INET6, ourAddr.c_str(), (void*)&ret->sin6_addr) != 1) {
-    struct addrinfo* res;
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
+  ret->sin6_scope_id = 0;
+  ret->sin6_family = AF_INET6;
 
-    hints.ai_family = AF_INET6;
+  if (inet_pton(AF_INET6, ourAddr.c_str(), (void*)&ret->sin6_addr) != 1) {
+    struct addrinfo hints{};
+    std::memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_flags = AI_NUMERICHOST;
+    hints.ai_family = AF_INET6;
 
+    struct addrinfo* res = nullptr;
     // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
     if (getaddrinfo(ourAddr.c_str(), nullptr, &hints, &res) != 0) {
       return -1;
@@ -721,11 +751,8 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     freeaddrinfo(res);
   }
 
-  if(portSet) {
-    if(port > 65535)
-      return -1;
-
-    ret->sin6_port = htons(port);
+  if (port.has_value()) {
+    ret->sin6_port = htons(*port);
   }
 
   return 0;

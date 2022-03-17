@@ -71,6 +71,10 @@ export-zone-key *ZONE* *KEY-ID*
     Export to standard output full (private) key with key id *KEY-ID*
     within zone called *ZONE*. The format used is compatible with BIND
     and NSD/LDNS.
+export-zone-key-pem *ZONE* *KEY-ID*
+    Export to standard output full (private) key with key id *KEY-ID*
+    within zone called *ZONE* in the PEM file format. The format is
+    compatible with many non-DNS software products.
 generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     Generate a ZSK or KSK to stdout with specified algorithm and bits
     and print it on STDOUT. If *ALGORITHM* is not set, ECDSA256 is
@@ -79,10 +83,16 @@ generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     *KEYBITS* value: For ECDSA256 and ED25519, it is 256; for ECDSA384,
     it is 384; and for ED448, it is 456.
 import-zone-key *ZONE* *FILE* {**KSK**,\ **ZSK**}
-    Import from *FILE* a full (private) key for zone called *ZONE*. The
+    Import from *FILE* a full (private) key for the zone called *ZONE*. The
     format used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK**
     specifies the flags this key should have on import. Prints the id of
     the added key.
+import-zone-key-pem *ZONE* *FILE* *ALGORITHM* {**KSK**,\**ZSK**}
+    Import from PEM *FILE* a full (private) key for the zone called
+    *ZONE* with a specified *ALGORITHM*. The format used is compatible
+    with many non-DNS software products. **KSK** or **ZSK** specifies
+    the flags this key should have on import. Prints the id of the added
+    key.
 publish-zone-key *ZONE* *KEY-ID*
     Publish the key with id *KEY-ID* within a zone called *ZONE*.
 remove-zone-key *ZONE* *KEY-ID*
@@ -160,8 +170,8 @@ ZONE MANIPULATION COMMANDS
 --------------------------
 
 add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
-    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
-    and optional *TTL*. If *TTL* is not set, default will be used. 
+    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
+    and optional *TTL*. If *TTL* is not set, default will be used.
 add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
     Add a autoprimary entry into the backend. This enables receiving zone updates from other servers.
 remove-autoprimary *IP* *NAMESERVER*
@@ -253,9 +263,9 @@ test-schema *ZONE*
     Test database schema, this creates the zone *ZONE*
 unset-presigned *ZONE*
     Disables presigned operation for *ZONE*.
-raw-lua-from-content *TYPE* *CONTENT*  
+raw-lua-from-content *TYPE* *CONTENT*
     Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
-zonemd-verify-file *ZONE* *FILE*  
+zonemd-verify-file *ZONE* *FILE*
     Validate ZONEMD for *ZONE* read from *FILE*.
 
 DEBUGGING TOOLS
