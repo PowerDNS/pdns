@@ -30,7 +30,7 @@ struct DOHServerConfig;
 class DOHResponseMapEntry
 {
 public:
-  DOHResponseMapEntry(const std::string& regex, uint16_t status, const PacketBuffer& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const PacketBuffer& content, const boost::optional<std::unordered_map<std::string, std::string>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
   {
     if (status >= 400 && !d_content.empty() && d_content.at(d_content.size() -1) != 0) {
       // we need to make sure it's null-terminated
@@ -53,14 +53,14 @@ public:
     return d_content;
   }
 
-  const boost::optional<std::vector<std::pair<std::string, std::string>>>& getHeaders() const
+  const boost::optional<std::unordered_map<std::string, std::string>>& getHeaders() const
   {
     return d_customHeaders;
   }
 
 private:
   Regex d_regex;
-  boost::optional<std::vector<std::pair<std::string, std::string>>> d_customHeaders;
+  boost::optional<std::unordered_map<std::string, std::string>> d_customHeaders;
   PacketBuffer d_content;
   uint16_t d_status;
 };
@@ -76,7 +76,7 @@ struct DOHFrontend
   TLSConfig d_tlsConfig;
   TLSErrorCounters d_tlsCounters;
   std::string d_serverTokens{"h2o/dnsdist"};
-  std::vector<std::pair<std::string, std::string>> d_customResponseHeaders;
+  std::unordered_map<std::string, std::string> d_customResponseHeaders;
   ComboAddress d_local;
 
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
@@ -224,7 +224,7 @@ struct DOHUnit
   std::string scheme;
   std::string host;
   std::string contentType;
-  std::vector<std::pair<std::string, std::string>> headers;
+  std::unordered_map<std::string, std::string> headers;
   PacketBuffer query;
   PacketBuffer response;
   std::shared_ptr<DownstreamState> downstream{nullptr};

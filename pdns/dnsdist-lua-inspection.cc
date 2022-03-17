@@ -29,7 +29,7 @@
 #include "statnode.hh"
 
 #ifndef DISABLE_TOP_N_BINDINGS
-static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGenResponses(uint64_t top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
+static LuaArray<std::vector<boost::variant<string,double>>> getGenResponses(uint64_t top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
 {
   setLuaNoSideEffect();
   map<DNSName, unsigned int> counts;
@@ -62,7 +62,7 @@ static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGen
   //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
   vector<pair<unsigned int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
-  for(const auto& c : counts)
+  for (const auto& c : counts)
     rcounts.emplace_back(c.second, c.first.makeLowerCase());
 
   sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a,
@@ -70,15 +70,17 @@ static std::vector<std::pair<int, vector<boost::variant<string,double>>>> getGen
          return b.first < a.first;
        });
 
-  std::vector<std::pair<int, vector<boost::variant<string,double>>>> ret;
+  LuaArray<vector<boost::variant<string,double>>> ret;
   ret.reserve(std::min(rcounts.size(), static_cast<size_t>(top + 1U)));
   uint64_t count = 1;
   unsigned int rest = 0;
-  for(const auto& rc : rcounts) {
-    if(count==top+1)
+  for (const auto& rc : rcounts) {
+    if (count == top+1) {
       rest+=rc.first;
-    else
+    }
+    else {
       ret.push_back({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+    }
   }
 
   if (total > 0) {
@@ -140,10 +142,10 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
       visitor(*node_, self, children);},  node);
 }
 
-static vector<pair<int, std::vector<std::pair<string,string> > > > getRespRing(boost::optional<int> rcode)
+static LuaArray<LuaAssociativeTable<std::string>> getRespRing(boost::optional<int> rcode)
 {
-  typedef std::vector<std::pair<string,string>> entry_t;
-  vector<pair<int, entry_t > > ret;
+  typedef LuaAssociativeTable<std::string> entry_t;
+  LuaArray<entry_t> ret;
 
   for (const auto& shard : g_rings.d_shards) {
     auto rl = shard->respRing.lock();
@@ -154,8 +156,8 @@ static vector<pair<int, std::vector<std::pair<string,string> > > > getRespRing(b
         continue;
       }
       entry_t e;
-      e.push_back({ "qname", c.name.toString() });
-      e.push_back({ "rcode", std::to_string(c.dh.rcode) });
+      e["qname"] = c.name.toString();
+      e["rcode"] = std::to_string(c.dh.rcode);
       ret.emplace_back(count, std::move(e));
       count++;
     }
@@ -396,7 +398,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     });
 
-  luaCtx.writeFunction("grepq", [](boost::variant<string, vector<pair<int,string> > > inp, boost::optional<unsigned int> limit) {
+  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit) {
       setLuaNoSideEffect();
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
@@ -407,7 +409,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       if(str)
         vec.push_back(*str);
       else {
-        auto v = boost::get<vector<pair<int, string> > >(inp);
+        auto v = boost::get<LuaArray<std::string>>(inp);
         for(const auto& a: v)
           vec.push_back(a.second);
       }
@@ -825,9 +827,9 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->setMasks(v4, v6, port);
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
-      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, LuaArray<std::string>, NetmaskGroup>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, LuaArray<std::string>, NetmaskGroup> ranges) {
+      if (ranges.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&ranges)) {
           group->excludeRange(Netmask(range.second));
         }
       }
@@ -838,9 +840,9 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
-      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, LuaArray<std::string>, NetmaskGroup>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, LuaArray<std::string>, NetmaskGroup> ranges) {
+      if (ranges.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&ranges)) {
           group->includeRange(Netmask(range.second));
         }
       }
@@ -851,9 +853,9 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->includeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> domains) {
-      if (domains.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&domains)) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(LuaTypeOrArrayOf<std::string>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, LuaTypeOrArrayOf<std::string> domains) {
+      if (domains.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&domains)) {
           group->excludeDomain(DNSName(range.second));
         }
       }

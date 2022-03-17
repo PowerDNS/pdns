@@ -129,13 +129,17 @@ private:
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };
 
-typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
+template <class T> using LuaArray = std::vector<std::pair<int, T>>;
+template <class T> using LuaAssociativeTable = std::unordered_map<std::string, T>;
+template <class T> using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
+
+using luadnsrule_t = boost::variant<string, LuaArray<std::string>, std::shared_ptr<DNSRule>, DNSName, LuaArray<DNSName>>;
+using luaruleparams_t = LuaAssociativeTable<std::string>;
+using nmts_t = NetmaskTree<DynBlock, AddressAndPortRange>;
+
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
-typedef std::unordered_map<std::string, std::string> luaruleparams_t;
 void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
 void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max());
-
-typedef NetmaskTree<DynBlock, AddressAndPortRange> nmts_t;
 
 vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
 void setupLuaActions(LuaContext& luaCtx);

@@ -261,33 +261,33 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
 #ifndef DISABLE_SUFFIX_MATCH_BINDINGS
   /* SuffixMatchNode */
-  luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
+  luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
           auto n = boost::get<DNSName>(name);
           smn.add(n);
           return;
       }
-      if (name.type() == typeid(string)) {
-          auto n = boost::get<string>(name);
+      if (name.type() == typeid(std::string)) {
+          auto n = boost::get<std::string>(name);
           smn.add(n);
           return;
       }
-      if (name.type() == typeid(vector<pair<int, DNSName>>)) {
-          auto names = boost::get<vector<pair<int, DNSName>>>(name);
+      if (name.type() == typeid(LuaArray<DNSName>)) {
+          auto names = boost::get<LuaArray<DNSName>>(name);
           for (const auto& n : names) {
             smn.add(n.second);
           }
           return;
       }
-      if (name.type() == typeid(vector<pair<int, string>>)) {
-          auto names = boost::get<vector<pair<int, string>>>(name);
+      if (name.type() == typeid(LuaArray<std::string>)) {
+          auto names = boost::get<LuaArray<string>>(name);
           for (const auto& n : names) {
             smn.add(n.second);
           }
           return;
       }
   });
-  luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("remove", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
+  luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("remove", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
           auto n = boost::get<DNSName>(name);
           smn.remove(n);
@@ -299,15 +299,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
           smn.remove(d);
           return;
       }
-      if (name.type() == typeid(vector<pair<int, DNSName>>)) {
-          auto names = boost::get<vector<pair<int, DNSName>>>(name);
+      if (name.type() == typeid(LuaArray<DNSName>)) {
+          auto names = boost::get<LuaArray<DNSName>>(name);
           for (const auto& n : names) {
             smn.remove(n.second);
           }
           return;
       }
-      if (name.type() == typeid(vector<pair<int, string>>)) {
-          auto names = boost::get<vector<pair<int, string>>>(name);
+      if (name.type() == typeid(LuaArray<std::string>)) {
+          auto names = boost::get<LuaArray<std::string>>(name);
           for (const auto& n : names) {
             DNSName d(n.second);
             smn.remove(d);
@@ -424,7 +424,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   /* BPF Filter */
 #ifdef HAVE_EBPF
-  using bpfFilterMapParams = boost::variant<uint32_t, std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>;
+  using bpfFilterMapParams = boost::variant<uint32_t, LuaAssociativeTable<boost::variant<uint32_t, std::string>>>;
   luaCtx.writeFunction("newBPFFilter", [client](bpfFilterMapParams v4Params, bpfFilterMapParams v6Params, bpfFilterMapParams qnameParams, boost::optional<bool> external) {
       if (client) {
         return std::shared_ptr<BPFFilter>(nullptr);
@@ -437,8 +437,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         if (params.type() == typeid(uint32_t)) {
           config.d_maxItems = boost::get<uint32_t>(params);
         }
-        else if (params.type() == typeid(std::unordered_map<std::string, boost::variant<uint32_t, std::string>>)) {
-          auto map = boost::get<std::unordered_map<std::string, boost::variant<uint32_t, std::string>>>(params);
+        else if (params.type() == typeid(LuaAssociativeTable<boost::variant<uint32_t, std::string>>)) {
+          auto map = boost::get<LuaAssociativeTable<boost::variant<uint32_t, std::string>>>(params);
           if (map.count("maxItems")) {
             config.d_maxItems = boost::get<uint32_t>(map.at("maxItems"));
           }
@@ -578,13 +578,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         }
     });
 
-    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(LuaTypeOrArrayOf<std::string>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, LuaTypeOrArrayOf<std::string> ranges) {
       if (!dbpf) {
         return;
       }
 
-      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+      if (ranges.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&ranges)) {
           dbpf->excludeRange(Netmask(range.second));
         }
       }
@@ -593,13 +593,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
     });
 
-    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+    luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(LuaTypeOrArrayOf<std::string>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, LuaTypeOrArrayOf<std::string> ranges) {
       if (!dbpf) {
         return;
       }
 
-      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+      if (ranges.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&ranges)) {
           dbpf->includeRange(Netmask(range.second));
         }
       }
@@ -621,13 +621,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     return values;
   });
 
-  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint64_t status, const std::string& content, boost::optional<std::map<std::string, std::string>> customHeaders) {
+  luaCtx.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint64_t status, const std::string& content, boost::optional<LuaAssociativeTable<std::string>> customHeaders) {
     checkParameterBound("newDOHResponseMapEntry", status, std::numeric_limits<uint16_t>::max());
-    boost::optional<std::vector<std::pair<std::string, std::string>>> headers{boost::none};
+    boost::optional<LuaAssociativeTable<std::string>> headers{boost::none};
     if (customHeaders) {
-      headers = std::vector<std::pair<std::string, std::string>>();
+      headers = LuaAssociativeTable<std::string>();
       for (const auto& header : *customHeaders) {
-        headers->push_back({ boost::to_lower_copy(header.first), header.second });
+        (*headers)[boost::to_lower_copy(header.first)] = header.second;
       }
     }
     return std::make_shared<DOHResponseMapEntry>(regex, status, PacketBuffer(content.begin(), content.end()), headers);
@@ -647,7 +647,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   });
 
   luaCtx.writeFunction("getListOfNetworkInterfaces", []() {
-    std::vector<std::pair<int, std::string>> result;
+    LuaArray<std::string> result;
     auto itfs = getListOfNetworkInterfaces();
     int counter = 1;
     for (const auto& itf : itfs) {
@@ -657,7 +657,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   });
 
   luaCtx.writeFunction("getListOfAddressesOfNetworkInterface", [](const std::string& itf) {
-    std::vector<std::pair<int, std::string>> result;
+    LuaArray<std::string> result;
     auto addrs = getListOfAddressesOfNetworkInterface(itf);
     int counter = 1;
     for (const auto& addr : addrs) {

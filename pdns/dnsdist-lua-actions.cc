@@ -377,7 +377,7 @@ private:
 class SpoofSVCAction : public DNSAction
 {
 public:
-  SpoofSVCAction(const std::vector<std::pair<int, SVCRecordParameters>>& parameters)
+  SpoofSVCAction(const LuaArray<SVCRecordParameters>& parameters)
   {
     d_payloads.reserve(parameters.size());
 
@@ -2171,12 +2171,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a, stopProcessing.get_value_or(true)));
     });
 
-  luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp)) {
         addrs.push_back(ComboAddress(*s));
       } else {
-        const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
+        const auto& v = boost::get<LuaArray<std::string>>(inp);
         for(const auto& a: v) {
           addrs.push_back(ComboAddress(a.second));
         }
@@ -2188,7 +2188,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofSVCAction", [](const std::vector<std::pair<int, SVCRecordParameters>>& parameters, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofSVCAction", [](const LuaArray<SVCRecordParameters>& parameters, boost::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new SpoofSVCAction(parameters));
       auto sa = std::dynamic_pointer_cast<SpoofSVCAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
@@ -2202,12 +2202,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofRawAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofRawAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
       vector<string> raws;
       if(auto s = boost::get<std::string>(&inp)) {
         raws.push_back(*s);
       } else {
-        const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
+        const auto& v = boost::get<LuaArray<std::string>>(inp);
         for(const auto& raw: v) {
           raws.push_back(raw.second);
         }
@@ -2271,12 +2271,12 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
     });
 
-  luaCtx.writeFunction("ClearRecordTypesResponseAction", [](boost::variant<int, vector<pair<int, int>>> types) {
+  luaCtx.writeFunction("ClearRecordTypesResponseAction", [](LuaTypeOrArrayOf<int> types) {
       std::set<QType> qtypes{};
       if (types.type() == typeid(int)) {
         qtypes.insert(boost::get<int>(types));
-      } else if (types.type() == typeid(vector<pair<int, int>>)) {
-        const auto& v = boost::get<vector<pair<int, int>>>(types);
+      } else if (types.type() == typeid(LuaArray<int>)) {
+        const auto& v = boost::get<LuaArray<int>>(types);
         for (const auto& tpair: v) {
           qtypes.insert(tpair.second);
         }
@@ -2338,7 +2338,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
 #ifndef DISABLE_PROTOBUF
-  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
+  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<LuaAssociativeTable<std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
         RemoteLoggerInterface& rl = *logger.get();
@@ -2362,7 +2362,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey));
     });
 
-  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
+  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars) {
       if (logger) {
         // avoids potentially-evaluated-expression warning with clang.
         RemoteLoggerInterface& rl = *logger.get();

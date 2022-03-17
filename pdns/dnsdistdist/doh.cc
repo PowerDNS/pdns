@@ -351,7 +351,7 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
 }
 
 /* Always called from the main DoH thread */
-static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const PacketBuffer& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const PacketBuffer& response, const std::unordered_map<std::string, std::string>& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
   constexpr int overwrite_if_exists = 1;
   constexpr int maybe_token = 1;
@@ -825,8 +825,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     du->query_at = req->query_at;
     du->headers.reserve(req->headers.size);
     for (size_t i = 0; i < req->headers.size; ++i) {
-      du->headers.emplace_back(std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
-                               std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len));
+      du->headers[std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len)] = std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
     }
 
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME

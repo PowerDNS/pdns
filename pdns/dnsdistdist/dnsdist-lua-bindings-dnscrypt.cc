@@ -51,13 +51,13 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
 
       ctx->addNewCertificate(newCert, newKey, active ? *active : true);
     });
-    luaCtx.registerFunction<std::map<int, std::shared_ptr<DNSCryptCertificatePair>>(std::shared_ptr<DNSCryptContext>::*)()>("getCertificatePairs", [](std::shared_ptr<DNSCryptContext> ctx) {
-      std::map<int, std::shared_ptr<DNSCryptCertificatePair>> result;
+    luaCtx.registerFunction<LuaArray<std::shared_ptr<DNSCryptCertificatePair>>(std::shared_ptr<DNSCryptContext>::*)()>("getCertificatePairs", [](std::shared_ptr<DNSCryptContext> ctx) {
+      LuaArray<std::shared_ptr<DNSCryptCertificatePair>> result;
 
       if (ctx != nullptr) {
         size_t idx = 1;
         for (auto pair : ctx->getCertificates()) {
-          result[idx++] = pair;
+          result.push_back({idx++, pair});
         }
       }
 
