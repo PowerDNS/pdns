@@ -41,15 +41,15 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
   if (var.type() == typeid(string))
     add(*boost::get<string>(&var));
 
-  else if (var.type() == typeid(vector<pair<int, string>>))
-    for(const auto& a : *boost::get<vector<pair<int, string>>>(&var))
+  else if (var.type() == typeid(LuaArray<std::string>))
+    for(const auto& a : *boost::get<LuaArray<std::string>>(&var))
       add(a.second);
 
   else if (var.type() == typeid(DNSName))
     smn.add(*boost::get<DNSName>(&var));
 
-  else if (var.type() == typeid(vector<pair<int, DNSName>>))
-    for(const auto& a : *boost::get<vector<pair<int, DNSName>>>(&var))
+  else if (var.type() == typeid(LuaArray<DNSName>))
+    for(const auto& a : *boost::get<LuaArray<DNSName>>(&var))
       smn.add(a.second);
 
   if(nmg.empty())
@@ -86,7 +86,7 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
   creationOrder = s_creationOrder++;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > ruleparams_t;
+typedef LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int> > > ruleparams_t;
 
 template<typename T>
 static std::string rulesToString(const std::vector<T>& rules, boost::optional<ruleparams_t> vars)
@@ -307,7 +307,7 @@ void setupLuaRules(LuaContext& luaCtx)
         });
     });
 
-  luaCtx.writeFunction("setRules", [](const std::vector<std::pair<int, std::shared_ptr<DNSDistRuleAction>>>& newruleactions) {
+  luaCtx.writeFunction("setRules", [](const LuaArray<std::shared_ptr<DNSDistRuleAction>>& newruleactions) {
       setLuaSideEffect();
       g_ruleactions.modify([newruleactions](decltype(g_ruleactions)::value_type& gruleactions) {
           gruleactions.clear();
@@ -491,11 +491,11 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new OpcodeRule(code));
     });
 
-  luaCtx.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+  luaCtx.writeFunction("AndRule", [](LuaArray<std::shared_ptr<DNSRule>> a) {
       return std::shared_ptr<DNSRule>(new AndRule(a));
     });
 
-  luaCtx.writeFunction("OrRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+  luaCtx.writeFunction("OrRule", [](LuaArray<std::shared_ptr<DNSRule>>a) {
       return std::shared_ptr<DNSRule>(new OrRule(a));
     });
 

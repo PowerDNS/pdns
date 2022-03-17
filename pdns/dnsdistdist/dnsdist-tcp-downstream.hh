@@ -295,7 +295,7 @@ private:
   };
 
   PacketBuffer d_responseBuffer;
-  std::deque<PendingRequest> d_pendingQueries;
+  std::list<PendingRequest> d_pendingQueries;
   std::unordered_map<uint16_t, PendingRequest> d_pendingResponses;
   std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
   PendingRequest d_currentQuery;

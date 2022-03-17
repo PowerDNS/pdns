@@ -100,7 +100,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int, int>>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<std::string, std::string>>>> localbind_t;
+using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>>>;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections)
 {
@@ -124,7 +124,7 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
       interface = boost::get<std::string>((*vars)["interface"]);
     }
     if (vars->count("cpus")) {
-      for (const auto& cpu : boost::get<std::vector<std::pair<int, int>>>((*vars)["cpus"])) {
+      for (const auto& cpu : boost::get<LuaArray<int>>((*vars)["cpus"])) {
         cpus.insert(cpu.second);
       }
     }
@@ -132,7 +132,7 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
 }
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
-static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)
+static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles)
 {
   if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
     auto certFile = boost::get<std::string>(certFiles);
@@ -145,16 +145,16 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TL
     pairs.clear();
     pairs.emplace_back(*cert);
   }
-  else if (certFiles.type() == typeid(std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>)) {
-    auto certs = boost::get<std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>>(certFiles);
+  else if (certFiles.type() == typeid(LuaArray<std::shared_ptr<TLSCertKeyPair>>)) {
+    auto certs = boost::get<LuaArray<std::shared_ptr<TLSCertKeyPair>>>(certFiles);
     pairs.clear();
     for (const auto& cert : certs) {
       pairs.emplace_back(*(cert.second));
     }
   }
-  else if (certFiles.type() == typeid(std::vector<std::pair<int, std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-    auto certFilesVect = boost::get<std::vector<std::pair<int, std::string>>>(certFiles);
-    auto keyFilesVect = boost::get<std::vector<std::pair<int, std::string>>>(keyFiles);
+  else if (certFiles.type() == typeid(LuaArray<std::string>) && keyFiles.type() == typeid(LuaArray<std::string>)) {
+    auto certFilesVect = boost::get<LuaArray<std::string>>(certFiles);
+    auto keyFilesVect = boost::get<LuaArray<std::string>>(keyFiles);
     if (certFilesVect.size() == keyFilesVect.size()) {
       pairs.clear();
       for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
@@ -226,7 +226,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   }
 
   if (vars->count("ocspResponses")) {
-    auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+    auto files = boost::get<LuaArray<std::string>>((*vars)["ocspResponses"]);
     for (const auto& file : files) {
       config.d_ocspFiles.push_back(file.second);
     }
@@ -268,10 +268,10 @@ static void LuaThread(const std::string code)
   LuaContext l;
   // submitToMainThread is camelcased, threadmessage is not.
   // This follows our tradition of hooks we call being lowercased but functions the user can call being camelcased.
-  l.writeFunction("submitToMainThread", [](std::string cmd, std::unordered_map<std::string, std::string> data) {
+  l.writeFunction("submitToMainThread", [](std::string cmd, LuaAssociativeTable<std::string> data) {
     auto lua = g_lua.lock();
     // maybe offer more than `void`
-    auto func = lua->readVariable<boost::optional<std::function<void(std::string cmd, std::unordered_map<std::string, std::string> data)>>>("threadmessage");
+    auto func = lua->readVariable<boost::optional<std::function<void(std::string cmd, LuaAssociativeTable<std::string> data)>>>("threadmessage");
     if (func) {
       func.get()(cmd, data);
     }
@@ -299,7 +299,7 @@ static void LuaThread(const std::string code)
 
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string>>, DownstreamState::checkfunc_t>> newserver_t;
+  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, DownstreamState::checkfunc_t>> newserver_t;
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !g_configurationDone;
   });
@@ -514,7 +514,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("cpus")) {
-                           for (const auto& cpu : boost::get<vector<pair<int, string>>>(vars["cpus"])) {
+                           for (const auto& cpu : boost::get<LuaArray<std::string>>(vars["cpus"])) {
                              config.d_cpus.insert(std::stoi(cpu.second));
                            }
                          }
@@ -603,7 +603,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              config.pools.insert(*pool);
                            }
                            else {
-                             auto pools = boost::get<vector<pair<int, string>>>(vars["pool"]);
+                             auto pools = boost::get<LuaArray<std::string>>(vars["pool"]);
                              for (auto& p : pools) {
                                config.pools.insert(p.second);
                              }
@@ -824,14 +824,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setACL", [](boost::variant<string, vector<pair<int, string>>> inp) {
+  luaCtx.writeFunction("setACL", [](LuaTypeOrArrayOf<std::string> inp) {
     setLuaSideEffect();
     NetmaskGroup nmg;
     if (auto str = boost::get<string>(&inp)) {
       nmg.addMask(*str);
     }
     else
-      for (const auto& p : boost::get<vector<pair<int, string>>>(inp)) {
+      for (const auto& p : boost::get<LuaArray<std::string>>(inp)) {
         nmg.addMask(p.second);
       }
     g_ACL.setState(nmg);
@@ -888,7 +888,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     _exit(0);
   });
 
-  typedef std::unordered_map<std::string, boost::variant<bool, std::string>> showserversopts_t;
+  typedef LuaAssociativeTable<boost::variant<bool, std::string>> showserversopts_t;
 
   luaCtx.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
     setLuaNoSideEffect();
@@ -955,7 +955,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getServers", []() {
     setLuaNoSideEffect();
-    vector<pair<int, std::shared_ptr<DownstreamState>>> ret;
+    LuaArray<std::shared_ptr<DownstreamState>> ret;
     int count = 1;
     for (const auto& s : g_dstates.getCopy()) {
       ret.push_back(make_pair(count++, s));
@@ -1038,7 +1038,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  typedef std::unordered_map<std::string, boost::variant<bool, std::string, std::unordered_map<std::string, std::string>>> webserveropts_t;
+  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaAssociativeTable<std::string>>> webserveropts_t;
 
   luaCtx.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
     setLuaSideEffect();
@@ -1152,7 +1152,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_consoleACL.modify([netmask](NetmaskGroup& nmg) { nmg.addMask(netmask); });
   });
 
-  luaCtx.writeFunction("setConsoleACL", [](boost::variant<string, vector<pair<int, string>>> inp) {
+  luaCtx.writeFunction("setConsoleACL", [](LuaTypeOrArrayOf<std::string> inp) {
     setLuaSideEffect();
 
 #ifndef HAVE_LIBSODIUM
@@ -1164,7 +1164,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       nmg.addMask(*str);
     }
     else
-      for (const auto& p : boost::get<vector<pair<int, string>>>(inp)) {
+      for (const auto& p : boost::get<LuaArray<std::string>>(inp)) {
         nmg.addMask(p.second);
       }
     g_consoleACL.setState(nmg);
@@ -1495,7 +1495,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        });
 
   luaCtx.writeFunction("addDynBlockSMT",
-                       [](const vector<pair<int, string>>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                       [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                          if (names.empty()) {
                            return;
                          }
@@ -1552,7 +1552,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifdef HAVE_DNSCRYPT
-  luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, LuaTypeOrArrayOf<std::string> certFiles, LuaTypeOrArrayOf<std::string> keyFiles, boost::optional<localbind_t> vars) {
     if (g_configurationDone) {
       g_outputBuffer = "addDNSCryptBind cannot be used at runtime!\n";
       return;
@@ -1573,9 +1573,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto keyFile = boost::get<std::string>(keyFiles);
       certKeys.push_back({certFile, keyFile});
     }
-    else if (certFiles.type() == typeid(std::vector<std::pair<int, std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-      auto certFilesVect = boost::get<std::vector<std::pair<int, std::string>>>(certFiles);
-      auto keyFilesVect = boost::get<std::vector<std::pair<int, std::string>>>(keyFiles);
+    else if (certFiles.type() == typeid(LuaArray<std::string>) && keyFiles.type() == typeid(LuaArray<std::string>)) {
+      auto certFilesVect = boost::get<LuaArray<std::string>>(certFiles);
+      auto keyFilesVect = boost::get<LuaArray<std::string>>(keyFiles);
       if (certFilesVect.size() == keyFilesVect.size()) {
         for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
           certKeys.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
@@ -1822,7 +1822,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #endif /* HAVE_EBPF */
 
-  luaCtx.writeFunction<std::unordered_map<string, uint64_t>()>("getStatisticsCounters", []() {
+  luaCtx.writeFunction<LuaAssociativeTable<uint64_t>()>("getStatisticsCounters", []() {
     setLuaNoSideEffect();
     std::unordered_map<string, uint64_t> res;
     for (const auto& entry : g_stats.entries) {
@@ -1860,7 +1860,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     DIR* dirp;
     struct dirent* ent;
-    std::list<std::string> files;
+    std::vector<std::string> files;
     if (!(dirp = opendir(dirname.c_str()))) {
       errlog("Error opening the included directory %s!", dirname.c_str());
       g_outputBuffer = "Error opening the included directory " + dirname + "!";
@@ -1885,17 +1885,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     closedir(dirp);
-    files.sort();
+    std::sort(files.begin(), files.end());
 
     g_included = true;
 
-    for (auto file = files.begin(); file != files.end(); ++file) {
-      std::ifstream ifs(*file);
+    for (const auto& file : files) {
+      std::ifstream ifs(file);
       if (!ifs) {
-        warnlog("Unable to read configuration from '%s'", *file);
+        warnlog("Unable to read configuration from '%s'", file);
       }
       else {
-        vinfolog("Read configuration from '%s'", *file);
+        vinfolog("Read configuration from '%s'", file);
       }
 
       try {
@@ -2118,7 +2118,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_consoleOutputMsgMaxSize = size;
   });
 
-  luaCtx.writeFunction("setProxyProtocolACL", [](boost::variant<string, vector<pair<int, string>>> inp) {
+  luaCtx.writeFunction("setProxyProtocolACL", [](LuaTypeOrArrayOf<std::string> inp) {
     if (g_configurationDone) {
       errlog("setProxyProtocolACL() cannot be used at runtime!");
       g_outputBuffer = "setProxyProtocolACL() cannot be used at runtime!\n";
@@ -2130,7 +2130,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       nmg.addMask(*str);
     }
     else {
-      for (const auto& p : boost::get<vector<pair<int, string>>>(inp)) {
+      for (const auto& p : boost::get<LuaArray<std::string>>(inp)) {
         nmg.addMask(p.second);
       }
     }
@@ -2302,7 +2302,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return result;
   });
 
-  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int, std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string>>>> urls, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::optional<boost::variant<std::string, LuaArray<std::string>>> keyFiles, boost::optional<LuaTypeOrArrayOf<std::string>> urls, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2330,8 +2330,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (urls->type() == typeid(std::string)) {
         frontend->d_urls.push_back(boost::get<std::string>(*urls));
       }
-      else if (urls->type() == typeid(std::vector<std::pair<int, std::string>>)) {
-        auto urlsVect = boost::get<std::vector<std::pair<int, std::string>>>(*urls);
+      else if (urls->type() == typeid(LuaArray<std::string>)) {
+        auto urlsVect = boost::get<LuaArray<std::string>>(*urls);
         for (const auto& p : urlsVect) {
           frontend->d_urls.push_back(p.second);
         }
@@ -2361,8 +2361,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (vars->count("customResponseHeaders")) {
-        for (auto const& headerMap : boost::get<std::vector<std::pair<std::string, std::string>>>((*vars).at("customResponseHeaders"))) {
-          frontend->d_customResponseHeaders.emplace_back(boost::to_lower_copy(headerMap.first), headerMap.second);
+        for (auto const& headerMap : boost::get<LuaAssociativeTable<std::string>>((*vars).at("customResponseHeaders"))) {
+          frontend->d_customResponseHeaders[boost::to_lower_copy(headerMap.first)] = headerMap.second;
         }
       }
 
@@ -2493,7 +2493,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std ::vector<std::pair<int, std::string>>> keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (frontend != nullptr) {
       if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
@@ -2515,7 +2515,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const std::vector<std::pair<int, std::shared_ptr<DOHResponseMapEntry>>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::vector<std::pair<int, std::shared_ptr<DOHResponseMapEntry>>>& map) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
     if (frontend != nullptr) {
       auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
       newMap->reserve(map.size());
@@ -2528,7 +2528,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2713,7 +2713,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     frontend->setupTLS();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, std::vector<std::pair<int, std::string>>, std::vector<std::pair<int, std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles) {
 #ifdef HAVE_DNS_OVER_TLS
     if (loadTLSCertificateAndKeys("TLSFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       frontend->setupTLS();
@@ -2762,7 +2762,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 
-  luaCtx.writeFunction("addCapabilitiesToRetain", [](boost::variant<std::string, std::vector<std::pair<int, std::string>>> caps) {
+  luaCtx.writeFunction("addCapabilitiesToRetain", [](LuaTypeOrArrayOf<std::string> caps) {
     setLuaSideEffect();
     if (g_configurationDone) {
       g_outputBuffer = "addCapabilitiesToRetain cannot be used at runtime!\n";
@@ -2771,8 +2771,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (caps.type() == typeid(std::string)) {
       g_capabilitiesToRetain.insert(boost::get<std::string>(caps));
     }
-    else if (caps.type() == typeid(std::vector<std::pair<int, std::string>>)) {
-      for (const auto& cap : boost::get<std::vector<std::pair<int, std::string>>>(caps)) {
+    else if (caps.type() == typeid(LuaArray<std::string>)) {
+      for (const auto& cap : boost::get<LuaArray<std::string>>(caps)) {
         g_capabilitiesToRetain.insert(cap.second);
       }
     }

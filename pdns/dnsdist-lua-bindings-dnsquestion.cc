@@ -89,7 +89,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
       dq.setTag(strLabel, strValue);
     });
-  luaCtx.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSQuestion& dq, const LuaAssociativeTable<std::string>&tags) {
       for (const auto& tag : tags) {
         dq.setTag(tag.first, tag.second);
       }
@@ -115,7 +115,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return *dq.qTag;
     });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(std::vector<std::pair<int, std::string>>)>("setProxyProtocolValues", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string>>& values) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(LuaArray<std::string>)>("setProxyProtocolValues", [](DNSQuestion& dq, const LuaArray<std::string>& values) {
     if (!dq.proxyProtocolValues) {
       dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
@@ -137,12 +137,12 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     dq.proxyProtocolValues->push_back({value, static_cast<uint8_t>(type)});
   });
 
-  luaCtx.registerFunction<std::vector<std::pair<int, std::string>>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
+  luaCtx.registerFunction<LuaArray<std::string>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
+    LuaArray<std::string> result;
     if (!dq.proxyProtocolValues) {
-      return std::vector<std::pair<int, std::string>>();
+      return result;
     }
 
-    std::vector<std::pair<int, std::string>> result;
     result.resize(dq.proxyProtocolValues->size());
     for (const auto& value : *dq.proxyProtocolValues) {
       result.push_back({ value.type, value.content });
@@ -151,10 +151,10 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return result;
   });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response) {
-      if (response.type() == typeid(vector<pair<int, ComboAddress>>)) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response) {
+      if (response.type() == typeid(LuaArray<ComboAddress>)) {
           std::vector<ComboAddress> data;
-          auto responses = boost::get<vector<pair<int, ComboAddress>>>(response);
+          auto responses = boost::get<LuaArray<ComboAddress>>(response);
           data.reserve(responses.size());
           for (const auto& resp : responses) {
             data.push_back(resp.second);
@@ -164,9 +164,9 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
           sa(&dq, &result);
 	  return;
       }
-      if (response.type() == typeid(vector<pair<int, string>>)) {
+      if (response.type() == typeid(LuaArray<std::string>)) {
           std::vector<std::string> data;
-          auto responses = boost::get<vector<pair<int, string>>>(response);
+          auto responses = boost::get<LuaArray<std::string>>(response);
           data.reserve(responses.size());
           for (const auto& resp : responses) {
             data.push_back(resp.second);
@@ -214,7 +214,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       dr.setTag(strLabel, strValue);
     });
 
-  luaCtx.registerFunction<void(DNSResponse::*)(vector<pair<string, string>>)>("setTagArray", [](DNSResponse& dr, const vector<pair<string, string>>&tags) {
+  luaCtx.registerFunction<void(DNSResponse::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSResponse& dr, const LuaAssociativeTable<string>&tags) {
       for (const auto& tag : tags) {
         dr.setTag(tag.first, tag.second);
       }
@@ -281,9 +281,9 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return dq.du->getHTTPScheme();
     });
 
-    luaCtx.registerFunction<std::unordered_map<std::string, std::string>(DNSQuestion::*)(void)const>("getHTTPHeaders", [](const DNSQuestion& dq) {
+    luaCtx.registerFunction<LuaAssociativeTable<std::string>(DNSQuestion::*)(void)const>("getHTTPHeaders", [](const DNSQuestion& dq) {
       if (dq.du == nullptr) {
-        return std::unordered_map<std::string, std::string>();
+        return LuaAssociativeTable<std::string>();
       }
       return dq.du->getHTTPHeaders();
     });
