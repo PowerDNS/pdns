@@ -1,7 +1,7 @@
 Algorithm Rollover
 ==================
 
-Before attempting an algorithm rollover, please read :rfc:`RFC 6581 "DNSSEC Operational Practices, Version 2", section 4 <6781#section-4>` carefully to understand the terminology, actions and timelines (TTL and RRSIG expiry) involved in changing DNSKEY algorithms.
+Before attempting an algorithm rollover, please read :rfc:`RFC 6781 "DNSSEC Operational Practices, Version 2", section 4 <6781#section-4>` carefully to understand the terminology, actions and timelines (TTL and RRSIG expiry) involved in changing DNSKEY algorithms.
 
 This How To describes the "conservative" approach from the above mentioned RFC, as specified in :rfc:`section 4.1.4 <6781#section-4.1.4>`.
 Phases are named after the steps in the diagram in that section.
