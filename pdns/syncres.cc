@@ -38,6 +38,47 @@
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
 
+struct SavedParentEntry
+{
+  SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
+    : d_domain(name), d_nsAddresses(nsAddresses), d_ttd(ttd)
+  {
+  }
+  DNSName d_domain;
+  map<DNSName, vector<ComboAddress>> d_nsAddresses;
+  time_t d_ttd;
+  mutable uint64_t d_count{0};
+};
+
+typedef multi_index_container<
+  SavedParentEntry,
+  indexed_by<ordered_unique<tag<DNSName>, member<SavedParentEntry, DNSName, &SavedParentEntry::d_domain>>,
+             ordered_non_unique<tag<time_t>, member<SavedParentEntry, time_t, &SavedParentEntry::d_ttd>>
+             >> SavedParentNSSetBase;
+
+class SavedParentNSSet : public SavedParentNSSetBase
+{
+public:
+  void prune(time_t now)
+  {
+    auto &ind = get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(now));
+  }
+  void inc(const DNSName& name)
+  {
+    auto it = find(name);
+    if (it != end()) {
+      ++(*it).d_count;
+    }
+  }
+  SavedParentNSSet getMapCopy() const
+  {
+    return *this;
+  }
+};
+
+static LockGuarded <SavedParentNSSet> s_savedParentNSSet;
+
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
 
@@ -51,7 +92,6 @@ SyncRes::LogMode SyncRes::s_lm;
 const std::unordered_set<QType> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
 LockGuarded<fails_t<ComboAddress>> SyncRes::s_fails;
 LockGuarded<fails_t<DNSName>> SyncRes::s_nonresolving;
-LockGuarded <SyncRes::SavedParentNSSet> SyncRes::s_savedParentNSSet;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -734,6 +774,21 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
   }
 
   return count;
+}
+
+void SyncRes::clearSaveParentsNSSets()
+{
+  s_savedParentNSSet.lock()->clear();
+}
+
+size_t SyncRes::getSaveParentsNSSetsSize()
+{
+  return s_savedParentNSSet.lock()->size();
+}
+
+void SyncRes::pruneSaveParentsNSSets(time_t now)
+{
+  s_savedParentNSSet.lock()->prune(now);
 }
 
 uint64_t SyncRes::doDumpSavedParentNSSets(int fd)

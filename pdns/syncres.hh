@@ -407,48 +407,9 @@ public:
 
   };
 
-  struct SavedParentEntry
-  {
-    SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
-      : d_domain(name), d_nsAddresses(nsAddresses), d_ttd(ttd)
-    {
-    }
-    DNSName d_domain;
-    map<DNSName, vector<ComboAddress>> d_nsAddresses;
-    time_t d_ttd;
-    mutable uint64_t d_count{0};
-  };
-
-  typedef multi_index_container<
-    SavedParentEntry,
-    indexed_by<ordered_unique<tag<DNSName>, member<SavedParentEntry, DNSName, &SavedParentEntry::d_domain>>,
-               ordered_non_unique<tag<time_t>, member<SavedParentEntry, time_t, &SavedParentEntry::d_ttd>>
-               >> SavedParentNSSetBase;
-
-  class SavedParentNSSet : public SavedParentNSSetBase
-  {
-  public:
-    void prune(time_t now)
-    {
-      auto &ind = get<time_t>();
-      ind.erase(ind.begin(), ind.upper_bound(now));
-    }
-    void inc(const DNSName& name)
-    {
-      auto it = find(name);
-      if (it != end()) {
-        ++(*it).d_count;
-      }
-    }
-    SavedParentNSSet getMapCopy() const
-    {
-      return *this;
-    }
-  };
 
   static LockGuarded<fails_t<ComboAddress>> s_fails;
   static LockGuarded<fails_t<DNSName>> s_nonresolving;
-  static LockGuarded <SavedParentNSSet> s_savedParentNSSet;
 
   struct ThreadLocalStorage {
     nsspeeds_t nsSpeeds;
@@ -612,18 +573,11 @@ public:
   {
     s_nonresolving.lock()->prune(cutoff);
   }
-  static void clearSaveParentsNSSets()
-  {
-    s_savedParentNSSet.lock()->clear();
-  }
-  static size_t getSaveParentsNSSetsSize()
-  {
-    return s_savedParentNSSet.lock()->size();
-  }
-  static void pruneSaveParentsNSSets(time_t now)
-  {
-    s_savedParentNSSet.lock()->prune(now);
-  }
+
+  static void clearSaveParentsNSSets();
+  static size_t getSaveParentsNSSetsSize();
+  static void pruneSaveParentsNSSets(time_t now);
+
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
     t_sstorage.domainmap = newMap;
