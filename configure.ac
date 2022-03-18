@@ -39,6 +39,7 @@ LT_INIT([disable-static dlopen])
 
 PDNS_CHECK_OS
 PTHREAD_SET_NAME
+AC_FUNC_STRERROR_R
 
 PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP

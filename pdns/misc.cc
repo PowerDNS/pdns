@@ -205,7 +205,7 @@ auto pdns::getMessageFromErrno(const int errnum) -> std::string
   errMsgData.resize(errLen);
 
   const char* errMsg = nullptr;
-#ifdef _GNU_SOURCE
+#ifdef STRERROR_R_CHAR_P
   errMsg = strerror_r(errnum, errMsgData.data(), errMsgData.length());
 #else
   // This can fail, and when it does, it sets errno. We ignore that and
