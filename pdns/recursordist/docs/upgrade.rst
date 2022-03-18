@@ -18,6 +18,10 @@ If IPv6 is enabled for outgoing queries using :ref:`setting-query-local-address`
 These addresses will then be used for future queries to authoritative nameservers.
 This has the consequence that authoritative nameservers will be contacted over IPv6 in more case than before.
 
+New settings
+^^^^^^^^^^^^
+- The :ref:`settings-save-parent-ns-set` setting has been introduced, enabling fall-back cases if the parent ``NS`` set contains names not in the child ``NS`` set.
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 -  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed. The hint processing code is also made less verbose.

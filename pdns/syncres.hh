@@ -815,7 +815,8 @@ public:
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
   static int s_event_trace_enabled;
-
+  static bool s_save_parent_ns_set;
+  
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;

@@ -1310,6 +1310,7 @@ static int serviceMain(int argc, char* argv[])
 
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
   SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
+  SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
@@ -2496,6 +2497,7 @@ int main(int argc, char** argv)
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
     ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
+    ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
 
     ::arg().setCmd("help", "Provide a helpful message");
     ::arg().setCmd("version", "Print version string");

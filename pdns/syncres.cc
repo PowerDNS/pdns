@@ -145,6 +145,7 @@ int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
 bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
+bool SyncRes::s_save_parent_ns_set;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -1333,7 +1334,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
   res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr);
 
-  if (res == -1) {
+  if (res == -1 && s_save_parent_ns_set) {
     // It did not work out, lets check if we have a saved parent NS set
     map<DNSName, vector<ComboAddress>> fallBack;
     {
@@ -3882,7 +3883,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
       if (doCache) {
         // Check if we are going to replace a non-auth (parent) NS recordset
-        if (isAA && i->first.type == QType::NS) {
+        if (isAA && i->first.type == QType::NS && s_save_parent_ns_set) {
           rememberParentSetIfNeeded(i->first.name, i->second.records, depth);
         }
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP);
