@@ -82,26 +82,22 @@ namespace channel
       throw std::runtime_error("Error creating notification channel pipe: " + stringerror());
     }
 
-    if (nonBlocking && !setNonBlocking(fds[0])) {
-      int err = errno;
-      close(fds[0]);
-      close(fds[1]);
-      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (nonBlocking && !setNonBlocking(fds[1])) {
-      int err = errno;
-      close(fds[0]);
-      close(fds[1]);
-      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (pipeBufferSize > 0 && getPipeBufferSize(fds[0]) < pipeBufferSize) {
-      setPipeBufferSize(fds[0], pipeBufferSize);
-    }
-
     FDWrapper sender(fds[1]);
     FDWrapper receiver(fds[0]);
+
+    if (nonBlocking && !setNonBlocking(receiver.getHandle())) {
+      int err = errno;
+      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
+    }
+
+    if (nonBlocking && !setNonBlocking(sender.getHandle())) {
+      int err = errno;
+      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
+    }
+
+    if (pipeBufferSize > 0 && getPipeBufferSize(receiver.getHandle()) < pipeBufferSize) {
+      setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
+    }
 
     return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver)));
   }

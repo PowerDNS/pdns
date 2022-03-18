@@ -191,13 +191,13 @@ namespace channel
     ssize_t sent = write(d_fd.getHandle(), &ptr, sizeof(ptr));
 
     if (sent != sizeof(ptr)) {
+      delete ptr;
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
         return false;
       }
       else {
         throw std::runtime_error("Unable to write to channel:" + stringerror());
       }
-      delete ptr;
     }
 
     return true;
@@ -234,26 +234,22 @@ namespace channel
       throw std::runtime_error("Error creating channel pipe: " + stringerror());
     }
 
-    if (nonBlocking && !setNonBlocking(fds[0])) {
-      int err = errno;
-      close(fds[0]);
-      close(fds[1]);
-      throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (nonBlocking && !setNonBlocking(fds[1])) {
-      int err = errno;
-      close(fds[0]);
-      close(fds[1]);
-      throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (pipeBufferSize > 0 && getPipeBufferSize(fds[0]) < pipeBufferSize) {
-      setPipeBufferSize(fds[0], pipeBufferSize);
-    }
-
     FDWrapper sender(fds[1]);
     FDWrapper receiver(fds[0]);
+
+    if (nonBlocking && !setNonBlocking(receiver.getHandle())) {
+      int err = errno;
+      throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
+    }
+
+    if (nonBlocking && !setNonBlocking(sender.getHandle())) {
+      int err = errno;
+      throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
+    }
+
+    if (pipeBufferSize > 0 && getPipeBufferSize(receiver.getHandle()) < pipeBufferSize) {
+      setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
+    }
 
     return std::pair(Sender<T>(std::move(sender)), Receiver<T>(std::move(receiver)));
   }
