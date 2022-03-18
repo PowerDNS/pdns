@@ -77,7 +77,7 @@ namespace channel
 
   std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize)
   {
-    int fds[2] = { -1, -1};
+    int fds[2] = {-1, -1};
     if (pipe(fds) < 0) {
       throw std::runtime_error("Error creating notification channel pipe: " + stringerror());
     }

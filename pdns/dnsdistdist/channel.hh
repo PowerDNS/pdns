@@ -229,7 +229,7 @@ namespace channel
   template <typename T>
   std::pair<Sender<T>, Receiver<T>> createObjectQueue(bool nonBlocking, size_t pipeBufferSize)
   {
-    int fds[2] = { -1, -1};
+    int fds[2] = {-1, -1};
     if (pipe(fds) < 0) {
       throw std::runtime_error("Error creating channel pipe: " + stringerror());
     }
