@@ -40,6 +40,7 @@ LT_INIT()
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
 PTHREAD_SET_NAME
+AC_FUNC_STRERROR_R
 
 PDNS_CHECK_CLOCK_GETTIME
 
@@ -98,7 +99,7 @@ PDNS_ENABLE_DNS_OVER_TLS
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   PDNS_WITH_LIBSSL
   # not runtime selectable at the moment
-  # PDNS_WITH_GNUTLS 
+  # PDNS_WITH_GNUTLS
 
   AS_IF([test "x$HAVE_LIBSSL" != "x1"], [
     AC_MSG_ERROR([DNS over TLS support requested but no OpenSSL available])
