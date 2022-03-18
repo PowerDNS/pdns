@@ -658,6 +658,8 @@ void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
   if (res == 0) {
     throw runtime_error(getName()+" key generation failed");
   }
+
+  EC_KEY_set_asn1_flag(d_eckey.get(), OPENSSL_EC_NAMED_CURVE);
 }
 
 void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
@@ -872,6 +874,8 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
   if (ret != 1) {
     throw runtime_error(getName()+" setting public key failed");
   }
+
+  EC_KEY_set_asn1_flag(d_eckey.get(), OPENSSL_EC_NAMED_CURVE);
 }
 
 bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
