@@ -1,7 +1,7 @@
 ZSK Rollover
 ============
 
-Before attempting a ZSK rollover, please read :rfc:`RFC 6781 "DNSSEC Operational Practices, Version 2", section 4 <6781#section-4>` carefully to understand the terminology, actions and timelines (TTL and RRSIG expiry) involved in changing DNSKEY algorithms.
+Before attempting a ZSK rollover, please read :rfc:`RFC 6781 "DNSSEC Operational Practices, Version 2", section 4 <6781#section-4>` carefully to understand the terminology, actions and timelines (TTL and RRSIG expiry) involved in rolling a ZSK.
 
 This How To describes the "Pre-Publish" approach from the above mentioned RFC, as specified in :rfc:`section 4.1.1.1 <6781#section-4.1.1.1>`.
 Phases are named after the steps in the diagram in that section.
