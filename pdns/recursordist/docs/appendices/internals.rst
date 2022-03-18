@@ -447,7 +447,7 @@ respect.
 
 Starting with version 4.7.0, there is a mechanism to save the
 parent NS set if it contains *more* names than the child NS set.
-This allows fallback to the saved parent NS set on resolution errors
+This allows falling back to the saved parent NS set on resolution errors
 using the child specified NS set.
 As experience shows, this configuration error is encountered in the
 wild often enough to warrant this workaround.

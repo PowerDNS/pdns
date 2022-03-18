@@ -123,9 +123,9 @@ dump-rpz *ZONE NAME* *FILE NAME*
 
 dump-saved-parent-ns-sets *FILE NAME*
     Dump the entries of the map containing saved parent NS sets
-    that were used successfully in resolving.
+    that were successfully used in resolving.
     The total number of entries is also printed in the header.
-    An entry is saved if the recursor sees that parent set includes
+    An entry is saved if the recursor sees that the parent set includes
     names not in the child set. This is an indication of a
     misconfigured domain.
 
