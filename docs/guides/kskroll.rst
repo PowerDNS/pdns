@@ -1,7 +1,7 @@
 KSK Rollover
 ============
 
-Before attempting a KSK rollover, please read :rfc:`RFC 6581 "DNSSEC
+Before attempting a KSK rollover, please read :rfc:`RFC 6781 "DNSSEC
 Operational Practices, Version 2", section 4 <6781#section-4>` carefully to
 understand the terminology, actions and timelines (TTL and RRSIG expiry)
 involved in rolling a KSK.
