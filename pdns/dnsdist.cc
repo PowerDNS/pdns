@@ -1830,7 +1830,8 @@ static void healthChecksThread()
   for(;;) {
     sleep(interval);
 
-    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for (auto& dss : *states) {
       auto delta = dss->sw.udiffAndSet()/1000000.0;
@@ -1849,13 +1850,19 @@ static void healthChecksThread()
       dss->d_nextCheck = dss->d_config.checkInterval;
 
       if (dss->d_config.availability == DownstreamState::Availability::Auto) {
+        if (!mplexer) {
+          mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+        }
+
         if (!queueHealthCheck(mplexer, dss)) {
           updateHealthCheckResult(dss, false, false);
         }
       }
     }
 
-    handleQueuedHealthChecks(*mplexer);
+    if (mplexer) {
+      handleQueuedHealthChecks(*mplexer);
+    }
   }
 }
 
