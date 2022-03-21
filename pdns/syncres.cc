@@ -1086,6 +1086,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_DNSSECValidationRequested = false;
   d_followCNAME = true;
 
+  const bool oldRefresAlmostExpired = setRefreshAlmostExpired(false);
   try {
     vState newState = vState::Indeterminate;
     res_t resv4;
@@ -1132,6 +1133,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     /* we ignore a policy hit while trying to retrieve the addresses
        of a NS and keep processing the current query */
   }
+  setRefreshAlmostExpired(oldRefresAlmostExpired);
 
   if (ret.empty() && d_outqueries > startqueries) {
     // We did 1 or more outgoing queries to resolve this NS name but returned empty handed
