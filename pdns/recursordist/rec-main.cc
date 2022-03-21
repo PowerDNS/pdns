@@ -901,7 +901,10 @@ static void doStats(void)
           << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
           << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize) << ", failed ns: "
           << SyncRes::getFailedServersSize() << ", ednsmap: "
-          << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << endl;
+          << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "
+          << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
+          << SyncRes::getSaveParentsNSSetsSize()
+          << endl;
     g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries) << "%";
     g_log << Logger::Notice << ", " << ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries) << "% throttled" << endl;
     g_log << Logger::Notice << "stats: " << SyncRes::s_tcpoutqueries << "/" << SyncRes::s_dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, " << broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries) << " queries running, " << SyncRes::s_outgoingtimeouts << " outgoing timeouts " << endl;
@@ -1330,6 +1333,7 @@ static int serviceMain(int argc, char* argv[])
 
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
   SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
+  SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
@@ -1947,6 +1951,11 @@ static void houseKeeping(void*)
         SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
       });
 
+      static PeriodicTask pruneSaveParentSetTask{"pruneSaveParentSetTask", 60};
+      pruneSaveParentSetTask.runIfDue(now, [now]() {
+        SyncRes::pruneSaveParentsNSSets(now.tv_sec);
+      });
+
       // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
       static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl / 12, 10U)};
       rootUpdateTask.runIfDue(now, [now]() {
@@ -2512,6 +2521,7 @@ int main(int argc, char** argv)
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
     ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
+    ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
 
     ::arg().setCmd("help", "Provide a helpful message");
     ::arg().setCmd("version", "Print version string");

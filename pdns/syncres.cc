@@ -38,6 +38,47 @@
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
 
+struct SavedParentEntry
+{
+  SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
+    : d_domain(name), d_nsAddresses(nsAddresses), d_ttd(ttd)
+  {
+  }
+  DNSName d_domain;
+  map<DNSName, vector<ComboAddress>> d_nsAddresses;
+  time_t d_ttd;
+  mutable uint64_t d_count{0};
+};
+
+typedef multi_index_container<
+  SavedParentEntry,
+  indexed_by<ordered_unique<tag<DNSName>, member<SavedParentEntry, DNSName, &SavedParentEntry::d_domain>>,
+             ordered_non_unique<tag<time_t>, member<SavedParentEntry, time_t, &SavedParentEntry::d_ttd>>
+             >> SavedParentNSSetBase;
+
+class SavedParentNSSet : public SavedParentNSSetBase
+{
+public:
+  void prune(time_t now)
+  {
+    auto &ind = get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(now));
+  }
+  void inc(const DNSName& name)
+  {
+    auto it = find(name);
+    if (it != end()) {
+      ++(*it).d_count;
+    }
+  }
+  SavedParentNSSet getMapCopy() const
+  {
+    return *this;
+  }
+};
+
+static LockGuarded <SavedParentNSSet> s_savedParentNSSet;
+
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
 
@@ -104,6 +145,7 @@ int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
 bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
+bool SyncRes::s_save_parent_ns_set;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -735,6 +777,52 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
   return count;
 }
 
+void SyncRes::clearSaveParentsNSSets()
+{
+  s_savedParentNSSet.lock()->clear();
+}
+
+size_t SyncRes::getSaveParentsNSSetsSize()
+{
+  return s_savedParentNSSet.lock()->size();
+}
+
+void SyncRes::pruneSaveParentsNSSets(time_t now)
+{
+  s_savedParentNSSet.lock()->prune(now);
+}
+
+uint64_t SyncRes::doDumpSavedParentNSSets(int fd)
+{
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
+  fprintf(fp.get(), "; dump of saved parent nameserver sets succesfully used follows\n");
+  fprintf(fp.get(), "; total entries: %zu\n", s_savedParentNSSet.lock()->size());
+  fprintf(fp.get(), "; domain\tsuccess\tttd\n");
+  uint64_t count=0;
+
+  // We get a copy, so the I/O does not need to happen while holding the lock
+  for (const auto& i : s_savedParentNSSet.lock()->getMapCopy())
+  {
+    if (i.d_count == 0) {
+      continue;
+    }
+    count++;
+    char tmp[26];
+    ctime_r(&i.d_ttd, tmp);
+    fprintf(fp.get(), "%s\t%llu\t%s", i.d_domain.toString().c_str(), static_cast<unsigned long long>(i.d_count), tmp);
+  }
+
+  return count;
+}
+
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
    to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
    so that if there are RRSIGs for a name, we'll have them.
@@ -1244,8 +1332,33 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
   }
 
-  res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
+  res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr);
 
+  if (res == -1 && s_save_parent_ns_set) {
+    // It did not work out, lets check if we have a saved parent NS set
+    map<DNSName, vector<ComboAddress>> fallBack;
+    {
+      auto lock = s_savedParentNSSet.lock();
+      auto domainData= lock->find(subdomain);
+      if (domainData != lock->end() && domainData->d_nsAddresses.size() > 0) {
+        nsset.clear();
+        // Build the nsset arg and fallBack data for the fallback doResolveAt() attempt
+        // Take a copy to be able to release the lock, NsSet is actually a map, go figure
+        for (const auto& ns : domainData->d_nsAddresses) {
+          nsset.emplace(ns.first, pair(std::vector<ComboAddress>(), false));
+          fallBack.emplace(ns.first, ns.second);
+        }
+      }
+    }
+    if (fallBack.size() > 0) {
+      LOG(prefix<<qname<<": Failure, but we have a saved parent NS set, trying that one"<< endl)
+      res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack);
+      if (res == 0) {
+        // It did work out
+        s_savedParentNSSet.lock()->inc(subdomain);
+      }
+    }
+  }
   /* Apply Post filtering policies */
   if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
     auto luaLocal = g_luaconfs.getLocal();
@@ -3401,6 +3514,55 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   }
 }
 
+
+void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSRecord>& newRecords, unsigned int depth)
+{
+  vector<DNSRecord> existing;
+  bool wasAuth = false;
+  auto ttl = g_recCache->get(d_now.tv_sec, domain, QType::NS, false, &existing, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, nullptr, &wasAuth);
+
+  if (ttl <= 0 || wasAuth) {
+    return;
+  }
+  {
+    auto lock = s_savedParentNSSet.lock();
+    if (lock->find(domain) != lock->end()) {
+      // no relevant data, or we already stored the parent data
+      return;
+    }
+  }
+
+  set<DNSName> authSet;
+  for (const auto& ns : newRecords) {
+    auto content = getRR<NSRecordContent>(ns);
+    authSet.insert(content->getNS());
+  }
+  // The glue IPs could also differ, but we're not checking that yet, we're only looking for parent NS records not
+  // in the child set
+  bool shouldSave = false;
+  for (const auto& ns : existing) {
+    auto content = getRR<NSRecordContent>(ns);
+    if (authSet.count(content->getNS()) == 0) {
+      LOG(d_prefix << domain << ": at least one parent-side NS was not in the child-side NS set, remembering parent NS set and cached IPs" << endl);
+      shouldSave = true;
+      break;
+    }
+  }
+
+  if (shouldSave) {
+    map<DNSName, vector<ComboAddress>> entries;
+    for (const auto& ns : existing) {
+      auto content = getRR<NSRecordContent>(ns);
+      const DNSName& name = content->getNS();
+      set<GetBestNSAnswer> beenthereIgnored;
+      unsigned int nretrieveAddressesForNSIgnored;
+      auto addresses = getAddrs(name, depth, beenthereIgnored, true, nretrieveAddressesForNSIgnored);
+      entries.emplace(name, addresses);
+    }
+    s_savedParentNSSet.lock()->emplace(domain, std::move(entries), d_now.tv_sec + ttl);
+  }
+}
+
 RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -3720,6 +3882,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       d_fromAuthIP = remoteIP;
 
       if (doCache) {
+        // Check if we are going to replace a non-auth (parent) NS recordset
+        if (isAA && i->first.type == QType::NS && s_save_parent_ns_set) {
+          rememberParentSetIfNeeded(i->first.name, i->second.records, depth);
+        }
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP);
 
         if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
@@ -4531,7 +4697,8 @@ bool SyncRes::doDoTtoAuth(const DNSName& ns) const
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType qtype,
                          vector<DNSRecord>&ret,
-                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation)
+                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
+                         map<DNSName, vector<ComboAddress>>* fallBack)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -4628,8 +4795,14 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
       }
       else {
-        /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
-        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
+        if (fallBack != nullptr) {
+          if (auto it = fallBack->find(tns->first); it != fallBack->end()) {
+            remoteIPs = it->second;
+          }
+        }
+        if (remoteIPs.size() == 0) {
+          remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
+        }
 
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<tns->first<<", trying next if available"<<endl);

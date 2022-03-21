@@ -1702,6 +1702,18 @@ The effect of this is far fewer queries to the root-servers.
 
     Default is 'yes' now, was 'no' before 4.0.0
 
+.. _setting-save-parent-ns-set:
+
+``save-parent-ns-set``
+----------------------
+.. versionadded:: 4.7.0
+
+- Boolean
+- Default: yes
+
+If set, a parent (non-authoritative) ``NS`` set is saved if it contains more entries than a newly encountered child (authoritative) ``NS`` set for the same domain.
+The saved parent ``NS`` set is tried if resolution using the child ``NS`` set fails.
+
 .. _setting-security-poll-suffix:
 
 ``security-poll-suffix``

@@ -445,6 +445,15 @@ new data should overwrite old data.
 Note that PowerDNS deviates from RFC 2181 (section 5.4.1) in this
 respect.
 
+Starting with version 4.7.0, there is a mechanism to save the
+parent NS set if it contains *more* names than the child NS set.
+This allows falling back to the saved parent NS set on resolution errors
+using the child specified NS set.
+As experience shows, this configuration error is encountered in the
+wild often enough to warrant this workaround.
+See :ref:`setting-save-parent-ns-set`.
+
+
  Some small things
 ------------------
 

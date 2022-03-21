@@ -95,7 +95,8 @@ int main(int argc, char** argv)
     "dump-failedservers",
     "dump-rpz",
     "dump-throttlemap",
-    "dump-non-resolving"};
+    "dump-non-resolving",
+    "dump-saved-parent-ns-sets"};
   try {
     initArguments(argc, argv);
     string sockname = "pdns_recursor";

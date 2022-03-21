@@ -181,6 +181,7 @@ void initSR(bool debug)
   SyncRes::s_nonresolvingnsmaxfails = 0;
   SyncRes::s_nonresolvingnsthrottletime = 0;
   SyncRes::s_refresh_ttlperc = 0;
+  SyncRes::s_save_parent_ns_set = true;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
@@ -192,6 +193,8 @@ void initSR(bool debug)
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0U);
   SyncRes::clearNonResolvingNS();
   BOOST_CHECK_EQUAL(SyncRes::getNonResolvingNSSize(), 0U);
+  SyncRes::clearSaveParentsNSSets();
+  BOOST_CHECK_EQUAL(SyncRes::getSaveParentsNSSetsSize(), 0U);
 
   SyncRes::clearECSStats();
 
