@@ -45,6 +45,7 @@
 #include <poll.h>
 #include <iomanip>
 #include <netinet/tcp.h>
+#include <optional>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
