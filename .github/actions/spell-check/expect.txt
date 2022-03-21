@@ -1303,6 +1303,7 @@ progid
 protobuf
 protozero
 providername
+proxymapping
 proxyprotocol
 proxyprotocolvalues
 pseudonymize

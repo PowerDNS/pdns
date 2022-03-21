@@ -37,6 +37,10 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   The values in ``exportTypes`` can be numeric as well as strings. Symbolic names from ``pdns`` can be used, e.g.  ``exportTypes = { pdns.A, pdns.AAAA, pdns.CNAME }``
 
+  .. versionadded:: 4.7.0
+
+  * ``logMappedFrom=false``: bool - whether to log the remote address before substitution by :ref:`proxymapping` (the default) or after
+
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
   .. deprecated:: 4.2.0

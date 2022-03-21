@@ -260,9 +260,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       /* Now that we have retrieved the address of the client, as advertised by the proxy
          via the proxy protocol header, check that it is allowed by our ACL */
       /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
-      if (t_allowFrom && !t_allowFrom->match(&conn->d_source)) {
+      conn->d_mappedSource = conn->d_source;
+      if (t_proxyMapping) {
+        if (auto it = t_proxyMapping->lookup(conn->d_source)) {
+          conn->d_mappedSource = it->second;
+        }
+      }
+      if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_source.toString() << ", address not matched by allow-from" << endl;
+          g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl;
         }
 
         ++g_stats.unauthorizedTCP;
@@ -349,15 +355,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->d_tcpConnection = conn; // carry the torch
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp = true;
-      dc->setRemote(conn->d_remote);
-      dc->setSource(conn->d_source);
+      dc->setRemote(conn->d_remote); // the address the query was received from
+      dc->setSource(conn->d_source); // the address we assume the query is coming from, might be set by proxy protocol
       ComboAddress dest;
       dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
-      dc->setLocal(dest);
-      dc->setDestination(conn->d_destination);
+      dc->setLocal(dest); // the address we received the query on
+      dc->setDestination(conn->d_destination); // the address we assume the query is received on, might be set by proxy protocol
+      dc->setMappedSource(conn->d_mappedSource); // the address we assume the query is coming from after table based mapping
       /* we can't move this if we want to be able to access the values in
          all queries sent over this connection */
       dc->d_proxyProtocolValues = conn->proxyProtocolValues;
@@ -447,7 +454,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
-            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
+            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_mappedSource, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
           }
         }
         catch (const std::exception& e) {
@@ -499,9 +506,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++g_stats.tcpqcounter;
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
-          if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_source)) {
+          if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_mappedSource)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_source.toString() << ", address not matched by allow-notify-from" << endl;
+              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl;
             }
 
             g_stats.sourceDisallowedNotify++;
@@ -510,7 +517,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (!isAllowNotifyForZone(qname)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_source.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl;
+              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl;
             }
 
             g_stats.zoneDisallowedNotify++;
@@ -547,7 +554,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
               {
                 0, 0
               };
-              protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
+              protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_mappedSource, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
             }
 
             if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
@@ -615,9 +622,15 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     }
 
     bool fromProxyProtocolSource = expectProxyProtocol(addr);
-    if (t_allowFrom && !t_allowFrom->match(&addr) && !fromProxyProtocolSource) {
+    ComboAddress mappedSource = addr;
+    if (!fromProxyProtocolSource && t_proxyMapping) {
+      if (auto it = t_proxyMapping->lookup(addr)) {
+        mappedSource = it->second;
+      }
+    }
+    if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
       if (!g_quiet)
-        g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << addr.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl;
+        g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl;
 
       g_stats.unauthorizedTCP++;
       try {
@@ -647,6 +660,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     tc->d_destination.sin4.sin_family = addr.sin4.sin_family;
     socklen_t len = tc->d_destination.getSocklen();
     getsockname(tc->getFD(), reinterpret_cast<sockaddr*>(&tc->d_destination), &len); // if this fails, we're ok with it
+    tc->d_mappedSource = mappedSource;
 
     if (fromProxyProtocolSource) {
       tc->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;

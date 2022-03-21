@@ -58,14 +58,21 @@ struct DNSComboWriter
   {
   }
 
+  // The address the query is coming from
   void setRemote(const ComboAddress& sa)
   {
     d_remote = sa;
   }
 
+  // The address we assume the query is coming from, might be set by proxy protocol
   void setSource(const ComboAddress& sa)
   {
     d_source = sa;
+  }
+
+  void setMappedSource(const ComboAddress& sa)
+  {
+    d_mappedSource = sa;
   }
 
   void setLocal(const ComboAddress& sa)
@@ -73,6 +80,7 @@ struct DNSComboWriter
     d_local = sa;
   }
 
+  // The address we assume the query is sent to, might be set by proxy protocol
   void setDestination(const ComboAddress& sa)
   {
     d_destination = sa;
@@ -83,6 +91,7 @@ struct DNSComboWriter
     d_socket = sock;
   }
 
+  // get a string repesentation of the client address, including proxy info if applicable
   string getRemote() const
   {
     if (d_source == d_remote) {
@@ -94,18 +103,12 @@ struct DNSComboWriter
   std::vector<ProxyProtocolValue> d_proxyProtocolValues;
   MOADNSParser d_mdp;
   struct timeval d_now;
-  /* Remote client, might differ from d_source
-     in case of XPF, in which case d_source holds
-     the IP of the client and d_remote of the proxy
-  */
-  ComboAddress d_remote;
-  ComboAddress d_source;
-  /* Destination address, might differ from
-     d_destination in case of XPF, in which case
-     d_destination holds the IP of the proxy and
-     d_local holds our own. */
-  ComboAddress d_local;
-  ComboAddress d_destination;
+
+  ComboAddress d_remote; // the address the query is coming from
+  ComboAddress d_source; // the address we assume the query is coming from, might be set by proxy protocol
+  ComboAddress d_local; // the address we received the query on
+  ComboAddress d_destination; // the address we assume the query is sent to, might be set by proxy protocol
+  ComboAddress d_mappedSource; // the source address after being mapped by table based proxy mapping
   RecEventTrace d_eventTrace;
   boost::uuids::uuid d_uuid;
   string d_requestorId;
@@ -223,6 +226,8 @@ extern thread_local std::shared_ptr<Regex> t_traceRegex;
 extern string g_programname;
 extern string g_pidfname;
 extern RecursorControlChannel g_rcc; // only active in the handler thread
+
+extern thread_local std::shared_ptr<ProxyMapping> t_proxyMapping;
 
 #ifdef NOD_ENABLED
 extern bool g_nodEnabled;
@@ -495,7 +500,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
                        bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
                        bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest);
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
@@ -506,7 +511,7 @@ void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
 void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
-                         const EDNSSubnetOpts& ednssubnet,
+                         const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace);

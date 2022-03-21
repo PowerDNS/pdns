@@ -40,6 +40,7 @@ struct ProtobufExportConfig
   bool logQueries{true};
   bool logResponses{true};
   bool taggedOnly{false};
+  bool logMappedFrom{false};
 };
 
 struct FrameStreamExportConfig
@@ -71,6 +72,8 @@ enum class AdditionalMode : uint8_t
   ResolveDeferred
 };
 
+using ProxyMapping = NetmaskTree<ComboAddress, Netmask>;
+
 class LuaConfigItems
 {
 public:
@@ -101,5 +104,5 @@ struct luaConfigDelayedThreads
   std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string>> rpzPrimaryThreads;
 };
 
-void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);
+void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads, ProxyMapping&);
 void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation);

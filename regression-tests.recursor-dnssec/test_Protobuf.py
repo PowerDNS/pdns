@@ -368,6 +368,82 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
+class ProtobufProxyMappingTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export queries and response over protobuf with a proxyMapping
+    """
+
+    _confdir = 'ProtobufProxyMappingTest'
+    _config_template = """
+    auth-zones=example=configs/%s/example.zone
+    allow-from=3.4.5.0/24
+    """ % _confdir
+
+    _lua_config_file = """
+    addProxyMapping("127.0.0.1/24", "3.4.5.6:99")
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
+class ProtobufProxyMappingLogMappedTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export queries and response over protobuf.
+    """
+
+    _confdir = 'ProtobufProxyMappingLogMappedTest'
+    _config_template = """
+    auth-zones=example=configs/%s/example.zone
+    allow-from=3.4.5.0/0"
+    """ % _confdir
+
+    _lua_config_file = """
+    addProxyMapping("127.0.0.1/24", "3.4.5.6:99")
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logMappedFrom = true })
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name, '3.4.5.6')
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '3.4.5.6')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
 class ProtobufProxyTest(TestRecursorProtobuf):
     """
     This test makes sure that we correctly export addresses over protobuf when the proxy protocol is used.
@@ -401,6 +477,85 @@ allow-from=127.0.0.1,6.6.6.6
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
+
+class ProtobufProxyWithProxyByTableTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export addresses over protobuf when the proxy protocol and a proxy table mapping is used
+    """
+
+    _confdir = 'ProtobufProxyWithProxyByTable'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone
+proxy-protocol-from=127.0.0.1/32
+allow-from=3.4.5.6
+""" % _confdir
+
+    _lua_config_file = """
+    addProxyMapping("6.6.6.6/24", "3.4.5.6:99")
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQueryWithProxyProtocol(query, False, '6.6.6.6', '7.7.7.7', 666, 777)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name, '6.6.6.6', '7.7.7.7')
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '6.6.6.6')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
+class ProtobufProxyWithProxyByTableLogMappedTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export addresses over protobuf when the proxy protocol and a proxy table mapping is used
+    """
+
+    _confdir = 'ProtobufProxyWithProxyByTableLogMapped'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone
+proxy-protocol-from=127.0.0.1/32
+allow-from=3.4.5.6
+""" % _confdir
+
+    _lua_config_file = """
+    addProxyMapping("6.6.6.6/24", "3.4.5.6:99")
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logMappedFrom = true })
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQueryWithProxyProtocol(query, False, '6.6.6.6', '7.7.7.7', 666, 777)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name, '3.4.5.6', '7.7.7.7')
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '3.4.5.6')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
 
 class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     """
