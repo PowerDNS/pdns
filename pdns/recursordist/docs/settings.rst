@@ -154,6 +154,7 @@ Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` qu
 -  Default: unset
 
 Directory where the REST API stores its configuration and zones.
+For configuration updates to work, :ref:`setting-include-dir` should have the same value.
 
 .. _setting-api-key:
 

@@ -7,6 +7,9 @@
   .. note::
     Only :ref:`setting-allow-from` and :ref:`setting-allow-notify-from` can be set.
 
+  .. note::
+    For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value.
+
   :param server_id: The name of the server
   :param config_setting_name: The name of the setting to change
 
