@@ -192,75 +192,6 @@ private:
   float d_val{0};
 };
 
-template<class T>
-class fails_t : public boost::noncopyable
-{
-public:
-  typedef uint64_t counter_t;
-  struct value_t {
-    value_t(const T &a) : key(a) {}
-    T key;
-    mutable counter_t value{0};
-    time_t last{0};
-  };
-
-  typedef multi_index_container<value_t,
-                                indexed_by<
-                                  ordered_unique<tag<T>, member<value_t, T, &value_t::key>>,
-                                  ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
-                                  >> cont_t;
-
-  cont_t getMapCopy() const {
-    return d_cont;
-  }
-
-  counter_t value(const T& t) const
-  {
-    auto i = d_cont.find(t);
-
-    if (i == d_cont.end()) {
-      return 0;
-    }
-    return i->value;
-  }
-
-  counter_t incr(const T& key, const struct timeval& now)
-  {
-    auto i = d_cont.insert(key).first;
-
-    if (i->value < std::numeric_limits<counter_t>::max()) {
-      i->value++;
-    }
-    auto &ind = d_cont.template get<T>();
-    time_t tm = now.tv_sec;
-    ind.modify(i, [tm](value_t &val) { val.last = tm; });
-    return i->value;
-  }
-
-  void clear(const T& a)
-  {
-    d_cont.erase(a);
-  }
-
-  void clear()
-  {
-    d_cont.clear();
-  }
-
-  size_t size() const
-  {
-    return d_cont.size();
-  }
-
-  void prune(time_t cutoff) {
-    auto &ind = d_cont.template get<time_t>();
-    ind.erase(ind.begin(), ind.upper_bound(cutoff));
-  }
-
-private:
-  cont_t d_cont;
-};
-
 extern std::unique_ptr<NegCache> g_negCache;
 
 class SyncRes : public boost::noncopyable
@@ -407,10 +338,6 @@ public:
 
   };
 
-
-  static LockGuarded<fails_t<ComboAddress>> s_fails;
-  static LockGuarded<fails_t<DNSName>> s_nonresolving;
-
   struct ThreadLocalStorage {
     nsspeeds_t nsSpeeds;
     throttle_t throttle;
@@ -545,34 +472,15 @@ public:
   {
     t_sstorage.throttle.throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
   }
-  static uint64_t getFailedServersSize()
-  {
-    return s_fails.lock()->size();
-  }
-  static uint64_t getNonResolvingNSSize()
-  {
-    return s_nonresolving.lock()->size();
-  }
-  static void clearFailedServers()
-  {
-    s_fails.lock()->clear();
-  }
-  static void clearNonResolvingNS()
-  {
-    s_nonresolving.lock()->clear();
-  }
-  static void pruneFailedServers(time_t cutoff)
-  {
-    s_fails.lock()->prune(cutoff);
-  }
-  static unsigned long getServerFailsCount(const ComboAddress& server)
-  {
-    return s_fails.lock()->value(server);
-  }
-  static void pruneNonResolving(time_t cutoff)
-  {
-    s_nonresolving.lock()->prune(cutoff);
-  }
+
+  static uint64_t getFailedServersSize();
+  static void clearFailedServers();
+  static void pruneFailedServers(time_t cutoff);
+  static unsigned long getServerFailsCount(const ComboAddress& server);
+
+  static void clearNonResolvingNS();
+  static uint64_t getNonResolvingNSSize();
+  static void pruneNonResolving(time_t cutoff);
 
   static void clearSaveParentsNSSets();
   static size_t getSaveParentsNSSetsSize();
