@@ -713,6 +713,47 @@ bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
   return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || !iter->second.shouldRecurse());
 }
 
+# if 0
+// Will be needed in the future
+static const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
+{
+  const std::string s_timestampFormat = "%Y-%m-%dT%T";
+  struct tm tm;
+  size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
+  if (len == 0) {
+    int ret = snprintf(buf, sz, "%lld", static_cast<long long>(tv.tv_sec));
+    if (ret < 0 || static_cast<size_t>(ret) >= sz) {
+      if (sz > 0) {
+        buf[0] = '\0';
+      }
+      return buf;
+    }
+    len = ret;
+  }
+
+  if (sz > len + 4) {
+    snprintf(buf + len, sz - len, ".%03ld", static_cast<long>(tv.tv_usec) / 1000);
+  }
+  return buf;
+}
+#endif
+
+static const char* timestamp(time_t t, char* buf, size_t sz)
+{
+  const std::string s_timestampFormat = "%Y-%m-%dT%T";
+  struct tm tm;
+  size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&t, &tm));
+  if (len == 0) {
+    int ret = snprintf(buf, sz, "%lld", static_cast<long long>(t));
+    if (ret < 0 || static_cast<size_t>(ret) >= sz) {
+      if (sz > 0) {
+        buf[0] = '\0';
+      }
+    }
+  }
+  return buf;
+}
+
 uint64_t SyncRes::doEDNSDump(int fd)
 {
   int newfd = dup(fd);
@@ -730,7 +771,7 @@ uint64_t SyncRes::doEDNSDump(int fd)
   for(const auto& eds : t_sstorage.ednsstatus) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%d\t%s", eds.address.toString().c_str(), (int)eds.mode, ctime_r(&eds.modeSetAt, tmp));
+    fprintf(fp.get(), "%s\t%d\t%s\n", eds.address.toString().c_str(), (int)eds.mode, timestamp(eds.modeSetAt, tmp, sizeof(tmp)));
   }
   return count;
 }
@@ -786,7 +827,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
     count++;
     char tmp[26];
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", std::get<0>(i.thing).toString().c_str(), std::get<1>(i.thing).toLogString().c_str(), std::get<2>(i.thing), i.count, ctime_r(&i.ttd, tmp));
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s\n", std::get<0>(i.thing).toString().c_str(), std::get<1>(i.thing).toLogString().c_str(), std::get<2>(i.thing), i.count, timestamp(i.ttd, tmp, sizeof(tmp)));
   }
 
   return count;
@@ -832,8 +873,7 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   {
     count++;
     char tmp[26];
-    ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s\n", i.key.toString().c_str(), i.value, timestamp(i.last, tmp, sizeof(tmp)));
   }
 
   return count;
@@ -874,8 +914,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
   {
     count++;
     char tmp[26];
-    ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s", i.key.toString().c_str(), i.value, tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s\n", i.key.toString().c_str(), i.value, timestamp(i.last, tmp, sizeof(tmp)));
   }
 
   return count;
@@ -920,8 +959,7 @@ uint64_t SyncRes::doDumpSavedParentNSSets(int fd)
     }
     count++;
     char tmp[26];
-    ctime_r(&i.d_ttd, tmp);
-    fprintf(fp.get(), "%s\t%llu\t%s", i.d_domain.toString().c_str(), static_cast<unsigned long long>(i.d_count), tmp);
+    fprintf(fp.get(), "%s\t%" PRIu64 "\t%s\n", i.d_domain.toString().c_str(), i.d_count, timestamp(i.d_ttd, tmp, sizeof(tmp)));
   }
 
   return count;
