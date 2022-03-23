@@ -656,8 +656,20 @@ auto checked_conv(F from) -> T
   static_assert((std::numeric_limits<F>::is_signed && std::numeric_limits<T>::is_signed) || (!std::numeric_limits<F>::is_signed && !std::numeric_limits<T>::is_signed),
                 "checked_conv: The `T` and `F` types must either both be signed or unsigned");
 
-  if (from < std::numeric_limits<T>::min() || from > std::numeric_limits<T>::max()) {
-    throw std::out_of_range("checked_conv: conversion from value that is out of range for target type");
+  constexpr auto tMin = std::numeric_limits<T>::min();
+  if constexpr (std::numeric_limits<F>::min() != tMin) {
+    if (from < tMin) {
+      string s = "checked_conv: source value " + std::to_string(from) + " is smaller than target's minimum possible value " + std::to_string(tMin);
+      throw std::out_of_range(s);
+    }
+  }
+
+  constexpr auto tMax = std::numeric_limits<T>::max();
+  if constexpr (std::numeric_limits<F>::max() != tMax) {
+    if (from > tMax) {
+      string s = "checked_conv: source value " + std::to_string(from) + " is larger than target's maximum possible value " + std::to_string(tMax);
+      throw std::out_of_range(s);
+    }
   }
 
   return static_cast<T>(from);
