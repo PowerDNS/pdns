@@ -38,6 +38,75 @@
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
 
+template<class T>
+class fails_t : public boost::noncopyable
+{
+public:
+  typedef uint64_t counter_t;
+  struct value_t {
+    value_t(const T &a) : key(a) {}
+    T key;
+    mutable counter_t value{0};
+    time_t last{0};
+  };
+
+  typedef multi_index_container<value_t,
+                                indexed_by<
+                                  ordered_unique<tag<T>, member<value_t, T, &value_t::key>>,
+                                  ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
+                                  >> cont_t;
+
+  cont_t getMapCopy() const {
+    return d_cont;
+  }
+
+  counter_t value(const T& t) const
+  {
+    auto i = d_cont.find(t);
+
+    if (i == d_cont.end()) {
+      return 0;
+    }
+    return i->value;
+  }
+
+  counter_t incr(const T& key, const struct timeval& now)
+  {
+    auto i = d_cont.insert(key).first;
+
+    if (i->value < std::numeric_limits<counter_t>::max()) {
+      i->value++;
+    }
+    auto &ind = d_cont.template get<T>();
+    time_t tm = now.tv_sec;
+    ind.modify(i, [tm](value_t &val) { val.last = tm; });
+    return i->value;
+  }
+
+  void clear(const T& a)
+  {
+    d_cont.erase(a);
+  }
+
+  void clear()
+  {
+    d_cont.clear();
+  }
+
+  size_t size() const
+  {
+    return d_cont.size();
+  }
+
+  void prune(time_t cutoff) {
+    auto &ind = d_cont.template get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(cutoff));
+  }
+
+private:
+  cont_t d_cont;
+};
+
 struct SavedParentEntry
 {
   SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
@@ -90,8 +159,8 @@ EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 const std::unordered_set<QType> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
-LockGuarded<fails_t<ComboAddress>> SyncRes::s_fails;
-LockGuarded<fails_t<DNSName>> SyncRes::s_nonresolving;
+static LockGuarded<fails_t<ComboAddress>> s_fails;
+static LockGuarded<fails_t<DNSName>> s_nonresolving;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -723,6 +792,26 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   return count;
 }
 
+uint64_t SyncRes::getFailedServersSize()
+{
+  return s_fails.lock()->size();
+}
+
+void SyncRes::clearFailedServers()
+{
+  s_fails.lock()->clear();
+}
+
+void SyncRes::pruneFailedServers(time_t cutoff)
+{
+  s_fails.lock()->prune(cutoff);
+}
+
+unsigned long SyncRes::getServerFailsCount(const ComboAddress& server)
+{
+  return s_fails.lock()->value(server);
+}
+
 uint64_t SyncRes::doDumpFailedServers(int fd)
 {
   int newfd = dup(fd);
@@ -748,6 +837,21 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   }
 
   return count;
+}
+
+uint64_t SyncRes::getNonResolvingNSSize()
+{
+  return s_nonresolving.lock()->size();
+}
+
+void SyncRes::clearNonResolvingNS()
+{
+  s_nonresolving.lock()->clear();
+}
+
+void SyncRes::pruneNonResolving(time_t cutoff)
+{
+  s_nonresolving.lock()->prune(cutoff);
 }
 
 uint64_t SyncRes::doDumpNonResolvingNS(int fd)
