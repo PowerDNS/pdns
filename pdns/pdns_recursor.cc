@@ -579,7 +579,9 @@ static void sendNODLookup(const shared_ptr<Logr::Logger>& nodlogger, const DNSNa
       qname = dname + g_nodLookupDomain;
     }
     catch (const std::range_error& e) {
-      nodlogger->v(10)->error(Logr::Error, "DNSName too long", "Unable to send NOD lookup");
+      if (g_logCommonErrors) {
+        nodlogger->v(10)->error(Logr::Error, "DNSName too long", "Unable to send NOD lookup");
+      }
       ++g_stats.nodLookupsDroppedOversize;
       return;
     }
