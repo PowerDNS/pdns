@@ -20,7 +20,7 @@ This has the consequence that authoritative nameservers will be contacted over I
 
 New settings
 ^^^^^^^^^^^^
-- The :ref:`settings-save-parent-ns-set` setting has been introduced, enabling fallback cases if the parent ``NS`` set contains names not in the child ``NS`` set.
+- The :ref:`setting-save-parent-ns-set` setting has been introduced, enabling fallback cases if the parent ``NS`` set contains names not in the child ``NS`` set.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -37,7 +37,7 @@ The following function is available to configure table based proxy mapping.
 Reloading the Lua configuration will replace the current configuration with the new one.
 If the subnets specified in multiple :func:`addProxyMapping` calls overlap, the most specific one is used.
 By default, the address *before* mapping ``S`` is used for internal logging and ``Protobuf`` messages.
-See :func:`protobufServer` on how to tune the source address logged in ``Protobuf` messages.
+See :func:`protobufServer` on how to tune the source address logged in ``Protobuf`` messages.
 
 .. function:: addProxyMapping(subnet, ip)
 
