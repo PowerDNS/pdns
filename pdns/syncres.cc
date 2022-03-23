@@ -302,12 +302,40 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
     }
     break;
   }
-  case AdditionalMode::ResolveDeferred:
-    // FIXME: Not yet implemented
-    // Look in cache for authoritative answer, if available return it
-    // If not, look in nergache and submit if not there as well. The logic should be the same as
-    // #11294, which is in review atm.
+  case AdditionalMode::ResolveDeferred: {
+    const bool oldCacheOnly = setCacheOnly(true);
+    set<GetBestNSAnswer> beenthere;
+    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
+    setCacheOnly(oldCacheOnly);
+    if (res == 0 && addRecords.size() > 0) {
+      // We're conservative here. We do not add Bogus records in any circumstance, we add Indeterminates only if no
+      // validation is required.
+      if (vStateIsBogus(state)) {
+        return;
+      }
+      if (shouldValidate() && state != vState::Secure && state != vState::Insecure) {
+        return;
+      }
+      bool found = false;
+      for (auto& rec : addRecords) {
+        if (rec.d_place == DNSResourceRecord::ANSWER) {
+          found = true;
+          additionals.push_back(std::move(rec));
+        }
+      }
+      if (found) {
+        return;
+      }
+    }
+    // Not found in cache, check negcache and push task if also not in negcache
+    NegCache::NegCacheEntry ne;
+    bool inNegCache = g_negCache->get(qname, qtype, d_now, ne, false);
+    if (!inNegCache) {
+      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60);
+    } else {
+    }
     break;
+  }
   case AdditionalMode::Ignore:
     break;
   }
