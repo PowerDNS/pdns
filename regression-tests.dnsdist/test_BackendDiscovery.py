@@ -15,11 +15,13 @@ class TestBackendDiscovery(DNSDistTest):
     _svcUpgradeDoTBackendDifferentAddrPort1 = 10604
     _svcUpgradeDoTBackendDifferentAddrPort2 = 10605
     _svcUpgradeDoTUnreachableBackendPort = 10606
+    _svcBrokenDNSResponseBackendPort = 10607
+    _svcUpgradeDoHBackendWithoutPathPort = 10608
     _upgradedBackendsPool = 'upgraded'
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_noSVCBackendPort', '_svcNoUpgradeBackendPort', '_svcUpgradeDoTBackendPort', '_upgradedBackendsPool', '_svcUpgradeDoHBackendPort', '_svcUpgradeDoTBackendDifferentAddrPort1', '_svcUpgradeDoTBackendDifferentAddrPort2', '_svcUpgradeDoTUnreachableBackendPort']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_noSVCBackendPort', '_svcNoUpgradeBackendPort', '_svcUpgradeDoTBackendPort', '_upgradedBackendsPool', '_svcUpgradeDoHBackendPort', '_svcUpgradeDoTBackendDifferentAddrPort1', '_svcUpgradeDoTBackendDifferentAddrPort2', '_svcUpgradeDoTUnreachableBackendPort', '_svcBrokenDNSResponseBackendPort', '_svcUpgradeDoHBackendWithoutPathPort']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -46,6 +48,12 @@ class TestBackendDiscovery(DNSDistTest):
 
     -- SVCB upgrade to DoT but upgraded port is not reachable
     newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+
+    -- The SVCB response is not valid
+    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+
+    -- SVCB upgrade to DoH except the path is not specified
+    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
     """
     _verboseMode = True
 
@@ -70,6 +78,27 @@ class TestBackendDiscovery(DNSDistTest):
                                     dns.rdatatype.SVCB,
                                     '1 tls.tests.dnsdist.org. alpn="dot" port=10652 ipv4hint=127.0.0.1')
         response.answer.append(rrset)
+        # add a useless A record for good measure
+        rrset = dns.rrset.from_text(request.question[0].name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        # plus more useless records in authority
+        rrset = dns.rrset.from_text(request.question[0].name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.authority.append(rrset)
+        # and finally a valid, albeit useless, hint
+        rrset = dns.rrset.from_text('tls.tests.dnsdist.org.',
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.additional.append(rrset)
         return response.to_wire()
 
     def UpgradeDoHCallback(request):
@@ -109,6 +138,21 @@ class TestBackendDiscovery(DNSDistTest):
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
                                     '1 tls.tests.dnsdist.org. alpn="dot" port=10656 ipv4hint=127.0.0.1')
+        response.answer.append(rrset)
+        return response.to_wire()
+
+    def BrokenResponseCallback(request):
+        response = dns.message.make_response(request)
+        response.question = []
+        return response.to_wire()
+
+    def UpgradeDoHMissingPathCallback(request):
+        response = dns.message.make_response(request)
+        rrset = dns.rrset.from_text(request.question[0].name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.SVCB,
+                                    '1 tls.tests.dnsdist.org. alpn="h2" port=10653 ipv4hint=127.0.0.1')
         response.answer.append(rrset)
         return response.to_wire()
 
@@ -163,6 +207,14 @@ class TestBackendDiscovery(DNSDistTest):
         # and NO corresponding DoT responder
         # this is not a mistake!
 
+        BrokenResponseResponder = threading.Thread(name='Broken response Responder', target=cls.TCPResponder, args=[cls._svcBrokenDNSResponseBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.BrokenResponseCallback])
+        BrokenResponseResponder.setDaemon(True)
+        BrokenResponseResponder.start()
+
+        DOHMissingPathResponder = threading.Thread(name='DoH missing path Responder', target=cls.TCPResponder, args=[cls._svcUpgradeDoHBackendWithoutPathPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.UpgradeDoHMissingPathCallback])
+        DOHMissingPathResponder.setDaemon(True)
+        DOHMissingPathResponder.start()
+
     def checkBackendsUpgraded(self):
         output = self.sendConsoleCommand('showServers()')
         print(output)
@@ -187,6 +239,8 @@ class TestBackendDiscovery(DNSDistTest):
             # 10604 has been upgraded to 10654 and removed
             '127.0.0.2:10605': '',
             '127.0.0.1:10606': '',
+            '127.0.0.1:10607': '',
+            '127.0.0.1:10608': '',
             '127.0.0.1:10652': 'upgraded',
             '127.0.0.1:10653': '',
             '127.0.0.2:10654': ''
