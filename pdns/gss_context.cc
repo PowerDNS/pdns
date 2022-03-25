@@ -52,6 +52,8 @@ GssContextError GssContext::getError() { return GSS_CONTEXT_UNSUPPORTED; }
 
 #include "lock.hh"
 
+#define TSIG_GSS_EXPIRE_INTERVAL 60
+
 class GssCredential : boost::noncopyable
 {
 public:
@@ -77,12 +79,12 @@ public:
 
   ~GssCredential()
   {
-    OM_uint32 tmp_maj __attribute__((unused)), tmp_min __attribute__((unused));
+    OM_uint32 tmp_min __attribute__((unused));
     if (d_cred != GSS_C_NO_CREDENTIAL) {
-      tmp_maj = gss_release_cred(&tmp_min, &d_cred);
+      (void)gss_release_cred(&tmp_min, &d_cred);
     }
     if (d_name != GSS_C_NO_NAME) {
-      tmp_maj = gss_release_name(&tmp_min, &d_name);
+      (void)gss_release_name(&tmp_min, &d_name);
     }
   };
 
@@ -96,12 +98,12 @@ public:
 
   bool renew()
   {
-    OM_uint32 time_rec, tmp_maj __attribute__((unused)), tmp_min __attribute__((unused));
+    OM_uint32 time_rec, tmp_maj, tmp_min __attribute__((unused));
     tmp_maj = gss_acquire_cred(&tmp_min, d_name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, d_usage, &d_cred, nullptr, &time_rec);
 
     if (tmp_maj != GSS_S_COMPLETE) {
       d_valid = false;
-      tmp_maj = gss_release_name(&tmp_min, &d_name);
+      (void)gss_release_name(&tmp_min, &d_name);
       d_name = GSS_C_NO_NAME;
       return false;
     }
@@ -126,7 +128,7 @@ public:
   gss_cred_usage_t d_usage;
   gss_name_t d_name{GSS_C_NO_NAME};
   gss_cred_id_t d_cred{GSS_C_NO_CREDENTIAL};
-  time_t d_expires{time(nullptr) + 60}; // partly initialized wil be cleaned up
+  time_t d_expires{time(nullptr) + 60}; // partly initialized will be cleaned up
   bool d_valid{false};
 }; // GssCredential
 
@@ -136,18 +138,12 @@ static LockGuarded<std::unordered_map<std::string, std::shared_ptr<GssCredential
 class GssSecContext : boost::noncopyable
 {
 public:
-  GssSecContext(std::shared_ptr<GssCredential> cred) :
-    d_cred(cred)
+  GssSecContext(std::shared_ptr<GssCredential> cred)
   {
     if (!cred->valid()) {
       throw PDNSException("Invalid credential " + cred->d_nameS);
     }
     d_cred = cred;
-    d_state = GssStateInitial;
-    d_ctx = GSS_C_NO_CONTEXT;
-    d_expires = 0;
-    d_peer_name = GSS_C_NO_NAME;
-    d_type = GSS_CONTEXT_NONE;
   }
 
   ~GssSecContext()
@@ -173,7 +169,7 @@ public:
     GssStateNegotiate,
     GssStateComplete,
     GssStateError
-  } d_state;
+  } d_state{GssStateInitial};
 }; // GssSecContext
 
 static LockGuarded<std::unordered_map<DNSName, std::shared_ptr<GssSecContext>>> s_gss_sec_context;
@@ -196,7 +192,7 @@ static void expire()
 {
   static time_t s_last_expired;
   time_t now = time(nullptr);
-  if (now - s_last_expired < 60) {
+  if (now - s_last_expired < TSIG_GSS_EXPIRE_INTERVAL) {
     return;
   }
   s_last_expired = now;

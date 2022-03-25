@@ -661,7 +661,7 @@ Enables EDNS subnet processing, for backends that support it.
 -  Boolean
 -  Default: no
 
-Enable the accepting of GSS-TSIG signed messages.
+Enable accepting GSS-TSIG signed messages.
 In addition to this setting, see :doc:`tsig`.
 
 .. _setting-enable-lua-records:

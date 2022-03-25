@@ -650,7 +650,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
-    DNSName algorithm=trc.d_algoName; // FIXME400: check
+    DNSName algorithm=trc.d_algoName;
     if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
       algorithm = DNSName("hmac-md5");
     if (algorithm != DNSName("gss-tsig")) {
