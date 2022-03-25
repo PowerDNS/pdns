@@ -339,7 +339,6 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
          logger->error(Logr::Warning, err, "Unable to open file pointer"));
     return false;
   }
-  fd = -1;
 
   try {
     newZone->dump(fp.get());
