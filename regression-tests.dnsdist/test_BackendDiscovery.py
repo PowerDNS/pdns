@@ -92,12 +92,17 @@ class TestBackendDiscovery(DNSDistTest):
                                     dns.rdatatype.A,
                                     '192.0.2.1')
         response.authority.append(rrset)
-        # and finally a valid, albeit useless, hint
+        # and finally valid, albeit useless, hints
         rrset = dns.rrset.from_text('tls.tests.dnsdist.org.',
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '127.0.0.1')
+        rrset = dns.rrset.from_text('tls.tests.dnsdist.org.',
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
         response.additional.append(rrset)
         return response.to_wire()
 
@@ -143,6 +148,7 @@ class TestBackendDiscovery(DNSDistTest):
 
     def BrokenResponseCallback(request):
         response = dns.message.make_response(request)
+        response.use_edns(edns=False)
         response.question = []
         return response.to_wire()
 
