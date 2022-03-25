@@ -346,6 +346,7 @@ dedup
 defcontent
 defpol
 defttl
+Dehaine
 DENIC
 deref
 descclassname
@@ -1502,6 +1503,7 @@ settting
 setuptools
 setvariable
 Sgs
+Shabanov
 Shafir
 shantikulkarni
 shinsterneck
