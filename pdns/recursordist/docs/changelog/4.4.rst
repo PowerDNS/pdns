@@ -2,6 +2,19 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.8
+  :released: 25th of March 2022
+
+  This is a security fix release for :doc:`PowerDNS Security Advisory 2022-01 <../security-advisories/powerdns-advisory-2022-01>`.
+  Additionally, because CentOS 8 is End Of Life now, we have switched those builds to Oracle Linux 8. The resulting packages are compatible with RHEL and all derivatives.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: XXXXX
+
+    Fix validation of incremental zone transfers (IXFRs). 
+
+.. changelog::
   :version: 4.4.7
   :released: 5th of November 2021
 
