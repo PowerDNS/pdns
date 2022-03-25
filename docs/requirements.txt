@@ -5,3 +5,4 @@ git+https://github.com/pieterlexis/sphinx-changelog@render-tags
 sphinxcontrib-fulltoc
 guzzle_sphinx_theme
 docutils!=0.15,<0.18
+jinja2<3.1.0
