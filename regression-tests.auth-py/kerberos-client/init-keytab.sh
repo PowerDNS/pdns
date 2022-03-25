@@ -1,5 +1,5 @@
 echo commands to run:
-echo Passwords enterd shoudl match those in kerberos-server setup script
+echo Passwords entered should match those in the kerberos-server setup script
 echo rm -f kt.keytab
 echo ktutil
 echo add_entry -password -p testuser1@EXAMPLE.COM -k 1 -e aes256-cts-hmac-sha1-96

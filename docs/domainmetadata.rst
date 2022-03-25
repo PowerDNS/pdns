@@ -112,6 +112,13 @@ Use this named TSIG key to retrieve this zone from its master, see :ref:`tsig-pr
 
 GSS-ALLOW-AXFR-PRINCIPAL
 ------------------------
+.. versionchanged:: 4.3.1
+
+   GSS support was removed
+
+.. versionchanged:: 4.7.0
+
+   GSS support was added back
 
 Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 ``host/something@REALM``, ``DNS/something@REALM`` or ``user@REALM``.

@@ -6,9 +6,11 @@
 #include "auth-main.hh"
 
 void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
-#if 0
-  auto [i,a,s] = GssContext::getCounts();
-  cerr << "#init_creds: " << i << " #accept_creds: " << a << " #secctxs: " << s << endl;
+#ifdef ENABLE_GSS_TSIG
+  if (g_doGssTSIG) {
+    auto [i,a,s] = GssContext::getCounts();
+    g_log << Logger::Debug << "GSS #init_creds: " << i << " #accept_creds: " << a << " #secctxs: " << s << endl;
+  }
 #endif
 
   TKEYRecordContent tkey_in;
