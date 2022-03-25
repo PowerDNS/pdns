@@ -695,7 +695,7 @@ auto checked_conv(F from) -> T
  * \param[in] str The input string to be converted.
  *
  * \param[in] idx Location to store the index at which processing
- * stopped.
+ * stopped. If the input `str` is empty, `*idx` shall be set to 0.
  *
  * \param[in] base The numerical base for conversion.
  *
@@ -707,6 +707,10 @@ auto checked_stoi(const std::string& str, size_t* idx = nullptr, int base = 10) 
   static_assert(std::numeric_limits<T>::is_integer, "checked_stoi: The `T` type must be an integer");
 
   if (str.empty()) {
+    if (idx != nullptr) {
+      *idx = 0;
+    }
+
     return 0; // compatibility
   }
 
@@ -732,7 +736,7 @@ auto checked_stoi(const std::string& str, size_t* idx = nullptr, int base = 10) 
  * \param[in] str The input string to be converted.
  *
  * \param[in] idx Location to store the index at which processing
- * stopped.
+ * stopped. If the input `str` is empty, `*idx` shall be set to 0.
  *
  * \param[in] base The numerical base for conversion.
  *
