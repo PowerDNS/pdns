@@ -54,7 +54,7 @@ using MDBRWTransaction = std::unique_ptr<MDBRWTransactionImpl>;
 class MDBEnv
 {
 public:
-  MDBEnv(const char* fname, int flags, int mode);
+  MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
 
   ~MDBEnv()
   {
@@ -87,7 +87,7 @@ private:
   std::map<std::thread::id, int> d_ROtransactionsOut;
 };
 
-std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode);
+std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB=(sizeof(void *)==4) ? 100 : 16000);
 
 
 

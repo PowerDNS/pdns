@@ -219,9 +219,9 @@ public:
   {
     DNSName domain;
     std::string content;
-    unsigned int flags;
-    bool active;
-    bool published;
+    unsigned int flags{0};
+    bool active{true};
+    bool published{true};
   };
   class LMDBResourceRecord : public DNSResourceRecord
   {
@@ -311,5 +311,6 @@ private:
   DNSName d_transactiondomain;
   uint32_t d_transactiondomainid;
   bool d_dolog;
+  bool d_random_ids;
   DTime d_dtime; // used only for logging
 };

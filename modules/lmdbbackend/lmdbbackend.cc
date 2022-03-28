@@ -34,11 +34,13 @@
 #include "pdns/version.hh"
 #include "pdns/arguments.hh"
 #include "pdns/lock.hh"
+#include "pdns/uuid-utils.hh"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 
 #include <boost/iostreams/device/back_inserter.hpp>
 
@@ -67,6 +69,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
   string syncMode = toLower(getArg("sync-mode"));
 
+  d_random_ids = mustDo("random-ids");
+
   if (syncMode == "nosync")
     d_asyncFlag = MDB_NOSYNC;
   else if (syncMode == "nometasync")
@@ -78,7 +82,14 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   else
     throw std::runtime_error("Unknown sync mode " + syncMode + " requested for LMDB backend");
 
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600), "domains");
+  uint64_t mapSize = 0;
+  try {
+    mapSize = std::stoll(getArg("map-size"));
+  }
+  catch (const std::exception& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
+  }
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600, mapSize), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
@@ -113,6 +124,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       else {
         s_shards = atoi(getArg("shards").c_str());
         txn->put(pdnsdbi, "shards", s_shards);
+      }
+
+      MDBOutVal gotuuid;
+      if (txn->get(pdnsdbi, "uuid", gotuuid)) {
+        const auto uuid = getUniqueID();
+        const string uuids(uuid.begin(), uuid.end());
+        txn->put(pdnsdbi, "uuid", uuids);
       }
 
       txn->commit();
@@ -969,7 +987,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     di.masters = masters;
     di.account = account;
 
-    txn.put(di);
+    txn.put(di, 0, d_random_ids);
     txn.commit();
   }
 
@@ -1060,7 +1078,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 
   for (const auto& m : meta) {
     DomainMeta dm{name, kind, m};
-    txn.put(dm);
+    txn.put(dm, 0, d_random_ids);
   }
   txn.commit();
   return true;
@@ -1097,7 +1115,7 @@ bool LMDBBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb{name, key.content, key.flags, key.active, key.published};
-  id = txn.put(kdb);
+  id = txn.put(kdb, 0, d_random_ids);
   txn.commit();
 
   return true;
@@ -1703,7 +1721,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
   tk.algorithm = algorithm;
   tk.key = content;
 
-  txn.put(tk);
+  txn.put(tk, 0, d_random_ids);
   txn.commit();
 
   return true;
@@ -1740,8 +1758,10 @@ public:
     declare(suffix, "filename", "Filename for lmdb", "./pdns.lmdb");
     declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, mapasync, sync", "mapasync");
     // there just is no room for more on 32 bit
-    declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
+    declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(void*) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
+    declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
+    declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
   }
   DNSBackend* make(const string& suffix = "") override
   {
