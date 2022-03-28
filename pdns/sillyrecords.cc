@@ -13,8 +13,8 @@
 #include <errno.h>
 #include "dnsrecords.hh"
 
-static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
-                                 1000000,10000000,100000000,1000000000};
+const static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
+  1000000,10000000,100000000,1000000000};
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
 static uint8_t precsize_aton(const char **strptr)

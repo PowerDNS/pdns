@@ -1571,7 +1571,7 @@ BOOST_AUTO_TEST_CASE(test_cname_loop)
 
   // Again to check cache
   try {
-    res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK(false);
   }
   catch (const ImmediateServFailException& ex) {
@@ -1639,7 +1639,7 @@ BOOST_AUTO_TEST_CASE(test_cname_long_loop)
 
   // And again to check cache
   try {
-    res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+    sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK(false);
   }
   catch (const ImmediateServFailException& ex) {

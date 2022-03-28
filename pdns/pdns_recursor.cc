@@ -2408,6 +2408,7 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 
 static unsigned int selectWorker(unsigned int hash)
 {
+  assert(RecThreadInfo::numWorkers() != 0);
   if (g_balancingFactor == 0) {
     return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numWorkers());
   }

@@ -2712,6 +2712,7 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
 
   try {
     res.record_count = g_recCache->doWipeCache(canon, subtree, qtype);
+    // scanbuild complains here about an allocated function object that is being leaked. Needs investigation
     res.packet_count = broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(canon, subtree, qtype); });
     res.negative_record_count = g_negCache->wipe(canon, subtree);
     if (g_aggressiveNSECCache) {
