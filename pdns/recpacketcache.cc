@@ -192,10 +192,9 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   d_packetCache.insert(e);
 
   if (d_packetCache.size() > d_maxSize) {
-    auto it = d_packetCache.begin();
-    d_packetCache.erase(it);
+    auto& seq_idx = d_packetCache.get<SequencedTag>();
+    seq_idx.erase(seq_idx.begin());
   }
-
 }
 
 uint64_t RecursorPacketCache::bytes() const
