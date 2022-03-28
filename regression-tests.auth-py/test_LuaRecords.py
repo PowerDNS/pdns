@@ -11,14 +11,19 @@ from authtests import AuthTest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class FakeHTTPServer(BaseHTTPRequestHandler):
-    def _set_headers(self):
-        self.send_response(200)
+    def _set_headers(self, response_code=200):
+        self.send_response(response_code)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
     def do_GET(self):
+        if self.path == '/404':
+            self._set_headers(404)
+            self.wfile.write(bytes('this page does not exist', 'utf-8'))
+            return
+
         self._set_headers()
-        if (self.path == '/ping.json'):
+        if self.path == '/ping.json':
             self.wfile.write(bytes('{"ping":"pong"}', 'utf-8'))
         else:
             self.wfile.write(bytes("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>", "utf-8"))
@@ -80,6 +85,8 @@ mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
 eu-west      IN    LUA    A   ( ";include('config')                         "
                                 "return ifurlup('http://www.lua.org:8080/', "
                                 "{{EUWips, EUEips, USAips}}, settings)      ")
+
+ifurlextup   IN    LUA    A   "ifurlextup({{{{['192.168.0.1']='http://{prefix}.101:8080/404',['192.168.0.2']='http://{prefix}.102:8080/404'}}, {{['192.168.0.3']='http://{prefix}.101:8080/'}}}})"
 
 nl           IN    LUA    A   ( ";include('config')                                "
                                 "return ifportup(8081, NLips) ")
@@ -323,6 +330,20 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlextup(self):
+        expected = [dns.rrset.from_text('ifurlextup.example.org.', 0, dns.rdataclass.IN, dns.rdatatype.A, '192.168.0.3')]
+
+        query = dns.message.make_query('ifurlextup.example.org', 'A')
+        res = self.sendUDPQuery(query)
+
+        # wait for health checks to happen
+        time.sleep(5)
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, expected)
 
     def testIfurlupSimplified(self):
         """
