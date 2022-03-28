@@ -441,7 +441,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         // work, we give up. For reused connections, we assume the
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
-        isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop
+        isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop, scanbuild complains here, which is a false positive afaik
         std::string nsName;
         if (context && !context->d_nsName.empty()) {
           nsName = context->d_nsName.toStringNoDot();
