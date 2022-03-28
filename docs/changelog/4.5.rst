@@ -10,7 +10,7 @@ Changelogs for 4.5.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXXX
+    :pullreq: 11454
 
     Fix validation of incremental zone transfers (IXFRs).
 
