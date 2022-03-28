@@ -891,7 +891,7 @@ static void doStats(void)
 
     g_log << Logger::Notice << "stats: throttle map: "
           << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
-          << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize) << ", failed ns: "
+          << SyncRes::getNSSpeedsSize() << ", failed ns: "
           << SyncRes::getFailedServersSize() << ", ednsmap: "
           << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "
           << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
@@ -1876,12 +1876,6 @@ static void houseKeeping(void*)
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
     });
 
-    // This is a full scan
-    static thread_local PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 100};
-    pruneNSpeedTask.runIfDue(now, [now]() {
-      SyncRes::pruneNSSpeeds(now.tv_sec - 300);
-    });
-
     static thread_local PeriodicTask pruneEDNSTask{"pruneEDNSTask", 5}; // period could likely be longer
     pruneEDNSTask.runIfDue(now, [now]() {
       SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
@@ -1931,6 +1925,11 @@ static void houseKeeping(void*)
         if (g_aggressiveNSECCache) {
           g_aggressiveNSECCache->prune(now.tv_sec);
         }
+      });
+
+      static PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 30};
+      pruneNSpeedTask.runIfDue(now, [now]() {
+        SyncRes::pruneNSSpeeds(now.tv_sec - 300);
       });
 
       static PeriodicTask pruneFailedServersTask{"pruneFailedServerTask", 5};

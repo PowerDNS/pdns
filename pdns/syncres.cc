@@ -107,6 +107,130 @@ private:
   cont_t d_cont;
 };
 
+/** Class that implements a decaying EWMA.
+    This class keeps an exponentially weighted moving average which, additionally, decays over time.
+    The decaying is only done on get.
+*/
+
+//! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
+/** Modelled to work mostly like the underlying DecayingEwma */
+class DecayingEwmaCollection
+{
+private:
+  struct DecayingEwma
+  {
+  public:
+    void submit(int val, const struct timeval& last, const struct timeval& now)
+    {
+      if (d_val == 0) {
+        d_val = static_cast<float>(val);
+      }
+      else {
+        float diff = makeFloat(last - now);
+        float factor = expf(diff) / 2.0f; // might be '0.5', or 0.0001
+        d_val = (1.0f - factor) * static_cast<float>(val) + factor * d_val;
+      }
+    }
+
+    float get(float factor)
+    {
+      return d_val *= factor;
+    }
+
+    float peek(void) const
+    {
+      return d_val;
+    }
+
+    float d_val{0};
+  };
+
+public:
+  DecayingEwmaCollection(const DNSName& name, const struct timeval ts = {0, 0})
+    : d_name(name), d_lastget(ts)
+  {
+  }
+
+  void submit(const ComboAddress& remote, int usecs, const struct timeval& now) const
+  {
+    d_collection[remote].submit(usecs, d_lastget, now);
+  }
+
+  float getFactor(const struct timeval &now) const
+  {
+    float diff = makeFloat(d_lastget - now);
+    return expf(diff / 60.0f); // is 1.0 or less
+  }
+
+  bool stale(time_t limit) const
+  {
+    return limit > d_lastget.tv_sec;
+  }
+
+  void purge(const std::map<ComboAddress, float>& keep) const
+  {
+    for (auto iter = d_collection.begin(); iter != d_collection.end(); ) {
+      if (keep.find(iter->first) != keep.end()) {
+        ++iter;
+      }
+      else {
+        iter = d_collection.erase(iter);
+      }
+    }
+  }
+
+  // d_collection is the modifyable part of the record, we index on DNSName and timeval, and DNSName never changes
+  mutable std::map<ComboAddress, DecayingEwma> d_collection;
+  const DNSName d_name;
+  struct timeval d_lastget;
+};
+
+class nsspeeds_t :
+  public multi_index_container<DecayingEwmaCollection,
+                               indexed_by<
+                                 hashed_unique<tag<DNSName>, member<DecayingEwmaCollection, const DNSName, &DecayingEwmaCollection::d_name>>,
+                                 ordered_non_unique<tag<timeval>, member<DecayingEwmaCollection, timeval, &DecayingEwmaCollection::d_lastget>>
+                                 >>
+{
+public:
+  const auto& find(const DNSName& name, const struct timeval& now)
+  {
+    const auto it = insert(DecayingEwmaCollection{name, now}).first;
+    return *it;
+  }
+
+  const auto& find(const DNSName& name)
+  {
+    const auto it = insert(DecayingEwmaCollection{name}).first;
+    return *it;
+  }
+
+  float fastest(const DNSName& name, const struct timeval& now)
+  {
+    auto& ind = get<DNSName>();
+    auto it = insert(DecayingEwmaCollection{name, now}).first;
+    if (it->d_collection.empty()) {
+      return 0;
+    }
+    // This could happen if find(DNSName) entered an entry; it's used only by test code
+    if (it->d_lastget.tv_sec == 0 && it->d_lastget.tv_usec == 0) {
+      ind.modify(it, [&](DecayingEwmaCollection& d) { d.d_lastget = now; });
+    }
+
+    float ret = std::numeric_limits<float>::max();
+    const float factor = it->getFactor(now);
+    for (auto& entry : it->d_collection) {
+      if (float tmp = entry.second.get(factor); tmp < ret) {
+        ret = tmp;
+      }
+    }
+    ind.modify(it, [&](DecayingEwmaCollection& d) { d.d_lastget = now; });
+    return ret;
+  }
+};
+
+static LockGuarded <nsspeeds_t> s_nsSpeeds;
+
 struct SavedParentEntry
 {
   SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd)
@@ -713,7 +837,6 @@ bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
   return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || !iter->second.shouldRecurse());
 }
 
-# if 0
 // Will be needed in the future
 static const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
 {
@@ -736,7 +859,6 @@ static const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
   }
   return buf;
 }
-#endif
 
 static const char* timestamp(time_t t, char* buf, size_t sz)
 {
@@ -776,6 +898,35 @@ uint64_t SyncRes::doEDNSDump(int fd)
   return count;
 }
 
+void SyncRes::pruneNSSpeeds(time_t limit)
+{
+  auto lock = s_nsSpeeds.lock();
+  auto &ind = lock->get<timeval>();
+  ind.erase(ind.begin(), ind.upper_bound(timeval{limit, 0}));
+}
+
+uint64_t SyncRes::getNSSpeedsSize()
+{
+  return s_nsSpeeds.lock()->size();
+}
+
+void SyncRes::submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval& now)
+{
+  auto lock = s_nsSpeeds.lock();
+  lock->find(server, now).submit(ca, usec, now);
+}
+
+void SyncRes::clearNSSpeeds()
+{
+  s_nsSpeeds.lock()->clear();
+}
+
+float SyncRes::getNSSpeed(const DNSName& server, const ComboAddress& ca)
+{
+  auto lock = s_nsSpeeds.lock();
+  return lock->find(server).d_collection[ca].peek();
+}
+
 uint64_t SyncRes::doDumpNSSpeeds(int fd)
 {
   int newfd = dup(fd);
@@ -787,19 +938,20 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; nsspeed dump from thread follows\n;\n");
-  uint64_t count=0;
 
-  for(const auto& i : t_sstorage.nsSpeeds)
-  {
+  fprintf(fp.get(), "; nsspeed dump follows\n;\n");
+  uint64_t count = 0;
+
+  // Create a copy to avoid holding the lock while doing I/O
+  for (const auto& i : *s_nsSpeeds.lock()) {
     count++;
 
     // an <empty> can appear hear in case of authoritative (hosted) zones
-    fprintf(fp.get(), "%s -> ", i.first.toLogString().c_str());
-    for(const auto& j : i.second.d_collection)
-    {
+    char tmp[26];
+    fprintf(fp.get(), "%s\t%s\t", i.d_name.toLogString().c_str(), timestamp(i.d_lastget, tmp, sizeof(tmp)));
+    for (const auto& j : i.d_collection) {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
-      fprintf(fp.get(), "%s/%f ", j.first.toString().c_str(), j.second.peek());
+      fprintf(fp.get(), "%s/%f\t", j.first.toString().c_str(), j.second.peek());
     }
     fprintf(fp.get(), "\n");
   }
@@ -1646,13 +1798,15 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
      is only one or none at all in the current set.
   */
   map<ComboAddress, float> speeds;
-  auto& collection = t_sstorage.nsSpeeds[qname];
-  float factor = collection.getFactor(d_now);
-  for(const auto& val: ret) {
-    speeds[val] = collection.d_collection[val].get(factor);
+  {
+    auto lock = s_nsSpeeds.lock();
+    auto& collection = lock->find(qname, d_now);
+    float factor = collection.getFactor(d_now);
+    for(const auto& val: ret) {
+      speeds[val] = collection.d_collection[val].get(factor);
+    }
+    collection.purge(speeds);
   }
-
-  t_sstorage.nsSpeeds[qname].purge(speeds);
 
   if (ret.size() > 1) {
     shuffle(ret.begin(), ret.end(), pdns::dns_random_engine());
@@ -2452,7 +2606,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
   std::vector<std::pair<DNSName, float>> rnameservers;
   rnameservers.reserve(tnameservers.size());
   for(const auto& tns: tnameservers) {
-    float speed = t_sstorage.nsSpeeds[tns.first].get(d_now);
+    float speed = s_nsSpeeds.lock()->fastest(tns.first, d_now);
     rnameservers.emplace_back(tns.first, speed);
     if(tns.first.empty()) // this was an authoritative OOB zone, don't pollute the nsSpeeds with that
       return rnameservers;
@@ -2484,10 +2638,9 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddre
   map<ComboAddress, float> speeds;
 
   for(const auto& val: nameservers) {
-    float speed;
     DNSName nsName = DNSName(val.toStringWithPort());
-    speed=t_sstorage.nsSpeeds[nsName].get(d_now);
-    speeds[val]=speed;
+    float speed = s_nsSpeeds.lock()->fastest(nsName, d_now);
+    speeds[val] = speed;
   }
   shuffle(nameservers.begin(),nameservers.end(), pdns::dns_random_engine());
   speedOrderCA so(speeds);
@@ -4563,7 +4716,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
       // don't account for resource limits, they are our own fault
       // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
-      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
+      s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
@@ -4589,7 +4742,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (!chained && !dontThrottle) {
 
       // let's make sure we prefer a different server for some time, if there is one available
-      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
+      s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
       if (doTCP) {
         // we can be more heavy-handed over TCP
@@ -4610,7 +4763,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
           // rather than throttling what could be the only server we have for this destination, let's make sure we try a different one if there is one available
           // on the other hand, we might keep hammering a server under attack if there is no other alternative, or the alternative is overwhelmed as well, but
           // at the very least we will detect that if our packets stop being answered
-          t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
+          s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
         }
         else {
           t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
@@ -5019,7 +5172,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           */
           //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-          t_sstorage.nsSpeeds[tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first].submit(*remoteIP, lwr.d_usec, d_now);
+          s_nsSpeeds.lock()->find(tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first, d_now).submit(*remoteIP, lwr.d_usec, d_now);
 
           /* we have received an answer, are we done ? */
           bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, *remoteIP);

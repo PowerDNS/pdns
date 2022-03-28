@@ -973,16 +973,6 @@ static uint64_t getNegCacheSize()
   return g_negCache->size();
 }
 
-uint64_t* pleaseGetNsSpeedsSize()
-{
-  return new uint64_t(SyncRes::getNSSpeedsSize());
-}
-
-static uint64_t getNsSpeedsSize()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
-}
-
 uint64_t* pleaseGetEDNSStatusesSize()
 {
   return new uint64_t(SyncRes::getEDNSStatusesSize());
@@ -1244,7 +1234,7 @@ static void registerAllStats1()
   addGetStat("negcache-entries", getNegCacheSize);
   addGetStat("throttle-entries", getThrottleSize);
 
-  addGetStat("nsspeeds-entries", getNsSpeedsSize);
+  addGetStat("nsspeeds-entries", SyncRes::getNSSpeedsSize);
   addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
   addGetStat("non-resolving-nameserver-entries", SyncRes::getNonResolvingNSSize);
 
@@ -1988,7 +1978,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpEDNSMap, cmd);
   }
   if (cmd == "dump-nsspeeds") {
-    return doDumpToFile(s, pleaseDumpNSSpeeds, cmd);
+    return doDumpToFile(s, pleaseDumpNSSpeeds, cmd, false);
   }
   if (cmd == "dump-failedservers") {
     return doDumpToFile(s, pleaseDumpFailedServers, cmd, false);
