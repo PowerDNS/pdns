@@ -221,7 +221,7 @@ void TCPNameserver::doConnection(int fd)
 {
   setThreadName("pdns/tcpConnect");
   std::unique_ptr<DNSPacket> packet;
-  ComboAddress remote;
+  ComboAddress remote, accountremote;
   socklen_t remotelen=sizeof(remote);
   size_t transactions = 0;
   time_t start = 0;
@@ -296,6 +296,10 @@ void TCPNameserver::doConnection(int fd)
       }
       inner_remote = psource;
       inner_tcp = tcp;
+      accountremote = psource;
+    }
+    else {
+      accountremote = remote;
     }
 
     for(;;) {
@@ -334,8 +338,8 @@ void TCPNameserver::doConnection(int fd)
       }
 
       getQuestion(fd, mesg.get(), pktlen, remote, remainingTime);
-      S.inc("tcp-queries");      
-      if(remote.sin4.sin_family == AF_INET6)
+      S.inc("tcp-queries");
+      if (accountremote.sin4.sin_family == AF_INET6)
         S.inc("tcp6-queries");
       else
         S.inc("tcp4-queries");
@@ -376,6 +380,7 @@ void TCPNameserver::doConnection(int fd)
           if(logDNSQueries)
             g_log<<": packetcache HIT"<<endl;
           cached->setRemote(&packet->d_remote);
+          cached->d_inner_remote = packet->d_inner_remote;
           cached->d.id=packet->d.id;
           cached->d.rd=packet->d.rd; // copy in recursion desired bit
           cached->commitD(); // commit d to the packet                        inlined
