@@ -254,7 +254,7 @@ extern std::set<uint16_t> g_avoidUdpSourcePorts;
 #endif
 
 /* without reuseport, all listeners share the same sockets */
-typedef vector<pair<int, boost::function<void(int, boost::any&)>>> deferredAdd_t;
+typedef vector<pair<int, std::function<void(int, boost::any&)>>> deferredAdd_t;
 extern deferredAdd_t g_deferredAdds;
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;

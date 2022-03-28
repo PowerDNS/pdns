@@ -1105,7 +1105,7 @@ void broadcastFunction(const pipefunc_t& func)
 }
 
 template <class T>
-void* voider(const boost::function<T*()>& func)
+void* voider(const std::function<T*()>& func)
 {
   return func();
 }

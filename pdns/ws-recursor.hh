@@ -39,7 +39,7 @@ public:
 
   friend void AsyncServerNewConnectionMT(void* p);
 
-  typedef boost::function<void(std::shared_ptr<Socket>)> newconnectioncb_t;
+  typedef std::function<void(std::shared_ptr<Socket>)> newconnectioncb_t;
   void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:

@@ -73,7 +73,7 @@ class StatBag
   map<string, LockGuarded<StatRing<string, CIStringCompare> > > d_rings;
   map<string, LockGuarded<StatRing<SComboAddress> > > d_comboRings;
   map<string, LockGuarded<StatRing<std::tuple<DNSName, QType> > > > d_dnsnameqtyperings;
-  typedef boost::function<uint64_t(const std::string&)> func_t;
+  typedef std::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
   bool d_doRings;
