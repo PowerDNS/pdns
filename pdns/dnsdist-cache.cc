@@ -497,9 +497,11 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
 
       try {
         dnsheader dh;
-        if (value.len >= sizeof(dnsheader)) {
-          memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        if (value.len < sizeof(dnsheader)) {
+          continue;
         }
+
+        memcpy(&dh, value.value.data(), sizeof(dnsheader));
         if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
           continue;
         }
@@ -558,9 +560,11 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
         }
 
         dnsheader dh;
-        if (value.len >= sizeof(dnsheader)) {
-          memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        if (value.len < sizeof(dnsheader)) {
+          continue;
         }
+
+        memcpy(&dh, value.value.data(), sizeof(dnsheader));
         if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
           continue;
         }
