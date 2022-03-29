@@ -58,7 +58,6 @@ DNSCryptoKeyEngine::storvector_t SodiumED25519DNSCryptoKeyEngine::convertToISCVe
 
   storvector.emplace_back("Algorithm", algorithm);
 
-  vector<unsigned char> buffer;
   storvector.emplace_back("PrivateKey", string((char*)d_seckey, crypto_sign_ed25519_SEEDBYTES));
   return storvector;
 }
