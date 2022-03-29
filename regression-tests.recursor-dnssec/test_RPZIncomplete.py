@@ -226,16 +226,15 @@ e 3600 IN A 192.0.2.42
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the serial is still %d" % (timeout, serial, currentSerial))
 
     def testRPZ(self):
-        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         # First zone
         self.waitUntilCorrectSerialIsLoaded(1)
-        self.checkRPZStats(1, 1, 1, 1, 1) # failure count includes a port 9999 attempt
+        self.checkRPZStats(1, 1, 1, 1, 3) # failure count includes a port 9999 attempt
 
         # second zone, should fail, incomplete IXFR
         self.waitUntilCorrectSerialIsLoaded(2)
-        self.checkRPZStats(1, 1, 1, 1, 3)
+        self.checkRPZStats(1, 1, 1, 1, 5)
 
         # third zone, should fail, incomplete AXFR
         self.waitUntilCorrectSerialIsLoaded(3)
-        self.checkRPZStats(1, 1, 1, 1, 5)
+        self.checkRPZStats(1, 1, 1, 1, 7)
 
