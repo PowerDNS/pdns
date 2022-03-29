@@ -23,6 +23,7 @@
 #include "lazy_allocator.hh"
 #include <vector>
 #include <exception>
+#include <functional>
 
 struct pdns_ucontext_t {
     pdns_ucontext_t ();
