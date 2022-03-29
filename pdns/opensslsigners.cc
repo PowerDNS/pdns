@@ -960,6 +960,19 @@ public:
   int getBits() const override { return d_len << 3; }
 
   void create(unsigned int bits) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] fp An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEM(std::FILE& fp) const override;
+
   storvector_t convertToISCVector() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
@@ -1000,6 +1013,14 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName()+" key generation failed");
   }
   d_edkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
+  auto ret = PEM_write_PrivateKey(&fp, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Could not convert private key to PEM");
+  }
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVector() const
