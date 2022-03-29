@@ -262,7 +262,7 @@ MDBROTransactionImpl::MDBROTransactionImpl(MDBEnv *parent, int flags):
 MDBROTransactionImpl::~MDBROTransactionImpl()
 {
   // this is safe because C++ will not call overrides of virtual methods in destructors.
-  commit();
+  MDBROTransactionImpl::commit();
 }
 
 void MDBROTransactionImpl::abort()
