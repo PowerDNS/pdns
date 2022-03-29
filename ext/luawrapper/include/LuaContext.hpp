@@ -1770,7 +1770,8 @@ private:
         -> typename std::enable_if<IsOptional<TFirstType>::value, TRetValue>::type
     {
         if (index >= 0) {
-            Binder<TCallback, const TFirstType&> binder{ callback, {} };
+            static const TFirstType empty{};
+            Binder<TCallback, const TFirstType&> binder{ callback, empty };
             return readIntoFunction(state, retValueTag, binder, index + 1, othersTags...);
         }
 
