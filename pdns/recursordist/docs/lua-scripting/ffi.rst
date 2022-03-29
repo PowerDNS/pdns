@@ -1,10 +1,10 @@
 Lua FFI API
 ===========
 
-We provide a set of functions available through the LUA FFI library that allow you to interact with the the :func:`gettag_ffi` parameter.
+PowerDNS Recursor provides a set of functions available through the LUA FFI library that allow you to interact with handle passed to :func:`gettag_ffi` and :func:`postresolve_ffi`.
 
-Functions
----------
+Functions for :func:`gettag_ffi`
+--------------------------------
 
 .. function:: pdns_ffi_param_get_qname(pdns_ffi_param_t* ref) -> const char*
 
@@ -132,12 +132,74 @@ Functions
 
 .. function:: pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t* ref, const char* key, const char* val) -> void
 
-    .. versionadded:: 4.6.0
+   .. versionadded:: 4.6.0
 
    This function allows you to add an arbitrary string value for a given key in the ``meta`` field of the produced :doc:`protobuf <../lua-config/protobuf>` log message
 
 .. function:: pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t *ref, const char* key, int64_t val) -> void
 
-    .. versionadded:: 4.6.0
+   .. versionadded:: 4.6.0
 
    This function allows you to add an arbitrary int value for a given key in the ``meta`` field of the produced :doc:`protobuf <../lua-config/protobuf>` log message
+
+Functions for :func:`postresolve_ffi`
+-------------------------------------
+
+.. versionadded:: 4.7.0
+
+All functions below were added in version 4.7.0.
+
+.. function::  pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref) -> const char*
+
+    Get the name queried as a string.
+
+.. function::  pdns_postresolve_ffi_handle_get_qname_raw(pdns_postresolve_ffi_handle_t* ref, const char** qname, size_t* qnameSize) -> void
+
+    Get the name queried (and its size) in DNS wire format.
+
+.. function::  pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref) -> uint16
+
+    Get the qtype of the query.
+
+.. function::  pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref) -> uint16
+
+    Get the rcode returned by the resolving process.
+
+.. function::  pdns_postresolve_ffi_handle_set_rcode(const pdns_postresolve_ffi_handle_t* ref, uint16_t rcode) -> void
+
+    Set the rcode to be returned.
+
+.. function::  pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref) -> pdns_policy_kind_t
+
+    Get the applied policy.
+
+.. function::  pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind) -> void
+
+    Set the applied policy.
+
+.. function::  pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, pdns_ffi_record_t* record, bool raw) -> bool
+
+    Get a record indexed by i.
+    Returns false if no record is available at index i.
+
+.. function::  pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int i, const char* content, size_t contentLen, bool raw) -> bool
+
+    Set the record at index i.
+
+.. function::  pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref) -> void
+
+    Clear all records.
+
+.. function::  pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw) -> bool
+
+    Add a record to the existing records.
+
+.. function::  pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref) -> const char*
+
+    Get a string representation of the IP address of the authoritative server that answered the query.
+    The string might by empty if the address is not available.
+
+.. function::  pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize) -> void
+
+    Get the raw IP address (in network byte order) and size of the raw IP address of the authoritative server that answered the query.
+    The string might be empty if the address is not available.
