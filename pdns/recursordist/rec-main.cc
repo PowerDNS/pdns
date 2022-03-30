@@ -200,10 +200,6 @@ int RecThreadInfo::runThreads()
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
     g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl;
 
-#ifdef HAVE_SYSTEMD
-    sd_notify(0, "READY=1");
-#endif
-
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfo = RecThreadInfo::info(0);
     handlerInfo.setHandler();
@@ -265,10 +261,6 @@ int RecThreadInfo::runThreads()
       auto& info = RecThreadInfo::info(currentThreadId);
       info.start(currentThreadId++, "taskThread", cpusMap);
     }
-
-#ifdef HAVE_SYSTEMD
-    sd_notify(0, "READY=1");
-#endif
 
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& info = RecThreadInfo::info(0);
@@ -2177,6 +2169,15 @@ static void recursorThread()
     time_t carbonInterval = ::arg().asNum("carbon-interval");
     time_t luaMaintenanceInterval = ::arg().asNum("lua-maintenance-interval");
     s_counter.store(0); // used to periodically execute certain tasks
+
+#ifdef HAVE_SYSTEMD
+    if (threadInfo.isHandler()) {
+      // There is a race, as some threads might not be ready yet to do work.
+      // To solve that, threads should notify RecThreadInfo they are done initializing.
+      // But we lack a mechanism for that at this point in time.
+      sd_notify(0, "READY=1");
+    }
+#endif
 
     while (!RecursorControlChannel::stop) {
       while (MT->schedule(&g_now))
