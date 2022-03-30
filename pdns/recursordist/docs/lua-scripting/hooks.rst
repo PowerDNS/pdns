@@ -10,7 +10,7 @@ Queries can be intercepted in many places:
 -  before any filtering policy have been applied (:func:`prerpz`)
 -  before the resolving logic starts to work (:func:`preresolve`)
 -  after the resolving process failed to find a correct answer for a domain (:func:`nodata`, :func:`nxdomain`)
--  after the whole process is done and an answer is ready for the client (:func:`postresolve`)
+-  after the whole process is done and an answer is ready for the client (:func:`postresolve` and its FFI counterpart, :func:`postresolve_ffi`).
 -  before an outgoing query is made to an authoritative server (:func:`preoutquery`)
 -  after a filtering policy hit has occurred (:func:`policyEventFilter`)
 
@@ -151,6 +151,14 @@ Interception Functions
 
   :param DNSQuestion dq: The DNS question to handle
 
+.. function:: postresolve_ffi(handle) -> bool
+
+  .. versionadded:: 4.7.0
+
+  This is the FFI counterpart of :func:`postresolve`.
+  It accepts a single parameter which can be passed to the functions listed in :doc:`ffi`.
+  The accessor functions retrieve and modify various aspects of the answer returned to the client.
+
 .. function:: nxdomain(dq) -> bool
 
   is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain does not exist.
@@ -176,11 +184,13 @@ Interception Functions
 
 .. function:: policyEventFilter(event) -> bool
 
-    .. versionadded:: 4.4.0
+  .. versionadded:: 4.4.0
 
   This hook is called when a filtering policy has been hit, before the decision has been applied, making it possible to change a policy decision by altering its content or to skip it entirely.
   Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones.
   The return value indicates whether the policy hit should be completely ignored (true) or applied (false), possibly after editing the action to take in that latter case (see :ref:`modifyingpolicydecisions` below). when true is returned, the resolution process will resume as if the policy hit never took place.
+
+  :param PolicyEvent event: The event to handle
 
   As an example, to ignore the result of a policy hit for the example.com domain:
 
@@ -209,9 +219,7 @@ Interception Functions
         return false
       end
 
-  :param :class:`PolicyEvent` event: The event to handle
-
- .. _hook-semantics:
+.. _hook-semantics:
 
 Callback Semantics
 ^^^^^^^^^^^^^^^^^^
