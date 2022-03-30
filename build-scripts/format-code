@@ -4,15 +4,15 @@
 # Reformat code, but do not touch if no changes.
 #
 
-if [ "$0" != "./build-scripts/format-code" -a "$0" != "build-scripts/format-code" ]; then
+if [ "$0" != "./build-scripts/format-code" ] && [ "$0" != "build-scripts/format-code" ]; then
     echo "Please run me from the root checkout dir"
     exit 1
 fi
 
 if [ $# = 0 ]; then
-    echo usage: $0 file...
+    echo "usage: $0 file..."
     echo
-    echo format C++ files, does not touch non-regular files
+    echo "format C++ files, does not touch non-regular files"
     exit 0
 fi
 if [ ! -e .clang-format ]; then
@@ -24,7 +24,7 @@ verbose=0
 if [ -t 1 ]; then
     verbose=1
 fi
-if [ x$CIRCLECI = xtrue ]; then
+if [ "$CIRCLECI" = "true" ]; then
     verbose=0
 fi
 
@@ -38,7 +38,7 @@ if [ $verbose = 1 ]; then
 fi
 
 for file in "${@}"; do
-    if [ -h "$file" -o ! -f "$file" ]; then
+    if [ -h "$file" ] || [ ! -f "$file" ]; then
         if [ $verbose = 1 ]; then
             echo "$file: skipped, not a regular file or unreadable"
         fi
@@ -59,4 +59,3 @@ for file in "${@}"; do
         fi
     fi
 done
-
