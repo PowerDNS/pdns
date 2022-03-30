@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noglob
+
+#
+# Sort non-formatted source files by least heavily modified
+#
+
+if [ "$0" != "./build-scripts/find-unformatted-files" ] && [ "$0" != "build-scripts/find-unformatted-files" ]; then
+    echo "Please run me from the root checkout dir"
+    exit 1
+fi
+
+if [ $# = 0 ]; then
+    echo "usage: $0 N"
+    echo
+    echo "Show the N least heavily modified but non-formatted source files"
+    exit 0
+fi
+if [ ! -e .clang-format ]; then
+    echo "No .clang-format file found in .";
+    exit 1
+fi
+
+git log --pretty=format: --name-only | grep -E '\.(c|h|cc|hh)$' | grep -vE '^ext\/' | grep -vE '^pdns\/dnsdistdist\/ext\/' | grep -vE '^pdns\/recursordist\/ext\/' | sort | while read -r name; do
+    if [ -f "$name" ] && [ ! -L "$name" ]; then
+        echo "$name";
+    fi;
+done | uniq -c | sort -g | awk '{print $2}' | while read -r name; do
+    name="./$name"
+    if grep -q "$name" .not-formatted; then
+        tmp=$(mktemp)
+        clang-format -style=file "$name" > "$tmp"
+
+        if cmp -s "$name" "$tmp"; then
+            echo "Warning: File $name is formatted and should not be in the .not-formatted file" 1>&2
+        else
+            echo "$name"
+        fi
+
+        rm -f "$tmp"
+    fi
+done | head -"$1"
