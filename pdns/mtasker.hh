@@ -32,7 +32,7 @@
 #include "misc.hh"
 #include "mtasker_context.hh"
 #include <memory>
-#include <boost/function.hpp>
+
 using namespace ::boost::multi_index;
 
 // #define MTASKERTIMING 1
@@ -56,7 +56,7 @@ private:
   struct ThreadInfo
   {
 	std::shared_ptr<pdns_ucontext_t> context;
-	boost::function<void(void)> start;
+	std::function<void(void)> start;
 	char* startOfStack;
 	char* highestStackSeen;
 #ifdef MTASKERTIMING

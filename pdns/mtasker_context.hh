@@ -21,9 +21,9 @@
  */
 #pragma once
 #include "lazy_allocator.hh"
-#include <boost/function.hpp>
 #include <vector>
 #include <exception>
+#include <functional>
 
 struct pdns_ucontext_t {
     pdns_ucontext_t ();
@@ -46,7 +46,7 @@ pdns_swapcontext
 
 void
 pdns_makecontext
-(pdns_ucontext_t& ctx, boost::function<void(void)>& start);
+(pdns_ucontext_t& ctx, std::function<void(void)>& start);
 
 #ifdef HAVE_FIBER_SANITIZER
 #include <sanitizer/common_interface_defs.h>

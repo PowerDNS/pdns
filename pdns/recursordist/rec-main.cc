@@ -1097,7 +1097,7 @@ void broadcastFunction(const pipefunc_t& func)
 }
 
 template <class T>
-void* voider(const boost::function<T*()>& func)
+void* voider(const std::function<T*()>& func)
 {
   return func();
 }
@@ -1120,7 +1120,7 @@ static vector<pair<DNSName, uint16_t>>& operator+=(vector<pair<DNSName, uint16_t
 // metrics.
 // Note that this currently skips the handler, but includes the taskThread(s).
 template <class T>
-T broadcastAccFunction(const boost::function<T*()>& func)
+T broadcastAccFunction(const std::function<T*()>& func)
 {
   if (!RecThreadInfo::self().isHandler()) {
     g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << RecThreadInfo::id() << ")" << endl;
@@ -1157,12 +1157,12 @@ T broadcastAccFunction(const boost::function<T*()>& func)
   return ret;
 }
 
-template string broadcastAccFunction(const boost::function<string*()>& fun); // explicit instantiation
-template RecursorControlChannel::Answer broadcastAccFunction(const boost::function<RecursorControlChannel::Answer*()>& fun); // explicit instantiation
-template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun); // explicit instantiation
-template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress>*()>& fun); // explicit instantiation
-template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
-template ThreadTimes broadcastAccFunction(const boost::function<ThreadTimes*()>& fun);
+template string broadcastAccFunction(const std::function<string*()>& fun); // explicit instantiation
+template RecursorControlChannel::Answer broadcastAccFunction(const std::function<RecursorControlChannel::Answer*()>& fun); // explicit instantiation
+template uint64_t broadcastAccFunction(const std::function<uint64_t*()>& fun); // explicit instantiation
+template vector<ComboAddress> broadcastAccFunction(const std::function<vector<ComboAddress>*()>& fun); // explicit instantiation
+template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
+template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
 
 static int serviceMain(int argc, char* argv[])
 {

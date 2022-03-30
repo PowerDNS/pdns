@@ -195,7 +195,7 @@ public:
   void serveConnection(const std::shared_ptr<Socket>& client) const;
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
-  typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
+  typedef std::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
   void registerApiHandler(const string& url, const HandlerFunction& handler, bool allowPassword=false);
   void registerWebHandler(const string& url, const HandlerFunction& handler);
 

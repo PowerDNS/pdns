@@ -1112,7 +1112,7 @@ extern bool g_lowercaseOutgoing;
 
 
 std::string reloadZoneConfiguration();
-typedef boost::function<void*(void)> pipefunc_t;
+typedef std::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
@@ -1122,7 +1122,7 @@ int followCNAMERecords(std::vector<DNSRecord>& ret, const QType qtype, int oldre
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret);
 int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);
 
-template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
+template<class T> T broadcastAccFunction(const std::function<T*()>& func);
 
 typedef std::unordered_set<DNSName> notifyset_t;
 std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration();
