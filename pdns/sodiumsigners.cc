@@ -1,3 +1,5 @@
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -13,6 +15,19 @@ public:
   {}
   string getName() const override { return "Sodium ED25519"; }
   void create(unsigned int bits) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] fp An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEM(std::FILE& fp) const override;
+
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
@@ -38,6 +53,19 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, SodiumED25519 class");
   }
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
+}
+
+void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
+  auto key = std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, nullptr, d_seckey, crypto_sign_ed25519_SEEDBYTES), EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Could not create private key from buffer");
+  }
+
+  auto ret = PEM_write_PrivateKey(&fp, key.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Could not convert private key to PEM");
+  }
 }
 
 int SodiumED25519DNSCryptoKeyEngine::getBits() const
