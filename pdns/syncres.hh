@@ -365,6 +365,8 @@ public:
   static size_t getSaveParentsNSSetsSize();
   static void pruneSaveParentsNSSets(time_t now);
 
+  static void pruneDoTProbeMap(time_t cutoff);
+
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
     t_sstorage.domainmap = newMap;

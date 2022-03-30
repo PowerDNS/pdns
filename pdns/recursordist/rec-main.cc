@@ -1930,6 +1930,13 @@ static void houseKeeping(void*)
         SyncRes::pruneNSSpeeds(now.tv_sec - 300);
       });
 
+      if (SyncRes::s_max_busy_dot_probes > 0) {
+        static PeriodicTask pruneDoTProbeMap{"pruneDoTProbeMapTask", 60};
+        pruneDoTProbeMap.runIfDue(now, [now]() {
+          SyncRes::pruneDoTProbeMap(now.tv_sec);
+        });
+      }
+
       static PeriodicTask pruneFailedServersTask{"pruneFailedServerTask", 5};
       pruneFailedServersTask.runIfDue(now, [now]() {
         SyncRes::pruneFailedServers(now.tv_sec - SyncRes::s_serverdownthrottletime * 10);

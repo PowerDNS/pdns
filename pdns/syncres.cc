@@ -289,9 +289,10 @@ static LockGuarded<fails_t<DNSName>> s_nonresolving;
 struct DoTStatus
 {
   enum Status : uint8_t { Unknown, Busy, Bad, Good };
-  DNSName d_auth;
+  const ComboAddress d_address;
+  const DNSName d_auth;
   time_t d_ttd;
-  Status d_status{Unknown};
+  mutable Status d_status{Unknown};
   std::string toString() const
   {
     const std::string n[] = { "Unknown", "Busy", "Bad", "Good"};
@@ -300,13 +301,23 @@ struct DoTStatus
   }
 };
 
-// FIXME: Pruning NYI
-class DotMap: public map<ComboAddress, DoTStatus>
+struct DoTMap
 {
-public:
+  multi_index_container<DoTStatus,
+                        indexed_by<
+                          ordered_unique<tag<ComboAddress>, member<DoTStatus, const ComboAddress, &DoTStatus::d_address>>,
+                          ordered_non_unique<tag<time_t>, member<DoTStatus, time_t, &DoTStatus::d_ttd>>
+                          >> d_map;
   uint64_t d_numBusy{0};
+
+  void prune(time_t cutoff) {
+    auto &ind = d_map.template get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(cutoff));
+  }
 };
-static LockGuarded<DotMap> s_dotMap;
+
+
+static LockGuarded<DoTMap> s_dotMap;
 
 static const time_t dotFailWait = 24 * 3600;
 static const time_t dotSuccessWait = 3 * 24 * 3600;
@@ -1177,6 +1188,23 @@ uint64_t SyncRes::doDumpSavedParentNSSets(int fd)
   return count;
 }
 
+void SyncRes::pruneDoTProbeMap(time_t cutoff)
+{
+  auto lock = s_dotMap.lock();
+  auto& ind = lock->d_map.get<time_t>();
+
+  for (auto i = ind.begin(); i != ind.end(); ) {
+    if (i->d_ttd >= cutoff) {
+      // We're done as we loop ordered by d_ttd
+      break;
+    }
+    if (i->d_status == DoTStatus::Status::Busy) {
+      lock->d_numBusy--;
+    }
+    i = ind.erase(i);
+  }
+}
+
 uint64_t SyncRes::doDumpDoTProbeMap(int fd)
 {
   int newfd = dup(fd);
@@ -1193,15 +1221,15 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
   uint64_t count=0;
 
   // We get a copy, so the I/O does not need to happen while holding the lock
-  DotMap copy;
+  DoTMap copy;
   {
     copy = *s_dotMap.lock();
   }
   fprintf(fp.get(), "; %" PRIu64 " Busy entries\n", copy.d_numBusy);
-  for (const auto& i : copy) {
+  for (const auto& i : copy.d_map) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%s\t%s\t%s", i.first.toString().c_str(), i.second.d_auth.toString().c_str(), i.second.toString().c_str(), ctime_r(&i.second.d_ttd, tmp));
+    fprintf(fp.get(), "%s\t%s\t%s\t%s\n", i.d_address.toString().c_str(), i.d_auth.toString().c_str(), i.toString().c_str(), timestamp(i.d_ttd, tmp, sizeof(tmp)));
   }
   return count;
 }
@@ -4712,22 +4740,22 @@ static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t n
   if (lock->d_numBusy >= SyncRes::s_max_busy_dot_probes) {
     return;
   }
-  auto it = lock->emplace(address, DoTStatus{auth, now + dotFailWait}).first;
-  if (it->second.d_status == DoTStatus::Busy) {
+  auto it = lock->d_map.emplace(DoTStatus{address, auth, now + dotFailWait}).first;
+  if (it->d_status == DoTStatus::Busy) {
     return;
   }
-  if (it->second.d_ttd > now) {
-    if (it->second.d_status == DoTStatus::Bad) {
+  if (it->d_ttd > now) {
+    if (it->d_status == DoTStatus::Bad) {
       return;
     }
-    if (it->second.d_status == DoTStatus::Good) {
+    if (it->d_status == DoTStatus::Good) {
       return;
     }
   }
-  it->second.d_ttd = now + dotFailWait;
+  lock->d_map.modify(it, [=] (DoTStatus& st){ st.d_ttd = now + dotFailWait; });
   bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max());
   if (pushed) {
-    it->second.d_status = DoTStatus::Busy;
+    it->d_status = DoTStatus::Busy;
     ++lock->d_numBusy;
   }
 }
@@ -4736,15 +4764,29 @@ static bool shouldDoDoT(ComboAddress address, time_t now)
 {
   address.setPort(853);
   auto lock = s_dotMap.lock();
-  auto it = lock->find(address);
-  if (it == lock->end()) {
+  auto it = lock->d_map.find(address);
+  if (it == lock->d_map.end()) {
     // Pruned...
     return false;
   }
-  if (it->second.d_status == DoTStatus::Good && it->second.d_ttd > now) {
+  if (it->d_status == DoTStatus::Good && it->d_ttd > now) {
     return true;
   }
   return false;
+}
+
+static void updateDoTStatus(ComboAddress address, const DNSName auth, DoTStatus::Status status, time_t time, bool updateBusy = false)
+{
+  address.setPort(853);
+  auto lock = s_dotMap.lock();
+  auto it = lock->d_map.find(address);
+  if (it != lock->d_map.end()) {
+    it->d_status = status;
+    lock->d_map.modify(it, [=] (DoTStatus& st) { st.d_ttd = time; });
+    if (updateBusy) {
+      --lock->d_numBusy;
+    }
+  }
 }
 
 bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& auth, const DNSName& nsName, ComboAddress address, time_t now)
@@ -4757,15 +4799,7 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& aut
   bool ok = doResolveAtThisIP("", qname, qtype, lwr, nm, auth, false, false, nsName, address, true, true, truncated, spoofed);
   ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
 
-  auto lock = s_dotMap.lock();
-  auto it = lock->find(address);
-  // If an entry was removed by pruning, we do not adjust d_numBusy; it's the job of the pruning code to do that
-  if (it != lock->end()) {
-    it->second.d_status = ok ? DoTStatus::Good : DoTStatus::Bad;
-    it->second.d_ttd = now + (ok ? dotSuccessWait : dotFailWait);
-    --lock->d_numBusy;
-  }
-
+  updateDoTStatus(address, auth, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
   return ok;
 }
 
@@ -5305,12 +5339,12 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
           }
-          if (!doDoT && shouldDoDoT(*remoteIP, d_now.tv_sec)) {
+          if (!doDoT && s_max_busy_dot_probes > 0 && shouldDoDoT(*remoteIP, d_now.tv_sec)) {
               doDoT = true;
           }
           bool forceTCP = doDoT;
 
-          if (!doDoT) {
+          if (!doDoT && s_max_busy_dot_probes > 0) {
             submitTryDotTask(*remoteIP, auth, d_now.tv_sec);
           }
           if (!forceTCP) {
@@ -5324,11 +5358,18 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           if (!gotAnswer) {
+            if (doDoT && s_max_busy_dot_probes > 0) {
+              // This is quite pessimistic...
+              updateDoTStatus(*remoteIP, auth, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
+            }
             continue;
           }
 
           LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->first<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
+          if (doDoT && s_max_busy_dot_probes > 0) {
+            updateDoTStatus(*remoteIP, auth, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);
+          }
           /*  // for you IPv6 fanatics :-)
               if(remoteIP->sin4.sin_family==AF_INET6)
               lwr.d_usec/=3;
