@@ -297,7 +297,7 @@ should update and on which master domain server it is running.
 This tells **dhcpd** a number of things:
 
 1. Which domain to use (**ddns-domainname "example.org";**)
-2. Which reverse-domain to use (**dnssec-rev-domainname
+2. Which reverse-domain to use (**ddns-rev-domainname
    "in-addr.arpa.";**)
 3. For the zones, where the primary master is located (**primary
    127.0.0.1;**)
