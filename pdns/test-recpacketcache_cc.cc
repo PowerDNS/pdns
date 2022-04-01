@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_SUITE(test_recpacketcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
 {
-  RecursorPacketCache rpc;
+  RecursorPacketCache rpc(1000);
   string fpacket;
   unsigned int tag = 0;
   uint32_t age = 0;
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
 
 BOOST_AUTO_TEST_CASE(test_recPacketCacheSimplePost2038)
 {
-  RecursorPacketCache rpc;
+  RecursorPacketCache rpc(1000);
   string fpacket;
   unsigned int tag = 0;
   uint32_t age = 0;
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags)
      should not override the first one, and we should get a hit for the
      query with either tags, with the response matching the tag.
   */
-  RecursorPacketCache rpc;
+  RecursorPacketCache rpc(1000);
   string fpacket;
   const unsigned int tag1 = 0;
   const unsigned int tag2 = 42;
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   /* Insert a response with UDP, the exact same query with a TCP flag
      should lead to a miss. 
   */
-  RecursorPacketCache rpc;
+  RecursorPacketCache rpc(1000);
   string fpacket;
   uint32_t age = 0;
   uint32_t qhash = 0;

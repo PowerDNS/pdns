@@ -36,6 +36,7 @@
 #include "rec-snmp.hh"
 #include "rec_channel.hh"
 #include "threadname.hh"
+#include "recpacketcache.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -181,6 +182,7 @@ enum class PaddingMode
 
 typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
 extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
+extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;

@@ -1470,7 +1470,7 @@ void startDoResolve(void* p)
 #endif
     }
 
-    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
+    if (t_packetCache && !variableAnswer && !sr.wasVariable()) {
       const auto& hdr = pw.getHeader();
       if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) || (hdr->ancount == 0 && hdr->nscount == 0)) {
         minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
@@ -1724,15 +1724,18 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source)
 {
+  if (!t_packetCache) {
+    return false;
+  }
   bool cacheHit = false;
   uint32_t age;
   vState valState;
 
   if (qnameParsed) {
-    cacheHit = !SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = t_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
   }
   else {
-    cacheHit = !SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = t_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
   }
 
   if (cacheHit) {

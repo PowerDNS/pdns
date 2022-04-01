@@ -39,7 +39,6 @@
 #include "circular_buffer.hh"
 #include "sstuff.hh"
 #include "recursor_cache.hh"
-#include "recpacketcache.hh"
 #include <boost/optional.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
@@ -712,7 +711,6 @@ public:
   static bool s_noEDNSPing;
   static bool s_noEDNS;
   static bool s_rootNXTrust;
-  static bool s_nopacketcache;
   static bool s_qnameminimization;
   static HardenNXD s_hardenNXD;
   static unsigned int s_refresh_ttlperc;
@@ -961,7 +959,6 @@ struct PacketIDBirthdayCompare
   }
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
-extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 
 struct RecursorStats
 {

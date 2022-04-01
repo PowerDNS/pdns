@@ -903,7 +903,7 @@ static void doStats(void)
 
     uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
     uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
-    g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, SyncRes::s_queries) << "% packet cache hits" << endl;
+    g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, g_stats.qcounter) << "% packet cache hits" << endl;
 
     size_t idx = 0;
     for (const auto& threadInfo : RecThreadInfo::infos()) {
@@ -916,10 +916,10 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl;
     time_t now = time(0);
     if (lastOutputTime && lastQueryCount && now != lastOutputTime) {
-      g_log << Logger::Notice << "stats: " << (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl;
+      g_log << Logger::Notice << "stats: " << (g_stats.qcounter - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl;
     }
     lastOutputTime = now;
-    lastQueryCount = SyncRes::s_queries;
+    lastQueryCount = g_stats.qcounter;
   }
   else if (statsWanted)
     g_log << Logger::Notice << "stats: no stats yet!" << endl;
@@ -1298,9 +1298,6 @@ static int serviceMain(int argc, char* argv[])
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
   SyncRes::s_minimumECSTTL = ::arg().asNum("ecs-minimum-ttl-override");
-
-  SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
-
   SyncRes::s_maxnegttl = ::arg().asNum("max-negative-ttl");
   SyncRes::s_maxbogusttl = ::arg().asNum("max-cache-bogus-ttl");
   SyncRes::s_maxcachettl = max(::arg().asNum("max-cache-ttl"), 15);
@@ -1871,10 +1868,14 @@ static void houseKeeping(void*)
     Utility::gettimeofday(&now);
 
     // Below are the tasks that run for every recursorThread, including handler and taskThread
-    static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
-    packetCacheTask.runIfDue(now, []() {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers()));
-    });
+    if (t_packetCache) {
+      static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
+      packetCacheTask.runIfDue(now, []() {
+        size_t sz = g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors());
+        t_packetCache->setMaxSize(sz); // g_maxPacketCacheEntries might have changed by rec_control
+        t_packetCache->doPruneTo(sz);
+      });
+    }
 
     // This is a full scan
     static thread_local PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 100};
@@ -2060,7 +2061,10 @@ static void recursorThread()
       }
     }
 
-    t_packetCache = std::make_unique<RecursorPacketCache>();
+    if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
+      // Only enable packet cache for thread processing queries from the outside world
+      t_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
+    }
 
 #ifdef NOD_ENABLED
     if (threadInfo.isWorker())
@@ -2704,7 +2708,7 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 
 static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
+  return new uint64_t(t_packetCache ? t_packetCache->doWipePacketCache(canon, qtype, subtree) : 0);
 }
 
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
