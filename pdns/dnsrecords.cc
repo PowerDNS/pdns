@@ -994,7 +994,7 @@ ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
   else if (auto aaaa = getRR<AAAARecordContent>(dr)) {
     return aaaa->getCA(defport);
   }
-  return ComboAddress();
+  throw std::invalid_argument("not an A or AAAA record");
 }
 
 /**
