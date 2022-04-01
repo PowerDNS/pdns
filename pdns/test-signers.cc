@@ -149,7 +149,14 @@ static const std::array<struct SignerParams, 3> signers
       DNSSECKeeper::ED25519,
       true,
 
+#if defined(HAVE_LIBCRYPTO_ED25519)
+      std::make_optional(std::string{
+        "-----BEGIN PRIVATE KEY-----\n"
+        "MC4CAQAwBQYDK2VwBCIEIDgyMjYwMzg0NjI4MDgwMTIyNjQ1MTkwMjA0MTQyMjYy\n"
+        "-----END PRIVATE KEY-----\n"})},
+#else
       std::nullopt},
+#endif /* defined(HAVE_LIBCRYPTO_ED25519) */
 #endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519) */
 };
 
