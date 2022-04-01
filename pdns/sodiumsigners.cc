@@ -17,6 +17,25 @@ public:
   void create(unsigned int bits) override;
 
   /**
+   * \brief Creates an ED25519 key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an
+   * ED25519 key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information in
+   * error messages.
+   *
+   * \param[in] fp An open file handle to a file containing ED25519 PEM
+   * contents.
+   *
+   * \return An ED25519 key engine populated with the contents of the
+   * PEM file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
+  /**
    * \brief Writes this key's contents to a file.
    *
    * Receives an open file handle and writes this key's contents to the
@@ -53,6 +72,27 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, SodiumED25519 class");
   }
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
+}
+
+void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+{
+  drc.d_algorithm = d_algorithm;
+  auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
+
+  std::size_t keylen = crypto_sign_ed25519_SECRETKEYBYTES;
+  int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &keylen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename + "`");
+  }
+
+  keylen = crypto_sign_ed25519_PUBLICKEYBYTES;
+  ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &keylen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename + "`");
+  }
 }
 
 void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
