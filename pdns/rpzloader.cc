@@ -464,7 +464,9 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
 
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
     for (const auto& primary : primaries) {
-      g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<primary.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
+      auto soa = getRR<SOARecordContent>(dr);
+      auto serial = soa ? soa->d_st.serial : 0;
+      g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<primary.toStringWithPort()<<", our serial: "<<serial<<endl;
 
       ComboAddress local(localAddress);
       if (local == ComboAddress()) {
