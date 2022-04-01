@@ -618,6 +618,7 @@ struct ClientState
   std::set<int> cpus;
   std::string interface;
   ComboAddress local;
+  std::vector<std::pair<ComboAddress, int>> d_additionalAddresses;
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
   std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
@@ -702,19 +703,19 @@ struct ClientState
     return result;
   }
 
-  void detachFilter()
+  void detachFilter(int socket)
   {
     if (d_filter) {
-      d_filter->removeSocket(getSocket());
+      d_filter->removeSocket(socket);
       d_filter = nullptr;
     }
   }
 
-  void attachFilter(shared_ptr<BPFFilter> bpf)
+  void attachFilter(shared_ptr<BPFFilter> bpf, int socket)
   {
-    detachFilter();
+    detachFilter(socket);
 
-    bpf->addSocket(getSocket());
+    bpf->addSocket(socket);
     d_filter = bpf;
   }
 

@@ -1366,6 +1366,93 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
   }
 }
 
+struct TCPAcceptorParam
+{
+  ClientState& cs;
+  ComboAddress local;
+  LocalStateHolder<NetmaskGroup>& acl;
+};
+
+static void acceptNewConnection(int socket, TCPAcceptorParam& param)
+{
+  auto& cs = param.cs;
+  auto& acl = param.acl;
+  bool tcpClientCountIncremented = false;
+  ComboAddress remote;
+  remote.sin4.sin_family = param.local.sin4.sin_family;
+
+  std::unique_ptr<ConnectionInfo> ci;
+  tcpClientCountIncremented = false;
+  try {
+    socklen_t remlen = remote.getSocklen();
+    ci = std::make_unique<ConnectionInfo>(&cs);
+#ifdef HAVE_ACCEPT4
+    ci->fd = accept4(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
+#else
+    ci->fd = accept(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
+#endif
+    if (ci->fd < 0) {
+      throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
+    }
+
+    if (!acl->match(remote)) {
+      ++g_stats.aclDrops;
+      vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
+      return;
+    }
+
+    // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
+    auto concurrentConnections = ++cs.tcpCurrentConnections;
+    if (cs.d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs.d_tcpConcurrentConnectionsLimit) {
+      return;
+    }
+
+    if (concurrentConnections > cs.tcpMaxConcurrentConnections.load()) {
+      cs.tcpMaxConcurrentConnections.store(concurrentConnections);
+    }
+
+#ifndef HAVE_ACCEPT4
+    if (!setNonBlocking(ci->fd)) {
+      return;
+    }
+#endif
+
+    setTCPNoDelay(ci->fd);  // disable NAGLE
+
+    if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
+      vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
+      return;
+    }
+
+    if (g_maxTCPConnectionsPerClient) {
+      auto tcpClientsCount = s_tcpClientsCount.lock();
+
+      if ((*tcpClientsCount)[remote] >= g_maxTCPConnectionsPerClient) {
+        vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
+        return;
+      }
+      (*tcpClientsCount)[remote]++;
+      tcpClientCountIncremented = true;
+    }
+
+    vinfolog("Got TCP connection from %s", remote.toStringWithPort());
+
+    ci->remote = remote;
+    if (!g_tcpclientthreads->passConnectionToThread(std::move(ci))) {
+      if (tcpClientCountIncremented) {
+        decrementTCPClientCount(remote);
+      }
+    }
+  }
+  catch (const std::exception& e) {
+    errlog("While reading a TCP question: %s", e.what());
+    if (tcpClientCountIncremented) {
+      decrementTCPClientCount(remote);
+    }
+  }
+  catch (...){}
+}
+
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and
    they will hand off to worker threads & spawn more of them if required
 */
@@ -1373,79 +1460,35 @@ void tcpAcceptorThread(ClientState* cs)
 {
   setThreadName("dnsdist/tcpAcce");
 
-  bool tcpClientCountIncremented = false;
-  ComboAddress remote;
-  remote.sin4.sin_family = cs->local.sin4.sin_family;
-
   auto acl = g_ACL.getLocal();
-  for(;;) {
-    std::unique_ptr<ConnectionInfo> ci;
-    tcpClientCountIncremented = false;
-    try {
-      socklen_t remlen = remote.getSocklen();
-      ci = std::make_unique<ConnectionInfo>(cs);
-#ifdef HAVE_ACCEPT4
-      ci->fd = accept4(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
-#else
-      ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
-#endif
-      // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
-      auto concurrentConnections = ++cs->tcpCurrentConnections;
-      if (cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs->d_tcpConcurrentConnectionsLimit) {
-        continue;
-      }
+  struct TCPAcceptorParam param{*cs, cs->local, acl};
 
-      if (concurrentConnections > cs->tcpMaxConcurrentConnections.load()) {
-        cs->tcpMaxConcurrentConnections.store(concurrentConnections);
-      }
-
-      if (ci->fd < 0) {
-        throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
-      }
-
-      if (!acl->match(remote)) {
-	++g_stats.aclDrops;
-	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
-	continue;
-      }
-
-#ifndef HAVE_ACCEPT4
-      if (!setNonBlocking(ci->fd)) {
-        continue;
-      }
-#endif
-      setTCPNoDelay(ci->fd);  // disable NAGLE
-      if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
-        vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
-        continue;
-      }
-
-      if (g_maxTCPConnectionsPerClient) {
-        auto tcpClientsCount = s_tcpClientsCount.lock();
-
-        if ((*tcpClientsCount)[remote] >= g_maxTCPConnectionsPerClient) {
-          vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
-          continue;
-        }
-        (*tcpClientsCount)[remote]++;
-        tcpClientCountIncremented = true;
-      }
-
-      vinfolog("Got TCP connection from %s", remote.toStringWithPort());
-
-      ci->remote = remote;
-      if (!g_tcpclientthreads->passConnectionToThread(std::move(ci))) {
-        if (tcpClientCountIncremented) {
-          decrementTCPClientCount(remote);
-        }
-      }
+  if (cs->d_additionalAddresses.empty()) {
+    while (true) {
+      acceptNewConnection(cs->tcpFD, param);
     }
-    catch (const std::exception& e) {
-      errlog("While reading a TCP question: %s", e.what());
-      if (tcpClientCountIncremented) {
-        decrementTCPClientCount(remote);
-      }
+  }
+  else {
+    auto acceptCallback = [](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      auto acceptorParam = boost::any_cast<TCPAcceptorParam*>(funcparam);
+      acceptNewConnection(socket, *acceptorParam);
+    };
+
+    std::vector<TCPAcceptorParam> additionalParams;
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    mplexer->addReadFD(cs->tcpFD, acceptCallback, &param);
+    for (const auto& [addr, socket] : cs->d_additionalAddresses) {
+      additionalParams.emplace_back(TCPAcceptorParam{*cs, addr, acl});
     }
-    catch (...){}
+    size_t idx = 0;
+    for (const auto& [addr, socket] : cs->d_additionalAddresses) {
+      mplexer->addReadFD(socket, acceptCallback, &additionalParams.at(idx));
+      idx++;
+    }
+
+    struct timeval tv;
+    while (true) {
+      mplexer->run(&tv);
+    }
   }
 }

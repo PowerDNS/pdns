@@ -424,11 +424,11 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 #ifdef HAVE_EBPF
   luaCtx.registerFunction<void(ClientState::*)(std::shared_ptr<BPFFilter>)>("attachFilter", [](ClientState& frontend, std::shared_ptr<BPFFilter> bpf) {
       if (bpf) {
-        frontend.attachFilter(bpf);
+        frontend.attachFilter(bpf, frontend.getSocket());
       }
     });
   luaCtx.registerFunction<void(ClientState::*)()>("detachFilter", [](ClientState& frontend) {
-      frontend.detachFilter();
+      frontend.detachFilter(frontend.getSocket());
     });
 #endif /* HAVE_EBPF */
 #endif /* DISABLE_CLIENT_STATE_BINDINGS */
@@ -629,7 +629,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       if (bpf) {
         for (const auto& frontend : g_frontends) {
-          frontend->attachFilter(bpf);
+          frontend->attachFilter(bpf, frontend->getSocket());
         }
       }
     });
