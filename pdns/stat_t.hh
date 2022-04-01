@@ -23,6 +23,7 @@
 
 #include <atomic>
 
+#ifndef DISABLE_FALSE_SHARING_PADDING
 #define CPU_LEVEL1_DCACHE_LINESIZE 64 // Until we know better via configure/getconf
 
 namespace pdns {
@@ -77,3 +78,12 @@ namespace pdns {
   typedef stat_t_trait<uint32_t> stat32_t;
   typedef stat_t_trait<uint16_t> stat16_t;
 }
+#else
+namespace pdns {
+  using stat_t = std::atomic<uint64_t>;
+  using stat32_t = std::atomic<uint32_t>;
+  using stat16_t = std::atomic<uint16_t>;
+  template <class T>
+  using stat_t_trait = std::atomic<T>;
+}
+#endif
