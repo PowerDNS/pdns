@@ -1639,12 +1639,18 @@ private:
 
             // writing structure for this type into the registry
             checkTypeRegistration(state, &typeid(TType));
+            try {
+              // creating the object
+              // lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
+              //   and that's what we do with placement-new
+              const auto pointerLocation = static_cast<TType*>(lua_newuserdata(state, sizeof(TType)));
+              new (pointerLocation) TType(std::forward<TType2>(value));
+            }
+            catch (...) {
+              Pusher<std::exception_ptr>::push(state, std::current_exception()).release();
+              luaError(state);
+            }
 
-            // creating the object
-            // lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
-            //   and that's what we do with placement-new
-            const auto pointerLocation = static_cast<TType*>(lua_newuserdata(state, sizeof(TType)));
-            new (pointerLocation) TType(std::forward<TType2>(value));
             PushedObject obj{state, 1};
 
             // creating the metatable (over the object on the stack)
