@@ -254,7 +254,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
 
-void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth)
+void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode mode, std::vector<DNSRecord>& additionals, unsigned int depth, bool& taskPushed)
 {
   vector<DNSRecord> addRecords;
 
@@ -331,8 +331,11 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
     NegCache::NegCacheEntry ne;
     bool inNegCache = g_negCache->get(qname, qtype, d_now, ne, false);
     if (!inNegCache) {
+      // There are a few cases where an answer is neither stored in the record cache nor in the neg cache.
+      // An example is a SOA-less NODATA response. Rate limiting will kick in if those tasks are pushed too often.
+      // We might want to fix these cases (and always either store positive or negative) some day.
       pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60);
-    } else {
+      taskPushed = true;
     }
     break;
   }
@@ -347,7 +350,7 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
 // This function uses to state sets to avoid infinite recursion and allow depulication
 // depth is the main recursion depth
 // additionaldepth is the depth for addAdditionals itself
-void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth)
+void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<DNSRecord>&additionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned additionaldepth, bool& taskPushed)
 {
   if (additionaldepth >= 5 || start.empty()) {
     return;
@@ -379,7 +382,7 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
       std::vector<DNSRecord> records;
       bool inserted = uniqueCalls.emplace(addname, targettype).second;
       if (inserted) {
-        resolveAdditionals(addname, targettype, mode, records, depth);
+        resolveAdditionals(addname, targettype, mode, records, depth, taskPushed);
       }
       if (!records.empty()) {
         for (auto r = records.begin(); r != records.end(); ) {
@@ -406,14 +409,14 @@ void SyncRes::addAdditionals(QType qtype, const vector<DNSRecord>&start, vector<
           }
           uniqueResults.emplace(r.d_name, r.d_type, covered);
         }
-        addAdditionals(targettype, records, additionals, uniqueCalls, uniqueResults, depth, additionaldepth + 1);
+        addAdditionals(targettype, records, additionals, uniqueCalls, uniqueResults, depth, additionaldepth + 1, taskPushed);
       }
     }
   }
 }
 
 // The entry point for other code
-void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int depth)
+bool SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int depth)
 {
   // The additional records of interest
   std::vector<DNSRecord> additionals;
@@ -425,12 +428,14 @@ void SyncRes::addAdditionals(QType qtype, vector<DNSRecord>&ret, unsigned int de
   // For RRSIGs, the type covered is stored in the second Qtype
   std::set<std::tuple<DNSName, QType, QType>> uniqueResults;
 
-  addAdditionals(qtype, ret, additionals, uniqueCalls, uniqueResults, depth, 0);
+  bool pushed = false;
+  addAdditionals(qtype, ret, additionals, uniqueCalls, uniqueResults, depth, 0, pushed);
 
   for (auto& rec : additionals) {
     rec.d_place = DNSResourceRecord::ADDITIONAL;
     ret.push_back(std::move(rec));
   }
+  return pushed;
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
@@ -485,7 +490,10 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
   // Avoid calling addAdditionals() if we know we won't find anything
   auto luaLocal = g_luaconfs.getLocal();
   if (res == 0 && qclass == QClass::IN && luaLocal->allowAdditionalQTypes.find(qtype) != luaLocal->allowAdditionalQTypes.end()) {
-    addAdditionals(qtype, ret, depth);
+    bool taskPushed = addAdditionals(qtype, ret, depth);
+    if (taskPushed) {
+      d_wasVariable = true;
+    }
   }
   d_eventTrace.add(RecEventTrace::SyncRes, res, false);
   return res;
@@ -1649,7 +1657,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       // No IPv6 records in cache, check negcache and submit async task if negache does not have the data
       // so that the next time the cache or the negcache will have data
       NegCache::NegCacheEntry ne;
-      bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, true);
+      bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, false);
       if (!inNegCache) {
         pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60);
       }

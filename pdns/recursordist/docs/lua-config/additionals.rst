@@ -49,13 +49,16 @@ The modes available are:
 ``pdns.AdditionalMode.ResolveImmediately``
   Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache, actively try to resolve the target name/qtype. This will delay the answer to the client.
 ``pdns.AdditionalMode.ResolveDeferred``
-  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache and the negative cache also has no entry, schedule a background task to resolve the target name/qtype. The next time the query is processed, the cache might hold the relevant information. This mode is not implemented yet.
+  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache and the negative cache also has no entry, schedule a background task to resolve the target name/qtype. The next time the query is processed, the cache might hold the relevant information.
+  If a task is pushed, the answer that triggered it will be marked as variable and consequently not stored into the packet cache.
+
 
 If an additional record is not available at that time the query is stored into the packet cache the answer packet stored in the packet cache will not contain the additional record.
 Clients repeating the same question will get an answer from the packet cache if the question is still in the packet cache.
 These answers do not have the additional record, even if the record cache has learned it in the meantime .
 Clients will only see the additional record once the packet cache entry expires and the record cache is consulted again.
 The ``pdns.AdditionalMode.ResolveImmediately`` mode will not have this issue, at the cost of delaying the first query to resolve the additional records needed.
+The ``pdns.AdditionalMode.ResolveDeferred`` mode will only store answers in the packet cache if it determines that no deferred tasks are needed, i.e. either a positive or negative answer for potential additional records is available.
 
 Configuring additional record processing
 ----------------------------------------
