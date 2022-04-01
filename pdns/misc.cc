@@ -826,12 +826,10 @@ bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
-  if(!fp)
+  if (!fp) {
     return false;
-  stringfgets(fp.get(), *line);
-  fp.reset();
-
-  return true;
+  }
+  return stringfgets(fp.get(), *line);
 }
 
 Regex::Regex(const string &expr)

@@ -988,11 +988,13 @@ void reportAllTypes()
 
 ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
 {
-  if(auto addr=getRR<ARecordContent>(dr)) {
-    return addr->getCA(defport);
+  if (auto a = getRR<ARecordContent>(dr)) {
+    return a->getCA(defport);
   }
-  else
-    return getRR<AAAARecordContent>(dr)->getCA(defport);
+  else if (auto aaaa = getRR<AAAARecordContent>(dr)) {
+    return aaaa->getCA(defport);
+  }
+  throw std::invalid_argument("not an A or AAAA record");
 }
 
 /**

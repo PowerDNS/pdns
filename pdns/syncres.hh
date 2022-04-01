@@ -904,8 +904,8 @@ struct PacketID
   bool inIncompleteOkay{false};
   uint16_t id{0};  // wait for a specific id/remote pair
   uint16_t type{0};             // and this is its type
-  TCPAction highState;
-  IOState lowState;
+  TCPAction highState{TCPAction::DoingRead};
+  IOState lowState{IOState::NeedRead};
 
   bool operator<(const PacketID& b) const
   {
@@ -1003,7 +1003,7 @@ struct RecursorStats
   pdns::stat_t noPacketError;
   pdns::stat_t ignoredCount;
   pdns::stat_t emptyQueriesCount;
-  time_t startupTime;
+  time_t startupTime{time(nullptr)};
   pdns::stat_t dnssecQueries;
   pdns::stat_t dnssecAuthenticDataQueries;
   pdns::stat_t dnssecCheckDisabledQueries;
@@ -1149,7 +1149,7 @@ extern __thread struct timeval g_now;
 
 struct ThreadTimes
 {
-  uint64_t msec;
+  uint64_t msec{0};
   vector<uint64_t> times;
   ThreadTimes& operator+=(const ThreadTimes& rhs)
   {

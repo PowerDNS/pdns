@@ -177,14 +177,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     return;
   }
 
-  struct Entry e(qname, std::move(responsePacket), std::move(query), tcp);
-  e.d_qhash = qhash;
-  e.d_type = qtype;
-  e.d_class = qclass;
-  e.d_ttd = now + ttl;
-  e.d_creation = now;
-  e.d_tag = tag;
-  e.d_vstate = valState;
+  struct Entry e(qname, qtype, qclass, std::move(responsePacket), std::move(query), tcp, qhash, now + ttl, now, tag, valState);
   if (pbdata) {
     e.d_pbdata = std::move(*pbdata);
   }

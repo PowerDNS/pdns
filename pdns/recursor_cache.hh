@@ -73,7 +73,7 @@ private:
   struct CacheEntry
   {
     CacheEntry(const std::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
-      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_state(vState::Indeterminate), d_ttd(0), d_qtype(std::get<1>(key)), d_auth(auth), d_submitted(false)
+      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_state(vState::Indeterminate), d_ttd(0), d_orig_ttl{0}, d_qtype(std::get<1>(key)), d_auth(auth), d_submitted(false)
     {
     }
 
