@@ -291,7 +291,9 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   const char *lenP = reinterpret_cast<const char*>(&tlen);
 
   localip.sin4.sin_family = ip.sin4.sin_family;
-  getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen);
+  if (getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen) != 0) {
+    return LWResult::Result::PermanentError;
+  }
 
   PacketBuffer packet;
   packet.reserve(2 + vpacket.size());
