@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <thread>
+#include <vector>
 
 #include "dnsdist.hh"
 #include "dnsdist-carbon.hh"
@@ -1987,6 +1988,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](uint64_t size) { g_tcpInternalPipeBufferSize = size; });
+  luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
+    setLuaSideEffect();
+    unsigned int key[4] = {};
+    auto ret = sscanf(keyString.c_str(), "%x-%x-%x-%x", &key[0], &key[1], &key[2], &key[3]);
+    if (ret != 4) {
+      g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
+      return;
+    }
+    extern vector<unsigned int> g_TCPFastOpenKey;
+    for (const auto i : key) {
+      g_TCPFastOpenKey.push_back(i);
+    }
+  });
 
 #ifdef HAVE_NET_SNMP
   luaCtx.writeFunction("snmpAgent", [client, configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
