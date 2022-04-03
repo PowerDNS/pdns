@@ -1983,11 +1983,13 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     if (cs->fastOpenQueueSize > 0) {
 #ifdef TCP_FASTOPEN
       SSetsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, cs->fastOpenQueueSize);
+#ifdef TCP_FASTOPEN_KEY
       if (!g_TCPFastOpenKey.empty()) {
         auto res = setsockopt(fd, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
         if (res == -1)
           throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
       }
+#endif
 #else
       if (warn) {
         warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
