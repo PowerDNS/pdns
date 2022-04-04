@@ -1993,7 +1993,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
     setLuaSideEffect();
     uint32_t key[4] = {};
-    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "%" SCNx32 "%" SCNx32 "%" SCNx32, &key[0], &key[1], &key[2], &key[3]);
+    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key[0], &key[1], &key[2], &key[3]);
     if (ret != 4) {
       g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
       return;
