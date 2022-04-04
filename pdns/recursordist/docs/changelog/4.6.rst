@@ -1,5 +1,91 @@
 Changelogs for 4.6.X
 ====================
+.. changelog::
+  :version: 4.6.2
+  :released: 4th of April 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11418
+    :tickets: 11371
+
+    Be more careful using refresh mode only for the record asked.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11380
+    :tickets: 11300
+
+    Use the Lua context stored in SyncRes when calling hooks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11363
+    :tickets: 11338
+
+    QType ADDR is supposed to be used internally only.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11362
+    :tickets: 11327
+
+    If we get NODATA on an AAAA in followCNAMERecords, try native dns64.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11360
+    :tickets: 11283
+
+    Allow disabling of processing the root hints.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 11361
+    :tickets: 11288
+
+    Log an error if pdns.DROP is used as rcode in Lua callbacks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11359
+    :tickets: 11257
+
+    Initialize isNew before calling a exception throwing function.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11358
+    :tickets: 11245
+
+    A CNAME answer on DS query should abort DS retrieval.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11357
+    :tickets: 11225
+
+    Reject non-apex NSEC(3)s that have both the NS and SOA bits set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11260
+
+    Fix build with OpenSSL 3.0.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11170
+    :tickets: 11137
+
+    Shorter thread names.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11169
+    :tickets: 11109
+
+    Two more features to print (DoT and scrypt).
 
 .. changelog::
   :version: 4.6.1
