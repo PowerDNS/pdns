@@ -1653,9 +1653,9 @@ Other functions
 
 .. function:: setTCPFastOpenKey(key)
 
-  .. versionadded:: 1.7.1
+  .. versionadded:: 1.8.0
 
-  Set a specified same ``TCP Fast Open`` key for all frontends.
+  Set the supplied ``TCP Fast Open`` key on all frontends. This can for example be used to allow all dnsdist instances in an anycast cluster to use the same ``TCP Fast Open`` key, reducing round-trips.
 
   :param string key: The format of the key can be found in ``/proc/sys/net/ipv4/tcp_fastopen_key``
 
