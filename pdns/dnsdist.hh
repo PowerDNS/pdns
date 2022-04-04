@@ -719,6 +719,35 @@ struct ClientState
     d_filter = bpf;
   }
 
+  void detachFilter()
+  {
+    if (d_filter) {
+      detachFilter(getSocket());
+      for (const auto& [addr, socket] : d_additionalAddresses) {
+        (void) addr;
+        if (socket != -1) {
+          detachFilter(socket);
+        }
+      }
+
+      d_filter = nullptr;
+    }
+  }
+
+  void attachFilter(shared_ptr<BPFFilter> bpf)
+  {
+    detachFilter();
+
+    bpf->addSocket(getSocket());
+    for (const auto& [addr, socket] : d_additionalAddresses) {
+      (void) addr;
+      if (socket != -1) {
+        bpf->addSocket(socket);
+      }
+    }
+    d_filter = bpf;
+  }
+
   void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
   {
     tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (nbQueries / 100.0);
@@ -1131,7 +1160,7 @@ struct LocalHolders
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
-void tcpAcceptorThread(ClientState* p);
+void tcpAcceptorThread(std::vector<ClientState*> states);
 
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);

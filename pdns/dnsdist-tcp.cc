@@ -1371,12 +1371,14 @@ struct TCPAcceptorParam
   ClientState& cs;
   ComboAddress local;
   LocalStateHolder<NetmaskGroup>& acl;
+  int socket{-1};
 };
 
-static void acceptNewConnection(int socket, TCPAcceptorParam& param)
+static void acceptNewConnection(const TCPAcceptorParam& param)
 {
   auto& cs = param.cs;
   auto& acl = param.acl;
+  int socket = param.socket;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
   remote.sin4.sin_family = param.local.sin4.sin_family;
@@ -1456,34 +1458,36 @@ static void acceptNewConnection(int socket, TCPAcceptorParam& param)
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and
    they will hand off to worker threads & spawn more of them if required
 */
-void tcpAcceptorThread(ClientState* cs)
+void tcpAcceptorThread(std::vector<ClientState*> states)
 {
   setThreadName("dnsdist/tcpAcce");
 
   auto acl = g_ACL.getLocal();
-  struct TCPAcceptorParam param{*cs, cs->local, acl};
+  std::vector<TCPAcceptorParam> params;
+  params.reserve(states.size());
 
-  if (cs->d_additionalAddresses.empty()) {
+  for (auto& state : states) {
+    params.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+    for (const auto& [addr, socket] : state->d_additionalAddresses) {
+      params.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+    }
+  }
+
+  if (params.size() == 1) {
     while (true) {
-      acceptNewConnection(cs->tcpFD, param);
+      acceptNewConnection(params.at(0));
     }
   }
   else {
     auto acceptCallback = [](int socket, FDMultiplexer::funcparam_t& funcparam) {
-      auto acceptorParam = boost::any_cast<TCPAcceptorParam*>(funcparam);
-      acceptNewConnection(socket, *acceptorParam);
+      auto acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
+      acceptNewConnection(*acceptorParam);
     };
 
-    std::vector<TCPAcceptorParam> additionalParams;
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
-    mplexer->addReadFD(cs->tcpFD, acceptCallback, &param);
-    for (const auto& [addr, socket] : cs->d_additionalAddresses) {
-      additionalParams.emplace_back(TCPAcceptorParam{*cs, addr, acl});
-    }
-    size_t idx = 0;
-    for (const auto& [addr, socket] : cs->d_additionalAddresses) {
-      mplexer->addReadFD(socket, acceptCallback, &additionalParams.at(idx));
-      idx++;
+    for (size_t idx = 0; idx < params.size(); idx++) {
+      const auto& param = params.at(idx);
+      mplexer->addReadFD(param.socket, acceptCallback, &param);
     }
 
     struct timeval tv;

@@ -147,3 +147,6 @@ Additionally several Lua bindings can be removed when they are not needed, as th
 * ``DISABLE_QPS_LIMITER_BINDINGS``
 * ``DISABLE_SUFFIX_MATCH_BINDINGS``
 * ``DISABLE_TOP_N_BINDINGS``
+
+Finally a build flag can be used to make use a single thread to handle all incoming UDP queries from clients, and another single thread to accept new TCP connections from clients, no matter how many :func:`addLocal` directives are present in the configuration. This option is destined to resource-constrained environments where dnsdist needs to listen on several addresses, over several interfaces, and one thread is enough to handle the traffic and therefore the overhead of using multiples threads for that task does not make sense.
+This option can be enabled by setting ``USE_SINGLE_ACCEPTOR_THREAD``.
