@@ -1651,6 +1651,14 @@ Other functions
 
   :param int size: The maximum size in bytes (default is 512)
 
+.. function:: setTCPFastOpenKey(key)
+
+  .. versionadded:: 1.7.1
+
+  Set a specified same ``TCP Fast Open`` key for all frontends.
+
+  :param string key: The format of the key can be found in ``/proc/sys/net/ipv4/tcp_fastopen_key``
+
 .. function:: makeIPCipherKey(password) -> string
 
   .. versionadded:: 1.4.0
