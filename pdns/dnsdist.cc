@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <cstdint>
 #include <fstream>
 #include <getopt.h>
 #include <grp.h>
@@ -111,7 +112,7 @@ std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 size_t g_udpVectorSize{1};
-std::vector<unsigned int> g_TCPFastOpenKey;
+std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.

@@ -20,8 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdint>
 #include <dirent.h>
 #include <fstream>
+#include <cinttypes>
 
 // for OpenBSD, sys/socket.h needs to come before net/if.h
 #include <sys/socket.h>
@@ -1990,13 +1992,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](uint64_t size) { g_tcpInternalPipeBufferSize = size; });
   luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
     setLuaSideEffect();
-    unsigned int key[4] = {};
-    auto ret = sscanf(keyString.c_str(), "%x-%x-%x-%x", &key[0], &key[1], &key[2], &key[3]);
+    uint32_t key[4] = {};
+    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "%" SCNx32 "%" SCNx32 "%" SCNx32, &key[0], &key[1], &key[2], &key[3]);
     if (ret != 4) {
       g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
       return;
     }
-    extern vector<unsigned int> g_TCPFastOpenKey;
+    extern vector<uint32_t> g_TCPFastOpenKey;
     for (const auto i : key) {
       g_TCPFastOpenKey.push_back(i);
     }
