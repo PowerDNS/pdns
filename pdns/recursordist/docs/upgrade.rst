@@ -27,7 +27,7 @@ New settings
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
--  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should not processed. The hint processing code is also made less verbose.
+-  The :ref:`setting-hint-file` gained a special value ``no`` to indicate that no hint file should be processed. The hint processing code is also made less verbose.
 
 4.5.x to 4.6.1
 --------------
