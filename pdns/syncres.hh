@@ -150,47 +150,6 @@ private:
   cont_t d_cont;
 };
 
-
-/** Class that implements a decaying EWMA.
-    This class keeps an exponentially weighted moving average which, additionally, decays over time.
-    The decaying is only done on get.
-*/
-class DecayingEwma
-{
-public:
-  DecayingEwma() {}
-  DecayingEwma(const DecayingEwma& orig) = delete;
-  DecayingEwma & operator=(const DecayingEwma& orig) = delete;
-  
-  void submit(int val, const struct timeval& now)
-  {
-    if (d_last.tv_sec == 0 && d_last.tv_usec == 0) {
-      d_last = now;
-      d_val = val;
-    }
-    else {
-      float diff = makeFloat(d_last - now);
-      d_last = now;
-      float factor = expf(diff)/2.0f; // might be '0.5', or 0.0001
-      d_val = (1-factor)*val + factor*d_val;
-    }
-  }
-
-  float get(float factor)
-  {
-    return d_val *= factor;
-  }
-
-  float peek(void) const
-  {
-    return d_val;
-  }
-
-private:
-  struct timeval d_last{0, 0};          // stores time
-  float d_val{0};
-};
-
 extern std::unique_ptr<NegCache> g_negCache;
 
 class SyncRes : public boost::noncopyable
@@ -200,65 +159,6 @@ public:
   typedef std::function<LWResult::Result(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
 
   enum class HardenNXD { No, DNSSEC, Yes };
-
-  //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
-  /** Modelled to work mostly like the underlying DecayingEwma */
-  struct DecayingEwmaCollection
-  {
-    void submit(const ComboAddress& remote, int usecs, const struct timeval& now)
-    {
-      d_collection[remote].submit(usecs, now);
-    }
-
-    float getFactor(const struct timeval &now) {
-      float diff = makeFloat(d_lastget - now);
-      return expf(diff / 60.0f); // is 1.0 or less
-    }
-    
-    float get(const struct timeval& now)
-    {
-      if (d_collection.empty()) {
-        return 0;
-      }
-      if (d_lastget.tv_sec == 0 && d_lastget.tv_usec == 0) {
-        d_lastget = now;
-      }
-
-      float ret = std::numeric_limits<float>::max();
-      float factor = getFactor(now);
-      float tmp;
-      for (auto& entry : d_collection) {
-        if ((tmp = entry.second.get(factor)) < ret) {
-          ret = tmp;
-        }
-      }
-      d_lastget = now;
-      return ret;
-    }
-
-    bool stale(time_t limit) const
-    {
-      return limit > d_lastget.tv_sec;
-    }
-
-    void purge(const std::map<ComboAddress, float>& keep)
-    {
-      for (auto iter = d_collection.begin(); iter != d_collection.end(); ) {
-        if (keep.find(iter->first) != keep.end()) {
-          ++iter;
-        }
-        else {
-          iter = d_collection.erase(iter);
-        }
-      }
-    }
-
-    typedef std::map<ComboAddress, DecayingEwma> collection_t;
-    collection_t d_collection;
-    struct timeval d_lastget{0, 0};       // stores time
-  };
-
-  typedef std::unordered_map<DNSName, DecayingEwmaCollection> nsspeeds_t;
 
   vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
 
@@ -338,7 +238,6 @@ public:
   };
 
   struct ThreadLocalStorage {
-    nsspeeds_t nsSpeeds;
     throttle_t throttle;
     ednsstatus_t ednsstatus;
     std::shared_ptr<domainmap_t> domainmap;
@@ -400,33 +299,13 @@ public:
   {
     s_ednsdomains = SuffixMatchNode();
   }
-  static void pruneNSSpeeds(time_t limit)
-  {
-    for(auto i = t_sstorage.nsSpeeds.begin(), end = t_sstorage.nsSpeeds.end(); i != end; ) {
-      if(i->second.stale(limit)) {
-        i = t_sstorage.nsSpeeds.erase(i);
-      }
-      else {
-        ++i;
-      }
-    }
-  }
-  static uint64_t getNSSpeedsSize()
-  {
-    return t_sstorage.nsSpeeds.size();
-  }
-  static void submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval& now)
-  {
-    t_sstorage.nsSpeeds[server].submit(ca, usec, now);
-  }
-  static void clearNSSpeeds()
-  {
-    t_sstorage.nsSpeeds.clear();
-  }
-  static float getNSSpeed(const DNSName& server, const ComboAddress& ca)
-  {
-    return t_sstorage.nsSpeeds[server].d_collection[ca].peek();
-  }
+
+  static void pruneNSSpeeds(time_t limit);
+  static uint64_t getNSSpeedsSize();
+  static void submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval& now);
+  static void clearNSSpeeds();
+  static float getNSSpeed(const DNSName& server, const ComboAddress& ca);
+
   static EDNSStatus::EDNSMode getEDNSStatus(const ComboAddress& server)
   {
     const auto& it = t_sstorage.ednsstatus.find(server);
