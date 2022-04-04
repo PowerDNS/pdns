@@ -193,13 +193,13 @@ class nsspeeds_t :
                                  >>
 {
 public:
-  const auto& find(const DNSName& name, const struct timeval& now)
+  const auto& find_or_enter(const DNSName& name, const struct timeval& now)
   {
     const auto it = insert(DecayingEwmaCollection{name, now}).first;
     return *it;
   }
 
-  const auto& find(const DNSName& name)
+  const auto& find_or_enter(const DNSName& name)
   {
     const auto it = insert(DecayingEwmaCollection{name}).first;
     return *it;
@@ -913,7 +913,7 @@ uint64_t SyncRes::getNSSpeedsSize()
 void SyncRes::submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval& now)
 {
   auto lock = s_nsSpeeds.lock();
-  lock->find(server, now).submit(ca, usec, now);
+  lock->find_or_enter(server, now).submit(ca, usec, now);
 }
 
 void SyncRes::clearNSSpeeds()
@@ -924,7 +924,7 @@ void SyncRes::clearNSSpeeds()
 float SyncRes::getNSSpeed(const DNSName& server, const ComboAddress& ca)
 {
   auto lock = s_nsSpeeds.lock();
-  return lock->find(server).d_collection[ca].peek();
+  return lock->find_or_enter(server).d_collection[ca].peek();
 }
 
 uint64_t SyncRes::doDumpNSSpeeds(int fd)
@@ -1800,7 +1800,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   map<ComboAddress, float> speeds;
   {
     auto lock = s_nsSpeeds.lock();
-    auto& collection = lock->find(qname, d_now);
+    auto& collection = lock->find_or_enter(qname, d_now);
     float factor = collection.getFactor(d_now);
     for(const auto& val: ret) {
       speeds[val] = collection.d_collection[val].get(factor);
@@ -4716,7 +4716,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
       // don't account for resource limits, they are our own fault
       // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
-      s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
+      s_nsSpeeds.lock()->find_or_enter(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
@@ -4742,7 +4742,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (!chained && !dontThrottle) {
 
       // let's make sure we prefer a different server for some time, if there is one available
-      s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
+      s_nsSpeeds.lock()->find_or_enter(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
       if (doTCP) {
         // we can be more heavy-handed over TCP
@@ -4763,7 +4763,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
           // rather than throttling what could be the only server we have for this destination, let's make sure we try a different one if there is one available
           // on the other hand, we might keep hammering a server under attack if there is no other alternative, or the alternative is overwhelmed as well, but
           // at the very least we will detect that if our packets stop being answered
-          s_nsSpeeds.lock()->find(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
+          s_nsSpeeds.lock()->find_or_enter(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
         }
         else {
           t_sstorage.throttle.throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
@@ -5172,7 +5172,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           */
           //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-          s_nsSpeeds.lock()->find(tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first, d_now).submit(*remoteIP, lwr.d_usec, d_now);
+          s_nsSpeeds.lock()->find_or_enter(tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first, d_now).submit(*remoteIP, lwr.d_usec, d_now);
 
           /* we have received an answer, are we done ? */
           bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, *remoteIP);
