@@ -44,3 +44,126 @@ These things are not supported through the API.
 
 When creating a slave zone, it is recommended to not set any of
 ``nameservers``, ``rrsets`` or ``zone``.
+
+Examples
+--------
+
+Listing all zones
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  GET /api/v1/servers/localhost/zones HTTP/1.1
+  X-API-Key: secret
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  [{"account": "", "dnssec": false, "edited_serial": 2022040504, "id": "example.org.", "kind": "Native", "last_check": 0, "masters": [], "name": "example.org.", "notified_serial": 0, "serial": 2022040504, "url": "/api/v1/servers/localhost/zones/example.org."}]
+
+Creating new zone
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  POST /api/v1/servers/localhost/zones HTTP/1.1
+  X-API-Key: secret
+  Content-Type: application/json
+
+  {"name": "example.org.", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org.", "ns2.example.org."]}
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  {"account": "", "api_rectify": false, "dnssec": false, "edited_serial": 2022040501, "id": "example.org.", "kind": "Native", "last_check": 0, "master_tsig_key_ids": [], "masters": [], "name": "example.org.", "notified_serial": 0, "nsec3narrow": false, "nsec3param": "", "rrsets": [{"comments": [], "name": "example.org.", "records": [{"content": "a.misconfigured.dns.server.invalid. hostmaster.example.org. 2022040501 10800 3600 604800 3600", "disabled": false}], "ttl": 3600, "type": "SOA"}, {"comments": [], "name": "example.org.", "records": [{"content": "ns1.example.org.", "disabled": false}, {"content": "ns2.example.org.", "disabled": false}], "ttl": 3600, "type": "NS"}], "serial": 2022040501, "slave_tsig_key_ids": [], "soa_edit": "", "soa_edit_api": "DEFAULT", "url": "/api/v1/servers/localhost/zones/example.org."}
+
+Listing a zone
+^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  GET /api/v1/servers/localhost/zones/example.org. HTTP/1.1
+  X-API-Key: secret
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  {"account": "", "api_rectify": false, "dnssec": false, "edited_serial": 2022040501, "id": "example.org.", "kind": "Native", "last_check": 0, "master_tsig_key_ids": [], "masters": [], "name": "example.org.", "notified_serial": 0, "nsec3narrow": false, "nsec3param": "", "rrsets": [{"comments": [], "name": "example.org.", "records": [{"content": "a.misconfigured.dns.server.invalid. hostmaster.example.org. 2022040501 10800 3600 604800 3600", "disabled": false}], "ttl": 3600, "type": "SOA"}, {"comments": [], "name": "example.org.", "records": [{"content": "ns1.example.org.", "disabled": false}, {"content": "ns2.example.org.", "disabled": false}], "ttl": 3600, "type": "NS"}], "serial": 2022040501, "slave_tsig_key_ids": [], "soa_edit": "", "soa_edit_api": "DEFAULT", "url": "/api/v1/servers/localhost/zones/example.org."}
+
+Deleting a zone
+^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  DELETE /api/v1/servers/localhost/zones/example.org. HTTP/1.1
+  X-API-Key: secret
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 204 No Content
+  
+Creating new RRset
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  PATCH /api/v1/servers/localhost/example.org. HTTP/1.1
+  X-API-Key: secret
+  Content-Type: application/json
+
+  {"rrsets": [{"name": "test.example.org.", "type": "A", "ttl": 3600, "changetype": "REPLACE", "records": [{"content": "192.168.0.5", "disabled": false}]}]}
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 204 No Content
+
+Deleting a RRset
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  PATCH /api/v1/servers/localhost/example.org. HTTP/1.1
+  X-API-Key: secret
+  Content-Type: application/json
+
+  {"rrsets": [{"name": "test.example.org.", "type": "A", "changetype": "DELETE"}]}
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 204 No Content
+
+Rectifying a zone
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  PUT /api/v1/servers/localhost/zones/example.org./rectify HTTP/1.1
+  X-API-Key: secret
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  {"result": "Rectified"}
+  
