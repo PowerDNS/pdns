@@ -925,6 +925,7 @@ void startDoResolve(void* p)
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
+
     bool useMapped = true;
     // If proxy by table is active and had a match, we only want to use the mapped address if it also has a domain match
     // (if a domain suffix match table is present in the config)

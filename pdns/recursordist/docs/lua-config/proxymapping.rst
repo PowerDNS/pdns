@@ -52,5 +52,5 @@ See :func:`protobufServer` on how to tune the source address logged in ``Protobu
 
 If this ``domains`` argument is given to this function, only queries for names matching the :ref:`dns-suffix-match-group` will use the value ``M`` to determine the outgoing ECS, other queries will use the value ``S``.
 The ACL check will be done against the mapped address ``M`` for all queries, independent of the name queried.
-If the ``domains`` argument is absent, no extra condition (apart from matching the subnet) aplies to determine the outgoing ECS value.
+If the ``domains`` argument is absent, no extra condition (apart from matching the subnet) applies to determine the outgoing ECS value.
 
