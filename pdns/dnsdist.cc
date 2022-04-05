@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <cstdint>
 #include <fstream>
 #include <getopt.h>
 #include <grp.h>
@@ -111,7 +112,7 @@ std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 size_t g_udpVectorSize{1};
-
+std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
@@ -1983,6 +1984,13 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     if (cs->fastOpenQueueSize > 0) {
 #ifdef TCP_FASTOPEN
       SSetsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, cs->fastOpenQueueSize);
+#ifdef TCP_FASTOPEN_KEY
+      if (!g_TCPFastOpenKey.empty()) {
+        auto res = setsockopt(fd, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
+        if (res == -1)
+          throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
+      }
+#endif
 #else
       if (warn) {
         warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());

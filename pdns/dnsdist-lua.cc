@@ -20,8 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdint>
 #include <dirent.h>
 #include <fstream>
+#include <cinttypes>
 
 // for OpenBSD, sys/socket.h needs to come before net/if.h
 #include <sys/socket.h>
@@ -30,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <thread>
+#include <vector>
 
 #include "dnsdist.hh"
 #include "dnsdist-carbon.hh"
@@ -1987,6 +1990,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](uint64_t size) { g_tcpInternalPipeBufferSize = size; });
+  luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
+    setLuaSideEffect();
+    uint32_t key[4] = {};
+    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key[0], &key[1], &key[2], &key[3]);
+    if (ret != 4) {
+      g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
+      return;
+    }
+    extern vector<uint32_t> g_TCPFastOpenKey;
+    for (const auto i : key) {
+      g_TCPFastOpenKey.push_back(i);
+    }
+  });
 
 #ifdef HAVE_NET_SNMP
   luaCtx.writeFunction("snmpAgent", [client, configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
