@@ -273,6 +273,21 @@ Either don't ``chroot`` on these systems or set the 'Type' of the
 service to 'simple' instead of 'notify' (refer to the systemd
 documentation on how to modify unit-files).
 
+.. _setting-compare-signatures-on-zone-freshness-check:
+
+``compare-signatures-on-zone-freshness-check``
+----------------------------------------------
+
+.. versionadded:: 4.7.0
+
+-  Boolean
+-  Default: yes
+
+Turning this off will disable the DO flag for SOA queries during zone freshness checks of secondary zones
+to workaround truncated SOA responses. It will also disable signature comparison which are used to detect
+signature changes even when the serial was not increased. Hence, disable this setting only if the Primary
+name server always increases the serial on signature changes.
+
 .. _setting-config-dir:
 
 ``config-dir``

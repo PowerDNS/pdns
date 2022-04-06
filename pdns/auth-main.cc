@@ -214,6 +214,7 @@ void declareArguments()
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
   ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "60";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
+  ::arg().set("compare-signatures-on-zone-freshness-check", "Set DO flag on SOA queries to receive signatures for signature comparison") = "yes";
 
   ::arg().set("tcp-control-address", "If set, PowerDNS can be controlled over TCP on this address") = "";
   ::arg().set("tcp-control-port", "If set, PowerDNS can be controlled over TCP on this address") = "53000";

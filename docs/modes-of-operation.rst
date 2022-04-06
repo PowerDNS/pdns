@@ -101,6 +101,20 @@ retrieved and inserted into the database. In any case, after the check,
 the domain is declared 'fresh', and will only be checked again after
 '**refresh**' seconds have passed.
 
+If the serial on the Primary is equal to the serial on the Secondary,
+but the zone is presigned, the Secondary will also compare the RRSIG
+of the SOA and queue a zone transfer if the signatures are different.
+This is useful if the Primary is also PowerDNS as the serial may not be
+increased although signatures are updated. To compare also the RRSIGs,
+PowerDNS sets the DO flag when querying the SOA on the Primary. Setting
+the DO flag may trigger truncated responses and the SOA check should
+fall-back to TCP. As this fall-back is currently not supported in
+PowerDNS, freshnes checks may fail. If it is known that the Primary
+always increases the serial on signature changes, signature comparison
+can be turned off by disabling
+:ref:`setting-compare-signatures-on-zone-freshness-check`. This will disable
+the DO flag and should work around the truncate issue.
+
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after
 :ref:`setting-xfr-cycle-interval` seconds.

@@ -1182,7 +1182,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
       DomainNotificationInfo dni;
       dni.di=di;
-      dni.dnssecOk = dk.doesDNSSEC();
+      if (::arg().mustDo("compare-signatures-on-zone-freshness-check")) {
+        dni.dnssecOk = dk.doesDNSSEC();
+      } else {
+        dni.dnssecOk = false;
+      }
 
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
@@ -1327,7 +1331,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
-      if(dk.isPresigned(di.zone)) {
+      if(dk.isPresigned(di.zone) && ::arg().mustDo("compare-signatures-on-zone-freshness-check")) {
         B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while(B->get(zr)) {
