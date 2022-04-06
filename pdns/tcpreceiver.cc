@@ -823,15 +823,24 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
     zrr.dr.d_name.makeUsLowerCase();
     if(zrr.dr.d_name.isPartOf(target)) {
-      if (zrr.dr.d_type == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
+      if (zrr.dr.d_type == QType::ALIAS && (::arg().mustDo("outgoing-axfr-expand-alias") || ::arg()["outgoing-axfr-expand-alias"] == "ignore-errors")) {
         vector<DNSZoneRecord> ips;
         int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
         int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
-        if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
-          g_log<<Logger::Warning<<logPrefix<<"error resolving for ALIAS "<<zrr.dr.getContent()->getZoneRepresentation()<<", aborting AXFR"<<endl;
-          outpacket->setRcode(RCode::ServFail);
-          sendPacket(outpacket,outsock);
-          return 0;
+        if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          if (::arg()["outgoing-axfr-expand-alias"] != "ignore-errors") {
+            g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving for ALIAS "<<zrr.dr.getContent()->getZoneRepresentation()<<", aborting AXFR"<<endl;
+            outpacket->setRcode(RCode::ServFail);
+            sendPacket(outpacket,outsock);
+            return 0;
+          } else {
+            if (ret1 != RCode::NoError) {
+              g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving A record for ALIAS target "<<zrr.dr.getContent()->getZoneRepresentation()<<", continuing AXFR"<<endl;
+            }
+            if (ret2 != RCode::NoError) {
+              g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving AAAA record for ALIAS target "<<zrr.dr.getContent()->getZoneRepresentation()<<", continuing AXFR"<<endl;
+            }
+          }
         }
         for (auto& ip: ips) {
           zrr.dr.d_type = ip.dr.d_type;

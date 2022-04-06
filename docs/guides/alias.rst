@@ -34,6 +34,8 @@ When the authoritative server receives a query for the A-record for
 ``example.net``, it will resolve the A record for
 ``mywebapp.paas-provider.net`` and serve an answer for ``example.net``
 with that A record.
+If the ALIAS target can not be resolved (SERVFAIL) or does not exist
+(NXDOMAIN) the authoritative server will answer SERVFAIL.
 
 When a zone containing ALIAS records is transferred over AXFR, the
 :ref:`setting-outgoing-axfr-expand-alias`
@@ -42,6 +44,11 @@ default), ALIAS records are sent as-is (RRType 65401 and a DNSName in
 the RDATA) in the AXFR. When set to 'yes', PowerDNS will lookup the A
 and AAAA records of the name in the ALIAS-record and send the results in
 the AXFR.
+If the ALIAS target can not be resolved during AXFR the AXFR will fail.
+To allow outgoing AXFR also if the ALIAS targets are broken you can set
+:ref:`setting-outgoing-axfr-expand-alias` to 'ignore-errors', but
+be warned, this will lead to inconsistent zones between the Primary and
+Secondary name servers.
 
 Set ``outgoing-axfr-expand-alias`` to 'yes' if your slaves don't
 understand ALIAS or should not look up the addresses themselves. Note
@@ -62,5 +69,3 @@ Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing'
 of ALIAS records is supported on AXFR (**not** on live-signing). Set
 ``outgoing-axfr-expand-alias`` to 'yes' and enable DNSSEC for the zone
 on the master. PowerDNS will sign the A/AAAA records during the AXFR.
-
-
