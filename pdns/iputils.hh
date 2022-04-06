@@ -884,17 +884,20 @@ private:
     }
   }
 
-  void copyTree(const NetmaskTree& rhs)
+  void copyTree(const NetmaskTree& rhs) noexcept
   {
-    TreeNode *node;
-
-    node = rhs.d_root.get();
-    if (node != nullptr)
-      node = node->traverse_l();
-    while (node != nullptr) {
-      if (node->assigned)
-        insert(node->node.first).second = node->node.second;
-      node = node->traverse_lnr();
+    try {
+      TreeNode *node = rhs.d_root.get();
+      if (node != nullptr)
+        node = node->traverse_l();
+      while (node != nullptr) {
+        if (node->assigned)
+          insert(node->node.first).second = node->node.second;
+        node = node->traverse_lnr();
+      }
+    }
+    catch (...) {
+      abort();
     }
   }
 
@@ -967,11 +970,11 @@ public:
   NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr), d_size(0) {
+  NetmaskTree(const NetmaskTree& rhs) noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
     copyTree(rhs);
   }
 
-  NetmaskTree& operator=(const NetmaskTree& rhs) {
+  NetmaskTree& operator=(const NetmaskTree& rhs) noexcept {
     clear();
     copyTree(rhs);
     return *this;
