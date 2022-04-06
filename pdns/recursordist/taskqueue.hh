@@ -55,7 +55,7 @@ struct ResolveTask
   // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
   bool d_refreshMode;
   // Use a function pointer as comparing std::functions is a nuisance
-  using TaskFunction  = void (*)(const struct timeval& now, bool logErrors, const ResolveTask& task);
+  using TaskFunction = void (*)(const struct timeval& now, bool logErrors, const ResolveTask& task);
   TaskFunction d_func;
   // IP used by DoT probe tasks
   ComboAddress d_ip;

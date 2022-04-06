@@ -288,10 +288,15 @@ static LockGuarded<fails_t<DNSName>> s_nonresolving;
 
 struct DoTStatus
 {
+  DoTStatus(const ComboAddress& ip, const DNSName& auth, time_t ttd) :
+    d_address(ip), d_auth(auth), d_ttd(ttd)
+  {
+  }
   enum Status : uint8_t { Unknown, Busy, Bad, Good };
   const ComboAddress d_address;
   const DNSName d_auth;
   time_t d_ttd;
+  mutable uint64_t d_count{0};
   mutable Status d_status{Unknown};
   std::string toString() const
   {
@@ -1217,7 +1222,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
     return 0;
   }
   fprintf(fp.get(), "; DoT probing map follows");
-  fprintf(fp.get(), "; ip\tstatus\tttd\n");
+  fprintf(fp.get(), "; ip\tdomain\tcount\tstatus\tttd\n");
   uint64_t count=0;
 
   // We get a copy, so the I/O does not need to happen while holding the lock
@@ -1229,7 +1234,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
   for (const auto& i : copy.d_map) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%s\t%s\t%s\n", i.d_address.toString().c_str(), i.d_auth.toString().c_str(), i.toString().c_str(), timestamp(i.d_ttd, tmp, sizeof(tmp)));
+    fprintf(fp.get(), "%s\t%s\t%" PRIu64 "\t%s\t%s\n", i.d_address.toString().c_str(), i.d_auth.toString().c_str(), i.d_count, i.toString().c_str(), timestamp(i.d_ttd, tmp, sizeof(tmp)));
   }
   return count;
 }
@@ -4751,6 +4756,10 @@ static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t n
     if (it->d_status == DoTStatus::Good) {
       return;
     }
+    // We only want to probe auths that we have seen before, auth that only come around once are not interesting
+    if (it->d_status == DoTStatus::Unknown && it->d_count == 0) {
+      return;
+    }
   }
   lock->d_map.modify(it, [=] (DoTStatus& st){ st.d_ttd = now + dotFailWait; });
   bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max());
@@ -4766,9 +4775,9 @@ static bool shouldDoDoT(ComboAddress address, time_t now)
   auto lock = s_dotMap.lock();
   auto it = lock->d_map.find(address);
   if (it == lock->d_map.end()) {
-    // Pruned...
     return false;
   }
+  it->d_count++;
   if (it->d_status == DoTStatus::Good && it->d_ttd > now) {
     return true;
   }

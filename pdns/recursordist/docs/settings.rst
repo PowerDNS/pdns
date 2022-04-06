@@ -1075,7 +1075,7 @@ See :ref:`hooks-maintenance-callback`
 - Integer
 - Default: 0
 
-Limit the maxmium number of simultaneous DoT probes the Recursor will schedule.
+Limit the maximum number of simultaneous DoT probes the Recursor will schedule.
 The default value 0 means no DoT probes are scheduled.
 
 DoT probes are used to check if an authoritative server's IP address supports DoT.
