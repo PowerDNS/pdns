@@ -232,8 +232,10 @@ string nowTime()
   localtime_r(&now, &tm);
   char buffer[30];
   // YYYY-mm-dd HH:MM:SS TZOFF
-  strftime(buffer, sizeof(buffer), "%F %T %z", &tm);
-  buffer[sizeof(buffer)-1] = '\0';
+  size_t ret = strftime(buffer, sizeof(buffer), "%F %T %z", &tm);
+  if (ret == 0) {
+    buffer[0] = '\0';
+  }
   return string(buffer);
 }
 
