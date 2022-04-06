@@ -1059,8 +1059,23 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   }
 
   if (HarvestDestinationAddress(msgh, &dest)) {
-    /* we don't get the port, only the address */
-    dest.sin4.sin_port = cs.local.sin4.sin_port;
+    /* so it turns out that sometimes the kernel lies to us:
+       the address is set to 0.0.0.0:0 which makes our sendfromto() use
+       the wrong address. In that case it's better to let the kernel
+       do the work by itself and use sendto() instead.
+    */
+    const ComboAddress bogusV4("0.0.0.0:0");
+    const ComboAddress bogusV6("[::]:0");
+    if (dest.sin4.sin_family == AF_INET && dest == bogusV4) {
+      dest.sin4.sin_family = 0;
+    }
+    else if (dest.sin4.sin_family == AF_INET6 && dest == bogusV6) {
+      dest.sin4.sin_family = 0;
+    }
+    else {
+      /* we don't get the port, only the address */
+      dest.sin4.sin_port = cs.local.sin4.sin_port;
+    }
   }
   else {
     dest.sin4.sin_family = 0;
