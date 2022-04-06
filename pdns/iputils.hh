@@ -884,7 +884,7 @@ private:
     }
   }
 
-  void copyTree(const NetmaskTree& rhs) noexcept
+  void copyTree(const NetmaskTree& rhs)
   {
     try {
       TreeNode *node = rhs.d_root.get();
@@ -896,7 +896,7 @@ private:
         node = node->traverse_lnr();
       }
     }
-    catch (...) {
+    catch (const NetmaskException&) {
       abort();
     }
   }
@@ -970,11 +970,11 @@ public:
   NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs) noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr), d_size(0) {
     copyTree(rhs);
   }
 
-  NetmaskTree& operator=(const NetmaskTree& rhs) noexcept {
+  NetmaskTree& operator=(const NetmaskTree& rhs) {
     clear();
     copyTree(rhs);
     return *this;
