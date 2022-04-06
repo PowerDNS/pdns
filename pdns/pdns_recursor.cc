@@ -1803,6 +1803,7 @@ void requestWipeCaches(const DNSName& canon)
 
     unixDie("write to thread pipe returned wrong size or error");
   }
+  // coverity[leaked_storage]
 }
 
 bool expectProxyProtocol(const ComboAddress& from)
@@ -2489,6 +2490,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
       delete tmsg;
     }
   }
+  // coverity[leaked_storage]
 }
 
 // resend event to everybody chained onto it

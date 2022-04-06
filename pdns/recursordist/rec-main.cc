@@ -1089,6 +1089,7 @@ void broadcastFunction(const pipefunc_t& func)
       delete resp;
       resp = nullptr;
     }
+    // coverity[leaked_storage]
   }
 }
 
@@ -1149,6 +1150,7 @@ T broadcastAccFunction(const std::function<T*()>& func)
       delete resp;
       resp = nullptr;
     }
+    // coverity[leaked_storage]
   }
   return ret;
 }
