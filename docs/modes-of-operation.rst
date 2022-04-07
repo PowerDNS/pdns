@@ -108,12 +108,12 @@ This is useful if the Primary is also PowerDNS as the serial may not be
 increased although signatures are updated. To compare also the RRSIGs,
 PowerDNS sets the DO flag when querying the SOA on the Primary. Setting
 the DO flag may trigger truncated responses and the SOA check should
-fall-back to TCP. As this fall-back is currently not supported in
+fall back to TCP. As this fallback is not currently supported in
 PowerDNS, freshness checks may fail. If it is known that the Primary
 always increases the serial on signature changes, signature comparison
 can be turned off by disabling
 :ref:`setting-compare-signatures-on-zone-freshness-check`. This will disable
-the DO flag and should work around the truncate issue.
+the DO flag and should work around the issue with truncate.
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after
