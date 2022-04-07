@@ -118,9 +118,11 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_COMPLETION`` for completion support in the console
 * ``DISABLE_DEPRECATED_DYNBLOCK`` for legacy dynamic blocks not using the new ``DynBlockRulesGroup`` interface
 * ``DISABLE_ECS_ACTIONS`` to disable actions altering EDNS Client Subnet
+* ``DISABLE_FALSE_SHARING_PADDING`` to disable the padding of atomic counters, which is inserted to prevent false sharing but increases the memory use significantly
 * ``DISABLE_HASHED_CREDENTIALS`` to disable password-hashing support
 * ``DISABLE_LUA_WEB_HANDLERS`` for custom Lua web handlers support
 * ``DISABLE_OCSP_STAPLING`` for OCSP stapling
+* ``DISABLE_NPN`` for Next Protocol Negotiation, superseded by ALPN
 * ``DISABLE_PROMETHEUS`` for prometheus
 * ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap
 * ``DISABLE_RECVMMSG`` for ``recvmmsg`` support
