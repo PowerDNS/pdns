@@ -886,15 +886,18 @@ private:
 
   void copyTree(const NetmaskTree& rhs)
   {
-    TreeNode *node;
-
-    node = rhs.d_root.get();
-    if (node != nullptr)
-      node = node->traverse_l();
-    while (node != nullptr) {
-      if (node->assigned)
-        insert(node->node.first).second = node->node.second;
-      node = node->traverse_lnr();
+    try {
+      TreeNode *node = rhs.d_root.get();
+      if (node != nullptr)
+        node = node->traverse_l();
+      while (node != nullptr) {
+        if (node->assigned)
+          insert(node->node.first).second = node->node.second;
+        node = node->traverse_lnr();
+      }
+    }
+    catch (const NetmaskException&) {
+      abort();
     }
   }
 
