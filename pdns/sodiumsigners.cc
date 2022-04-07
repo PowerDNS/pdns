@@ -16,6 +16,7 @@ public:
   string getName() const override { return "Sodium ED25519"; }
   void create(unsigned int bits) override;
 
+#if defined(HAVE_LIBCRYPTO_ED25519)
   /**
    * \brief Creates an ED25519 key engine from a PEM file.
    *
@@ -46,6 +47,7 @@ public:
    * \exception std::runtime_error In case of OpenSSL errors.
    */
   void convertToPEM(std::FILE& fp) const override;
+#endif
 
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
@@ -74,6 +76,7 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
 }
 
+#if defined(HAVE_LIBCRYPTO_ED25519)
 void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
 {
   drc.d_algorithm = d_algorithm;
@@ -107,6 +110,7 @@ void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
     throw runtime_error(getName() + ": Could not convert private key to PEM");
   }
 }
+#endif
 
 int SodiumED25519DNSCryptoKeyEngine::getBits() const
 {
