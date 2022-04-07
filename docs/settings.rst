@@ -284,7 +284,7 @@ documentation on how to modify unit-files).
 -  Default: yes
 
 Turning this off will disable the DO flag for SOA queries during zone freshness checks of secondary zones
-to workaround truncated SOA responses. It will also disable signature comparison which are used to detect
+to work around truncated SOA responses. It will also disable signature comparison which is used to detect
 signature changes even when the serial was not increased. Hence, disable this setting only if the Primary
 name server always increases the serial on signature changes.
 
