@@ -899,6 +899,9 @@ private:
     catch (const NetmaskException&) {
       abort();
     }
+    catch (const std::logic_error&) {
+      abort();
+    }
   }
 
 public:
