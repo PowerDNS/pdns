@@ -268,7 +268,7 @@ bool RecursorSNMPAgent::sendCustomTrap(const std::string& reason)
                             reason.c_str(),
                             reason.size());
 
-  return sendTrap(d_trapPipe[1], varList);
+  return sendTrap(d_sender, varList);
 #endif /* HAVE_NET_SNMP */
   return true;
 }

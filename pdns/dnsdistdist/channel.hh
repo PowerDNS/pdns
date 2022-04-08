@@ -34,7 +34,7 @@ namespace channel
    *
    * A sender can be used by several threads in a safe way.
    */
-  template <typename T>
+  template <typename T, typename D = std::default_delete<T>>
   class Sender
   {
   public:
@@ -56,7 +56,7 @@ namespace channel
      *
      * \throw runtime_error if the channel is broken, for example if the other end has been closed.
      */
-    bool send(std::unique_ptr<T>&&) const;
+    bool send(std::unique_ptr<T, D>&&) const;
 
   private:
     FDWrapper d_fd;
@@ -67,7 +67,7 @@ namespace channel
    *
    * A receiver can be used by several threads in a safe way, but in that case spurious wake up might happen.
    */
-  template <typename T>
+  template <typename T, typename D = std::default_delete<T>>
   class Receiver
   {
   public:
@@ -89,7 +89,8 @@ namespace channel
      *
      * \throw runtime_error if the channel is broken, for example if the other end has been closed.
      */
-    std::optional<std::unique_ptr<T>> receive() const;
+    std::optional<std::unique_ptr<T, D>> receive() const;
+    std::optional<std::unique_ptr<T, D>> receive(D deleter) const;
 
     /**
      * \brief Get a descriptor that can be used with an I/O multiplexer to wait for an object to become available.
@@ -112,8 +113,8 @@ namespace channel
    *
    * \throw runtime_error if the channel creation failed.
    */
-  template <typename T>
-  std::pair<Sender<T>, Receiver<T>> createObjectQueue(bool nonBlocking = true, size_t pipeBufferSize = 0);
+  template <typename T, typename D = std::default_delete<T>>
+  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool nonBlocking = true, size_t pipeBufferSize = 0);
 
   /**
    * The notifier's end of a channel used to communicate between threads.
@@ -183,15 +184,19 @@ namespace channel
    */
   std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking = true, size_t pipeBufferSize = 0);
 
-  template <typename T>
-  bool Sender<T>::send(std::unique_ptr<T>&& object) const
+  template <typename T, typename D>
+  bool Sender<T, D>::send(std::unique_ptr<T, D>&& object) const
   {
-    auto ptr = object.release();
+    // we do not release right away because we might need the custom deleter later
+    auto ptr = object.get();
     static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranted not to interleaved and to either fully succeed or fail");
     ssize_t sent = write(d_fd.getHandle(), &ptr, sizeof(ptr));
 
-    if (sent != sizeof(ptr)) {
-      delete ptr;
+    if (sent == sizeof(ptr)) {
+      // we cannot touch it anymore
+      object.release();
+    }
+    else {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
         return false;
       }
@@ -203,14 +208,14 @@ namespace channel
     return true;
   }
 
-  template <typename T>
-  std::optional<std::unique_ptr<T>> Receiver<T>::receive() const
+  template <typename T, typename D>
+  std::optional<std::unique_ptr<T, D>> Receiver<T, D>::receive() const
   {
-    std::optional<std::unique_ptr<T>> result;
+    std::optional<std::unique_ptr<T, D>> result;
     T* obj{nullptr};
     ssize_t got = read(d_fd.getHandle(), &obj, sizeof(obj));
     if (got == sizeof(obj)) {
-      return std::unique_ptr<T>(obj);
+      return std::unique_ptr<T, D>(obj);
     }
     else if (got == 0) {
       throw std::runtime_error("EOF while reading from Channel receiver");
@@ -226,8 +231,31 @@ namespace channel
     }
   }
 
-  template <typename T>
-  std::pair<Sender<T>, Receiver<T>> createObjectQueue(bool nonBlocking, size_t pipeBufferSize)
+  template <typename T, typename D>
+  std::optional<std::unique_ptr<T, D>> Receiver<T, D>::receive(D deleter) const
+  {
+    std::optional<std::unique_ptr<T, D>> result;
+    T* obj{nullptr};
+    ssize_t got = read(d_fd.getHandle(), &obj, sizeof(obj));
+    if (got == sizeof(obj)) {
+      return std::unique_ptr<T, D>(obj, deleter);
+    }
+    else if (got == 0) {
+      throw std::runtime_error("EOF while reading from Channel receiver");
+    }
+    else if (got == -1) {
+      if (errno == EAGAIN || errno == EINTR) {
+        return result;
+      }
+      throw std::runtime_error("Error while reading from Channel receiver: " + stringerror());
+    }
+    else {
+      throw std::runtime_error("Partial read from Channel receiver");
+    }
+  }
+
+  template <typename T, typename D>
+  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool nonBlocking, size_t pipeBufferSize)
   {
     int fds[2] = {-1, -1};
     if (pipe(fds) < 0) {
@@ -251,7 +279,7 @@ namespace channel
       setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
     }
 
-    return std::pair(Sender<T>(std::move(sender)), Receiver<T>(std::move(receiver)));
+    return std::pair(Sender<T, D>(std::move(sender)), Receiver<T, D>(std::move(receiver)));
   }
 }
 }
