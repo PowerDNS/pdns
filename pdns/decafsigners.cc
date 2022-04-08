@@ -1,3 +1,5 @@
+#include <openssl/err.h>
+#include <openssl/pem.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -18,6 +20,40 @@ public:
   }
   string getName() const override { return "Decaf ED25519"; }
   void create(unsigned int bits) override;
+
+#if defined(HAVE_LIBCRYPTO_ED25519)
+  /**
+   * \brief Creates an ED25519 key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an
+   * ED25519 key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information in
+   * error messages.
+   *
+   * \param[in] fp An open file handle to a file containing ED25519 PEM
+   * contents.
+   *
+   * \return An ED25519 key engine populated with the contents of the
+   * PEM file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] fp An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEM(std::FILE& fp) const override;
+#endif
+
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
@@ -51,6 +87,42 @@ void DecafED25519DNSCryptoKeyEngine::create(unsigned int bits)
   priv.serialize_into(d_seckey);
   pub.serialize_into(d_pubkey);
 }
+
+#if defined(HAVE_LIBCRYPTO_ED25519)
+void DecafED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+{
+  drc.d_algorithm = d_algorithm;
+  auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
+
+  std::size_t keylen = DECAF_EDDSA_25519_PRIVATE_BYTES;
+  int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &keylen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename + "`");
+  }
+
+  keylen = DECAF_EDDSA_25519_PUBLIC_BYTES;
+  ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &keylen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename + "`");
+  }
+}
+
+void DecafED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
+  auto key = std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, nullptr, d_seckey, DECAF_EDDSA_25519_PRIVATE_BYTES), EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Could not create private key from buffer");
+  }
+
+  auto ret = PEM_write_PrivateKey(&fp, key.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Could not convert private key to PEM");
+  }
+}
+#endif
 
 int DecafED25519DNSCryptoKeyEngine::getBits() const
 {
