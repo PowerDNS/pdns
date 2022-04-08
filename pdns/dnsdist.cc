@@ -1063,6 +1063,8 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
        the address is set to 0.0.0.0:0 which makes our sendfromto() use
        the wrong address. In that case it's better to let the kernel
        do the work by itself and use sendto() instead.
+       This is indicated by setting the family to 0 which is acted upon
+       in sendUDPResponse() and DelayedPacket::().
     */
     const ComboAddress bogusV4("0.0.0.0:0");
     const ComboAddress bogusV6("[::]:0");
