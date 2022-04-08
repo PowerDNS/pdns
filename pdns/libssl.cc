@@ -16,7 +16,9 @@
 #include <openssl/engine.h>
 #endif
 #include <openssl/err.h>
+#ifndef DISABLE_OCSP_STAPLING
 #include <openssl/ocsp.h>
+#endif /* DISABLE_OCSP_STAPLING */
 #include <openssl/pkcs12.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
@@ -293,6 +295,7 @@ void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX
   SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
 }
 
+#ifndef DISABLE_OCSP_STAPLING
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap)
 {
   auto pkey = SSL_get_privatekey(ssl);
@@ -401,25 +404,6 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   return ocspResponses;
 }
 
-int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
-{
-#ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
-  auto pkey = SSL_CTX_get0_privatekey(ctx.get());
-#else
-  auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
-  if (!temp) {
-    return -1;
-  }
-  auto pkey = SSL_get_privatekey(temp.get());
-#endif
-
-  if (!pkey) {
-    return -1;
-  }
-
-  return EVP_PKEY_base_id(pkey);
-}
-
 #ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin)
 {
@@ -466,6 +450,26 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
   return true;
 }
 #endif /* HAVE_OCSP_BASIC_SIGN */
+#endif /* DISABLE_OCSP_STAPLING */
+
+static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
+{
+#ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
+  auto pkey = SSL_CTX_get0_privatekey(ctx.get());
+#else
+  auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
+  if (!temp) {
+    return -1;
+  }
+  auto pkey = SSL_get_privatekey(temp.get());
+#endif
+
+  if (!pkey) {
+    return -1;
+  }
+
+  return EVP_PKEY_base_id(pkey);
+}
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
 {
@@ -843,6 +847,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     keyTypes.push_back(keyType);
  }
 
+#ifndef DISABLE_OCSP_STAPLING
   if (!config.d_ocspFiles.empty()) {
     try {
       ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes);
@@ -851,6 +856,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
     }
   }
+#endif /* DISABLE_OCSP_STAPLING */
 
   if (!config.d_ciphers.empty() && SSL_CTX_set_cipher_list(ctx.get(), config.d_ciphers.c_str()) != 1) {
     throw std::runtime_error("The TLS ciphers could not be set: " + config.d_ciphers);
@@ -907,12 +913,14 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 }
 
 /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
+#ifndef DISABLE_NPN
 void libssl_set_npn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
 {
 #ifdef HAVE_SSL_CTX_SET_NEXT_PROTO_SELECT_CB
   SSL_CTX_set_next_proto_select_cb(ctx, cb, arg);
 #endif
 }
+#endif /* DISABLE_NPN */
 
 void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
 {

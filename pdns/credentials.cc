@@ -28,7 +28,7 @@
 #include <sodium.h>
 #endif
 
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/opensslv.h>
@@ -43,7 +43,7 @@
 #include "credentials.hh"
 #include "misc.hh"
 
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
 static size_t const pwhash_max_size = 128U; /* maximum size of the output */
 static size_t const pwhash_output_size = 32U; /* size of the hashed output (before base64 encoding) */
 static unsigned int const pwhash_salt_size = 16U; /* size of the salt (before base64 encoding */
@@ -96,7 +96,7 @@ void SensitiveData::clear()
 
 static std::string hashPasswordInternal(const std::string& password, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto pctx = std::unique_ptr<EVP_PKEY_CTX, void (*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
   if (!pctx) {
     throw std::runtime_error("Error getting a scrypt context to hash the supplied password");
@@ -148,7 +148,7 @@ static std::string hashPasswordInternal(const std::string& password, const std::
 
 static std::string generateRandomSalt()
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   /* generate a random salt */
   std::string salt;
   salt.resize(pwhash_salt_size);
@@ -165,7 +165,11 @@ static std::string generateRandomSalt()
 
 std::string hashPassword(const std::string& password, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
+  if (workFactor == 0) {
+    throw std::runtime_error("Invalid work factor of " + std::to_string(workFactor) + " passed to hashPassword()");
+  }
+
   std::string result;
   result.reserve(pwhash_max_size);
 
@@ -193,7 +197,7 @@ std::string hashPassword(const std::string& password, uint64_t workFactor, uint6
 
 std::string hashPassword(const std::string& password)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   return hashPassword(password, CredentialsHolder::s_defaultWorkFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
 #else
   throw std::runtime_error("Hashing a password requires scrypt support in OpenSSL, and it is not available");
@@ -202,7 +206,7 @@ std::string hashPassword(const std::string& password)
 
 bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize, const std::string& binaryPassword)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto expected = hashPasswordInternal(binaryPassword, salt, workFactor, parallelFactor, blockSize);
   return constantTimeStringEquals(expected, binaryHash);
 #else
@@ -213,7 +217,7 @@ bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint
 /* parse a hashed password in PHC string format */
 static void parseHashed(const std::string& hash, std::string& salt, std::string& hashedPassword, uint64_t& workFactor, uint64_t& parallelFactor, uint64_t& blockSize)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto parametersEnd = hash.find('$', pwhash_prefix.size());
   if (parametersEnd == std::string::npos || parametersEnd == hash.size()) {
     throw std::runtime_error("Invalid hashed password format, no parameters");
@@ -282,7 +286,7 @@ bool verifyPassword(const std::string& hash, const std::string& password)
     return false;
   }
 
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   std::string salt;
   std::string hashedPassword;
   uint64_t workFactor = 0;
@@ -300,7 +304,7 @@ bool verifyPassword(const std::string& hash, const std::string& password)
 
 bool isPasswordHashed(const std::string& password)
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   if (password.size() < pwhash_prefix_size || password.size() > pwhash_max_size) {
     return false;
   }
@@ -395,7 +399,7 @@ bool CredentialsHolder::matches(const std::string& password) const
 
 bool CredentialsHolder::isHashingAvailable()
 {
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   return true;
 #else
   return false;

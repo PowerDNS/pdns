@@ -331,7 +331,11 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_WEB_CONFIG \
                           -DDISABLE_RULES_ALTERING_QUERIES \
                           -DDISABLE_ECS_ACTIONS \
-                          -DDISABLE_TOP_N_BINDINGS'
+                          -DDISABLE_TOP_N_BINDINGS \
+                          -DDISABLE_OCSP_STAPLING \
+                          -DDISABLE_HASHED_CREDENTIALS \
+                          -DDISABLE_FALSE_SHARING_PADDING \
+                          -DDISABLE_NPN'
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
     cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
     cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags

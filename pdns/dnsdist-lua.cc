@@ -2768,7 +2768,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse = allow; });
   luaCtx.writeFunction("setDropEmptyQueries", [](bool drop) { extern bool g_dropEmptyQueries; g_dropEmptyQueries = drop; });
 
-#if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
+#if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN) && !defined(DISABLE_OCSP_STAPLING)
   luaCtx.writeFunction("generateOCSPResponse", [client](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
     if (client) {
       return;
@@ -2776,7 +2776,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
   });
-#endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
+#endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN && !DISABLE_OCSP_STAPLING */
 
   luaCtx.writeFunction("addCapabilitiesToRetain", [](LuaTypeOrArrayOf<std::string> caps) {
     setLuaSideEffect();

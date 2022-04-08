@@ -1387,6 +1387,7 @@ static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerCo
   return 0;
 }
 
+#ifndef DISABLE_OCSP_STAPLING
 static int ocsp_stapling_callback(SSL* ssl, void* arg)
 {
   if (ssl == nullptr || arg == nullptr) {
@@ -1395,6 +1396,7 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
   const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
   return libssl_ocsp_stapling_callback(ssl, *ocspMap);
 }
+#endif /* DISABLE_OCSP_STAPLING */
 
 static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
 {
@@ -1434,10 +1436,12 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
     libssl_set_ticket_key_callback_data(ctx.get(), &acceptCtx);
   }
 
+#ifndef DISABLE_OCSP_STAPLING
   if (!acceptCtx.d_ocspResponses.empty()) {
     SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
     SSL_CTX_set_tlsext_status_arg(ctx.get(), &acceptCtx.d_ocspResponses);
   }
+#endif /* DISABLE_OCSP_STAPLING */
 
   libssl_set_error_counters_callback(ctx, &counters);
 
