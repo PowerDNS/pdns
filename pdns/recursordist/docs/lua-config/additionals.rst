@@ -41,17 +41,23 @@ If needed, the Recursor will do an active resolve to retrieve these records.
 The modes available are:
 
 ``pdns.AdditionalMode.Ignore``
-  Do not do any additional processing for this qtype. This is equivalent to not calling :func:`addAllowedAdditionalQType` for the qtype.
+  Do not do any additional processing for this qtype.
+  This is equivalent to not calling :func:`addAllowedAdditionalQType` for the qtype.
 ``pdns.AdditionalMode.CacheOnly``
-  Look in the record cache for available records. Allow non-authoritative (learned from additional sections received from authoritative servers) records to be added.
+  Look in the record cache for available records.
+  Allow non-authoritative (learned from additional sections received from authoritative servers) records to be added.
 ``pdns.AdditionalMode.CacheOnlyRequireAuth``
-  Look in the record cache for available records. Only authoritative records will be added. These are records received from the nameservers for the specific domain.
+  Look in the record cache for available records.
+  Only authoritative records will be added. These are records received from the nameservers for the specific domain.
 ``pdns.AdditionalMode.ResolveImmediately``
-  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache, actively try to resolve the target name/qtype. This will delay the answer to the client.
+  Add records from the record cache (including DNSSEC records if relevant).
+  If no record is found in the record cache, actively try to resolve the target name/qtype.
+  This will delay the answer to the client.
 ``pdns.AdditionalMode.ResolveDeferred``
-  Add records from the record cache (including DNSSEC records if relevant). If no record is found in the record cache and the negative cache also has no entry, schedule a background task to resolve the target name/qtype. The next time the query is processed, the cache might hold the relevant information.
+  Add records from the record cache (including DNSSEC records if relevant).
+  If no record is found in the record cache and the negative cache also has no entry, schedule a task to resolve the target name/qtype.
+  The next time the query is processed, the cache might hold the relevant information.
   If a task is pushed, the answer that triggered it will be marked as variable and consequently not stored into the packet cache.
-
 
 If an additional record is not available at that time the query is stored into the packet cache the answer packet stored in the packet cache will not contain the additional record.
 Clients repeating the same question will get an answer from the packet cache if the question is still in the packet cache.
@@ -59,6 +65,8 @@ These answers do not have the additional record, even if the record cache has le
 Clients will only see the additional record once the packet cache entry expires and the record cache is consulted again.
 The ``pdns.AdditionalMode.ResolveImmediately`` mode will not have this issue, at the cost of delaying the first query to resolve the additional records needed.
 The ``pdns.AdditionalMode.ResolveDeferred`` mode will only store answers in the packet cache if it determines that no deferred tasks are needed, i.e. either a positive or negative answer for potential additional records is available.
+If the additional records for an answer have low TTLs compared to the records in the answer section, tasks will be pushed often.
+Until all tasks for the answer have completed the packet cache will not contain the answer, making the packet cache less effective for this specific answer.
 
 Configuring additional record processing
 ----------------------------------------
