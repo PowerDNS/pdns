@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(test_getMultiplexerSilent)
 BOOST_AUTO_TEST_CASE(test_MPlexer)
 {
   for (const auto& entry : FDMultiplexer::getMultiplexerMap()) {
-    auto mplexer = std::unique_ptr<FDMultiplexer>(entry.second());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(entry.second(FDMultiplexer::s_maxevents));
     BOOST_REQUIRE(mplexer != nullptr);
     //cerr<<"Testing multiplexer "<<mplexer->getName()<<endl;
 
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
 BOOST_AUTO_TEST_CASE(test_MPlexer_ReadAndWrite)
 {
   for (const auto& entry : FDMultiplexer::getMultiplexerMap()) {
-    auto mplexer = std::unique_ptr<FDMultiplexer>(entry.second());
+    auto mplexer = std::unique_ptr<FDMultiplexer>(entry.second(FDMultiplexer::s_maxevents));
     BOOST_REQUIRE(mplexer != nullptr);
     //cerr<<"Testing multiplexer "<<mplexer->getName()<<" for read AND write"<<endl;
 

@@ -62,7 +62,7 @@ private:
   int d_devpollfd;
 };
 
-static FDMultiplexer* makeDevPoll()
+static FDMultiplexer* makeDevPoll(unsigned int)
 {
   return new DevPollFDMultiplexer();
 }

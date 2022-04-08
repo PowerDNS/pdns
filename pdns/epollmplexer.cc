@@ -36,7 +36,7 @@
 class EpollFDMultiplexer : public FDMultiplexer
 {
 public:
-  EpollFDMultiplexer();
+  EpollFDMultiplexer(unsigned int maxEventsHint);
   ~EpollFDMultiplexer()
   {
     if (d_epollfd >= 0) {
@@ -59,12 +59,11 @@ public:
 private:
   int d_epollfd;
   std::vector<epoll_event> d_eevents;
-  static int s_maxevents; // not a hard maximum
 };
 
-static FDMultiplexer* makeEpoll()
+static FDMultiplexer* makeEpoll(unsigned int maxEventsHint)
 {
-  return new EpollFDMultiplexer();
+  return new EpollFDMultiplexer(maxEventsHint);
 }
 
 static struct EpollRegisterOurselves
@@ -75,12 +74,10 @@ static struct EpollRegisterOurselves
   }
 } doItEpoll;
 
-int EpollFDMultiplexer::s_maxevents = 1024;
-
-EpollFDMultiplexer::EpollFDMultiplexer() :
-  d_eevents(s_maxevents)
+EpollFDMultiplexer::EpollFDMultiplexer(unsigned int maxEventsHint) :
+  d_eevents(maxEventsHint)
 {
-  d_epollfd = epoll_create(s_maxevents); // not hard max
+  d_epollfd = epoll_create(static_cast<int>(maxEventsHint)); // not hard max, just a hint that is actually ignored since Linux 2.6.8
   if (d_epollfd < 0) {
     throw FDMultiplexerException("Setting up epoll: " + stringerror());
   }
@@ -156,7 +153,7 @@ void EpollFDMultiplexer::alterFD(int fd, FDMultiplexer::EventKind, FDMultiplexer
 
 void EpollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 {
-  int ret = epoll_wait(d_epollfd, d_eevents.data(), s_maxevents, timeout);
+  int ret = epoll_wait(d_epollfd, d_eevents.data(), d_eevents.size(), timeout);
 
   if (ret < 0 && errno != EINTR) {
     throw FDMultiplexerException("epoll returned error: " + stringerror());
@@ -173,7 +170,7 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
 
-  int ret = epoll_wait(d_epollfd, d_eevents.data(), s_maxevents, timeout);
+  int ret = epoll_wait(d_epollfd, d_eevents.data(), d_eevents.size(), timeout);
   gettimeofday(now, nullptr); // MANDATORY
 
   if (ret < 0 && errno != EINTR) {
