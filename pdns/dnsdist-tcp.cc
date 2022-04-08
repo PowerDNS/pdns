@@ -30,6 +30,7 @@
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-downstream-connection.hh"
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-xpf.hh"
 #include "dnsparser.hh"
