@@ -9,12 +9,12 @@
 #include "misc.hh"
 #include "namespaces.hh"
 
-FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
+FDMultiplexer* FDMultiplexer::getMultiplexerSilent(unsigned int maxEventsHint)
 {
   FDMultiplexer* ret = nullptr;
   for (const auto& i : FDMultiplexer::getMultiplexerMap()) {
     try {
-      ret = i.second();
+      ret = i.second(std::min(maxEventsHint, FDMultiplexer::s_maxevents));
       return ret;
     }
     catch (const FDMultiplexerException& fe) {
@@ -28,7 +28,7 @@ FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
 class PollFDMultiplexer : public FDMultiplexer
 {
 public:
-  PollFDMultiplexer()
+  PollFDMultiplexer(unsigned int maxEventsHint)
   {}
   ~PollFDMultiplexer()
   {
@@ -50,9 +50,9 @@ private:
   vector<struct pollfd> preparePollFD() const;
 };
 
-static FDMultiplexer* make()
+static FDMultiplexer* make(unsigned int maxEventsHint)
 {
-  return new PollFDMultiplexer();
+  return new PollFDMultiplexer(maxEventsHint);
 }
 
 static struct RegisterOurselves

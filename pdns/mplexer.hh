@@ -76,7 +76,11 @@ public:
   virtual ~FDMultiplexer()
   {}
 
-  static FDMultiplexer* getMultiplexerSilent();
+  // The maximum number of events processed in a single run, not the maximum of watched descriptors
+  static constexpr unsigned int s_maxevents = 1024;
+  /* The maximum number of events processed in a single run will be capped to the
+     minimum value of maxEventsHint and s_maxevents, to reduce memory usage. */
+  static FDMultiplexer* getMultiplexerSilent(unsigned int maxEventsHint = s_maxevents);
 
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms */
@@ -206,7 +210,7 @@ public:
     return ret;
   }
 
-  typedef FDMultiplexer* getMultiplexer_t();
+  typedef FDMultiplexer* getMultiplexer_t(unsigned int);
   typedef std::multimap<int, getMultiplexer_t*> FDMultiplexermap_t;
 
   static FDMultiplexermap_t& getMultiplexerMap()

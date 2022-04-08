@@ -340,7 +340,7 @@ static FDMultiplexer* getMultiplexer()
   FDMultiplexer* ret;
   for (const auto& i : FDMultiplexer::getMultiplexerMap()) {
     try {
-      ret = i.second();
+      ret = i.second(FDMultiplexer::s_maxevents);
       return ret;
     }
     catch (FDMultiplexerException& fe) {
