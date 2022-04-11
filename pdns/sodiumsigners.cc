@@ -184,8 +184,9 @@ std::string SodiumED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 
 bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  if (signature.length() != crypto_sign_ed25519_BYTES)
+  if (signature.length() != crypto_sign_ed25519_BYTES) {
     return false;
+  }
 
   unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
   auto sm = std::make_unique<unsigned char[]>(smlen);

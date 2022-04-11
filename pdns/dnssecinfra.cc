@@ -179,14 +179,18 @@ std::string DNSCryptoKeyEngine::convertToISC() const
 {
   storvector_t storvector = this->convertToISCVector();
   ostringstream ret;
-  ret<<"Private-key-format: v1.2\n";
-  for(const storvector_t::value_type& value :  storvector) {
+  ret << "Private-key-format: v1.2\n";
+  for (const storvector_t::value_type& value : storvector) {
+    // clang-format off
     if(value.first != "Algorithm" && value.first != "PIN" &&
        value.first != "Slot" && value.first != "Engine" &&
-       value.first != "Label" && value.first != "PubLabel")
-      ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
-    else
-      ret<<value.first<<": "<<value.second<<"\n";
+       value.first != "Label" && value.first != "PubLabel") {
+      ret << value.first << ": " << Base64Encode(value.second) << "\n";
+    }
+    else {
+      ret << value.first << ": " << value.second << "\n";
+    }
+    // clang-format on
   }
   return ret.str();
 }
