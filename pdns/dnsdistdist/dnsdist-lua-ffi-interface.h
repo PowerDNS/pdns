@@ -180,3 +180,10 @@ void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t*) __attribut
 size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_network_endpoint_t dnsdist_ffi_network_endpoint_t;
+
+bool dnsdist_ffi_network_endpoint_new(const char* path, size_t pathSize, dnsdist_ffi_network_endpoint_t** out) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_network_endpoint_is_valid(const dnsdist_ffi_network_endpoint_t* endpoint) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_network_endpoint_send(const dnsdist_ffi_network_endpoint_t* endpoint, const char* payload, size_t payloadSize) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_network_endpoint_free(dnsdist_ffi_network_endpoint_t* endpoint) __attribute__ ((visibility ("default")));
