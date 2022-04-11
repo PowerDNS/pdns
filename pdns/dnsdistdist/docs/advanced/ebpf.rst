@@ -30,7 +30,9 @@ Contrary to source address filtering, qname filtering only works over UDP. TCP q
 
   addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
 
-The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every existing bind at runtime, but it's also possible to define a default BPF filter at configuration time, so it's automatically attached to every bind::
+The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every existing bind at runtime. It cannot use at configuration time. The :func:`setDefaultBPFFilter()` should be used at configuration time.
+
+The :meth:`BPFFilter:attachToAllBinds` automatically attached to every bind::
 
   bpf = newBPFFilter(1024, 1024, 1024)
   setDefaultBPFFilter(bpf)

@@ -547,6 +547,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)()>("attachToAllBinds", [](std::shared_ptr<BPFFilter> bpf) {
       std::string res;
+      if (!g_configurationDone) {
+        throw std::runtime_error("attachToAllBinds() cannot be used at configuration time!");
+        return;
+      }
       if (bpf) {
         for (const auto& frontend : g_frontends) {
           frontend->attachFilter(bpf);
