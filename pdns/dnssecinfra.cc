@@ -194,13 +194,13 @@ std::string DNSCryptoKeyEngine::convertToISC() const
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
-  makers_t::const_iterator iter = makers.find(algo);
+
+  auto iter = makers.find(algo);
   if (iter != makers.cend()) {
     return (iter->second)(algo);
   }
-  else {
-    throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
-  }
+
+  throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
 }
 
 /**
