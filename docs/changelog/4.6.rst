@@ -2,6 +2,42 @@ Changelogs for 4.6.x
 ====================
 
 .. changelog::
+  :version: 4.6.2
+  :released: 12th of April 2022
+
+  This is version 4.6.2 of the Authoritative Server.
+  It contains a carefully selected set of new features, plus a few bug fixes.
+
+  .. change::
+    :tags: Improvements, New Features
+    :pullreq: 11406
+
+    LMDB backports:
+
+    * each LMDB database now gets a UUID
+    * lmdbbackend can now (optionally: :ref:`settings-lmdb-random-ids`) use random IDs instead of incremental IDs for objects
+    * LMDB map size is now configurable (:ref:`settings-lmdb-map-size`)
+    * one uninitialised memory issue that was fixed
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11409
+
+    API: fetch individual rrsets
+
+  .. change::
+    :tags: Bug Fixes, Enhancements
+    :pullreq: 11407
+
+    fix proxy protocol query statistics and add more detailed latency metrics
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11408
+
+    LUA: add ifurlextup function
+
+.. changelog::
   :version: 4.6.1
   :released: 25th of March 2022
 
