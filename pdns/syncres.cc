@@ -4800,20 +4800,40 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
 
 bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsName, ComboAddress address, time_t now)
 {
+  auto logHelper = [](const string& msg) {
+    g_log<<Logger::Debug<<"Failed to probe DoT records, got an exception: "<<msg<<endl;
+  };
   LWResult lwr;
   bool truncated;
   bool spoofed;
   boost::optional<Netmask> nm;
   address.setPort(853);
   // We use the fact that qname equals auth
-  bool ok = doResolveAtThisIP("", qname, qtype, lwr, nm, qname, false, false, nsName, address, true, true, truncated, spoofed);
-  ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
-
+  bool ok = false;
+  try {
+    ok = doResolveAtThisIP("", qname, qtype, lwr, nm, qname, false, false, nsName, address, true, true, truncated, spoofed, true);
+    ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
+  }
+  catch(const PDNSException& e) {
+    logHelper(e.reason);
+  }
+  catch(const ImmediateServFailException& e) {
+    logHelper(e.reason);
+  }
+  catch(const PolicyHitException& e) {
+    logHelper("PolicyHitException");
+  }
+  catch(const std::exception& e) {
+    logHelper(e.what());
+  }
+  catch(...) {
+    logHelper("other");
+  }
   updateDoTStatus(address, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
   return ok;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, bool dontThrottle)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -4874,8 +4894,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   d_totUsec += lwr.d_usec;
   accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
 
-  bool dontThrottle = false;
-  {
+  if (!dontThrottle) {
     auto dontThrottleNames = g_dontThrottleNames.getLocal();
     auto dontThrottleNetmasks = g_dontThrottleNetmasks.getLocal();
     dontThrottle = dontThrottleNames->check(nsName) || dontThrottleNetmasks->match(remoteIP);
