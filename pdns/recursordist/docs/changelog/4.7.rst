@@ -2,6 +2,89 @@ Changelogs for 4.7.X
 ====================
 
 .. changelog::
+  :version: 4.7.0-beta1
+  :released: 14th of April 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11487
+
+    Probe authoritative servers for DoT support (experimental).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11524
+
+    Update moment.min.js (path traversal fix; we are unaffected).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11492
+
+    Add deferred mode for retrieving additional records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11484
+
+    Use boost::mult-index for nsspeed table and make it shared.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11496
+
+    Prevent segfault with empty allow-from-file and allow-from options (Sven Wegener).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11312
+
+    Packet cache improvements: do not fill beyond limit and use strict LRU eviction method.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11444
+
+    Use nice format for timestamp printing.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11471
+
+    In the handler thread, call sd_notify() just before entering the main loop in RecursorThread.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11445
+    :tickets: 11440
+
+    Only log "Unable to send NOD lookup" if log-common-errors is set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11443
+
+    Remember parent NS set, to be able to fallback to it if needed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11396, 11507
+
+    Proxy by table: allow a table based mapping of source address.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11405
+
+    Distinguish between unreachable and timeout for throttling.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11397
+
+    Use correct task to clean outgoing TCP.
+
+.. changelog::
   :version: 4.7.0-alpha1
   :released: 28th of February 2022
 

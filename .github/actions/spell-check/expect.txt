@@ -1843,6 +1843,7 @@ webpassword
 webserver
 website
 Webspider
+Wegener
 weightparams
 Weimer
 Welzel

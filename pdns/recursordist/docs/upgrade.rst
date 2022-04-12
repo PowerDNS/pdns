@@ -14,13 +14,25 @@ be rejected by default, while previously the ``ZONEMD`` records would be ignored
 
 Asynchronous retrieval of ``AAAA`` records for nameservers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If IPv6 is enabled for outgoing queries using :ref:`setting-query-local-address`, the Recursor will schedule an asynchronous task to resolve IPv6 addresses of nameservers it did not otherwise learn.
-These addresses will then be used for future queries to authoritative nameservers.
-This has the consequence that authoritative nameservers will be contacted over IPv6 in more case than before.
+If ``IPv6`` is enabled for outgoing queries using :ref:`setting-query-local-address`, the :program:`Recursor` will schedule an asynchronous task to resolve ``IPv6`` addresses of nameservers it did not otherwise learn.
+These addresses will then be used (in addition to ``IPv4`` addresses) for future queries to authoritative nameservers.
+This has the consequence that authoritative nameservers will be contacted over ``IPv6`` in more case than before.
+
+New Lua Configuration Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The :func:`addAllowedAdditionalQType` ``Lua`` configuration function was added to make the :program:`Recursor` add additional records to answers for specific query types.
+- The :func:`addProxyMapping` ``Lua`` configuration function was added to map source addresses to alternative addresses.
+
+Post Resolve FFI Function
+^^^^^^^^^^^^^^^^^^^^^^^^^
+A new :func:`postresolve_ffi` Lua callback function has been introduced.
 
 New settings
 ^^^^^^^^^^^^
 - The :ref:`setting-save-parent-ns-set` setting has been introduced, enabling fallback cases if the parent ``NS`` set contains names not in the child ``NS`` set.
+- The :ref:`setting-max-busy-dot-probes` settings has been introduced, enabling the :program:`Recursor` probe for ``DoT`` support of authoritative servers.
+  This is an experimental function, use with care.
+
 
 4.6.1 to 4.6.2
 --------------
