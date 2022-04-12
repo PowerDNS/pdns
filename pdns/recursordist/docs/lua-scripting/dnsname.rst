@@ -110,7 +110,7 @@ Functions and methods of a ``DNSName``
 DNS Suffix Match Group
 ----------------------
 
-The :func:`newDS` function creates a ``DSN Suffix Match Group`` that allows fast checking if a :class:`DNSName` is part of a group.
+The :func:`newDS` function creates a ``DNS Suffix Match Group`` that allows fast checking if a :class:`DNSName` is part of a group.
 This could e.g. be used to answer questions for known malware domains.
 To check e.g. the :attr:`dq.qname` against a list:
 
