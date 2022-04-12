@@ -173,7 +173,7 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
   bool ex = true;
   try {
     log->info(Logr::Warning, "trying DoT");
-    bool ok = sr.tryDoT(task.d_qname, QType(task.d_qtype), DNSName("auth"), DNSName("ns"), task.d_ip, now.tv_sec);
+    bool ok = sr.tryDoT(task.d_qname, QType(task.d_qtype), task.d_nsname, task.d_ip, now.tv_sec);
     ex = false;
     log->info(Logr::Warning, "done", "ok", Logging::Loggable(ok));
   }
@@ -245,7 +245,7 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
     log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
-  pdns::ResolveTask task{qname, qtype, deadline, true, resolve, {}};
+  pdns::ResolveTask task{qname, qtype, deadline, true, resolve, {}, {}};
   if (s_taskQueue.lock()->queue.push(std::move(task))) {
     ++s_almost_expired_tasks.pushed;
   }
@@ -258,7 +258,7 @@ void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t de
     log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
-  pdns::ResolveTask task{qname, qtype, deadline, false, resolve, {}};
+  pdns::ResolveTask task{qname, qtype, deadline, false, resolve, {}, {}};
   auto lock = s_taskQueue.lock();
   bool inserted = lock->rateLimitSet.insert(now, task);
   if (inserted) {
@@ -268,7 +268,7 @@ void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t de
   }
 }
 
-bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip, time_t deadline)
+bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip, time_t deadline, const DNSName& nsname)
 {
   if (SyncRes::isUnsupported(qtype)) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()));
@@ -276,7 +276,7 @@ bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip
     return false;
   }
 
-  pdns::ResolveTask task{qname, qtype, deadline, false, tryDoT, ip};
+  pdns::ResolveTask task{qname, qtype, deadline, false, tryDoT, ip, nsname};
   bool pushed = s_taskQueue.lock()->queue.push(std::move(task));
   if (pushed) {
     ++s_almost_expired_tasks.pushed;

@@ -59,6 +59,8 @@ struct ResolveTask
   TaskFunction d_func;
   // IP used by DoT probe tasks
   ComboAddress d_ip;
+  // NS name used by DoT probe task
+  DNSName d_nsname;
 
   bool operator<(const ResolveTask& a) const
   {

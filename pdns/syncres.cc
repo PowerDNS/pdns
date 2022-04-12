@@ -4735,7 +4735,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 }
 
 
-static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t now)
+static void submitTryDotTask(ComboAddress address, const DNSName& auth, const DNSName nsname, time_t now)
 {
   if (address.getPort() == 853) {
     return;
@@ -4762,7 +4762,7 @@ static void submitTryDotTask(ComboAddress address, const DNSName& auth, time_t n
     }
   }
   lock->d_map.modify(it, [=] (DoTStatus& st){ st.d_ttd = now + dotFailWait; });
-  bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max());
+  bool pushed = pushTryDoTTask(auth, QType::SOA, address, std::numeric_limits<time_t>::max(), nsname);
   if (pushed) {
     it->d_status = DoTStatus::Busy;
     ++lock->d_numBusy;
@@ -4784,7 +4784,7 @@ static bool shouldDoDoT(ComboAddress address, time_t now)
   return false;
 }
 
-static void updateDoTStatus(ComboAddress address, const DNSName auth, DoTStatus::Status status, time_t time, bool updateBusy = false)
+static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time_t time, bool updateBusy = false)
 {
   address.setPort(853);
   auto lock = s_dotMap.lock();
@@ -4798,17 +4798,18 @@ static void updateDoTStatus(ComboAddress address, const DNSName auth, DoTStatus:
   }
 }
 
-bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& auth, const DNSName& nsName, ComboAddress address, time_t now)
+bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsName, ComboAddress address, time_t now)
 {
   LWResult lwr;
   bool truncated;
   bool spoofed;
   boost::optional<Netmask> nm;
   address.setPort(853);
-  bool ok = doResolveAtThisIP("", qname, qtype, lwr, nm, auth, false, false, nsName, address, true, true, truncated, spoofed);
+  // We use the fact that qname equals auth
+  bool ok = doResolveAtThisIP("", qname, qtype, lwr, nm, qname, false, false, nsName, address, true, true, truncated, spoofed);
   ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
 
-  updateDoTStatus(address, auth, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
+  updateDoTStatus(address, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
   return ok;
 }
 
@@ -5354,7 +5355,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           bool forceTCP = doDoT;
 
           if (!doDoT && s_max_busy_dot_probes > 0) {
-            submitTryDotTask(*remoteIP, auth, d_now.tv_sec);
+            submitTryDotTask(*remoteIP, auth, tns->first, d_now.tv_sec);
           }
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
@@ -5369,7 +5370,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           if (!gotAnswer) {
             if (doDoT && s_max_busy_dot_probes > 0) {
               // This is quite pessimistic...
-              updateDoTStatus(*remoteIP, auth, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
+              updateDoTStatus(*remoteIP, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
             }
             continue;
           }
@@ -5377,7 +5378,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->first<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
           if (doDoT && s_max_busy_dot_probes > 0) {
-            updateDoTStatus(*remoteIP, auth, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);
+            updateDoTStatus(*remoteIP, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);
           }
           /*  // for you IPv6 fanatics :-)
               if(remoteIP->sin4.sin_family==AF_INET6)

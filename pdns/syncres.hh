@@ -398,7 +398,7 @@ public:
   explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const DNSName &qname, QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth = 0);
-  bool tryDoT(const DNSName& qname, QType qtype, const DNSName& auth, const DNSName& nsName, ComboAddress address, time_t);
+  bool tryDoT(const DNSName& qname, QType qtype, const DNSName& nsName, ComboAddress address, time_t);
 
   void setId(int id)
   {
