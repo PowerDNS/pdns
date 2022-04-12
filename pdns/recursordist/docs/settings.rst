@@ -1089,7 +1089,7 @@ In that case no probe will be scheduled.
 
 Note::
   DoT probing is an experimental feature.
-  Please test thoroughly if it is suitable in your specific production environment before enabling.
+  Please test thoroughly to determine if it is suitable in your specific production environment before enabling.
 
 .. _setting-max-cache-bogus-ttl:
 
