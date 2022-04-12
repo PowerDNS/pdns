@@ -194,7 +194,7 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
     }
   }
   catch (...) {
-    log->error(Logr::Error, msg, "Unexpectec exception");
+    log->error(Logr::Error, msg, "Unexpected exception");
   }
   if (ex) {
     ++s_resolve_tasks.exceptions;

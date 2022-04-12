@@ -1081,7 +1081,7 @@ The default value 0 means no DoT probes are scheduled.
 DoT probes are used to check if an authoritative server's IP address supports DoT.
 If the probe determines an IP address supports DoT, the Recursor will use DoT to contact it for subsequent queries.
 The results of probes are remembered and can be viewed by the ``rec_control dump-dot-probe-map`` command.
-If the maximum number of pending probes is reached, no probe wil be scheduled, even if no DoT status is known for an address.
+If the maximum number of pending probes is reached, no probes will be scheduled, even if no DoT status is known for an address.
 If the result of a probe is not yet available, the Recursor will contact the authoritative server in the regular way,
 unless an authoritative server is configured to be contacted over DoT always using :ref:`setting-dot-to-auth-names`.
 In that case no probe will be scheduled.
