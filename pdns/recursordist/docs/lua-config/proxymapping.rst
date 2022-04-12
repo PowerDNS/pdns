@@ -30,7 +30,8 @@ An example use:
 .. code-block:: Lua
 
   addProxyMapping("127.0.0.0/24", "203.0.113.1")
-  addProxyMapping("10.0.0.0/8", "203.0.113.2")
+  domains = { "example.com", "example.net" }
+  addProxyMapping("10.0.0.0/8", "203.0.113.2", domains)
 
 
 The following function is available to configure table based proxy mapping.
@@ -39,7 +40,7 @@ If the subnets specified in multiple :func:`addProxyMapping` calls overlap, the 
 By default, the address *before* mapping ``S`` is used for internal logging and ``Protobuf`` messages.
 See :func:`protobufServer` on how to tune the source address logged in ``Protobuf`` messages.
 
-.. function:: addProxyMapping(subnet, ip)
+.. function:: addProxyMapping(subnet, ip [, domains])
 
   .. versionadded:: 4.7.0
 
@@ -47,5 +48,9 @@ See :func:`protobufServer` on how to tune the source address logged in ``Protobu
 
   :param string subnet: a subnet to match
   :param string ip: the IP address or IPaddress port combination to match the subnet to.
+  :param array domains: An array of strings used to fill a :ref:`dns-suffix-match-group`.
 
+If the optional ``domains`` argument is given to this function, only queries for names matching the :ref:`dns-suffix-match-group` will use the value ``M`` to determine the outgoing ECS; other queries will use the value ``S``.
+The ACL check will be done against the mapped address ``M`` for all queries, independent of the name queried.
+If the ``domains`` argument is absent, no extra condition (apart from matching the subnet) applies to determine the outgoing ECS value.
 

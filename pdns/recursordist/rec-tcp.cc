@@ -263,7 +263,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->d_mappedSource = conn->d_source;
       if (t_proxyMapping) {
         if (auto it = t_proxyMapping->lookup(conn->d_source)) {
-          conn->d_mappedSource = it->second;
+          conn->d_mappedSource = it->second.address;
         }
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
@@ -625,7 +625,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (auto it = t_proxyMapping->lookup(addr)) {
-        mappedSource = it->second;
+        mappedSource = it->second.address;
       }
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {

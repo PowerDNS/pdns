@@ -725,11 +725,18 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
   });
 
-  Lua->writeFunction("addProxyMapping", [&proxyMapping](const string& netmaskArg, const string& addressArg) {
+  Lua->writeFunction("addProxyMapping", [&proxyMapping](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
     try {
       Netmask netmask(netmaskArg);
       ComboAddress address(addressArg);
-      proxyMapping.insert_or_assign(netmask, address);
+      boost::optional<SuffixMatchNode> smn;
+      if (smnStrings) {
+        smn = boost::make_optional(SuffixMatchNode{});
+        for (const auto& el : *smnStrings) {
+          smn->add(el.second);
+        }
+      }
+      proxyMapping.insert_or_assign(netmask, {address, smn});
     }
     catch (std::exception& e) {
       g_log << Logger::Error << "Error processing addProxyMapping: " << e.what() << endl;

@@ -72,7 +72,13 @@ enum class AdditionalMode : uint8_t
   ResolveDeferred
 };
 
-using ProxyMapping = NetmaskTree<ComboAddress, Netmask>;
+struct ProxyByTableValue
+{
+  ComboAddress address;
+  boost::optional<SuffixMatchNode> suffixMatchNode;
+};
+
+using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;
 
 class LuaConfigItems
 {

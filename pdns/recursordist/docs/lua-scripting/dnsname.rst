@@ -105,10 +105,12 @@ Functions and methods of a ``DNSName``
 
     :param string name: The name to compare to
 
-DNS Suffix Match Groups
------------------------
+.. _dns-suffix-match-group:
+   
+DNS Suffix Match Group
+----------------------
 
-The :func:`newDS` function creates a "Suffix Match group" that allows fast checking if a :class:`DNSName` is part of a group.
+The :func:`newDS` function creates a ``DNS Suffix Match Group`` that allows fast checking if a :class:`DNSName` is part of a group.
 This could e.g. be used to answer questions for known malware domains.
 To check e.g. the :attr:`dq.qname` against a list:
 
@@ -120,27 +122,29 @@ To check e.g. the :attr:`dq.qname` against a list:
 
 .. function:: newDS() -> DNSSuffixMatchGroup
 
-  Creates a new DNS Suffix Match Group.
+  Creates a new ``DNS Suffix Match Group``.
 
 .. class:: DNSSuffixMatchGroup
 
   This class represents a group of DNS names that can be used to quickly compare a single :class:`DNSName` against.
 
   .. method:: DNSSuffixMatchGroup:add(domain)
+              DNSSuffixMatchGroup:add(dnsname)
               DNSSuffixMatchGroup:add(domains)
 
-    Add one or more domains to the Suffix Match Group.
+    Add one or more domains to the ``DNS Suffix Match Group``.
 
     :param str domain: A domain name to add
-    :param {str} domain: A list of Domains to add
+    :param DNSName dnsname: A dnsname to add
+    :param {str} domains: A list of domain names to add
 
-  .. method:: DNSSuffixMatchGroup:check(domain) -> bool
+  .. method:: DNSSuffixMatchGroup:check(dnsname) -> bool
 
-    Check ``domain`` against the Suffix Match Group.
-    Returns true if it is matched, false otherwise.
+    Check ``dnsname`` against the ``DNS Suffix Match Group``.
+    Returns ``true`` if it is matched, ``false`` otherwise.
 
-    :param DNSName domain: The domain name to check
+    :param DNSName dnsname: The dnsname to check
 
   .. method:: DNSSuffixMatchGroup:toString() -> str
 
-    Returns a string of the set of suffixes matched by the Suffix Match Group
+    Returns a string of the set of suffixes matched by the ``DNS Suffix Match Group``.

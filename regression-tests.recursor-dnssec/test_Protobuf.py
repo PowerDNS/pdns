@@ -6,6 +6,7 @@ import struct
 import sys
 import threading
 import time
+import clientsubnetoption
 
 # Python2/3 compatibility hacks
 try:
@@ -154,7 +155,7 @@ class TestRecursorProtobuf(RecursorTest):
             self.assertEqual(len(msg.originalRequestorSubnet), 4)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
 
-    def checkOutgoingProtobufBase(self, msg, protocol, query, initiator, length=None):
+    def checkOutgoingProtobufBase(self, msg, protocol, query, initiator, length=None, expectedECS=None):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField('timeSec'))
         self.assertTrue(msg.HasField('socketFamily'))
@@ -171,6 +172,11 @@ class TestRecursorProtobuf(RecursorTest):
         else:
           # compare inBytes with length of query/response
           self.assertEqual(msg.inBytes, len(query.to_wire()))
+        if expectedECS is not None:
+            self.assertTrue(msg.HasField('originalRequestorSubnet'))
+            # v4 only for now
+            self.assertEqual(len(msg.originalRequestorSubnet), 4)
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), expectedECS)
 
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', to='127.0.0.1'):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
@@ -242,9 +248,9 @@ class TestRecursorProtobuf(RecursorTest):
             for s in m.value.stringVal :
               self.assertTrue(s in metas[m.key]['stringVal'])
 
-    def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', length=None):
+    def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', length=None, expectedECS=None):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
-        self.checkOutgoingProtobufBase(msg, protocol, query, initiator, length=length)
+        self.checkOutgoingProtobufBase(msg, protocol, query, initiator, length=length, expectedECS=expectedECS)
         self.assertTrue(msg.HasField('to'))
         self.assertTrue(msg.HasField('question'))
         self.assertTrue(msg.question.HasField('qClass'))
@@ -609,6 +615,110 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
             msg = self.getFirstProtobufMessage()
             self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname)
 
+            # Check the answer
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
+
+        self.checkNoRemainingMessage()
+
+class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export outgoing queries over protobuf.
+    It must be improved and setup env so we can check for incoming responses, but makes sure for now
+    that the recursor at least connects to the protobuf server.
+    """
+
+    _confdir = 'OutgoingProtobuffWithECSMapping'
+    _config_template = """
+    # Switch off QName Minimization, it generates much more protobuf messages
+    # (or make the test much more smart!)
+    qname-minimization=no
+    edns-subnet-allow-list=example
+    allow-from=1.2.3.4/32
+    # this is to not let . queries interfere
+    max-cache-ttl=60
+"""
+    _lua_config_file = """
+    outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    addProxyMapping("127.0.0.0/8", "1.2.3.4", { "host1.secure.example." })
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'host1.secure.example.'
+        expected = list()
+
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
+        for qname, qtype, proto, responseSize, ecs in [
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248, "1.2.3.0"),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221, "1.2.3.0"),
+                ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219, "1.2.3.0"),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175, "1.2.3.0"),
+                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233, "1.2.3.0"),
+        ]:
+            if not qname:
+                expected.append((None, None, None, None, None, None, None))
+                continue
+            ecso = clientsubnetoption.ClientSubnetOption('9.10.11.12', 24)
+            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
+            resp = dns.message.make_response(query)
+            expected.append((
+                qname, qtype, query, resp, proto, responseSize, ecs
+            ))
+
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+
+        for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
+            if not qname:
+                self.getFirstProtobufMessage()
+                self.getFirstProtobufMessage()
+                continue
+
+            msg = self.getFirstProtobufMessage()
+            print(qname, qtype, proto, responseSize, ecs, file=sys.stderr)
+            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
+            print("OK", file=sys.stderr);
+            # Check the answer
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
+
+        self.checkNoRemainingMessage()
+
+        # this query should use the unmapped ECS
+        name = 'mx1.secure.example.'
+        expected = list()
+
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
+        for qname, qtype, proto, responseSize, ecs in [
+                ('mx1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 173, "127.0.0.1"),
+        ]:
+            if not qname:
+                expected.append((None, None, None, None, None, None, None))
+                continue
+            ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
+            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
+            resp = dns.message.make_response(query)
+            expected.append((
+                qname, qtype, query, resp, proto, responseSize, ecs
+            ))
+
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+
+        for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
+            if not qname:
+                self.getFirstProtobufMessage()
+                self.getFirstProtobufMessage()
+                continue
+
+            msg = self.getFirstProtobufMessage()
+            print(qname, qtype, proto, responseSize, ecs, file=sys.stderr)
+            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
+            print("OK", file=sys.stderr);
             # Check the answer
             msg = self.getFirstProtobufMessage()
             self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)

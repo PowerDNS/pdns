@@ -925,7 +925,24 @@ void startDoResolve(void* p)
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
-    sr.setQuerySource(dc->d_mappedSource, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
+
+    bool useMapped = true;
+    // If proxy by table is active and had a match, we only want to use the mapped address if it also has a domain match
+    // (if a domain suffix match table is present in the config)
+    if (t_proxyMapping && dc->d_source != dc->d_mappedSource) {
+      if (auto it = t_proxyMapping->lookup(dc->d_source)) {
+        if (it->second.suffixMatchNode) {
+          if (!it->second.suffixMatchNode->check(dc->d_mdp.d_qname)) {
+            // No match in domains, use original source
+            useMapped = false;
+          }
+        }
+        // No suffix match node defined, use mapped address
+      }
+      // lookup failing cannot happen as dc->d_source != dc->d_mappedSource
+    }
+    sr.setQuerySource(useMapped ? dc->d_mappedSource : dc->d_source, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
+
     sr.setQueryReceivedOverTCP(dc->d_tcp);
 
     bool tracedQuery = false; // we could consider letting Lua know about this too
@@ -2151,7 +2168,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       ComboAddress mappedSource = source;
       if (t_proxyMapping) {
         if (auto it = t_proxyMapping->lookup(source)) {
-          mappedSource = it->second;
+          mappedSource = it->second.address;
         }
       }
       if (t_remotes) {
