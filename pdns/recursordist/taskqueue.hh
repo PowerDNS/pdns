@@ -50,7 +50,7 @@ struct ResolveTask
 {
   DNSName d_qname;
   uint16_t d_qtype;
-  // Deadline is not part of index and <
+  // Deadline is not part of index and not used by operator<()
   time_t d_deadline;
   // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
   bool d_refreshMode;
@@ -59,7 +59,7 @@ struct ResolveTask
   TaskFunction d_func;
   // IP used by DoT probe tasks
   ComboAddress d_ip;
-  // NS name used by DoT probe task
+  // NS name used by DoT probe task, not part of index and not used by operator<()
   DNSName d_nsname;
 
   bool operator<(const ResolveTask& a) const

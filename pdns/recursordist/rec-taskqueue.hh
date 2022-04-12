@@ -32,7 +32,7 @@ namespace pdns
 struct ResolveTask;
 }
 void runTasks(size_t max, bool logErrors);
-void runTaskOnce(bool logErrors);
+bool runTaskOnce(bool logErrors);
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline);
 void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline);
 bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip, time_t deadline, const DNSName& nsname);

@@ -207,28 +207,20 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
 void runTasks(size_t max, bool logErrors)
 {
   for (size_t count = 0; count < max; count++) {
-    pdns::ResolveTask task;
-    {
-      auto lock = s_taskQueue.lock();
-      if (lock->queue.empty()) {
-        return;
-      }
-      task = lock->queue.pop();
-    }
-    bool expired = task.run(logErrors);
-    if (expired) {
-      s_taskQueue.lock()->queue.incExpired();
+    if (!runTaskOnce(logErrors)) {
+      // No more tasks in queue
+      break;
     }
   }
 }
 
-void runTaskOnce(bool logErrors)
+bool runTaskOnce(bool logErrors)
 {
   pdns::ResolveTask task;
   {
     auto lock = s_taskQueue.lock();
     if (lock->queue.empty()) {
-      return;
+      return false;
     }
     task = lock->queue.pop();
   }
@@ -236,6 +228,7 @@ void runTaskOnce(bool logErrors)
   if (expired) {
     s_taskQueue.lock()->queue.incExpired();
   }
+  return true;
 }
 
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline)
