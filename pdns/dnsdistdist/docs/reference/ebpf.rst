@@ -66,7 +66,9 @@ These are all the functions, objects and methods related to the :doc:`../advance
   .. method:: BPFFilter:attachToAllBinds()
 
     Attach this filter to every bind already defined.
-    This is the run-time equivalent of :func:`setDefaultBPFFilter`
+    This is the run-time equivalent of :func:`setDefaultBPFFilter`.
+    This method can be used at run-time only.
+
 
   .. method:: BPFFilter:block(address)
 
