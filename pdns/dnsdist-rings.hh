@@ -213,7 +213,7 @@ private:
       d_nbQueryEntries++;
     }
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-    Rings::Query query({requestor, name, when, dh, size, qtype, protocol, "", hasmac});
+    Rings::Query query{requestor, name, when, dh, size, qtype, protocol, "", hasmac};
     if (hasmac) {
       memcpy(query.macaddress, macaddress, maclen);
     }

@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
 
   BOOST_CHECK(!verifyPassword(hashed, "not test"));
   BOOST_CHECK(!verifyPassword(sampleHash, "not test"));
+  BOOST_CHECK(!verifyPassword("test", "test"));
 
   BOOST_CHECK(isPasswordHashed(hashed));
   BOOST_CHECK(isPasswordHashed(sampleHash));
@@ -47,6 +48,8 @@ BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
   BOOST_CHECK(!isPasswordHashed(""));
   // missing leading $
   BOOST_CHECK(!isPasswordHashed("scrypt$ln=10,p=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI="));
+  // prefix-only
+  BOOST_CHECK(!isPasswordHashed("$scrypt$"));
   // unknown algo
   BOOST_CHECK(!isPasswordHashed("$tcrypt$ln=10,p=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI="));
   // missing parameters

@@ -566,7 +566,7 @@ struct TCPCrossProtocolResponse
 class TCPCrossProtocolQuerySender : public TCPQuerySender
 {
 public:
-  TCPCrossProtocolQuerySender(std::shared_ptr<IncomingTCPConnectionState>& state, int responseDescriptor): d_state(state), d_responseDesc(responseDescriptor)
+  TCPCrossProtocolQuerySender(std::shared_ptr<IncomingTCPConnectionState>& state): d_state(state)
   {
   }
 
@@ -582,13 +582,13 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
-    if (d_responseDesc == -1) {
+    if (d_state->d_threadData.crossProtocolResponsesPipe == -1) {
       throw std::runtime_error("Invalid pipe descriptor in TCP Cross Protocol Query Sender");
     }
 
     auto ptr = new TCPCrossProtocolResponse(std::move(response), d_state, now);
     static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
-    ssize_t sent = write(d_responseDesc, &ptr, sizeof(ptr));
+    ssize_t sent = write(d_state->d_threadData.crossProtocolResponsesPipe, &ptr, sizeof(ptr));
     if (sent != sizeof(ptr)) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
         ++g_stats.tcpCrossProtocolResponsePipeFull;
@@ -614,7 +614,6 @@ public:
 
 private:
   std::shared_ptr<IncomingTCPConnectionState> d_state;
-  int d_responseDesc{-1};
 };
 
 class TCPCrossProtocolQuery : public CrossProtocolQuery
@@ -775,7 +774,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
       proxyProtocolPayload = getProxyProtocolPayload(dq);
     }
 
-    auto incoming = std::make_shared<TCPCrossProtocolQuerySender>(state, state->d_threadData.crossProtocolResponsesPipe);
+    auto incoming = std::make_shared<TCPCrossProtocolQuerySender>(state);
     auto cpq = std::make_unique<TCPCrossProtocolQuery>(std::move(state->d_buffer), std::move(ids), ds, incoming);
     cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 

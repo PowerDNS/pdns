@@ -128,5 +128,5 @@ struct dnsdist_ffi_servers_list_t
   const ServerPolicy::NumberedServerVector& servers;
 };
 
-const std::string& getLuaFFIWrappers();
+const char* getLuaFFIWrappers();
 void setupLuaFFIPerThreadContext(LuaContext& luaCtx);
