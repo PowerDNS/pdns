@@ -26,6 +26,8 @@
 
 #include "iputils.hh"
 #include "lock.hh"
+#include <netinet/in.h>
+#include <stdexcept>
 
 class BPFFilter
 {
@@ -34,7 +36,9 @@ public:
     IPv4,
     IPv6,
     QNames,
-    Filters
+    Filters,
+    CIDR4,
+    CIDR6
   };
 
   enum class MapFormat : uint8_t {
@@ -65,8 +69,10 @@ public:
   void addSocket(int sock);
   void removeSocket(int sock);
   void block(const ComboAddress& addr, MatchAction action);
+  void block(const Netmask& address, BPFFilter::MatchAction action);
   void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
+  void unblock(const Netmask& address);
   void unblock(const DNSName& qname, uint16_t qtype=255);
 
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
@@ -94,6 +100,8 @@ private:
   {
     Map d_v4;
     Map d_v6;
+    Map d_cidr4;
+    Map d_cidr6;
     Map d_qnames;
     /* The qname filter program held in d_qnamefilter is
        stored in an eBPF map, so we can call it from the
@@ -107,7 +115,34 @@ private:
   FDWrapper d_mainfilter;
   /* qname filtering program */
   FDWrapper d_qnamefilter;
-
+  struct CIDR4
+  {
+    uint32_t cidr;
+    struct in_addr addr;
+    explicit CIDR4(Netmask address)
+    {
+      if (!address.isIPv4()) {
+        throw std::runtime_error("ComboAddress is invalid");
+      }
+      addr = address.getNetwork().sin4.sin_addr;
+      cidr = address.getBits();
+    }
+    CIDR4() = default;
+  };
+  struct CIDR6
+  {
+    uint32_t cidr;
+    struct in6_addr addr;
+    CIDR6(Netmask address)
+    {
+      if (address.isIPv6()) {
+        throw std::runtime_error("ComboAddress is invalid");
+      }
+      addr = address.getNetwork().sin6.sin6_addr;
+      cidr = address.getBits();
+    }
+    CIDR6() = default;
+  };
   /* whether the maps are in the 'old' format, which we need
      to keep to prevent going over the 4k instructions per eBPF
      program limit in kernels < 5.2, as well as the complexity limit:

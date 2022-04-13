@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "bpf-filter.hh"
+#include "iputils.hh"
 
 #ifdef HAVE_EBPF
 
@@ -81,7 +82,7 @@ static void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expec
 }
 
 int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
-                   int max_entries)
+                   int max_entries, int map_flags)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -89,6 +90,7 @@ int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
   attr.key_size = key_size;
   attr.value_size = value_size;
   attr.max_entries = max_entries;
+  attr.map_flags = map_flags;
   return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
@@ -200,7 +202,7 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
 {
   if (d_config.d_type == BPFFilter::MapType::Filters) {
     /* special case, this is a map of eBPF programs */
-    d_fd = FDWrapper(bpf_create_map(BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), d_config.d_maxItems));
+    d_fd = FDWrapper(bpf_create_map(BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), d_config.d_maxItems, 0));
     if (d_fd.getHandle() == -1) {
       throw std::runtime_error("Error creating a BPF program map of size " + std::to_string(d_config.d_maxItems) + ": " + stringerror());
     }
@@ -208,6 +210,8 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
   else {
     int keySize = 0;
     int valueSize = 0;
+    int flags = 0;
+    bpf_map_type type = BPF_MAP_TYPE_HASH;
     if (format == MapFormat::Legacy) {
       switch (d_config.d_type) {
       case MapType::IPv4:
@@ -236,6 +240,18 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
         keySize = sizeof(KeyV6);
         valueSize = sizeof(CounterAndActionValue);
         break;
+      case MapType::CIDR4:
+        keySize = sizeof(CIDR4);
+        valueSize = sizeof(CounterAndActionValue);
+        flags = BPF_F_NO_PREALLOC;
+        type = BPF_MAP_TYPE_LPM_TRIE;
+        break;
+      case MapType::CIDR6:
+        keySize = sizeof(CIDR6);
+        valueSize = sizeof(CounterAndActionValue);
+        flags = BPF_F_NO_PREALLOC;
+        type = BPF_MAP_TYPE_LPM_TRIE;
+        break;
       case MapType::QNames:
         keySize = sizeof(QNameAndQTypeKey);
         valueSize = sizeof(CounterAndActionValue);
@@ -251,21 +267,35 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
       if (d_fd.getHandle() != -1) {
         /* sanity checks: key and value size */
         bpf_check_map_sizes(d_fd.getHandle(), keySize, valueSize);
-
-        if (d_config.d_type == MapType::IPv4) {
+        switch (d_config.d_type) {
+        case MapType::IPv4: {
           uint32_t key = 0;
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        }
-        else if (d_config.d_type == MapType::IPv6) {
+        } break;
+        case MapType::IPv6: {
           KeyV6 key;
           memset(&key, 0, sizeof(key));
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        }
-        else if (d_config.d_type == MapType::QNames) {
+        } break;
+        case MapType::CIDR4: {
+          CIDR4 key;
+          memset(&key, 0, sizeof(key));
+          while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
+            ++d_count;
+          }
+        } break;
+        case MapType::CIDR6: {
+          CIDR6 key;
+          memset(&key, 0, sizeof(key));
+          while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
+            ++d_count;
+          }
+        } break;
+        case MapType::QNames: {
           if (format == MapFormat::Legacy) {
             QNameKey key;
             memset(&key, 0, sizeof(key));
@@ -280,12 +310,16 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
               ++d_count;
             }
           }
+        } break;
+
+        default:
+          throw std::runtime_error("Unsupported eBPF map type: " + std::to_string(static_cast<uint8_t>(d_config.d_type)));
         }
       }
     }
 
     if (d_fd.getHandle() == -1) {
-      d_fd = FDWrapper(bpf_create_map(BPF_MAP_TYPE_HASH, keySize, valueSize, static_cast<int>(d_config.d_maxItems)));
+      d_fd = FDWrapper(bpf_create_map(type, keySize, valueSize, static_cast<int>(d_config.d_maxItems), flags));
       if (d_fd.getHandle() == -1) {
         throw std::runtime_error("Error creating a BPF map of size " + std::to_string(d_config.d_maxItems) + ": " + stringerror());
       }
@@ -462,6 +496,101 @@ void BPFFilter::unblock(const ComboAddress& addr)
     res = bpf_delete_elem(map.d_fd.getHandle(), key);
     if (res == 0) {
       --map.d_count;
+    }
+  }
+
+  if (res != 0) {
+    throw std::runtime_error("Error removing blocked address " + addr.toString() + ": " + stringerror());
+  }
+}
+
+void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
+{
+  CounterAndActionValue value;
+
+  int res = 0;
+  if (addr.isIPv4()) {
+    CIDR4 key(addr);
+    auto maps = d_maps.lock();
+    auto& map = maps->d_cidr4;
+    if (map.d_count >= map.d_config.d_maxItems) {
+      throw std::runtime_error("Table full when trying to block " + addr.toString());
+    }
+
+    res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
+    if (res != -1 && value.action == action) {
+      throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
+    }
+
+    value.counter = 0;
+    value.action = action;
+
+    res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+    if (res == 0) {
+      ++map.d_count;
+    }
+  }
+  else if (addr.isIPv6()) {
+    CIDR6 key(addr);
+
+    auto maps = d_maps.lock();
+    auto& map = maps->d_cidr6;
+    if (map.d_count >= map.d_config.d_maxItems) {
+      throw std::runtime_error("Table full when trying to block " + addr.toString());
+    }
+
+    res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
+    if (res != -1 && value.action == action) {
+      throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
+    }
+
+    value.counter = 0;
+    value.action = action;
+
+    res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+    if (res == 0) {
+      map.d_count++;
+    }
+  }
+
+  if (res != 0) {
+    throw std::runtime_error("Error adding blocked address " + addr.toString() + ": " + stringerror());
+  }
+}
+
+void BPFFilter::unblock(const Netmask& addr)
+{
+  int res = 0;
+  CounterAndActionValue value;
+  value.counter = 0;
+  value.action = MatchAction::Pass;
+  if (addr.isIPv4()) {
+    CIDR4 key(addr);
+    auto maps = d_maps.lock();
+    auto& map = maps->d_cidr4;
+    res = bpf_delete_elem(map.d_fd.getHandle(), &key);
+    if (res == 0) {
+      --map.d_count;
+    }
+    else {
+      res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+      if (res == 0)
+        ++map.d_count;
+    }
+  }
+  else if (addr.isIPv6()) {
+    CIDR6 key(addr);
+
+    auto maps = d_maps.lock();
+    auto& map = maps->d_cidr6;
+    res = bpf_delete_elem(map.d_fd.getHandle(), &key);
+    if (res == 0) {
+      --map.d_count;
+    }
+    else {
+      res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+      if (res == 0)
+        ++map.d_count;
     }
   }
 
@@ -716,6 +845,15 @@ void BPFFilter::block(const DNSName&, BPFFilter::MatchAction, uint16_t)
 }
 
 void BPFFilter::unblock(const DNSName&, uint16_t)
+{
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::block(const Netmask&, BPFFilter::MatchAction)
+{
+  throw std::runtime_error("eBPF support not enabled");
+}
+void BPFFilter::unblock(const Netmask&)
 {
   throw std::runtime_error("eBPF support not enabled");
 }
