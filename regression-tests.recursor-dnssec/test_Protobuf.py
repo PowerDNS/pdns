@@ -677,9 +677,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
                 continue
 
             msg = self.getFirstProtobufMessage()
-            print(qname, qtype, proto, responseSize, ecs, file=sys.stderr)
             self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
-            print("OK", file=sys.stderr);
             # Check the answer
             msg = self.getFirstProtobufMessage()
             self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
