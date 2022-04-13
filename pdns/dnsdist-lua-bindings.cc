@@ -425,20 +425,27 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* BPF Filter */
 #ifdef HAVE_EBPF
   using bpfFilterMapParams = boost::variant<uint32_t, LuaAssociativeTable<boost::variant<uint32_t, std::string>>>;
-  luaCtx.writeFunction("newBPFFilter", [client](bpfFilterMapParams v4Params, bpfFilterMapParams v6Params, bpfFilterMapParams qnameParams, boost::optional<bool> external) {
+  using bpfopts_t = LuaAssociativeTable<boost::variant<bool, std::string, bpfFilterMapParams>>;
+  luaCtx.writeFunction("newBPFFilter", [client](bpfopts_t opts) {
       if (client) {
         return std::shared_ptr<BPFFilter>(nullptr);
       }
+      std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
 
-      BPFFilter::MapConfiguration v4Config, v6Config, qnameConfig;
-
-      auto convertParamsToConfig = [](bpfFilterMapParams& params, BPFFilter::MapType type, BPFFilter::MapConfiguration& config) {
+      const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
+        if (!opts.count(name))
+          return;
+        const auto& tmp = opts.at(name);
+        if (tmp.type() != typeid(bpfFilterMapParams))
+          throw std::runtime_error("params is invalid");
+        const auto& params = boost::get<bpfFilterMapParams>(tmp);
+        BPFFilter::MapConfiguration config;
         config.d_type = type;
         if (params.type() == typeid(uint32_t)) {
           config.d_maxItems = boost::get<uint32_t>(params);
         }
         else if (params.type() == typeid(LuaAssociativeTable<boost::variant<uint32_t, std::string>>)) {
-          auto map = boost::get<LuaAssociativeTable<boost::variant<uint32_t, std::string>>>(params);
+          const auto& map = boost::get<LuaAssociativeTable<boost::variant<uint32_t, std::string>>>(params);
           if (map.count("maxItems")) {
             config.d_maxItems = boost::get<uint32_t>(map.at("maxItems"));
           }
@@ -446,18 +453,24 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
             config.d_pinnedPath = boost::get<std::string>(map.at("pinnedPath"));
           }
         }
+        mapsConfig[name] = config;
       };
 
-      convertParamsToConfig(v4Params, BPFFilter::MapType::IPv4, v4Config);
-      convertParamsToConfig(v6Params, BPFFilter::MapType::IPv6, v6Config);
-      convertParamsToConfig(qnameParams, BPFFilter::MapType::QNames, qnameConfig);
+      convertParamsToConfig("v4Params", BPFFilter::MapType::IPv4);
+      convertParamsToConfig("v6Params", BPFFilter::MapType::IPv6);
+      convertParamsToConfig("qnameParams", BPFFilter::MapType::QNames);
 
       BPFFilter::MapFormat format = BPFFilter::MapFormat::Legacy;
-      if (external && *external) {
-        format = BPFFilter::MapFormat::WithActions;
+      bool external = false;
+      if (opts.count("external")) {
+        const auto& tmp = opts.at("external");
+        if (tmp.type() != typeid(bool))
+          throw std::runtime_error("params is invalid");
+        if ((external = boost::get<bool>(tmp)))
+          format = BPFFilter::MapFormat::WithActions;
       }
 
-      return std::make_shared<BPFFilter>(v4Config, v6Config, qnameConfig, format, external.value_or(false));
+      return std::make_shared<BPFFilter>(mapsConfig, format, external);
     });
 
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const ComboAddress& ca, boost::optional<uint32_t> action)>("block", [](std::shared_ptr<BPFFilter> bpf, const ComboAddress& ca, boost::optional<uint32_t> action) {

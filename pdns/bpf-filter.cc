@@ -313,7 +313,8 @@ static FDWrapper loadProgram(const struct bpf_insn* filter, size_t filterSize)
 }
 
 
-BPFFilter::BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::MapConfiguration& v6, const BPFFilter::MapConfiguration& qnames, BPFFilter::MapFormat format, bool external): d_mapFormat(format), d_external(external)
+BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external) :
+  d_mapFormat(format), d_external(external)
 {
   if (d_mapFormat != BPFFilter::MapFormat::Legacy && !d_external) {
     throw std::runtime_error("Unsupported eBPF map format, the current internal implemenation only supports the legacy format");
@@ -321,9 +322,9 @@ BPFFilter::BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::Map
 
   auto maps = d_maps.lock();
 
-  maps->d_v4 = BPFFilter::Map(v4, d_mapFormat);
-  maps->d_v6 = BPFFilter::Map(v6, d_mapFormat);
-  maps->d_qnames = BPFFilter::Map(qnames, d_mapFormat);
+  maps->d_v4 = BPFFilter::Map(configs["v4Params"], d_mapFormat);
+  maps->d_v6 = BPFFilter::Map(configs["v6Params"], d_mapFormat);
+  maps->d_qnames = BPFFilter::Map(configs["qnameParams"], d_mapFormat);
   if (!external) {
     BPFFilter::MapConfiguration filters;
     filters.d_maxItems = 1;
@@ -686,7 +687,7 @@ uint64_t BPFFilter::getHits(const ComboAddress& requestor)
 
 #else
 
-BPFFilter::BPFFilter(const BPFFilter::MapConfiguration&, const BPFFilter::MapConfiguration&, const BPFFilter::MapConfiguration&, BPFFilter::MapFormat, bool)
+BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external)
 {
 }
 

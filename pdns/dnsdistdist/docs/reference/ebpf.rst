@@ -13,27 +13,27 @@ These are all the functions, objects and methods related to the :doc:`../advance
   :param int seconds: The number of seconds this block to expire
   :param str msg: A message to display while inserting the block
 
-.. function:: newBPFFilter(maxV4, maxV6, maxQNames) -> BPFFilter
-              newBPFFilter(v4Parameters, v6Parameters, qnamesParameters) -> BPFFilter
+.. function:: newBPFFilter(options) -> BPFFilter
 
   .. versionchanged:: 1.7.0
     This function now supports a table for each parameters, and the ability to use pinned eBPF maps.
+  .. versionchanged:: 1.8.0
+    This function now get the parameters via a table.
 
   Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block tables.
   Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. dnsdist will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user dnsdist is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``.
 
-  :param int maxV4: Maximum number of IPv4 entries in this filter
-  :param int maxV6: Maximum number of IPv6 entries in this filter
-  :param int maxQNames: Maximum number of QName entries in this filter
-
-  :param table v4Params: A table of options for the IPv4 filter map, see below
-  :param table v6Params: A table of options for the IPv6 filter map, see below
-  :param table qnameParams: A table of options for the qnames filter map, see below
+  :param table options: A table with key: value pairs with webserver options.
 
   Options:
+  * ``v4Params``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
+  * ``v6Params``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
+  * ``qnameParams``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
+  * ``external``: bool - If set to true, DNSDist can to load the internal eBPF program.
 
-  * ``maxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
-  * ``pinnedPath``: str - The filesystem path this map should be pinned to.
+    Options for ``v4Params`` , ``v6Params`` and ``qnameParams``:
+    * ``maxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
+    * ``pinnedPath``: str - The filesystem path this map should be pinned to.
 
 .. function:: newDynBPFFilter(bpf) -> DynBPFFilter
 
