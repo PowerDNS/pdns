@@ -992,6 +992,7 @@ jobs:
             git \
             libboost-all-dev \
             libcap-dev \
+            libcurl4-openssl-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
             libsnmp-dev \
@@ -1022,7 +1023,9 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-net-snmp
+            --with-net-snmp \
+            --enable-dnstap \
+            --enable-dns-over-tls
           working_directory: /opt/project/pdns/recursordist
       - run:
           name: build
