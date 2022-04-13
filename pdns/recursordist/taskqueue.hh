@@ -24,6 +24,12 @@
 #include <sys/time.h>
 #include <thread>
 
+union ComboAddress;
+namespace boost
+{
+size_t hash_value(const ComboAddress&);
+}
+
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
@@ -32,6 +38,7 @@
 #include <boost/multi_index/tag.hpp>
 
 #include "dnsname.hh"
+#include "iputils.hh"
 #include "qtype.hh"
 
 namespace pdns
@@ -43,15 +50,23 @@ struct ResolveTask
 {
   DNSName d_qname;
   uint16_t d_qtype;
+  // Deadline is not part of index and not used by operator<()
   time_t d_deadline;
-  bool d_refreshMode; // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
+  // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
+  bool d_refreshMode;
   // Use a function pointer as comparing std::functions is a nuisance
-  void (*d_func)(const struct timeval& now, bool logErrors, const ResolveTask& task);
+  using TaskFunction = void (*)(const struct timeval& now, bool logErrors, const ResolveTask& task);
+  TaskFunction d_func;
+  // IP used by DoT probe tasks
+  ComboAddress d_ip;
+  // NS name used by DoT probe task, not part of index and not used by operator<()
+  DNSName d_nsname;
 
   bool operator<(const ResolveTask& a) const
   {
-    return std::tie(d_qname, d_qtype, d_refreshMode, d_func) < std::tie(a.d_qname, a.d_qtype, a.d_refreshMode, a.d_func);
+    return std::tie(d_qname, d_qtype, d_refreshMode, d_func, d_ip) < std::tie(a.d_qname, a.d_qtype, a.d_refreshMode, a.d_func, d_ip);
   }
+
   bool run(bool logErrors);
 };
 
@@ -68,7 +83,7 @@ public:
     return d_queue.size();
   }
 
-  void push(ResolveTask&& task);
+  bool push(ResolveTask&& task);
   ResolveTask pop();
 
   uint64_t getPushes()
@@ -107,7 +122,9 @@ private:
                     composite_key<ResolveTask,
                                   member<ResolveTask, DNSName, &ResolveTask::d_qname>,
                                   member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
-                                  member<ResolveTask, bool, &ResolveTask::d_refreshMode>>>,
+                                  member<ResolveTask, bool, &ResolveTask::d_refreshMode>,
+                                  member<ResolveTask, ResolveTask::TaskFunction, &ResolveTask::d_func>,
+                                  member<ResolveTask, ComboAddress, &ResolveTask::d_ip>>>,
       sequenced<tag<SequencedTag>>>>
     queue_t;
 

@@ -28,13 +28,14 @@
 namespace pdns
 {
 
-void TaskQueue::push(ResolveTask&& task)
+bool TaskQueue::push(ResolveTask&& task)
 {
   // Insertion fails if it's already there, no problem since we're already scheduled
-  auto result = d_queue.insert(std::move(task));
-  if (result.second) {
+  auto result = d_queue.insert(std::move(task)).second;
+  if (result) {
     d_pushes++;
   }
+  return result;
 }
 
 ResolveTask TaskQueue::pop()
@@ -66,3 +67,11 @@ bool ResolveTask::run(bool logErrors)
 }
 
 } /* namespace pdns */
+
+namespace boost
+{
+size_t hash_value(const ComboAddress& a)
+{
+  return ComboAddress::addressOnlyHash()(a);
+}
+}

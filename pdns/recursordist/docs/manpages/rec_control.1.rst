@@ -92,6 +92,9 @@ dump-cache *FILENAME*
     also dumped to the same file. The per-thread positive and negative cache
     dumps are separated with an appropriate comment.
 
+dump-dot-probe-map *FILENAME*
+    Dump the contents of the DoT probe map to the *FILENAME* mentioned.
+
 dump-edns *FILENAME*
     Dumps the EDNS status to the filename mentioned. This file should not exist
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor

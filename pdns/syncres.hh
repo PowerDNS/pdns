@@ -253,6 +253,7 @@ public:
   static uint64_t doDumpFailedServers(int fd);
   static uint64_t doDumpNonResolvingNS(int fd);
   static uint64_t doDumpSavedParentNSSets(int fd);
+  static uint64_t doDumpDoTProbeMap(int fd);
 
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
   static void addDontQuery(const std::string& mask)
@@ -364,6 +365,8 @@ public:
   static size_t getSaveParentsNSSetsSize();
   static void pruneSaveParentsNSSets(time_t now);
 
+  static void pruneDoTProbeMap(time_t cutoff);
+
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
     t_sstorage.domainmap = newMap;
@@ -395,6 +398,7 @@ public:
   explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const DNSName &qname, QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth = 0);
+  bool tryDoT(const DNSName& qname, QType qtype, const DNSName& nsName, ComboAddress address, time_t);
 
   void setId(int id)
   {
@@ -596,6 +600,7 @@ public:
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
   static bool s_dot_to_port_853;
+  static unsigned int s_max_busy_dot_probes;
 
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
@@ -653,7 +658,7 @@ private:
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, QType qtype, vector<DNSRecord>&ret,
                   unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
                   std::map<DNSName, std::vector<ComboAddress>>* fallback);
-  bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed);
+  bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, bool dontThrottle = false);
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP);
 
   int doResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
