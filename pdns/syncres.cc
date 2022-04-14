@@ -5369,7 +5369,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             doDoT = true;
           }
           if (!doDoT && s_max_busy_dot_probes > 0 && shouldDoDoT(*remoteIP, d_now.tv_sec)) {
-              doDoT = true;
+            remoteIP->setPort(853);
+            doDoT = true;
           }
           bool forceTCP = doDoT;
 
