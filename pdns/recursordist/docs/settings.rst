@@ -885,7 +885,7 @@ If set, EDNS options in incoming queries are extracted and passed to the :func:`
 -  Path
 -  Default: empty
 
-.. versionchanged:: 4.7.0
+.. versionchanged:: 4.6.2
 
   Introduced the value ``no`` to disable root-hints processing.
 
