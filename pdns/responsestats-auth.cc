@@ -63,5 +63,5 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
     }
   }
 
-  submitResponse(p.qtype.getCode(), buf.length(), p.d.rcode, udpOrTCP);
+  submitResponse(p.qtype.getCode(), buf.length(), p.d.rcode);
 }

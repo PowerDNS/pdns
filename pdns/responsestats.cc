@@ -5,7 +5,6 @@
 #include "responsestats.hh"
 
 #include <limits>
-#include <boost/format.hpp>
 
 #include "namespaces.hh"
 #include "logger.hh"
@@ -40,18 +39,6 @@ ResponseStats::ResponseStats() :
 }
 
 ResponseStats g_rs;
-
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP) const
-{
-  d_rcodecounters.at(rcode).value++;
-  submitResponse(qtype, respsize, udpOrTCP);
-}
-
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) const
-{
-  d_qtypecounters.at(qtype).value++;
-  d_sizecounters(respsize);
-}
 
 map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts() const
 {
@@ -94,9 +81,8 @@ string ResponseStats::getQTypeReport() const
 {
   auto qtypenums = getQTypeResponseCounts();
   ostringstream os;
-  boost::format fmt("%s\t%d\n");
   for (const auto& val : qtypenums) {
-    os << (fmt % DNSRecordContent::NumberToType(val.first) % val.second).str();
+    os << DNSRecordContent::NumberToType(val.first) << '\t' << std::to_string(val.second) << endl;
   }
   return os.str();
 }
