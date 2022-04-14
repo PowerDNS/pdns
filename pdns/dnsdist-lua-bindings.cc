@@ -433,11 +433,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
 
       const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
-        if (!opts.count(name))
+        if (!opts.count(name)) {
           return;
+        }
         const auto& tmp = opts.at(name);
-        if (tmp.type() != typeid(bpfFilterMapParams))
+        if (tmp.type() != typeid(bpfFilterMapParams)) {
           throw std::runtime_error("params is invalid");
+        }
         const auto& params = boost::get<bpfFilterMapParams>(tmp);
         BPFFilter::MapConfiguration config;
         config.d_type = type;
@@ -464,10 +466,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       bool external = false;
       if (opts.count("external")) {
         const auto& tmp = opts.at("external");
-        if (tmp.type() != typeid(bool))
+        if (tmp.type() != typeid(bool)) {
           throw std::runtime_error("params is invalid");
-        if ((external = boost::get<bool>(tmp)))
+        }
+        if ((external = boost::get<bool>(tmp))) {
           format = BPFFilter::MapFormat::WithActions;
+        }
       }
 
       return std::make_shared<BPFFilter>(mapsConfig, format, external);
