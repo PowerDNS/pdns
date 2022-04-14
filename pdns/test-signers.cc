@@ -253,7 +253,8 @@ static auto test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK(dcke->verify(message, signature));
 
   if (signer.isDeterministic) {
-    BOOST_CHECK_EQUAL(signature, std::string(signer.signature.begin(), signer.signature.end()));
+    string b64 = Base64Encode(signature);
+    BOOST_CHECK_EQUAL(b64, Base64Encode(std::string(signer.signature.begin(), signer.signature.end())));
   }
   else {
     /* since the signing process is not deterministic, we can't directly compare our signature
