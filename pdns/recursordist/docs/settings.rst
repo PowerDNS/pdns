@@ -893,6 +893,7 @@ If set, the root-hints are read from this file. If empty, the default built-in r
 
 In some special cases, processing the root hints is not needed, for example when forwarding all queries to another recursor.
 For these special cases, it is possible to disable the processing of root hints by setting the value to ``no``.
+See :ref:`handling-of-root-hints` for more information on root hints handling.
 
 .. _setting-ignore-unknown-settings:
 
@@ -1121,6 +1122,8 @@ The size of the negative cache is 10% of this number.
 -  Default: 86400
 
 Maximum number of seconds to cache an item in the DNS cache, no matter what the original TTL specified.
+This value also controls the refresh period of cached root data.
+See :ref:`handling-of-root-hints` for more information on this.
 
 .. versionchanged:: 4.1.0
 

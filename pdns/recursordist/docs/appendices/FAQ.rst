@@ -57,6 +57,9 @@ Or, in a diagram::
       client bufsize (stub => recursor)
      bufsize reported to client (recursor => stub [always 512])
 
+.. _handling-of-root-hints:
+
+
 Handling of root hints
 ----------------------
 
@@ -75,7 +78,7 @@ If that does not succeed, it wil fall back to using the root hints to fill the c
 Prior to version 4.7.0, the period for re-fetching root data was :ref:`setting-max-cache-ttl` divided by 12, with a minimum of 10 seconds.
 Starting with version 4.7.0, the period is adaptive, starting at 80% of :ref:`setting-max-cache-ttl`, reducing the interval on failure.
 
-There is another detail: after refreshing rhe root records, the :program:`Recursor` will resolve the ``NS`` records for the top level domain of the root servers.
+There is another detail: after refreshing the root records, the :program:`Recursor` will resolve the ``NS`` records for the top level domain of the root servers.
 For example, in the default setup the root name servers are called ``[a-m].root-servers.net``, so the :program:`Recursor` will resolve the name servers of the ``.net`` domain.
 This is needed to correctly determine zone cuts to be able to decide if the ``.root-servers.net`` domain is DNSSEC protected.
 
