@@ -14,6 +14,8 @@ These are all the functions, objects and methods related to the :doc:`../advance
   :param str msg: A message to display while inserting the block
 
 .. function:: newBPFFilter(options) -> BPFFilter
+              newBPFFilter(v4Parameters, v6Parameters, qnamesParameters) -> BPFFilter (1.7.x)
+              newBPFFilter(maxV4, maxV6, maxQNames) -> BPFFilter (before 1.7.0)
 
   .. versionchanged:: 1.7.0
     This function now supports a table for each parameters, and the ability to use pinned eBPF maps.
