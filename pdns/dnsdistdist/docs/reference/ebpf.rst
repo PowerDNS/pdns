@@ -23,7 +23,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
   Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block tables.
   Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. dnsdist will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user dnsdist is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``.
 
-  :param table options: A table with key: value pairs with webserver options.
+  :param table options: A table with key: value pairs with options.
 
   Options:
   * ``v4Params``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
