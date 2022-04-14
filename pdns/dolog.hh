@@ -93,8 +93,11 @@ void genlog(int level, const char* s, Args... args)
   std::ostringstream str;
   dolog(str, s, args...);
 
-  if(g_syslog)
-    syslog(level, "%s", str.str().c_str());
+  auto output = str.str();
+
+  if (g_syslog) {
+    syslog(level, "%s", output.c_str());
+  }
 
 #ifdef DNSDIST
   if (g_logtimestamps) {
@@ -110,7 +113,7 @@ void genlog(int level, const char* s, Args... args)
   }
 #endif
 
-  std::cout<<str.str()<<std::endl;
+  std::cout<<output<<std::endl;
 }
 
 
