@@ -180,12 +180,14 @@ void SodiumED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string& inp
 
 std::string SodiumED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  auto sm = std::make_unique<unsigned char[]>(smlen);
+  unsigned char signature[crypto_sign_ed25519_BYTES];
 
-  crypto_sign_ed25519(sm.get(), &smlen, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
+  // https://doc.libsodium.org/public-key_cryptography/public-key_signatures#detached-mode:
+  // It is safe to ignore siglen and always consider a signature as crypto_sign_BYTES
+  // bytes long; shorter signatures will be transparently padded with zeros if necessary.
+  crypto_sign_ed25519_detached(signature, nullptr, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
 
-  return string((const char*)sm.get(), crypto_sign_ed25519_BYTES);
+  return {(const char*)signature, crypto_sign_ed25519_BYTES};
 }
 
 bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
@@ -194,15 +196,7 @@ bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::
     return false;
   }
 
-  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  auto sm = std::make_unique<unsigned char[]>(smlen);
-
-  memcpy(sm.get(), signature.c_str(), crypto_sign_ed25519_BYTES);
-  memcpy(sm.get() + crypto_sign_ed25519_BYTES, msg.c_str(), msg.length());
-
-  auto m = std::make_unique<unsigned char[]>(smlen);
-
-  return crypto_sign_ed25519_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
+  return crypto_sign_ed25519_verify_detached((const unsigned char*)signature.c_str(), (const unsigned char*)msg.c_str(), msg.length(), d_pubkey) == 0;
 }
 
 namespace {
