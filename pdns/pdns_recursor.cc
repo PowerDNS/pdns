@@ -1447,7 +1447,7 @@ void startDoResolve(void* p)
       pw.commit();
     }
 
-    g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), pw.getHeader()->rcode);
+    g_responseStats.submitResponse(dc->d_mdp.d_qtype, packet.size(), pw.getHeader()->rcode);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef NOD_ENABLED
     bool nod = false;

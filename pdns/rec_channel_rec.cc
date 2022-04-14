@@ -2134,7 +2134,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, setMinimumTTL(begin, end)};
   }
   if (cmd == "get-qtypelist") {
-    return {0, g_rs.getQTypeReport()};
+    return {0, g_responseStats.getQTypeReport()};
   }
   if (cmd == "add-nta") {
     return {0, doAddNTA(begin, end)};

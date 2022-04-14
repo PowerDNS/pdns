@@ -171,7 +171,7 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
 
 void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last)
 {
-  g_rs.submitResponse(*p, false, last);
+  g_responseStats.submitResponse(*p, false, last);
 
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);

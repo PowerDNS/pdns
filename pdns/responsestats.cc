@@ -38,7 +38,7 @@ ResponseStats::ResponseStats() :
   }
 }
 
-ResponseStats g_rs;
+ResponseStats g_responseStats;
 
 map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts() const
 {

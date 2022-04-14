@@ -61,4 +61,4 @@ private:
   pdns::AtomicHistogram d_sizecounters;
 };
 
-extern ResponseStats g_rs;
+extern ResponseStats g_responseStats;

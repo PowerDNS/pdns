@@ -45,7 +45,6 @@
 using json11::Json;
 
 extern string s_programname;
-extern ResponseStats g_rs;
 #ifndef RECURSOR
 extern StatBag S;
 #endif
@@ -208,9 +207,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     });
   }
 
-  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
-  auto resp_size_stats = g_rs.getSizeResponseCounts();
-  auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
+  auto resp_qtype_stats = g_responseStats.getQTypeResponseCounts();
+  auto resp_size_stats = g_responseStats.getSizeResponseCounts();
+  auto resp_rcode_stats = g_responseStats.getRCodeResponseCounts();
   {
     Json::array values;
     for(const auto& item : resp_qtype_stats) {

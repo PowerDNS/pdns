@@ -40,8 +40,6 @@
 #include "ueberbackend.hh"
 #include "common_startup.hh"
 
-extern ResponseStats g_rs;
-
 static bool s_pleasequit;
 static string d_status;
 
@@ -182,13 +180,13 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  return g_rs.getQTypeReport();
+  return g_responseStats.getQTypeReport();
 }
 
 string DLRSizesHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   typedef map<uint16_t, uint64_t> respsizes_t;
-  respsizes_t respsizes = g_rs.getSizeResponseCounts();
+  respsizes_t respsizes = g_responseStats.getSizeResponseCounts();
   ostringstream os;
   boost::format fmt("%d\t%d\n");
   for(const respsizes_t::value_type& val :  respsizes) {

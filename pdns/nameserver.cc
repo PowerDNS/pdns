@@ -217,7 +217,7 @@ UDPNameserver::UDPNameserver( bool additional_socket )
 void UDPNameserver::send(DNSPacket& p)
 {
   const string& buffer=p.getString();
-  g_rs.submitResponse(p, true);
+  g_responseStats.submitResponse(p, true);
 
   struct msghdr msgh;
   struct iovec iov;
