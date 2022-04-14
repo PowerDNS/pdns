@@ -85,17 +85,23 @@ void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc
     throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
   }
 
-  std::size_t keylen = crypto_sign_ed25519_SECRETKEYBYTES;
-  int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &keylen);
+  // The secret key is 64 bytes according to libsodium. But OpenSSL returns 32 in
+  // secKeyLen. Perhaps secret key means private key + public key in libsodium terms.
+  std::size_t secKeyLen = crypto_sign_ed25519_SECRETKEYBYTES;
+  int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &secKeyLen);
   if (ret == 0) {
     throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename + "`");
   }
 
-  keylen = crypto_sign_ed25519_PUBLICKEYBYTES;
-  ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &keylen);
+  std::size_t pubKeyLen = crypto_sign_ed25519_PUBLICKEYBYTES;
+  ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &pubKeyLen);
   if (ret == 0) {
     throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename + "`");
   }
+
+  // It looks like libsodium expects the public key to be appended to the private key,
+  // creating the "secret key" mentioned above.
+  memcpy(d_seckey + secKeyLen, d_pubkey, pubKeyLen);
 }
 
 void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
