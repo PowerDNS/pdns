@@ -300,9 +300,9 @@ struct DoTStatus
   mutable Status d_status{Unknown};
   std::string toString() const
   {
-    const std::string n[] = { "Unknown", "Busy", "Bad", "Good"};
+    const std::array<std::string, 4> n{ "Unknown", "Busy", "Bad", "Good" };
     unsigned int v = static_cast<unsigned int>(d_status);
-    return v > Status::Good ? "?" : n[v];
+    return v >= n.size() ? "?" : n[v];
   }
 };
 
