@@ -32,19 +32,14 @@ class ResponseStats
 public:
   ResponseStats();
 
-  void submitResponse(uint16_t qtype, uint16_t respsize) const
+  void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode) const
   {
+    d_rcodecounters.at(rcode).value++;
     d_qtypecounters.at(qtype).value++;
     d_sizecounters(respsize);
   }
 
-  void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode) const
-  {
-    d_rcodecounters.at(rcode).value++;
-    submitResponse(qtype, respsize);
-  }
-
-  void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true) const; // only implemneted by auth
+  void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true) const; // only implemented by auth
   map<uint16_t, uint64_t> getQTypeResponseCounts() const;
   map<uint16_t, uint64_t> getSizeResponseCounts() const;
   map<uint8_t, uint64_t> getRCodeResponseCounts() const;
