@@ -43,4 +43,4 @@ private:
   luacall_prequery_t d_prequery;
 };
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& qname,
-                                                   const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype);
+                                                   const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& s_LUA);
