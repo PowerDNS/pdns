@@ -302,7 +302,7 @@ struct DoTStatus
   {
     const std::string n[] = { "Unknown", "Busy", "Bad", "Good"};
     unsigned int v = static_cast<unsigned int>(d_status);
-    return v >= sizeof(n) ? "?" : n[v];
+    return v > Status::Good ? "?" : n[v];
   }
 };
 
