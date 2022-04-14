@@ -26,14 +26,13 @@ These are all the functions, objects and methods related to the :doc:`../advance
   :param table options: A table with key: value pairs with options.
 
   Options:
-  * ``v4Params``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
-  * ``v6Params``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
-  * ``qnameParams``: int or table - Maximum number of entries in this filter or a table with ``maxItems`` or ``pinnedPath`` .
+  * ``ipv4MaxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
+  * ``ipv4PinnedPath``: int - The filesystem path this map should be pinned to.
+  * ``ipv6MaxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
+  * ``ipv6PinnedPath``: int - The filesystem path this map should be pinned to.
+  * ``qnamesMaxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
+  * ``qnamesPinnedPath``: int - The filesystem path this map should be pinned to.
   * ``external``: bool - If set to true, DNSDist can to load the internal eBPF program.
-
-    Options for ``v4Params`` , ``v6Params`` and ``qnameParams``:
-    * ``maxItems``: int - The maximum number of entries in a given map. Default is 0 which will not allow any entry at all.
-    * ``pinnedPath``: str - The filesystem path this map should be pinned to.
 
 .. function:: newDynBPFFilter(bpf) -> DynBPFFilter
 
