@@ -1771,6 +1771,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
     if (response.length() >= sizeof(struct dnsheader)) {
       const struct dnsheader* dh = reinterpret_cast<const dnsheader*>(response.data());
       updateResponseStats(dh->rcode, source, response.length(), 0, 0);
+      g_responseStats.submitResponse(qtype, response.length(), dh->rcode);
     }
     g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
     g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
