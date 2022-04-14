@@ -1221,7 +1221,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; DoT probing map follows");
+  fprintf(fp.get(), "; DoT probing map follows\n");
   fprintf(fp.get(), "; ip\tdomain\tcount\tstatus\tttd\n");
   uint64_t count=0;
 
