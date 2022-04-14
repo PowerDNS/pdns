@@ -330,7 +330,7 @@ number of queries received with the DO bit set
 
 dnssec-result-bogus
 ^^^^^^^^^^^^^^^^^^^
-number of DNSSEC validations that had the   Bogus state. Since 4.4.2 detailed counters are available, see below.
+number of responses sent, packet-cache hits excluded, that were in the DNSSEC Bogus state. Since 4.4.2 detailed counters are available, see below.
 Since 4.5.0, if :ref:`setting-x-dnssec-names` is set, a separate set of ``x-dnssec-result-...`` metrics become available, counting
 the DNSSEC validation results for names suffix-matching a name in ``x-dnssec-names``.
 
@@ -339,91 +339,91 @@ dnssec-result-bogus-no-valid-dnskey
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be found.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a valid DNSKEY could not be found.
 
 dnssec-result-bogus-invalid-denial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a valid denial of existence proof could not be found.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a valid denial of existence proof could not be found.
 
 dnssec-result-bogus-unable-to-get-dss
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a valid DS could not be retrieved.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a valid DS could not be retrieved.
 
 dnssec-result-bogus-unable-to-get-dnskeys
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be retrieved.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a valid DNSKEY could not be retrieved.
 
 dnssec-result-bogus-self-signed-ds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a DS record was signed by itself.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a DS record was signed by itself.
 
 dnssec-result-bogus-no-rrsig
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because required RRSIG records were not present in an answer.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because required RRSIG records were not present in an answer.
 
 dnssec-result-bogus-no-valid-rrsig
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because only invalid RRSIG records were present in an answer.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because only invalid RRSIG records were present in an answer.
 
 dnssec-result-bogus-missing-negative-indication
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a NODATA or NXDOMAIN answer lacked the required SOA and/or NSEC(3) records.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a NODATA or NXDOMAIN answer lacked the required SOA and/or NSEC(3) records.
 
 dnssec-result-bogus-signature-no-yet-valid
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because the signature inception time in the RRSIG was not yet valid.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because the signature inception time in the RRSIG was not yet valid.
 
 dnssec-result-bogus-signature-expired
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because the signature expired time in the RRSIG was in the past.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because the signature expired time in the RRSIG was in the past.
 
 dnssec-result-bogus-unsupported-dnskey-algo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a DNSKEY RRset contained only unsupported DNSSEC algorithms.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a DNSKEY RRset contained only unsupported DNSSEC algorithms.
 
 dnssec-result-bogus-unsupported-ds-digest-type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because a DS RRset contained only unsupported digest types.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because a DS RRset contained only unsupported digest types.
 
 dnssec-result-bogus-no-zone-key-bit-set
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because no DNSKEY with the Zone Key bit set was found.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because no DNSKEY with the Zone Key bit set was found.
 
 dnssec-result-bogus-revoked-dnskey
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because all DNSKEYs were revoked.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because all DNSKEYs were revoked.
 
 dnssec-result-bogus-invalid-dnskey-protocol
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
-number of DNSSEC validations that had the Bogus state because all DNSKEYs had invalid protocols.
+number of responses sent, packet-cache hits excluded, that were in the Bogus state because all DNSKEYs had invalid protocols.
 
 dnssec-result-indeterminate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -431,19 +431,19 @@ number of DNSSEC validations that   had the Indeterminate state
 
 dnssec-result-insecure
 ^^^^^^^^^^^^^^^^^^^^^^
-number of DNSSEC validations that had the   Insecure state
+number of responses sent, packet-cache hits excluded, that were in the Insecure state
 
 dnssec-result-nta
 ^^^^^^^^^^^^^^^^^
-number of DNSSEC validations that had the NTA   (negative trust anchor) state
+number of responses sent, packet-cache hits excluded, that were in the NTA (negative trust anchor) state
 
 dnssec-result-secure
 ^^^^^^^^^^^^^^^^^^^^
-number of DNSSEC validations that had the   Secure state
+number of responses sent, packet-cache hits excluded, that were in the Secure state
 
 dnssec-validations
 ^^^^^^^^^^^^^^^^^^
-number of DNSSEC validations performed
+number of responses sent, packet-cache hits excluded, for which a DNSSEC validation was requested by either the client or the configuration
 
 dont-outqueries
 ^^^^^^^^^^^^^^^

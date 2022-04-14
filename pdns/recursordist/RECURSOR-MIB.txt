@@ -691,7 +691,7 @@ dnssecValidations OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC validations"
+        "Number of responses sent, packet-cache hits excluded, for which a DNSSEC validation was requested by either the client or the configuration"
     ::= { stats 80 }
 
 dnssecResultInsecure OBJECT-TYPE
@@ -699,7 +699,7 @@ dnssecResultInsecure OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC insecure results"
+        "Number of responses sent, excluding packet-cache hits, that were in the DNSSEC insecure state"
     ::= { stats 81 }
 
 dnssecResultSecure OBJECT-TYPE
@@ -707,7 +707,7 @@ dnssecResultSecure OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC secure results"
+        "Number of responses sent, excluding packet-cache hits, that were in the DNSSEC secure state"
     ::= { stats 82 }
 
 dnssecResultBogus OBJECT-TYPE
@@ -715,7 +715,7 @@ dnssecResultBogus OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC bogus results"
+        "Number of responses sent, excluding packet-cache hits, that were in the DNSSEC bogus state"
     ::= { stats 83 }
 
 dnssecResultIndeterminate OBJECT-TYPE
@@ -723,7 +723,7 @@ dnssecResultIndeterminate OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC indeterminate results"
+        "Number of responses sent, excluding packet-cache hits, that were in the DNSSEC indeterminate state"
     ::= { stats 84 }
 
 dnssecResultNta OBJECT-TYPE
@@ -731,7 +731,7 @@ dnssecResultNta OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of DNSSEC NTA results"
+        "Number of responses sent, excluding packet-cache hits, that were in the DNSSEC NTA state"
     ::= { stats 85 }
 
 policyResultNoaction OBJECT-TYPE
