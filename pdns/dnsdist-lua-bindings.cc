@@ -433,6 +433,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
       const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
         BPFFilter::MapConfiguration config;
+        config.d_type = type;
         if (const string key = name + "MaxItems"; opts.count(key)) {
           const auto& tmp = opts.at(key);
           if (tmp.type() != typeid(uint32_t)) {
