@@ -3,6 +3,10 @@ PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
+if LIBDECAF
+AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
+endif
+
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \

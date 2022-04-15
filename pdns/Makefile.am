@@ -39,6 +39,10 @@ if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
+if LIBDECAF
+AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
+endif
+
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
