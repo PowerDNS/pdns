@@ -2541,7 +2541,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<std::string (std::shared_ptr<DOHFrontend>::*)()const>("getAddressAndPort", [](const std::shared_ptr<DOHFrontend>& frontend) {
+  luaCtx.registerFunction<std::string (std::shared_ptr<DOHFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<DOHFrontend>& frontend) {
     if (frontend == nullptr) {
       return std::string();
     }
@@ -2706,7 +2706,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<std::string (std::shared_ptr<TLSFrontend>::*)()const>("getAddressAndPort", [](const std::shared_ptr<TLSFrontend>& frontend) {
+  luaCtx.registerFunction<std::string (std::shared_ptr<TLSFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<TLSFrontend>& frontend) {
     if (frontend == nullptr) {
       return std::string();
     }
