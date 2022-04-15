@@ -133,26 +133,31 @@ static string historyFile(const bool &ignoreHOME = false)
 }
 #endif /* HAVE_LIBEDIT */
 
-static bool getMsgLen32(int fd, uint32_t* len)
+enum class ConsoleCommandResult : uint8_t {
+  Valid = 0,
+  ConnectionClosed,
+  TooLarge
+};
+
+static ConsoleCommandResult getMsgLen32(int fd, uint32_t* len)
 {
-  try
-  {
+  try {
     uint32_t raw;
-    size_t ret = readn2(fd, &raw, sizeof raw);
+    size_t ret = readn2(fd, &raw, sizeof(raw));
 
     if (ret != sizeof raw) {
-      return false;
+      return ConsoleCommandResult::ConnectionClosed;
     }
 
     *len = ntohl(raw);
     if (*len > g_consoleOutputMsgMaxSize) {
-      return false;
+      return ConsoleCommandResult::TooLarge;
     }
 
-    return true;
+    return ConsoleCommandResult::Valid;
   }
-  catch(...) {
-    return false;
+  catch (...) {
+    return ConsoleCommandResult::ConnectionClosed;
   }
 }
 
@@ -169,13 +174,13 @@ static bool putMsgLen32(int fd, uint32_t len)
   }
 }
 
-static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
+static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
 {
   string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
-    cout << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
-    return true;
+    cerr << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
+    return ConsoleCommandResult::TooLarge;
   }
 
   putMsgLen32(fd, static_cast<uint32_t>(msgLen));
@@ -185,9 +190,14 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
   }
 
   uint32_t len;
-  if(!getMsgLen32(fd, &len)) {
+  auto commandResult = getMsgLen32(fd, &len);
+  if (commandResult == ConsoleCommandResult::ConnectionClosed) {
     cout << "Connection closed by the server." << endl;
-    return false;
+    return commandResult;
+  }
+  else if (commandResult == ConsoleCommandResult::TooLarge) {
+    cerr << "Received a console message whose length (" << len << ") is exceeding the allowed one (" << g_consoleOutputMsgMaxSize << "), closing that connection" << endl;
+    return commandResult;
   }
 
   if (len == 0) {
@@ -195,7 +205,7 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
       cout << endl;
     }
 
-    return true;
+    return ConsoleCommandResult::Valid;
   }
 
   msg.clear();
@@ -205,7 +215,7 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
   cout << msg;
   cout.flush();
 
-  return true;
+  return ConsoleCommandResult::Valid;
 }
 
 void doClient(ComboAddress server, const std::string& command)
@@ -234,11 +244,16 @@ void doClient(ComboAddress server, const std::string& command)
   readingNonce.merge(ours, theirs);
   writingNonce.merge(theirs, ours);
 
-  /* try sending an empty message, the server should send an empty
+    /* try sending an empty message, the server should send an empty
      one back. If it closes the connection instead, we are probably
      having a key mismatch issue. */
-  if (!sendMessageToServer(fd, "", readingNonce, writingNonce, false)) {
+  auto commandResult = sendMessageToServer(fd, "", readingNonce, writingNonce, false);
+  if (commandResult == ConsoleCommandResult::ConnectionClosed) {
     cerr<<"The server closed the connection right away, likely indicating a key mismatch. Please check your setKey() directive."<<endl;
+    close(fd);
+    return;
+  }
+  else if (commandResult == ConsoleCommandResult::TooLarge) {
     close(fd);
     return;
   }
@@ -282,10 +297,12 @@ void doClient(ComboAddress server, const std::string& command)
       line="help()";
 
     /* no need to send an empty line to the server */
-    if(line.empty())
+    if (line.empty()) {
       continue;
+    }
 
-    if (!sendMessageToServer(fd, line, readingNonce, writingNonce, true)) {
+    commandResult = sendMessageToServer(fd, line, readingNonce, writingNonce, true);
+    if (commandResult != ConsoleCommandResult::Valid) {
       break;
     }
   }
@@ -830,7 +847,7 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     for(;;) {
       uint32_t len;
-      if (!getMsgLen32(conn.getFD(), &len)) {
+      if (getMsgLen32(conn.getFD(), &len) != ConsoleCommandResult::Valid) {
         break;
       }
 
