@@ -32,6 +32,10 @@ These are all the functions, objects and methods related to the :doc:`../advance
   * ``ipv4PinnedPath``: str - The filesystem path this map should be pinned to.
   * ``ipv6MaxItems``: int - The maximum number of entries in the IPv6 map. Default is 0 which will not allow any entry at all.
   * ``ipv6PinnedPath``: str - The filesystem path this map should be pinned to.
+  * ``cidr4MaxItems``: int - The maximum number of entries in the IPv4 range block map. Default is 0 which will not allow any entry at all.
+  * ``cidr4PinnedPath``: str - The filesystem path this map should be pinned to.
+  * ``cidr6MaxItems``: int - The maximum number of entries in the IPv6 range block map. Default is 0 which will not allow any entry at all.
+  * ``cidr6PinnedPath``: str - The filesystem path this map should be pinned to.
   * ``qnamesMaxItems``: int - The maximum number of entries in the qname map. Default is 0 which will not allow any entry at all.
   * ``qnamesPinnedPath``: str - The filesystem path this map should be pinned to.
   * ``external``: bool - If set to true, DNSDist can to load the internal eBPF program.
@@ -77,6 +81,16 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     :param ComboAddress address: The address to block
 
+  .. method:: BPFFilter:blockRange(Netmask)
+
+  .. versionchanged:: 1.8.0
+
+    Block ip in this range. 
+
+    DNSDist check block range after check block ip before check block DNSName. 
+
+    :param string Netmask: The ip range to block
+
   .. method:: BPFFilter:blockQName(name [, qtype=255])
 
     Block queries for this exact qname. An optional qtype can be used, defaults to 255.
@@ -93,6 +107,18 @@ These are all the functions, objects and methods related to the :doc:`../advance
     Unblock this address.
 
     :param ComboAddress address: The address to unblock
+
+  .. method:: BPFFilter:unblockRange(Netmask)
+
+  .. versionchanged:: 1.8.0
+
+    Unblock ip in this range. 
+
+    DNSDist check unblock range after check block ip before check block DNSName. 
+    If ip is unblocked by this method but blocked by DNSName, the packet will be accept.
+    If ip is unblocked by this method but blocked by ``block`` , the packet will be blocked.
+
+    :param Netmask string: The ip range to unblock
 
   .. method:: BPFFilter:unblockQName(name [, qtype=255])
 
