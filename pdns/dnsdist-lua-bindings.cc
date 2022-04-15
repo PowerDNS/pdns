@@ -434,7 +434,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
         BPFFilter::MapConfiguration config;
         if (const string key = name + "MaxItems"; opts.count(key)) {
-          const auto& tmp = opts.at(name);
+          const auto& tmp = opts.at(key);
           if (tmp.type() != typeid(uint32_t)) {
             throw std::runtime_error("params is invalid");
           }
@@ -443,7 +443,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         }
 
         if (const string key = name + "PinnedPath"; opts.count(key)) {
-          auto& tmp = opts.at(name);
+          auto& tmp = opts.at(key);
           if (tmp.type() != typeid(string)) {
             throw std::runtime_error("params is invalid");
           }
