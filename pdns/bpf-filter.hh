@@ -54,7 +54,7 @@ public:
   };
 
 
-  BPFFilter(const BPFFilter::MapConfiguration& v4, const BPFFilter::MapConfiguration& v6, const BPFFilter::MapConfiguration& qnames, BPFFilter::MapFormat format, bool external);
+  BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external);
   BPFFilter(const BPFFilter&) = delete;
   BPFFilter(BPFFilter&&) = delete;
   BPFFilter& operator=(const BPFFilter&) = delete;

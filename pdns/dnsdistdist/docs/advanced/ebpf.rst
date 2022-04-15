@@ -16,7 +16,7 @@ The following figure show the CPU usage of dropping around 20k qps of traffic, f
 
 The BPF filter can be used to block incoming queries manually::
 
-  > bpf = newBPFFilter(1024, 1024, 1024)
+  > bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   > bpf:attachToAllBinds()
   > bpf:block(newCA("2001:DB8::42"))
   > bpf:blockQName(newDNSName("evildomain.com"), 255)
@@ -37,12 +37,12 @@ The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every exist
 
 The :meth:`BPFFilter:attachToAllBinds` automatically attached to every bind::
 
-  bpf = newBPFFilter(1024, 1024, 1024)
+  bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   setDefaultBPFFilter(bpf)
 
 Finally, it's also possible to attach it to specific binds at runtime::
 
-  > bpf = newBPFFilter(1024, 1024, 1024)
+  > bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   > showBinds()
   #   Address              Protocol  Queries
   0   [::]:53              UDP       0
@@ -52,7 +52,7 @@ Finally, it's also possible to attach it to specific binds at runtime::
 
 :program:`dnsdist` also supports adding dynamic, expiring blocks to a BPF filter::
 
-  bpf = newBPFFilter(1024, 1024, 1024)
+  bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   setDefaultBPFFilter(bpf)
   dbpf = newDynBPFFilter(bpf)
   function maintenance()
