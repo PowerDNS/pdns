@@ -20,7 +20,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
   .. versionchanged:: 1.7.0
     This function now supports a table for each parameters, and the ability to use pinned eBPF maps.
   .. versionchanged:: 1.8.0
-    This function now get the parameters via a table.
+    This function now gets its parameters via a table.
 
   Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block tables.
   Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. dnsdist will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user dnsdist is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``.
