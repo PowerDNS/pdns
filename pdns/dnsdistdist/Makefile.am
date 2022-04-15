@@ -315,7 +315,7 @@ testrunner_SOURCES = \
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(PROGRAM_LDFLAGS) \
-	-pthread 
+	-pthread
 
 dnsdist_LDADD = \
 	$(LUA_LIBS) \
@@ -414,11 +414,11 @@ endif
 
 if HAVE_SOLARIS
 dnsdist_SOURCES += \
-        devpollmplexer.cc \
-        portsmplexer.cc
+	devpollmplexer.cc \
+	portsmplexer.cc
 testrunner_SOURCES += \
-        devpollmplexer.cc \
-        portsmplexer.cc
+	devpollmplexer.cc \
+	portsmplexer.cc
 endif
 
 MANPAGES=dnsdist.1

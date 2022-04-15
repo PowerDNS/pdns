@@ -166,8 +166,8 @@ pdns_recursor_SOURCES = \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcp.cc \
-        rec-tcpout.cc rec-tcpout.hh \
-        rec-zonetocache.cc rec-zonetocache.hh \
+	rec-tcpout.cc rec-tcpout.hh \
+	rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
