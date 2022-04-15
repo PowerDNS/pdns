@@ -469,7 +469,11 @@ public:
     double udiff = du->ids.sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
+    auto backendProtocol = du->downstream->getProtocol();
+    if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
+      backendProtocol = dnsdist::Protocol::DoTCP;
+    }
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH, backendProtocol);
 
     ++g_stats.responses;
     if (du->ids.cs) {
