@@ -24,6 +24,7 @@
 #ifdef HAVE_EBPF
 
 #include <sys/syscall.h>
+#include <sys/resource.h>
 #include <linux/bpf.h>
 
 #include "ext/libbpf/libbpf.h"
@@ -318,6 +319,23 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
 {
   if (d_mapFormat != BPFFilter::MapFormat::Legacy && !d_external) {
     throw std::runtime_error("Unsupported eBPF map format, the current internal implemenation only supports the legacy format");
+  }
+
+  struct rlimit old_limit;
+
+  if ( getrlimit(RLIMIT_MEMLOCK, &old_limit) != 0) {
+    throw std::runtime_error("Unable to get memory lock limit: " + stringerror());
+  }
+
+  /* Check if the current soft memlock limit is 64k */ 
+  if (old_limit.rlim_cur < 67108865) {
+    struct rlimit new_limit;
+    new_limit.rlim_cur = 1073741824; /* Increase soft limit to 1024k */
+    new_limit.rlim_max = 1073741824; /* Increase hard limit to 1024k */
+  
+    if (setrlimit(RLIMIT_MEMLOCK, &new_limit) != 0) {
+      throw std::runtime_error("Unable to increase memory lock limit: " + stringerror());
+    }
   }
 
   auto maps = d_maps.lock();
