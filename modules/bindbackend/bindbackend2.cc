@@ -1206,17 +1206,9 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
   auto range = hashedidx.equal_range(d_handle.qname);
 
-  if (range.first == range.second) {
-    d_handle.d_list = false;
-    d_handle.d_iter = d_handle.d_end_iter = range.first;
-    return;
-  }
-  else {
-    d_handle.d_iter = range.first;
-    d_handle.d_end_iter = range.second;
-  }
-
   d_handle.d_list = false;
+  d_handle.d_iter = range.first;
+  d_handle.d_end_iter = range.second;
 }
 
 Bind2Backend::handle::handle()
