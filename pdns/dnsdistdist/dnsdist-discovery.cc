@@ -50,10 +50,6 @@ struct DesignatedResolvers
 
 static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, DesignatedResolvers>& resolvers)
 {
-  if (answer.size() <= sizeof(struct dnsheader)) {
-    throw std::runtime_error("Looking for SVC records in a packet smaller than a DNS header");
-  }
-
   std::map<DNSName, std::vector<ComboAddress>> hints;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
   PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
@@ -399,17 +395,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
   DownstreamState::Config config(backend.d_ds->d_config);
   config.remote = discoveredConfig.d_addr;
-  if (discoveredConfig.d_port != 0) {
-    config.remote.setPort(discoveredConfig.d_port);
-  }
-  else {
-    if (discoveredConfig.d_protocol == dnsdist::Protocol::DoT) {
-      config.remote.setPort(853);
-    }
-    else if (discoveredConfig.d_protocol == dnsdist::Protocol::DoH) {
-      config.remote.setPort(443);
-    }
-  }
+  config.remote.setPort(discoveredConfig.d_port);
 
   ComboAddress::addressOnlyEqual comparator;
   config.d_dohPath = discoveredConfig.d_dohPath;
