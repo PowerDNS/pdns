@@ -326,6 +326,7 @@ static LockGuarded<DoTMap> s_dotMap;
 
 static const time_t dotFailWait = 24 * 3600;
 static const time_t dotSuccessWait = 3 * 24 * 3600;
+static bool shouldDoDoT(ComboAddress address, time_t now);
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -1028,7 +1029,7 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
     fprintf(fp.get(), "%s\t%s\t", i.d_name.toLogString().c_str(), timestamp(i.d_lastget, tmp, sizeof(tmp)));
     for (const auto& j : i.d_collection) {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
-      fprintf(fp.get(), "%s/%f\t", j.first.toString().c_str(), j.second.peek());
+      fprintf(fp.get(), "%s/%f\t", j.first.toStringWithPortExcept(53).c_str(), j.second.peek());
     }
     fprintf(fp.get(), "\n");
   }
@@ -1221,7 +1222,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; DoT probing map follows");
+  fprintf(fp.get(), "; DoT probing map follows\n");
   fprintf(fp.get(), "; ip\tdomain\tcount\tstatus\tttd\n");
   uint64_t count=0;
 
@@ -1915,6 +1916,13 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   setCacheOnly(oldCacheOnly);
   d_followCNAME = oldFollowCNAME;
 
+  if (s_max_busy_dot_probes > 0 && s_dot_to_port_853) {
+    for (auto& add : ret) {
+      if (shouldDoDoT(add, d_now.tv_sec)) {
+        add.setPort(853);
+      }
+    }
+  }
   /* we need to remove from the nsSpeeds collection the existing IPs
      for this nameserver that are no longer in the set, even if there
      is only one or none at all in the current set.
@@ -5367,9 +5375,6 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
-          }
-          if (!doDoT && s_max_busy_dot_probes > 0 && shouldDoDoT(*remoteIP, d_now.tv_sec)) {
-              doDoT = true;
           }
           bool forceTCP = doDoT;
 
