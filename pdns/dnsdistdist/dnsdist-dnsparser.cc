@@ -60,9 +60,6 @@ DNSPacketOverlay::DNSPacketOverlay(const std::string_view& packet)
   catch (const std::exception& e) {
     throw std::runtime_error("Unable to parse DNS packet: " + std::string(e.what()));
   }
-  catch (const PDNSException& e) {
-    throw std::runtime_error("Unable to parse DNS packet: " + e.reason);
-  }
   catch (...) {
     throw std::runtime_error("Unable to parse DNS packet");
   }
