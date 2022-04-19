@@ -101,6 +101,12 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         }
       }
 
+      if (maxEntries == 0) {
+        warnlog("The number of entries in the packet cache is set to 0, raising to 1");
+        g_outputBuffer += "The number of entries in the packet cache is set to 0, raising to 1";
+        maxEntries = 1;
+      }
+
       if (maxEntries < numberOfShards) {
         warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
         g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(numberOfShards) + "), decreasing the number of shards to " + std::to_string(maxEntries);

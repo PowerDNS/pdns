@@ -31,6 +31,10 @@
 
 DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
 {
+  if (d_maxEntries == 0) {
+    throw std::runtime_error("Trying to create a 0-sized packet-cache");
+  }
+
   d_shards.resize(d_shardCount);
 
   /* we reserve maxEntries + 1 to avoid rehashing from occurring
