@@ -258,7 +258,6 @@ def ci_auth_configure(c):
                    ./configure \
                       CC='clang-12' \
                       CXX='clang++-12' \
-                      CPPFLAGS='-I/usr/local/include/decaf' \
                       LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib' \
                       --enable-option-checking=fatal \
                       --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
