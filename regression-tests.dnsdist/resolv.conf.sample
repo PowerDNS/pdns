@@ -1,0 +1,8 @@
+# this line should be ignored
+; that one as well
+  # even with leading spaces
+	; or a tab
+# nameserver line, IPv4, space-separated
+nameserver 9.9.9.9
+# nameserver line, IPv6, tab-separated
+nameserver	2620:fe::fe

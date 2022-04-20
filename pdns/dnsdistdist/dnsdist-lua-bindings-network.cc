@@ -65,10 +65,6 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
       return false;
     }
 
-    if (!listener) {
-      return false;
-    }
-
     return listener->addUnixListeningEndpoint(path, endpointID, [cb](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
       auto lock = g_lua.lock();
       cb(endpoint, dgram, from);
@@ -76,7 +72,7 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<dnsdist::NetworkListener>::*)()>("start", [client](std::shared_ptr<dnsdist::NetworkListener>& listener) {
-    if (client || !listener) {
+    if (client) {
       return;
     }
 
