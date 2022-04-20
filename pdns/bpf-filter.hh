@@ -22,6 +22,8 @@
 #pragma once
 #include "config.h"
 
+#include <unordered_map>
+
 #include "iputils.hh"
 #include "lock.hh"
 
