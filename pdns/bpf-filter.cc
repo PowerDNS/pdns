@@ -359,6 +359,8 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
   maps->d_v4 = BPFFilter::Map(configs["ipv4"], d_mapFormat);
   maps->d_v6 = BPFFilter::Map(configs["ipv6"], d_mapFormat);
   maps->d_qnames = BPFFilter::Map(configs["qnames"], d_mapFormat);
+  maps->d_cidr4 = BPFFilter::Map(configs["cidr4"], d_mapFormat);
+  maps->d_cidr6 = BPFFilter::Map(configs["cidr6"], d_mapFormat);
   if (!external) {
     BPFFilter::MapConfiguration filters;
     filters.d_maxItems = 1;

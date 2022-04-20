@@ -457,6 +457,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4);
       convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6);
       convertParamsToConfig("qnames", BPFFilter::MapType::QNames);
+      convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4);
+      convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6);
 
       BPFFilter::MapFormat format = BPFFilter::MapFormat::Legacy;
       bool external = false;
@@ -498,7 +500,30 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         }
       }
     });
+  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range, boost::optional<uint32_t> action)>("blockRange", [](std::shared_ptr<BPFFilter> bpf, const string& range, boost::optional<uint32_t> action) {
+    if (!bpf) {
+      return;
+    }
 
+    if (!action) {
+      return bpf->block(Netmask(range), BPFFilter::MatchAction::Drop);
+    }
+    BPFFilter::MatchAction match;
+    switch (*action) {
+    case 0:
+      match = BPFFilter::MatchAction::Pass;
+      break;
+    case 1:
+      match = BPFFilter::MatchAction::Drop;
+      break;
+    case 2:
+      match = BPFFilter::MatchAction::Truncate;
+      break;
+    default:
+      throw std::runtime_error("Unsupported action for BPFFilter::block");
+    }
+    return bpf->block(Netmask(range), match);
+  });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action) {
       if (bpf) {
         if (!action) {
@@ -530,7 +555,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         return bpf->unblock(ca);
       }
     });
-
+  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range)>("unblockRange", [](std::shared_ptr<BPFFilter> bpf, const string& range) {
+    if (!bpf) {
+      return;
+    }
+    bpf->unblock(Netmask(range));
+  });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("unblockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
       if (bpf) {
         return bpf->unblock(qname, qtype ? *qtype : 255);
