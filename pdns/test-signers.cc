@@ -16,8 +16,6 @@
 
 BOOST_AUTO_TEST_SUITE(test_signers)
 
-static const std::string message = "Very good, young padawan.";
-
 struct SignerParams
 {
   std::string iscMap;
@@ -37,127 +35,151 @@ struct SignerParams
   std::optional<std::string> pem;
 };
 
-static const std::array<struct SignerParams, 3> signers
+static const SignerParams rsaSha256SignerParams = SignerParams{
+  "Algorithm: 8\n"
+  "Modulus: qtunSiHnYq4XRLBehKAw1Glxb+48oIpAC7w3Jhpj570bb2uHt6orWGqnuyRtK8oqUi2ABoV0PFm8+IPgDMEdCQ==\n"
+  "PublicExponent: AQAB\n"
+  "PrivateExponent: MiItniUAngXzMeaGdWgDq/AcpvlCtOCcFlVt4TJRKkfp8DNRSxIxG53NNlOFkp1W00iLHqYC2GrH1qkKgT9l+Q==\n"
+  "Prime1: 3sZmM+5FKFy5xaRt0n2ZQOZ2C+CoKzVil6/al9LmYVs=\n"
+  "Prime2: xFcNWSIW6v8dDL2JQ1kxFDm/8RVeUSs1BNXXnvCjBGs=\n"
+  "Exponent1: WuUwhjfN1+4djlrMxHmisixWNfpwI1Eg7Ss/UXsnrMk=\n"
+  "Exponent2: vfMqas1cNsXRqP3Fym6D2Pl2BRuTQBv5E1B/ZrmQPTk=\n"
+  "Coefficient: Q10z43cA3hkwOkKsj5T0W5jrX97LBwZoY5lIjDCa4+M=\n",
+
+  "1506 8 1 172a500b374158d1a64ba3073cdbbc319b2fdf2c",
+  "1506 8 2 253b099ff47b02c6ffa52695a30a94c6681c56befe0e71a5077d6f79514972f9",
+  "1506 8 4 22ea940600dc2d9a98b1126c26ac0dc5c91b31eb50fe784b36ad675e9eecfe6573c1f85c53b6bc94580f3ac443d13c4c",
+
+  // clang-format off
+  /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
+  { 0x93, 0x93, 0x5f, 0xd8, 0xa1, 0x2b, 0x4c, 0x0b, 0xf3, 0x67, 0x42, 0x13, 0x52, 0x00, 0x35, 0xdc,
+    0x09, 0xe0, 0xdf, 0xe0, 0x3e, 0xc2, 0xcf, 0x64, 0xab, 0x9f, 0x9f, 0x51, 0x5f, 0x5c, 0x27, 0xbe,
+    0x13, 0xd6, 0x17, 0x07, 0xa6, 0xe4, 0x3b, 0x63, 0x44, 0x85, 0x06, 0x13, 0xaa, 0x01, 0x3c, 0x58,
+    0x52, 0xa3, 0x98, 0x20, 0x65, 0x03, 0xd0, 0x40, 0xc8, 0xa0, 0xe9, 0xd2, 0xc0, 0x03, 0x5a, 0xab },
+  // clang-format on
+
+  "256 3 8 AwEAAarbp0oh52KuF0SwXoSgMNRpcW/uPKCKQAu8NyYaY+e9G29rh7eqK1hqp7skbSvKKlItgAaFdDxZvPiD4AzBHQk=",
+  "rsa.",
+  "",
+  "",
+  512,
+  256,
+  0,
+  DNSSECKeeper::RSASHA256,
+  true,
+
+  std::nullopt};
+
+/* ECDSA-P256-SHA256 from
+ * https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h
+ */
+static const SignerParams ecdsaSha256 = SignerParams{
+  "Algorithm: 13\n"
+  "PrivateKey: iyLIPdk3DOIxVmmSYlmTstbtUPiVlEyDX46psyCwNVQ=\n",
+
+  "5345 13 1 954103ac7c43810ce9f414e80f30ab1cbe49b236",
+  "5345 13 2 bac2107036e735b50f85006ce409a19a3438cab272e70769ebda032239a3d0ca",
+  "5345 13 4 a0ac6790483872be72a258314200a88ab75cdd70f66a18a09f0f414c074df0989fdb1df0e67d82d4312cda67b93a76c1",
+
+  // clang-format off
+  /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
+  { 0xa2, 0x95, 0x76, 0xb5, 0xf5, 0x7e, 0xbd, 0xdd, 0xf5, 0x62, 0xa2, 0xc3, 0xa4, 0x8d, 0xd4, 0x53,
+    0x5c, 0xba, 0x29, 0x71, 0x8c, 0xcc, 0x28, 0x7b, 0x58, 0xf3, 0x1e, 0x4e, 0x58, 0xe2, 0x36, 0x7e,
+    0xa0, 0x1a, 0xb6, 0xe6, 0x29, 0x71, 0x1b, 0xd3, 0x8c, 0x88, 0xc3, 0xee, 0x12, 0x0e, 0x69, 0x70,
+    0x55, 0x99, 0xec, 0xd5, 0xf6, 0x4f, 0x4b, 0xe2, 0x41, 0xd9, 0x10, 0x7e, 0x67, 0xe5, 0xad, 0x2f },
+  // clang-format on
+
+  "256 3 13 8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZrSLBubLPiBw7gbvUP6SsIga5ZQ4CSAxNmYA/gZsuXzA==",
+  "ecdsa.",
+  "",
+  "",
+  256,
+  256,
+  0,
+  DNSSECKeeper::ECDSA256,
+  false,
+
+  std::make_optional(std::string{
+    "-----BEGIN EC PRIVATE KEY-----\n"
+    "MHcCAQEEIIsiyD3ZNwziMVZpkmJZk7LW7VD4lZRMg1+OqbMgsDVUoAoGCCqGSM49\n"
+    "AwEHoUQDQgAE8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZrSLBubLPi\n"
+    "Bw7gbvUP6SsIga5ZQ4CSAxNmYA/gZsuXzA==\n"
+    "-----END EC PRIVATE KEY-----\n"})};
+
+/* Ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
+ * also from rfc8080 section 6.1
+ */
+static const SignerParams ed25519 = SignerParams{
+  "Algorithm: 15\n"
+  "PrivateKey: ODIyNjAzODQ2MjgwODAxMjI2NDUxOTAyMDQxNDIyNjI=\n",
+
+  "3612 15 1 501249721e1f09a79d30d5c6c4dca1dc1da4ed5d",
+  "3612 15 2 1b1c8766b2a96566ff196f77c0c4194af86aaa109c5346ff60231a27d2b07ac0",
+  "3612 15 4 d11831153af4985efbd0ae792c967eb4aff3c35488db95f7e2f85dcec74ae8f59f9a72641798c91c67c675db1d710c18",
+
+  // clang-format off
+  /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
+  { 0x0a, 0x9e, 0x51, 0x5f, 0x16, 0x89, 0x49, 0x27, 0x0e, 0x98, 0x34, 0xd3, 0x48, 0xef, 0x5a, 0x6e,
+    0x85, 0x2f, 0x7c, 0xd6, 0xd7, 0xc8, 0xd0, 0xf4, 0x2c, 0x68, 0x8c, 0x1f, 0xf7, 0xdf, 0xeb, 0x7c,
+    0x25, 0xd6, 0x1a, 0x76, 0x3e, 0xaf, 0x28, 0x1f, 0x1d, 0x08, 0x10, 0x20, 0x1c, 0x01, 0x77, 0x1b,
+    0x5a, 0x48, 0xd6, 0xe5, 0x1c, 0xf9, 0xe3, 0xe0, 0x70, 0x34, 0x5e, 0x02, 0x49, 0xfb, 0x9e, 0x05 },
+  // clang-format on
+
+  "256 3 15 l02Woi0iS8Aa25FQkUd9RMzZHJpBoRQwAQEX1SxZJA4=",
+  "ed25519.",
+
+  // vector extracted from https://gitlab.labs.nic.cz/labs/ietf/blob/master/dnskey.py
+  // (rev 476d6ded) by printing signature_data
+  "00 0f 0f 02 00 00 0e 10 55 d4 fc 60 55 b9 4c e0 0e 1d 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 "
+  "07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 0f 00 01 00 00 0e 10 00 14 00 0a 04 6d 61 69 6c 07 "
+  "65 78 61 6d 70 6c 65 03 63 6f 6d 00 ",
+
+  // vector verified from dnskey.py as above, and confirmed with
+  // https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
+  "oL9krJun7xfBOIWcGHi7mag5/hdZrKWw15jPGrHpjQeRAvTdszaPD+QLs3fx8A4M3e23mRZ9VrbpMngwcrqNAg==",
+
+  256,
+  256,
+  257,
+  DNSSECKeeper::ED25519,
+  true,
+
+  std::make_optional(std::string{
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MC4CAQAwBQYDK2VwBCIEIDgyMjYwMzg0NjI4MDgwMTIyNjQ1MTkwMjA0MTQyMjYy\n"
+    "-----END PRIVATE KEY-----\n"})};
+
+struct Fixture
 {
-  /* RSA from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h */
-  SignerParams{
-    "Algorithm: 8\n"
-    "Modulus: qtunSiHnYq4XRLBehKAw1Glxb+48oIpAC7w3Jhpj570bb2uHt6orWGqnuyRtK8oqUi2ABoV0PFm8+IPgDMEdCQ==\n"
-    "PublicExponent: AQAB\n"
-    "PrivateExponent: MiItniUAngXzMeaGdWgDq/AcpvlCtOCcFlVt4TJRKkfp8DNRSxIxG53NNlOFkp1W00iLHqYC2GrH1qkKgT9l+Q==\n"
-    "Prime1: 3sZmM+5FKFy5xaRt0n2ZQOZ2C+CoKzVil6/al9LmYVs=\n"
-    "Prime2: xFcNWSIW6v8dDL2JQ1kxFDm/8RVeUSs1BNXXnvCjBGs=\n"
-    "Exponent1: WuUwhjfN1+4djlrMxHmisixWNfpwI1Eg7Ss/UXsnrMk=\n"
-    "Exponent2: vfMqas1cNsXRqP3Fym6D2Pl2BRuTQBv5E1B/ZrmQPTk=\n"
-    "Coefficient: Q10z43cA3hkwOkKsj5T0W5jrX97LBwZoY5lIjDCa4+M=\n",
+  Fixture()
+  {
+    BOOST_TEST_MESSAGE("All available/supported algorithms:");
+    auto pairs = DNSCryptoKeyEngine::listAllAlgosWithBackend();
+    for (auto const& pair : pairs) {
+      BOOST_TEST_MESSAGE("  " + std::to_string(pair.first) + ": " + pair.second);
+    }
 
-    "1506 8 1 172a500b374158d1a64ba3073cdbbc319b2fdf2c",
-    "1506 8 2 253b099ff47b02c6ffa52695a30a94c6681c56befe0e71a5077d6f79514972f9",
-    "1506 8 4 22ea940600dc2d9a98b1126c26ac0dc5c91b31eb50fe784b36ad675e9eecfe6573c1f85c53b6bc94580f3ac443d13c4c",
+    BOOST_TEST_MESSAGE("Setting up signer params:");
 
-    // clang-format off
-    /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
-    { 0x93, 0x93, 0x5f, 0xd8, 0xa1, 0x2b, 0x4c, 0x0b, 0xf3, 0x67, 0x42, 0x13, 0x52, 0x00, 0x35, 0xdc,
-      0x09, 0xe0, 0xdf, 0xe0, 0x3e, 0xc2, 0xcf, 0x64, 0xab, 0x9f, 0x9f, 0x51, 0x5f, 0x5c, 0x27, 0xbe,
-      0x13, 0xd6, 0x17, 0x07, 0xa6, 0xe4, 0x3b, 0x63, 0x44, 0x85, 0x06, 0x13, 0xaa, 0x01, 0x3c, 0x58,
-      0x52, 0xa3, 0x98, 0x20, 0x65, 0x03, 0xd0, 0x40, 0xc8, 0xa0, 0xe9, 0xd2, 0xc0, 0x03, 0x5a, 0xab },
-    // clang-format on
+    addSignerParams(DNSSECKeeper::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
 
-    "256 3 8 AwEAAarbp0oh52KuF0SwXoSgMNRpcW/uPKCKQAu8NyYaY+e9G29rh7eqK1hqp7skbSvKKlItgAaFdDxZvPiD4AzBHQk=",
-    "rsa.",
-    "",
-    "",
-    512,
-    256,
-    0,
-    DNSSECKeeper::RSASHA256,
-    true,
+    #ifdef HAVE_LIBCRYPTO_ECDSA
+    addSignerParams(DNSSECKeeper::ECDSA256, "ECDSA SHA256", ecdsaSha256);
+    #endif
 
-    std::nullopt},
+    #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+    addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
+    #endif
+  }
 
-#ifdef HAVE_LIBCRYPTO_ECDSA
-    /* ECDSA-P256-SHA256 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h */
-    SignerParams{
-      "Algorithm: 13\n"
-      "PrivateKey: iyLIPdk3DOIxVmmSYlmTstbtUPiVlEyDX46psyCwNVQ=\n",
+  void addSignerParams(const uint8_t algorithm, const std::string& name, const SignerParams& params)
+  {
+    BOOST_TEST_MESSAGE("  " + std::to_string(algorithm) + ": " + name + " (" + params.name + ")");
+    signerParams.insert_or_assign(algorithm, params);
+  }
 
-      "5345 13 1 954103ac7c43810ce9f414e80f30ab1cbe49b236",
-      "5345 13 2 bac2107036e735b50f85006ce409a19a3438cab272e70769ebda032239a3d0ca",
-      "5345 13 4 a0ac6790483872be72a258314200a88ab75cdd70f66a18a09f0f414c074df0989fdb1df0e67d82d4312cda67b93a76c1",
-
-      // clang-format off
-      /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
-      { 0xa2, 0x95, 0x76, 0xb5, 0xf5, 0x7e, 0xbd, 0xdd, 0xf5, 0x62, 0xa2, 0xc3, 0xa4, 0x8d, 0xd4, 0x53,
-        0x5c, 0xba, 0x29, 0x71, 0x8c, 0xcc, 0x28, 0x7b, 0x58, 0xf3, 0x1e, 0x4e, 0x58, 0xe2, 0x36, 0x7e,
-        0xa0, 0x1a, 0xb6, 0xe6, 0x29, 0x71, 0x1b, 0xd3, 0x8c, 0x88, 0xc3, 0xee, 0x12, 0x0e, 0x69, 0x70,
-        0x55, 0x99, 0xec, 0xd5, 0xf6, 0x4f, 0x4b, 0xe2, 0x41, 0xd9, 0x10, 0x7e, 0x67, 0xe5, 0xad, 0x2f },
-      // clang-format on
-
-      "256 3 13 8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZrSLBubLPiBw7gbvUP6SsIga5ZQ4CSAxNmYA/gZsuXzA==",
-      "ecdsa.",
-      "",
-      "",
-      256,
-      256,
-      0,
-      DNSSECKeeper::ECDSA256,
-      false,
-
-      std::make_optional(std::string{
-        "-----BEGIN EC PRIVATE KEY-----\n"
-        "MHcCAQEEIIsiyD3ZNwziMVZpkmJZk7LW7VD4lZRMg1+OqbMgsDVUoAoGCCqGSM49\n"
-        "AwEHoUQDQgAE8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZrSLBubLPi\n"
-        "Bw7gbvUP6SsIga5ZQ4CSAxNmYA/gZsuXzA==\n"
-        "-----END EC PRIVATE KEY-----\n"})},
-#endif /* HAVE_LIBCRYPTO_ECDSA */
-
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
-    /* ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
-       also from rfc8080 section 6.1 */
-    SignerParams{
-      "Algorithm: 15\n"
-      "PrivateKey: ODIyNjAzODQ2MjgwODAxMjI2NDUxOTAyMDQxNDIyNjI=\n",
-
-      "3612 15 1 501249721e1f09a79d30d5c6c4dca1dc1da4ed5d",
-      "3612 15 2 1b1c8766b2a96566ff196f77c0c4194af86aaa109c5346ff60231a27d2b07ac0",
-      "3612 15 4 d11831153af4985efbd0ae792c967eb4aff3c35488db95f7e2f85dcec74ae8f59f9a72641798c91c67c675db1d710c18",
-
-      // clang-format off
-      /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
-      { 0x0a, 0x9e, 0x51, 0x5f, 0x16, 0x89, 0x49, 0x27, 0x0e, 0x98, 0x34, 0xd3, 0x48, 0xef, 0x5a, 0x6e,
-        0x85, 0x2f, 0x7c, 0xd6, 0xd7, 0xc8, 0xd0, 0xf4, 0x2c, 0x68, 0x8c, 0x1f, 0xf7, 0xdf, 0xeb, 0x7c,
-        0x25, 0xd6, 0x1a, 0x76, 0x3e, 0xaf, 0x28, 0x1f, 0x1d, 0x08, 0x10, 0x20, 0x1c, 0x01, 0x77, 0x1b,
-        0x5a, 0x48, 0xd6, 0xe5, 0x1c, 0xf9, 0xe3, 0xe0, 0x70, 0x34, 0x5e, 0x02, 0x49, 0xfb, 0x9e, 0x05 },
-      // clang-format on
-
-      "256 3 15 l02Woi0iS8Aa25FQkUd9RMzZHJpBoRQwAQEX1SxZJA4=",
-      "ed25519.",
-
-      // vector extracted from https://gitlab.labs.nic.cz/labs/ietf/blob/master/dnskey.py
-      // (rev 476d6ded) by printing signature_data
-      "00 0f 0f 02 00 00 0e 10 55 d4 fc 60 55 b9 4c e0 0e 1d 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 "
-      "07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 0f 00 01 00 00 0e 10 00 14 00 0a 04 6d 61 69 6c 07 "
-      "65 78 61 6d 70 6c 65 03 63 6f 6d 00 ",
-
-      // vector verified from dnskey.py as above, and confirmed with
-      // https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
-      "oL9krJun7xfBOIWcGHi7mag5/hdZrKWw15jPGrHpjQeRAvTdszaPD+QLs3fx8A4M3e23mRZ9VrbpMngwcrqNAg==",
-
-      256,
-      256,
-      257,
-      DNSSECKeeper::ED25519,
-      true,
-
-#if defined(HAVE_LIBCRYPTO_ED25519)
-      std::make_optional(std::string{
-        "-----BEGIN PRIVATE KEY-----\n"
-        "MC4CAQAwBQYDK2VwBCIEIDgyMjYwMzg0NjI4MDgwMTIyNjQ1MTkwMjA0MTQyMjYy\n"
-        "-----END PRIVATE KEY-----\n"})},
-#else
-      std::nullopt},
-#endif /* defined(HAVE_LIBCRYPTO_ED25519) */
-#endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519) */
+  const std::string message{"Very good, young padawan."};
+  std::unordered_map<uint8_t, struct SignerParams> signerParams;
 };
 
 static void checkRR(const SignerParams& signer)
@@ -216,7 +238,7 @@ static void checkRR(const SignerParams& signer)
   }
 }
 
-static auto test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEYRecordContent& drc, const SignerParams& signer)
+static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEYRecordContent& drc, const SignerParams& signer, const std::string& message)
 {
   BOOST_CHECK_EQUAL(dcke->getAlgorithm(), signer.algorithm);
   BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);
@@ -267,12 +289,14 @@ static auto test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_generic_signers)
+BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
 {
-  for (const auto& signer : signers) {
+  for (const auto& algoSignerPair : signerParams) {
+    auto signer = algoSignerPair.second;
+
     DNSKEYRecordContent drc;
     auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
-    test_generic_signer(dcke, drc, signer);
+    test_generic_signer(dcke, drc, signer, message);
 
     if (signer.pem.has_value()) {
       unique_ptr<std::FILE, decltype(&std::fclose)> fp{fmemopen((void*)signer.pem->c_str(), signer.pem->length(), "r"), &std::fclose};
@@ -283,7 +307,7 @@ BOOST_AUTO_TEST_CASE(test_generic_signers)
 
       BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 
-      test_generic_signer(pemKey, pemDRC, signer);
+      test_generic_signer(pemKey, pemDRC, signer, message);
 
       const size_t buflen = 4096;
 
