@@ -138,9 +138,6 @@ Rings g_rings;
 QueryCount g_qcount;
 
 GlobalStateHolder<servers_t> g_dstates;
-GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
-GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 
 bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};

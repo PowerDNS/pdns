@@ -2,6 +2,10 @@
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 
+GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
+GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
+
 void DynBlockRulesGroup::apply(const struct timespec& now)
 {
   counts_t counts;
@@ -174,6 +178,18 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
   return false;
 }
 
+/* return the actual action that will be taken by that block:
+   - either the one set on that block, if any
+   - or the one set with setDynBlocksAction in g_dynBlockAction
+*/
+static DNSAction::Action getActualAction(const DynBlock& block)
+{
+  if (block.action != DNSAction::Action::None) {
+    return block.action;
+  }
+  return g_dynBlockAction;
+}
+
 void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
   /* network exclusions are address-based only (no port) */
@@ -224,14 +240,15 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
   db.blocks = count;
   db.warning = warning;
   if (!got || expired || wasWarning) {
+    const auto actualAction = getActualAction(db);
     if (g_defaultBPFFilter &&
         ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128)) &&
-        (db.action == DNSAction::Action::Drop || db.action == DNSAction::Action::Truncate)) {
+        (actualAction == DNSAction::Action::Drop || actualAction == DNSAction::Action::Truncate)) {
       try {
-        BPFFilter::MatchAction action = db.action == DNSAction::Action::Drop ? BPFFilter::MatchAction::Drop : BPFFilter::MatchAction::Truncate;
-        if (g_defaultBPFFilter->supportsMatchAction(action)) {
+        BPFFilter::MatchAction bpfAction = actualAction == DNSAction::Action::Drop ? BPFFilter::MatchAction::Drop : BPFFilter::MatchAction::Truncate;
+        if (g_defaultBPFFilter->supportsMatchAction(bpfAction)) {
           /* the current BPF filter implementation only supports full addresses (/32 or /128) and no port */
-          g_defaultBPFFilter->block(requestor.getNetwork(), action);
+          g_defaultBPFFilter->block(requestor.getNetwork(), bpfAction);
           bpf = true;
         }
       }

@@ -9,8 +9,6 @@
 #include "dnsdist-rings.hh"
 
 Rings g_rings;
-GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
-GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
