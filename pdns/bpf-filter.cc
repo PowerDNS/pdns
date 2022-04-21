@@ -526,7 +526,7 @@ void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
     if (res != -1 && value.action == action) {
-      throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
+      throw std::runtime_error("Trying to block an already blocked netmask: " + addr.toString());
     }
 
     value.counter = 0;
@@ -548,7 +548,7 @@ void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
     if (res != -1 && value.action == action) {
-      throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
+      throw std::runtime_error("Trying to block an already blocked netmask: " + addr.toString());
     }
 
     value.counter = 0;
@@ -602,7 +602,7 @@ void BPFFilter::unblock(const Netmask& addr)
   }
 
   if (res != 0) {
-    throw std::runtime_error("Error removing blocked address " + addr.toString() + ": " + stringerror());
+    throw std::runtime_error("Error removing blocked netmask" + addr.toString() + ": " + stringerror());
   }
 }
 
