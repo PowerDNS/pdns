@@ -705,13 +705,6 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
   memset(&v6Key, 0, sizeof(v6Key));
 
-
-  CIDR4 cidr4[2];
-  memset(cidr4, 0, sizeof(cidr4));
-  CIDR6 cidr6[2];
-  memset(cidr6, 0, sizeof(cidr6));
-  
-
   auto maps = d_maps.lock();
 
   {
@@ -741,32 +734,6 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &nextV6Key, &nextV6Key);
-    }
-  }
-
-  {
-    auto& map  =maps->d_cidr4;
-    int res=bpf_get_next_key(map.d_fd.getHandle(), &cidr4[0], &cidr4[1]);
-    while (res == 0) {
-      if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr4[0], &value) == 0) {
-        v4Addr.sin_addr.s_addr = cidr4[0].addr.s_addr;
-        result.emplace_back(ComboAddress(&v4Addr), value.counter);
-      }
-
-      res = bpf_get_next_key(map.d_fd.getHandle(), &cidr4[0], &cidr4[1]);
-    }
-  }
-
-  {
-    auto& map  =maps->d_cidr6;
-    int res=bpf_get_next_key(map.d_fd.getHandle(), &cidr6[0], &cidr6[1]);
-    while (res == 0) {
-      if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr6[0], &value) == 0) {
-        v6Addr.sin6_addr=cidr6[0].addr;
-        result.emplace_back(ComboAddress(&v6Addr), value.counter);
-      }
-
-      res = bpf_get_next_key(map.d_fd.getHandle(), &cidr6[0], &cidr6[1]);
     }
   }
 
