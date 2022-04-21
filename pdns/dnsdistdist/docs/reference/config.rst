@@ -1055,7 +1055,7 @@ Status, Statistics and More
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
   :param int num: Show a maximum of ``num`` recent queries+responses, default is 10.
 
-.. function:: setVerboseHealthChecks(verbose)
+.. function:: setVerbose(verbose)
 
   .. versionadded:: 1.8.0
 
