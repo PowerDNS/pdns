@@ -85,9 +85,9 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. versionchanged:: 1.8.0
 
-    Block ip in this range. 
+    Block all IP addresses in this range. 
 
-    DNSDist check block range after check block ip before check block DNSName. 
+    DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
 
     :param string Netmask: The ip range to block
 
@@ -112,11 +112,10 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. versionchanged:: 1.8.0
 
-    Unblock ip in this range. 
+    Unblock this range. 
 
-    DNSDist check unblock range after check block ip before check block DNSName. 
-    If ip is unblocked by this method but blocked by DNSName, the packet will be accept.
-    If ip is unblocked by this method but blocked by ``block`` , the packet will be blocked.
+    DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
+    If a query coming from an IP or range marked as allowed, but is for a qname for which a DNSName block exists, the packet will be accepted as the first match wins.
 
     :param Netmask string: The ip range to unblock
 
