@@ -76,6 +76,7 @@ public:
   void unblock(const DNSName& qname, uint16_t qtype=255);
 
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
+  std::vector<std::pair<Netmask,uint64_t>> getRangeStats();
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
 
   uint64_t getHits(const ComboAddress& requestor);

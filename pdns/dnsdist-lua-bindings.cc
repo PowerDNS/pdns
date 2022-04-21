@@ -580,6 +580,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
             res += "[" + value.first.toString() + "]: " + std::to_string(value.second) + "\n";
           }
         }
+        const auto rangeStat = bpf->getRangeStats();
+        for (const auto& value : rangeStat) {
+          if (value.first.isIPv4()) {
+            res += value.first.toString() + ": " + std::to_string(value.second) + "\n";
+          }
+          else if (value.first.isIPv6()) {
+            res += "[" + value.first.toString() + "]: " + std::to_string(value.second) + "\n";
+          }
+        }
         auto qstats = bpf->getQNameStats();
         for (const auto& value : qstats) {
           res += std::get<0>(value).toString() + " " + std::to_string(std::get<1>(value)) + ": " + std::to_string(std::get<2>(value)) + "\n";

@@ -740,6 +740,50 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   return result;
 }
 
+std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
+{
+  CIDR4 cidr4[2];
+  CIDR6 cidr6[2];
+  std::vector<std::pair<Netmask, uint64_t>> result;
+
+  sockaddr_in v4Addr;
+  sockaddr_in6 v6Addr;
+  CounterAndActionValue value;
+
+  memset(cidr4, 0, sizeof(cidr4));
+  memset(cidr6, 0, sizeof(cidr6));
+  memset(&v4Addr, 0, sizeof(v4Addr));
+  memset(&v6Addr, 0, sizeof(v6Addr));
+  auto maps = d_maps.lock();
+  result.reserve(maps->d_cidr4.d_count + maps->d_cidr6.d_count);
+  {
+    auto& map = maps->d_cidr4;
+    int res = bpf_get_next_key(map.d_fd.getHandle(), &cidr4[0], &cidr4[1]);
+    while (res == 0) {
+      if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr4[1], &value) == 0) {
+        v4Addr.sin_addr.s_addr = cidr4[1].addr.s_addr;
+        result.emplace_back(Netmask(&v4Addr, cidr4[1].cidr), value.counter);
+      }
+
+      res = bpf_get_next_key(map.d_fd.getHandle(), &cidr4[1], &cidr4[1]);
+    }
+  }
+
+  {
+    auto& map = maps->d_cidr6;
+    int res = bpf_get_next_key(map.d_fd.getHandle(), &cidr6[0], &cidr6[1]);
+    while (res == 0) {
+      if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr6[1], &value) == 0) {
+        v6Addr.sin6_addr = cidr6[0].addr;
+        result.emplace_back(Netmask(&v6Addr, cidr6[1].cidr), value.counter);
+      }
+
+      res = bpf_get_next_key(map.d_fd.getHandle(), &cidr6[1], &cidr6[1]);
+    }
+  }
+  return result;
+}
+
 std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
 {
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;

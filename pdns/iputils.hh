@@ -460,6 +460,16 @@ public:
     setBits(network.isIPv4() ? std::min(bits, static_cast<uint8_t>(32)) : std::min(bits, static_cast<uint8_t>(128)));
   }
 
+  Netmask(const sockaddr_in* network, uint8_t bits = 0xff): d_network(network)
+  {
+    d_network.sin4.sin_port = 0;
+    setBits(std::min(bits, static_cast<uint8_t>(32)));
+  }
+  Netmask(const sockaddr_in6* network, uint8_t bits = 0xff): d_network(network)
+  {
+    d_network.sin4.sin_port = 0;
+    setBits(std::min(bits, static_cast<uint8_t>(128)));
+  }
   void setBits(uint8_t value)
   {
     d_bits = value;
