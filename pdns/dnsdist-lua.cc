@@ -1713,7 +1713,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return pool;
   });
 
+  luaCtx.writeFunction("setVerbose", [](bool verbose) { g_verbose = verbose; });
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
+
   luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {
     checkParameterBound("setStaleCacheEntriesTTL", ttl, std::numeric_limits<uint32_t>::max());
     g_staleCacheEntriesTTL = ttl;
