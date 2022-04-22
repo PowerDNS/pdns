@@ -126,6 +126,11 @@ public:
       throw std::runtime_error("Error assigning socket");
     }
 
+    /* set outgoing Server Name Indication */
+    if (!d_hostname.empty() && SSL_set_tlsext_host_name(d_conn.get(), d_hostname.c_str()) != 1) {
+      throw std::runtime_error("Error setting TLS SNI to " + d_hostname);
+    }
+
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
     SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
@@ -1535,9 +1540,10 @@ public:
 
     if (params.d_validateCertificates) {
       if (params.d_caStore.empty()) {
-#if GNUTLS_VERSION_NUMBER >= 0x030700
-        std::cerr<<"Warning: GnuTLS >= 3.7.0 has a known memory leak when validating server certificates in some configurations (PKCS11 support enabled, and a default PKCS11 trust store), please consider using the OpenSSL provider for outgoing connections instead, or explicitely setting a CA store"<<std::endl;
-#endif /* GNUTLS_VERSION_NUMBER >= 0x030700 */
+#if GNUTLS_VERSION_NUMBER >= 0x030700 && GNUTLS_VERSION_NUMBER < 0x030703
+        /* see https://gitlab.com/gnutls/gnutls/-/issues/1277 */
+        std::cerr<<"Warning: GnuTLS 3.7.0 - 3.7.2 have a memory leak when validating server certificates in some configurations (PKCS11 support enabled, and a default PKCS11 trust store), please consider upgrading GnuTLS, using the OpenSSL provider for outgoing connections, or explicitly setting a CA store"<<std::endl;
+#endif /* GNUTLS_VERSION_NUMBER >= 0x030700 && GNUTLS_VERSION_NUMBER < 0x030703 */
         rc = gnutls_certificate_set_x509_system_trust(d_creds.get());
         if (rc < 0) {
           throw std::runtime_error("Error adding the system's default trusted CAs: " + std::string(gnutls_strerror(rc)));

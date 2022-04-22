@@ -255,7 +255,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("inConfigCheck", [configCheck]() {
-    return !configCheck;
+    return configCheck;
   });
 
   luaCtx.writeFunction("newServer",
@@ -2541,6 +2541,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  luaCtx.registerFunction<std::string (std::shared_ptr<DOHFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<DOHFrontend>& frontend) {
+    if (frontend == nullptr) {
+      return std::string();
+    }
+    return frontend->d_local.toStringWithPort();
+  });
+
   luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
@@ -2697,6 +2704,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (ctx != nullptr) {
       ctx->loadTicketsKeys(file);
     }
+  });
+
+  luaCtx.registerFunction<std::string (std::shared_ptr<TLSFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<TLSFrontend>& frontend) {
+    if (frontend == nullptr) {
+      return std::string();
+    }
+    return frontend->d_addr.toStringWithPort();
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSFrontend>& frontend) {

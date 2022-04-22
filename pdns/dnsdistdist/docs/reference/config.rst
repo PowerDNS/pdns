@@ -1620,6 +1620,12 @@ DOHFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
 
+  .. method:: DOHFrontend:getAddressAndPort() -> string
+
+     .. versionadded:: 1.7.1
+
+     Return the address and port this frontend is listening on.
+
   .. method:: DOHFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 
      .. versionadded:: 1.6.1
@@ -1687,6 +1693,12 @@ TLSFrontend
 .. class:: TLSFrontend
 
   This object represents the configuration of a listening frontend for DNS over TLS queries. To each frontend is associated a TLSContext.
+
+  .. method:: TLSFrontend:getAddressAndPort() -> string
+
+     .. versionadded:: 1.7.1
+
+     Return the address and port this frontend is listening on.
 
   .. method:: TLSFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 

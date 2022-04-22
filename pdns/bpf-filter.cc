@@ -503,12 +503,11 @@ void BPFFilter::block(const DNSName& qname, BPFFilter::MatchAction action, uint1
       throw std::runtime_error("Table full when trying to block " + qname.toLogString());
     }
 
-    int res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
+    int res = bpf_lookup_elem(map.d_fd.getHandle(), &key, value);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked qname: " + qname.toLogString());
     }
-
-    res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+    res = bpf_update_elem(map.d_fd.getHandle(), &key, value, BPF_NOEXIST);
     if (res == 0) {
       ++map.d_count;
     }

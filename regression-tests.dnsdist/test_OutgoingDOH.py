@@ -283,11 +283,19 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
+    @staticmethod
+    def sniCallback(sslSocket, sni, sslContext):
+        assert(sni == 'powerdns.com')
+        return None
+
     @classmethod
     def startResponders(cls):
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tlsContext.set_alpn_protocols(["h2"])
         tlsContext.load_cert_chain('server.chain', 'server.key')
+        # requires Python 3.7+
+        if hasattr(tlsContext, 'sni_callback'):
+            tlsContext.sni_callback = cls.sniCallback
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
