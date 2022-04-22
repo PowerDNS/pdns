@@ -273,28 +273,32 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        } break;
+          break;
+        }
         case MapType::IPv6: {
           KeyV6 key;
           memset(&key, 0, sizeof(key));
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        } break;
+          break;
+        }
         case MapType::CIDR4: {
           CIDR4 key;
           memset(&key, 0, sizeof(key));
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        } break;
+          break;
+        }
         case MapType::CIDR6: {
           CIDR6 key;
           memset(&key, 0, sizeof(key));
           while (bpf_get_next_key(d_fd.getHandle(), &key, &key) == 0) {
             ++d_count;
           }
-        } break;
+          break;
+        }
         case MapType::QNames: {
           if (format == MapFormat::Legacy) {
             QNameKey key;
@@ -310,7 +314,8 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
               ++d_count;
             }
           }
-        } break;
+          break;
+        }
 
         default:
           throw std::runtime_error("Unsupported eBPF map type: " + std::to_string(static_cast<uint8_t>(d_config.d_type)));

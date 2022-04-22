@@ -332,7 +332,7 @@ static inline enum dns_action udp_dns_reply_v4(struct cursor *c, struct CIDR4 *k
   }
 
   key->cidr = 32;
-  key->addr=bpf_htonl(key->addr);
+  key->addr = bpf_htonl(key->addr);
   value = cidr4filter.lookup(key);
   if (value) {
     __sync_fetch_and_add(&value->counter, 1);
@@ -404,7 +404,7 @@ static inline enum dns_action udp_dns_reply_v6(struct cursor *c, struct CIDR6* k
   return action;
 }
 
-int xdp_dns_filter(struct xdp_md *ctx)
+int xdp_dns_filter(struct xdp_md* ctx)
 {
   // store variables
   struct cursor   c;
@@ -419,50 +419,50 @@ int xdp_dns_filter(struct xdp_md *ctx)
 
   // pass the packet if it is not an ethernet one
   if ((eth = parse_eth(&c, &eth_proto))) {
-  	// IPv4 packets
-  	if (eth_proto == bpf_htons(ETH_P_IP))
-  	{
-  		if (!(ipv4 = parse_iphdr(&c)) || bpf_htons(ipv4->protocol != IPPROTO_UDP)) {
-  			return XDP_PASS;
-  		}
+    // IPv4 packets
+    if (eth_proto == bpf_htons(ETH_P_IP))
+    {
+      if (!(ipv4 = parse_iphdr(&c)) || bpf_htons(ipv4->protocol != IPPROTO_UDP)) {
+        return XDP_PASS;
+      }
+
       struct CIDR4 key;
       key.addr = bpf_htonl(ipv4->saddr);
       // if TC bit must not be set, apply the action
-  		if ((r = udp_dns_reply_v4(&c, &key)) != TC) {
-  	    return r == DROP ? XDP_DROP : XDP_PASS;
-  		}
-  
+      if ((r = udp_dns_reply_v4(&c, &key)) != TC) {
+        return r == DROP ? XDP_DROP : XDP_PASS;
+      }
+
       // swap src/dest IP addresses
-  		uint32_t swap_ipv4 = ipv4->daddr;
-  		ipv4->daddr = ipv4->saddr;
-  		ipv4->saddr = swap_ipv4;
-  	}
-  	// IPv6 packets
-  	else if (eth_proto == bpf_htons(ETH_P_IPV6))
-  	{
-  		;
-  		if (!(ipv6 = parse_ipv6hdr(&c)) || bpf_htons(ipv6->nexthdr != IPPROTO_UDP)) {
-  			return XDP_PASS;
-  		} 
+      uint32_t swap_ipv4 = ipv4->daddr;
+      ipv4->daddr = ipv4->saddr;
+      ipv4->saddr = swap_ipv4;
+    }
+    // IPv6 packets
+    else if (eth_proto == bpf_htons(ETH_P_IPV6)) {
+      if (!(ipv6 = parse_ipv6hdr(&c)) || bpf_htons(ipv6->nexthdr != IPPROTO_UDP)) {
+        return XDP_PASS;
+      }
       struct CIDR6 key;
       key.addr = ipv6->saddr;
-      // if TC bit must not be set, apply the action
-  		if ((r = udp_dns_reply_v6(&c, &key)) != TC) {
-  			return r == DROP ? XDP_DROP : XDP_PASS;
-  		}
-  
-      // swap src/dest IP addresses
-  		struct in6_addr swap_ipv6 = ipv6->daddr;
-  		ipv6->daddr = ipv6->saddr;
-  		ipv6->saddr = swap_ipv6;
 
-  	}
-  	// pass all non-IP packets
-  	else {
-  		return XDP_PASS;
-  	}
-  } else {
-  	return XDP_PASS;
+      // if TC bit must not be set, apply the action
+      if ((r = udp_dns_reply_v6(&c, &key)) != TC) {
+        return r == DROP ? XDP_DROP : XDP_PASS;
+      }
+
+      // swap src/dest IP addresses
+      struct in6_addr swap_ipv6 = ipv6->daddr;
+      ipv6->daddr = ipv6->saddr;
+      ipv6->saddr = swap_ipv6;
+    }
+    // pass all non-IP packets
+    else {
+      return XDP_PASS;
+    }
+  }
+  else {
+    return XDP_PASS;
   }
 
   // swap MAC addresses
