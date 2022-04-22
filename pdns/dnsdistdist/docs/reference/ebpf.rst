@@ -108,12 +108,12 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     :param ComboAddress address: The address to unblock
 
-  .. method:: BPFFilter:unblockRange(Netmask)
+  .. method:: BPFFilter:allowRange(Netmask)
 
   .. versionchanged:: 1.8.0
 
-    Unblock this range. 
-
+    Allow all IP address in this range.
+    DNSDist will attempt to delete the item specified by Netmask first, and if no such item can be found, a new item will be inserted to indicate the exception for this subnet.
     DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
     If a query coming from an IP or range marked as allowed, but is for a qname for which a DNSName block exists, the packet will be accepted as the first match wins.
 

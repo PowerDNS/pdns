@@ -555,11 +555,11 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         return bpf->unblock(ca);
       }
     });
-  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range)>("unblockRange", [](std::shared_ptr<BPFFilter> bpf, const string& range) {
+  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range)>("allowRange", [](std::shared_ptr<BPFFilter> bpf, const string& range) {
     if (!bpf) {
       return;
     }
-    bpf->unblock(Netmask(range));
+    bpf->allow(Netmask(range));
   });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("unblockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
       if (bpf) {

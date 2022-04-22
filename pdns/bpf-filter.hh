@@ -72,7 +72,7 @@ public:
   void block(const Netmask& address, BPFFilter::MatchAction action);
   void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
-  void unblock(const Netmask& address);
+  void allow(const Netmask& address);
   void unblock(const DNSName& qname, uint16_t qtype=255);
 
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();

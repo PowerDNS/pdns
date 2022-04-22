@@ -565,7 +565,7 @@ void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
   }
 }
 
-void BPFFilter::unblock(const Netmask& addr)
+void BPFFilter::allow(const Netmask& addr)
 {
   int res = 0;
   CounterAndActionValue value;
@@ -904,7 +904,7 @@ void BPFFilter::block(const Netmask&, BPFFilter::MatchAction)
 {
   throw std::runtime_error("eBPF support not enabled");
 }
-void BPFFilter::unblock(const Netmask&)
+void BPFFilter::allow(const Netmask&)
 {
   throw std::runtime_error("eBPF support not enabled");
 }
