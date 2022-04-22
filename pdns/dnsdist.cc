@@ -1850,17 +1850,6 @@ static void healthChecksThread()
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if (++dss->lastCheck < dss->checkInterval) {
-        continue;
-      }
-
-      dss->lastCheck = 0;
-
-      if (dss->availability == DownstreamState::Availability::Auto) {
-        if (!queueHealthCheck(mplexer, dss)) {
-          updateHealthCheckResult(dss, false, false);
-        }
-      }
 
       auto delta = dss->sw.udiffAndSet()/1000000.0;
       dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
@@ -1903,6 +1892,19 @@ static void healthChecksThread()
           g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
         }
       }
+
+      if (++dss->lastCheck < dss->checkInterval) {
+        continue;
+      }
+
+      dss->lastCheck = 0;
+
+      if (dss->availability == DownstreamState::Availability::Auto) {
+        if (!queueHealthCheck(mplexer, dss)) {
+          updateHealthCheckResult(dss, false, false);
+        }
+      }
+
     }
 
     handleQueuedHealthChecks(*mplexer);
