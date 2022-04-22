@@ -2,6 +2,126 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.1
+  :released: 26th of April 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11195
+
+    Fix compilation with OpenSSL 3.0.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11094
+    :tickets: 11081
+
+    Docker images: remove capability requirements
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11292
+    :tickets: 11290
+
+    Docker image: install ca-certificates
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11335
+    :tickets: 11330
+
+    Fix a use-after-free in case of a network error in the middle of a XFR query
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11550
+    :tickets: 11504
+
+    Properly use eBPF when the DynBlock is not set
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11176
+    :tickets: 11113
+
+    Work around a compiler bug seen on OpenBSD/amd64 using clang-13
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11197
+
+    Stop using the now deprecated and useless std::binary_function
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 11251
+    :tickets: 11249
+
+    Set Server Name Indication on outgoing TLS connections (DoT, DoH)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 11253
+    :tickets: 11250
+
+    Fix the health-check timeout for outgoing DoH connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11255
+    :tickets: 11254
+
+    Fix 'inConfigCheck()'
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 11323
+    :tickets: 11239
+
+    Fix the latency-count metric
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 11324
+    :tickets: 11201
+
+    Remove the leak warning with GnuTLS >= 3.7.3
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11545
+    :tickets: 11501
+
+    Use the correct outgoing protocol in our ring buffers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11546
+    :tickets: 11383
+
+    Raise the number of entries in a packet cache to at least 1
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11547
+    :tickets: 11434
+
+    Add a 'getAddressAndPort()' method to DOHFrontend and TLSFrontend objects
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11565
+
+    Fix wrong eBPF values (qtype, counter) being inserted for qnames
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11572
+    :tickets: 11375
+
+    The check interval applies to health-check, not timeouts
+
+.. changelog::
   :version: 1.7.0
   :released: 17th of January 2022
 
