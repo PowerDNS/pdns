@@ -123,7 +123,7 @@ jobs:
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
         make htmlfiles.h
-        make -j8 pdns_recursor rec_control
+        make -j4 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
