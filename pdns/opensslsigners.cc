@@ -1174,7 +1174,7 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
 #endif // HAVE_LIBCRYPTO_EDDSA
 
 namespace {
-  struct LoaderStruct
+  const struct LoaderStruct
   {
     LoaderStruct()
     {

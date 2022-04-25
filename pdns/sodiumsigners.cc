@@ -200,7 +200,7 @@ bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::
 }
 
 namespace {
-struct LoaderSodiumStruct
+const struct LoaderSodiumStruct
 {
   LoaderSodiumStruct()
   {

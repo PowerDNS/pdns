@@ -421,7 +421,7 @@ bool DecafED448DNSCryptoKeyEngine::verify(const std::string& msg, const std::str
 
 namespace
 {
-struct LoaderDecafStruct
+const struct LoaderDecafStruct
 {
   LoaderDecafStruct()
   {
