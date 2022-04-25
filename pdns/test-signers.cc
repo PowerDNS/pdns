@@ -149,7 +149,14 @@ static const std::array<struct SignerParams, 3> signers
       DNSSECKeeper::ED25519,
       true,
 
+#if defined(HAVE_LIBCRYPTO_ED25519)
+      std::make_optional(std::string{
+        "-----BEGIN PRIVATE KEY-----\n"
+        "MC4CAQAwBQYDK2VwBCIEIDgyMjYwMzg0NjI4MDgwMTIyNjQ1MTkwMjA0MTQyMjYy\n"
+        "-----END PRIVATE KEY-----\n"})},
+#else
       std::nullopt},
+#endif /* defined(HAVE_LIBCRYPTO_ED25519) */
 #endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519) */
 };
 
@@ -246,7 +253,8 @@ static auto test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK(dcke->verify(message, signature));
 
   if (signer.isDeterministic) {
-    BOOST_CHECK_EQUAL(signature, std::string(signer.signature.begin(), signer.signature.end()));
+    string b64 = Base64Encode(signature);
+    BOOST_CHECK_EQUAL(b64, Base64Encode(std::string(signer.signature.begin(), signer.signature.end())));
   }
   else {
     /* since the signing process is not deterministic, we can't directly compare our signature

@@ -1,3 +1,5 @@
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -13,6 +15,40 @@ public:
   {}
   string getName() const override { return "Sodium ED25519"; }
   void create(unsigned int bits) override;
+
+#if defined(HAVE_LIBCRYPTO_ED25519)
+  /**
+   * \brief Creates an ED25519 key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an
+   * ED25519 key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information in
+   * error messages.
+   *
+   * \param[in] fp An open file handle to a file containing ED25519 PEM
+   * contents.
+   *
+   * \return An ED25519 key engine populated with the contents of the
+   * PEM file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] fp An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEM(std::FILE& fp) const override;
+#endif
+
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
@@ -40,6 +76,48 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
 }
 
+#if defined(HAVE_LIBCRYPTO_ED25519)
+void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+{
+  drc.d_algorithm = d_algorithm;
+  auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
+
+  // The secret key is 64 bytes according to libsodium. But OpenSSL returns 32 in
+  // secKeyLen. Perhaps secret key means private key + public key in libsodium terms.
+  std::size_t secKeyLen = crypto_sign_ed25519_SECRETKEYBYTES;
+  int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &secKeyLen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename + "`");
+  }
+
+  std::size_t pubKeyLen = crypto_sign_ed25519_PUBLICKEYBYTES;
+  ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &pubKeyLen);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename + "`");
+  }
+
+  // It looks like libsodium expects the public key to be appended to the private key,
+  // creating the "secret key" mentioned above.
+  memcpy(d_seckey + secKeyLen, d_pubkey, pubKeyLen);
+}
+
+void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
+  auto key = std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, nullptr, d_seckey, crypto_sign_ed25519_SEEDBYTES), EVP_PKEY_free);
+  if (key == nullptr) {
+    throw runtime_error(getName() + ": Could not create private key from buffer");
+  }
+
+  auto ret = PEM_write_PrivateKey(&fp, key.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Could not convert private key to PEM");
+  }
+}
+#endif
+
 int SodiumED25519DNSCryptoKeyEngine::getBits() const
 {
   return crypto_sign_ed25519_SEEDBYTES * 8;
@@ -58,7 +136,6 @@ DNSCryptoKeyEngine::storvector_t SodiumED25519DNSCryptoKeyEngine::convertToISCVe
 
   storvector.emplace_back("Algorithm", algorithm);
 
-  vector<unsigned char> buffer;
   storvector.emplace_back("PrivateKey", string((char*)d_seckey, crypto_sign_ed25519_SEEDBYTES));
   return storvector;
 }
@@ -103,28 +180,23 @@ void SodiumED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string& inp
 
 std::string SodiumED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  auto sm = std::make_unique<unsigned char[]>(smlen);
+  unsigned char signature[crypto_sign_ed25519_BYTES];
 
-  crypto_sign_ed25519(sm.get(), &smlen, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
+  // https://doc.libsodium.org/public-key_cryptography/public-key_signatures#detached-mode:
+  // It is safe to ignore siglen and always consider a signature as crypto_sign_BYTES
+  // bytes long; shorter signatures will be transparently padded with zeros if necessary.
+  crypto_sign_ed25519_detached(signature, nullptr, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
 
-  return string((const char*)sm.get(), crypto_sign_ed25519_BYTES);
+  return {(const char*)signature, crypto_sign_ed25519_BYTES};
 }
 
 bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  if (signature.length() != crypto_sign_ed25519_BYTES)
+  if (signature.length() != crypto_sign_ed25519_BYTES) {
     return false;
+  }
 
-  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
-  auto sm = std::make_unique<unsigned char[]>(smlen);
-
-  memcpy(sm.get(), signature.c_str(), crypto_sign_ed25519_BYTES);
-  memcpy(sm.get() + crypto_sign_ed25519_BYTES, msg.c_str(), msg.length());
-
-  auto m = std::make_unique<unsigned char[]>(smlen);
-
-  return crypto_sign_ed25519_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
+  return crypto_sign_ed25519_verify_detached((const unsigned char*)signature.c_str(), (const unsigned char*)msg.c_str(), msg.length(), d_pubkey) == 0;
 }
 
 namespace {

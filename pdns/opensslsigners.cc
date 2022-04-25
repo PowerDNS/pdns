@@ -960,6 +960,38 @@ public:
   int getBits() const override { return d_len << 3; }
 
   void create(unsigned int bits) override;
+
+  /**
+   * \brief Creates an EDDSA key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an EDDSA
+   * key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information in
+   * error messages.
+   *
+   * \param[in] fp An open file handle to a file containing EDDSA PEM
+   * contents.
+   *
+   * \return An EDDSA key engine populated with the contents of the PEM
+   * file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] fp An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEM(std::FILE& fp) const override;
+
   storvector_t convertToISCVector() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
@@ -1000,6 +1032,23 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName()+" key generation failed");
   }
   d_edkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+{
+  drc.d_algorithm = d_algorithm;
+  d_edkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  if (d_edkey == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
+  auto ret = PEM_write_PrivateKey(&fp, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw runtime_error(getName() + ": Could not convert private key to PEM");
+  }
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVector() const

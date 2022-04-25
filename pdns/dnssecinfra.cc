@@ -179,14 +179,18 @@ std::string DNSCryptoKeyEngine::convertToISC() const
 {
   storvector_t storvector = this->convertToISCVector();
   ostringstream ret;
-  ret<<"Private-key-format: v1.2\n";
-  for(const storvector_t::value_type& value :  storvector) {
+  ret << "Private-key-format: v1.2\n";
+  for (const storvector_t::value_type& value : storvector) {
+    // clang-format off
     if(value.first != "Algorithm" && value.first != "PIN" &&
        value.first != "Slot" && value.first != "Engine" &&
-       value.first != "Label" && value.first != "PubLabel")
-      ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
-    else
-      ret<<value.first<<": "<<value.second<<"\n";
+       value.first != "Label" && value.first != "PubLabel") {
+      ret << value.first << ": " << Base64Encode(value.second) << "\n";
+    }
+    else {
+      ret << value.first << ": " << value.second << "\n";
+    }
+    // clang-format on
   }
   return ret.str();
 }
@@ -194,13 +198,13 @@ std::string DNSCryptoKeyEngine::convertToISC() const
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
-  makers_t::const_iterator iter = makers.find(algo);
+
+  auto iter = makers.find(algo);
   if (iter != makers.cend()) {
     return (iter->second)(algo);
   }
-  else {
-    throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
-  }
+
+  throw runtime_error("Request to create key object for unknown algorithm number " + std::to_string(algo));
 }
 
 /**
