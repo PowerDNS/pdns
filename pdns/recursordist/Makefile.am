@@ -3,6 +3,10 @@ PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
+if LIBDECAF
+AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
+endif
+
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \
@@ -166,8 +170,8 @@ pdns_recursor_SOURCES = \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcp.cc \
-        rec-tcpout.cc rec-tcpout.hh \
-        rec-zonetocache.cc rec-zonetocache.hh \
+	rec-tcpout.cc rec-tcpout.hh \
+	rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \

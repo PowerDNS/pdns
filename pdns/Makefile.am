@@ -39,6 +39,10 @@ if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
+if LIBDECAF
+AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
+endif
+
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -942,8 +946,8 @@ speedtest_SOURCES = \
 	speedtest.cc \
 	statbag.cc \
 	svc-records.cc svc-records.hh \
-        unix_utility.cc \
-        uuid-utils.cc
+	unix_utility.cc \
+	uuid-utils.cc
 
 speedtest_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 speedtest_LDADD = $(LIBCRYPTO_LIBS) \
@@ -964,8 +968,8 @@ dnswasher_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnswasher_LDFLAGS = 	$(AM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
-dnswasher_LDADD = 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBCRYPTO_LIBS) $(IPCRYPT_LIBS)
+dnswasher_LDFLAGS =	$(AM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+dnswasher_LDADD =	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBCRYPTO_LIBS) $(IPCRYPT_LIBS)
 
 dnsbulktest_SOURCES = \
 	arguments.cc arguments.hh \
@@ -1421,7 +1425,7 @@ testrunner_SOURCES = \
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) 
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
 testrunner_LDADD = \
 	$(LIBCRYPTO_LIBS) \
