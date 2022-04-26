@@ -4775,8 +4775,6 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
       result->addMask(line);
     }
     g_log<<Logger::Info<<"Done parsing "<<result->size()<<" "<<aclSetting<<" ranges from file '"<<::arg()[aclFile]<<"' - overriding '"<<aclSetting<<"' setting"<<endl;
-
-    return result;
   }
   else if(!::arg()[aclSetting].empty()) {
     vector<string> ips;
@@ -4790,11 +4788,9 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
       g_log<<Logger::Info<<*i;
     }
     g_log<<Logger::Info<<endl;
-
-    return result;
   }
 
-  return nullptr;
+  return result;
 }
 
 void parseACLs()
