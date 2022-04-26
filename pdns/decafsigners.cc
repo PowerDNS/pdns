@@ -6,6 +6,7 @@
 #include <decaf.hxx>
 #include <decaf/eddsa.hxx>
 #include <decaf/spongerng.hxx>
+#include "dnsseckeeper.hh"
 
 #include "dnssecinfra.hh"
 
@@ -425,8 +426,8 @@ const struct LoaderDecafStruct
 {
   LoaderDecafStruct()
   {
-    DNSCryptoKeyEngine::report(15, &DecafED25519DNSCryptoKeyEngine::maker, true);
-    DNSCryptoKeyEngine::report(16, &DecafED448DNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &DecafED25519DNSCryptoKeyEngine::maker, true);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ED448, &DecafED448DNSCryptoKeyEngine::maker);
   }
 } loaderdecaf;
 }

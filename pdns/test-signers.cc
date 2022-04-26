@@ -233,7 +233,7 @@ static void checkRR(const SignerParams& signer)
 
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
-  DNSName qname(dpk.d_algorithm == 12 ? "www.example.net." : "example.com.");
+  DNSName qname(dpk.d_algorithm == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
 
   reportBasicTypes();
 
@@ -241,7 +241,7 @@ static void checkRR(const SignerParams& signer)
   uint32_t expire = 1440021600;
   uint32_t inception = 1438207200;
 
-  if (dpk.d_algorithm == 12) {
+  if (dpk.d_algorithm == DNSSECKeeper::ECCGOST) {
     rrc.d_signer = DNSName("example.net.");
     inception = 946684800;
     expire = 1893456000;

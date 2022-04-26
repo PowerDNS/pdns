@@ -7,6 +7,7 @@ extern "C" {
 #include <sodium.h>
 }
 #include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
 
 class SodiumED25519DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
@@ -204,7 +205,7 @@ const struct LoaderSodiumStruct
 {
   LoaderSodiumStruct()
   {
-    DNSCryptoKeyEngine::report(15, &SodiumED25519DNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &SodiumED25519DNSCryptoKeyEngine::maker);
   }
 } loadersodium;
 }

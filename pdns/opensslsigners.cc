@@ -1178,19 +1178,19 @@ namespace {
   {
     LoaderStruct()
     {
-      DNSCryptoKeyEngine::report(5, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(7, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(8, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(10, &OpenSSLRSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1NSEC3SHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA256, &OpenSSLRSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA512, &OpenSSLRSADNSCryptoKeyEngine::maker);
 #ifdef HAVE_LIBCRYPTO_ECDSA
-      DNSCryptoKeyEngine::report(13, &OpenSSLECDSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(14, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA256, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA384, &OpenSSLECDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-      DNSCryptoKeyEngine::report(15, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-      DNSCryptoKeyEngine::report(16, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+      DNSCryptoKeyEngine::report(DNSSECKeeper::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
     }
   } loaderOpenSSL;
