@@ -357,16 +357,18 @@ void DownstreamState::handleTimeouts()
     }
   }
   else {
-    for (IDState& ids : idStates) {
-      int64_t usageIndicator = ids.usageIndicator;
-      if (IDState::isInUse(usageIndicator) && isIDSExpired(ids)) {
-        if (!ids.tryMarkUnused(usageIndicator)) {
-          /* this state has been altered in the meantime,
-             don't go anywhere near it */
-          continue;
-        }
+    if (outstanding.load() > 0) {
+      for (IDState& ids : idStates) {
+        int64_t usageIndicator = ids.usageIndicator;
+        if (IDState::isInUse(usageIndicator) && isIDSExpired(ids)) {
+          if (!ids.tryMarkUnused(usageIndicator)) {
+            /* this state has been altered in the meantime,
+               don't go anywhere near it */
+            continue;
+          }
 
-        handleTimeout(ids);
+          handleTimeout(ids);
+        }
       }
     }
   }
