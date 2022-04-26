@@ -59,34 +59,22 @@ for ip in blocked_ipv6:
 for item in blocked_cidr4:
   print(f"Blocking {item}")
   key = cidr4filter.Key()
-  cidr=32
-  tmp=item[0].split('/')
-  if len(tmp)>1:
-    cidr=int(tmp[1])
-    if cidr>32 or cidr<=0:
-      raise RuntimeError("params invalid")
-  ip=tmp[0]
-  key.cidr=cidr
-  key.addr = int.from_bytes(bytes(netaddr.IPAddress(ip)), "little", signed=False)
+  network = netaddr.IPNetwork(item[0])
+  key.cidr = network.prefixlen
+  key.addr = socket.htonl(network.network.value)
   leaf = cidr4filter.Leaf()
   leaf.counter = 0
-  leaf.action = item[1] 
+  leaf.action = item[1]
   cidr4filter[key] = leaf
 
 for item in blocked_cidr6:
   print(f"Blocking {item}")
   key = cidr6filter.Key()
-  cidr=128
-  tmp=item[0].split('/')
-  if len(tmp)>1:
-    cidr=int(tmp[1])
-    if cidr>128 or cidr<=0:
-      raise RuntimeError("params invalid")
-  ip=tmp[0]
-  key.cidr=cidr
-  ipv6_int = int(netaddr.IPAddress(ip[0]).value)
+  network = netaddr.IPNetwork(item[0])
+  key.cidr = network.prefixlen
+  ipv6_int = int(network.network.value)
   ipv6_bytes = bytearray([(ipv6_int & (255 << 8*(15-i))) >> (8*(15-i)) for i in range(16)])
-  key = (ct.c_uint8 * 16).from_buffer(ipv6_bytes)
+  key.addr.in6_u.u6_addr8 = (ct.c_uint8 * 16).from_buffer(ipv6_bytes)
   leaf = cidr6filter.Leaf()
   leaf.counter = 0
   leaf.action = item[1]
@@ -119,7 +107,7 @@ for item in v4filter.items():
 for item in v6filter.items():
   print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0]))} ({ACTIONS[item[1].action]}): {item[1].counter}")
 for item in cidr4filter.items():
-  addr = int.from_bytes(netaddr.IPAddress(item[0].addr), "big", signed=False)
+  addr = netaddr.IPAddress(socket.ntohl(item[0].addr))
   print(f"{str(addr)}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
 for item in cidr6filter.items():
   print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0].addr))}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
