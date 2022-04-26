@@ -643,6 +643,42 @@ class TestAPIACL(APITestsBase):
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
 
+class TestAPIWithoutAuthentication(APITestsBase):
+    __test__ = True
+    _apiPath = '/api/v1/servers/localhost/config'
+    # paths accessible using basic auth only (list not exhaustive)
+    _basicOnlyPath = '/'
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed']
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer({address="127.0.0.1:%s"})
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiRequiresAuthentication=false })
+    """
+
+    def testAuth(self):
+        """
+        API: API do not require authentication
+        """
+
+        for path in [self._apiPath]:
+            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+
+            r = requests.get(url, timeout=self._webTimeout)
+            self.assertTrue(r)
+            self.assertEqual(r.status_code, 200)
+
+        # these should still require basic authentication
+        for path in [self._basicOnlyPath]:
+            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+
+            r = requests.get(url, timeout=self._webTimeout)
+            self.assertEqual(r.status_code, 401)
+
+            r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+            self.assertTrue(r)
+            self.assertEqual(r.status_code, 200)
+
 class TestCustomLuaEndpoint(APITestsBase):
     __test__ = True
     _config_template = """
