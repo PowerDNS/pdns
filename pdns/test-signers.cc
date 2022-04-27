@@ -84,7 +84,15 @@ static const SignerParams rsaSha256SignerParams = SignerParams{
   .algorithm = DNSSECKeeper::RSASHA256,
   .isDeterministic = true,
 
-  .pem = std::nullopt};
+  .pem = "-----BEGIN RSA PRIVATE KEY-----\n"
+         "MIIBOgIBAAJBAKrbp0oh52KuF0SwXoSgMNRpcW/uPKCKQAu8NyYaY+e9G29rh7eq\n"
+         "K1hqp7skbSvKKlItgAaFdDxZvPiD4AzBHQkCAwEAAQJAMiItniUAngXzMeaGdWgD\n"
+         "q/AcpvlCtOCcFlVt4TJRKkfp8DNRSxIxG53NNlOFkp1W00iLHqYC2GrH1qkKgT9l\n"
+         "+QIhAN7GZjPuRShcucWkbdJ9mUDmdgvgqCs1Ypev2pfS5mFbAiEAxFcNWSIW6v8d\n"
+         "DL2JQ1kxFDm/8RVeUSs1BNXXnvCjBGsCIFrlMIY3zdfuHY5azMR5orIsVjX6cCNR\n"
+         "IO0rP1F7J6zJAiEAvfMqas1cNsXRqP3Fym6D2Pl2BRuTQBv5E1B/ZrmQPTkCIENd\n"
+         "M+N3AN4ZMDpCrI+U9FuY61/eywcGaGOZSIwwmuPj\n"
+         "-----END RSA PRIVATE KEY-----\n"};
 
 /* ECDSA-P256-SHA256 from
  * https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h
