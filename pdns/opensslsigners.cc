@@ -191,6 +191,23 @@ public:
   void create(unsigned int bits) override;
 
   /**
+   * \brief Creates an RSA key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an RSA key
+   * engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] filename Only used for providing filename information in error
+   * messages.
+   *
+   * \param[in] fp An open file handle to a file containing RSA PEM contents.
+   *
+   * \return An RSA key engine populated with the contents of the PEM file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+
+  /**
    * \brief Writes this key's contents to a file.
    *
    * Receives an open file handle and writes this key's contents to the
@@ -264,6 +281,14 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
   }
 
   d_key = std::move(key);
+}
+
+void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) {
+  drc.d_algorithm = d_algorithm;
+  d_key = std::unique_ptr<RSA, decltype(&RSA_free)>(PEM_read_RSAPrivateKey(&fp, nullptr, nullptr, nullptr), &RSA_free);
+  if (d_key == nullptr) {
+    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+  }
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const {
