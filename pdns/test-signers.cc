@@ -198,11 +198,15 @@ static const SignerParams ed448 = SignerParams{
             "Algorithm: 16 (ED448)\n"
             "PrivateKey: xZ+5Cgm463xugtkY5B0Jx6erFTXp13rYegst0qRtNsOYnaVpMx0Z/c5EiA9x8wWbDDct/U3FhYWA\n",
 
-  .dsSHA1 = "9712 16 1 2873e800eb2d784cdd1802f884b3c540b573eaa0",
+  .dsSHA1 = "9712 16 1 "
+            "2873e800eb2d784cdd1802f884b3c540b573eaa0",
 
-  .dsSHA256 = "9712 16 2 9aa27306f8a04a0a6fae8affd65d6f35875dcb134c05bd7c7b61bd0dc44009cd",
+  .dsSHA256 = "9712 16 2 "
+              "9aa27306f8a04a0a6fae8affd65d6f35875dcb134c05bd7c7b61bd0dc44009cd",
 
-  .dsSHA384 = "9712 16 4 3876e5d892d3f31725f9964a332f9b9afd791171833480f2e71af78efb985cde9900ba95315287123a5908ca8f334369",
+  .dsSHA384 = "9712 16 4 "
+              "3876e5d892d3f31725f9964a332f9b9afd791171833480f2"
+              "e71af78efb985cde9900ba95315287123a5908ca8f334369",
 
   // clang-format off
   .signature = {
