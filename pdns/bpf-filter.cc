@@ -511,7 +511,7 @@ void BPFFilter::unblock(const ComboAddress& addr)
   }
 }
 
-void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
+void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction action)
 {
   CounterAndActionValue value;
 
@@ -525,14 +525,14 @@ void BPFFilter::block(const Netmask& addr, BPFFilter::MatchAction action)
     }
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
-    if (res != -1 && value.action == action) {
+    if (res != -1 && value.action == action && !force) {
       throw std::runtime_error("Trying to block an already blocked netmask: " + addr.toString());
     }
 
     value.counter = 0;
     value.action = action;
 
-    res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
+    res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, force ? BPF_ANY : BPF_NOEXIST);
     if (res == 0) {
       ++map.d_count;
     }
@@ -900,7 +900,7 @@ void BPFFilter::unblock(const DNSName&, uint16_t)
   throw std::runtime_error("eBPF support not enabled");
 }
 
-void BPFFilter::block(const Netmask&, BPFFilter::MatchAction)
+void BPFFilter::block(const Netmask&, bool, BPFFilter::MatchAction)
 {
   throw std::runtime_error("eBPF support not enabled");
 }

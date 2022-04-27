@@ -69,7 +69,7 @@ public:
   void addSocket(int sock);
   void removeSocket(int sock);
   void block(const ComboAddress& addr, MatchAction action);
-  void block(const Netmask& address, BPFFilter::MatchAction action);
+  void block(const Netmask& address, bool force, BPFFilter::MatchAction action);
   void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
   void allow(const Netmask& address);

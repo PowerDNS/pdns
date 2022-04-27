@@ -81,7 +81,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     :param ComboAddress address: The address to block
 
-  .. method:: BPFFilter:blockRange(Netmask)
+  .. method:: BPFFilter:blockRange(Netmask [, force=false])
 
   .. versionchanged:: 1.8.0
 
@@ -90,6 +90,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
     DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
 
     :param string Netmask: The ip range to block
+    :param bool force: When ``force`` is set to true, DNSDist always accepts adding a new item to BPF maps, even if the item to be added may already be included in the larger network range.
 
   .. method:: BPFFilter:blockQName(name [, qtype=255])
 
