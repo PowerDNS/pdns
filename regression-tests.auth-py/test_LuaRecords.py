@@ -59,14 +59,22 @@ some.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21
 none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}})"
 all.noneup.ifportup          3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='all' }})"
 
+hashed.example.org.          3600 IN LUA  A     "pickhashed({{ '1.2.3.4', '4.3.2.1' }})"
+hashed-v6.example.org.       3600 IN LUA  AAAA  "pickhashed({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
+hashed-txt.example.org.      3600 IN LUA  TXT   "pickhashed({{ 'bob', 'alice' }})"
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+whashed-txt.example.org.     3600 IN LUA  TXT   "pickwhashed({{ {{15, 'bob'}}, {{42, 'alice'}} }})"
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
+rand-txt.example.org.        3600 IN LUA  TXT   "pickrandom({{ 'bob', 'alice' }})"
+randn-txt.example.org.       3600 IN LUA  TXT   "pickrandomsample( 2, {{ 'bob', 'alice', 'john' }} )"
 v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
-v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
-closest.geo                  3600 IN LUA  A     "pickclosest({{'1.1.1.2','1.2.3.4'}})"
+v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
+closest.geo                  3600 IN LUA  A     "pickclosest({{ '1.1.1.2', '1.2.3.4' }})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
 timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 1000 do pickrandom() ; i = i + 1 end return '1.2.3.4'"
 wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
+wrand-txt.example.org.       3600 IN LUA  TXT   "pickwrandom({{ {{30, 'bob'}}, {{15, 'alice'}} }})"
+all.example.org.             3600 IN LUA  A     "all({{'1.2.3.4','4.3.2.1'}})"
 
 config    IN    LUA    LUA ("settings={{stringmatch='Programming in Lua'}} "
                             "EUWips={{'{prefix}.101','{prefix}.102'}}      "
@@ -92,8 +100,12 @@ nl           IN    LUA    A   ( ";include('config')                             
                                 "return ifportup(8081, NLips) ")
 latlon.geo      IN LUA    TXT "latlon()"
 continent.geo   IN LUA    TXT ";if(continent('NA')) then return 'true' else return 'false' end"
+continent-code.geo   IN LUA    TXT ";return continentCode()"
 asnum.geo       IN LUA    TXT ";if(asnum('4242')) then return 'true' else return 'false' end"
 country.geo     IN LUA    TXT ";if(country('US')) then return 'true' else return 'false' end"
+country-code.geo     IN LUA    TXT ";return countryCode()"
+region.geo      IN LUA    TXT ";if(region('CA')) then return 'true' else return 'false' end"
+region-code.geo      IN LUA    TXT ";return regionCode()"
 latlonloc.geo   IN LUA    TXT "latlonloc()"
 
 true.netmask     IN LUA   TXT   ( ";if(netmask({{ '{prefix}.0/24' }})) "
@@ -183,6 +195,18 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected)
 
+    def testPickRandomTxt(self):
+        """
+        Basic pickrandom() test with a set of TXT records
+        """
+        expected = [dns.rrset.from_text('rand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
+                    dns.rrset.from_text('rand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
+        query = dns.message.make_query('rand-txt.example.org', 'TXT')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
     def testBogusV6PickRandom(self):
         """
         Test a bogus AAAA pickrandom() record  with a set of v4 addr
@@ -215,6 +239,22 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
+    def testPickRandomSampleTxt(self):
+        """
+        Basic pickrandomsample() test with a set of TXT records
+        """
+        expected = [dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob', 'alice'),
+                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob', 'john'),
+                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice', 'bob'),
+                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice', 'john'),
+                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'john', 'bob'),
+                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'john', 'alice')]
+        query = dns.message.make_query('randn-txt.example.org', 'TXT')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertIn(res.answer[0], expected)
+
     def testWRandom(self):
         """
         Basic pickwrandom() test with a set of A records
@@ -224,6 +264,18 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                     dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
                                         '{prefix}.102'.format(prefix=self._PREFIX))]
         query = dns.message.make_query('wrand.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testWRandomTxt(self):
+        """
+        Basic pickwrandom() test with a set of TXT records
+        """
+        expected = [dns.rrset.from_text('wrand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
+                    dns.rrset.from_text('wrand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
+        query = dns.message.make_query('wrand-txt.example.org', 'TXT')
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -475,6 +527,63 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
 
+    def testCountryCode(self):
+        """
+        Basic countryCode() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"au"'),
+            ('1.2.3.0', 24,  '"us"'),
+            ('17.1.0.0', 16, '"--"')
+        ]
+        name = 'country-code.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testRegion(self):
+        """
+        Basic region() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"false"'),
+            ('1.2.3.0', 24,  '"true"'),
+            ('17.1.0.0', 16, '"false"')
+        ]
+        name = 'region.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testRegionCode(self):
+        """
+        Basic regionCode() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"--"'),
+            ('1.2.3.0', 24,  '"ca"'),
+            ('17.1.0.0', 16, '"--"')
+        ]
+        name = 'region-code.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
     def testContinent(self):
         """
         Basic continent() test
@@ -485,6 +594,25 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             ('17.1.0.0', 16, '"false"')
         ]
         name = 'continent.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testContinentCode(self):
+        """
+        Basic continentCode() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"oc"'),
+            ('1.2.3.0', 24,  '"na"'),
+            ('17.1.0.0', 16, '"--"')
+        ]
+        name = 'continent-code.geo.example.org.'
         for (subnet, mask, txt) in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
             query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
@@ -512,6 +640,17 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
+
+    def testAll(self):
+        """
+        Basic all() test
+        """
+        expected = [dns.rrset.from_text('all.example.org.', 0, dns.rdataclass.IN, dns.rdatatype.A, '1.2.3.4', '4.3.2.1')]
+        query = dns.message.make_query('all.example.org.', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, expected)
 
     def testNetmask(self):
         """
@@ -577,6 +716,74 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         expected = [dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
                     dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
         query = dns.message.make_query('whashed.example.org', 'A')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(first, expected)
+        for _ in range(5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testWHashedTxt(self):
+        """
+        Basic pickwhashed() test with a set of TXT records
+        As the `bestwho` is hashed, we should always get the same answer
+        """
+        expected = [dns.rrset.from_text('whashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
+                    dns.rrset.from_text('whashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
+        query = dns.message.make_query('whashed-txt.example.org', 'TXT')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(first, expected)
+        for _ in range(5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testHashed(self):
+        """
+        Basic pickhashed() test with a set of A records
+        As the `bestwho` is hashed, we should always get the same answer
+        """
+        expected = [dns.rrset.from_text('hashed.example.org.', 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
+                    dns.rrset.from_text('hashed.example.org.', 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
+        query = dns.message.make_query('hashed.example.org', 'A')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(first, expected)
+        for _ in range(5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testHashedV6(self):
+        """
+        Basic pickhashed() test with a set of AAAA records
+        As the `bestwho` is hashed, we should always get the same answer
+        """
+        expected = [dns.rrset.from_text('hashed-v6.example.org.', 0, dns.rdataclass.IN, 'AAAA', '2001:db8:a0b:12f0::1'),
+                    dns.rrset.from_text('hashed-v6.example.org.', 0, dns.rdataclass.IN, 'AAAA', 'fe80::2a1:9bff:fe9b:f268')]
+        query = dns.message.make_query('hashed-v6.example.org', 'AAAA')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(first, expected)
+        for _ in range(5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testHashedTXT(self):
+        """
+        Basic pickhashed() test with a set of TXT records
+        As the `bestwho` is hashed, we should always get the same answer
+        """
+        expected = [dns.rrset.from_text('hashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
+                    dns.rrset.from_text('hashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
+        query = dns.message.make_query('hashed-txt.example.org', 'TXT')
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.NOERROR)

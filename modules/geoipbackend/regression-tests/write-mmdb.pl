@@ -49,6 +49,7 @@ $tree->insert_network(
       'location' => { "latitude" => 47.913000, "longitude" => -122.304200, accuracy_radius => 1 },
       'autonomous_system_number' => 3320,
       'autonomous_system_organization' => "Test Networks",
+	  'subdivisions' => [{ "geoname_id" => 5332921, "iso_code" => "CA", "names" => { "en" => "California" } }]
     }
 );
 
