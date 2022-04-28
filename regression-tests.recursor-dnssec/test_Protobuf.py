@@ -121,6 +121,11 @@ class TestRecursorProtobuf(RecursorTest):
         print(msg)
         return msg
 
+    def emptyProtoBufQueue(self):
+        for param in protobufServersParameters:
+            while not param.queue.empty():
+                param.queue.get(False)
+
     def checkNoRemainingMessage(self):
         for param in protobufServersParameters:
           self.assertTrue(param.queue.empty())
@@ -284,9 +289,7 @@ class TestRecursorProtobuf(RecursorTest):
         super(TestRecursorProtobuf, self).setUp()
         # Make sure the queue is empty, in case
         # a previous test failed
-        for param in protobufServersParameters:
-            while not param.queue.empty():
-                param.queue.get(False)
+        self.emptyProtoBufQueue()
         # wait long enough to be sure that the housekeeping has
         # prime the root NS
         time.sleep(1)
@@ -575,17 +578,25 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     # Switch off QName Minimization, it generates much more protobuf messages
     # (or make the test much more smart!)
     qname-minimization=no
+    max-cache-ttl=600
+    loglevel=9
 """
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
+        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+        # So make sure we have the . DNSKEY in cache
+        query = dns.message.make_query('.', 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+        time.sleep(1)
+        self.emptyProtoBufQueue()
+
         name = 'host1.secure.example.'
         expected = list()
 
-        # the root DNSKEY has been learned with priming the root NS already
-        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, responseSize in [
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
@@ -636,7 +647,8 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     edns-subnet-allow-list=example
     allow-from=1.2.3.4/32
     # this is to not let . queries interfere
-    max-cache-ttl=60
+    max-cache-ttl=600
+    loglevel=9
 """
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
@@ -644,11 +656,17 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
+        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+        # So make sure we have the . DNSKEY in cache
+        query = dns.message.make_query('.', 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+        time.sleep(1)
+        self.emptyProtoBufQueue()
+
         name = 'host1.secure.example.'
         expected = list()
 
-        # the root DNSKEY has been learned with priming the root NS already
-        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, responseSize, ecs in [
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248, "1.2.3.0"),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221, "1.2.3.0"),
@@ -688,8 +706,6 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
         name = 'mx1.secure.example.'
         expected = list()
 
-        # the root DNSKEY has been learned with priming the root NS already
-        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, responseSize, ecs in [
                 ('mx1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 173, "127.0.0.1"),
         ]:
@@ -714,9 +730,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
                 continue
 
             msg = self.getFirstProtobufMessage()
-            print(qname, qtype, proto, responseSize, ecs, file=sys.stderr)
             self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
-            print("OK", file=sys.stderr);
             # Check the answer
             msg = self.getFirstProtobufMessage()
             self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
@@ -734,12 +748,23 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     _config_template = """
     # Switch off QName Minimization, it generates much more protobuf messages
     # (or make the test much more smart!)
-    qname-minimization=no"""
+    qname-minimization=no
+    max-cache-ttl=600
+    loglevel=9
+"""
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true })
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
+        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+        # So make sure we have the . DNSKEY in cache
+        query = dns.message.make_query('.', 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+        time.sleep(1)
+        self.emptyProtoBufQueue()
+
         name = 'host1.secure.example.'
         expected = list()
         # the root DNSKEY has been learned with priming the root NS already
