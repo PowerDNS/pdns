@@ -159,6 +159,9 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   validationDone = false;
   validationOK = false;
 
+  if (!d_soaRecordContent) {
+    return;
+  }
   // Get all records and remember RRSets and TTLs
 
   // Determine which digests to compute based on accepted zonemd records present
