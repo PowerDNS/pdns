@@ -206,6 +206,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
     d_outstanding++;
     d_queued++;
     wantWrite=false;
+    // coverity[leaked_storage]
   } 
   
   if(wantRead) {
