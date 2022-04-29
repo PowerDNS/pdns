@@ -225,10 +225,10 @@ vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
 void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback)
 {
   getAllMakers()[algo].push_back(maker);
-  if(getMakers().count(algo) && fallback) {
+  if (getMakers().count(algo) != 0 && fallback) {
     return;
   }
-  getMakers()[algo]=maker;
+  getMakers()[algo] = maker;
 }
 
 bool DNSCryptoKeyEngine::testAll()
