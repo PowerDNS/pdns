@@ -13,6 +13,7 @@
 #include "misc.hh"
 
 #include <cstdio>
+#include <unordered_map>
 
 BOOST_AUTO_TEST_SUITE(test_signers)
 
