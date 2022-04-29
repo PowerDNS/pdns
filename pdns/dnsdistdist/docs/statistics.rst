@@ -21,6 +21,8 @@ Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
 accounted for in the eBPF statistics, and do not show up in the metrics
 described on this page.
 
+Note that counters that come from /proc/net/ are O.S. Counters. They do not reset on service restart and they are not only related to DNSDist.
+
 acl-drops
 ---------
 The number of packets (or TCP messages) dropped because of the :doc:`ACL <advanced/acl>`.
@@ -312,30 +314,35 @@ udp-in-errors
 .. versionadded:: 1.5.0
 
 From /proc/net/snmp InErrors.
+Incremented in several cases: no memory in the receive queue, when a bad checksum is seen, and if sk_add_backlog fails to add the datagram.
 
 udp-noport-errors
 -----------------
 .. versionadded:: 1.5.0
 
 From /proc/net/snmp NoPorts.
+Incremented when UDP packets arrive destined for a port where no program is listening.
 
 udp-recvbuf-errors
 ------------------
 .. versionadded:: 1.5.0
 
 From /proc/net/snmp RcvbufErrors.
+Incremented when sock_queue_rcv_skb reports that no memory is available; this happens if sk->sk_rmem_alloc is greater than or equal to sk->sk_rcvbuf.
 
 udp-sndbuf-errors
 -----------------
 .. versionadded:: 1.5.0
 
 From /proc/net/snmp SndbufErrors.
+Incremented if the IP protocol layer reported an error when trying to send the packet and no error queue has been setup. Also incremented if no send queue space or kernel memory are available.
 
 udp6-in-csum-errors
 -------------------
 .. versionadded:: 1.7.0
 
 From /proc/net/snmp6 InErrors.
+Incremented when a UDP checksum failure is detected. Note that in all cases I could find, InCsumErrors is incremented at the same time as InErrors. Thus, InErrors - InCsumErros should yield the count of memory related errors on the receive side.
 
 udp6-in-errors
 --------------
