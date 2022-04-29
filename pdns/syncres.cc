@@ -237,6 +237,9 @@ public:
 
   struct entry_t
   {
+    entry_t(const Thing& thing_, time_t ttd_, unsigned int count_) : thing(thing_), ttd(ttd_), count(count_)
+    {
+    }
     Thing thing;
     time_t ttd;
     mutable unsigned int count;
@@ -267,8 +270,7 @@ public:
     auto i = d_cont.find(t);
     time_t ttd = now + ttl;
     if (i == d_cont.end()) {
-      entry_t e = { t, ttd, count };
-      d_cont.insert(e);
+      d_cont.emplace(t, ttd, count);
     } else if (ttd > i->ttd || count > i->count) {
       ttd = std::max(i->ttd, ttd);
       count = std::max(i->count, count);
