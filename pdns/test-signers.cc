@@ -33,7 +33,7 @@ struct SignerParams
   uint16_t rfcFlags;
   uint8_t algorithm;
   bool isDeterministic;
-  std::optional<std::string> pem;
+  std::string pem;
 };
 
 static const SignerParams rsaSha256SignerParams = SignerParams{
@@ -415,37 +415,35 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
     test_generic_signer(dcke, drc, signer, message);
 
-    if (signer.pem.has_value()) {
-      unique_ptr<std::FILE, decltype(&std::fclose)> fp{fmemopen((void*)signer.pem->c_str(), signer.pem->length(), "r"), &std::fclose};
-      BOOST_REQUIRE(fp.get() != nullptr);
+    unique_ptr<std::FILE, decltype(&std::fclose)> fp{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
+    BOOST_REQUIRE(fp.get() != nullptr);
 
-      DNSKEYRecordContent pemDRC;
-      shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *fp, signer.algorithm)};
+    DNSKEYRecordContent pemDRC;
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *fp, signer.algorithm)};
 
-      BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
+    BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 
-      test_generic_signer(pemKey, pemDRC, signer, message);
+    test_generic_signer(pemKey, pemDRC, signer, message);
 
-      const size_t buflen = 4096;
+    const size_t buflen = 4096;
 
-      std::string dckePEMOutput{};
-      dckePEMOutput.resize(buflen);
-      unique_ptr<std::FILE, decltype(&std::fclose)> dckePEMOutputFp{fmemopen(static_cast<void*>(dckePEMOutput.data()), dckePEMOutput.length() - 1, "w"), &std::fclose};
-      dcke->convertToPEM(*dckePEMOutputFp);
-      std::fflush(dckePEMOutputFp.get());
-      dckePEMOutput.resize(std::ftell(dckePEMOutputFp.get()));
+    std::string dckePEMOutput{};
+    dckePEMOutput.resize(buflen);
+    unique_ptr<std::FILE, decltype(&std::fclose)> dckePEMOutputFp{fmemopen(static_cast<void*>(dckePEMOutput.data()), dckePEMOutput.length() - 1, "w"), &std::fclose};
+    dcke->convertToPEM(*dckePEMOutputFp);
+    std::fflush(dckePEMOutputFp.get());
+    dckePEMOutput.resize(std::ftell(dckePEMOutputFp.get()));
 
-      BOOST_CHECK_EQUAL(dckePEMOutput, *signer.pem);
+    BOOST_CHECK_EQUAL(dckePEMOutput, signer.pem);
 
-      std::string pemKeyOutput{};
-      pemKeyOutput.resize(buflen);
-      unique_ptr<std::FILE, decltype(&std::fclose)> pemKeyOutputFp{fmemopen(static_cast<void*>(pemKeyOutput.data()), pemKeyOutput.length() - 1, "w"), &std::fclose};
-      pemKey->convertToPEM(*pemKeyOutputFp);
-      std::fflush(pemKeyOutputFp.get());
-      pemKeyOutput.resize(std::ftell(pemKeyOutputFp.get()));
+    std::string pemKeyOutput{};
+    pemKeyOutput.resize(buflen);
+    unique_ptr<std::FILE, decltype(&std::fclose)> pemKeyOutputFp{fmemopen(static_cast<void*>(pemKeyOutput.data()), pemKeyOutput.length() - 1, "w"), &std::fclose};
+    pemKey->convertToPEM(*pemKeyOutputFp);
+    std::fflush(pemKeyOutputFp.get());
+    pemKeyOutput.resize(std::ftell(pemKeyOutputFp.get()));
 
-      BOOST_CHECK_EQUAL(pemKeyOutput, *signer.pem);
-    }
+    BOOST_CHECK_EQUAL(pemKeyOutput, signer.pem);
   }
 }
 
