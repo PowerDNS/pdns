@@ -24,8 +24,7 @@ class BadXFRServer(object):
         return self._currentSerial
 
     def moveToSerial(self, newSerial):
-        if newSerial == self._currentSerial:
-            print("newSerial == self._currentSerial", file=sys.stderr)
+        if newSerial == self._currentSerial or newSerial == self._targetSerial:
             return False
 
         #if newSerial != self._currentSerial + 1:
@@ -172,6 +171,7 @@ slave-cycle-interval=1
             if currentSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, currentSerial))
             if currentSerial == serial:
+                badxfrServer.moveToSerial(serial+1)
                 return
 
             attempts = attempts + 1
