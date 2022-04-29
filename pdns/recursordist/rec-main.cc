@@ -890,7 +890,7 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
     g_log << Logger::Notice << "stats: throttle map: "
-          << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
+          << SyncRes::getThrottledServersSize() << ", ns speeds: "
           << SyncRes::getNSSpeedsSize() << ", failed ns: "
           << SyncRes::getFailedServersSize() << ", ednsmap: "
           << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "

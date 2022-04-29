@@ -79,76 +79,6 @@ typedef std::unordered_map<
   >
 > NsSet;
 
-template<class Thing> class Throttle : public boost::noncopyable
-{
-public:
-
-  struct entry_t
-  {
-    Thing thing;
-    time_t ttd;
-    mutable unsigned int count;
-  };
-  typedef multi_index_container<entry_t,
-                                indexed_by<
-                                  ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
-                                  ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>
-                                  >> cont_t;
-
-  bool shouldThrottle(time_t now, const Thing &t)
-  {
-    auto i = d_cont.find(t);
-    if (i == d_cont.end()) {
-      return false;
-    }
-    if (now > i->ttd || i->count == 0) {
-      d_cont.erase(i);
-      return false;
-    }
-    i->count--;
-
-    return true; // still listed, still blocked
-  }
-
-  void throttle(time_t now, const Thing &t, time_t ttl, unsigned int count)
-  {
-    auto i = d_cont.find(t);
-    time_t ttd = now + ttl;
-    if (i == d_cont.end()) {
-      entry_t e = { t, ttd, count };
-      d_cont.insert(e);
-    } else if (ttd > i->ttd || count > i->count) {
-      ttd = std::max(i->ttd, ttd);
-      count = std::max(i->count, count);
-      auto &ind = d_cont.template get<Thing>();
-      ind.modify(i, [ttd,count](entry_t &e) { e.ttd = ttd; e.count = count; });
-    }
-  }
-
-  size_t size() const
-  {
-    return d_cont.size();
-  }
-
-  const cont_t &getThrottleMap() const
-  {
-    return d_cont;
-  }
-
-  void clear()
-  {
-    d_cont.clear();
-  }
-
-  void prune() {
-    time_t now = time(nullptr);
-    auto &ind = d_cont.template get<time_t>();
-    ind.erase(ind.begin(), ind.upper_bound(now));
-  }
-
-private:
-  cont_t d_cont;
-};
 
 extern std::unique_ptr<NegCache> g_negCache;
 
@@ -206,7 +136,6 @@ public:
   };
 
   typedef std::unordered_map<DNSName, AuthDomain> domainmap_t;
-  typedef Throttle<std::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
 
   struct EDNSStatus {
     EDNSStatus(const ComboAddress &arg) : address(arg) {}
@@ -238,7 +167,6 @@ public:
   };
 
   struct ThreadLocalStorage {
-    throttle_t throttle;
     ednsstatus_t ednsstatus;
     std::shared_ptr<domainmap_t> domainmap;
   };
@@ -327,30 +255,13 @@ public:
   {
     t_sstorage.ednsstatus.prune(cutoff);
   }
-  static uint64_t getThrottledServersSize()
-  {
-    return t_sstorage.throttle.size();
-  }
-  static void pruneThrottledServers()
-  {
-    t_sstorage.throttle.prune();
-  }
-  static void clearThrottle()
-  {
-    t_sstorage.throttle.clear();
-  }
-  static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, uint16_t qtype)
-  {
-    return t_sstorage.throttle.shouldThrottle(now, std::make_tuple(server, target, qtype));
-  }
-  static bool isThrottled(time_t now, const ComboAddress& server)
-  {
-    return t_sstorage.throttle.shouldThrottle(now, std::make_tuple(server, g_rootdnsname, 0));
-  }
-  static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
-  {
-    t_sstorage.throttle.throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
-  }
+
+  static uint64_t getThrottledServersSize();
+  static void pruneThrottledServers();
+  static void clearThrottle();
+  static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, uint16_t qtype);
+  static bool isThrottled(time_t now, const ComboAddress& server);
+  static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries);
 
   static uint64_t getFailedServersSize();
   static void clearFailedServers();
