@@ -266,7 +266,8 @@ struct Fixture
     addSignerParams(DNSSECKeeper::ECDSA256, "ECDSA SHA256", ecdsaSha256);
     #endif
 
-    #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
+    // We need to have HAVE_LIBCRYPTO_ED25519 for the PEM reader/writer.
+    #if defined(HAVE_LIBCRYPTO_ED25519)
     addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
     #endif
 
