@@ -296,6 +296,10 @@ static uint64_t countLessThan(unsigned int msec)
 static void emitFlightTimes()
 {
   uint64_t totals = countLessThan(flightTimes.size());
+  if (totals == 0) {
+    // Avoid division by zero below
+    totals = 1;
+  }
   unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, (unsigned int) flightTimes.size()};
   uint64_t sofar=0;
   cout.setf(std::ios::fixed);
