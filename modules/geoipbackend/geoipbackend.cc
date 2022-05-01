@@ -120,48 +120,8 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
   return true;
 }
 
-void GeoIPBackend::initialize()
+bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom)
 {
-  YAML::Node config;
-  vector<GeoIPDomain> tmp_domains;
-
-  s_geoip_files.clear(); // reset pointers
-
-  if (getArg("database-files").empty() == false) {
-    vector<string> files;
-    stringtok(files, getArg("database-files"), " ,\t\r\n");
-    for (auto const& file : files) {
-      s_geoip_files.push_back(GeoIPInterface::makeInterface(file));
-    }
-  }
-
-  if (s_geoip_files.empty())
-    g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
-
-  if (!getArg("zones-file").empty()) {
-    try {
-      config = YAML::LoadFile(getArg("zones-file"));
-    }
-    catch (YAML::Exception& ex) {
-      throw PDNSException(string("Cannot read config file ") + ex.msg);
-    }
-  }
-
-  // Global lookup formats and mapping will be used
-  // if none defined at the domain level.
-  if (YAML::Node formats = config["mapping_lookup_formats"]) {
-    d_global_mapping_lookup_formats = formats.as<vector<string>>();
-    if (!validateMappingLookupFormats(d_global_mapping_lookup_formats))
-      throw PDNSException(string("%mp is not allowed in mapping lookup"));
-  }
-  if (YAML::Node mapping = config["custom_mapping"]) {
-    d_global_custom_mapping = mapping.as<map<std::string, std::string>>();
-  }
-
-  for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
-    const auto& domain = *_domain;
-    GeoIPDomain dom;
-    dom.id = tmp_domains.size();
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
@@ -360,8 +320,52 @@ void GeoIPBackend::initialize()
         }
       }
     }
+  return true;
+}
 
-    tmp_domains.push_back(std::move(dom));
+void GeoIPBackend::initialize()
+{
+  YAML::Node config;
+  vector<GeoIPDomain> tmp_domains;
+
+  s_geoip_files.clear(); // reset pointers
+
+  if (getArg("database-files").empty() == false) {
+    vector<string> files;
+    stringtok(files, getArg("database-files"), " ,\t\r\n");
+    for (auto const& file : files) {
+      s_geoip_files.push_back(GeoIPInterface::makeInterface(file));
+    }
+  }
+
+  if (s_geoip_files.empty())
+    g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
+
+  if (!getArg("zones-file").empty()) {
+    try {
+      config = YAML::LoadFile(getArg("zones-file"));
+    }
+    catch (YAML::Exception& ex) {
+      throw PDNSException(string("Cannot read config file ") + ex.msg);
+    }
+  }
+
+  // Global lookup formats and mapping will be used
+  // if none defined at the domain level.
+  if (YAML::Node formats = config["mapping_lookup_formats"]) {
+    d_global_mapping_lookup_formats = formats.as<vector<string>>();
+    if (!validateMappingLookupFormats(d_global_mapping_lookup_formats))
+      throw PDNSException(string("%mp is not allowed in mapping lookup"));
+  }
+  if (YAML::Node mapping = config["custom_mapping"]) {
+    d_global_custom_mapping = mapping.as<map<std::string, std::string>>();
+  }
+
+  for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
+    GeoIPDomain dom;
+    auto id = tmp_domains.size();
+    if (loadDomain(*_domain, id, dom))
+      tmp_domains.push_back(std::move(dom));
   }
 
   s_domains.clear();

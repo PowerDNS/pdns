@@ -36,6 +36,11 @@
 
 class GeoIPInterface;
 
+namespace YAML
+{
+class Node;
+};
+
 struct GeoIPDomain;
 
 struct GeoIPNetmask
@@ -77,6 +82,7 @@ private:
   bool d_dnssec;
   bool hasDNSSECkey(const DNSName& name);
   bool lookup_static(const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
+  bool loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom);
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;
   std::vector<std::string> d_global_mapping_lookup_formats;
