@@ -31,6 +31,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/format.hpp>
 #include <fstream>
+#include <filesystem>
 #include <yaml-cpp/yaml.h>
 
 ReadWriteLock GeoIPBackend::s_state_lock;
@@ -333,6 +334,28 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
   return true;
 }
 
+void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIPDomain>& domains)
+{
+  vector<std::filesystem::path> paths;
+  for (const std::filesystem::path& p : std::filesystem::directory_iterator(std::filesystem::path(dir)))
+    if (std::filesystem::is_regular_file(p) && p.has_extension() && (p.extension() == ".yaml" || p.extension() == ".yml"))
+      paths.push_back(p);
+  std::sort(paths.begin(), paths.end());
+  for (const auto& p : paths) {
+    try {
+      GeoIPDomain dom;
+      const auto& zoneRoot = YAML::LoadFile(p.string());
+      // expect zone key
+      const auto& zone = zoneRoot["zone"];
+      if (loadDomain(zone, domains.size(), dom))
+        domains.push_back(dom);
+    }
+    catch (std::exception& ex) {
+      g_log << Logger::Warning << "Cannot load zone from " << p << ": " << ex.what() << endl;
+    }
+  }
+}
+
 void GeoIPBackend::initialize()
 {
   YAML::Node config;
@@ -377,6 +400,9 @@ void GeoIPBackend::initialize()
     if (loadDomain(*_domain, id, dom))
       tmp_domains.push_back(std::move(dom));
   }
+
+  if (YAML::Node domain_dir = config["zones_dir"])
+    loadDomainsFromDirectory(domain_dir.as<string>(), tmp_domains);
 
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
