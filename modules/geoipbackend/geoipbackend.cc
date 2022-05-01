@@ -149,15 +149,13 @@ void GeoIPBackend::initialize()
 
   // Global lookup formats and mapping will be used
   // if none defined at the domain level.
-  vector<string> global_mapping_lookup_formats;
-  map<std::string, std::string> global_custom_mapping;
   if (YAML::Node formats = config["mapping_lookup_formats"]) {
-    global_mapping_lookup_formats = formats.as<vector<string>>();
-    if (!validateMappingLookupFormats(global_mapping_lookup_formats))
+    d_global_mapping_lookup_formats = formats.as<vector<string>>();
+    if (!validateMappingLookupFormats(d_global_mapping_lookup_formats))
       throw PDNSException(string("%mp is not allowed in mapping lookup"));
   }
   if (YAML::Node mapping = config["custom_mapping"]) {
-    global_custom_mapping = mapping.as<map<std::string, std::string>>();
+    d_global_custom_mapping = mapping.as<map<std::string, std::string>>();
   }
 
   for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
@@ -275,13 +273,13 @@ void GeoIPBackend::initialize()
         dom.mapping_lookup_formats = mapping_lookup_formats;
       }
       else {
-        dom.mapping_lookup_formats = global_mapping_lookup_formats;
+        dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
       }
       if (YAML::Node mapping = domain["custom_mapping"]) {
         dom.custom_mapping = mapping.as<map<std::string, std::string>>();
       }
       else {
-        dom.custom_mapping = global_custom_mapping;
+        dom.custom_mapping = d_global_custom_mapping;
       }
 
       dom.services[srvName].netmask4 = netmask4;

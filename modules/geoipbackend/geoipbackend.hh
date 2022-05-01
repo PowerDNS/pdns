@@ -79,4 +79,6 @@ private:
   bool lookup_static(const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;
+  std::vector<std::string> d_global_mapping_lookup_formats;
+  std::map<std::string, std::string> d_global_custom_mapping;
 };
