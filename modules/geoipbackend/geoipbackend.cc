@@ -122,6 +122,7 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
 
 bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom)
 {
+  try {
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
@@ -320,6 +321,15 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
         }
       }
     }
+  }
+  catch (std::exception& ex) {
+    g_log << Logger::Error << ex.what() << endl;
+    return false;
+  }
+  catch (PDNSException& ex) {
+    g_log << Logger::Error << ex.reason << endl;
+    return false;
+  }
   return true;
 }
 
