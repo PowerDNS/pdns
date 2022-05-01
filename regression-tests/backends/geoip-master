@@ -77,6 +77,26 @@ mapping_lookup_formats: ['%cn']
 custom_mapping:
   $geoipregion: earth
 EOF
+                if ! [ -d $testsdir/geozones ]; then
+                   mkdir $testsdir/geozones
+                fi
+                cat > $testsdir/geozones/geo2.yaml <<EOF
+zone:
+  domain: geo2.example.com
+  ttl: 30
+  records:
+    geo2.example.com:
+      - soa: ns1.example.com hostmaster.example.com 2014090125 7200 3600 1209600 3600
+      - ns: ns1.example.com
+      - ns: ns2.example.com
+      - mx: 10 mx.example.com
+    moon.map.geo2.example.com:
+      - txt: "overridden moon mapping"
+  services:
+    map.geo2.example.com: '%mp.map.geo2.example.com'
+  custom_mapping:
+    $geoipregion: moon
+EOF
 		cat > $testsdir/region-a-resolution/expected_result <<EOF
 0	www.geo.example.com.	30	IN	A	$geoipregionip
 2	.	0	IN	OPT	AAgACAABIBgBAQEB
