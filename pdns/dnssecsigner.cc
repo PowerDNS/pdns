@@ -50,6 +50,17 @@ static std::string getLookupKey(const std::string& msg)
   }
 }
 
+static std::string hashPublicKey(const std::string& pubKey)
+{
+  /* arbitrarily cut off at 64 bytes, the main idea is to save space
+     for very large keys like RSA ones (1024+ bytes) by storing a 20 bytes hash
+     instead */
+  if (pubKey.size() <= 64) {
+    return pubKey;
+  }
+  return pdns_sha1sum(pubKey);
+}
+
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
 {
   if(!g_signatureCount)
@@ -60,8 +71,8 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 
-  string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
-  pair<string, string> lookup(rc->getPubKeyHash(), getLookupKey(msg));  // this hash is a memory saving exercise
+  string msg = getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
+  pair<string, string> lookup(hashPublicKey(drc.d_key), getLookupKey(msg));  // this hash is a memory saving exercise
 
   bool doCache=true;
   if(doCache)

@@ -51,7 +51,6 @@ public:
 #endif
 
   storvector_t convertToISCVector() const override;
-  std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPublicKeyString() const override;
@@ -159,11 +158,6 @@ void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
 
   memcpy(seed.get(), privateKey.c_str(), crypto_sign_ed25519_SEEDBYTES);
   crypto_sign_ed25519_seed_keypair(d_pubkey, d_seckey, seed.get());
-}
-
-std::string SodiumED25519DNSCryptoKeyEngine::getPubKeyHash() const
-{
-  return this->getPublicKeyString();
 }
 
 std::string SodiumED25519DNSCryptoKeyEngine::getPublicKeyString() const

@@ -493,25 +493,6 @@ class Pkcs11Token {
       return d_err;
     }
 
-    int DigestKey(std::string& result) {
-      auto slot = d_slot->lock();
-      CK_MECHANISM mech;
-      mech.mechanism = CKM_SHA_1;
-
-      DigestInit(*slot, &mech);
-
-      if (d_key_type == CKK_RSA) {
-        DigestUpdate(*slot, d_modulus);
-        DigestUpdate(*slot, d_exponent);
-      } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
-        DigestUpdate(*slot, d_ec_point);
-      }
-
-      DigestFinal(*slot, result);
-
-      return d_err;
-    }
-
     int DigestFinal(Pkcs11Slot& slot, std::string& result) {
       CK_BYTE buffer[1024] = {0};
       CK_ULONG buflen = sizeof buffer; // should be enough for most digests
@@ -922,19 +903,6 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
   } else {
     return (d_slot->Verify(msg, signature, &mech) == 0);
   }
-};
-
-std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
-  // find us a public key
-  std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
-  if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin) == false)
-      throw PDNSException("Not logged in to token");
-
-  std::string result;
-  if (d_slot->DigestKey(result) == 0) return result;
-  throw PDNSException("Could not digest key (maybe it's missing?)");
 };
 
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
