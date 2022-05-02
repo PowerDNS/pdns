@@ -1060,6 +1060,67 @@ static const char* timestamp(time_t t, char* buf, size_t sz)
   return buf;
 }
 
+struct ednsstatus_t : public multi_index_container<SyncRes::EDNSStatus,
+                                                   indexed_by<
+                                                     ordered_unique<tag<ComboAddress>, member<SyncRes::EDNSStatus, ComboAddress, &SyncRes::EDNSStatus::address>>,
+                                                     ordered_non_unique<tag<time_t>, member<SyncRes::EDNSStatus, time_t, &SyncRes::EDNSStatus::modeSetAt>>
+                                                     >>
+{
+  // Get a copy
+  ednsstatus_t getMap() const
+  {
+    return *this;
+  }
+
+  void reset(index<ComboAddress>::type &ind, iterator it)
+  {
+    ind.modify(it, [](SyncRes::EDNSStatus &s) { s.mode = SyncRes::EDNSStatus::EDNSMode::UNKNOWN; s.modeSetAt = 0; });
+  }
+
+  void setMode(index<ComboAddress>::type &ind, iterator it, SyncRes::EDNSStatus::EDNSMode mode)
+  {
+    it->mode = mode;
+  }
+
+  void setTS(index<ComboAddress>::type &ind, iterator it, time_t ts)
+  {
+    ind.modify(it, [ts](SyncRes::EDNSStatus &s) { s.modeSetAt = ts; });
+  }
+
+  void prune(time_t cutoff)
+  {
+    auto &ind = get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(cutoff));
+  }
+};
+
+static LockGuarded<ednsstatus_t> s_ednsstatus;
+
+SyncRes::EDNSStatus::EDNSMode SyncRes::getEDNSStatus(const ComboAddress& server)
+{
+  auto lock = s_ednsstatus.lock();
+  const auto& it = lock->find(server);
+  if (it == lock->end()) {
+    return EDNSStatus::UNKNOWN;
+  }
+  return it->mode;
+}
+
+uint64_t SyncRes::getEDNSStatusesSize()
+{
+  return s_ednsstatus.lock()->size();
+}
+
+void SyncRes::clearEDNSStatuses()
+{
+  s_ednsstatus.lock()->clear();
+}
+
+void SyncRes::pruneEDNSStatuses(time_t cutoff)
+{
+  s_ednsstatus.lock()->prune(cutoff);
+}
+
 uint64_t SyncRes::doEDNSDump(int fd)
 {
   int newfd = dup(fd);
@@ -1073,11 +1134,12 @@ uint64_t SyncRes::doEDNSDump(int fd)
   }
   uint64_t count = 0;
 
-  fprintf(fp.get(),"; edns from thread follows\n;\n");
-  for(const auto& eds : t_sstorage.ednsstatus) {
+  fprintf(fp.get(),"; edns dump follows\n;\n");
+  const auto copy = s_ednsstatus.lock()->getMap();
+  for (const auto& eds : copy) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%d\t%s\n", eds.address.toString().c_str(), (int)eds.mode, timestamp(eds.modeSetAt, tmp, sizeof(tmp)));
+    fprintf(fp.get(), "%s\t%s\t%s\n", eds.address.toString().c_str(), eds.toString().c_str(), timestamp(eds.modeSetAt, tmp, sizeof(tmp)));
   }
   return count;
 }
@@ -1414,26 +1476,30 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
      3) NOEDNS: Generates FORMERR on EDNS queries
 
-     Everybody starts out assumed to be '0'.
-     If '0', send out EDNS0
-        If you FORMERR us, go to '3',
-        If no EDNS in response, go to '2'
-     If '1', send out EDNS0
-        If FORMERR, downgrade to 3
-     If '2', keep on including EDNS0, see what happens
-        Same behaviour as 0
-     If '3', send bare queries
+     Everybody starts out assumed to be UNKNOWN.
+     If UNKNOWN, send out EDNS0
+        If you FORMERR us, go to NOEDNS, 
+        If no EDNS in response, go to EDNSIGNORANT
+     If EDNSOK, send out EDNS0
+        If FORMERR, downgrade to NOEDNS
+     If EDNSIGNORANT, keep on including EDNS0, see what happens
+        Same behaviour as UNKNOWN
+     If NOEDNS, send bare queries
   */
 
-  auto ednsstatus = t_sstorage.ednsstatus.insert(ip).first; // does this include port? YES
-  auto &ind = t_sstorage.ednsstatus.get<ComboAddress>();
-  if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
-    t_sstorage.ednsstatus.reset(ind, ednsstatus);
-    //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
+  SyncRes::EDNSStatus::EDNSMode mode;
+  {
+    auto lock = s_ednsstatus.lock();
+    auto ednsstatus = lock->insert(ip).first; // does this include port? YES
+    auto &ind = lock->get<ComboAddress>();
+    if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
+      lock->reset(ind, ednsstatus);
+      // cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
+    }
+    mode = ednsstatus->mode;
   }
 
-  const SyncRes::EDNSStatus::EDNSMode *mode = &ednsstatus->mode;
-  const SyncRes::EDNSStatus::EDNSMode oldmode = *mode;
+  const SyncRes::EDNSStatus::EDNSMode oldmode = mode;
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
@@ -1444,19 +1510,21 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 #endif
 
   LWResult::Result ret;
-  for(int tries = 0; tries < 3; ++tries) {
-    //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
 
-    if (*mode == EDNSStatus::NOEDNS) {
+  for (int tries = 0; tries < 3; ++tries) {
+
+    if (mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0; // level != mode
     }
-    else if (ednsMANDATORY || *mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT)
+    else if (ednsMANDATORY || mode != EDNSStatus::NOEDNS) {
       EDNSLevel = 1;
+    }
 
     DNSName sendQname(domain);
-    if (g_lowercaseOutgoing)
+    if (g_lowercaseOutgoing) {
       sendQname.makeUsLowerCase();
+    }
 
     if (d_asyncResolve) {
       ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
@@ -1464,39 +1532,47 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     else {
       ret = asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
-    // ednsstatus might be cleared, so do a new lookup
-    ednsstatus = t_sstorage.ednsstatus.insert(ip).first;
-    mode = &ednsstatus->mode;
+
     if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError || ret == LWResult::Result::Spoofed) {
-      return ret; // transport error, nothing to learn here
+      break; // transport error, nothing to learn here
     }
 
     if (ret == LWResult::Result::Timeout) { // timeout, not doing anything with it now
-      return ret;
+      break;
     }
-    else if (*mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
-	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
-        t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::NOEDNS);
+
+    // ret is LWResult::Result::Success
+    // ednsstatus might be cleared, so do a new lookup/insert
+    auto lock = s_ednsstatus.lock();
+    auto ednsstatus = lock->insert(ip).first;
+    mode = ednsstatus->mode;
+    auto &ind = lock->get<ComboAddress>();
+
+    if (mode != EDNSStatus::NOEDNS) {
+      if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
+        mode = EDNSStatus::NOEDNS;
+        lock->setMode(ind, ednsstatus, mode);
         continue;
       }
-      else if(!res->d_haveEDNS) {
-        if (*mode != EDNSStatus::EDNSIGNORANT) {
-          t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT);
-	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
+      else if (!res->d_haveEDNS) {
+        if (mode != EDNSStatus::EDNSIGNORANT) {
+          mode =  EDNSStatus::EDNSIGNORANT;
+          lock->setMode(ind, ednsstatus, mode);
 	}
       }
       else {
-        t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::EDNSOK);
-	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
+	if (mode != EDNSStatus::EDNSOK) {
+          mode = EDNSStatus::EDNSOK;
+          lock->setMode(ind, ednsstatus, mode);
+        }
       }
     }
 
-    if (oldmode != *mode || !ednsstatus->modeSetAt) {
-      t_sstorage.ednsstatus.setTS(ind, ednsstatus, d_now.tv_sec);
+    if (oldmode != mode || !ednsstatus->modeSetAt) {
+      lock->setTS(ind, ednsstatus, d_now.tv_sec);
     }
-    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;
-    return LWResult::Result::Success;
+
+    break;
   }
   return ret;
 }
