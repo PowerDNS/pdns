@@ -1888,11 +1888,6 @@ static void houseKeeping(void*)
       SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
     });
 
-    static thread_local PeriodicTask pruneThrottledTask{"pruneThrottledTask", 5};
-    pruneThrottledTask.runIfDue(now, []() {
-      SyncRes::pruneThrottledServers();
-    });
-
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
     pruneTCPTask.runIfDue(now, [now]() {
       t_tcp_manager.cleanup(now);
@@ -1945,6 +1940,11 @@ static void houseKeeping(void*)
           SyncRes::pruneDoTProbeMap(now.tv_sec);
         });
       }
+
+      static PeriodicTask pruneThrottledTask{"pruneThrottledTask", 5};
+      pruneThrottledTask.runIfDue(now, [now]() {
+        SyncRes::pruneThrottledServers(now.tv_sec);
+      });
 
       static PeriodicTask pruneFailedServersTask{"pruneFailedServerTask", 5};
       pruneFailedServersTask.runIfDue(now, [now]() {

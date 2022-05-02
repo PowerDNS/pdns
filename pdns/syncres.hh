@@ -257,9 +257,9 @@ public:
   }
 
   static uint64_t getThrottledServersSize();
-  static void pruneThrottledServers();
+  static void pruneThrottledServers(time_t now);
   static void clearThrottle();
-  static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, uint16_t qtype);
+  static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, QType qtype);
   static bool isThrottled(time_t now, const ComboAddress& server);
   static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries);
 
