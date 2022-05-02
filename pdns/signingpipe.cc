@@ -201,13 +201,13 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
     shuffle(rwVect.second.begin(), rwVect.second.end(), pdns::dns_random_engine()); // pick random available worker
     auto ptr = d_rrsetToSign.get();
     writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
-    d_rrsetToSign.release();
+    // coverity[leaked_storage]
+    static_cast<void>(d_rrsetToSign.release());
     d_rrsetToSign = make_unique<rrset_t>();
     d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;
     wantWrite=false;
-    // coverity[leaked_storage]
   } 
   
   if(wantRead) {
@@ -252,12 +252,12 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
     shuffle(rwVect.second.begin(), rwVect.second.end(), pdns::dns_random_engine()); // pick random available worker
     auto ptr = d_rrsetToSign.get();
     writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
-    d_rrsetToSign.release();
+    // coverity[leaked_storage]
+    static_cast<void>(d_rrsetToSign.release());
     d_rrsetToSign = make_unique<rrset_t>();
     d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;
-    // coverity[leaked_storage]
   }
   
 }
