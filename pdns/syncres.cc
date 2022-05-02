@@ -5060,7 +5060,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
-        doThrottle(d_now.tv_sec, remoteIP, g_rootdnsname, 0, s_serverdownthrottletime, 10000);
+        doThrottle(d_now.tv_sec, remoteIP, s_serverdownthrottletime, 10000);
       }
       else if (resolveret == LWResult::Result::PermanentError) {
         // unreachable, 1 minute or 100 queries
