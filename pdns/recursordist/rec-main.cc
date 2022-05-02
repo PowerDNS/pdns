@@ -2115,7 +2115,7 @@ static void houseKeeping(void*)
         SyncRes::pruneNSSpeeds(now.tv_sec - 300);
       });
 
-      static PeriodicTask pruneEDNSTask{"pruneEDNSTask", 5}; // period could likely be longer
+      static PeriodicTask pruneEDNSTask{"pruneEDNSTask", 60};
       pruneEDNSTask.runIfDue(now, [now]() {
         SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
       });
