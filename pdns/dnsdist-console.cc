@@ -252,10 +252,6 @@ void doClient(ComboAddress server, const std::string& command)
   else if (commandResult == ConsoleCommandResult::TooLarge) {
     return;
   }
-  else if (commandResult == ConsoleCommandResult::TooLarge) {
-    close(fd);
-    return;
-  }
 
   if (!command.empty()) {
     sendMessageToServer(fd.getHandle(), command, readingNonce, writingNonce, false);
