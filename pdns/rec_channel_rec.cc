@@ -966,16 +966,6 @@ static string doCurrentQueries()
   return broadcastAccFunction<string>(pleaseGetCurrentQueries);
 }
 
-uint64_t* pleaseGetThrottleSize()
-{
-  return new uint64_t(SyncRes::getThrottledServersSize());
-}
-
-static uint64_t getThrottleSize()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetThrottleSize);
-}
-
 static uint64_t getNegCacheSize()
 {
   return g_negCache->size();
@@ -1240,7 +1230,7 @@ static void registerAllStats1()
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
 
   addGetStat("negcache-entries", getNegCacheSize);
-  addGetStat("throttle-entries", getThrottleSize);
+  addGetStat("throttle-entries", SyncRes::getThrottledServersSize);
 
   addGetStat("nsspeeds-entries", SyncRes::getNSSpeedsSize);
   addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
@@ -2002,7 +1992,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpRPZ(s, begin, end);
   }
   if (cmd == "dump-throttlemap") {
-    return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
+    return doDumpToFile(s, pleaseDumpThrottleMap, cmd, false);
   }
   if (cmd == "dump-non-resolving") {
     return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd, false);

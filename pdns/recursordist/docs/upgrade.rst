@@ -4,7 +4,14 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.6.2 to master
+4.7.0 to master
+---------------
+
+:program:`rec_control` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``dump-throttle`` subcommand no longer produces a table per thread, as the corresponding table now is shared by all threads.
+
+4.6.2 to 4.7.0
 ---------------
 
 Zone to Cache Changes
@@ -32,6 +39,10 @@ New settings
 - The :ref:`setting-save-parent-ns-set` setting has been introduced, enabling fallback cases if the parent ``NS`` set contains names not in the child ``NS`` set.
 - The :ref:`setting-max-busy-dot-probes` settings has been introduced, enabling the :program:`Recursor` probe for ``DoT`` support of authoritative servers.
   This is an experimental function, use with care.
+
+:program:`rec_control` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``dump-nsspeeds``, ``dump-failedservers`` and ``dump-non-resolving`` subcommands no longer produce a table per thread, as the corresponding tables are now shared by all threads.
 
 
 4.6.1 to 4.6.2

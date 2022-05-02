@@ -890,7 +890,7 @@ static void doStats(void)
     g_log << Logger::Notice << "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
     g_log << Logger::Notice << "stats: throttle map: "
-          << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) << ", ns speeds: "
+          << SyncRes::getThrottledServersSize() << ", ns speeds: "
           << SyncRes::getNSSpeedsSize() << ", failed ns: "
           << SyncRes::getFailedServersSize() << ", ednsmap: "
           << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "
@@ -1888,11 +1888,6 @@ static void houseKeeping(void*)
       SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
     });
 
-    static thread_local PeriodicTask pruneThrottledTask{"pruneThrottledTask", 5};
-    pruneThrottledTask.runIfDue(now, []() {
-      SyncRes::pruneThrottledServers();
-    });
-
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
     pruneTCPTask.runIfDue(now, [now]() {
       t_tcp_manager.cleanup(now);
@@ -1945,6 +1940,11 @@ static void houseKeeping(void*)
           SyncRes::pruneDoTProbeMap(now.tv_sec);
         });
       }
+
+      static PeriodicTask pruneThrottledTask{"pruneThrottledTask", 5};
+      pruneThrottledTask.runIfDue(now, [now]() {
+        SyncRes::pruneThrottledServers(now.tv_sec);
+      });
 
       static PeriodicTask pruneFailedServersTask{"pruneFailedServerTask", 5};
       pruneFailedServersTask.runIfDue(now, [now]() {
