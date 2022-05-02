@@ -1140,6 +1140,11 @@ void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration
   s_throttle.lock()->throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
 }
 
+void SyncRes::doThrottle(time_t now, const ComboAddress& server, const DNSName&name, QType qtype, time_t duration, unsigned int tries)
+{
+  s_throttle.lock()->throttle(now, std::make_tuple(server, name, qtype), duration, tries);
+}
+
 uint64_t SyncRes::doDumpThrottleMap(int fd)
 {
   int newfd = dup(fd);
@@ -3231,12 +3236,12 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType qtype, bool pierceDontQuery)
 {
-  if (s_throttle.lock()->shouldThrottle(d_now.tv_sec, std::make_tuple(remoteIP, g_rootdnsname, 0))) {
+  if (isThrottled(d_now.tv_sec, remoteIP)) {
     LOG(prefix<<qname<<": server throttled "<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
-  else if (s_throttle.lock()->shouldThrottle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype))) {
+  else if (isThrottled(d_now.tv_sec, remoteIP, qname, qtype)) {
     LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
@@ -5055,15 +5060,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, g_rootdnsname, 0), s_serverdownthrottletime, 10000);
+        doThrottle(d_now.tv_sec, remoteIP, g_rootdnsname, 0, s_serverdownthrottletime, 10000);
       }
       else if (resolveret == LWResult::Result::PermanentError) {
         // unreachable, 1 minute or 100 queries
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 60, 100);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 100);
       }
       else {
         // timeout, 10 seconds or 5 queries
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 10, 5);
+       doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 5);
       }
     }
 
@@ -5079,10 +5084,10 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
       if (doTCP) {
         // we can be more heavy-handed over TCP
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 60, 10);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
       }
       else {
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 10, 2);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
       }
     }
     return false;
@@ -5099,7 +5104,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
           s_nsSpeeds.lock()->find_or_enter(nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
         }
         else {
-          s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 60, 3);
+          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3);
         }
       }
       return false;
@@ -5118,7 +5123,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
       if (!dontThrottle) {
         /* let's treat that as a ServFail answer from this server */
-        s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(remoteIP, qname, qtype), 60, 3);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3);
       }
       return false;
     }
@@ -5530,7 +5535,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             break;
           }
           /* was lame */
-          s_throttle.lock()->throttle(d_now.tv_sec, std::make_tuple(*remoteIP, qname, qtype), 60, 100);
+          doThrottle(d_now.tv_sec, *remoteIP, qname, qtype, 60, 100);
         }
 
         if (gotNewServers) {
