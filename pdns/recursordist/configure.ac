@@ -61,6 +61,8 @@ AS_IF([test x"$boost_cv_lib_context" = "xyes"], [
 AC_MSG_CHECKING([what context library to use for MTasker])
 AS_IF([test -n "$pdns_context_library"], [AC_MSG_RESULT([$pdns_context_library])], [AC_MSG_ERROR([neither boost::context nor System V ucontexts available])])
 
+BOOST_IOSTREAMS
+
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 

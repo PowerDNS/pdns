@@ -8,19 +8,20 @@ then
 	DIR=$1/
 fi
 
-for a in $(find ${DIR}html -type f | grep -v \~ | sort)
+files=$(find ${DIR}html -type f \! -path '*non-min/*' \! -name '*~' | sort)
+for a in $files
 do
 	c=$(echo $a | sed s:${DIR}html/:: | tr "/.-" "___")
         echo "static const unsigned char g${c}Data[] = {"
-	od -v -t x1 "$a" | sed  's/^[0-7]*//' | sed 's/\([0-9a-f][0-9a-f]\)/0x\1,/g'
+	gzip -9c "$a" | od -v -t x1 | sed  's/^[0-7]*//' | sed 's/\([0-9a-f][0-9a-f]\)/0x\1,/g'
 	echo "};"
 done
 
-echo "static const map<string,string> g_urlmap={"
-for a in $(find ${DIR}html -type f | grep -v \~ | sort)
+echo "static const std::map<std::string,std::string> g_urlmapgz = {"
+for a in $files
 do
 	b=$(echo $a | sed s:${DIR}html/::g)
 	c=$(echo $b | tr "/.-" "___")
-	echo "{\"$b\", string((const char*)g${c}Data, sizeof(g${c}Data))},"
+	echo "{\"$b\", std::string((const char*)g${c}Data, sizeof(g${c}Data))},"
 done
 echo "};"

@@ -45,6 +45,10 @@
 #include "tcpiohandler.hh"
 #include "rec-main.hh"
 
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 using json11::Json;
 
 void productServerStatisticsFetch(map<string, string>& out)
@@ -528,13 +532,21 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   resp->headers["X-XSS-Protection"] = "1; mode=block";
   //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
-  if (!req->url.path.empty() && g_urlmap.count(req->url.path.c_str() + 1)) {
-    resp->body = g_urlmap.at(req->url.path.c_str() + 1);
-    resp->status = 200;
+  if (!req->url.path.empty()) {
+    const auto it = g_urlmapgz.find(req->url.path.c_str() + 1);
+    if (it != g_urlmapgz.end()) {
+      boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+      inbuf.push(boost::iostreams::gzip_decompressor());
+      std::istringstream in(it->second);
+      inbuf.push(in);
+      std::ostringstream out;
+      boost::iostreams::copy(inbuf, out);
+      resp->body = out.str();
+      resp->status = 200;
+      return;
+    }
   }
-  else {
-    resp->status = 404;
-  }
+  resp->status = 404;
 }
 
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
@@ -1204,7 +1216,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
   d_ws->registerApiHandler("/api", apiDiscovery);
 
-  for (const auto& u : g_urlmap) {
+  for (const auto& u : g_urlmapgz) {
     d_ws->registerWebHandler("/" + u.first, serveStuff);
   }
 
