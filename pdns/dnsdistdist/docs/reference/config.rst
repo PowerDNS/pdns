@@ -983,8 +983,17 @@ Status, Statistics and More
 
   .. versionadded:: 1.8.0
 
-  Return the list of network interfaces configured on the system, as strings
+  Return the list of network interfaces configured on the system, as strings.
   This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
+
+.. function:: getMacAddress(ip)
+
+  .. versionadded:: 1.8.0
+
+  Return the link-level address (MAC) corresponding to the supplied remote IP address, if known by the kernel.
+  This function is only implemented on Linux.
+
+  :param str ip: The IP address, IPv4 or IPv6, to look up the corresponding link-level address for.
 
 .. function:: getOutgoingTLSSessionCacheSize()
 

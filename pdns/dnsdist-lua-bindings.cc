@@ -682,4 +682,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     }
     return result;
   });
+
+  luaCtx.writeFunction("getMACAddress", [](const std::string& ip) {
+    return getMACAddress(ComboAddress(ip));
+  });
 }

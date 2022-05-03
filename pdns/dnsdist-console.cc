@@ -510,6 +510,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getDOHFrontendCount", true, "", "returns the number of DoH listeners" },
   { "getListOfAddressesOfNetworkInterface", true, "itf", "returns the list of addresses configured on a given network interface, as strings" },
   { "getListOfNetworkInterfaces", true, "", "returns the list of network interfaces present on the system, as strings" },
+  { "getMACAddress", true, "IP addr", "return the link-level address (MAC) corresponding to the supplied remote IP address, if known by the kernel" },
   { "getOutgoingTLSSessionCacheSize", true, "", "returns the number of TLS sessions (for outgoing connections) currently cached" },
   { "getPool", true, "name", "return the pool named `name`, or \"\" for the default pool" },
   { "getPoolServers", true, "pool", "return servers part of this pool" },
