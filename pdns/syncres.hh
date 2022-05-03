@@ -216,11 +216,11 @@ public:
     EDNSStatus(const ComboAddress &arg) : address(arg) {}
     ComboAddress address;
     time_t modeSetAt{0};
-    mutable enum EDNSMode : uint8_t { UNKNOWN = 0, EDNSOK = 1, EDNSIGNORANT = 2, NOEDNS = 3 } mode{UNKNOWN};
+    enum EDNSMode : uint8_t { UNKNOWN = 0, EDNSOK = 1, EDNSIGNORANT = 2, NOEDNS = 3 } mode{UNKNOWN};
 
     std::string toString() const
     {
-      const std::array<std::string,4> modes = { "Unknown", "OK", "Ignorant", "NoEDNS" };
+      const std::array<std::string,4> modes = { "Unknown", "OK", "Ignorant", "No" };
       unsigned int m = static_cast<unsigned int>(mode);
       if (m >= modes.size()) {
         return "?";

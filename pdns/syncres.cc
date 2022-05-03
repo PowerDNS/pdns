@@ -1077,14 +1077,11 @@ struct ednsstatus_t : public multi_index_container<SyncRes::EDNSStatus,
     ind.modify(it, [](SyncRes::EDNSStatus &s) { s.mode = SyncRes::EDNSStatus::EDNSMode::UNKNOWN; s.modeSetAt = 0; });
   }
 
-  void setMode(index<ComboAddress>::type &ind, iterator it, SyncRes::EDNSStatus::EDNSMode mode)
+  void setMode(index<ComboAddress>::type &ind, iterator it, SyncRes::EDNSStatus::EDNSMode mode, time_t ts)
   {
-    it->mode = mode;
-  }
-
-  void setTS(index<ComboAddress>::type &ind, iterator it, time_t ts)
-  {
-    ind.modify(it, [ts](SyncRes::EDNSStatus &s) { s.modeSetAt = ts; });
+    if (it->mode != mode || it->modeSetAt == 0) {
+      ind.modify(it, [=](SyncRes::EDNSStatus &s) { s.mode = mode; s.modeSetAt = ts; });
+    }
   }
 
   void prune(time_t cutoff)
@@ -1494,12 +1491,10 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     auto &ind = lock->get<ComboAddress>();
     if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
       lock->reset(ind, ednsstatus);
-      // cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
     }
     mode = ednsstatus->mode;
   }
 
-  const SyncRes::EDNSStatus::EDNSMode oldmode = mode;
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
@@ -1511,7 +1506,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
   LWResult::Result ret;
 
-  for (int tries = 0; tries < 3; ++tries) {
+  for (int tries = 0; tries < 2; ++tries) {
 
     if (mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
@@ -1541,35 +1536,25 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
       break;
     }
 
-    // ret is LWResult::Result::Success
-    // ednsstatus might be cleared, so do a new lookup/insert
-    auto lock = s_ednsstatus.lock();
-    auto ednsstatus = lock->insert(ip).first;
-    mode = ednsstatus->mode;
-    auto &ind = lock->get<ComboAddress>();
+    if (EDNSLevel == 1) {
+      // We sent out with EDNS
+      // ret is LWResult::Result::Success
+      // ednsstatus in table might be pruned or changed by another request/thread, so do a new lookup/insert
+      auto lock = s_ednsstatus.lock();
+      auto ednsstatus = lock->insert(ip).first;
+      auto &ind = lock->get<ComboAddress>();
 
-    if (mode != EDNSStatus::NOEDNS) {
       if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
         mode = EDNSStatus::NOEDNS;
-        lock->setMode(ind, ednsstatus, mode);
+        lock->setMode(ind, ednsstatus, mode, d_now.tv_sec);
         continue;
       }
       else if (!res->d_haveEDNS) {
-        if (mode != EDNSStatus::EDNSIGNORANT) {
-          mode =  EDNSStatus::EDNSIGNORANT;
-          lock->setMode(ind, ednsstatus, mode);
-	}
+        lock->setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT, d_now.tv_sec);
       }
       else {
-	if (mode != EDNSStatus::EDNSOK) {
-          mode = EDNSStatus::EDNSOK;
-          lock->setMode(ind, ednsstatus, mode);
-        }
+        lock->setMode(ind, ednsstatus, EDNSStatus::EDNSOK, d_now.tv_sec);
       }
-    }
-
-    if (oldmode != mode || !ednsstatus->modeSetAt) {
-      lock->setTS(ind, ednsstatus, d_now.tv_sec);
     }
 
     break;
