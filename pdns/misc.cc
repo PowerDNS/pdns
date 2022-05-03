@@ -1204,7 +1204,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
       }
 
       auto nd = reinterpret_cast<struct ndmsg*>(NLMSG_DATA(nlmsgheader));
-      auto rtatp = reinterpret_cast<struct rtattr*>(((char*)(nd)) + NLMSG_ALIGN(sizeof(struct ndmsg)));
+      auto rtatp = reinterpret_cast<struct rtattr*>(reinterpret_cast<char*>(nd) + NLMSG_ALIGN(sizeof(struct ndmsg)));
       int rtattrlen = nlmsgheader->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
 
       if (nd->ndm_family != ca.sin4.sin_family) {
@@ -1231,7 +1231,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
             if ((rtatp->rta_len - sizeof(struct rtattr)) != destLen) {
               return EINVAL;
             }
-            memcpy(dest, (rtatp+1), destLen);
+            memcpy(dest, reinterpret_cast<const char*>(rtatp) + sizeof(struct rtattr), destLen);
             foundMAC = true;
             done = true;
             break;
