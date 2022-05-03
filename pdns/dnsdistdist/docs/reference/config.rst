@@ -1059,6 +1059,14 @@ Status, Statistics and More
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
   :param int num: Show a maximum of ``num`` recent queries+responses, default is 10.
 
+.. function:: setVerbose(verbose)
+
+  .. versionadded:: 1.8.0
+
+  Set whether log messages issued at the verbose level should be logged. This is turned off by default.
+
+  :param bool verbose: Set to true if you want to enable verbose logging
+
 .. function:: setVerboseHealthChecks(verbose)
 
   Set whether health check errors should be logged. This is turned off by default.
