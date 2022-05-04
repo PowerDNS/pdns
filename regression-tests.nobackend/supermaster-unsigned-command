@@ -170,4 +170,11 @@ done
 # ensure unsigned notifications are refused
 $NOTIFY 127.0.0.2:53 test.com 2>&1
 
+# ensure we can remove autoprimary
+$PDNSUTIL --config-name=${MODULE}-slave --config-dir=. remove-autoprimary 127.0.0.1 ns1.example.com
+result=`$PDNSUTIL --config-name=${MODULE}-slave --config-dir=. list-autoprimaries | grep -q ns1.example.com || true`
+if [ "$result" != "" ]; then
+  echo "Unexpectedly found ns1.example.com in autoprimaries after deletion"
+fi
+
 kill_process 0
