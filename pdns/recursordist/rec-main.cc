@@ -2638,7 +2638,7 @@ int main(int argc, char** argv)
 
     if (!::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty()) {
       SLOG(g_log << Logger::Error << "Using chroot and enabling the API is not possible" << endl,
-           startupLog->info("Cannot use chroot and enable the API at the same time"));
+           startupLog->info(Logr::Error, "Cannot use chroot and enable the API at the same time"));
       exit(EXIT_FAILURE);
     }
 
@@ -2672,16 +2672,19 @@ int main(int argc, char** argv)
 
     ret = serviceMain(argc, argv);
   }
-  catch (PDNSException& ae) {
-    g_log << Logger::Error << "Exception: " << ae.reason << endl;
+  catch (const PDNSException& ae) {
+    SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
+         g_slog->withName("startup")->error(Logr::Error, "Exception", ae.reason));
     ret = EXIT_FAILURE;
   }
-  catch (std::exception& e) {
-    g_log << Logger::Error << "STL Exception: " << e.what() << endl;
+  catch (const std::exception& e) {
+    SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
+         g_slog->withName("startup")->error(Logr::Error, "STL Exception", e.what()));
     ret = EXIT_FAILURE;
   }
   catch (...) {
-    g_log << Logger::Error << "any other exception in main: " << endl;
+    SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
+         g_slog->withName("startup")->error(Logr::Error, "Exception", "Unexpected"));
     ret = EXIT_FAILURE;
   }
 
