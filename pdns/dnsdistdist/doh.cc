@@ -723,7 +723,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
 
     if (du->downstream->useProxyProtocol) {
       size_t payloadSize = 0;
-      if (addProxyProtocol(dq)) {
+      if (addProxyProtocol(dq, &payloadSize)) {
         du->proxyProtocolPayloadSize = payloadSize;
       }
     }

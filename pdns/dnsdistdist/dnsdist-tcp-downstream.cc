@@ -169,19 +169,20 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
       query.d_buffer.insert(query.d_buffer.begin(), query.d_proxyProtocolPayload.begin(), query.d_proxyProtocolPayload.end());
       query.d_proxyProtocolPayloadAdded = true;
+      query.d_proxyProtocolPayloadAddedSize = query.d_proxyProtocolPayload.size();
     }
   }
   else if (connectionState == ConnectionState::proxySent) {
     if (query.d_proxyProtocolPayloadAdded) {
-      if (query.d_buffer.size() < query.d_proxyProtocolPayload.size()) {
+      if (query.d_buffer.size() < query.d_proxyProtocolPayloadAddedSize) {
         throw std::runtime_error("Trying to remove a proxy protocol payload of size " + std::to_string(query.d_proxyProtocolPayload.size()) + " from a buffer of size " + std::to_string(query.d_buffer.size()));
       }
-      query.d_buffer.erase(query.d_buffer.begin(), query.d_buffer.begin() + query.d_proxyProtocolPayload.size());
+      query.d_buffer.erase(query.d_buffer.begin(), query.d_buffer.begin() + query.d_proxyProtocolPayloadAddedSize);
       query.d_proxyProtocolPayloadAdded = false;
+      query.d_proxyProtocolPayloadAddedSize = 0;
     }
   }
-
-  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayload.size() : 0, true);
+  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0, true);
 }
 
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
