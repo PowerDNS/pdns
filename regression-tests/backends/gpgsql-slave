@@ -1,3 +1,5 @@
+CONFIG_NAME=gpgsql2
+
 	context=${context}-presigned-gpgsql
 	[ -z "$GPGSQ2LDB" ] && GPGSQL2DB=pdnstest2
 	[ -z "$GPGSQL2USER" ] && GPGSQL2USER=$(whoami)

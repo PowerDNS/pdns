@@ -1,3 +1,4 @@
+	CONFIG_NAME=godbc2
 	context=${context}-presigned-godbc
 	ISQL="isql $GODBC_MSSQL2_DSN $GODBC_MSSQL2_USERNAME $GODBC_MSSQL2_PASSWORD"
 	# Drop _ALL_ the tables!

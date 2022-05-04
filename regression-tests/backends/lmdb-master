@@ -1,3 +1,5 @@
+CONFIG_NAME=lmdb
+
 case $context in
     lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
         cat > pdns-lmdb.conf << __EOF__
@@ -11,9 +13,9 @@ __EOF__
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
         do
             if [ "$zone" = "." ]; then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/ROOT
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME load-zone $zone zones/ROOT
             else
-                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME load-zone $zone zones/$zone
             fi
             if [ $context != lmdb-nodnssec ]
             then
@@ -21,38 +23,38 @@ __EOF__
                 then
                     if [ $context = lmdb-nsec3 ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME set-nsec3 $zone "1 0 1 abcd" 2>&1
                     elif [ $context =  lmdb-nsec3-optout ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME set-nsec3 $zone "1 1 1 abcd" 2>&1
                     elif [ $context = lmdb-nsec3-narrow ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
                     fi
                     securezone $zone lmdb
                     if [ $zone = hiddencryptokeys.org ]
                     then
-                        keyid=$($PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zone | grep hiddencryptokeys.org | awk '{ print $7 }')
-                        $PDNSUTIL --config-dir=. --config-name=lmdb unpublish-zone-key $zone $keyid
+                        keyid=$($PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME list-keys $zone | grep hiddencryptokeys.org | awk '{ print $7 }')
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME unpublish-zone-key $zone $keyid
                     fi
                     if [ $zone = cryptokeys.org ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 384 active unpublished ecdsa384
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 2048 inactive published rsasha512
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 2048 inactive unpublished rsasha256
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME add-zone-key $zone zsk 384 active unpublished ecdsa384
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME add-zone-key $zone zsk 2048 inactive published rsasha512
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME add-zone-key $zone zsk 2048 inactive unpublished rsasha256
                     fi
                 fi
             else
-                $PDNSUTIL --config-dir=. --config-name=lmdb rectify-zone $zone 2>&1
+                $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME rectify-zone $zone 2>&1
             fi
             if [ "$zone" = "tsig.com" ]; then
-                $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
-                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test master
+                $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME import-tsig-key test $ALGORITHM $KEY
+                $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME activate-tsig-key tsig.com test master
             fi
         done
 
         $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
-            --config-name=lmdb --socket-dir=./ --no-shuffle \
+            --config-name=$CONFIG_NAME --socket-dir=./ --no-shuffle \
             --dnsupdate=no \
             --expand-alias=yes --resolver=$RESOLVERIP \
             --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \

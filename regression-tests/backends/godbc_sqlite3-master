@@ -1,4 +1,5 @@
 source ./backends/gsql-common
+CONFIG_NAME=godbc_sqlite3
 case $context in
 	godbc_sqlite3-nodnssec | godbc_sqlite3 | godbc_sqlite3-nsec3 | godbc_sqlite3-nsec3-optout | godbc_sqlite3-nsec3-narrow)
 		rm -f pdns.sqlite3

@@ -1,3 +1,5 @@
+CONFIG_NAME=geoip
+
 case $context in
 	geoip|geoip-nsec3-narrow)
 		set +e
@@ -106,7 +108,7 @@ EOF
 		if [ "$geoipdosec" = "yes" ]
 		then
 			echo "$geoipkeydir" >> pdns-geoip.conf
-			$PDNSUTIL --config-dir=. --config-name=geoip secure-zone geo.example.com
+			$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 

@@ -1,4 +1,6 @@
 source ./backends/gsql-common
+CONFIG_NAME=godbc_mssql
+
 ISQL="isql $GODBC_MSSQL_DSN $GODBC_MSSQL_USERNAME $GODBC_MSSQL_PASSWORD"
 BSQLODBC="bsqlodbc -S $GODBC_MSSQL_DSN -U $GODBC_MSSQL_USERNAME -P $GODBC_MSSQL_PASSWORD"
 case $context in

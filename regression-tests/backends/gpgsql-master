@@ -1,4 +1,5 @@
 source ./backends/gsql-common
+CONFIG_NAME=gpgsql
 
 case $context in
 	gpgsql-nodnssec | gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout | gpgsql-nsec3-narrow | gpgsql_sp)

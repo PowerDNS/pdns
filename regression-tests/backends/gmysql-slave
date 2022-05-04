@@ -1,3 +1,5 @@
+CONFIG_NAME=gmysql2
+
 	context=${context}-presigned-gmysql
 	[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
 	[ -z "$GMYSQL2USER" ] && GMYSQL2USER=root

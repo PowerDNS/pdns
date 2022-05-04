@@ -1,4 +1,5 @@
 source ./backends/gsql-common
+CONFIG_NAME=gmysql
 
 case $context in
 	gmysql-nodnssec | gmysql | gmysql-nsec3 | gmysql-nsec3-optout | gmysql-nsec3-narrow | gmysql_sp)

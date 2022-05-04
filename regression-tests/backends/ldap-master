@@ -1,3 +1,5 @@
+CONFIG_NAME=ldap
+
 case $context in
 	ldap-tree | ldap-simple | ldap-strict)
 		[ -z "$LDAPUSER" ] && LDAPUSER='uid=testuser,o=power'
@@ -27,7 +29,7 @@ ldap-host=$LDAPHOST
 __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
-			--config-name=ldap --socket-dir=./ --no-shuffle \
+			--config-name=$CONFIG_NAME --socket-dir=./ --no-shuffle \
 			--query-logging --dnsupdate=yes \
 			--expand-alias=yes --outgoing-axfr-expand-alias=yes \
 			--resolver=$RESOLVERIP \

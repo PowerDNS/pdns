@@ -1,3 +1,5 @@
+CONFIG_NAME=remote
+
 case $context in
 	remotebackend-*)
 		remotetype=$(echo $context | cut -d- -f 2)
@@ -89,22 +91,22 @@ EOF
 		if [ "$remotedosec" = "yes" ]
 		then
 			echo "remote-dnssec=yes" >> pdns-remote.conf
-			$PDNSUTIL --config-dir=. --config-name=remote secure-zone example.com
-			$PDNSUTIL --config-dir=. --config-name=remote secure-zone up.example.com
+			$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME secure-zone example.com
+			$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME secure-zone up.example.com
 
-			./gsql_feed_ds.pl up.example.com. example.com. "$PDNSUTIL --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
+			./gsql_feed_ds.pl up.example.com. example.com. "$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME" "sqlite3 $testsdir/remote.sqlite3"
 
 			# fix dot
 			sqlite3 $testsdir/remote.sqlite3 "UPDATE records SET name = 'up.example.com.' WHERE name = 'up.example.com'"
 
 			if [ "$remotesec" = "nsec3" ]
 			then
-				$PDNSUTIL --config-dir=. --config-name=remote set-nsec3 example.com
-				$PDNSUTIL --config-dir=. --config-name=remote set-nsec3 up.example.com
+				$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME set-nsec3 example.com
+				$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME set-nsec3 up.example.com
 			fi
 
 			# add DS records into list-all-records
-                        $PDNSUTIL --config-dir=. --config-name=remote show-zone -v up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
+                        $PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME show-zone -v up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
 			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec 
 			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi

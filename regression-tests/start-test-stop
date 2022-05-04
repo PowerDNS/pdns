@@ -293,6 +293,7 @@ start_master
 if [ "$skiplua" == "1" ]; then
 	skipreasons="$skipreasons nolua"
 fi
+export CONFIG_NAME
 
 check_process
 

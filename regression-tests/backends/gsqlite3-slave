@@ -1,3 +1,5 @@
+CONFIG_NAME=gsqlite32
+
 	context=${context}-presigned-gsqlite3
 	rm -f pdns.sqlite32
 	sqlite3 pdns.sqlite32 < ../modules/gsqlite3backend/schema.sqlite3.sql

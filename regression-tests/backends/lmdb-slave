@@ -10,14 +10,14 @@ __EOF__
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$' | perl -e 'print reverse <STDIN>')
 	do
 		let zones=zones+1
-		$PDNSUTIL --config-dir=. --config-name=lmdb2 create-slave-zone $zone 127.0.0.1:$port
+		$PDNSUTIL --config-dir=. --config-name=${CONFIG_NAME}2 create-slave-zone $zone 127.0.0.1:$port
 		if [ "$zone" = "tsig.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 import-tsig-key test $ALGORITHM $KEY
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 activate-tsig-key tsig.com test slave
+			$PDNSUTIL --config-dir=. --config-name=${CONFIG_NAME}2 import-tsig-key test $ALGORITHM $KEY
+			$PDNSUTIL --config-dir=. --config-name=${CONFIG_NAME}2 activate-tsig-key tsig.com test slave
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			if [[ $skipreasons != *nolua* ]]; then
-				$PDNSUTIL --config-dir=. --config-name=lmdb2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+				$PDNSUTIL --config-dir=. --config-name=${CONFIG_NAME}2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 			fi
 		fi
 	done
@@ -25,7 +25,7 @@ __EOF__
 	port=$((port+100))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
-		--config-name=lmdb2 --socket-dir=./ --no-shuffle \
+		--config-name=${CONFIG_NAME}2 --socket-dir=./ --no-shuffle \
 		--slave --dname-processing --api --api-key=secret &
 
 	echo 'waiting for zones to be slaved'

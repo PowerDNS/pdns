@@ -1,4 +1,5 @@
 source ./backends/gsql-common
+CONFIG_NAME=gsqlite3
 
 case $context in
 	gsqlite3-nodnssec | gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout | gsqlite3-nsec3-narrow)

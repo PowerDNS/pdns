@@ -1,3 +1,5 @@
+CONFIG_NAME=tinydns
+
 case $context in
 	tinydns)
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
