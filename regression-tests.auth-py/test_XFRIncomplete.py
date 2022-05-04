@@ -24,12 +24,13 @@ class BadXFRServer(object):
         return self._currentSerial
 
     def moveToSerial(self, newSerial):
-        if newSerial == self._currentSerial:
+        if newSerial == self._currentSerial or newSerial == self._targetSerial:
             return False
 
         #if newSerial != self._currentSerial + 1:
         #    raise AssertionError("Asking the XFR server to serve serial %d, already serving %d" % (newSerial, self._currentSerial))
         self._targetSerial = newSerial
+        print("moveToSerial %d" % newSerial, file=sys.stderr)
         return True
 
     def _getAnswer(self, message):
@@ -73,11 +74,13 @@ class BadXFRServer(object):
     def _connectionHandler(self, conn):
         data = None
         while True:
+            print("Reading from connection...", file=sys.stderr)
             data = conn.recv(2)
             if not data:
                 break
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
+            print("Received request with len %d" % datalen, file=sys.stderr)
             if not data:
                 break
 
@@ -88,6 +91,7 @@ class BadXFRServer(object):
             if not message.question[0].rdtype in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
                 print('Invalid query, qtype is %d' % (message.question.rdtype), file=sys.stderr)
                 break
+            print(message, file=sys.stderr)
             (serial, answer) = self._getAnswer(message)
             if not answer:
                 print('Unable to get a response for %s %d' % (message.question[0].name, message.question[0].rdtype), file=sys.stderr)
@@ -96,9 +100,11 @@ class BadXFRServer(object):
             wire = answer.to_wire()
             conn.send(struct.pack("!H", len(wire)))
             conn.send(wire)
+            print("_currentSerial to %d" % serial, file=sys.stderr)
             self._currentSerial = serial
             break
 
+        print("_connectionHandler: stop", file=sys.stderr)
         conn.close()
 
     def _listener(self):
@@ -114,6 +120,7 @@ class BadXFRServer(object):
         while True:
             try:
                 (conn, _) = sock.accept()
+                print("New connection", file=sys.stderr)
                 thread = threading.Thread(name='IXFR Connection Handler',
                                       target=self._connectionHandler,
                                       args=[conn])
@@ -143,6 +150,8 @@ query-cache-ttl=0
 domain-metadata-cache-ttl=0
 negquery-cache-ttl=0
 slave-cycle-interval=1
+#loglevel=9
+#axfr-fetch-timeout=20
 """
 
     @classmethod
@@ -151,7 +160,7 @@ slave-cycle-interval=1
         os.system("$PDNSUTIL --config-dir=configs/auth create-slave-zone zone.rpz. 127.0.0.1:%s" % (badxfrServerPort,))
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta zone.rpz. IXFR 1")
     
-    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
+    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=20):
         global badxfrServer
 
         badxfrServer.moveToSerial(serial)
@@ -162,6 +171,7 @@ slave-cycle-interval=1
             if currentSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, currentSerial))
             if currentSerial == serial:
+                badxfrServer.moveToSerial(serial+1)
                 return
 
             attempts = attempts + 1
