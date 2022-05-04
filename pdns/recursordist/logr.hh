@@ -24,6 +24,7 @@
 
 #include <string>
 #include <memory>
+#include <map>
 
 // Minimal logging API based on https://github.com/go-logr/logr
 

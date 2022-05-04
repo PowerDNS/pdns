@@ -33,6 +33,7 @@
 #include <grp.h>
 
 #include "namespaces.hh"
+#include "logging.hh"
 
 typedef PDNSException ArgException;
 
@@ -76,6 +77,9 @@ class ArgvMap
 {
 public:
   ArgvMap();
+#ifdef RECURSOR
+  std::shared_ptr<Logr::Logger> d_log;
+#endif
   void parse(int &argc, char **argv, bool lax=false); //!< use this to parse from argc and argv
   void laxParse(int &argc, char **argv) //!< use this to parse from argc and argv
   {
@@ -119,6 +123,7 @@ public:
   const vector<string>&getCommands();
   void gatherIncludes(std::vector<std::string> &extraConfigs);
 private:
+  void warnIfDeprecated(const string& var);
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
   const string formatOne(bool running, bool full, const string &var, const string &help, const string& theDefault, const string& value);
   map<string,string> d_params;

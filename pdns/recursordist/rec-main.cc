@@ -858,6 +858,7 @@ static void loggerBackend(const Logging::Entry& entry)
     buf << " ";
     buf << v.first << "=" << std::quoted(v.second);
   }
+  cerr << entry.d_priority << endl;
   Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
   g_log << u << buf.str() << endl;
 }
@@ -1164,8 +1165,6 @@ template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& f
 
 static int serviceMain(int argc, char* argv[])
 {
-  g_slogStructured = ::arg().mustDo("structured-logging");
-
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
@@ -2561,6 +2560,25 @@ int main(int argc, char** argv)
       showBuildConfiguration();
       exit(0);
     }
+    if (::arg().mustDo("help")) {
+      cout << "syntax:" << endl
+           << endl;
+      cout << ::arg().helpstring(::arg()["help"]) << endl;
+      exit(0);
+    }
+
+    // Pick up options given on command line to setup logging asap.
+    g_quiet = ::arg().mustDo("quiet");
+    Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+    g_slogStructured = ::arg().mustDo("structured-logging");
+
+    if (logUrgency < Logger::Error)
+      logUrgency = Logger::Error;
+    if (!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    }
+    g_log.setLoglevel(logUrgency);
+    g_log.toConsole(logUrgency);
 
     string configname = ::arg()["config-dir"] + "/recursor.conf";
     if (::arg()["config-name"] != "") {
@@ -2593,14 +2611,30 @@ int main(int argc, char** argv)
     }
 
     g_slog = Logging::Logger::create(loggerBackend);
+    // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("startup");
 
+    ::arg().d_log = startupLog;
     if (!::arg().file(configname.c_str())) {
       SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "'" << endl,
            startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname)));
     }
 
+    // Reparse, now with config file as well
     ::arg().parse(argc, argv);
+
+    g_quiet = ::arg().mustDo("quiet");
+    logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+    g_slogStructured = ::arg().mustDo("structured-logging");
+
+
+    if (logUrgency < Logger::Error)
+      logUrgency = Logger::Error;
+    if (!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    }
+    g_log.setLoglevel(logUrgency);
+    g_log.toConsole(logUrgency);
 
     if (!::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty()) {
       SLOG(g_log << Logger::Error << "Using chroot and enabling the API is not possible" << endl,
@@ -2633,25 +2667,8 @@ int main(int argc, char** argv)
       ::arg().set("distributor-threads") = "0";
     }
 
-    if (::arg().mustDo("help")) {
-      cout << "syntax:" << endl
-           << endl;
-      cout << ::arg().helpstring(::arg()["help"]) << endl;
-      exit(0);
-    }
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards"));
-
-    g_quiet = ::arg().mustDo("quiet");
-    Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
-
-    if (logUrgency < Logger::Error)
-      logUrgency = Logger::Error;
-    if (!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
-      logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
-    }
-    g_log.setLoglevel(logUrgency);
-    g_log.toConsole(logUrgency);
 
     ret = serviceMain(argc, argv);
   }

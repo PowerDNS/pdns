@@ -358,11 +358,12 @@ static const map<string,string> deprecateList = {
   { "snmp-master-socket", "snmp-daemon-socket" }
 };
 
-static void warnIfDeprecated(const string& var)
+void ArgvMap::warnIfDeprecated(const string& var)
 {
   const auto msg = deprecateList.find(var);
   if (msg != deprecateList.end()) {
-    g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl;
+    SLOG(g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl,
+         d_log->info(Logr::Warning, "Option is deprecated and will be removed in a future release", "deprecatedName", Logging::Loggable(var), "name", Logging::Loggable(msg->second)));
   }
 }
 
@@ -399,7 +400,9 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   boost::trim(var);
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
-    warnIfDeprecated(var);
+    if (!lax) {
+      warnIfDeprecated(var);
+    }
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
     if(pos && pos!=string::npos)
       val=val.substr(pos);
@@ -429,7 +432,8 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
       stringtok(parts, d_params["ignore-unknown-settings"], " ,\t\n\r");
       if (find(parts.begin(), parts.end(), var) != parts.end()) {
         d_unknownParams[var] = val;
-        g_log<<Logger::Warning<<"Ignoring unknown setting '"<<var<<"' as requested"<<endl;
+        SLOG(g_log<<Logger::Warning<<"Ignoring unknown setting '"<<var<<"' as requested"<<endl,
+             d_log->info(Logr::Warning, "Ignoring unknown setting as requested", "name", Logging::Loggable(var)));
         return;
       }
 
@@ -525,7 +529,8 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     set("include-dir","Directory to include configuration files from");
 
   if(!parseFile(fname, "", lax)) {
-    g_log << Logger::Warning << "Unable to open " << fname << std::endl;
+    SLOG(g_log << Logger::Warning << "Unable to open " << fname << std::endl,
+         d_log->error(Logr::Warning, "Unable to open", "name", Logging::Loggable(fname)));
     return false;
   }
 
@@ -535,7 +540,8 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     gatherIncludes(extraConfigs); 
     for(const std::string& fn :  extraConfigs) {
       if (!file(fn.c_str(), lax, true)) {
-        g_log << Logger::Error << fn << " could not be parsed" << std::endl;
+        SLOG(g_log << Logger::Error << fn << " could not be parsed" << std::endl,
+             d_log->info(Logr::Error, "Could not be parsed", "name", Logging::Loggable(fn)));
         throw ArgException(fn + " could not be parsed");
       }
     }
@@ -553,7 +559,8 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
   if (!(dir = opendir(d_params["include-dir"].c_str()))) {
     int err = errno;
     string msg = d_params["include-dir"] + " is not accessible: " + strerror(err);
-    g_log << Logger::Error << msg << std::endl;
+    SLOG(g_log << Logger::Error << msg << std::endl,
+         d_log->error(Logr::Error, err, "Directory is not accessible", "name", Logging::Loggable(d_params["include-dir"])));
     throw ArgException(msg);
   }
 
@@ -568,7 +575,8 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
       struct stat st;
       if (stat(name.c_str(), &st) || !S_ISREG(st.st_mode)) {
         string msg = name + " is not a regular file";
-        g_log << Logger::Error << msg << std::endl;
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             d_log->info(Logr::Error, "Is not a regular file", "name", Logging::Loggable(name)));
         closedir(dir);
         throw ArgException(msg);
       }
