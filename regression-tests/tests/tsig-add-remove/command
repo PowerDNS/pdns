@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+# create a tsig key
+$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME generate-tsig-key delete hmac-md5 | sed -e 's/\S*$//'
+
+# delete tsig key
+$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME delete-tsig-key delete hmac-md5
+
+# list all keys and grep for delete
+$PDNSUTIL --config-dir=. --config-name=$CONFIG_NAME list-tsig-keys | grep delete
