@@ -971,6 +971,27 @@ BOOST_AUTO_TEST_CASE(test_getrawlabel) {
   BOOST_CHECK_THROW(name.getRawLabel(name.countLabels()), std::out_of_range);
 }
 
+BOOST_AUTO_TEST_CASE(test_getrawlabels_visitor) {
+  DNSName name("a.bb.ccc.dddd.");
+  auto visitor = name.getRawLabelsVisitor();
+  BOOST_CHECK(!visitor.empty());
+  BOOST_CHECK_EQUAL(visitor.front(), *name.getRawLabels().begin());
+  BOOST_CHECK_EQUAL(visitor.back(), *name.getRawLabels().rbegin());
+
+  BOOST_CHECK_EQUAL(visitor.back(), "dddd");
+  BOOST_CHECK(visitor.pop_back());
+  BOOST_CHECK_EQUAL(visitor.back(), "ccc");
+  BOOST_CHECK(visitor.pop_back());
+  BOOST_CHECK_EQUAL(visitor.back(), "bb");
+  BOOST_CHECK(visitor.pop_back());
+  BOOST_CHECK_EQUAL(visitor.back(), "a");
+  BOOST_CHECK(visitor.pop_back());
+  BOOST_CHECK(visitor.empty());
+  BOOST_CHECK(!visitor.pop_back());
+  BOOST_CHECK_THROW(visitor.front(), std::out_of_range);
+  BOOST_CHECK_THROW(visitor.back(), std::out_of_range);
+}
+
 BOOST_AUTO_TEST_CASE(test_getlastlabel) {
   DNSName name("www.powerdns.com");
   DNSName ans = name.getLastLabel();

@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <array>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -181,6 +182,33 @@ public:
   }
 
   bool has8bitBytes() const; /* returns true if at least one byte of the labels forming the name is not included in [A-Za-z0-9_*./@ \\:-] */
+
+  class RawLabelsVisitor
+  {
+  public:
+    /* Zero-copy, zero-allocation raw labels visitor.
+       The general idea is that we walk the labels in the constructor,
+       filling up our array of labels position and setting the initial
+       value of d_position at the number of labels.
+       We then can easily provide string_view into the first and last label.
+       pop_back() moves d_position one label closer to the start, so we
+       can also easily walk back the labels in reverse order.
+       There is no copy because we use a reference into the DNSName storage,
+       so it is absolutely forbidden to alter the DNSName for as long as we
+       exist, and no allocation because we use a static array (there cannot
+       be more than 128 labels in a DNSName).
+    */
+    RawLabelsVisitor(const string_t& storage);
+    std::string_view front() const;
+    std::string_view back() const;
+    bool pop_back();
+    bool empty() const;
+  private:
+    std::array<uint8_t, 128> d_labelPositions;
+    const string_t& d_storage;
+    size_t d_position{0};
+  };
+  RawLabelsVisitor getRawLabelsVisitor() const;
 
 private:
   string_t d_storage;
@@ -396,20 +424,20 @@ struct SuffixMatchTree
       return nullptr;
     }
 
-    auto labels = name.getRawLabels();
-    return lookup(labels);
+    auto visitor = name.getRawLabelsVisitor();
+    return lookup(visitor);
   }
 
-  T* lookup(std::vector<std::string>& labels) const
+  T* lookup(DNSName::RawLabelsVisitor& visitor) const
   {
-    if (labels.empty()) { // optimization
+    if (visitor.empty()) { // optimization
       if (endNode) {
         return &d_value;
       }
       return nullptr;
     }
 
-    SuffixMatchTree smn(*labels.rbegin());
+    SuffixMatchTree smn(std::string(visitor.back()));
     auto child = children.find(smn);
     if (child == children.end()) {
       if(endNode) {
@@ -417,8 +445,8 @@ struct SuffixMatchTree
       }
       return nullptr;
     }
-    labels.pop_back();
-    auto result = child->lookup(labels);
+    visitor.pop_back();
+    auto result = child->lookup(visitor);
     if (result) {
       return result;
     }
