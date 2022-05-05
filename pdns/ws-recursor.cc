@@ -117,7 +117,9 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
   // Return currently configured ACLs
   vector<string> entries;
-  t_allowFrom->toStringVector(&entries);
+  if (t_allowFrom) {
+    t_allowFrom->toStringVector(&entries);
+  }
 
   resp->setJsonBody(Json::object {
     { "name", "allow-from" },
