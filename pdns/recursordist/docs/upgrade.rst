@@ -8,7 +8,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 ---------------
 
 :program:`rec_control` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-throttle`` subcommand no longer produces a table per thread, as the corresponding table now is shared by all threads.
 
 4.6.2 to 4.7.0
@@ -41,9 +41,9 @@ New settings
   This is an experimental function, use with care.
 
 :program:`rec_control` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-nsspeeds``, ``dump-failedservers`` and ``dump-non-resolving`` subcommands no longer produce a table per thread, as the corresponding tables are now shared by all threads.
-
+They also use a better readable and sortable timestamp format.
 
 4.6.1 to 4.6.2
 --------------
