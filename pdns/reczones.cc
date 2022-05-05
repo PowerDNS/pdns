@@ -197,7 +197,7 @@ void primeRootNSZones(DNSSECMode mode, unsigned int depth)
   }
 }
 
-static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const DNSName& hostname, const string& ip, Logr::log_t log)
+static void makeNameToIPZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap, const DNSName& hostname, const string& ip, Logr::log_t log)
 {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
@@ -221,7 +221,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
   dr.d_content = DNSRecordContent::mastermake(QType::A, 1, ip);
   ad.d_records.insert(dr);
 
-  if (newMap->count(dr.d_name)) {
+  if (newMap->count(dr.d_name) != 0) {
     SLOG(g_log << Logger::Warning << "Hosts file will not overwrite zone '" << dr.d_name << "' already loaded" << endl,
          log->info(Logr::Warning, "Hosts file will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
   }
@@ -234,7 +234,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
 }
 
 //! parts[0] must be an IP address, the rest must be host names
-static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const vector<string>& parts, Logr::log_t log)
+static void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap, const vector<string>& parts, Logr::log_t log)
 {
   string address = parts[0];
   vector<string> ipparts;
@@ -263,13 +263,14 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
   ad.d_records.insert(dr);
   dr.d_type = QType::PTR;
 
-  if (ipparts.size() == 4) // otherwise this is a partial zone
+  if (ipparts.size() == 4) { // otherwise this is a partial zone
     for (unsigned int n = 1; n < parts.size(); ++n) {
       dr.d_content = DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString()); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
       ad.d_records.insert(dr);
     }
+  }
 
-  if (newMap->count(dr.d_name)) {
+  if (newMap->count(dr.d_name) != 0) {
     SLOG(g_log << Logger::Warning << "Will not overwrite zone '" << dr.d_name << "' already loaded" << endl,
          log->info(Logr::Warning, "Will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
   }
@@ -492,9 +493,11 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
     while (linenum++, stringfgets(fp.get(), line)) {
       SyncRes::AuthDomain ad;
       boost::trim(line);
-      if (line[0] == '#') // Comment line, skip to the next line
+      if (line[0] == '#') { // Comment line, skip to the next line
         continue;
-      string domain, instructions;
+      }
+      string domain;
+      string instructions;
       std::tie(domain, instructions) = splitField(line, '=');
       instructions = splitField(instructions, '#').first; // Remove EOL comments
       boost::trim(domain);
@@ -552,22 +555,25 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
     }
     else {
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
-      string::size_type pos;
+      string::size_type pos = 0;
       while (getline(ifs, line)) {
         pos = line.find('#');
-        if (pos != string::npos)
+        if (pos != string::npos) {
           line.resize(pos);
+        }
         boost::trim(line);
-        if (line.empty())
+        if (line.empty()) {
           continue;
+        }
         parts.clear();
         stringtok(parts, line, "\t\r\n ");
         if (parts[0].find(':') != string::npos)
           continue;
 
         for (unsigned int n = 1; n < parts.size(); ++n) {
-          if (searchSuffix.empty() || parts[n].find('.') != string::npos)
+          if (searchSuffix.empty() || parts[n].find('.') != string::npos) {
             makeNameToIPZone(newMap, DNSName(parts[n]), parts[0], log);
+          }
           else {
             DNSName canonic = toCanonic(DNSName(searchSuffix), parts[n]); /// XXXX DNSName pain
             if (canonic != DNSName(parts[n])) { // XXX further DNSName pain
