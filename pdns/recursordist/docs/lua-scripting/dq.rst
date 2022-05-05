@@ -70,6 +70,14 @@ The DNSQuestion object contains at least the following fields:
       - getFakePTRRecords: Get a fake PTR record, see :doc:`DNS64 <../dns64>`
       - udpQueryResponse: Do a UDP query and call a handler, see :ref:`UDP Query Response <udpqueryresponse>`
 
+  .. attribute:: DNSQuestion.followupName
+
+      see :doc:`DNS64 <../dns64>`
+
+  .. attribute:: DNSQuestion.followupPrefix
+
+      see :doc:`DNS64 <../dns64>`
+
   .. attribute:: DNSQuestion.appliedPolicy
 
     The decision that was made by the policy engine, see :ref:`modifyingpolicydecisions`.
@@ -211,6 +219,10 @@ The DNSQuestion object contains at least the following fields:
 
       Whether the response to this query will be exported to a remote protobuf logger, if one has been configured.
 
+  .. attribute:: DNSQuestion.tag
+
+      The packet-cache tag set via :func:`gettag`, or 0 if it has not been set.
+
   It also supports the following methods:
 
   .. method:: DNSQuestion:addAnswer(type, content, [ttl, name])
@@ -337,6 +349,11 @@ The DNS header as returned by :meth:`DNSQuestion:getDH()` represents a header of
   .. method:: DNSHeader:getID() -> int
 
       The ID of the query
+
+DNSRecord Object
+================
+
+See :doc:`DNSRecord <../dnsrecord>`.
 
 The EDNSOptionView Class
 ========================

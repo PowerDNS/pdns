@@ -1,7 +1,7 @@
 DNS Record
 ==========
 
-DNS record objects are returned by :meth:`DNSQuestion:getRecords`.
+DNS record objects are returned by :meth:`DNSQuestion:getRecords()` and accepted by :meth:`DNSQuestion:addAnswer()`, :meth:`DNSQuestion:addRecord()` and  :meth:`DNSQuestion:setRecords()`.
 
 .. class:: DNSRecord
 
