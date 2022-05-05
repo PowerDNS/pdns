@@ -227,7 +227,7 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
         valueSize = sizeof(QNameValue);
         break;
       default:
-        throw std::runtime_error("Unsupported eBPF map type: " + std::to_string(static_cast<uint8_t>(d_config.d_type)));
+        throw std::runtime_error("Unsupported eBPF map type: " + std::to_string(static_cast<uint8_t>(d_config.d_type)) + " for legacy eBPF, perhaps you are trying to use an external program instead?");
       }
     }
     else {
@@ -364,8 +364,12 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
   maps->d_v4 = BPFFilter::Map(configs["ipv4"], d_mapFormat);
   maps->d_v6 = BPFFilter::Map(configs["ipv6"], d_mapFormat);
   maps->d_qnames = BPFFilter::Map(configs["qnames"], d_mapFormat);
-  maps->d_cidr4 = BPFFilter::Map(configs["cidr4"], d_mapFormat);
-  maps->d_cidr6 = BPFFilter::Map(configs["cidr6"], d_mapFormat);
+
+  if (d_mapFormat != BPFFilter::MapFormat::Legacy) {
+    maps->d_cidr4 = BPFFilter::Map(configs["cidr4"], d_mapFormat);
+    maps->d_cidr6 = BPFFilter::Map(configs["cidr6"], d_mapFormat);
+  }
+
   if (!external) {
     BPFFilter::MapConfiguration filters;
     filters.d_maxItems = 1;
@@ -520,6 +524,9 @@ void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction ac
     CIDR4 key(addr);
     auto maps = d_maps.lock();
     auto& map = maps->d_cidr4;
+    if (map.d_fd.getHandle() == -1) {
+      throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
+    }
     if (map.d_count >= map.d_config.d_maxItems) {
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
@@ -542,6 +549,9 @@ void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction ac
 
     auto maps = d_maps.lock();
     auto& map = maps->d_cidr6;
+    if (map.d_fd.getHandle() == -1) {
+      throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
+    }
     if (map.d_count >= map.d_config.d_maxItems) {
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
@@ -575,6 +585,9 @@ void BPFFilter::allow(const Netmask& addr)
     CIDR4 key(addr);
     auto maps = d_maps.lock();
     auto& map = maps->d_cidr4;
+    if (map.d_fd.getHandle() == -1) {
+      throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
+    }
     res = bpf_delete_elem(map.d_fd.getHandle(), &key);
     if (res == 0) {
       --map.d_count;
@@ -590,6 +603,9 @@ void BPFFilter::allow(const Netmask& addr)
 
     auto maps = d_maps.lock();
     auto& map = maps->d_cidr6;
+    if (map.d_fd.getHandle() == -1) {
+      throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
+    }
     res = bpf_delete_elem(map.d_fd.getHandle(), &key);
     if (res == 0) {
       --map.d_count;
