@@ -42,6 +42,7 @@ To use this, DNSSEC processing or validation must be enabled by setting `dnssec`
 
 Netmasks (both IPv4 and IPv6) that are allowed to use the server.
 The default allows access only from :rfc:`1918` private IP addresses.
+An empty value means no checking is done, all clients are allowed.
 Due to the aggressive nature of the internet these days, it is highly recommended to not open up the recursor for the entire internet.
 Questions from IP addresses not listed here are ignored and do not get an answer.
 
