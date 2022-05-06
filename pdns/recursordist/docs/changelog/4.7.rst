@@ -1,5 +1,29 @@
 Changelogs for 4.7.X
 ====================
+.. changelog::
+  :version: 4.7.0-rc1
+  :released: 6th of May 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11559
+    :tickets: 11539
+
+    Prometheus #HELP texts: DNSSEC counters track responses sent, not actual validations performed.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11560
+    :tickets: 11541
+
+    Fix DoT port and protocol used for probed authoritative servers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11538
+    :tickets: 11536
+
+    Fix Coverity 1487923 Out-of-bounds read (wrong use of sizeof).
 
 .. changelog::
   :version: 4.7.0-beta1
