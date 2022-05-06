@@ -196,6 +196,7 @@ pdns_server_SOURCES = \
 	backends/gsql/ssql.hh \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
+	burtle.hh \
 	bind-dnssec.schema.sqlite3.sql.h \
 	bindlexer.l \
 	bindparser.cc \

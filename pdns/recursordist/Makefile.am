@@ -104,6 +104,7 @@ pdns_recursor_SOURCES = \
 	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
+	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \

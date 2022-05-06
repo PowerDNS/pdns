@@ -53,7 +53,7 @@ inline unsigned char dns_tolower(unsigned char c)
   return dns_tolower_table[c];
 }
 
-uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
+#include "burtle.hh"
 
 // #include "dns.hh"
 // #include "logger.hh"
