@@ -105,27 +105,19 @@ public:
 
   static uint32_t hashHeaderAndQName(const std::string& packet, size_t& pos)
   {
-    uint32_t currentHash = 0;
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
-    currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, currentHash); // rest of dnsheader, skip id
-    pos = sizeof(dnsheader);
+    uint32_t currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, 0); // rest of dnsheader, skip id
 
-    for (; pos < packetSize; ) {
+    for (pos = sizeof(dnsheader); pos < packetSize; ) {
       const unsigned char labelLen = static_cast<unsigned char>(packet.at(pos));
-      currentHash = burtle(&labelLen, 1, currentHash);
       ++pos;
       if (labelLen == 0) {
         break;
       }
-
-      for (size_t idx = 0; idx < labelLen && pos < packetSize; ++idx, ++pos) {
-        const unsigned char l = dns_tolower(packet.at(pos));
-        currentHash = burtle(&l, 1, currentHash);
-      }
+      pos = std::min(pos + labelLen, packetSize);
     }
-
-    return currentHash;
+    return burtleCI(reinterpret_cast<const unsigned char*>(&packet.at(sizeof(dnsheader))), pos - sizeof(dnsheader), currentHash);
   }
 
   /* hash the packet from the beginning, including the qname. This skips:
