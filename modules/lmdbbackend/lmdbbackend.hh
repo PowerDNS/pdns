@@ -57,12 +57,19 @@ std::string keyConv(const T& t)
   return ret;
 }
 
+enum class NameMatchType
+{
+  Full,
+  Suffix
+};
+
 class LMDBBackend : public DNSBackend
 {
 public:
   explicit LMDBBackend(const string& suffix = "");
 
   bool list(const DNSName& target, int id, bool include_disabled) override;
+  bool listSubZone(const DNSName& zone, int domain_id) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
@@ -148,11 +155,12 @@ private:
       ret.append((char*)&qt, 2);
       return ret;
     }
-    std::string operator()(uint32_t id, const DNSName& t)
+    std::string operator()(uint32_t id, const DNSName& t, enum NameMatchType nameMatchType = NameMatchType::Full)
     {
       std::string ret = operator()(id);
       ret += keyConv(t);
-      ret.append(1, (char)0); // this means '00' really ends the zone
+      if (nameMatchType == NameMatchType::Full)
+        ret.append(1, (char)0); // a trailing '00' indicates a full name match, just '0' is the end of a label
       return ret;
     }
     std::string operator()(uint32_t id)
@@ -307,6 +315,7 @@ private:
   MDBOutVal d_currentKey;
   MDBOutVal d_currentVal;
   bool d_includedisabled;
+  std::shared_ptr<DNSName> d_matchSuffix;
 
   DNSName d_transactiondomain;
   uint32_t d_transactiondomainid;
