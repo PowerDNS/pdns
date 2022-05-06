@@ -237,15 +237,15 @@ static void makeNameToIPZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap
 static void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap, const vector<string>& parts, Logr::log_t log)
 {
   string address = parts[0];
-  vector<string> ipparts;
-  stringtok(ipparts, address, ".");
+  vector<string> ipParts;
+  stringtok(ipParts, address, ".");
 
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
 
   DNSRecord dr;
-  for (int n = ipparts.size() - 1; n >= 0; --n) {
-    dr.d_name.appendRawLabel(ipparts[n]);
+  for (auto part = ipParts.rbegin(); part != ipParts.rend(); ++part) {
+    dr.d_name.appendRawLabel(*part);
   }
   dr.d_name.appendRawLabel("in-addr");
   dr.d_name.appendRawLabel("arpa");
@@ -263,7 +263,7 @@ static void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMa
   ad.d_records.insert(dr);
   dr.d_type = QType::PTR;
 
-  if (ipparts.size() == 4) { // otherwise this is a partial zone
+  if (ipParts.size() == 4) { // otherwise this is a partial zone
     for (unsigned int n = 1; n < parts.size(); ++n) {
       dr.d_content = DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString()); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
       ad.d_records.insert(dr);
@@ -275,7 +275,7 @@ static void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMa
          log->info(Logr::Warning, "Will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
   }
   else {
-    if (ipparts.size() == 4) {
+    if (ipParts.size() == 4) {
       SLOG(g_log << Logger::Warning << "Inserting reverse zone '" << dr.d_name << "' based on hosts file" << endl,
            log->info(Logr::Notice, "Inserting reverse zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
     }
