@@ -520,9 +520,19 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   compoundOrdername co;
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  string match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
-  if (!cursor.find(match, key, val)) {
-    cursor.del();
+  string match;
+  if (qt.getCode() == QType::ANY)
+    match = co(domain_id, qname.makeRelative(di.zone));
+  else
+    match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
+
+  if (!cursor.lower_bound(match, key, val)) {
+    while (key.get<StringView>().rfind(match, 0) == 0) {
+      if (qt.getCode() == QType::ANY || co.getQType(key.get<StringView>()) == qt)
+        cursor.del();
+      if (cursor.next(key, val))
+        break;
+    }
   }
 
   if (!rrset.empty()) {
