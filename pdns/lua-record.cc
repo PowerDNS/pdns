@@ -1,6 +1,7 @@
 #include <thread>
 #include <future>
 #include <boost/format.hpp>
+#include <boost/algorithm/string/erase.hpp>
 #include <utility>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
@@ -98,6 +99,34 @@ private:
         useragent = cd.opts.at("useragent");
       }
       MiniCurl mc(useragent);
+      
+      MiniCurl::MiniCurlHeaders mch;
+      if (cd.opts.count("headers")) {
+        string headers_s = cd.opts.at("headers");
+        char delimiter = ',';
+        string header;
+
+        boost::erase_all(headers_s, " ");
+        std::istringstream header_ss(headers_s);
+        
+        string header_key;
+        string header_value;
+        int colon_index;
+
+        while (std::getline(header_ss, header, delimiter)) {
+          colon_index = header.find(':');
+
+          // Make sure colon exist and is not the last character
+          if(colon_index <= 0 || (unsigned int) colon_index >= header.size() - 1) {
+            continue;
+          }
+
+          header_key = header.substr(0, colon_index);
+          header_value = header.substr(colon_index + 1);
+
+          mch.emplace(header_key,header_value);
+        }
+      }
 
       string content;
       const ComboAddress* rem = nullptr;
@@ -110,10 +139,10 @@ private:
 
       if (cd.opts.count("source")) {
         ComboAddress src(cd.opts.at("source"));
-        content=mc.getURL(cd.url, rem, &src, timeout);
+        content=mc.getURL(cd.url, mch, rem, &src, timeout);
       }
       else {
-        content=mc.getURL(cd.url, rem, nullptr, timeout);
+        content=mc.getURL(cd.url, mch, rem, nullptr, timeout);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
