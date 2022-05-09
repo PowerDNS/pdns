@@ -30,4 +30,3 @@ dvi: # do nothing to build dvi
 
 format-code:
 	./build-scripts/format-code `find . -type f -name '*.[ch][ch]' | LANG=C sort | LANG=C comm -23 - .not-formatted`
-

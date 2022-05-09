@@ -91,17 +91,17 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
 
 boilerplate_conv(A, conv.xfrIP(d_ip));
 
-ARecordContent::ARecordContent(uint32_t ip) 
+ARecordContent::ARecordContent(uint32_t ip)
 {
   d_ip = ip;
 }
 
-ARecordContent::ARecordContent(const ComboAddress& ca) 
+ARecordContent::ARecordContent(const ComboAddress& ca)
 {
   d_ip = ca.sin4.sin_addr.s_addr;
 }
 
-AAAARecordContent::AAAARecordContent(const ComboAddress& ca) 
+AAAARecordContent::AAAARecordContent(const ComboAddress& ca)
 {
   d_ip6.assign((const char*)ca.sin6.sin6_addr.s6_addr, 16);
 }
@@ -130,7 +130,7 @@ ComboAddress AAAARecordContent::getCA(int port) const
 
 
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
-{  
+{
   if(dr.d_clen!=4)
     throw MOADNSException("Wrong size for A record ("+std::to_string(dr.d_clen)+")");
 }
@@ -157,7 +157,7 @@ boilerplate_conv(SPF, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
 boilerplate_conv(RP,
-                 conv.xfrName(d_mbox);   
+                 conv.xfrName(d_mbox);
                  conv.xfrName(d_info)
                  );
 
@@ -209,7 +209,7 @@ boilerplate_conv(TSIG,
                  conv.xfr16BitInt(d_origID);
                  conv.xfr16BitInt(d_eRcode);
                  size=d_otherData.size();
-                 conv.xfr16BitInt(size); 
+                 conv.xfr16BitInt(size);
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
@@ -231,7 +231,7 @@ boilerplate_conv(IPSECKEY,
    conv.xfr8BitInt(d_preference);
    conv.xfr8BitInt(d_gatewaytype);
    conv.xfr8BitInt(d_algorithm);
- 
+
    // now we need to determine values
    switch(d_gatewaytype) {
    case 0: // NO KEY
@@ -243,7 +243,7 @@ boilerplate_conv(IPSECKEY,
      conv.xfrIP6(d_ip6);
      break;
    case 3: // DNS label
-     conv.xfrName(d_gateway, false); 
+     conv.xfrName(d_gateway, false);
      break;
    default:
      throw MOADNSException("Parsing record content: invalid gateway type");
@@ -259,7 +259,7 @@ boilerplate_conv(IPSECKEY,
    default:
      throw MOADNSException("Parsing record content: invalid algorithm type");
    }
-) 
+)
 
 boilerplate_conv(DHCID,
                  conv.xfrBlob(d_content);
@@ -279,16 +279,16 @@ boilerplate_conv(NAPTR,
                  )
 
 
-SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target) 
+SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target)
 : d_weight(weight), d_port(port), d_target(std::move(target)), d_preference(preference)
 {}
 
 boilerplate_conv(SRV,
                  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
-                 conv.xfrName(d_target); 
+                 conv.xfrName(d_target);
                  )
 
-SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st) 
+SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st)
 : d_mname(std::move(mname)), d_rname(std::move(rname)), d_st(st)
 {
 }
@@ -304,9 +304,9 @@ boilerplate_conv(SOA,
                  );
 #undef KEY
 boilerplate_conv(KEY,
-                 conv.xfr16BitInt(d_flags); 
-                 conv.xfr8BitInt(d_protocol); 
-                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr16BitInt(d_flags);
+                 conv.xfr8BitInt(d_protocol);
+                 conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_certificate);
                  );
 
@@ -318,21 +318,21 @@ boilerplate_conv(ZONEMD,
                  );
 
 boilerplate_conv(CERT,
-                 conv.xfr16BitInt(d_type); 
+                 conv.xfr16BitInt(d_type);
                  if (d_type == 0) throw MOADNSException("CERT type 0 is reserved");
 
-                 conv.xfr16BitInt(d_tag); 
-                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr16BitInt(d_tag);
+                 conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_certificate);
                  )
 
 boilerplate_conv(TLSA,
-                 conv.xfr8BitInt(d_certusage); 
-                 conv.xfr8BitInt(d_selector); 
-                 conv.xfr8BitInt(d_matchtype); 
+                 conv.xfr8BitInt(d_certusage);
+                 conv.xfr8BitInt(d_selector);
+                 conv.xfr8BitInt(d_matchtype);
                  conv.xfrHexBlob(d_cert, true);
-                 )                 
-                 
+                 )
+
 boilerplate_conv(OPENPGPKEY,
                  conv.xfrBlob(d_keyring);
                  )
@@ -362,69 +362,69 @@ boilerplate_conv(SMIMEA,
 
 DSRecordContent::DSRecordContent() {}
 boilerplate_conv(DS,
-                 conv.xfr16BitInt(d_tag); 
-                 conv.xfr8BitInt(d_algorithm); 
-                 conv.xfr8BitInt(d_digesttype); 
+                 conv.xfr16BitInt(d_tag);
+                 conv.xfr8BitInt(d_algorithm);
+                 conv.xfr8BitInt(d_digesttype);
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
 CDSRecordContent::CDSRecordContent() {}
 boilerplate_conv(CDS,
-                 conv.xfr16BitInt(d_tag); 
-                 conv.xfr8BitInt(d_algorithm); 
-                 conv.xfr8BitInt(d_digesttype); 
+                 conv.xfr16BitInt(d_tag);
+                 conv.xfr8BitInt(d_algorithm);
+                 conv.xfr8BitInt(d_digesttype);
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
 DLVRecordContent::DLVRecordContent() {}
 boilerplate_conv(DLV,
-                 conv.xfr16BitInt(d_tag); 
-                 conv.xfr8BitInt(d_algorithm); 
-                 conv.xfr8BitInt(d_digesttype); 
+                 conv.xfr16BitInt(d_tag);
+                 conv.xfr8BitInt(d_algorithm);
+                 conv.xfr8BitInt(d_digesttype);
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
 
 boilerplate_conv(SSHFP,
-                 conv.xfr8BitInt(d_algorithm); 
-                 conv.xfr8BitInt(d_fptype); 
+                 conv.xfr8BitInt(d_algorithm);
+                 conv.xfr8BitInt(d_fptype);
                  conv.xfrHexBlob(d_fingerprint, true);
                  )
 
 boilerplate_conv(RRSIG,
-                 conv.xfrType(d_type); 
-                   conv.xfr8BitInt(d_algorithm); 
-                   conv.xfr8BitInt(d_labels); 
-                   conv.xfr32BitInt(d_originalttl); 
-                   conv.xfrTime(d_sigexpire); 
-                   conv.xfrTime(d_siginception); 
-                 conv.xfr16BitInt(d_tag); 
+                 conv.xfrType(d_type);
+                   conv.xfr8BitInt(d_algorithm);
+                   conv.xfr8BitInt(d_labels);
+                   conv.xfr32BitInt(d_originalttl);
+                   conv.xfrTime(d_sigexpire);
+                   conv.xfrTime(d_siginception);
+                 conv.xfr16BitInt(d_tag);
                  conv.xfrName(d_signer);
                  conv.xfrBlob(d_signature);
                  )
-                 
+
 RRSIGRecordContent::RRSIGRecordContent() {}
 
 boilerplate_conv(DNSKEY,
-                 conv.xfr16BitInt(d_flags); 
-                 conv.xfr8BitInt(d_protocol); 
-                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr16BitInt(d_flags);
+                 conv.xfr8BitInt(d_protocol);
+                 conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
 DNSKEYRecordContent::DNSKEYRecordContent() {}
 
 boilerplate_conv(CDNSKEY,
-                 conv.xfr16BitInt(d_flags); 
-                 conv.xfr8BitInt(d_protocol); 
-                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr16BitInt(d_flags);
+                 conv.xfr8BitInt(d_protocol);
+                 conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
 CDNSKEYRecordContent::CDNSKEYRecordContent() {}
 
 boilerplate_conv(RKEY,
-                 conv.xfr16BitInt(d_flags); 
-                 conv.xfr8BitInt(d_protocol); 
-                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr16BitInt(d_flags);
+                 conv.xfr8BitInt(d_protocol);
+                 conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
 RKEYRecordContent::RKEYRecordContent() {}
@@ -463,9 +463,9 @@ std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
 {
     // try to parse
     auto ret=std::make_shared<EUI48RecordContent>();
-    // format is 6 hex bytes and dashes    
-    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
-           ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2, 
+    // format is 6 hex bytes and dashes
+    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx",
+           ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2,
            ret->d_eui48+3, ret->d_eui48+4, ret->d_eui48+5) != 6) {
        throw MOADNSException("Asked to encode '"+zone+"' as an EUI48 address, but does not parse");
     }
@@ -474,13 +474,13 @@ std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
 void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
 {
     string blob(d_eui48, d_eui48+6);
-    pw.xfrBlob(blob); 
+    pw.xfrBlob(blob);
 }
 string EUI48RecordContent::getZoneRepresentation(bool noDot) const
 {
-    char tmp[18]; 
+    char tmp[18];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x",
-           d_eui48[0], d_eui48[1], d_eui48[2], 
+           d_eui48[0], d_eui48[1], d_eui48[2],
            d_eui48[3], d_eui48[4], d_eui48[5]);
     return tmp;
 }
@@ -507,7 +507,7 @@ std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
     // try to parse
     auto ret=std::make_shared<EUI64RecordContent>();
     // format is 8 hex bytes and dashes
-    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
+    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx",
            ret->d_eui64, ret->d_eui64+1, ret->d_eui64+2,
            ret->d_eui64+3, ret->d_eui64+4, ret->d_eui64+5,
            ret->d_eui64+6, ret->d_eui64+7) != 8) {
@@ -522,7 +522,7 @@ void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
 }
 string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 {
-    char tmp[24]; 
+    char tmp[24];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
            d_eui64[0], d_eui64[1], d_eui64[2],
            d_eui64[3], d_eui64[4], d_eui64[5],
@@ -837,7 +837,7 @@ static uint16_t makeTag(const std::string& data)
 
   unsigned long ac;     /* assumed to be 32 bits or larger */
   unsigned int i;                /* loop index */
-  
+
   for ( ac = 0, i = 0; i < keysize; ++i )
     ac += (i & 1) ? key[i] : key[i] << 8;
   ac += (ac >> 16) & 0xFFFF;
@@ -850,7 +850,7 @@ uint16_t DNSKEYRecordContent::getTag() const
   return makeTag(tmp.serialize(DNSName()));  // this can't be const for some reason
 }
 
-uint16_t DNSKEYRecordContent::getTag() 
+uint16_t DNSKEYRecordContent::getTag()
 {
   return makeTag(this->serialize(DNSName()));
 }
