@@ -97,7 +97,7 @@ private:
       if (cd.opts.count("useragent")) {
         useragent = cd.opts.at("useragent");
       }
-      long maxbody_size = 1048576; // Default to 1 MegaBytes
+      long maxbody_size;
        if(cd.opts.count("bodySize")) {
          maxbody_size = std::atoi(cd.opts.at("bodySize").c_str());
        }
