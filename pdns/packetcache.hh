@@ -133,9 +133,8 @@ public:
   {
     size_t pos = 0;
     uint32_t currentHash = hashHeaderAndQName(packet, pos);
-    size_t packetSize = packet.size();
 
-    if (pos >= packetSize) {
+    if (pos >= packet.size()) {
       return currentHash;
     }
 

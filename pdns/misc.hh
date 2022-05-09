@@ -814,4 +814,3 @@ struct FDWrapper
 private:
   int d_fd{-1};
 };
-
