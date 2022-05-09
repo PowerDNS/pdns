@@ -521,15 +521,27 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
   string match;
-  if (qt.getCode() == QType::ANY)
+  if (rrset.empty())
     match = co(domain_id, qname.makeRelative(di.zone));
   else
     match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
 
+  bool somethingLeft = false;
+  bool foundNsec3Helper = false;
+  LMDBResourceRecord nsecLrr;
   if (!cursor.lower_bound(match, key, val)) {
     while (key.get<StringView>().rfind(match, 0) == 0) {
       if (qt.getCode() == QType::ANY || co.getQType(key.get<StringView>()) == qt)
         cursor.del();
+      else {
+        if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
+          serFromString(val.get<string>(), nsecLrr);
+          foundNsec3Helper = true;
+        }
+        else {
+          somethingLeft = true;
+        }
+      }
       if (cursor.next(key, val))
         break;
     }
@@ -545,6 +557,19 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
       adjustedRRSet.emplace_back(lrr);
     }
     txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
+  }
+  else if (!somethingLeft && foundNsec3Helper) {
+    // Clean up "NSEC3" lmdb helper entries mapping qname <-> ordername
+    // (For NSEC3 these names are different, for NSEC they are one and the same)
+    auto ordername = DNSName(nsecLrr.content.c_str(), nsecLrr.content.size(), 0, false) + di.zone;
+    if (ordername != qname) {
+      // There should be a corresponding "NSEC3 helper entry" at the other end
+      string cleanupMatch = co(domain_id, ordername.makeRelative(di.zone), QType::NSEC3);
+      txn->txn->del(txn->db->dbi, cleanupMatch);
+    }
+
+    string cleanupMatch = co(domain_id, qname.makeRelative(di.zone), QType::NSEC3);
+    txn->txn->del(txn->db->dbi, cleanupMatch);
   }
 
   if (needCommit)
