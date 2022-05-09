@@ -107,6 +107,10 @@ public:
   {
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
+    // Quite some bits in the header are actually irrelevant for
+    // incoming queries.  If we ever change that and ignore them for
+    // hashing, don't forget to also adapt the `queryHeaderMatches`
+    // code, as it should be consistent with the hash function.
     uint32_t currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, 0); // rest of dnsheader, skip id
 
     for (pos = sizeof(dnsheader); pos < packetSize; ) {
