@@ -122,9 +122,10 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify)
+std::string MiniCurl::getURL(const std::string& str, const long size, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify)
 {
   setupURL(str, rem, src, timeout, fastopen, verify);
+  curl_easy_setopt(d_curl, CURLOPT_MAXFILESIZE, size);
   auto res = curl_easy_perform(d_curl);
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
