@@ -587,3 +587,54 @@ std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string
 #endif
   return result;
 }
+
+#if HAVE_GETIFADDRS
+static uint8_t convertNetmaskToBits(const struct in_addr* mask, socklen_t len)
+{
+  uint8_t result = 0;
+  // for all bytes in the address (4 for IPv4, 16 for IPv6)
+  for (size_t idx = 0; idx < len; idx++) {
+    uint8_t byte = *(reinterpret_cast<const uint8_t*>(&mask->s_addr) + idx);
+    // count the number of bits set
+    while (byte > 0) {
+      result += (byte & 1);
+      byte >>= 1;
+    }
+  }
+  return result;
+}
+#endif /* HAVE_GETIFADDRS */
+
+std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
+{
+  std::vector<Netmask> result;
+#if HAVE_GETIFADDRS
+  struct ifaddrs *ifaddr;
+  if (getifaddrs(&ifaddr) == -1) {
+    return result;
+  }
+
+  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_name == nullptr || strcmp(ifa->ifa_name, itf.c_str()) != 0) {
+      continue;
+    }
+    if (ifa->ifa_addr == nullptr || (ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6)) {
+      continue;
+    }
+    ComboAddress addr;
+    try {
+      addr.setSockaddr(ifa->ifa_addr, ifa->ifa_addr->sa_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+    }
+    catch (...) {
+      continue;
+    }
+
+    auto netmask = reinterpret_cast<const struct sockaddr_in*>(ifa->ifa_netmask);
+    uint8_t maskBits = convertNetmaskToBits(&netmask->sin_addr, addr.getSocklen());
+    result.emplace_back(addr, maskBits);
+  }
+
+  freeifaddrs(ifaddr);
+#endif
+  return result;
+}
