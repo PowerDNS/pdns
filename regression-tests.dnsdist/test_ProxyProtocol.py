@@ -6,6 +6,7 @@ import socket
 import struct
 import sys
 import threading
+import time
 
 from dnsdisttests import DNSDistTest
 from proxyprotocol import ProxyProtocol
@@ -733,8 +734,8 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     _proxyResponderPort = proxyResponderPort
     _config_template = """
     newServer{address="127.0.0.1:%s", useProxyProtocol=true}
-
-    addDOHLocal("127.0.0.1:%s", "%s", "%s")
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true })
+    setACL( { "::1/128", "127.0.0.0/8" } )
     """
     _config_params = ['_proxyResponderPort', '_dohServerPort', '_serverCert', '_serverKey']
 
@@ -790,3 +791,43 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
         # make sure we consumed everything
         self.assertTrue(toProxyQueue.empty())
         self.assertTrue(fromProxyQueue.empty())
+
+    def testAddressFamilyMismatch(self):
+        """
+        DOH with IPv6 X-Forwarded-For to an IPv4 endpoint
+        """
+        name = 'x-forwarded-for-af-mismatch.doh.outgoing-proxy-protocol.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # the query should be dropped
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, customHeaders=['x-forwarded-for: [::1]:8080'], useQueue=False)
+        self.assertFalse(receivedQuery)
+        self.assertFalse(receivedResponse)
+
+        # make sure the timeout is detected, if any
+        time.sleep(4)
+
+        # this one should not
+        ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, customHeaders=['x-forwarded-for: 127.0.0.42:8080'], response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.42', '127.0.0.1', True, destinationPort=self._dohServerPort)
+        # check the response
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = response.id
+        self.assertEqual(response, receivedResponse)
