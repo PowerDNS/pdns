@@ -72,10 +72,10 @@ static LuaArray<std::vector<boost::variant<string,double>>> getGenResponses(uint
 
   LuaArray<vector<boost::variant<string,double>>> ret;
   ret.reserve(std::min(rcounts.size(), static_cast<size_t>(top + 1U)));
-  uint64_t count = 1;
+  int count = 1;
   unsigned int rest = 0;
   for (const auto& rc : rcounts) {
-    if (count == top+1) {
+    if (count == static_cast<int>(top + 1)) {
       rest+=rc.first;
     }
     else {
