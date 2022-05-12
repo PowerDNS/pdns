@@ -318,14 +318,46 @@ struct SuffixMatchTree
   }
   
   std::string d_name;
-  mutable std::set<SuffixMatchTree> children;
+  mutable std::set<SuffixMatchTree, std::less<>> children;
   mutable bool endNode;
   mutable T d_value;
   bool operator<(const SuffixMatchTree& rhs) const
   {
     return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
   }
-  typedef SuffixMatchTree value_type;
+
+  /* this structure is used to do a lookup without allocating and
+     copying a string, using C++14's heterogeneous lookups in ordered
+     containers */
+  struct LightKey
+  {
+    std::string_view d_name;
+    bool operator<(const SuffixMatchTree& smt) const
+    {
+      auto compareUpTo = std::min(this->d_name.size(), smt.d_name.size());
+      auto ret = strncasecmp(this->d_name.data(), smt.d_name.data(), compareUpTo);
+      if (ret != 0) {
+        return ret < 0;
+      }
+      if (this->d_name.size() == smt.d_name.size()) {
+        return ret < 0;
+      }
+      return this->d_name.size() < smt.d_name.size();
+    }
+  };
+
+  bool operator<(const LightKey& lk) const
+  {
+    auto compareUpTo = std::min(this->d_name.size(), lk.d_name.size());
+    auto ret = strncasecmp(this->d_name.data(), lk.d_name.data(), compareUpTo);
+    if (ret != 0) {
+      return ret < 0;
+    }
+    if (this->d_name.size() == lk.d_name.size()) {
+      return ret < 0;
+    }
+    return this->d_name.size() < lk.d_name.size();
+  }
 
   template<typename V>
   void visit(const V& v) const {
@@ -437,8 +469,8 @@ struct SuffixMatchTree
       return nullptr;
     }
 
-    SuffixMatchTree smn(std::string(visitor.back()));
-    auto child = children.find(smn);
+    const LightKey lk{visitor.back()};
+    auto child = children.find(lk);
     if (child == children.end()) {
       if(endNode) {
         return &d_value;
