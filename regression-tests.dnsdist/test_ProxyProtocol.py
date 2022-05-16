@@ -9,6 +9,7 @@ import threading
 
 from dnsdisttests import DNSDistTest
 from proxyprotocol import ProxyProtocol
+from dnsdistdohtests import DNSDistDOHTest
 
 # Python2/3 compatibility hacks
 try:
@@ -720,3 +721,72 @@ class TestProxyProtocolNotExpected(DNSDistTest):
         except socket.timeout:
           print('timeout')
         self.assertEqual(receivedResponse, None)
+
+class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
+    _proxyResponderPort = proxyResponderPort
+    _config_template = """
+    newServer{address="127.0.0.1:%s", useProxyProtocol=true}
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s")
+    """
+    _config_params = ['_proxyResponderPort', '_dohServerPort', '_serverCert', '_serverKey']
+
+    def testTruncation(self):
+        """
+        DOH: Truncation over UDP (with cache)
+        """
+        # the query is first forwarded over UDP, leading to a TC=1 answer from the
+        # backend, then over TCP
+        name = 'truncated-udp.doh-with-cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 42
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 42
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # first response is a TC=1
+        tcResponse = dns.message.make_response(query)
+        tcResponse.flags |= dns.flags.TC
+        toProxyQueue.put(tcResponse, True, 2.0)
+
+        ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
+        # first query, received by the responder over UDP
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=self._dohServerPort)
+
+        # check the response
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        # check the second query, received by the responder over TCP
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedDNSData)
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=self._dohServerPort)
+
+        # make sure we consumed everything
+        self.assertTrue(toProxyQueue.empty())
+        self.assertTrue(fromProxyQueue.empty())
