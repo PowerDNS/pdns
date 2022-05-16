@@ -992,9 +992,10 @@ This feature is intended to facilitate ip-failover setups, but it may also mask 
 -  Integer between 0 and 9
 -  Default: 6
 
-Amount of logging.
-Higher is more, more logging may destroy performance.
-It is recommended not to set this below 3.
+Amount of logging. The higher the number, the more lines logged.
+Corresponds to "syslog" level values (e.g. 0 = emergency, 1 = alert, 2 = critical, 3 = error, 4 = warning, 5 = notice, 6 = info, 7 = debug).
+Each level includes itself plus the lower levels before it.
+Not recommended to set this below 3.
 
 .. _setting-log-common-errors:
 

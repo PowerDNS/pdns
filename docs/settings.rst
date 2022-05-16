@@ -917,8 +917,10 @@ Do not pass names like 'local0'!
 -  Integer
 -  Default: 4
 
-Amount of logging. Higher is more. Do not set below 3. Corresponds to "syslog" level values,
-e.g. error = 3, warning = 4, notice = 5, info = 6
+Amount of logging. The higher the number, the more lines logged.
+Corresponds to "syslog" level values (e.g. 0 = emergency, 1 = alert, 2 = critical, 3 = error, 4 = warning, 5 = notice, 6 = info, 7 = debug).
+Each level includes itself plus the lower levels before it.
+Not recommended to set this below 3.
 
 .. _setting-lua-axfr-script:
 
