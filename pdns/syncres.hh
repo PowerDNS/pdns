@@ -152,6 +152,7 @@ public:
   {
     s_lm = lm;
   }
+
   static uint64_t doEDNSDump(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
   static uint64_t doDumpThrottleMap(int fd);
@@ -215,12 +216,12 @@ public:
   struct EDNSStatus {
     EDNSStatus(const ComboAddress &arg) : address(arg) {}
     ComboAddress address;
-    time_t modeSetAt{0};
-    enum EDNSMode : uint8_t { UNKNOWN = 0, EDNSOK = 1, EDNSIGNORANT = 2, NOEDNS = 3 } mode{UNKNOWN};
+    time_t ttd{0};
+    enum EDNSMode : uint8_t { EDNSOK = 0, EDNSIGNORANT = 1, NOEDNS = 2 } mode{EDNSOK};
 
     std::string toString() const
     {
-      const std::array<std::string,4> modes = { "Unknown", "OK", "Ignorant", "No" };
+      const std::array<std::string,3> modes = { "OK", "Ignorant", "No" };
       unsigned int m = static_cast<unsigned int>(mode);
       if (m >= modes.size()) {
         return "?";
