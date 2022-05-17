@@ -191,14 +191,15 @@ void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<u
   setCPUMap(cpusMap, id, thread.native_handle());
 }
 
-int RecThreadInfo::runThreads()
+int RecThreadInfo::runThreads(std::shared_ptr<Logr::Logger>& log)
 {
   int ret = EXIT_SUCCESS;
   unsigned int currentThreadId = 1;
   const auto cpusMap = parseCPUMap();
 
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
-    g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl;
+    SLOG(g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl,
+         log->info(Logr::Warning, "Operating with single distributor/worker thread"));
 
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfo = RecThreadInfo::info(0);
@@ -243,14 +244,15 @@ int RecThreadInfo::runThreads()
 
     // And now start the actual threads
     if (RecThreadInfo::weDistributeQueries()) {
-      g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl;
+      SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl,
+           log->info(Logr::Warning, "Launching distributor threads", "count", Logging::Loggable(RecThreadInfo::numDistributors())));
       for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
         auto& info = RecThreadInfo::info(currentThreadId);
         info.start(currentThreadId++, "distr", cpusMap);
       }
     }
-
-    g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl;
+    SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl,
+         log->info(Logr::Warning, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numWorkers())));
 
     for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
       auto& info = RecThreadInfo::info(currentThreadId);
@@ -858,7 +860,6 @@ static void loggerBackend(const Logging::Entry& entry)
     buf << " ";
     buf << v.first << "=" << std::quoted(v.second);
   }
-  cerr << entry.d_priority << endl;
   Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
   g_log << u << buf.str() << endl;
 }
@@ -928,7 +929,7 @@ static void doStats(void)
   statsWanted = false;
 }
 
-static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const std::string& aclSetting)
+static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const std::string& aclSetting, std::shared_ptr<Logr::Logger>& log)
 {
   auto result = std::make_shared<NetmaskGroup>();
 
@@ -950,20 +951,29 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
 
       result->addMask(line);
     }
-    g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << ::arg()[aclFile] << "' - overriding '" << aclSetting << "' setting" << endl;
-  }
+    SLOG(g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << ::arg()[aclFile] << "' - overriding '" << aclSetting << "' setting" << endl,
+         log->info(Logr::Info, "Done parsing ranges from file, will override setting", "setting", Logging::Loggable(aclSetting),
+                   "number",  Logging::Loggable(result->size()), "file", Logging::Loggable(::arg()[aclFile])));
+    }
   else if (!::arg()[aclSetting].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()[aclSetting], ", ");
 
-    g_log << Logger::Info << aclSetting << ": ";
-    for (vector<string>::const_iterator i = ips.begin(); i != ips.end(); ++i) {
-      result->addMask(*i);
-      if (i != ips.begin())
-        g_log << Logger::Info << ", ";
-      g_log << Logger::Info << *i;
+    for (const auto& i : ips) {
+      result->addMask(i);
     }
-    g_log << Logger::Info << endl;
+    if (!g_slogStructured) {
+      g_log << Logger::Info << aclSetting << ": ";
+      for (vector<string>::const_iterator i = ips.begin(); i != ips.end(); ++i) {
+        if (i != ips.begin())
+          g_log << Logger::Info << ", ";
+        g_log << Logger::Info << *i;
+      }
+      g_log << Logger::Info << endl;
+    }
+    else {
+      log->info(Logr::Info, "Setting access control", "acl", Logging::Loggable(aclSetting), "addresses", Logging::Loggable(ips));
+    }
   }
 
   return result;
@@ -989,6 +999,8 @@ void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> ns)
 
 void parseACLs()
 {
+  auto log = g_slog->withName("config");
+
   static bool l_initialized;
 
   if (l_initialized) { // only reload configuration file on second call
@@ -1032,18 +1044,20 @@ void parseACLs()
     ::arg().preParse(g_argc, g_argv, "allow-notify-from");
   }
 
-  auto allowFrom = parseACL("allow-from-file", "allow-from");
+  auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
   if (allowFrom->size() == 0) {
-    if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53)
-      g_log << Logger::Warning << "WARNING: Allowing queries from all IP addresses - this can be a security risk!" << endl;
+    if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53) {
+      SLOG(g_log << Logger::Warning << "WARNING: Allowing queries from all IP addresses - this can be a security risk!" << endl,
+           log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!"));
+    }
     allowFrom = nullptr;
   }
 
   g_initialAllowFrom = allowFrom;
   broadcastFunction([=] { return pleaseSupplantAllowFrom(allowFrom); });
 
-  auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from");
+  auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from", log);
 
   g_initialAllowNotifyFrom = allowNotifyFrom;
   broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
@@ -1163,7 +1177,7 @@ template vector<ComboAddress> broadcastAccFunction(const std::function<vector<Co
 template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
 template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
 
-static int serviceMain(int argc, char* argv[])
+static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& log)
 {
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -1173,8 +1187,10 @@ static int serviceMain(int argc, char* argv[])
     int val = logFacilityToLOG(::arg().asNum("logging-facility"));
     if (val >= 0)
       g_log.setFacility(val);
-    else
-      g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl;
+    else {
+      SLOG(g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl,
+           log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
+    }
   }
 
   showProductVersion();
@@ -1186,28 +1202,34 @@ static int serviceMain(int argc, char* argv[])
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << "Assigning local query addresses: " << e.what();
+    SLOG(g_log << Logger::Error << "Assigning local query addresses: " << e.what(),
+         log->error(Logr::Error, e.what(), "Assigning local query address"));
     exit(99);
   }
 
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
     SyncRes::s_doIPv4 = true;
-    g_log << Logger::Warning << "Enabling IPv4 transport for outgoing queries" << endl;
+    SLOG(g_log << Logger::Warning << "Enabling IPv4 transport for outgoing queries" << endl,
+         log->info(Logr::Warning, "Enabling IPv4 transport for outgoing queries"));
   }
   else {
-    g_log << Logger::Warning << "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable" << endl;
+    SLOG(g_log << Logger::Warning << "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable" << endl,
+         log->info(Logr::Warning, "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"));
   }
 
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     SyncRes::s_doIPv6 = true;
-    g_log << Logger::Warning << "Enabling IPv6 transport for outgoing queries" << endl;
+    SLOG(g_log << Logger::Warning << "Enabling IPv6 transport for outgoing queries" << endl,
+         log->info(Logr::Warning, "Enabling IPv6 transport for outgoing queries"));
   }
   else {
-    g_log << Logger::Warning << "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable" << endl;
+    SLOG(g_log << Logger::Warning << "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable" << endl,
+         log->info(Logr::Warning, "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable"));
   }
 
   if (!SyncRes::s_doIPv6 && !SyncRes::s_doIPv4) {
-    g_log << Logger::Error << "No outgoing addresses configured! Can not continue" << endl;
+    SLOG(g_log << Logger::Error << "No outgoing addresses configured! Can not continue" << endl,
+         log->info(Logr::Error, "No outgoing addresses configured! Can not continue"));
     exit(99);
   }
 
@@ -1223,13 +1245,15 @@ static int serviceMain(int argc, char* argv[])
   else if (::arg()["dnssec"] == "log-fail")
     g_dnssecmode = DNSSECMode::ValidateForLog;
   else {
-    g_log << Logger::Error << "Unknown DNSSEC mode " << ::arg()["dnssec"] << endl;
+    SLOG(g_log << Logger::Error << "Unknown DNSSEC mode " << ::arg()["dnssec"] << endl,
+         log->info(Logr::Error, "Unknown DNSSEC mode", "dnssec", Logging::Loggable(::arg()["dnssec"])));
     exit(1);
   }
 
   g_signatureInceptionSkew = ::arg().asNum("signature-inception-skew");
   if (g_signatureInceptionSkew < 0) {
-    g_log << Logger::Error << "A negative value for 'signature-inception-skew' is not allowed" << endl;
+    SLOG(g_log << Logger::Error << "A negative value for 'signature-inception-skew' is not allowed" << endl,
+         log->info(Logr::Error, "A negative value for 'signature-inception-skew' is not allowed"));
     exit(1);
   }
 
@@ -1247,7 +1271,8 @@ static int serviceMain(int argc, char* argv[])
     g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_shared<ProxyMapping>(proxyMapping);
   }
   catch (PDNSException& e) {
-    g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
+         log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
     exit(1);
   }
 
@@ -1260,20 +1285,28 @@ static int serviceMain(int argc, char* argv[])
     ips.push_back("0.0.0.0");
     ips.push_back("::");
 
-    g_log << Logger::Warning << "Will not send queries to: ";
-    for (vector<string>::const_iterator i = ips.begin(); i != ips.end(); ++i) {
-      SyncRes::addDontQuery(*i);
-      if (i != ips.begin())
-        g_log << Logger::Warning << ", ";
-      g_log << Logger::Warning << *i;
+    for (const auto& ip : ips) {
+      SyncRes::addDontQuery(ip);
     }
-    g_log << Logger::Warning << endl;
+    if (!g_slogStructured) {
+      g_log << Logger::Warning << "Will not send queries to: ";
+      for (vector<string>::const_iterator i = ips.begin(); i != ips.end(); ++i) {
+        if (i != ips.begin())
+          g_log << Logger::Warning << ", ";
+        g_log << Logger::Warning << *i;
+      }
+      g_log << Logger::Warning << endl;
+    }
+    else {
+      log->info(Logr::Warning, "Will not send queries to", "addresses", Logging::Loggable(ips));
+    }
   }
 
   /* this needs to be done before parseACLs(), which call broadcastFunction() */
   RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
   if (RecThreadInfo::weDistributeQueries()) {
-    g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl;
+    SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
+         log->info(Logr::Warning, "PowerDNS Recursor itself will distribute queries over threads"));
   }
 
   g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
@@ -1289,7 +1322,8 @@ static int serviceMain(int argc, char* argv[])
   }
   string myHostname = getHostname();
   if (myHostname == "UNKNOWN") {
-    g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl;
+    SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
+         log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
     myHostname = "";
   }
 
@@ -1357,7 +1391,8 @@ static int serviceMain(int argc, char* argv[])
     SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
   }
   else if (value != "dnssec") {
-    g_log << Logger::Error << "Unknown nothing-below-nxdomain mode: " << value << endl;
+    SLOG(g_log << Logger::Error << "Unknown nothing-below-nxdomain mode: " << value << endl,
+         log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value)));
     exit(1);
   }
 
@@ -1402,7 +1437,8 @@ static int serviceMain(int argc, char* argv[])
     try {
       auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
       if (dns64Prefix.getBits() != 96) {
-        g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes: " << ::arg()["dns64-prefix"] << endl;
+        SLOG(g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes: " << ::arg()["dns64-prefix"] << endl,
+             log->info(Logr::Error, "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes", "prefix", Logging::Loggable(::arg()["dns64-prefix"])));
         exit(1);
       }
       g_dns64Prefix = dns64Prefix.getNetwork();
@@ -1413,7 +1449,8 @@ static int serviceMain(int argc, char* argv[])
       }
     }
     catch (const NetmaskException& ne) {
-      g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl;
+      SLOG(g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl,
+           log->info(Logr::Error, "Invalid prefix", "dns64-prefix", Logging::Loggable(::arg()["dns64-prefix"])));
       exit(1);
     }
   }
@@ -1440,7 +1477,8 @@ static int serviceMain(int argc, char* argv[])
     g_paddingMode = PaddingMode::PaddedQueries;
   }
   else {
-    g_log << Logger::Error << "Unknown edns-padding-mode: " << ::arg()["edns-padding-mode"] << endl;
+    SLOG(g_log << Logger::Error << "Unknown edns-padding-mode: " << ::arg()["edns-padding-mode"] << endl,
+         log->info(Logr::Error, "Unknown edns-padding-mode", "edns-padding-mode", Logging::Loggable(::arg()["edns-padding-mode"])));
     exit(1);
   }
   g_paddingTag = ::arg().asNum("edns-padding-tag");
@@ -1448,7 +1486,8 @@ static int serviceMain(int argc, char* argv[])
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumWorkerThreads(::arg().asNum("threads"));
   if (RecThreadInfo::numWorkers() < 1) {
-    g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl;
+    SLOG(g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl,
+         log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead"));
     RecThreadInfo::setNumWorkerThreads(1);
   }
 
@@ -1456,7 +1495,8 @@ static int serviceMain(int argc, char* argv[])
 
   int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
   if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
-    g_log << Logger::Warning << "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)" << endl;
+    SLOG(g_log << Logger::Warning << "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)" << endl,
+         log->info(Logr::Warning, "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)"));
     TCPConnection::s_maxInFlight = 10;
   }
   else {
@@ -1480,7 +1520,8 @@ static int serviceMain(int argc, char* argv[])
       g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum("aggressive-nsec-cache-size"));
     }
     else {
-      g_log << Logger::Warning << "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring" << endl;
+      SLOG(g_log << Logger::Warning << "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring" << endl,
+           log->info(Logr::Warning, "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring"));
     }
   }
 
@@ -1518,7 +1559,8 @@ static int serviceMain(int argc, char* argv[])
     stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
 #ifndef HAVE_DNS_OVER_TLS
     if (parts.size()) {
-      g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl;
+      SLOG(g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl,
+           log->info(Logr::Error,  "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
     }
 #endif
     for (const auto& p : parts) {
@@ -1539,7 +1581,8 @@ static int serviceMain(int argc, char* argv[])
   g_balancingFactor = ::arg().asDouble("distribution-load-factor");
   if (g_balancingFactor != 0.0 && g_balancingFactor < 1.0) {
     g_balancingFactor = 0.0;
-    g_log << Logger::Warning << "Asked to run with a distribution-load-factor below 1.0, disabling it instead" << endl;
+    SLOG(g_log << Logger::Warning << "Asked to run with a distribution-load-factor below 1.0, disabling it instead" << endl,
+         log->info(Logr::Warning, "Asked to run with a distribution-load-factor below 1.0, disabling it instead"));
   }
 
 #ifdef SO_REUSEPORT
@@ -1555,8 +1598,8 @@ static int serviceMain(int argc, char* argv[])
         auto& info = RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
-        makeUDPServerSockets(deferredAdds);
-        makeTCPServerSockets(deferredAdds, tcpSockets);
+        makeUDPServerSockets(deferredAdds, log);
+        makeTCPServerSockets(deferredAdds, tcpSockets, log);
       }
     }
     else {
@@ -1565,8 +1608,8 @@ static int serviceMain(int argc, char* argv[])
         auto& info = RecThreadInfo::info(threadId);
         auto& deferredAdds = info.deferredAdds;
         auto& tcpSockets = info.tcpSockets;
-        makeUDPServerSockets(deferredAdds);
-        makeTCPServerSockets(deferredAdds, tcpSockets);
+        makeUDPServerSockets(deferredAdds, log);
+        makeTCPServerSockets(deferredAdds, tcpSockets, log);
       }
     }
   }
@@ -1574,8 +1617,8 @@ static int serviceMain(int argc, char* argv[])
     std::set<int> tcpSockets;
     /* we don't have reuseport so we can only open one socket per
        listening addr:port and everyone will listen on it */
-    makeUDPServerSockets(g_deferredAdds);
-    makeTCPServerSockets(g_deferredAdds, tcpSockets);
+    makeUDPServerSockets(g_deferredAdds, log);
+    makeTCPServerSockets(g_deferredAdds, tcpSockets, log);
 
     /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
        needs to listen to the shared sockets */
@@ -1605,7 +1648,8 @@ static int serviceMain(int argc, char* argv[])
   }
 
   if (::arg().mustDo("daemon")) {
-    g_log << Logger::Warning << "Calling daemonize, going to background" << endl;
+    SLOG(g_log << Logger::Warning << "Calling daemonize, going to background" << endl,
+         log->info(Logr::Warning, "Calling daemonize, going to background"));
     g_log.toConsole(Logger::Critical);
     daemonize();
   }
@@ -1635,7 +1679,8 @@ static int serviceMain(int argc, char* argv[])
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
-    g_log << Logger::Error << "Unable to initialize sodium crypto library" << endl;
+    SLOG(g_log << Logger::Error << "Unable to initialize sodium crypto library" << endl,
+         log->info(Logr::Error, "Unable to initialize sodium crypto library"));
     exit(99);
   }
 #endif
@@ -1663,17 +1708,21 @@ static int serviceMain(int argc, char* argv[])
     char* ns;
     ns = getenv("NOTIFY_SOCKET");
     if (ns != nullptr) {
-      g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl;
+      SLOG(g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl,
+           log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"));
       exit(1);
     }
 #endif
     if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
       int err = errno;
-      g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << strerror(err) << ", exiting" << endl;
+      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << strerror(err) << ", exiting" << endl,
+           log->error(Logr::Error, err,  "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
       exit(1);
     }
-    else
-      g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl;
+    else {
+      SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
+           log->info(Logr::Info, "Chrooted", "chroot",  Logging::Loggable(::arg()["chroot"])));
+    }
   }
 
   checkSocketDir();
@@ -1694,7 +1743,8 @@ static int serviceMain(int argc, char* argv[])
     dropCapabilities();
   }
   catch (const std::exception& e) {
-    g_log << Logger::Warning << e.what() << endl;
+    SLOG(g_log << Logger::Warning << e.what() << endl,
+         log->error(Logr::Warning, e.what(), "Could not drop capabilities"));
   }
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
@@ -1730,13 +1780,15 @@ static int serviceMain(int argc, char* argv[])
 
   int port = ::arg().asNum("udp-source-port-min");
   if (port < 1024 || port > 65535) {
-    g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl;
+    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl,
+         log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number"));
     exit(99); // this isn't going to fix itself either
   }
   g_minUdpSourcePort = port;
   port = ::arg().asNum("udp-source-port-max");
   if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
-    g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl;
+    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl,
+         log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"));
     exit(99); // this isn't going to fix itself either
   }
   g_maxUdpSourcePort = port;
@@ -1745,13 +1797,14 @@ static int serviceMain(int argc, char* argv[])
   for (const auto& part : parts) {
     port = std::stoi(part);
     if (port < 1024 || port > 65535) {
-      g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl;
+      SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
+           log->info(Logr::Error,  "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
       exit(99); // this isn't going to fix itself either
     }
     g_avoidUdpSourcePorts.insert(port);
   }
 
-  return RecThreadInfo::runThreads();
+  return RecThreadInfo::runThreads(log);
 }
 
 static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
@@ -2670,21 +2723,21 @@ int main(int argc, char** argv)
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards"));
 
-    ret = serviceMain(argc, argv);
+    ret = serviceMain(argc, argv, startupLog);
   }
   catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         g_slog->withName("startup")->error(Logr::Error, "Exception", ae.reason));
+         g_slog->withName("startup")->error(Logr::Error, ae.reason, "Exception"));
     ret = EXIT_FAILURE;
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         g_slog->withName("startup")->error(Logr::Error, "STL Exception", e.what()));
+         g_slog->withName("startup")->error(Logr::Error, e.what(), "STL Exception"));
     ret = EXIT_FAILURE;
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
-         g_slog->withName("startup")->error(Logr::Error, "Exception", "Unexpected"));
+         g_slog->withName("startup")->error(Logr::Error, "Unknown", "Exception"));
     ret = EXIT_FAILURE;
   }
 

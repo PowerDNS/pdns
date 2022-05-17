@@ -994,7 +994,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
+void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, std::shared_ptr<Logr::Logger>& log)
 {
   int fd;
   vector<string> locals;
@@ -1031,13 +1031,15 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     }
     if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       int err = errno;
-      g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl;
+      SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
+           log->error(Logr::Error, err, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
     }
 
 #ifdef TCP_DEFER_ACCEPT
     if (setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
-      if (i == locals.begin())
-        g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl;
+      if (i == locals.begin()) {
+        SLOG(g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl,
+             log->info(Logr::Info, "Enabled TCP data-ready filter for (slight) DoS protection"));
     }
 #endif
 
@@ -1067,10 +1069,12 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 #ifdef TCP_FASTOPEN
       if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
-        g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl;
+        SLOG(g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl,
+             log->error(Logr::Error, err, "Failed to enable TCP Fast Open for listening socket"));
       }
 #else
-      g_log << Logger::Warning << "TCP Fast Open configured but not supported for listening socket" << endl;
+      SLOG(g_log << Logger::Warning << "TCP Fast Open configured but not supported for listening socket" << endl,
+           log->info(Logr::Warning, "TCP Fast Open configured but not supported for listening socket"));
 #endif
     }
 
@@ -1084,7 +1088,8 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
       setSocketSendBuffer(fd, 65000);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << e.what() << endl;
+      SLOG(g_log << Logger::Error << e.what() << endl,
+           log->error(Logr::Error, e.what(), "Exception while setting socket send buffer"));
     }
 
     listen(fd, 128);
@@ -1093,9 +1098,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
-    if (sin.sin4.sin_family == AF_INET)
-      g_log << Logger::Info << "Listening for TCP queries on " << sin.toString() << ":" << st.port << endl;
-    else
-      g_log << Logger::Info << "Listening for TCP queries on [" << sin.toString() << "]:" << st.port << endl;
+    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << sin.toStringWithPort() << endl,
+         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(sin.toStringWithPort())));
   }
 }

@@ -2289,7 +2289,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-void makeUDPServerSockets(deferredAdd_t& deferredAdds)
+void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Logger>& log)
 {
   int one = 1;
   vector<string> locals;
@@ -2317,9 +2317,10 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
     if (fd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: " + stringerror());
     }
-    if (!setSocketTimestamps(fd))
-      g_log << Logger::Warning << "Unable to enable timestamp reporting for socket" << endl;
-
+    if (!setSocketTimestamps(fd)) {
+      SLOG(g_log << Logger::Warning << "Unable to enable timestamp reporting for socket" << endl,
+           log->info(Logr::Warning,  "Unable to enable timestamp reporting for socket"));
+    }
     if (IsAnyAddress(sin)) {
       if (sin.sin4.sin_family == AF_INET)
         if (!setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one))) // linux supports this, so why not - might fail on other systems
@@ -2331,7 +2332,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 #endif
       if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
         int err = errno;
-        g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl;
+        SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
+             log->error(Logr::Error, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
       }
     }
     if (::arg().mustDo("non-local-bind"))
@@ -2369,7 +2371,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
       setSocketIgnorePMTU(fd, sin.sin4.sin_family);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << "Failed to set IP_MTU_DISCOVER on UDP server socket: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << "Failed to set IP_MTU_DISCOVER on UDP server socket: " << e.what() << endl,
+           log->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on UDP server socket"));
     }
 
     socklen_t socklen = sin.getSocklen();
@@ -2380,10 +2383,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
     deferredAdds.emplace_back(fd, handleNewUDPQuestion);
     g_listenSocketsAddresses[fd] = sin; // this is written to only from the startup thread, not from the workers
-    if (sin.sin4.sin_family == AF_INET)
-      g_log << Logger::Info << "Listening for UDP queries on " << sin.toString() << ":" << st.port << endl;
-    else
-      g_log << Logger::Info << "Listening for UDP queries on [" << sin.toString() << "]:" << st.port << endl;
+    SLOG(g_log << Logger::Info << "Listening for UDP queries on " << sin.toStringWithPort() << endl,
+         log->info(Logr::Info, "Listening forqueries", "protocol", Logging::Loggable("UDP"), "address", Logging::Loggable(sin.toStringWithPort())));
   }
 }
 
