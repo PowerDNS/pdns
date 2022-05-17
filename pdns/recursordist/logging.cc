@@ -134,7 +134,8 @@ std::string Loggable<std::vector<std::string>>::to_string() const
   for (const auto& e : _t) {
     if (!first) {
       oss << ' ';
-    } else {
+    }
+    else {
       first = false;
     }
     oss << e;

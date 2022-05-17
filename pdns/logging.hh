@@ -145,6 +145,6 @@ extern bool g_slogStructured;
 #else // No structured logging (e.g. auth)
 #define SLOG(oldStyle, slogCall) \
   do {                           \
-      oldStyle;                  \
+    oldStyle;                    \
   } while (0);
-#endif
+#endif // RECURSOR

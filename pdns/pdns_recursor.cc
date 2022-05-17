@@ -2319,7 +2319,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Log
     }
     if (!setSocketTimestamps(fd)) {
       SLOG(g_log << Logger::Warning << "Unable to enable timestamp reporting for socket" << endl,
-           log->info(Logr::Warning,  "Unable to enable timestamp reporting for socket"));
+           log->info(Logr::Warning, "Unable to enable timestamp reporting for socket"));
     }
     if (IsAnyAddress(sin)) {
       if (sin.sin4.sin_family == AF_INET)

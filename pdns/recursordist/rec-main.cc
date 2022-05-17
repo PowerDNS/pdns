@@ -953,8 +953,8 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
     }
     SLOG(g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << ::arg()[aclFile] << "' - overriding '" << aclSetting << "' setting" << endl,
          log->info(Logr::Info, "Done parsing ranges from file, will override setting", "setting", Logging::Loggable(aclSetting),
-                   "number",  Logging::Loggable(result->size()), "file", Logging::Loggable(::arg()[aclFile])));
-    }
+                   "number", Logging::Loggable(result->size()), "file", Logging::Loggable(::arg()[aclFile])));
+  }
   else if (!::arg()[aclSetting].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()[aclSetting], ", ");
@@ -1560,7 +1560,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
 #ifndef HAVE_DNS_OVER_TLS
     if (parts.size()) {
       SLOG(g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl,
-           log->info(Logr::Error,  "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
+           log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
     }
 #endif
     for (const auto& p : parts) {
@@ -1716,12 +1716,12 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
     if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
       int err = errno;
       SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << strerror(err) << ", exiting" << endl,
-           log->error(Logr::Error, err,  "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
+           log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
       exit(1);
     }
     else {
       SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
-           log->info(Logr::Info, "Chrooted", "chroot",  Logging::Loggable(::arg()["chroot"])));
+           log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
     }
   }
 
@@ -1798,7 +1798,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
     port = std::stoi(part);
     if (port < 1024 || port > 65535) {
       SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
-           log->info(Logr::Error,  "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
+           log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
       exit(99); // this isn't going to fix itself either
     }
     g_avoidUdpSourcePorts.insert(port);
@@ -2679,7 +2679,6 @@ int main(int argc, char** argv)
     g_quiet = ::arg().mustDo("quiet");
     logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     g_slogStructured = ::arg().mustDo("structured-logging");
-
 
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;

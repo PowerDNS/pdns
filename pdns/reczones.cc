@@ -159,7 +159,7 @@ bool primeHints(time_t ignored)
     }
     if (SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableA && !reachableAAAA) {
       SLOG(g_log << Logger::Error << "No valid root hints" << endl,
-           log->info(Logr::Error,  "No valid root hints"));
+           log->info(Logr::Error, "No valid root hints"));
       return false;
     }
   }
@@ -222,11 +222,11 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
 
   if (newMap->count(dr.d_name)) {
     SLOG(g_log << Logger::Warning << "Hosts file will not overwrite zone '" << dr.d_name << "' already loaded" << endl,
-         log->info(Logr::Warning, "Hosts file will not overwrite already loaded zone", "zone", Logging::Loggable( dr.d_name)));
+         log->info(Logr::Warning, "Hosts file will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
   }
   else {
     SLOG(g_log << Logger::Warning << "Inserting forward zone '" << dr.d_name << "' based on hosts file" << endl,
-         log->info(Logr::Warning,  "Inserting forward zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
+         log->info(Logr::Warning, "Inserting forward zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
     ad.d_name = dr.d_name;
     (*newMap)[ad.d_name] = ad;
   }
@@ -305,9 +305,10 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
       g_log << "to: ";
       bool first = true;
       for (const auto& a : addresses) {
-        if (!first ) {
+        if (!first) {
           g_log << ", ";
-        } else {
+        }
+        else {
           first = false;
         }
         g_log << a;
@@ -330,7 +331,7 @@ string reloadZoneConfiguration()
 {
   std::shared_ptr<SyncRes::domainmap_t> original = SyncRes::getDomainMap();
   auto log = g_slog->withName("config");
-  
+
   try {
     SLOG(g_log << Logger::Warning << "Reloading zones, purging data from cache" << endl,
          log->info(Logr::Warning, "Reloading zones, purging data from cache"));
@@ -413,7 +414,7 @@ string reloadZoneConfiguration()
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "Encountered unknown error reloading zones, keeping original data" << endl,
-          log->error(Logr::Error, "Exception", "Encountered error reloading zones, keeping original data"));
+         log->error(Logr::Error, "Exception", "Encountered error reloading zones, keeping original data"));
   }
   return "reloading failed, see log\n";
 }
@@ -445,7 +446,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       if (n == 0) {
         ad.d_rdForward = false;
         SLOG(g_log << Logger::Error << "Parsing authoritative data for zone '" << headers.first << "' from file '" << headers.second << "'" << endl,
-             log->info(Logr::Error, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file",  Logging::Loggable(headers.second)));
+             log->info(Logr::Error, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file", Logging::Loggable(headers.second)));
         ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
         zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
@@ -478,7 +479,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 
   if (!::arg()["forward-zones-file"].empty()) {
     SLOG(g_log << Logger::Warning << "Reading zone forwarding information from '" << ::arg()["forward-zones-file"] << "'" << endl,
-         log->info(Logr::Warning, "Reading zone forwarding information", "file", Logging::Loggable( ::arg()["forward-zones-file"])));
+         log->info(Logr::Warning, "Reading zone forwarding information", "file", Logging::Loggable(::arg()["forward-zones-file"])));
     auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(::arg()["forward-zones-file"].c_str(), "r"), fclose);
     if (!fp) {
       throw PDNSException("Error opening forward-zones-file '" + ::arg()["forward-zones-file"] + "': " + stringerror());
@@ -536,7 +537,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       }
     }
     SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before << " forwarding instructions from file '" << ::arg()["forward-zones-file"] << "'" << endl,
-         log->info(Logr::Warning, "Done parsing forwarding instructions from file", "file", Logging::Loggable(::arg()["forward-zones-file"]), "count",  Logging::Loggable( newMap->size() - before)));
+         log->info(Logr::Warning, "Done parsing forwarding instructions from file", "file", Logging::Loggable(::arg()["forward-zones-file"]), "count", Logging::Loggable(newMap->size() - before)));
   }
 
   if (::arg().mustDo("export-etc-hosts")) {

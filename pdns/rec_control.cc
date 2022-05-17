@@ -85,7 +85,6 @@ static void initArguments(int argc, char** argv)
   }
 }
 
-
 int main(int argc, char** argv)
 {
   g_slogStructured = false;

@@ -1040,6 +1040,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
       if (i == locals.begin()) {
         SLOG(g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl,
              log->info(Logr::Info, "Enabled TCP data-ready filter for (slight) DoS protection"));
+      }
     }
 #endif
 
