@@ -353,7 +353,7 @@ The DNS header as returned by :meth:`DNSQuestion:getDH()` represents a header of
 DNSRecord Object
 ================
 
-See :doc:`DNSRecord <../dnsrecord>`.
+See :doc:`DNSRecord <dnsrecord>`.
 
 The EDNSOptionView Class
 ========================

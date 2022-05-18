@@ -122,7 +122,8 @@ dump-rpz *ZONE NAME* *FILE NAME*
     Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
     mentioned. This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
-    questions.
+    questions. For details on how RPZ are named see
+    `<https://docs.powerdns.com/recursor/lua-config/rpz.html#policyname>`__.
 
 dump-saved-parent-ns-sets *FILE NAME*
     Dump the entries of the map containing saved parent NS sets
@@ -140,7 +141,7 @@ dump-throttlemap *FILENAME*
 
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see
-    :doc:`../metrics`
+    `<https://docs.powerdns.com/recursor/metrics.html>`__.
 
 get-all
     Retrieve all known statistics.
@@ -325,3 +326,4 @@ wipe-cache-typed *qtype* *DOMAIN* [*DOMAIN*] [...]
 See also
 --------
 :manpage:`pdns_recursor(1)`
+`<https://docs.powerdns.com/recursor>`__

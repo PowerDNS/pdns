@@ -92,6 +92,7 @@ RPZ Configuration Functions
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
+  If multiple files are to be loaded, the zones can be distinguished by setting a ``policyName``, see below.
 
   :param str filename: The filename to load
   :param {} settings: A table to settings, see below
@@ -158,7 +159,7 @@ The maximum TTL value of the synthesized records, overriding a higher value from
 
 policyName
 ^^^^^^^^^^
-The name logged as 'appliedPolicy' in :doc:`protobuf <protobuf>` messages when this policy is applied.
+The name logged as ``appliedPolicy`` in :doc:`protobuf <protobuf>` messages when this policy is applied.
 Defaults to ``rpzFile`` for RPZs loaded by :func:`rpzFile` or the name of the zone for RPZs loaded by :func:`rpzPrimary`.
 
 tags
