@@ -151,7 +151,7 @@ public:
                                                        ordered_non_unique<tag<time_t>, member<EDNSStatus, time_t, &EDNSStatus::modeSetAt>>
                                   >> {
     void reset(index<ComboAddress>::type &ind, iterator it) {
-      ind.modify(it, [](EDNSStatus &s) { s.mode = EDNSStatus::EDNSMode::UNKNOWN; s.modeSetAt = 0; }); 
+      ind.modify(it, [](EDNSStatus &s) { s.mode = EDNSStatus::EDNSMode::UNKNOWN; s.modeSetAt = 0; });
     }
     void setMode(index<ComboAddress>::type &ind, iterator it, EDNSStatus::EDNSMode mode) {
       it->mode = mode;
@@ -519,7 +519,7 @@ public:
   static const int event_trace_to_log = 2;
   static int s_event_trace_enabled;
   static bool s_save_parent_ns_set;
-  
+
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
@@ -953,4 +953,3 @@ struct ThreadTimes
     return *this;
   }
 };
-

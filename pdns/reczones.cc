@@ -19,9 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "syncres.hh"
 #include "arguments.hh"
 #include "zoneparser-tng.hh"
@@ -291,8 +293,8 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
   ad.d_servers.clear();
 
   vector<string> addresses;
-  for (vector<string>::const_iterator iter = servers.begin(); iter != servers.end(); ++iter) {
-    ComboAddress addr = parseIPAndPort(*iter, 53);
+  for (auto server = servers.begin(); server != servers.end(); ++server) {
+    ComboAddress addr = parseIPAndPort(*server, 53);
     ad.d_servers.push_back(addr);
     if (verbose) {
       addresses.push_back(addr.toStringWithPort());
@@ -540,8 +542,12 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
         newSet->insert(ad.d_name);
       }
     }
-    SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before << " forwarding instructions from file '" << ::arg()["forward-zones-file"] << "'" << endl,
-         log->info(Logr::Notice, "Done parsing forwarding instructions from file", "file", Logging::Loggable(::arg()["forward-zones-file"]), "count", Logging::Loggable(newMap->size() - before)));
+    SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before
+               << " forwarding instructions from file '"
+               << ::arg()["forward-zones-file"] << "'" << endl,
+         log->info(Logr::Notice, "Done parsing forwarding instructions from file", "file",
+                   Logging::Loggable(::arg()["forward-zones-file"]), "count",
+                   Logging::Loggable(newMap->size() - before)));
   }
 
   if (::arg().mustDo("export-etc-hosts")) {
@@ -605,8 +611,8 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 
   parts.clear();
   stringtok(parts, ::arg()["allow-notify-for"], " ,\t\n\r");
-  for (parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
-    newSet->insert(DNSName(*iter));
+  for (auto& part : parts) {
+    newSet->insert(DNSName(part));
   }
 
   if (auto anff = ::arg()["allow-notify-for-file"]; !anff.empty()) {

@@ -25,7 +25,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <vector>
-#include <errno.h>
+#include <cerrno>
 // #include <netinet/in.h>
 #include "misc.hh"
 
@@ -343,11 +343,11 @@ struct DNSRecord
     return lzrp < rzrp;
   }
 
-
   bool operator==(const DNSRecord& rhs) const
   {
-    if(d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name)
+    if (d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name) {
       return false;
+    }
 
     return *d_content == *rhs.d_content;
   }
