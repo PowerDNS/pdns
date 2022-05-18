@@ -226,7 +226,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
   }
   else {
     SLOG(g_log << Logger::Warning << "Inserting forward zone '" << dr.d_name << "' based on hosts file" << endl,
-         log->info(Logr::Warning, "Inserting forward zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
+         log->info(Logr::Notice, "Inserting forward zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
     ad.d_name = dr.d_name;
     (*newMap)[ad.d_name] = ad;
   }
@@ -275,7 +275,7 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
   else {
     if (ipparts.size() == 4) {
       SLOG(g_log << Logger::Warning << "Inserting reverse zone '" << dr.d_name << "' based on hosts file" << endl,
-           log->info(Logr::Warning, "Inserting reverse zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
+           log->info(Logr::Notice, "Inserting reverse zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
     }
     ad.d_name = dr.d_name;
     (*newMap)[ad.d_name] = ad;
@@ -334,7 +334,7 @@ string reloadZoneConfiguration()
 
   try {
     SLOG(g_log << Logger::Warning << "Reloading zones, purging data from cache" << endl,
-         log->info(Logr::Warning, "Reloading zones, purging data from cache"));
+         log->info(Logr::Notice, "Reloading zones, purging data from cache"));
 
     string configname = ::arg()["config-dir"] + "/recursor.conf";
     if (::arg()["config-name"] != "") {
@@ -479,7 +479,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 
   if (!::arg()["forward-zones-file"].empty()) {
     SLOG(g_log << Logger::Warning << "Reading zone forwarding information from '" << ::arg()["forward-zones-file"] << "'" << endl,
-         log->info(Logr::Warning, "Reading zone forwarding information", "file", Logging::Loggable(::arg()["forward-zones-file"])));
+         log->info(Logr::Notice, "Reading zone forwarding information", "file", Logging::Loggable(::arg()["forward-zones-file"])));
     auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(::arg()["forward-zones-file"].c_str(), "r"), fclose);
     if (!fp) {
       throw PDNSException("Error opening forward-zones-file '" + ::arg()["forward-zones-file"] + "': " + stringerror());
@@ -537,7 +537,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       }
     }
     SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before << " forwarding instructions from file '" << ::arg()["forward-zones-file"] << "'" << endl,
-         log->info(Logr::Warning, "Done parsing forwarding instructions from file", "file", Logging::Loggable(::arg()["forward-zones-file"]), "count", Logging::Loggable(newMap->size() - before)));
+         log->info(Logr::Notice, "Done parsing forwarding instructions from file", "file", Logging::Loggable(::arg()["forward-zones-file"]), "count", Logging::Loggable(newMap->size() - before)));
   }
 
   if (::arg().mustDo("export-etc-hosts")) {
@@ -580,7 +580,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 
   if (::arg().mustDo("serve-rfc1918")) {
     SLOG(g_log << Logger::Warning << "Inserting rfc 1918 private space zones" << endl,
-         log->info(Logr::Warning, "Inserting rfc 1918 private space zones"));
+         log->info(Logr::Notice, "Inserting rfc 1918 private space zones"));
     parts.clear();
     parts.push_back("127");
     makeIPToNamesZone(newMap, parts, log);
@@ -617,7 +617,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       newSet->insert(DNSName(line));
     }
     SLOG(g_log << Logger::Warning << "Done parsing " << newSet->size() - before << " NOTIFY-allowed zones from file '" << anff << "'" << endl,
-         log->info(Logr::Warning, "Done parsing NOTIFY-allowed zones from file", "file", Logging::Loggable(anff), "count", Logging::Loggable(newSet->size() - before)));
+         log->info(Logr::Notice, "Done parsing NOTIFY-allowed zones from file", "file", Logging::Loggable(anff), "count", Logging::Loggable(newSet->size() - before)));
   }
 
   return {newMap, newSet};

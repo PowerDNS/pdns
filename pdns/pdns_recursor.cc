@@ -2384,7 +2384,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Log
     deferredAdds.emplace_back(fd, handleNewUDPQuestion);
     g_listenSocketsAddresses[fd] = sin; // this is written to only from the startup thread, not from the workers
     SLOG(g_log << Logger::Info << "Listening for UDP queries on " << sin.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening forqueries", "protocol", Logging::Loggable("UDP"), "address", Logging::Loggable(sin.toStringWithPort())));
+         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("UDP"), "address", Logging::Loggable(sin.toStringWithPort())));
   }
 }
 

@@ -199,7 +199,7 @@ int RecThreadInfo::runThreads(std::shared_ptr<Logr::Logger>& log)
 
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
     SLOG(g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl,
-         log->info(Logr::Warning, "Operating with single distributor/worker thread"));
+         log->info(Logr::Notice, "Operating with single distributor/worker thread"));
 
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfo = RecThreadInfo::info(0);
@@ -245,14 +245,14 @@ int RecThreadInfo::runThreads(std::shared_ptr<Logr::Logger>& log)
     // And now start the actual threads
     if (RecThreadInfo::weDistributeQueries()) {
       SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl,
-           log->info(Logr::Warning, "Launching distributor threads", "count", Logging::Loggable(RecThreadInfo::numDistributors())));
+           log->info(Logr::Notice, "Launching distributor threads", "count", Logging::Loggable(RecThreadInfo::numDistributors())));
       for (unsigned int n = 0; n < RecThreadInfo::numDistributors(); ++n) {
         auto& info = RecThreadInfo::info(currentThreadId);
         info.start(currentThreadId++, "distr", cpusMap);
       }
     }
     SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl,
-         log->info(Logr::Warning, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numWorkers())));
+         log->info(Logr::Notice, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numWorkers())));
 
     for (unsigned int n = 0; n < RecThreadInfo::numWorkers(); ++n) {
       auto& info = RecThreadInfo::info(currentThreadId);
@@ -850,15 +850,15 @@ static void loggerBackend(const Logging::Entry& entry)
   buf.str("");
   buf << "msg=" << std::quoted(entry.message);
   if (entry.error) {
-    buf << " oserror=" << std::quoted(entry.error.get());
+    buf << " error=" << std::quoted(entry.error.get());
   }
 
   if (entry.name) {
     buf << " subsystem=" << std::quoted(entry.name.get());
   }
-  buf << " level=" << entry.level;
+  buf << " level=" << std::quoted(std::to_string(entry.level));
   if (entry.d_priority) {
-    buf << " prio=" << static_cast<int>(entry.d_priority);
+    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
   }
   char timebuf[64];
   buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
@@ -1216,7 +1216,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
     SyncRes::s_doIPv4 = true;
     SLOG(g_log << Logger::Warning << "Enabling IPv4 transport for outgoing queries" << endl,
-         log->info(Logr::Warning, "Enabling IPv4 transport for outgoing queries"));
+         log->info(Logr::Notice, "Enabling IPv4 transport for outgoing queries"));
   }
   else {
     SLOG(g_log << Logger::Warning << "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable" << endl,
@@ -1226,7 +1226,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     SyncRes::s_doIPv6 = true;
     SLOG(g_log << Logger::Warning << "Enabling IPv6 transport for outgoing queries" << endl,
-         log->info(Logr::Warning, "Enabling IPv6 transport for outgoing queries"));
+         log->info(Logr::Notice, "Enabling IPv6 transport for outgoing queries"));
   }
   else {
     SLOG(g_log << Logger::Warning << "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable" << endl,
@@ -1304,7 +1304,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
       g_log << Logger::Warning << endl;
     }
     else {
-      log->info(Logr::Warning, "Will not send queries to", "addresses", Logging::Loggable(ips));
+      log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::Loggable(ips));
     }
   }
 
@@ -1312,7 +1312,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
   RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
   if (RecThreadInfo::weDistributeQueries()) {
     SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
-         log->info(Logr::Warning, "PowerDNS Recursor itself will distribute queries over threads"));
+         log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads"));
   }
 
   g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
@@ -2671,9 +2671,9 @@ int main(int argc, char** argv)
 
     g_slog = Logging::Logger::create(loggerBackend);
     // Missing: a mechanism to call setVerbosity(x)
-    auto startupLog = g_slog->withName("startup");
+    auto startupLog = g_slog->withName("config");
 
-    ::arg().d_log = startupLog;
+    ::arg().setSLog(startupLog);
     if (!::arg().file(configname.c_str())) {
       SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "'" << endl,
            startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname)));
@@ -2732,17 +2732,17 @@ int main(int argc, char** argv)
   }
   catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         g_slog->withName("startup")->error(Logr::Error, ae.reason, "Exception"));
+         g_slog->withName("config")->error(Logr::Error, ae.reason, "Exception"));
     ret = EXIT_FAILURE;
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         g_slog->withName("startup")->error(Logr::Error, e.what(), "STL Exception"));
+         g_slog->withName("config")->error(Logr::Error, e.what(), "STL Exception"));
     ret = EXIT_FAILURE;
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
-         g_slog->withName("startup")->error(Logr::Error, "Unknown", "Exception"));
+         g_slog->withName("config")->error(Logr::Error, "Unknown", "Exception"));
     ret = EXIT_FAILURE;
   }
 

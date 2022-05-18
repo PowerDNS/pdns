@@ -327,7 +327,7 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
     SLOG(g_log<<Logger::Warning<<"Unable to open a file to dump the content of the RPZ zone "<<zoneName<<endl,
-         logger->error(Logr::Warning, errno, "Unable to create temporary file"));
+         logger->error(Logr::Error, errno, "Unable to create temporary file"));
     return false;
   }
 
@@ -336,7 +336,7 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
     int err = errno;
     close(fd);
     SLOG(g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName<<endl,
-         logger->error(Logr::Warning, err, "Unable to open file pointer"));
+         logger->error(Logr::Error, err, "Unable to open file pointer"));
     return false;
   }
 
@@ -345,7 +345,7 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
   }
   catch(const std::exception& e) {
     SLOG(g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName<<": "<<e.what()<<endl,
-         logger->error(Logr::Warning, e.what(), "Error while dumping the content of the RPZ"));
+         logger->error(Logr::Error, e.what(), "Error while dumping the content of the RPZ"));
     return false;
   }
 
@@ -357,19 +357,19 @@ static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSNam
 
   if (fsync(fileno(fp.get())) != 0) {
     SLOG(g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl,
-         logger->error(Logr::Warning, errno, "Error while syncing the content of the RPZ"));
+         logger->error(Logr::Error, errno, "Error while syncing the content of the RPZ"));
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
     SLOG(g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl,
-         logger->error(Logr::Warning, errno, "Error while writing the content of the RPZ"));
+         logger->error(Logr::Error, errno, "Error while writing the content of the RPZ"));
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
     SLOG(g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl,
-         logger->error(Logr::Warning, errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName)));
+         logger->error(Logr::Error, errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName)));
     return false;
   }
 
