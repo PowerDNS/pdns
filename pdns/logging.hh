@@ -66,17 +66,46 @@ struct Loggable : public Logr::Loggable
   }
 };
 template <>
-std::string Loggable<DNSName>::to_string() const;
+inline std::string Loggable<DNSName>::to_string() const
+{
+  return _t.toLogString();
+}
 template <>
-std::string Loggable<ComboAddress>::to_string() const;
+inline std::string Loggable<ComboAddress>::to_string() const
+{
+  return _t.toLogString();
+}
 template <>
-std::string Loggable<std::string>::to_string() const;
-template <>
-std::string Loggable<std::vector<std::string>>::to_string() const;
-template <>
-std::string Loggable<std::set<int>>::to_string() const;
+inline std::string Loggable<std::string>::to_string() const
+{
+  return _t;
+}
 
-// Loggable<std::string>::Loggable(const std::string& v): _t(v) {}
+template <typename T>
+struct IterLoggable : public Logr::Loggable
+{
+  const T& _t1;
+  const T& _t2;
+  IterLoggable(const T& v1, const T& v2) :
+    _t1(v1), _t2(v2)
+  {
+  }
+  std::string to_string() const
+  {
+    std::ostringstream oss;
+    bool first = true;
+    for (auto i = _t1; i != _t2; i++) {
+      if (!first) {
+        oss << ' ';
+      }
+      else {
+        first = false;
+      }
+      oss << *i;
+    }
+    return oss.str();
+  }
+};
 
 typedef void (*EntryLogger)(const Entry&);
 

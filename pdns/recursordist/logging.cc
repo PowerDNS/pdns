@@ -106,60 +106,6 @@ std::shared_ptr<Logr::Logger> Logger::withValues(const std::map<std::string, std
   return res;
 }
 
-template struct Loggable<DNSName>;
-template struct Loggable<ComboAddress>;
-template struct Loggable<std::string>;
-template struct Loggable<size_t>;
-
-template <>
-std::string Loggable<DNSName>::to_string() const
-{
-  return _t.toLogString();
-}
-template <>
-std::string Loggable<ComboAddress>::to_string() const
-{
-  return _t.toLogString();
-}
-template <>
-std::string Loggable<std::string>::to_string() const
-{
-  return _t;
-}
-template <>
-std::string Loggable<std::vector<std::string>>::to_string() const
-{
-  std::ostringstream oss;
-  bool first = true;
-  for (const auto& e : _t) {
-    if (!first) {
-      oss << ' ';
-    }
-    else {
-      first = false;
-    }
-    oss << e;
-  }
-  return oss.str();
-}
-
-template <>
-std::string Loggable<std::set<int>>::to_string() const
-{
-  std::ostringstream oss;
-  bool first = true;
-  for (const auto& e : _t) {
-    if (!first) {
-      oss << ' ';
-    }
-    else {
-      first = false;
-    }
-    oss << e;
-  }
-  return oss.str();
-}
-
 std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name) const
 {
   std::shared_ptr<Logger> res;

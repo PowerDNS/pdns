@@ -172,7 +172,7 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
       g_log << Logger::Info << endl;
     }
     else {
-      log->info(Logr::Info,  "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::Loggable(cpuMapping->second));
+      log->info(Logr::Info,  "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
     }
   }
   else {
@@ -184,7 +184,7 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
       g_log << Logger::Info << ' ' << strerror(rc) << endl;
     }
     else {
-      log->info(Logr::Warning, "Error setting CPU affinity", "thread", Logging::Loggable(n), "cpumap", Logging::Loggable(cpuMapping->second));
+      log->error(Logr::Warning, rc, "Error setting CPU affinity", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
     }
   }
 }
@@ -993,7 +993,7 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
       g_log << Logger::Info << endl;
     }
     else {
-      log->info(Logr::Info, "Setting access control", "acl", Logging::Loggable(aclSetting), "addresses", Logging::Loggable(ips));
+      log->info(Logr::Info, "Setting access control", "acl", Logging::Loggable(aclSetting), "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
     }
   }
 
@@ -1319,7 +1319,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
       g_log << Logger::Warning << endl;
     }
     else {
-      log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::Loggable(ips));
+      log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
     }
   }
 

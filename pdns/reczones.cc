@@ -317,7 +317,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
       g_log << endl;
     }
     else {
-      log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(ad.d_rdForward), "addresses", Logging::Loggable(addresses));
+      log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(ad.d_rdForward), "addresses", Logging::IterLoggable(addresses.begin(), addresses.end()));
     }
   }
 }
@@ -548,7 +548,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
     ifstream ifs(fname.c_str());
     if (!ifs) {
       SLOG(g_log << Logger::Warning << "Could not open " << fname << " for reading" << endl,
-           log->error(Logr::Warning,  "Could not open file for reading", "file", Logging::Loggable(fname)));
+           log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname)));
     }
     else {
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
