@@ -447,7 +447,7 @@ public:
   }
 
   static int runThreads(std::shared_ptr<Logr::Logger>&);
-  static void makeThreadPipes();
+  static void makeThreadPipes(std::shared_ptr<Logr::Logger>&);
 
   void setExitCode(int e)
   {
@@ -468,7 +468,7 @@ public:
   uint64_t numberOfDistributedQueries{0};
 
 private:
-  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap);
+  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, std::shared_ptr<Logr::Logger>&);
 
   std::string name;
   std::thread thread;
@@ -480,7 +480,7 @@ private:
   bool listener{false};
   // process queries
   bool worker{false};
-  // run async tasks: from TastQueue and ZoneToCache
+  // run async tasks: from TaskQueue and ZoneToCache
   bool taskThread{false};
 
   static thread_local unsigned int t_id;

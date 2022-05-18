@@ -53,9 +53,11 @@ bool primeHints(time_t ignored)
 
   time_t now = time(nullptr);
 
+  auto log = g_slog->withName("config");
   const string hintfile = ::arg()["hint-file"];
   if (hintfile == "no") {
-    g_log << Logger::Debug << "Priming root disabled by hint-file=no" << endl;
+    SLOG(g_log << Logger::Debug << "Priming root disabled by hint-file=no" << endl,
+         log->info(Logr::Debug, "Priming root disabled by hint-file=no"));
     return true;
   }
   if (hintfile.empty()) {
@@ -146,7 +148,6 @@ bool primeHints(time_t ignored)
         break;
       }
     }
-    auto log = g_slog->withName("config");
     if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
       SLOG(g_log << Logger::Error << "Running IPv4 only but no IPv4 root hints" << endl,
            log->info(Logr::Error, "Running IPv4 only but no IPv4 root hints"));
@@ -546,7 +547,8 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 
     ifstream ifs(fname.c_str());
     if (!ifs) {
-      g_log << Logger::Warning << "Could not open " << fname << " for reading" << endl;
+      SLOG(g_log << Logger::Warning << "Could not open " << fname << " for reading" << endl,
+           log->error(Logr::Warning,  "Could not open file for reading", "file", Logging::Loggable(fname)));
     }
     else {
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
@@ -602,7 +604,8 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   }
 
   if (auto anff = ::arg()["allow-notify-for-file"]; !anff.empty()) {
-    g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << anff << "'" << endl;
+    SLOG(g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << anff << "'" << endl,
+         log->info(Logr::Notice, "Reading NOTIFY-allowed zones from file", "file", Logging::Loggable(anff)));
     auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(anff.c_str(), "r"), fclose);
     if (!fp) {
       throw PDNSException("Error opening allow-notify-for-file '" + anff + "': " + stringerror());

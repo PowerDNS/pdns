@@ -73,6 +73,8 @@ template <>
 std::string Loggable<std::string>::to_string() const;
 template <>
 std::string Loggable<std::vector<std::string>>::to_string() const;
+template <>
+std::string Loggable<std::set<int>>::to_string() const;
 
 // Loggable<std::string>::Loggable(const std::string& v): _t(v) {}
 

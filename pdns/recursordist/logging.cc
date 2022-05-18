@@ -143,6 +143,23 @@ std::string Loggable<std::vector<std::string>>::to_string() const
   return oss.str();
 }
 
+template <>
+std::string Loggable<std::set<int>>::to_string() const
+{
+  std::ostringstream oss;
+  bool first = true;
+  for (const auto& e : _t) {
+    if (!first) {
+      oss << ' ';
+    }
+    else {
+      first = false;
+    }
+    oss << e;
+  }
+  return oss.str();
+}
+
 std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name) const
 {
   std::shared_ptr<Logger> res;
