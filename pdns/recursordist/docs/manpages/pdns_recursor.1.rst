@@ -119,3 +119,4 @@ See also
 --------
 :manpage:`rec_control(1)`
 :manpage:`systemctl(1)`
+`<https://docs.powerdns.com/recursor>`__
