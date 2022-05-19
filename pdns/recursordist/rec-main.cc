@@ -352,7 +352,7 @@ ArgvMap& arg()
   return theArg;
 }
 
-static FDMultiplexer* getMultiplexer()
+static FDMultiplexer* getMultiplexer(std::shared_ptr<Logr::Logger>& log)
 {
   FDMultiplexer* ret;
   for (const auto& i : FDMultiplexer::getMultiplexerMap()) {
@@ -361,13 +361,16 @@ static FDMultiplexer* getMultiplexer()
       return ret;
     }
     catch (FDMultiplexerException& fe) {
-      g_log << Logger::Error << "Non-fatal error initializing possible multiplexer (" << fe.what() << "), falling back" << endl;
+      SLOG(g_log << Logger::Error << "Non-fatal error initializing possible multiplexer (" << fe.what() << "), falling back" << endl,
+           log->error(Logr::Error, fe.what(), "Non-fatal error initializing possible multiplexer, falling back"));
     }
     catch (...) {
-      g_log << Logger::Error << "Non-fatal error initializing possible multiplexer" << endl;
+      SLOG(g_log << Logger::Error << "Non-fatal error initializing possible multiplexer" << endl,
+           log->info(Logr::Error, "Non-fatal error initializing possible multiplexer"));
     }
   }
-  g_log << Logger::Error << "No working multiplexer found!" << endl;
+  SLOG(g_log << Logger::Error << "No working multiplexer found!" << endl,
+       log->info(Logr::Error, "No working multiplexer found!"));
   _exit(1);
 }
 
@@ -667,7 +670,7 @@ static void makeControlChannelSocket(int processNum = -1)
   }
 }
 
-static void writePid(void)
+static void writePid(std::shared_ptr<Logr::Logger>& log)
 {
   if (!::arg().mustDo("write-pid"))
     return;
@@ -676,12 +679,12 @@ static void writePid(void)
     of << Utility::getpid() << endl;
   else {
     int err = errno;
-    g_log << Logger::Error << "Writing pid for " << Utility::getpid() << " to " << g_pidfname << " failed: "
-          << stringerror(err) << endl;
+    SLOG(g_log << Logger::Error << "Writing pid for " << Utility::getpid() << " to " << g_pidfname << " failed: " << stringerror(err) << endl,
+         log->error(Logr::Error, err, "Writing pid failed", "pid", Logging::Loggable(Utility::getpid()), "file", Logging::Loggable(g_pidfname)));
   }
 }
 
-static void checkSocketDir(void)
+static void checkSocketDir(std::shared_ptr<Logr::Logger>& log)
 {
   struct stat st;
   string dir(::arg()["socket-dir"]);
@@ -699,12 +702,13 @@ static void checkSocketDir(void)
   else {
     return;
   }
-  g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl;
+  SLOG(g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl,
+       log->error(Logr::Error, msg, "Problem with socket directory, see see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0"));
   _exit(1);
 }
 
 #ifdef NOD_ENABLED
-static void setupNODThread()
+static void setupNODThread(std::shared_ptr<Logr::Logger>& log)
 {
   if (g_nodEnabled) {
     uint32_t num_cells = ::arg().asNum("new-domain-db-size");
@@ -713,11 +717,13 @@ static void setupNODThread()
       t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl;
+      SLOG(g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl,
+           log->error(Logr::Error, e.reason, "new-domain-history-dir is not readbale or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
       _exit(1);
     }
     if (!t_nodDBp->init()) {
-      g_log << Logger::Error << "Could not initialize domain tracking" << endl;
+      SLOG(g_log << Logger::Error << "Could not initialize domain tracking" << endl,
+           log->info(Logr::Error, "Could not initialize domain tracking"));
       _exit(1);
     }
     std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
@@ -731,11 +737,13 @@ static void setupNODThread()
       t_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist" << endl;
+      SLOG(g_log << Logger::Error << "unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist" << endl,
+           log->info(Logr::Error, "unique-response-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["unique-response-history-dir"])));
       _exit(1);
     }
     if (!t_udrDBp->init()) {
-      g_log << Logger::Error << "Could not initialize unique response tracking" << endl;
+      SLOG(g_log << Logger::Error << "Could not initialize unique response tracking" << endl,
+           log->info(Logr::Error, "Could not initialize unique response tracking"));
       _exit(1);
     }
     std::thread t(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
@@ -768,7 +776,7 @@ static void setupNODGlobal()
 }
 #endif /* NOD_ENABLED */
 
-static void daemonize(void)
+static void daemonize(std::shared_ptr<Logr::Logger>& log)
 {
   if (fork())
     exit(0); // bye bye
@@ -776,8 +784,11 @@ static void daemonize(void)
   setsid();
 
   int i = open("/dev/null", O_RDWR); /* open stdin */
-  if (i < 0)
-    g_log << Logger::Critical << "Unable to open /dev/null: " << stringerror() << endl;
+  if (i < 0) {
+    int err = errno;
+    SLOG(g_log << Logger::Critical << "Unable to open /dev/null: " << stringerror(err) << endl,
+         log->error(Logr::Critical, err, "Unable to open /dev/null"));
+  }
   else {
     dup2(i, 0); /* stdin */
     dup2(i, 1); /* stderr */
@@ -803,20 +814,21 @@ static void usr2Handler(int)
   ::arg().set("quiet") = g_quiet ? "" : "no";
 }
 
-static void checkLinuxIPv6Limits()
+static void checkLinuxIPv6Limits(std::shared_ptr<Logr::Logger>& log)
 {
 #ifdef __linux__
   string line;
   if (readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
     int lim = std::stoi(line);
     if (lim < 16384) {
-      g_log << Logger::Error << "If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to " << lim << " which is < 16384" << endl;
+      SLOG(g_log << Logger::Error << "If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to " << lim << " which is < 16384" << endl,
+           log->info(Logr::Error, "If using IPv6, please raise sysctl net.ipv6.route.max_size to a size >= 16384", "current", Logging::Loggable(lim)));
     }
   }
 #endif
 }
 
-static void checkOrFixFDS()
+static void checkOrFixFDS(std::shared_ptr<Logr::Logger>& log)
 {
   unsigned int availFDs = getFilenumLimit();
   unsigned int wantFDs = g_maxMThreads * RecThreadInfo::numWorkers() + 25; // even healthier margin then before
@@ -826,11 +838,13 @@ static void checkOrFixFDS()
     unsigned int hardlimit = getFilenumLimit(true);
     if (hardlimit >= wantFDs) {
       setFilenumLimit(wantFDs);
-      g_log << Logger::Warning << "Raised soft limit on number of filedescriptors to " << wantFDs << " to match max-mthreads and threads settings" << endl;
+      SLOG(g_log << Logger::Warning << "Raised soft limit on number of filedescriptors to " << wantFDs << " to match max-mthreads and threads settings" << endl,
+           log->info(Logr::Warning, "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "limit", Logging::Loggable(wantFDs)));
     }
     else {
       int newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / RecThreadInfo::numWorkers();
-      g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl;
+      SLOG(g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl,
+           log->info(Logr::Warning, "Insufficient number of filedescriptors available for max-mthreads*threads setting! Reducing max-mthreads", "hardlimit", Logging::Loggable(hardlimit), "want", Logging::Loggable(wantFDs), "max-mthreads", Logging::Loggable(newval)));
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
     }
@@ -1218,7 +1232,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
 
   g_disthashseed = dns_random(0xffffffff);
 
-  checkLinuxIPv6Limits();
+  checkLinuxIPv6Limits(log);
   try {
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   }
@@ -1672,7 +1686,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
     SLOG(g_log << Logger::Warning << "Calling daemonize, going to background" << endl,
          log->info(Logr::Warning, "Calling daemonize, going to background"));
     g_log.toConsole(Logger::Critical);
-    daemonize();
+    daemonize(log);
   }
   if (Utility::getpid() == 1) {
     /* We are running as pid 1, register sigterm and sigint handler
@@ -1696,7 +1710,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
   signal(SIGUSR2, usr2Handler);
   signal(SIGPIPE, SIG_IGN);
 
-  checkOrFixFDS();
+  checkOrFixFDS(log);
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
@@ -1746,12 +1760,12 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
     }
   }
 
-  checkSocketDir();
+  checkSocketDir(log);
 
   g_pidfname = ::arg()["socket-dir"] + "/" + g_programname + ".pid";
   if (!g_pidfname.empty())
     unlink(g_pidfname.c_str()); // remove possible old pid file
-  writePid();
+  writePid(log);
 
   makeControlChannelSocket(::arg().asNum("processes") > 1 ? forks : -1);
 
@@ -2133,6 +2147,7 @@ static void houseKeeping(void*)
 
 static void recursorThread()
 {
+  auto log = g_slog->withName("runtime");
   try {
     auto& threadInfo = RecThreadInfo::self();
     {
@@ -2162,7 +2177,7 @@ static void recursorThread()
 
 #ifdef NOD_ENABLED
     if (threadInfo.isWorker())
-      setupNODThread();
+      setupNODThread(log);
 #endif /* NOD_ENABLED */
 
     /* the listener threads handle TCP queries */
@@ -2214,7 +2229,7 @@ static void recursorThread()
     checkFrameStreamExport(luaconfsLocal);
 #endif
 
-    t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer());
+    t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
 
     std::unique_ptr<RecursorWebServer> rws;
 
