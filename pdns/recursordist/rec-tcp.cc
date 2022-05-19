@@ -1100,6 +1100,6 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     SLOG(g_log << Logger::Info << "Listening for TCP queries on " << sin.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(sin.toStringWithPort())));
+         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(sin)));
   }
 }

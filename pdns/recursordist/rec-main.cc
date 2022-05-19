@@ -172,7 +172,7 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
       g_log << Logger::Info << endl;
     }
     else {
-      log->info(Logr::Info,  "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
+      log->info(Logr::Info, "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
     }
   }
   else {

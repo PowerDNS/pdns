@@ -50,6 +50,36 @@ struct Entry
   Logr::Priority d_priority; // (syslog) priority)
 };
 
+// Warning: some meta-programming is going on.  We define helper
+// templates that can be used to see if specific string output
+// functions are available.  If so, we use those instead of << into an
+// ostringstream. Note that this decision happpens compile time.
+// Some hints taken from https://www.cppstories.com/2019/07/detect-overload-from-chars/
+// (I could not get function templates with enabled_if<> to work in this case)
+//
+// Default: std::string(T) is not available
+template <typename T, typename = void>
+struct is_to_string_available : std::false_type
+{
+};
+
+// If std::string(T) is available this template is used
+template <typename T>
+struct is_to_string_available<T, std::void_t<decltype(std::to_string(std::declval<T>()))>> : std::true_type
+{
+};
+
+// Same mechanism for t.toLogString()
+template <typename T, typename = void>
+struct is_toLogString_available : std::false_type
+{
+};
+
+template <typename T>
+struct is_toLogString_available<T, std::void_t<decltype(std::declval<T>().toLogString())>> : std::true_type
+{
+};
+
 template <typename T>
 struct Loggable : public Logr::Loggable
 {
@@ -60,26 +90,22 @@ struct Loggable : public Logr::Loggable
   }
   std::string to_string() const
   {
-    std::ostringstream oss;
-    oss << _t;
-    return oss.str();
+    if constexpr (std::is_same_v<T, std::string>) {
+      return _t;
+    }
+    else if constexpr (is_to_string_available<T>::value) {
+      return std::to_string(_t);
+    }
+    else if constexpr (is_toLogString_available<T>::value) {
+      return _t.toLogString();
+    }
+    else {
+      std::ostringstream oss;
+      oss << _t;
+      return oss.str();
+    }
   }
 };
-template <>
-inline std::string Loggable<DNSName>::to_string() const
-{
-  return _t.toLogString();
-}
-template <>
-inline std::string Loggable<ComboAddress>::to_string() const
-{
-  return _t.toLogString();
-}
-template <>
-inline std::string Loggable<std::string>::to_string() const
-{
-  return _t;
-}
 
 template <typename T>
 struct IterLoggable : public Logr::Loggable
