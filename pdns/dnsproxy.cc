@@ -37,6 +37,8 @@
 #include "stubresolver.hh"
 #include "arguments.hh"
 #include "threadname.hh"
+#include "ednsoptions.hh"
+#include "ednssubnet.hh"
 
 extern StatBag S;
 
@@ -94,11 +96,11 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   if(r->d_tcp) {
     vector<DNSZoneRecord> ips;
     int ret1 = 0, ret2 = 0;
-
+// rip out edns info here, pass it to the stubDoResolve
     if(r->qtype == QType::A || r->qtype == QType::ANY)
-      ret1 = stubDoResolve(target, QType::A, ips);
+      ret1 = stubDoResolve(target, QType::A, ips, &r->d_eso);
     if(r->qtype == QType::AAAA || r->qtype == QType::ANY)
-      ret2 = stubDoResolve(target, QType::AAAA, ips);
+      ret2 = stubDoResolve(target, QType::AAAA, ips, &r->d_eso);
 
     if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
       g_log<<Logger::Error<<"Error resolving for "<<aname<<" ALIAS "<<target<<" over UDP, original query came in over TCP";
@@ -127,6 +129,14 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     return true;
   }
 
+  bool pass_edns = false;
+  DNSPacketWriter::optvect_t opts;
+  if (r->hasEDNSSubnet())
+  {
+    string origECSOptionStr = makeEDNSSubnetOptsString(r->d_eso);
+    opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
+    pass_edns = true;
+  }
   uint16_t id;
   uint16_t qtype = r->qtype.getCode();
   {
@@ -151,6 +161,11 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   DNSPacketWriter pw(packet, target, qtype);
   pw.getHeader()->rd=true;
   pw.getHeader()->id=id ^ d_xor;
+  // Add EDNS Subnet
+  if (pass_edns)
+  {
+    pw.addOpt(512, 0, 0, opts);
+  }
 
   if(send(d_sock,&packet[0], packet.size() , 0)<0) { // zoom
     g_log<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;

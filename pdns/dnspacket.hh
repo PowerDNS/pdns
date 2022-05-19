@@ -172,6 +172,7 @@ public:
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
+  EDNSSubnetOpts d_eso; //moved to pass along to stubDoResolve
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
@@ -183,7 +184,6 @@ private:
   vector<DNSZoneRecord> d_rrs; // 8
   std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
-  EDNSSubnetOpts d_eso;
   EDNSCookiesOpt d_eco;
 
   int d_maxreplylen{0};

@@ -52,7 +52,7 @@ try
 
   vector<DNSZoneRecord> ret;
 
-  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(type), ret);
+  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(type), ret, nullptr);
 
   cout<<"res: "<<res<<endl;
   for(const auto& r : ret) {

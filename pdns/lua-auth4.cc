@@ -24,7 +24,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->writeFunction("resolve", [](const std::string& qname, uint16_t qtype) {
       std::vector<DNSZoneRecord> ret;
       std::unordered_map<int, DNSResourceRecord> luaResult;
-      stubDoResolve(DNSName(qname), qtype, ret);
+      stubDoResolve(DNSName(qname), qtype, ret, nullptr);
       int i = 0;
       for(const auto &row: ret) {
         luaResult[++i] = DNSResourceRecord::fromWire(row.dr);
