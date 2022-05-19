@@ -660,6 +660,8 @@ stubquery_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -792,6 +794,8 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \

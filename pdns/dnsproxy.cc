@@ -37,6 +37,8 @@
 #include "stubresolver.hh"
 #include "arguments.hh"
 #include "threadname.hh"
+#include "ednsoptions.hh"
+#include "ednssubnet.hh"
 
 extern StatBag S;
 
@@ -91,14 +93,23 @@ void DNSProxy::go()
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
 bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask)
 {
+  string ECSOptionStr;
+
+  if (r->hasEDNSSubnet())
+  {
+    DLOG(g_log<<"dnsproxy::completePacket: Parsed edns source: "<<r->d_eso.source.toString()<<", scope: "<<r->d_eso.scope.toString()<<", family = "<<r->d_eso.scope.getNetwork().sin4.sin_family<<endl);
+    ECSOptionStr = makeEDNSSubnetOptsString(r->d_eso);
+    DLOG(g_log<<"from dnsproxy::completePacket: Creating ECS option string "<<makeHexDump(ECSOptionStr)<<endl);
+  }
+
   if(r->d_tcp) {
     vector<DNSZoneRecord> ips;
     int ret1 = 0, ret2 = 0;
-
+    // rip out edns info here, pass it to the stubDoResolve
     if(r->qtype == QType::A || r->qtype == QType::ANY)
-      ret1 = stubDoResolve(target, QType::A, ips);
+      ret1 = stubDoResolve(target, QType::A, ips, r->hasEDNSSubnet() ? &r->d_eso : nullptr);
     if(r->qtype == QType::AAAA || r->qtype == QType::ANY)
-      ret2 = stubDoResolve(target, QType::AAAA, ips);
+      ret2 = stubDoResolve(target, QType::AAAA, ips, r->hasEDNSSubnet() ? &r->d_eso : nullptr);
 
     if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
       g_log<<Logger::Error<<"Error resolving for "<<aname<<" ALIAS "<<target<<" over UDP, original query came in over TCP";
@@ -151,6 +162,14 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   DNSPacketWriter pw(packet, target, qtype);
   pw.getHeader()->rd=true;
   pw.getHeader()->id=id ^ d_xor;
+  // Add EDNS Subnet if the client sent one - issue #5469
+  if (!ECSOptionStr.empty()) {
+    DLOG(g_log<<"from dnsproxy::completePacket: adding ECS option string to packet options "<<makeHexDump(ECSOptionStr)<<endl);
+    DNSPacketWriter::optvect_t opts;
+    opts.emplace_back(EDNSOptionCode::ECS, ECSOptionStr);
+    pw.addOpt(512, 0, 0, opts);
+    pw.commit();
+  }
 
   if(send(d_sock,&packet[0], packet.size() , 0)<0) { // zoom
     g_log<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
@@ -236,9 +255,8 @@ void DNSProxy::mainloop()
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        DNSPacket p(false),q(false);
+        DNSPacket p(false);
         p.parse(buffer,(size_t)len);
-        q.parse(buffer,(size_t)len);
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           g_log<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
@@ -250,10 +268,14 @@ void DNSProxy::mainloop()
         memset(&msgh, 0, sizeof(struct msghdr));
         string reply; // needs to be alive at time of sendmsg!
         MOADNSParser mdp(false, p.getString());
-        //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+        if (p.d_eso.scope.isValid()){
+          // update the EDNS options with info from the resolver - issue #5469
+          i->second.complete->d_eso = p.d_eso;
+          DLOG(g_log<<"from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: "<<i->second.complete->d_eso.source.toString()<<" EDNS scope: "<<i->second.complete->d_eso.scope.toString()<<endl);
+        }
+
         if (mdp.d_header.rcode == RCode::NoError) {
-          for (auto& answer : mdp.d_answers) {
-            //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
+          for(const auto & answer : mdp.d_answers) {        
             if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
               if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
@@ -267,6 +289,7 @@ void DNSProxy::mainloop()
               }
             }
           }
+
           i->second.complete->setRcode(mdp.d_header.rcode);
         } else {
           g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).toString()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
