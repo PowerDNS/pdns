@@ -316,15 +316,15 @@ struct SuffixMatchTree
     }
     return *this;
   }
+  bool operator<(const SuffixMatchTree& rhs) const
+  {
+    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
+  }
   
   std::string d_name;
   mutable std::set<SuffixMatchTree, std::less<>> children;
   mutable bool endNode;
   mutable T d_value;
-  bool operator<(const SuffixMatchTree& rhs) const
-  {
-    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
-  }
 
   /* this structure is used to do a lookup without allocating and
      copying a string, using C++14's heterogeneous lookups in ordered
