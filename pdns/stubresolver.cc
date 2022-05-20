@@ -15,6 +15,7 @@
 #include "namespaces.hh"
 #include "statbag.hh"
 #include "stubresolver.hh"
+#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 
 #define LOCAL_RESOLV_CONF_PATH "/etc/resolv.conf"
@@ -106,15 +107,6 @@ void stubParseResolveConf()
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
 int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, EDNSSubnetOpts* d_eso)
 {
-  DLOG(g_log<<"We are in stubDoResolve"<<endl);
-  if (d_eso != nullptr){
-      
-      DLOG(g_log<<Logger::Error<<"we got d_eso! "<<endl);
-  }
-  else{
-      DLOG(g_log<<Logger::Error<<"no d_eso passed in "<<endl);
-  }
-
   // ensure resolver gets always configured
   if (!s_stubResolvConfigured) {
     stubParseResolveConf();
@@ -132,6 +124,16 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   DNSPacketWriter pw(packet, qname, qtype);
   pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
+  
+  if(d_eso != nullptr)
+  {
+    // pass along EDNS subnet from client if given - issue #5469
+    string origECSOptionStr = makeEDNSSubnetOptsString(*d_eso);
+    DNSPacketWriter::optvect_t opts;
+    opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
+    pw.addOpt(512, 0, 0, opts);
+    pw.commit();
+  }
 
   string queryNameType = qname.toString() + "|" + QType(qtype).toString();
   string msg ="Doing stub resolving for '" + queryNameType + "', using resolvers: ";
