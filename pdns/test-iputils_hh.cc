@@ -162,6 +162,27 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_ComboAddressReverse)
+{
+  ComboAddress a{"1.2.3.4"};
+  BOOST_CHECK_EQUAL(a.toStringReversed(), "4.3.2.1");
+
+  ComboAddress b{"192.168.0.1"};
+  BOOST_CHECK_EQUAL(b.toStringReversed(), "1.0.168.192");
+
+  ComboAddress c{"2001:db8::567:89ab"};
+  BOOST_CHECK_EQUAL(c.toStringReversed(), "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2");
+
+  ComboAddress d{"::1"};
+  BOOST_CHECK_EQUAL(d.toStringReversed(), "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0");
+
+  ComboAddress e{"ab:cd::10"};
+  BOOST_CHECK_EQUAL(e.toStringReversed(), "0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.0.0.b.a.0.0");
+
+  ComboAddress f{"4321:0:1:2:3:4:567:89ab"};
+  BOOST_CHECK_EQUAL(f.toStringReversed(), "b.a.9.8.7.6.5.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.0.0.0.0.1.2.3.4");
+}
+
 BOOST_AUTO_TEST_CASE(test_Mapping)
 {
   ComboAddress lh("::1");
