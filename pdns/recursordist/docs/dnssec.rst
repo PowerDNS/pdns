@@ -36,7 +36,7 @@ Responses to client queries are the same as with `process`_.
 ``validate``
 ^^^^^^^^^^^^
 The highest mode of DNSSEC processing.
-In this mode, all responses will be be validated and and queries will be answered with a SERVFAIL in case of bogus data, even if the client did not request validation by setting the AD or DO bit.
+In this mode, all responses will be be validated and queries will be answered with a SERVFAIL in case of bogus data, even if the client did not request validation by setting the AD or DO bit.
 
 **Note**: the CD-bit is honored for ``process``, ``log-fail`` and
 ``validate``. This mean that even if validation fails, results are
