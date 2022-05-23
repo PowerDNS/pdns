@@ -1718,6 +1718,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setVerbose", [](bool verbose) { g_verbose = verbose; });
+  luaCtx.writeFunction("getVerbose", []() { return g_verbose; });
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
 
   luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {

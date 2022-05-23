@@ -538,6 +538,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getTLSContext", true, "n", "returns the TLS context with index n" },
   { "getTLSFrontend", true, "n", "returns the TLS frontend with index n" },
   { "getTLSFrontendCount", true, "", "returns the number of DoT listeners" },
+  { "getVerbose", true, "", "get whether log messages at the verbose level will be logged" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
   { "hashPassword", true, "password [, workFactor]", "Returns a hashed and salted version of the supplied password, usable with 'setWebserverConfig()'"},
   { "HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
