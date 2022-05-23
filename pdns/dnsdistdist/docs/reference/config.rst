@@ -1067,6 +1067,12 @@ Status, Statistics and More
 
   :param bool verbose: Set to true if you want to enable verbose logging
 
+.. function:: getVerbose(verbose)
+
+  .. versionadded:: 1.8.0
+
+  Get whether log messages issued at the verbose level should be logged. This is turned off by default.
+
 .. function:: setVerboseHealthChecks(verbose)
 
   Set whether health check errors should be logged. This is turned off by default.
