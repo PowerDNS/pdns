@@ -3288,7 +3288,7 @@ New features
 -  Added support for DHCID, IPSECKEY and KX records, thanks Norbert
    Sendetzky for the hint. Implemented in `commit
    1144 <http://wiki.powerdns.com/projects/trac/changeset/1144>`__.
--  Norbert Sendetzky has has added support for all record types
+-  Norbert Sendetzky has added support for all record types
    supported by PowerDNS to the LDAPBackend. Furthermore, the detection
    of OpenLDAP in autoconf has been improved. Finally, debian has
    supplied some fixes to PowerLDAP. Implemented in `commit
