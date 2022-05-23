@@ -687,7 +687,7 @@ If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA).
 
 If this is disabled (the default), ALIAS records will not be expanded and
-the server will will return NODATA for A/AAAA queries for such names.
+the server will return NODATA for A/AAAA queries for such names.
 
 .. note::
   :ref:`setting-resolver` must also be set for ALIAS expansion to work!
