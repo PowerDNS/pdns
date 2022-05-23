@@ -990,7 +990,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.8.0
 
-  Return the link-level address (MAC) corresponding to the supplied remote IP address, if known by the kernel.
+  Return the link-level address (MAC) corresponding to the supplied neighbour IP address, if known by the kernel.
   This function is only implemented on Linux.
 
   :param str ip: The IP address, IPv4 or IPv6, to look up the corresponding link-level address for.
