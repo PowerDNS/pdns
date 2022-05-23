@@ -1067,7 +1067,7 @@ Status, Statistics and More
 
   :param bool verbose: Set to true if you want to enable verbose logging
 
-.. function:: getVerbose(verbose)
+.. function:: getVerbose()
 
   .. versionadded:: 1.8.0
 
