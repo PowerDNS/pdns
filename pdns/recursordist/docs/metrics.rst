@@ -33,7 +33,7 @@ This ratio can be greater than 100% since additional queries could be needed to 
 217 outgoing tcp connections were done, there were 0 queries running at the moment and 9155 queries to authoritative servers saw timeouts.
 
 The packets cache had 4536 entries and 82% of queries were served from it.
-The workload of the the worker queries was 175728 and 169484 respectively.
+The workload of the worker queries was 175728 and 169484 respectively.
 Finally, measured in the last half hour, an average of 1 qps was performed.
 
 Multi-threading and metrics

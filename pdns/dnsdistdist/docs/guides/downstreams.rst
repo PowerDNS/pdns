@@ -97,7 +97,7 @@ channel.
 
 The TCP-only mode for a backend can be enabled by using the ``tcpOnly`` parameter of the :func:`newServer` command.
 
-The DNS over TLS mode via the the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the
+The DNS over TLS mode via the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the
 validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers
 used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
 
