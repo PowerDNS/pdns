@@ -40,7 +40,7 @@ static int g_cacheweekno;
 const static std::set<uint16_t> g_KSKSignedQTypes {QType::DNSKEY, QType::CDS, QType::CDNSKEY};
 AtomicCounter* g_signatureCount;
 
-static std::string getLookupKey(const std::string& msg)
+static std::string getLookupKeyFromMessage(const std::string& msg)
 {
   try {
     return pdns_md5(msg);
@@ -50,10 +50,10 @@ static std::string getLookupKey(const std::string& msg)
   }
 }
 
-static std::string hashPublicKey(const std::string& pubKey)
+static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
 {
   /* arbitrarily cut off at 64 bytes, the main idea is to save space
-     for very large keys like RSA ones (1024+ bytes) by storing a 20 bytes hash
+     for very large keys like RSA ones (1024+ bits so 128+ bytes) by storing a 20 bytes hash
      instead */
   if (pubKey.size() <= 64) {
     return pubKey;
@@ -72,11 +72,10 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   rrc.d_algorithm = drc.d_algorithm;
 
   string msg = getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
-  pair<string, string> lookup(hashPublicKey(drc.d_key), getLookupKey(msg));  // this hash is a memory saving exercise
+  pair<string, string> lookup(getLookupKeyFromPublicKey(drc.d_key), getLookupKeyFromMessage(msg));  // this hash is a memory saving exercise
 
-  bool doCache=true;
-  if(doCache)
-  {
+  bool doCache = true;
+  if (doCache) {
     auto signatures = g_signatures.read_lock();
     signaturecache_t::const_iterator iter = signatures->find(lookup);
     if (iter != signatures->end()) {
