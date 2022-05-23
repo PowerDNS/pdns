@@ -176,4 +176,4 @@ taken from the generic MySQL backend, and modified for syntax:
 References
 ^^^^^^^^^^
 
-See `this Github issue <https://github.com/PowerDNS/pdns/issues/5375#issuecomment-644771800>`__ for the original tests and a full working schema.
+See `this GitHub issue <https://github.com/PowerDNS/pdns/issues/5375#issuecomment-644771800>`__ for the original tests and a full working schema.
