@@ -191,7 +191,6 @@ extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;
-extern NetmaskGroup g_XPFAcl;
 extern thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers;
 extern thread_local std::shared_ptr<RecursorLua4> t_pdl;
 extern bool g_gettagNeedsEDNSOptions;
@@ -218,7 +217,6 @@ extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
 extern bool g_addExtendedResolutionDNSErrors;
-extern uint16_t g_xpfRRCode;
 extern NetmaskGroup g_proxyProtocolACL;
 extern std::atomic<bool> g_statsWanted;
 extern uint32_t g_disthashseed;
@@ -505,8 +503,7 @@ bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
-                       bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest);
+                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options);
 void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,

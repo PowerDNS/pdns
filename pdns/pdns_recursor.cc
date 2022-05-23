@@ -31,7 +31,6 @@
 #include "responsestats.hh"
 #include "shuffle.hh"
 #include "validate-recursor.hh"
-#include "xpf.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -64,7 +63,6 @@ typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all
 
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism (without actually using sendfromto())
-NetmaskGroup g_XPFAcl;
 NetmaskGroup g_paddingFrom;
 size_t g_proxyProtocolMaximumSize;
 size_t g_maxUDPQueriesPerRound;
@@ -1726,10 +1724,8 @@ void startDoResolve(void* p)
 }
 
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
-                       bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
+                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options)
 {
-  const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
   const bool lookForECS = ednssubnet != nullptr;
   const dnsheader_aligned dnshead(question.data());
   const dnsheader* dh = dnshead.get();
@@ -1741,9 +1737,9 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
   const size_t headerSize = /* root */ 1 + sizeof(dnsrecordheader);
   const uint16_t arcount = ntohs(dh->arcount);
 
-  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && ((lookForECS && !foundECS) || (lookForXPF && !foundXPF)); arpos++) {
+  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && (lookForECS && !foundECS); arpos++) {
     if (question.at(pos) != 0) {
-      /* not an OPT or a XPF, bye. */
+      /* not an OPT, bye. */
       return;
     }
 
@@ -1784,13 +1780,6 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
           }
         }
       }
-    }
-    else if (lookForXPF && ntohs(drh->d_type) == g_xpfRRCode && ntohs(drh->d_class) == QClass::IN && drh->d_ttl == 0) {
-      if ((questionLen - pos) < ntohs(drh->d_clen)) {
-        return;
-      }
-
-      foundXPF = parseXPFPayload(reinterpret_cast<const char*>(&question.at(pos)), ntohs(drh->d_clen), *xpfSource, xpfDest);
     }
 
     pos += ntohs(drh->d_clen);
@@ -1903,7 +1892,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   unsigned int ctag = 0;
   uint32_t qhash = 0;
   bool needECS = false;
-  bool needXPF = g_XPFAcl.match(fromaddr);
   std::unordered_set<std::string> policyTags;
   std::map<std::string, RecursorLua4::MetaValue> meta;
   LuaContext::LuaObject data;
@@ -1956,16 +1944,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #endif
 
     // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
-    if (needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi)) || dh->opcode == Opcode::Notify) {
+    if (needECS || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi)) || dh->opcode == Opcode::Notify) {
       try {
         EDNSOptionViewMap ednsOptions;
-        bool xpfFound = false;
 
         ecsFound = false;
 
         getQNameAndSubnet(question, &qname, &qtype, &qclass,
-                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
-                          xpfFound, needXPF ? &source : nullptr, needXPF ? &destination : nullptr);
+                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
 
         qnameParsed = true;
         ecsParsed = true;

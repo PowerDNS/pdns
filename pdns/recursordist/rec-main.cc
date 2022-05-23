@@ -82,7 +82,6 @@ thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 std::atomic<bool> statsWanted;
 uint32_t g_disthashseed;
 bool g_useIncomingECS;
-uint16_t g_xpfRRCode{0};
 NetmaskGroup g_proxyProtocolACL;
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
@@ -1572,9 +1571,6 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
-  g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
-  g_xpfRRCode = ::arg().asNum("xpf-rr-code");
-
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
@@ -2725,9 +2721,6 @@ int main(int argc, char** argv)
 
     ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level") = "no";
 
-    ::arg().set("xpf-allow-from", "XPF information is only processed from these subnets") = "";
-    ::arg().set("xpf-rr-code", "XPF option code to use") = "0";
-
     ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets") = "";
     ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
 
@@ -2769,7 +2762,7 @@ int main(int argc, char** argv)
 
     ::arg().set("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC processing or validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198") = "100000";
 
-    ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies") = "";
+    ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies") = "";
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources") = "padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.") = "7830";
 

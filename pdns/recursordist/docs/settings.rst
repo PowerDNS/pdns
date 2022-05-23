@@ -689,7 +689,7 @@ Lower this if you experience timeouts.
 -  Comma separated list of netmasks
 -  Default: (none)
 
-List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
+List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
 
 .. _setting-edns-padding-mode:
 
@@ -2412,12 +2412,15 @@ If a PID file should be written to `socket-dir`_
 ------------------
 .. versionadded:: 4.2.0
 
+.. versionchanged:: 4.8.0
+   This setting was removed.
+
 -  IP addresses or netmasks, separated by commas
 -  Default: empty
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
-  This is a deprecated feature that will be removed in the near future.
+  This is a deprecated feature that was removed starting with version 4.8.0.
 
 The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
 and will adjust queries' source and destination accordingly. This is especially useful when the recursor
@@ -2431,12 +2434,15 @@ should be done on the proxy.
 ---------------
 .. versionadded:: 4.2.0
 
+.. versionchanged:: 4.8.0
+   This setting was removed.
+
 -  Integer
 -  Default: 0
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
-  This is a deprecated feature that will be removed in the near future.
+  This is a deprecated feature that was removed starting with version 4.8.0.
 
 This option sets the resource record code to use for XPF records, as long as an official code has not been assigned to it.
 0 means that XPF is disabled.
