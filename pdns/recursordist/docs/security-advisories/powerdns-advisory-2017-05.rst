@@ -15,7 +15,7 @@ PowerDNS Security Advisory 2017-05: Cross-Site Scripting in the web interface
 
 An issue has been found in the web interface of PowerDNS Recursor, where the
 qname of DNS queries was displayed without any escaping, allowing a remote
-attacker to inject HTML and Javascript code into the web interface, altering
+attacker to inject HTML and JavaScript code into the web interface, altering
 the content. This issue has been assigned CVE-2017-15092.
 
 PowerDNS Recursor from 4.0.0 up to and including 4.0.6 are affected.
