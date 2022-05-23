@@ -465,22 +465,34 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   }
 
   if (::arg().mustDo("export-etc-hosts")) {
-    string line;
     string fname = ::arg()["etc-hosts-file"];
-
     ifstream ifs(fname.c_str());
     if (!ifs) {
       SLOG(g_log << Logger::Warning << "Could not open " << fname << " for reading" << endl,
            log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname)));
     }
     else {
+      std::string line{};
       while (getline(ifs, line)) {
         if (!parseEtcHostsLine(parts, line)) {
           continue;
         }
 
-        string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
-        addForwardAndReverseLookupEntries(newMap, searchSuffix, parts, log);
+        try {
+          string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
+          addForwardAndReverseLookupEntries(*newMap, searchSuffix, parts, log);
+        }
+        catch (const PDNSException& ex) {
+          SLOG(g_log << Logger::Warning
+                     << "The line `" << line << "` "
+                     << "in the provided etc-hosts file `" << fname << "` "
+                     << "could not be added: " << ex.reason << ". Going to skip it."
+                     << endl,
+               log->info(Logr::Notice, "Skipping line in etc-hosts file",
+                         "line", Logging::Loggable(line),
+                         "hosts-file", Logging::Loggable(fname),
+                         "reason", Logging::Loggable(ex.reason)));
+        }
       }
     }
   }
@@ -488,17 +500,13 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   if (::arg().mustDo("serve-rfc1918")) {
     SLOG(g_log << Logger::Warning << "Inserting rfc 1918 private space zones" << endl,
          log->info(Logr::Notice, "Inserting rfc 1918 private space zones"));
-    parts.clear();
-    parts.push_back("127");
-    makeIPToNamesZone(newMap, parts, log);
-    parts[0] = "10";
-    makeIPToNamesZone(newMap, parts, log);
 
-    parts[0] = "192.168";
-    makeIPToNamesZone(newMap, parts, log);
+    makePartialIPZone(*newMap, {"127"}, log);
+    makePartialIPZone(*newMap, {"10"}, log);
+    makePartialIPZone(*newMap, {"192", "168"}, log);
+
     for (int n = 16; n < 32; n++) {
-      parts[0] = "172." + std::to_string(n);
-      makeIPToNamesZone(newMap, parts, log);
+      makePartialIPZone(*newMap, {"172", std::to_string(n).c_str()}, log);
     }
   }
 

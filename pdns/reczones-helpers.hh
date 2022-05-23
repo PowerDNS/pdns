@@ -39,7 +39,11 @@ void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap,
 //! A return value `false` means that the line cannot be parsed (e.g. unsupported IPv6).
 bool parseEtcHostsLine(std::vector<std::string>& parts, std::string& line);
 
-void addForwardAndReverseLookupEntries(const std::shared_ptr<SyncRes::domainmap_t>& newMap,
+void makePartialIPZone(SyncRes::domainmap_t& newMap,
+                       std::initializer_list<const char*> labels,
+                       Logr::log_t log);
+
+void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
                                        const std::string& searchSuffix,
                                        const std::vector<std::string>& parts,
                                        Logr::log_t log);

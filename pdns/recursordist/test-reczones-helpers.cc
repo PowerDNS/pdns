@@ -8,12 +8,16 @@
 
 BOOST_AUTO_TEST_SUITE(reczones_helpers)
 
-static const std::array<std::string, 5> hostLines = {
+static const std::array<std::string, 9> hostLines = {
   "192.168.0.1             foo bar\n",
   "192.168.0.1             dupfoo\n",
   "192.168.0.2             baz\n",
   "1.1.1.1                 fancy\n",
   "2.2.2.2                 more.fancy\n",
+  "2001:db8::567:89ab      foo6 bar6\n",
+  "2001:db8::567:89ab      dupfoo6\n",
+  "::1                     localhost self\n",
+  "2001:db8::567:89ac      some.address.somewhere some some.address\n",
 };
 
 struct Fixture
@@ -94,6 +98,42 @@ struct Fixture
         DNSRecord("2.2.2.2.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("2.2.2.2.in-addr.arpa", makePtrDRC("more.fancy."), QType::PTR),
       });
+
+    addDomainMapFixtureEntry("foo6", QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry("bar6", QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry("dupfoo6", QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry(
+      "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa",
+      {
+        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
+        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
+        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("foo6."), QType::PTR),
+        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("bar6."), QType::PTR),
+      });
+
+    addDomainMapFixtureEntry("localhost", QType::AAAA, "::1");
+    addDomainMapFixtureEntry("self", QType::AAAA, "::1");
+    addDomainMapFixtureEntry(
+      "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+      {
+        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostDRC(), QType::NS),
+        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
+        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("localhost."), QType::PTR),
+        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("self."), QType::PTR),
+      });
+
+    addDomainMapFixtureEntry("some", QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry("some.address.somewhere", QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry("some.address", QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry(
+      "c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa",
+      {
+        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
+        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
+        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some.address.somewhere."), QType::PTR),
+        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some."), QType::PTR),
+        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some.address."), QType::PTR),
+      });
   }
 
   using DomainMapEntry = std::pair<DNSName, SyncRes::AuthDomain>;
@@ -139,7 +179,7 @@ BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
   std::vector<std::string> parts{};
   for (auto line : hostLines) {
     BOOST_REQUIRE(parseEtcHostsLine(parts, line));
-    addForwardAndReverseLookupEntries(domainMap, "", parts, log);
+    addForwardAndReverseLookupEntries(*domainMap, "", parts, log);
   }
 
   auto actual = sortDomainMap(*domainMap);
@@ -155,9 +195,6 @@ BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
     BOOST_CHECK(actual[i].first == expected[i].first);
     BOOST_CHECK(actual[i].second == expected[i].second);
   }
-
-  // BOOST_CHECK_EQUAL(actual, expected);
-  // BOOST_CHECK(actualSorted == expectedSorted);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
