@@ -986,7 +986,7 @@ Status, Statistics and More
   Return the list of network interfaces configured on the system, as strings.
   This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
 
-.. function:: getMacAddress(ip)
+.. function:: getMACAddress(ip)
 
   .. versionadded:: 1.8.0
 
