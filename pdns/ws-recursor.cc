@@ -119,10 +119,10 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
 
   // Return currently configured ACLs
   vector<string> entries;
-  if (aclType == "allow-from") {
+  if (t_allowFrom && aclType == "allow-from") {
     t_allowFrom->toStringVector(&entries);
   }
-  else if (aclType == "allow-notify-from") {
+  else if (t_allowNotifyFrom && aclType == "allow-notify-from") {
     t_allowNotifyFrom->toStringVector(&entries);
   }
 
