@@ -1211,6 +1211,10 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
         continue;
       }
 
+      if (ca.sin4.sin_family == AF_INET6 && ca.sin6.sin6_scope_id != 0 && static_cast<int32_t>(ca.sin6.sin6_scope_id) != nd->ndm_ifindex) {
+        continue;
+      }
+
       for (; done == false && RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
         if (rtatp->rta_type == NDA_DST){
           if (nd->ndm_family == AF_INET) {
