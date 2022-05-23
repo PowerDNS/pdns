@@ -85,6 +85,12 @@ This state can be modified from the various hooks.
     :param int type: The type of the new value, ranging from 0 to 255 (both included)
     :param str value: The binary-safe value
 
+  .. method:: DNSQuestion:getContent() -> str
+
+    .. versionadded:: 1.8.0
+
+    Get the content of the DNS packet as a string
+
   .. method:: DNSQuestion:getDO() -> bool
 
     Get the value of the DNSSEC OK bit.
