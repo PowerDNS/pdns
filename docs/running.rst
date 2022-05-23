@@ -31,7 +31,7 @@ inner process as well.
 Logging to syslog on systemd-based operating systems
 ----------------------------------------------------
 
-By default, logging to syslog is disabled in the the systemd unit file
+By default, logging to syslog is disabled in the systemd unit file
 to prevent the service logging twice, as the systemd journal picks up
 the output from the process itself.
 

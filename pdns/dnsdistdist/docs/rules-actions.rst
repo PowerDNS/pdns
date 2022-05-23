@@ -857,7 +857,7 @@ Combining Rules
 
 .. function:: OrRule(selectors)
 
-  Matches the traffic if one or more of the the ``selectors`` Rules does match.
+  Matches the traffic if one or more of the ``selectors`` Rules does match.
 
   :param {Rule} selector: A table of Rules
 
@@ -974,7 +974,7 @@ The following actions exist.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
-  Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  Send the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
 
@@ -984,7 +984,7 @@ The following actions exist.
 
 .. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
 
-  Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  Send the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
 

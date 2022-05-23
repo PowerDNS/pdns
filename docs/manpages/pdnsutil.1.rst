@@ -99,7 +99,7 @@ remove-zone-key *ZONE* *KEY-ID*
     Remove a key with id *KEY-ID* from a zone called *ZONE*.
 set-nsec3 *ZONE* ['*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*'] [**narrow**]
     Sets NSEC3 parameters for this zone. The quoted parameters are 4
-    values that are used for the the NSEC3PARAM record and decide how
+    values that are used for the NSEC3PARAM record and decide how
     NSEC3 records are created. The NSEC3 parameters must be quoted on
     the command line. *HASH-ALGORITHM* must be 1 (SHA-1). Setting
     *FLAGS* to 1 enables NSEC3 opt-out operation. Only do this if you
