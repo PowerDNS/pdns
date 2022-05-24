@@ -127,10 +127,10 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   
   if(d_eso != nullptr)
   {
-    EDNSSubnetOpts d_eso2;
-    d_eso2.source = d_eso->source;
+    // EDNSSubnetOpts d_eso2;
+    // d_eso2.source = d_eso->source;
     // pass along EDNS subnet from client if given - issue #5469
-    string origECSOptionStr = makeEDNSSubnetOptsString(d_eso2);
+    string origECSOptionStr = makeEDNSSubnetOptsString(*d_eso);
     DNSPacketWriter::optvect_t opts;
     opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
     pw.addOpt(512, 0, 0, opts);
