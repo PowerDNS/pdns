@@ -994,7 +994,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, std::shared_ptr<Logr::Logger>& log)
+void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
 {
   int fd;
   vector<string> locals;

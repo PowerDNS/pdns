@@ -111,7 +111,7 @@ unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numWorkerThreads;
 thread_local unsigned int RecThreadInfo::t_id;
 
-static std::map<unsigned int, std::set<int>> parseCPUMap(std::shared_ptr<Logr::Logger>& log)
+static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
   std::map<unsigned int, std::set<int>> result;
 
@@ -156,7 +156,7 @@ static std::map<unsigned int, std::set<int>> parseCPUMap(std::shared_ptr<Logr::L
   return result;
 }
 
-static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsigned int n, pthread_t tid, std::shared_ptr<Logr::Logger>& log)
+static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsigned int n, pthread_t tid, Logr::log_t log)
 {
   const auto& cpuMapping = cpusMap.find(n);
   if (cpuMapping == cpusMap.cend()) {
@@ -191,7 +191,7 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
 
 static void recursorThread();
 
-void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<unsigned int, std::set<int>>& cpusMap, std::shared_ptr<Logr::Logger>& log)
+void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t log)
 {
   name = tname;
   thread = std::thread([id, tname] {
@@ -203,7 +203,7 @@ void RecThreadInfo::start(unsigned int id, const string& tname, const std::map<u
   setCPUMap(cpusMap, id, thread.native_handle(), log);
 }
 
-int RecThreadInfo::runThreads(std::shared_ptr<Logr::Logger>& log)
+int RecThreadInfo::runThreads(Logr::log_t log)
 {
   int ret = EXIT_SUCCESS;
   unsigned int currentThreadId = 1;
@@ -291,7 +291,7 @@ int RecThreadInfo::runThreads(std::shared_ptr<Logr::Logger>& log)
   return ret;
 }
 
-void RecThreadInfo::makeThreadPipes(std::shared_ptr<Logr::Logger>& log)
+void RecThreadInfo::makeThreadPipes(Logr::log_t log)
 {
   auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
   if (pipeBufferSize > 0) {
@@ -352,7 +352,7 @@ ArgvMap& arg()
   return theArg;
 }
 
-static FDMultiplexer* getMultiplexer(std::shared_ptr<Logr::Logger>& log)
+static FDMultiplexer* getMultiplexer(Logr::log_t log)
 {
   FDMultiplexer* ret;
   for (const auto& i : FDMultiplexer::getMultiplexerMap()) {
@@ -670,7 +670,7 @@ static void makeControlChannelSocket(int processNum = -1)
   }
 }
 
-static void writePid(std::shared_ptr<Logr::Logger>& log)
+static void writePid(Logr::log_t log)
 {
   if (!::arg().mustDo("write-pid"))
     return;
@@ -684,7 +684,7 @@ static void writePid(std::shared_ptr<Logr::Logger>& log)
   }
 }
 
-static void checkSocketDir(std::shared_ptr<Logr::Logger>& log)
+static void checkSocketDir(Logr::log_t log)
 {
   struct stat st;
   string dir(::arg()["socket-dir"]);
@@ -708,7 +708,7 @@ static void checkSocketDir(std::shared_ptr<Logr::Logger>& log)
 }
 
 #ifdef NOD_ENABLED
-static void setupNODThread(std::shared_ptr<Logr::Logger>& log)
+static void setupNODThread(Logr::log_t log)
 {
   if (g_nodEnabled) {
     uint32_t num_cells = ::arg().asNum("new-domain-db-size");
@@ -776,7 +776,7 @@ static void setupNODGlobal()
 }
 #endif /* NOD_ENABLED */
 
-static void daemonize(std::shared_ptr<Logr::Logger>& log)
+static void daemonize(Logr::log_t log)
 {
   if (fork())
     exit(0); // bye bye
@@ -814,7 +814,7 @@ static void usr2Handler(int)
   ::arg().set("quiet") = g_quiet ? "" : "no";
 }
 
-static void checkLinuxIPv6Limits(std::shared_ptr<Logr::Logger>& log)
+static void checkLinuxIPv6Limits(Logr::log_t log)
 {
 #ifdef __linux__
   string line;
@@ -828,7 +828,7 @@ static void checkLinuxIPv6Limits(std::shared_ptr<Logr::Logger>& log)
 #endif
 }
 
-static void checkOrFixFDS(std::shared_ptr<Logr::Logger>& log)
+static void checkOrFixFDS(Logr::log_t log)
 {
   unsigned int availFDs = getFilenumLimit();
   unsigned int wantFDs = g_maxMThreads * RecThreadInfo::numWorkers() + 25; // even healthier margin then before
@@ -964,7 +964,7 @@ static void doStats(void)
   statsWanted = false;
 }
 
-static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const std::string& aclSetting, std::shared_ptr<Logr::Logger>& log)
+static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const std::string& aclSetting, Logr::log_t log)
 {
   auto result = std::make_shared<NetmaskGroup>();
 
@@ -1212,7 +1212,7 @@ template vector<ComboAddress> broadcastAccFunction(const std::function<vector<Co
 template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
 template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
 
-static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& log)
+static int serviceMain(int argc, char* argv[], Logr::log_t log)
 {
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));

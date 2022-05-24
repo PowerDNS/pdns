@@ -175,4 +175,6 @@ private:
     return;
   }
 };
+
+using log_t = const std::shared_ptr<Logger>&;
 }

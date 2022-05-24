@@ -17,7 +17,7 @@
 uint32_t g_security_status;
 string g_security_message;
 
-void doSecPoll(time_t* last_secpoll, std::shared_ptr<Logr::Logger>& log)
+void doSecPoll(time_t* last_secpoll, Logr::log_t log)
 {
   if (::arg()["security-poll-suffix"].empty())
     return;

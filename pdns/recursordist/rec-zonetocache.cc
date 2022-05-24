@@ -40,7 +40,7 @@
 
 struct ZoneData
 {
-  ZoneData(shared_ptr<Logr::Logger>& log, const std::string& zone) :
+  ZoneData(Logr::log_t log, const std::string& zone) :
     d_log(log),
     d_zone(zone),
     d_now(time(nullptr)) {}
@@ -53,7 +53,7 @@ struct ZoneData
   // Maybe use a SuffixMatchTree?
   std::set<DNSName> d_delegations;
 
-  shared_ptr<Logr::Logger>& d_log;
+  Logr::log_t d_log;
   DNSName d_zone;
   time_t d_now;
 

@@ -5670,7 +5670,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   return res;
 }
 
-int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, std::shared_ptr<Logr::Logger>& log) {
+int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t log) {
   SyncRes sr(now);
   sr.setDoEDNS0(true);
   sr.setUpdatingRootNS();

@@ -41,7 +41,7 @@ vState increaseXDNSSECStateCounter(const vState& state)
 }
 
 // Returns true if dsAnchors were modified
-bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors, std::shared_ptr<Logr::Logger>& log)
+bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors, Logr::log_t log)
 {
   map<DNSName, dsmap_t> newDSAnchors;
   try {

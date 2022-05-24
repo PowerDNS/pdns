@@ -552,7 +552,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
 }
 
 #ifdef NOD_ENABLED
-static bool nodCheckNewDomain(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname)
+static bool nodCheckNewDomain(Logr::log_t nodlogger, const DNSName& dname)
 {
   bool ret = false;
   // First check the (sub)domain isn't ignored for NOD purposes
@@ -570,7 +570,7 @@ static bool nodCheckNewDomain(const shared_ptr<Logr::Logger>& nodlogger, const D
   return ret;
 }
 
-static void sendNODLookup(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname)
+static void sendNODLookup(Logr::log_t nodlogger, const DNSName& dname)
 {
   if (!(g_nodLookupDomain.isRoot())) {
     // Send a DNS A query to <domain>.g_nodLookupDomain
@@ -591,7 +591,7 @@ static void sendNODLookup(const shared_ptr<Logr::Logger>& nodlogger, const DNSNa
   }
 }
 
-static bool udrCheckUniqueDNSRecord(const shared_ptr<Logr::Logger>& nodlogger, const DNSName& dname, uint16_t qtype, const DNSRecord& record)
+static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname, uint16_t qtype, const DNSRecord& record)
 {
   bool ret = false;
   if (record.d_place == DNSResourceRecord::ANSWER || record.d_place == DNSResourceRecord::ADDITIONAL) {
@@ -2289,7 +2289,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Logger>& log)
+void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 {
   int one = 1;
   vector<string> locals;

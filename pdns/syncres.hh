@@ -184,7 +184,7 @@ public:
   static uint64_t doDumpSavedParentNSSets(int fd);
   static uint64_t doDumpDoTProbeMap(int fd);
 
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, std::shared_ptr<Logr::Logger>&);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery)
