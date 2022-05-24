@@ -27,6 +27,7 @@
 #endif
 
 #include "logger.hh"
+#include "logr.hh"
 #include "lua-recursor4.hh"
 #include "mplexer.hh"
 #include "namespaces.hh"
@@ -445,8 +446,8 @@ public:
     return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
   }
 
-  static int runThreads();
-  static void makeThreadPipes();
+  static int runThreads(std::shared_ptr<Logr::Logger>&);
+  static void makeThreadPipes(std::shared_ptr<Logr::Logger>&);
 
   void setExitCode(int e)
   {
@@ -467,7 +468,7 @@ public:
   uint64_t numberOfDistributedQueries{0};
 
 private:
-  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap);
+  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, std::shared_ptr<Logr::Logger>&);
 
   std::string name;
   std::thread thread;
@@ -479,7 +480,7 @@ private:
   bool listener{false};
   // process queries
   bool worker{false};
-  // run async tasks: from TastQueue and ZoneToCache
+  // run async tasks: from TaskQueue and ZoneToCache
   bool taskThread{false};
 
   static thread_local unsigned int t_id;
@@ -495,6 +496,7 @@ struct ThreadMSG
   bool wantAnswer;
 };
 
+void parseACLs();
 PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
 bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal);
@@ -523,10 +525,10 @@ bool expectProxyProtocol(const ComboAddress& from);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active);
 void checkTFOconnect();
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets);
+void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, std::shared_ptr<Logr::Logger>&);
 void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
 
-void makeUDPServerSockets(deferredAdd_t& deferredAdds);
+void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Logger>&);
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"

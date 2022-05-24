@@ -478,6 +478,7 @@ rec_control_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
 	logger.cc \
+	logging.cc \
 	misc.cc \
 	qtype.cc \
 	rec_channel.cc rec_channel.hh \

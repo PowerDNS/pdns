@@ -22,8 +22,10 @@
 
 #pragma once
 
+#include <array>
 #include <string>
 #include <memory>
+#include <map>
 
 // Minimal logging API based on https://github.com/go-logr/logr
 
@@ -63,6 +65,15 @@ public:
   // logs.
   virtual bool enabled(Priority) const = 0;
 
+  static std::string toString(Priority arg)
+  {
+    const std::array<std::string, 8> names = {"Absent", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};
+    auto p = static_cast<unsigned int>(arg);
+    if (p >= names.size()) {
+      return "?";
+    }
+    return names.at(p);
+  }
   // Info logs a non-error message with the given key/value pairs as context.
   //
   // The msg argument should be used to add some constant description to
