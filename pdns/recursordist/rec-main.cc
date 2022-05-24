@@ -1949,6 +1949,7 @@ private:
 
 static void houseKeeping(void*)
 {
+  auto log = g_slog->withName("housekeeping");
   static thread_local bool t_running; // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
 
   try {
@@ -2051,8 +2052,8 @@ static void houseKeeping(void*)
       // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s
       const unsigned int minRootRefreshInterval = 10;
       static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval)};
-      rootUpdateTask.runIfDue(now, [=]() {
-        int res = SyncRes::getRootNS(now, nullptr, 0);
+      rootUpdateTask.runIfDue(now, [now, &log, minRootRefreshInterval]() {
+        int res = SyncRes::getRootNS(now, nullptr, 0, log);
         if (res == 0) {
           // Success, go back to the defaut period
           rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
@@ -2060,19 +2061,24 @@ static void houseKeeping(void*)
             primeRootNSZones(g_dnssecmode, 0);
           }
           catch (const std::exception& e) {
-            g_log << Logger::Error << "Exception while priming the root NS zones: " << e.what() << endl;
+            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.what() << endl,
+                 log->error(Logr::Error, e.what(), "Exception while priming the root NS zones"));
           }
           catch (const PDNSException& e) {
-            g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl;
+            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl,
+                 log->error(Logr::Error, e.reason, "Exception while priming the root NS zones"));
           }
           catch (const ImmediateServFailException& e) {
-            g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl;
+            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl,
+                 log->error(Logr::Error, e.reason, "Exception while priming the root NS zones"));
           }
           catch (const PolicyHitException& e) {
-            g_log << Logger::Error << "Policy hit while priming the root NS zones" << endl;
+            SLOG(g_log << Logger::Error << "Policy hit while priming the root NS zones" << endl,
+                 log->info(Logr::Error, "Policy hit while priming the root NS zones"));
           }
           catch (...) {
-            g_log << Logger::Error << "Exception while priming the root NS zones" << endl;
+            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones" << endl,
+                 log->info(Logr::Error, "Exception while priming the root NS zones"));
           }
         }
         else {
@@ -2085,24 +2091,29 @@ static void houseKeeping(void*)
 
       static PeriodicTask secpollTask{"secpollTask", 3600};
       static time_t t_last_secpoll;
-      secpollTask.runIfDue(now, []() {
+      secpollTask.runIfDue(now, [&log]() {
         try {
-          doSecPoll(&t_last_secpoll);
+          doSecPoll(&t_last_secpoll, log);
         }
         catch (const std::exception& e) {
-          g_log << Logger::Error << "Exception while performing security poll: " << e.what() << endl;
+          SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.what() << endl,
+               log->error(Logr::Error, e.what(), "Exception while performing security poll"));
         }
         catch (const PDNSException& e) {
-          g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl;
+          SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl,
+               log->error(Logr::Error, e.reason, "Exception while performing security poll"));
         }
         catch (const ImmediateServFailException& e) {
-          g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl;
+          SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl,
+               log->error(Logr::Error, e.reason, "Exception while performing security poll"));
         }
         catch (const PolicyHitException& e) {
-          g_log << Logger::Error << "Policy hit while performing security poll" << endl;
+          SLOG(g_log << Logger::Error << "Policy hit while performing security poll" << endl,
+               log->info(Logr::Error, "Policy hit while performing security poll"));
         }
         catch (...) {
-          g_log << Logger::Error << "Exception while performing security poll" << endl;
+          SLOG(g_log << Logger::Error << "Exception while performing security poll" << endl,
+               log->info(Logr::Error, "Exception while performing security poll"));
         }
       });
 
@@ -2114,19 +2125,21 @@ static void houseKeeping(void*)
       }
       // interval might have ben updated
       trustAnchorTask.setPeriod(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval) * 3600);
-      trustAnchorTask.runIfDue(now, [&luaconfsLocal]() {
+      trustAnchorTask.runIfDue(now, [&luaconfsLocal, &log]() {
         if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
-          g_log << Logger::Debug << "Refreshing Trust Anchors from file" << endl;
+          SLOG(g_log << Logger::Debug << "Refreshing Trust Anchors from file" << endl,
+               log->info(Logr::Debug, "Refreshing Trust Anchors from file"));
           try {
             map<DNSName, dsmap_t> dsAnchors;
-            if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors)) {
+            if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors, log)) {
               g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
                 lci.dsAnchors = dsAnchors;
               });
             }
           }
           catch (const PDNSException& pe) {
-            g_log << Logger::Error << "Unable to update Trust Anchors: " << pe.reason << endl;
+            SLOG(g_log << Logger::Error << "Unable to update Trust Anchors: " << pe.reason << endl,
+                 log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors"));
           }
         }
       });
@@ -2135,12 +2148,14 @@ static void houseKeeping(void*)
   }
   catch (const PDNSException& ae) {
     t_running = false;
-    g_log << Logger::Error << "Fatal error in housekeeping thread: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "Fatal error in housekeeping thread: " << ae.reason << endl,
+         log->error(Logr::Error, ae.reason, "Fatal error in housekeeping thread"));
     throw;
   }
   catch (...) {
     t_running = false;
-    g_log << Logger::Error << "Uncaught exception in housekeeping thread" << endl;
+    SLOG(g_log << Logger::Error << "Uncaught exception in housekeeping thread" << endl,
+         log->info(Logr::Error, "Uncaught exception in housekeeping thread"));
     throw;
   }
 }
@@ -2164,9 +2179,11 @@ static void recursorThread()
         if (!primeHints()) {
           threadInfo.setExitCode(EXIT_FAILURE);
           RecursorControlChannel::stop = 1;
-          g_log << Logger::Critical << "Priming cache failed, stopping" << endl;
+          SLOG(g_log << Logger::Critical << "Priming cache failed, stopping" << endl,
+               log->info(Logr::Critical, "Priming cache failed, stopping"));
         }
-        g_log << Logger::Debug << "Done priming cache with root hints" << endl;
+        SLOG(g_log << Logger::Debug << "Done priming cache with root hints" << endl,
+             log->info(Logr::Debug, "Done priming cache with root hints"));
       }
     }
 
@@ -2186,11 +2203,13 @@ static void recursorThread()
         if (!::arg()["lua-dns-script"].empty()) {
           t_pdl = std::make_shared<RecursorLua4>();
           t_pdl->loadFile(::arg()["lua-dns-script"]);
-          g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl;
+          SLOG(g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl,
+               log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
         }
       }
       catch (std::exception& e) {
-        g_log << Logger::Error << "Failed to load 'lua' script from '" << ::arg()["lua-dns-script"] << "': " << e.what() << endl;
+        SLOG(g_log << Logger::Error << "Failed to load 'lua' script from '" << ::arg()["lua-dns-script"] << "': " << e.what() << endl,
+             log->error(Logr::Error, e.what(), "Failed to load Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
         _exit(99);
       }
     }
@@ -2299,7 +2318,7 @@ static void recursorThread()
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
       if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
-        MT->makeThread(houseKeeping, 0);
+        MT->makeThread(houseKeeping, nullptr);
       }
 
       if (!(s_counter % 55)) {
