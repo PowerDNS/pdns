@@ -1143,33 +1143,118 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
-int getMACAddress(const ComboAddress& ca, char* dest, size_t len)
-{
 #ifdef __linux__
-  ifstream ifs("/proc/net/arp");
-  if (len < 6) {
-    return EINVAL;
+#include <linux/rtnetlink.h>
+
+int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
+{
+  struct {
+    struct nlmsghdr headermsg;
+    struct ndmsg neighbormsg;
+  } request;
+
+  std::array<char, 8192> buffer;
+
+  auto sock = FDWrapper(socket(AF_NETLINK, SOCK_RAW|SOCK_CLOEXEC, NETLINK_ROUTE));
+  if (sock.getHandle() == -1) {
+    return errno;
   }
-  if (!ifs) {
-    return EIO;
-  }
-  string line;
-  string match = ca.toString() + ' ';
-  while(getline(ifs, line)) {
-    if(boost::starts_with(line, match)) {
-      vector<string> parts;
-      stringtok(parts, line, " \n\t\r");
-      if (parts.size() < 4)
-        return ENOENT;
-      if (sscanf(parts[3].c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", dest, dest+1, dest+2, dest+3, dest+4, dest+5) != 6) {
-        return ENOENT;
+
+  memset(&request, 0, sizeof(request));
+  request.headermsg.nlmsg_len = NLMSG_LENGTH(sizeof(struct ndmsg));
+  request.headermsg.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+  request.headermsg.nlmsg_type = RTM_GETNEIGH;
+  request.neighbormsg.ndm_family = ca.sin4.sin_family;
+
+  while (true) {
+    ssize_t sent = send(sock.getHandle(), &request, sizeof(request), 0);
+    if (sent == -1) {
+      if (errno == EINTR) {
+        continue;
       }
-      return 0;
+      return errno;
+    }
+    else if (static_cast<size_t>(sent) != sizeof(request)) {
+      return EIO;
+    }
+    break;
+  }
+
+  bool done = false;
+  bool foundIP = false;
+  bool foundMAC = false;
+  do {
+    ssize_t got = recv(sock.getHandle(), buffer.data(), buffer.size(), 0);
+
+    if (got < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return errno;
+    }
+
+    size_t remaining = static_cast<size_t>(got);
+    for (struct nlmsghdr* nlmsgheader = reinterpret_cast<struct nlmsghdr*>(buffer.data());
+         done == false && NLMSG_OK (nlmsgheader, remaining);
+         nlmsgheader = reinterpret_cast<struct nlmsghdr*>(NLMSG_NEXT(nlmsgheader, remaining))) {
+
+      if (nlmsgheader->nlmsg_type == NLMSG_DONE) {
+        done = true;
+        break;
+      }
+
+      auto nd = reinterpret_cast<struct ndmsg*>(NLMSG_DATA(nlmsgheader));
+      auto rtatp = reinterpret_cast<struct rtattr*>(reinterpret_cast<char*>(nd) + NLMSG_ALIGN(sizeof(struct ndmsg)));
+      int rtattrlen = nlmsgheader->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
+
+      if (nd->ndm_family != ca.sin4.sin_family) {
+        continue;
+      }
+
+      if (ca.sin4.sin_family == AF_INET6 && ca.sin6.sin6_scope_id != 0 && static_cast<int32_t>(ca.sin6.sin6_scope_id) != nd->ndm_ifindex) {
+        continue;
+      }
+
+      for (; done == false && RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
+        if (rtatp->rta_type == NDA_DST){
+          if (nd->ndm_family == AF_INET) {
+            auto inp = reinterpret_cast<struct in_addr*>(RTA_DATA(rtatp));
+            if (inp->s_addr == ca.sin4.sin_addr.s_addr) {
+              foundIP = true;
+            }
+          }
+          else if (nd->ndm_family == AF_INET6) {
+            auto inp = reinterpret_cast<struct in6_addr *>(RTA_DATA(rtatp));
+            if (memcmp(inp->s6_addr, ca.sin6.sin6_addr.s6_addr, sizeof(ca.sin6.sin6_addr.s6_addr)) == 0) {
+              foundIP = true;
+            }
+          }
+        }
+        else if (rtatp->rta_type == NDA_LLADDR) {
+          if (foundIP) {
+            if ((rtatp->rta_len - sizeof(struct rtattr)) != destLen) {
+              return EINVAL;
+            }
+            memcpy(dest, reinterpret_cast<const char*>(rtatp) + sizeof(struct rtattr), destLen);
+            foundMAC = true;
+            done = true;
+            break;
+          }
+        }
+      }
     }
   }
-#endif
+  while (done == false);
+
+  return foundMAC ? 0 : ENOENT;
+}
+#else
+int getMACAddress(const ComboAddress& ca, char* dest, size_t len)
+{
   return ENOENT;
 }
+#endif /* __linux__ */
+
 string getMACAddress(const ComboAddress& ca)
 {
   string ret;
