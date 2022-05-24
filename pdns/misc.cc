@@ -1232,10 +1232,11 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
         }
         else if (rtatp->rta_type == NDA_LLADDR) {
           if (foundIP) {
-            if ((rtatp->rta_len - sizeof(struct rtattr)) != destLen) {
-              return EINVAL;
+            size_t addrLen = rtatp->rta_len - sizeof(struct rtattr);
+            if (addrLen > destLen) {
+              return ENOBUFS;
             }
-            memcpy(dest, reinterpret_cast<const char*>(rtatp) + sizeof(struct rtattr), destLen);
+            memcpy(dest, reinterpret_cast<const char*>(rtatp) + sizeof(struct rtattr), addrLen);
             foundMAC = true;
             done = true;
             break;
