@@ -208,6 +208,7 @@ export LDFLAGS=-L/usr/lib64/boost169
   --enable-unit-tests \
   --enable-lua-records \
   --enable-experimental-pkcs11 \
+  --enable-dns-over-tls \
   --enable-systemd
 
 make %{?_smp_mflags}
