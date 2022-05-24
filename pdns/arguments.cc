@@ -530,7 +530,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
 
   if(!parseFile(fname, "", lax)) {
     SLOG(g_log << Logger::Warning << "Unable to open " << fname << std::endl,
-         d_log->error(Logr::Warning, "Unable to open", "name", Logging::Loggable(fname)));
+         d_log->error(Logr::Warning, "Unable to open file", "name", Logging::Loggable(fname)));
     return false;
   }
 
@@ -541,7 +541,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     for(const std::string& fn :  extraConfigs) {
       if (!file(fn.c_str(), lax, true)) {
         SLOG(g_log << Logger::Error << fn << " could not be parsed" << std::endl,
-             d_log->info(Logr::Error, "Could not be parsed", "name", Logging::Loggable(fn)));
+             d_log->info(Logr::Error, "Unable to parse config file", "name", Logging::Loggable(fn)));
         throw ArgException(fn + " could not be parsed");
       }
     }
@@ -576,7 +576,7 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
       if (stat(name.c_str(), &st) || !S_ISREG(st.st_mode)) {
         string msg = name + " is not a regular file";
         SLOG(g_log << Logger::Error << msg << std::endl,
-             d_log->info(Logr::Error, "Is not a regular file", "name", Logging::Loggable(name)));
+             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(name)));
         closedir(dir);
         throw ArgException(msg);
       }

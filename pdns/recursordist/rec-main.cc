@@ -1238,7 +1238,7 @@ static int serviceMain(int argc, char* argv[], std::shared_ptr<Logr::Logger>& lo
   }
   catch (std::exception& e) {
     SLOG(g_log << Logger::Error << "Assigning local query addresses: " << e.what(),
-         log->error(Logr::Error, e.what(), "Assigning local query address"));
+         log->error(Logr::Error, e.what(), "Unable to assign local query address"));
     exit(99);
   }
 
