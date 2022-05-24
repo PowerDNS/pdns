@@ -32,6 +32,7 @@ override_dh_auto_configure:
 		--enable-unit-tests \
 		--enable-lua-records \
 		--enable-experimental-pkcs11 \
+		--enable-dns-over-tls \
 		--disable-silent-rules \
 		$(CONFIGURE_ARGS)
 
