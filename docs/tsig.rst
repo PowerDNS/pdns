@@ -69,10 +69,6 @@ Yet another way of configuring AXFR access using TSIG is by using curl:
     curl -X PUT -d  '{ "master_tsig_key_ids" : ["MY_TSIG_KEY"] }' https://ns001.domain.something/api/v1/servers/localhost/zones/mydomain.something -H 'X-API-Key: MySuperSecretAPIPassword'
 
 
-A packet authorized and authenticated by a TSIG signature will gain
-access to a zone even if the remote IP address is not otherwise allowed
-to AXFR a zone.
-
 .. _tsig-provision-signed-notify-axfr:
 
 Provisioning signed notification and AXFR requests
