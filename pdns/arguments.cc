@@ -355,7 +355,9 @@ static const map<string,string> deprecateList = {
   { "stats-snmp-blacklist", "stats-snmp-disabled-list" },
   { "edns-subnet-whitelist", "edns-subnet-allow-list" },
   { "new-domain-whitelist", "new-domain-ignore-list" },
-  { "snmp-master-socket", "snmp-daemon-socket" }
+  { "snmp-master-socket", "snmp-daemon-socket" },
+  { "xpf-allow-from", "Proxy Protocol" },
+  { "xpf-rr-code", "Proxy Protocol" },
 };
 
 static void warnIfDeprecated(const string& var)
