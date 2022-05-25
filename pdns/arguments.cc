@@ -355,7 +355,9 @@ static const map<string,string> deprecateList = {
   { "stats-snmp-blacklist", "stats-snmp-disabled-list" },
   { "edns-subnet-whitelist", "edns-subnet-allow-list" },
   { "new-domain-whitelist", "new-domain-ignore-list" },
-  { "snmp-master-socket", "snmp-daemon-socket" }
+  { "snmp-master-socket", "snmp-daemon-socket" },
+  { "xpf-allow-from", "Proxy Protocol" },
+  { "xpf-rr-code", "Proxy Protocol" },
 };
 
 void ArgvMap::warnIfDeprecated(const string& var)
@@ -363,7 +365,7 @@ void ArgvMap::warnIfDeprecated(const string& var)
   const auto msg = deprecateList.find(var);
   if (msg != deprecateList.end()) {
     SLOG(g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl,
-         d_log->info(Logr::Warning, "Option is deprecated and will be removed in a future release", "deprecatedName", Logging::Loggable(var), "name", Logging::Loggable(msg->second)));
+         d_log->info(Logr::Warning, "Option is deprecated and will be removed in a future release", "deprecatedName", Logging::Loggable(var), "alternative", Logging::Loggable(msg->second)));
   }
 }
 
