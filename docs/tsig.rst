@@ -64,9 +64,9 @@ Yet another way of configuring AXFR access using TSIG is by using curl:
 .. code-block:: shell
 
     # First the key has to be created
-    curl -d '{"name":"MY_TSIG_KEY", "algorithm":"hmac-sha256"}' -H "Content-Type: application/json" -H "X-Api-Key: changeme" http://127.0.0.1:8081/api/v1/servers/localhost/tsigkeys
+    curl -d '{"name":"mytsigkey", "algorithm":"hmac-sha256"}' -H "Content-Type: application/json" -H "X-Api-Key: changeme" http://127.0.0.1:8081/api/v1/servers/localhost/tsigkeys
     # Afterwards the key can be set on a specific zone
-    curl -X PUT -d  '{ "master_tsig_key_ids" : ["MY_TSIG_KEY"] }' http://127.0.0.1:8081/api/v1/servers/localhost/zones/mydomain.something -H 'X-API-Key: changeme'
+    curl -X PUT -d  '{ "master_tsig_key_ids" : ["mytsigkey"] }' http://127.0.0.1:8081/api/v1/servers/localhost/zones/{zone_id} -H 'X-API-Key: changeme'
 
 
 .. _tsig-provision-signed-notify-axfr:
