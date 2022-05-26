@@ -295,30 +295,6 @@ int sendOnNBSocket(int fd, const struct msghdr *msgh)
   return sendErr;
 }
 
-ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
-{
-  struct msghdr msgh;
-  struct iovec iov;
-  cmsgbuf_aligned cbuf;
-
-  /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
-  iov.iov_base = const_cast<void*>(data);
-  iov.iov_len = len;
-  msgh.msg_iov = &iov;
-  msgh.msg_iovlen = 1;
-  msgh.msg_name = (struct sockaddr*)&to;
-  msgh.msg_namelen = to.getSocklen();
-
-  if(from.sin4.sin_family) {
-    addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
-  }
-  else {
-    msgh.msg_control=nullptr;
-  }
-  return sendmsg(sock, &msgh, flags);
-}
-
 // be careful: when using this for receive purposes, make sure addr->sin4.sin_family is set appropriately so getSocklen works!
 // be careful: when using this function for *send* purposes, be sure to set cbufsize to 0!
 // be careful: if you don't call addCMsgSrcAddr after fillMSGHdr, make sure to set msg_control to NULL
