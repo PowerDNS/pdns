@@ -2,7 +2,7 @@ dnspython>=2.2.0
 nose>=1.3.7
 libnacl>=1.4.3,<1.7
 requests>=2.1.0
-protobuf>=3.0
+protobuf>=3.0,<=3.20 
 pysnmp>=4.3.4
 future>=0.17.1
 pycurl>=7.43.0
