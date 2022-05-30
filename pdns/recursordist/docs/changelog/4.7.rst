@@ -1,6 +1,17 @@
 Changelogs for 4.7.X
 ====================
 .. changelog::
+  :version: 4.7.0
+  :released: 30th of May 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11632
+    :tickets: 11609
+
+    Fix API issue when asking config values for allow-from or allow-notify-from.
+
+.. changelog::
   :version: 4.7.0-rc1
   :released: 6th of May 2022
 
