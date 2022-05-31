@@ -293,6 +293,9 @@ struct DNSRecord
     d_type(0), d_class(QClass::IN), d_place(DNSResourceRecord::ANSWER)
   {}
   explicit DNSRecord(const DNSResourceRecord& rr);
+  DNSRecord(const std::string& name, std::shared_ptr<DNSRecordContent> content, const uint16_t type, const uint16_t qclass = QClass::IN, const uint32_t ttl = 86400, const uint16_t clen = 0, const DNSResourceRecord::Place place = DNSResourceRecord::ANSWER) :
+    d_name(DNSName(name)), d_content(std::move(content)), d_type(type), d_class(qclass), d_ttl(ttl), d_clen(clen), d_place(place) {}
+
   DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
