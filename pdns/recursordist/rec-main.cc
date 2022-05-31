@@ -48,7 +48,10 @@
 #endif
 
 #ifdef HAVE_SYSTEMD
+// All calls are coming form the same function, so no use for CODE_LINE, CODE_FUNC etc
+#define SD_JOURNAL_SUPPRESS_LOCATION
 #include <systemd/sd-daemon.h>
+#include <systemd/sd-journal.h>
 #endif
 
 static thread_local uint64_t t_protobufServersGeneration;
@@ -872,6 +875,42 @@ static const char* toTimestampStringMilli(const struct timeval& tv, char* buf, s
   return buf;
 }
 
+#ifdef HAVE_SYSTEMD
+static void loggerSDBackend(const Logging::Entry& entry)
+{
+  // We need to keep the string in mem until sd_journal_sendv has ben called
+  vector<string> strings;
+  auto h = [&strings](const string& k, const string& v) {
+    strings.emplace_back(k + "=" + v);
+  };
+  h("MESSAGE", entry.message);
+  if (entry.error) {
+    h("ERROR", entry.error.get());
+  }
+  h("LEVEL", std::to_string(entry.level));
+  h("PRIORITY", std::to_string(entry.d_priority));
+  if (entry.name) {
+    h("SUBSYSTEM", entry.name.get());
+  }
+  char timebuf[64];
+  h("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
+  for (auto const& v : entry.values) {
+    h(toUpper(v.first), v.second);
+  }
+  // Thread id filled in by backend, since the SL code does not know about RecursorThreads
+  // We use the Recursor thread, other threads get id 0. May need to revisit.
+  h("TID", std::to_string(RecThreadInfo::id()));
+
+  vector<iovec> iov;
+  iov.reserve(strings.size());
+  for (const auto& s : strings) {
+    // iovec has no 2 arg constructor, so make it explicit
+    iov.emplace_back(iovec{const_cast<void*>(reinterpret_cast<const void*>(s.data())), s.size()});
+  }
+  sd_journal_sendv(iov.data(), static_cast<int>(iov.size()));
+}
+#endif
+
 static void loggerBackend(const Logging::Entry& entry)
 {
   static thread_local std::stringstream buf;
@@ -889,6 +928,9 @@ static void loggerBackend(const Logging::Entry& entry)
   if (entry.d_priority) {
     buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
   }
+  // Thread id filled in by backend, since the SL code does not know about RecursorThreads
+  // We use the Recursor thread, other threads get id 0. May need to revisit.
+  buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::id()));
   char timebuf[64];
   buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
   for (auto const& v : entry.values) {
@@ -2718,7 +2760,15 @@ int main(int argc, char** argv)
       exit(0);
     }
 
-    g_slog = Logging::Logger::create(loggerBackend);
+#ifdef HAVE_SYSTEMD
+    if (getenv("NOTIFY_SOCKET") != nullptr) {
+      g_slog = Logging::Logger::create(loggerSDBackend);
+    }
+    else
+#endif
+    {
+      g_slog = Logging::Logger::create(loggerBackend);
+    }
     // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("config");
 
