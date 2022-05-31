@@ -1850,7 +1850,7 @@ static void healthChecksThread()
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
 
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
-    for(auto& dss : *states) {
+    for (auto& dss : *states) {
 
       auto delta = dss->sw.udiffAndSet()/1000000.0;
       dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
@@ -1858,39 +1858,41 @@ static void healthChecksThread()
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
 
-      for (IDState& ids  : dss->idStates) { // timeouts
-        int64_t usageIndicator = ids.usageIndicator;
-        if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
-          /* We mark the state as unused as soon as possible
-             to limit the risk of racing with the
-             responder thread.
-          */
-          auto oldDU = ids.du;
+      if (dss->outstanding.load() > 0) {
+        for (IDState& ids : dss->idStates) { // timeouts
+          int64_t usageIndicator = ids.usageIndicator;
+          if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
+            /* We mark the state as unused as soon as possible
+               to limit the risk of racing with the
+               responder thread.
+            */
+            auto oldDU = ids.du;
 
-          if (!ids.tryMarkUnused(usageIndicator)) {
-            /* this state has been altered in the meantime,
-               don't go anywhere near it */
-            continue;
+            if (!ids.tryMarkUnused(usageIndicator)) {
+              /* this state has been altered in the meantime,
+                 don't go anywhere near it */
+              continue;
+            }
+            ids.du = nullptr;
+            handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
+            oldDU = nullptr;
+            ids.age = 0;
+            dss->reuseds++;
+            --dss->outstanding;
+            ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
+            vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
+                     dss->remote.toStringWithPort(), dss->getName(),
+                     ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
+
+            struct timespec ts;
+            gettime(&ts);
+
+            struct dnsheader fake;
+            memset(&fake, 0, sizeof(fake));
+            fake.id = ids.origID;
+
+            g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
           }
-          ids.du = nullptr;
-          handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-          oldDU = nullptr;
-          ids.age = 0;
-          dss->reuseds++;
-          --dss->outstanding;
-          ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
-          vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
-                   dss->remote.toStringWithPort(), dss->getName(),
-                   ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
-
-          struct timespec ts;
-          gettime(&ts);
-
-          struct dnsheader fake;
-          memset(&fake, 0, sizeof(fake));
-          fake.id = ids.origID;
-
-          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
         }
       }
 
