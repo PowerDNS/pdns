@@ -36,7 +36,22 @@
 #include <boost/container/string.hpp>
 #endif
 
-#include "ascii.hh"
+inline bool dns_isspace(char c)
+{
+  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+extern const unsigned char dns_toupper_table[256],  dns_tolower_table[256];
+
+inline unsigned char dns_toupper(unsigned char c)
+{
+  return dns_toupper_table[c];
+}
+
+inline unsigned char dns_tolower(unsigned char c)
+{
+  return dns_tolower_table[c];
+}
 
 uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 

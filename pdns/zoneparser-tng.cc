@@ -22,7 +22,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "ascii.hh"
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"

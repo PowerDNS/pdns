@@ -1106,7 +1106,24 @@ struct BurtleHashTest
   void operator()() const
   {
     burtle(reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), 0);
+  }
 
+private:
+  const string d_name;
+};
+
+struct BurtleHashCITest
+{
+  explicit BurtleHashCITest(const string& str) : d_name(str) {}
+
+  string getName() const
+  {
+    return "BurtleHashCI";
+  }
+
+  void operator()() const
+  {
+    burtleCI(reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), 0);
   }
 
 private:
@@ -1287,6 +1304,7 @@ try
 #endif
 
   doRun(BurtleHashTest("a string of chars"));
+  doRun(BurtleHashCITest("A String Of Chars"));
 #ifdef HAVE_LIBSODIUM
   doRun(SipHashTest("a string of chars"));
 #endif
