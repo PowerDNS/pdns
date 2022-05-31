@@ -116,6 +116,10 @@ public:
 
     bool operator==(const AuthDomain& rhs) const;
 
+    [[nodiscard]]
+    std::string print(const std::string& indent = "",
+                      const std::string& indentLevel = "  ") const;
+
     int getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
     bool isAuth() const
     {
