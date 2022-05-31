@@ -5645,7 +5645,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   }
 
   int res = -1;
-  const std::string msg = "Failed to resolve";
+  const std::string msg = "Exception while resolving";
   try {
     res = sr.beginResolve(qname, qtype, qclass, ret, 0);
   }
@@ -5661,7 +5661,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   }
   catch(const PolicyHitException& e) {
     SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got a policy hit"<<endl,
-         log->error(Logr::Error, "Policy Hit", msg, "exception", Logging::Loggable("PolicyHitException")));
+         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
     ret.clear();
   }
   catch(const std::exception& e) {
@@ -5671,7 +5671,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   }
   catch(...) {
     SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got an exception"<<endl,
-         log->error(Logr::Error, "Exception", msg));
+         log->info(Logr::Error, msg));
     ret.clear();
   }
 
