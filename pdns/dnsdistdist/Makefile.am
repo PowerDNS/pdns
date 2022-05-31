@@ -123,7 +123,6 @@ dnsdist-web.$(OBJEXT): htmlfiles.h
 dnsdist-lua-ffi.$(OBJEXT): dnsdist-lua-ffi-interface.inc
 
 dnsdist_SOURCES = \
-	ascii.hh \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \

@@ -6,7 +6,6 @@
 ./pdns/anadns.hh
 ./pdns/arguments.cc
 ./pdns/arguments.hh
-./pdns/ascii.hh
 ./pdns/auth-caches.cc
 ./pdns/auth-carbon.cc
 ./pdns/auth-packetcache.cc
