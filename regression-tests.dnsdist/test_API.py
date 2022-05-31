@@ -23,6 +23,21 @@ class APITestsBase(DNSDistTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _expectedMetrics = ['responses', 'servfail-responses', 'queries', 'acl-drops',
+                        'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
+                        'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
+                        'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
+                        'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
+                        'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
+                        'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
+                        'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
+                        'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
+                        'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
+                        'udp-in-csum-errors', 'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
+                        'udp6-in-errors', 'udp6-recvbuf-errors', 'udp6-sndbuf-errors', 'udp6-noport-errors', 'udp6-in-csum-errors',
+                        'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
+                        'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
+                        'tcp-cross-protocol-response-pipe-full']
 
 class TestAPIBasics(APITestsBase):
 
@@ -139,6 +154,13 @@ class TestAPIBasics(APITestsBase):
 
             for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts', 'cacheCleanupCount']:
                 self.assertTrue(pool[key] >= 0)
+
+        stats = content['statistics']
+        for key in self._expectedMetrics:
+            self.assertIn(key, stats)
+            self.assertTrue(stats[key] >= 0)
+        for key in stats:
+            self.assertIn(key, self._expectedMetrics)
 
     def testServersLocalhostPool(self):
         """
@@ -274,28 +296,12 @@ class TestAPIBasics(APITestsBase):
             self.assertEqual(entry['type'], 'StatisticItem')
             values[entry['name']] = entry['value']
 
-        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
-                    'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
-                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
-                    'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
-                    'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
-                    'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
-                    'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
-                    'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
-                    'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
-                    'udp-in-csum-errors', 'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
-                    'udp6-in-errors', 'udp6-recvbuf-errors', 'udp6-sndbuf-errors', 'udp6-noport-errors', 'udp6-in-csum-errors',
-                    'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
-                    'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
-                    'tcp-cross-protocol-response-pipe-full']
-
-        for key in expected:
+        for key in self._expectedMetrics:
             self.assertIn(key, values)
             self.assertTrue(values[key] >= 0)
 
         for key in values:
-            self.assertIn(key, expected)
+            self.assertIn(key, self._expectedMetrics)
 
     def testJsonstatStats(self):
         """
@@ -309,19 +315,7 @@ class TestAPIBasics(APITestsBase):
         self.assertTrue(r.json())
         content = r.json()
 
-        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
-                    'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
-                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'rule-truncated', 'self-answered', 'downstream-timeouts',
-                    'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
-                    'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
-                    'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
-                    'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
-                    'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
-                    'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size', 'packetcache-hits', 'packetcache-misses', 'over-capacity-drops',
-                    'too-old-drops', 'proxy-protocol-invalid', 'doh-query-pipe-full', 'doh-response-pipe-full']
-
-        for key in expected:
+        for key in self._expectedMetrics:
             self.assertIn(key, content)
             self.assertTrue(content[key] >= 0)
 
