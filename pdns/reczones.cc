@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "reczones-helpers.hh"
 #include "syncres.hh"
 #include "arguments.hh"
 #include "zoneparser-tng.hh"
@@ -196,93 +197,6 @@ void primeRootNSZones(DNSSECMode mode, unsigned int depth)
     g_recCache->doWipeCache(qname, false, QType::NS);
     vector<DNSRecord> ret;
     sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret, depth + 1);
-  }
-}
-
-static void makeNameToIPZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap, const DNSName& hostname, const string& ip, Logr::log_t log)
-{
-  SyncRes::AuthDomain ad;
-  ad.d_rdForward = false;
-
-  DNSRecord dr;
-  dr.d_name = hostname;
-  dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_ttl = 86400;
-  dr.d_type = QType::SOA;
-  dr.d_class = 1;
-  dr.d_content = DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800");
-
-  ad.d_records.insert(dr);
-
-  dr.d_type = QType::NS;
-  dr.d_content = std::make_shared<NSRecordContent>("localhost.");
-
-  ad.d_records.insert(dr);
-
-  dr.d_type = QType::A;
-  dr.d_content = DNSRecordContent::mastermake(QType::A, 1, ip);
-  ad.d_records.insert(dr);
-
-  if (newMap->count(dr.d_name) != 0) {
-    SLOG(g_log << Logger::Warning << "Hosts file will not overwrite zone '" << dr.d_name << "' already loaded" << endl,
-         log->info(Logr::Warning, "Hosts file will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
-  }
-  else {
-    SLOG(g_log << Logger::Warning << "Inserting forward zone '" << dr.d_name << "' based on hosts file" << endl,
-         log->info(Logr::Notice, "Inserting forward zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
-    ad.d_name = dr.d_name;
-    (*newMap)[ad.d_name] = ad;
-  }
-}
-
-//! parts[0] must be an IP address, the rest must be host names
-static void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap, const vector<string>& parts, Logr::log_t log)
-{
-  string address = parts[0];
-  vector<string> ipParts;
-  stringtok(ipParts, address, ".");
-
-  SyncRes::AuthDomain ad;
-  ad.d_rdForward = false;
-
-  DNSRecord dr;
-  for (auto part = ipParts.rbegin(); part != ipParts.rend(); ++part) {
-    dr.d_name.appendRawLabel(*part);
-  }
-  dr.d_name.appendRawLabel("in-addr");
-  dr.d_name.appendRawLabel("arpa");
-  dr.d_class = 1;
-  dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_ttl = 86400;
-  dr.d_type = QType::SOA;
-  dr.d_content = DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800");
-
-  ad.d_records.insert(dr);
-
-  dr.d_type = QType::NS;
-  dr.d_content = std::make_shared<NSRecordContent>(DNSName("localhost."));
-
-  ad.d_records.insert(dr);
-  dr.d_type = QType::PTR;
-
-  if (ipParts.size() == 4) { // otherwise this is a partial zone
-    for (unsigned int n = 1; n < parts.size(); ++n) {
-      dr.d_content = DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString()); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
-      ad.d_records.insert(dr);
-    }
-  }
-
-  if (newMap->count(dr.d_name) != 0) {
-    SLOG(g_log << Logger::Warning << "Will not overwrite zone '" << dr.d_name << "' already loaded" << endl,
-         log->info(Logr::Warning, "Will not overwrite already loaded zone", "zone", Logging::Loggable(dr.d_name)));
-  }
-  else {
-    if (ipParts.size() == 4) {
-      SLOG(g_log << Logger::Warning << "Inserting reverse zone '" << dr.d_name << "' based on hosts file" << endl,
-           log->info(Logr::Notice, "Inserting reverse zone based on hosts file", "zone", Logging::Loggable(dr.d_name)));
-    }
-    ad.d_name = dr.d_name;
-    (*newMap)[ad.d_name] = ad;
   }
 }
 
@@ -560,34 +474,13 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
            log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname)));
     }
     else {
-      string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
-      string::size_type pos = 0;
       while (getline(ifs, line)) {
-        pos = line.find('#');
-        if (pos != string::npos) {
-          line.resize(pos);
-        }
-        boost::trim(line);
-        if (line.empty()) {
+        if (!parseEtcHostsLine(parts, line)) {
           continue;
         }
-        parts.clear();
-        stringtok(parts, line, "\t\r\n ");
-        if (parts[0].find(':') != string::npos)
-          continue;
 
-        for (unsigned int n = 1; n < parts.size(); ++n) {
-          if (searchSuffix.empty() || parts[n].find('.') != string::npos) {
-            makeNameToIPZone(newMap, DNSName(parts[n]), parts[0], log);
-          }
-          else {
-            DNSName canonic = toCanonic(DNSName(searchSuffix), parts[n]); /// XXXX DNSName pain
-            if (canonic != DNSName(parts[n])) { // XXX further DNSName pain
-              makeNameToIPZone(newMap, canonic, parts[0], log);
-            }
-          }
-        }
-        makeIPToNamesZone(newMap, parts, log);
+        string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
+        addForwardAndReverseLookupEntries(newMap, searchSuffix, parts, log);
       }
     }
   }
