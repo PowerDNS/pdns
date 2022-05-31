@@ -24,6 +24,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <cerrno>
 // #include <netinet/in.h>
@@ -303,6 +304,18 @@ struct DNSRecord
   uint32_t d_ttl{};
   uint16_t d_clen{};
   DNSResourceRecord::Place d_place;
+
+  [[nodiscard]] std::string print(const std::string& indent = "") const
+  {
+    std::stringstream s;
+    s << indent << "Content = " << d_content->getZoneRepresentation() << std::endl;
+    s << indent << "Type = " << d_type << std::endl;
+    s << indent << "Class = " << d_class << std::endl;
+    s << indent << "TTL = " << d_ttl << std::endl;
+    s << indent << "clen = " << d_clen << std::endl;
+    s << indent << "Place = " << std::to_string(d_place) << std::endl;
+    return s.str();
+  }
 
   bool operator<(const DNSRecord& rhs) const
   {
