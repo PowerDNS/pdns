@@ -114,6 +114,8 @@ public:
     DNSName d_name;
     bool d_rdForward{false};
 
+    bool operator==(const AuthDomain& rhs) const;
+
     int getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
     bool isAuth() const
     {

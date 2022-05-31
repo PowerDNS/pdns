@@ -860,6 +860,14 @@ void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
   }
 }
 
+bool SyncRes::AuthDomain::operator==(const AuthDomain& rhs) const
+{
+  return d_records == rhs.d_records
+    && d_servers == rhs.d_servers
+    && d_name == rhs.d_name
+    && d_rdForward == rhs.d_rdForward;
+}
+
 int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
 {
   int result = RCode::NoError;
