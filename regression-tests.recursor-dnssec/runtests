@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+
 if [ ! -d .venv ]; then
   python3 -m venv .venv
 fi
