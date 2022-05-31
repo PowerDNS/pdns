@@ -446,8 +446,8 @@ public:
     return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
   }
 
-  static int runThreads(std::shared_ptr<Logr::Logger>&);
-  static void makeThreadPipes(std::shared_ptr<Logr::Logger>&);
+  static int runThreads(Logr::log_t);
+  static void makeThreadPipes(Logr::log_t);
 
   void setExitCode(int e)
   {
@@ -468,7 +468,7 @@ public:
   uint64_t numberOfDistributedQueries{0};
 
 private:
-  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, std::shared_ptr<Logr::Logger>&);
+  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t);
 
   std::string name;
   std::thread thread;
@@ -525,10 +525,10 @@ bool expectProxyProtocol(const ComboAddress& from);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active);
 void checkTFOconnect();
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, std::shared_ptr<Logr::Logger>&);
+void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t);
 void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
 
-void makeUDPServerSockets(deferredAdd_t& deferredAdds, std::shared_ptr<Logr::Logger>&);
+void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t);
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"

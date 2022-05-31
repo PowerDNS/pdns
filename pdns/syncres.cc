@@ -2164,7 +2164,8 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
         primeRootNSZones(g_dnssecmode, depth);
-        getRootNS(d_now, d_asyncResolve, depth);
+        auto log = g_slog->withName("housekeeping");
+        getRootNS(d_now, d_asyncResolve, depth, log);
       }
     }
   } while(subdomain.chopOff());
@@ -5669,7 +5670,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   return res;
 }
 
-int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth) {
+int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t log) {
   SyncRes sr(now);
   sr.setDoEDNS0(true);
   sr.setUpdatingRootNS();
@@ -5706,7 +5707,8 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   }
 
   if (res == 0) {
-    g_log<<Logger::Debug<<"Refreshed . records"<<endl;
+    SLOG(g_log<<Logger::Debug<<"Refreshed . records"<<endl,
+         log->info(Logr::Debug, "Refreshed . records"));
   }
   else {
     g_log<<Logger::Warning<<"Failed to update root NS records, RCODE="<<res<<endl;

@@ -22,8 +22,9 @@
 #pragma once
 #include <time.h>
 #include "namespaces.hh"
+#include "logr.hh"
 #include <stdint.h>
 
-void doSecPoll(time_t*);
+void doSecPoll(time_t*, Logr::log_t);
 extern uint32_t g_security_status;
 extern std::string g_security_message;

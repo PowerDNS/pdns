@@ -188,7 +188,7 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
   }
 }
 
-static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Logger>& plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<SOARecordContent> loadRPZFromServer(Logr::log_t plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
 
   auto logger = plogger->withValues("primary", Logging::Loggable(primary));
@@ -319,7 +319,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
   return sr;
 }
 
-static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
+static bool dumpZoneToDisk(Logr::log_t plogger, const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
   auto logger = plogger->v(1);
   logger->info("Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));

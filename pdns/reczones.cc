@@ -197,7 +197,7 @@ void primeRootNSZones(DNSSECMode mode, unsigned int depth)
   }
 }
 
-static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const DNSName& hostname, const string& ip, std::shared_ptr<Logr::Logger>& log)
+static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const DNSName& hostname, const string& ip, Logr::log_t log)
 {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
@@ -234,7 +234,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
 }
 
 //! parts[0] must be an IP address, the rest must be host names
-static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const vector<string>& parts, std::shared_ptr<Logr::Logger>& log)
+static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const vector<string>& parts, Logr::log_t log)
 {
   string address = parts[0];
   vector<string> ipparts;
@@ -283,7 +283,7 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
   }
 }
 
-static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, std::shared_ptr<Logr::Logger>& log, bool verbose = true)
+static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, Logr::log_t log, bool verbose = true)
 {
   vector<string> servers;
   stringtok(servers, input, sepa);

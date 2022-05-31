@@ -52,6 +52,7 @@
 #include "stat_t.hh"
 #include "tcpiohandler.hh"
 #include "rec-eventtrace.hh"
+#include "logr.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -183,7 +184,7 @@ public:
   static uint64_t doDumpSavedParentNSSets(int fd);
   static uint64_t doDumpDoTProbeMap(int fd);
 
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery)

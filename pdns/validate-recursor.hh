@@ -22,7 +22,7 @@
 #pragma once
 #include "namespaces.hh"
 #include "validate.hh"
-#include "logger.hh"
+#include "logging.hh"
 
 /* Off: 3.x behaviour, we do no DNSSEC, no EDNS
    ProcessNoValidate: we gather DNSSEC records on all queries, but we will never validate
@@ -46,4 +46,4 @@ bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);
 vState increaseDNSSECStateCounter(const vState& state);
 vState increaseXDNSSECStateCounter(const vState& state);
-bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors);
+bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors, Logr::log_t);

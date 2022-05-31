@@ -120,7 +120,7 @@ public:
   const vector<string>&getCommands();
   void gatherIncludes(std::vector<std::string> &extraConfigs);
 #ifdef RECURSOR
-  void setSLog(std::shared_ptr<Logr::Logger>& log)
+  void setSLog(Logr::log_t log)
   {
     d_log = log;
   }

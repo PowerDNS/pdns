@@ -583,10 +583,11 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     if (interval) {
       realInterval = static_cast<uint32_t>(*interval);
     }
+    auto log = g_slog->withName("config");
     warnIfDNSSECDisabled("Warning: reading Trust Anchors from file (readTrustAnchorsFromFile), but dnssec is set to 'off'!");
     lci.trustAnchorFileInfo.fname = fnamearg;
     lci.trustAnchorFileInfo.interval = realInterval;
-    updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors);
+    updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors, log);
   });
 
   Lua->writeFunction("setProtobufMasks", [&lci](const uint8_t maskV4, uint8_t maskV6) {
