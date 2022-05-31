@@ -3488,7 +3488,6 @@ try
     }
 
     DNSSECPrivateKey dpk;
-    dpk.setKey(key);
 
     pdns::checked_stoi_into(dpk.d_algorithm, cmds.at(3));
     if (dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
@@ -3512,6 +3511,7 @@ try
     else {
       dpk.d_flags = 257; // ksk
     }
+    dpk.setKey(key);
 
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id)) {
@@ -3539,7 +3539,6 @@ try
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(drc, fname.c_str()));
-    dpk.setKey(key);
     dpk.d_algorithm = drc.d_algorithm;
 
     if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
@@ -3567,6 +3566,7 @@ try
         return 1;
       }
     }
+    dpk.setKey(key);
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
@@ -3645,9 +3645,9 @@ try
       }
     }
     dpk->create(bits);
-    dspk.setKey(dpk);
     dspk.d_algorithm = algorithm;
     dspk.d_flags = keyOrZone ? 257 : 256;
+    dspk.setKey(dpk);
 
     // print key to stdout
     cout << "Flags: " << dspk.d_flags << endl <<

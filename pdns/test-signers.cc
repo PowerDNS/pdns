@@ -305,8 +305,8 @@ static void checkRR(const SignerParams& signer)
   DNSKEYRecordContent drc;
   auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
   DNSSECPrivateKey dpk;
-  dpk.setKey(dcke);
   dpk.d_flags = signer.rfcFlags;
+  dpk.setKey(dcke);
 
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
@@ -375,8 +375,8 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 
   DNSSECPrivateKey dpk;
-  dpk.setKey(dcke);
   dpk.d_flags = signer.flags;
+  dpk.setKey(dcke);
   drc = dpk.getDNSKEY();
 
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);

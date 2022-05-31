@@ -152,20 +152,25 @@ struct DNSSECPrivateKey
   {
     d_key = key;
     d_algorithm = d_key->getAlgorithm();
+    computeDNSKEY();
   }
 
   void setKey(std::unique_ptr<DNSCryptoKeyEngine>&& key)
   {
     d_key = std::move(key);
     d_algorithm = d_key->getAlgorithm();
+    computeDNSKEY();
   }
 
-  DNSKEYRecordContent getDNSKEY() const;
+  const DNSKEYRecordContent& getDNSKEY() const;
 
   uint16_t d_flags;
   uint8_t d_algorithm;
 
 private:
+  void computeDNSKEY();
+
+  DNSKEYRecordContent d_dnskey;
   std::shared_ptr<DNSCryptoKeyEngine> d_key;
 };
 
