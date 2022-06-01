@@ -122,12 +122,16 @@ void genlog(std::ostream& stream, int level, bool doSyslog, const char* s, Args.
 template<typename... Args>
 void verboselog(const char* s, Args... args)
 {
+#ifdef DNSDIST
   if (g_verboseStream) {
     genlog(*g_verboseStream, LOG_DEBUG, false, s, args...);
   }
   else {
+#endif /* DNSDIST */
     genlog(std::cout, LOG_DEBUG, g_syslog, s, args...);
+#ifdef DNSDIST
   }
+#endif /* DNSDIST */
 }
 
 #define vinfolog if (g_verbose) verboselog
