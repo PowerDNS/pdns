@@ -27,6 +27,7 @@
 #include "filterpo.hh"
 #include "validate.hh"
 #include "rec-zonetocache.hh"
+#include "logging.hh"
 
 struct ProtobufExportConfig
 {
@@ -94,6 +95,7 @@ public:
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
+  std::shared_ptr<Logr::Logger> d_slog;
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
      remote loggers */

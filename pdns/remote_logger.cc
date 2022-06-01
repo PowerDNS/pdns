@@ -7,6 +7,7 @@
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #include "logger.hh"
+#include "logging.hh"
 #define WE_ARE_RECURSOR
 #else
 #include "dolog.hh"
@@ -119,7 +120,8 @@ bool RemoteLogger::reconnect()
   }
   catch (const std::exception& e) {
 #ifdef WE_ARE_RECURSOR
-    g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
+    SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
+         g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connection to remote logger", "address", Logging::Loggable(d_remote)));
 #else
     warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what());
 #endif
@@ -222,10 +224,12 @@ void RemoteLogger::maintenanceThread()
   }
   catch (const std::exception& e)
   {
-    cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl;
+    SLOG(g_log << "Remote Logger's maintenance thead died on: " << e.what() << endl,
+         g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thead died"));
   }
   catch (...) {
-    cerr << "Remote Logger's maintenance thead died on unknown exception" << endl;
+    SLOG(g_log << "Remote Logger's maintenance thead died on unknown exception" << endl,
+          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thead died"));
   }
 }
 

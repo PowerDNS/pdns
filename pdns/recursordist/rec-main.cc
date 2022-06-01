@@ -374,7 +374,7 @@ static FDMultiplexer* getMultiplexer(Logr::log_t log)
   _exit(1);
 }
 
-static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
+static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config, Logr::log_t log)
 {
   auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLogger>>>();
 
@@ -386,10 +386,12 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobuf
       result->emplace_back(std::move(logger));
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.what() << endl;
+      SLOG(g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.what() << endl,
+           log->error(Logr::Error, e.what(), "Exception while starting protobuf logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server)));
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.reason << endl;
+      SLOG(g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.reason << endl,
+           log->error(Logr::Error, e.reason, "Exception while starting protobuf logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server)));
     }
   }
 
@@ -420,7 +422,8 @@ bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
     }
     t_protobufServers.reset();
 
-    t_protobufServers = startProtobufServers(luaconfsLocal->protobufExportConfig);
+    auto log = g_slog->withName("protobuf");
+    t_protobufServers = startProtobufServers(luaconfsLocal->protobufExportConfig, log);
     t_protobufServersGeneration = luaconfsLocal->generation;
   }
 
@@ -451,7 +454,8 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
     }
     t_outgoingProtobufServers.reset();
 
-    t_outgoingProtobufServers = startProtobufServers(luaconfsLocal->outgoingProtobufExportConfig);
+    auto log = g_slog->withName("protobuf");
+    t_outgoingProtobufServers = startProtobufServers(luaconfsLocal->outgoingProtobufExportConfig, log);
     t_outgoingProtobufServersGeneration = luaconfsLocal->generation;
   }
 
@@ -575,7 +579,7 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
 
 #ifdef HAVE_FSTRM
 
-static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFrameStreamServers(const FrameStreamExportConfig& config)
+static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFrameStreamServers(const FrameStreamExportConfig& config, Logr::log_t log)
 {
   auto result = std::make_shared<std::vector<std::unique_ptr<FrameStreamLogger>>>();
 
@@ -601,10 +605,12 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
       result->emplace_back(fsl);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.what() << endl;
+      SLOG(g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.what() << endl,
+           log->error(Logr::Error, e.what(), "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server)));
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.reason << endl;
+      SLOG(g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.reason << endl,
+           log->error(Logr::Error, e.reason, "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server)));
     }
   }
 
@@ -631,7 +637,8 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
       t_frameStreamServers.reset();
     }
 
-    t_frameStreamServers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig);
+    auto log = g_slog->withName("dnstap");
+    t_frameStreamServers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig, log);
     t_frameStreamServersGeneration = luaconfsLocal->generation;
   }
 
@@ -1210,7 +1217,8 @@ template <class T>
 T broadcastAccFunction(const std::function<T*()>& func)
 {
   if (!RecThreadInfo::self().isHandler()) {
-    g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << RecThreadInfo::id() << ")" << endl;
+    SLOG(g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
+         g_slog->withName("runtime")->info(Logr::Critical, "broadcastAccFunction has been called by a worker")); // tid will be added
     _exit(1);
   }
 
@@ -1432,8 +1440,8 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::s_max_busy_dot_probes = ::arg().asNum("max-busy-dot-probes");
 
   if (SyncRes::s_tcp_fast_open_connect) {
-    checkFastOpenSysctl(true);
-    checkTFOconnect();
+    checkFastOpenSysctl(true, log);
+    checkTFOconnect(log);
   }
 
   if (SyncRes::s_serverID.empty()) {
@@ -1895,12 +1903,16 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
     resp = tmsg->func();
   }
   catch (std::exception& e) {
-    if (g_logCommonErrors)
-      g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl; // but what if they wanted an answer.. we send 0
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl, // but what if they wanted an answer.. we send 0
+           g_slog->withName("runtime")->error(Logr::Error, e.what(), "PIPE function we executed created exception", "exception", Logging::Loggable("std::exception")));
+    }
   }
   catch (PDNSException& e) {
-    if (g_logCommonErrors)
-      g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl; // but what if they wanted an answer.. we send 0
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl, // but what if they wanted an answer.. we send 0
+           g_slog->withName("runtime")->error(Logr::Error, e.reason, "PIPE function we executed created exception", "exception", Logging::Loggable("PDNSException")));
+    }
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().pipes.writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2296,16 +2308,19 @@ static void recursorThread()
 
     if (threadInfo.isHandler()) {
       if (::arg().mustDo("webserver")) {
-        g_log << Logger::Warning << "Enabling web server" << endl;
+        SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
+             log->info(Logr::Info, "Enabling web server"))
         try {
           rws = make_unique<RecursorWebServer>(t_fdm.get());
         }
         catch (const PDNSException& e) {
-          g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl;
+          SLOG(g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl,
+               log->error(Logr::Critical, e.reason, "Exception while starting internal web server"));
           _exit(99);
         }
       }
-      g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl;
+      SLOG(g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl,
+           log->info(Logr::Info, "Enabled multiplexer", "name", Logging::Loggable(t_fdm->getName())));
     }
     else {
       t_fdm->addReadFD(threadInfo.pipes.readQueriesToThread, handlePipeRequest);
@@ -2424,13 +2439,16 @@ static void recursorThread()
     }
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Error << "Exception: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
+         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")))
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << "STL Exception: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")))
   }
   catch (...) {
-    g_log << Logger::Error << "any other exception in main: " << endl;
+    SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
+         log->info(Logr::Error, "Exception in RecursorThread"));
   }
 }
 

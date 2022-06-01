@@ -6,6 +6,7 @@
 
 #ifdef RECURSOR
 #include "logger.hh"
+#include "logging.hh"
 #else
 #include "dolog.hh"
 #endif
@@ -165,7 +166,8 @@ void FrameStreamLogger::queueData(const std::string& data)
   uint8_t *frame = (uint8_t*)malloc(data.length());
   if (!frame) {
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: cannot allocate memory for stream."<<std::endl;
+    SLOG(g_log<<Logger::Warning<<"FrameStreamLogger: cannot allocate memory for stream."<<std::endl,
+         g_slog->withName("dnstap")->info(Logr::Warning, "cannot allocate memory for stream"));
 #else
     warnlog("FrameStreamLogger: cannot allocate memory for stream.");
 #endif
@@ -182,7 +184,8 @@ void FrameStreamLogger::queueData(const std::string& data)
   } else if (res == fstrm_res_again) {
     free(frame);
 #ifdef RECURSOR
-    g_log<<Logger::Debug<<"FrameStreamLogger: queue full, dropping."<<std::endl;
+    SLOG(g_log<<Logger::Debug<<"FrameStreamLogger: queue full, dropping."<<std::endl,
+         g_slog->withName("dnstap")->info(Logr::Debug, "queue full, dropping"));
 #else
     vinfolog("FrameStreamLogger: queue full, dropping.");
 #endif
@@ -191,7 +194,8 @@ void FrameStreamLogger::queueData(const std::string& data)
     // Permanent failure.
     free(frame);
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: submitting to queue failed."<<std::endl;
+    SLOG(g_log<<Logger::Warning<<"FrameStreamLogger: submitting to queue failed."<<std::endl,
+         g_slog->withName("dnstap")->info(Logr::Warning, "submitting to queue failed"));
 #else
     warnlog("FrameStreamLogger: submitting to queue failed.");
 #endif

@@ -523,8 +523,8 @@ void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void* p);
 bool expectProxyProtocol(const ComboAddress& from);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
-void checkFastOpenSysctl(bool active);
-void checkTFOconnect();
+void checkFastOpenSysctl(bool active, Logr::log_t);
+void checkTFOconnect(Logr::log_t);
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t);
 void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
 
