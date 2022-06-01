@@ -116,8 +116,13 @@ void genlog(int level, const char* s, Args... args)
   std::cout<<output<<std::endl;
 }
 
+template<typename... Args>
+void verboselog(const char* s, Args... args)
+{
+  genlog(LOG_DEBUG, s, args...);
+}
 
-#define vinfolog if(g_verbose)infolog
+#define vinfolog if (g_verbose) verboselog
 
 template<typename... Args>
 void infolog(const char* s, Args... args)
