@@ -567,7 +567,7 @@ DNSName::RawLabelsVisitor::RawLabelsVisitor(const DNSName::string_t& storage): d
 {
   size_t position = 0;
   while (position < storage.size()) {
-    auto labelLength = static_cast<unsigned char>(storage.at(position));
+    auto labelLength = static_cast<uint8_t>(storage.at(position));
     if (labelLength == 0) {
       break;
     }
