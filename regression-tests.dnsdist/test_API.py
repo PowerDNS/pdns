@@ -771,3 +771,36 @@ class TestWebConcurrentConnections(APITestsBase):
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
+
+class TestAPICustomStatistics(APITestsBase):
+    __test__ = True
+    _maxConns = 2
+
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    webserver("127.0.0.1:%s")
+    declareMetric("my-custom-metric", "counter")
+    declareMetric("my-other-metric", "counter")
+    declareMetric("my-gauge", "gauge")
+    setWebserverConfig({password="%s", apiKey="%s"})
+    """
+
+    def testCustomStats(self):
+        """
+        API: /jsonstat?command=stats
+        Test custom statistics are exposed
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=stats'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+
+        expected = ['my-custom-metric', 'my-other-metric', 'my-gauge']
+
+        for key in expected:
+            self.assertIn(key, content)
+            self.assertTrue(content[key] >= 0)

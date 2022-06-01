@@ -365,10 +365,10 @@ struct DNSDistStats
   stat_t tcpQueryPipeFull{0};
   stat_t tcpCrossProtocolQueryPipeFull{0};
   stat_t tcpCrossProtocolResponsePipeFull{0};
-
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
-  typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
+  typedef boost::variant<stat_t*, pdns::stat_t_trait<double>*, double*, statfunction_t> entry_t;
+
   std::vector<std::pair<std::string, entry_t>> entries{
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
@@ -436,6 +436,8 @@ struct DNSDistStats
     {"latency-sum", &latencySum},
     {"latency-count", &latencyCount},
   };
+  std::map<std::string, stat_t> customCounters;
+  std::map<std::string, pdns::stat_t_trait<double> > customGauges;
 };
 
 extern struct DNSDistStats g_stats;

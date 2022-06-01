@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <net/if.h>
 
+#include <regex>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <thread>
@@ -2860,6 +2861,67 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     std::thread newThread(LuaThread, code);
     newThread.detach();
+  });
+
+  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type) {
+    if (g_configurationDone) {
+      g_outputBuffer = "declareMetric cannot be used at runtime!\n";
+      return false;
+    }
+    if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
+      return false;
+    }
+    if (type == "counter") {
+      auto itp = g_stats.customCounters.emplace(name, 0);
+      if (itp.second) {
+        g_stats.entries.emplace_back(name, &g_stats.customCounters[name]);
+      }
+    } else if (type == "gauge") {
+      auto itp = g_stats.customGauges.emplace(name, 0.);
+      if (itp.second) {
+        g_stats.entries.emplace_back(name, &g_stats.customGauges[name]);
+      }
+    } else {
+      g_outputBuffer = "declareMetric unknown type '" + type + "'\n";
+      errlog("Unable to declareMetric '%s': no such type '%s'", name, type);
+      return false;
+    }
+    return true;
+  });
+  luaCtx.writeFunction("incMetric", [](const std::string& name) {
+    if (g_stats.customCounters.count(name) > 0) {
+      return ++g_stats.customCounters[name];
+    }
+    g_outputBuffer = "incMetric no such metric '" + name + "'\n";
+    errlog("Unable to incMetric: no such name '%s'", name);
+    return (uint64_t)0;
+  });
+  luaCtx.writeFunction("decMetric", [](const std::string& name) {
+    if (g_stats.customCounters.count(name) > 0) {
+      return --g_stats.customCounters[name];
+    }
+    g_outputBuffer = "decMetric no such metric '" + name + "'\n";
+    errlog("Unable to decMetric: no such name '%s'", name);
+    return (uint64_t)0;
+  });
+  luaCtx.writeFunction("setMetric", [](const std::string& name, const double& value) {
+    if (g_stats.customGauges.count(name) > 0) {
+      g_stats.customGauges[name] = value;
+      return value;
+    }
+    g_outputBuffer = "setMetric no such metric '" + name + "'\n";
+    errlog("Unable to setMetric: no such name '%s'", name);
+    return 0.;
+  });
+  luaCtx.writeFunction("getMetric", [](const std::string& name) {
+    if (g_stats.customCounters.count(name) > 0) {
+      return (double)g_stats.customCounters[name].load();
+    } else if (g_stats.customGauges.count(name) > 0) {
+      return g_stats.customGauges[name].load();
+    }
+    g_outputBuffer = "getMetric no such metric '" + name + "'\n";
+    errlog("Unable to getMetric: no such name '%s'", name);
+    return 0.;
   });
 }
 
