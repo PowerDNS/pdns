@@ -91,6 +91,7 @@
 
 using std::thread;
 bool g_verbose;
+std::optional<std::ofstream> g_verboseStream{std::nullopt};
 
 struct DNSDistStats g_stats;
 
