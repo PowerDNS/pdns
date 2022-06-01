@@ -2501,6 +2501,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
+      if (vars->count("ignoreTLSConfigurationErrors")) {
+        if (boost::get<bool>((*vars)["ignoreTLSConfigurationErrors"])) {
+          // we are asked to try to load the certificates so we can return a potential error
+          // and properly ignore the frontend before actually launching it
+          try {
+            std::map<int, std::string> ocspResponses = {};
+            auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+          } catch (const std::runtime_error& e) {
+            errlog("Ignoring DoH frontend: '%s'", e.what());
+            return ;
+          }
+        }
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::make_unique<ClientState>(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
@@ -2703,6 +2716,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       parseTLSConfig(frontend->d_tlsConfig, "addTLSLocal", vars);
+      if (vars->count("ignoreTLSConfigurationErrors")) {
+        if (boost::get<bool>((*vars)["ignoreTLSConfigurationErrors"])) {
+          // we are asked to try to load the certificates so we can return a potential error
+          // and properly ignore the frontend before actually launching it
+          try {
+            std::map<int, std::string> ocspResponses = {};
+            auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+          } catch (const std::runtime_error& e) {
+            errlog("Ignoring TLS frontend: '%s'", e.what());
+            return ;
+          }
+        }
+      }
     }
 
     try {
