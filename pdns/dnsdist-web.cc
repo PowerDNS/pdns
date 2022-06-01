@@ -787,6 +787,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << cachebase << "cache_lookup_collisions" <<label << " " << cache->getLookupCollisions() << "\n";
       output << cachebase << "cache_insert_collisions" <<label << " " << cache->getInsertCollisions() << "\n";
       output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
+      output << cachebase << "cache_cleanup_count"     <<label << " " << cache->getCleanupCount()     << "\n";
     }
   }
 
@@ -1101,7 +1102,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
       { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
       { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
-      { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) }
+      { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) },
+      { "cacheCleanupCount", (double) (cache ? cache->getCleanupCount() : 0) }
     };
     pools.push_back(entry);
   }
@@ -1199,7 +1201,8 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
     { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
     { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
-    { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) }
+    { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) },
+    { "cacheCleanupCount", (double) (cache ? cache->getCleanupCount() : 0) }
   };
 
   Json::array servers;

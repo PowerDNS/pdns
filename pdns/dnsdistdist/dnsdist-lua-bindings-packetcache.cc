@@ -179,6 +179,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
+        g_outputBuffer+="Cleanup Count: " + std::to_string(cache->getCleanupCount()) + "\n";
       }
     });
   luaCtx.registerFunction<LuaAssociativeTable<uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()const>("getStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
@@ -193,6 +194,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         stats["lookupCollisions"] = cache->getLookupCollisions();
         stats["insertCollisions"] = cache->getInsertCollisions();
         stats["ttlTooShorts"] = cache->getTTLTooShorts();
+        stats["cleanupCount"] = cache->getCleanupCount();
       }
       return stats;
     });

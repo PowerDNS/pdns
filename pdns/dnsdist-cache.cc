@@ -298,6 +298,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
   size_t removed = 0;
 
+  d_cleanupCount++;
   for (auto& shard : d_shards) {
     auto map = shard.d_map.write_lock();
     if (map->size() <= maxPerShard) {

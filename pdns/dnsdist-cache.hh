@@ -53,6 +53,7 @@ public:
   uint64_t getInsertCollisions() const { return d_insertCollisions; }
   uint64_t getMaxEntries() const { return d_maxEntries; }
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
+  uint64_t getCleanupCount() const { return d_cleanupCount; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
   void setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip);
@@ -130,6 +131,7 @@ private:
   pdns::stat_t d_insertCollisions{0};
   pdns::stat_t d_lookupCollisions{0};
   pdns::stat_t d_ttlTooShorts{0};
+  pdns::stat_t d_cleanupCount{0};
 
   size_t d_maxEntries;
   uint32_t d_shardCount;

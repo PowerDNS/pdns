@@ -182,6 +182,7 @@ void carbonDumpThread()
               str<<base<<"cache-lookup-collisions" << " " << cache->getLookupCollisions() << " " << now << "\r\n";
               str<<base<<"cache-insert-collisions" << " " << cache->getInsertCollisions() << " " << now << "\r\n";
               str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
+              str<<base<<"cache-cleanup-count" << " " << cache->getCleanupCount() << " " << now << "\r\n";
             }
           }
 
