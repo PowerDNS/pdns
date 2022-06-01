@@ -2762,11 +2762,13 @@ int main(int argc, char** argv)
 
 #ifdef HAVE_SYSTEMD
     if (getenv("NOTIFY_SOCKET") != nullptr) {
-      g_slog = Logging::Logger::create(loggerSDBackend);
+      if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
+        g_slog = Logging::Logger::create(loggerSDBackend);
+        close(fd);
+      }
     }
-    else
 #endif
-    {
+    if (g_slog == nullptr) {
       g_slog = Logging::Logger::create(loggerBackend);
     }
     // Missing: a mechanism to call setVerbosity(x)
