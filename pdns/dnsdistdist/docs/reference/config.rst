@@ -1095,6 +1095,8 @@ Status, Statistics and More
 
   Set a destination file to write the 'verbose' log messages to, instead of sending them to syslog and/or the standard output which is the default.
   Note that these messages will no longer be sent to syslog or the standard output once this option has been set.
+  There is no rotation or file size limit.
+  Only use this feature for debugging under active operator control.
 
   :param str dest: The destination file
 
