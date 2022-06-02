@@ -971,7 +971,7 @@ static void doStats(void)
                 "dot-outqueries", Logging::Loggable(SyncRes::s_dotoutqueries),
                 "idle-tcpout-connections", Logging::Loggable(getCurrentIdleTCPConnections()),
                 "concurrent-queries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)),
-                "outgoing-timesouts", Logging::Loggable(SyncRes::s_outgoingtimeouts));
+                "outgoing-timeouts", Logging::Loggable(SyncRes::s_outgoingtimeouts));
       log->info(Logr::Info, m,
                 "packetcache-entries", Logging::Loggable(pcSize),
                 "packetcache-hitratio-perc", Logging::Loggable(ratePercentage(pcHits, g_stats.qcounter)),
