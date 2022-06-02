@@ -2889,24 +2889,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return true;
   });
   luaCtx.writeFunction("incMetric", [](const std::string& name) {
-    if (g_stats.customCounters.count(name) > 0) {
-      return ++g_stats.customCounters[name];
+    auto metric = g_stats.customCounters.find(name);
+    if (metric != g_stats.customCounters.end()) {
+      return ++(metric->second);
     }
     g_outputBuffer = "incMetric no such metric '" + name + "'\n";
     errlog("Unable to incMetric: no such name '%s'", name);
     return (uint64_t)0;
   });
   luaCtx.writeFunction("decMetric", [](const std::string& name) {
-    if (g_stats.customCounters.count(name) > 0) {
-      return --g_stats.customCounters[name];
+    auto metric = g_stats.customCounters.find(name);
+    if (metric != g_stats.customCounters.end()) {
+      return --(metric->second);
     }
     g_outputBuffer = "decMetric no such metric '" + name + "'\n";
     errlog("Unable to decMetric: no such name '%s'", name);
     return (uint64_t)0;
   });
   luaCtx.writeFunction("setMetric", [](const std::string& name, const double& value) {
-    if (g_stats.customGauges.count(name) > 0) {
-      g_stats.customGauges[name] = value;
+    auto metric = g_stats.customGauges.find(name);
+    if (metric != g_stats.customGauges.end()) {
+      metric->second = value;
       return value;
     }
     g_outputBuffer = "setMetric no such metric '" + name + "'\n";
@@ -2914,10 +2917,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return 0.;
   });
   luaCtx.writeFunction("getMetric", [](const std::string& name) {
-    if (g_stats.customCounters.count(name) > 0) {
-      return (double)g_stats.customCounters[name].load();
-    } else if (g_stats.customGauges.count(name) > 0) {
-      return g_stats.customGauges[name].load();
+    auto counter = g_stats.customCounters.find(name);
+    if (counter != g_stats.customCounters.end()) {
+      return (double)counter->second.load();
+    } else {
+      auto gauge = g_stats.customGauges.find(name);
+      if (gauge != g_stats.customGauges.end()) {
+        return gauge->second.load();
+      }
     }
     g_outputBuffer = "getMetric no such metric '" + name + "'\n";
     errlog("Unable to getMetric: no such name '%s'", name);
