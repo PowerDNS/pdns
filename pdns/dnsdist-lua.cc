@@ -2869,6 +2869,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return false;
     }
     if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
+      g_outputBuffer = "Unable to declare metric '" + name + "': invalid name\n";
+      errlog("Unable to declare metric '%s': invalid name", name);
       return false;
     }
     if (type == "counter") {
