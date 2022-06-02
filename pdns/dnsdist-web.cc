@@ -951,6 +951,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"name", a->getName()},
     {"address", a->d_config.remote.toStringWithPort()},
     {"state", status},
+    {"protocol", a->getProtocol().toPrettyString()},
     {"qps", (double)a->queryLoad},
     {"qpsLimit", (double)a->qps.getRate()},
     {"outstanding", (double)a->outstanding},

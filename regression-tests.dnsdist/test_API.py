@@ -117,7 +117,7 @@ class TestAPIBasics(APITestsBase):
                         'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
-                        'tcpAvgConnectionDuration']:
+                        'tcpAvgConnectionDuration', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
@@ -134,10 +134,10 @@ class TestAPIBasics(APITestsBase):
                 self.assertTrue(frontend[key] >= 0)
 
         for pool in content['pools']:
-            for key in ['id', 'name', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+            for key in ['id', 'name', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts', 'cacheCleanupCount']:
                 self.assertIn(key, pool)
 
-            for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+            for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts', 'cacheCleanupCount']:
                 self.assertTrue(pool[key] >= 0)
 
     def testServersLocalhostPool(self):
@@ -167,7 +167,7 @@ class TestAPIBasics(APITestsBase):
                         'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
-                        'tcpAvgConnectionDuration']:
+                        'tcpAvgConnectionDuration', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
