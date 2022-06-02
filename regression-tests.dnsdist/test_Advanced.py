@@ -469,14 +469,14 @@ class TestCustomMetrics(DNSDistTest):
     end
 
     function declareNewMetric(dq)
-      if declareMetric("new-runtime-metric", "counter") then
+      if declareMetric("new-runtime-metric", "counter", "Metric declaration at runtime should fail") then
         return DNSAction.Spoof, '1.2.3.4'
       end
       return DNSAction.None
     end
 
-    declareMetric("my-custom-counter", "counter")
-    declareMetric("my-custom-gauge", "gauge")
+    declareMetric("my-custom-counter", "counter", "Number of tests run")
+    declareMetric("my-custom-gauge", "gauge", "Temperature of the tests")
     addAction("declare.metric.advanced.tests.powerdns.com.", LuaAction(declareNewMetric))
     addAction("operations.metric.advanced.tests.powerdns.com.", LuaAction(custommetrics))
     newServer{address="127.0.0.1:%s"}

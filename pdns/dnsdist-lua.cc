@@ -2863,7 +2863,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     newThread.detach();
   });
 
-  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type) {
+  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description) {
     if (g_configurationDone) {
       g_outputBuffer = "declareMetric cannot be used at runtime!\n";
       return false;
@@ -2877,11 +2877,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto itp = g_stats.customCounters.emplace(name, 0);
       if (itp.second) {
         g_stats.entries.emplace_back(name, &g_stats.customCounters[name]);
+        addMetricDefinition(name, "counter", description);
       }
     } else if (type == "gauge") {
       auto itp = g_stats.customGauges.emplace(name, 0.);
       if (itp.second) {
         g_stats.entries.emplace_back(name, &g_stats.customGauges[name]);
+        addMetricDefinition(name, "gauge", description);
       }
     } else {
       g_outputBuffer = "declareMetric unknown type '" + type + "'\n";

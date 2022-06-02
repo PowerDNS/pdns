@@ -10,7 +10,7 @@ Then you can update those at runtime using the following functions, depending on
  * manipulate counters using :func:`incMetric` and  :func:`decMetric`
  * update a gauge using :func:`setMetric`
 
-.. function:: declareMetric(name, type) -> bool
+.. function:: declareMetric(name, type, description) -> bool
 
   .. versionadded:: 1.8.0
 
@@ -18,6 +18,7 @@ Then you can update those at runtime using the following functions, depending on
 
   :param str name: The name of the metric, lowercase alphanumerical characters and dashes (-) only
   :param str type: The desired type in ``gauge`` or ``counter``
+  :param str name: The description of the metric
 
 .. function:: incMetric(name) -> int
 

@@ -780,9 +780,9 @@ class TestAPICustomStatistics(APITestsBase):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    declareMetric("my-custom-metric", "counter")
-    declareMetric("my-other-metric", "counter")
-    declareMetric("my-gauge", "gauge")
+    declareMetric("my-custom-metric", "counter", "Number of statistics")
+    declareMetric("my-other-metric", "counter", "Another number of statistics")
+    declareMetric("my-gauge", "gauge", "Current memory usage")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 

@@ -54,6 +54,19 @@ struct MetricDefinitionStorage {
     return true;
   };
 
+  static bool addMetricDefinition(const std::string& name, const std::string type, const std::string& description) {
+    static const std::map<std::string, PrometheusMetricType> namesToTypes = {
+      {"counter", PrometheusMetricType::counter},
+      {"gauge",   PrometheusMetricType::gauge},
+    };
+    auto realtype = namesToTypes.find(type);
+    if (realtype == namesToTypes.end()) {
+      return false;
+    }
+    metrics.emplace(name, MetricDefinition{realtype->second, description});
+    return true;
+  }
+
   // Return string representation of Prometheus metric type
   std::string getPrometheusStringMetricType(PrometheusMetricType metricType) const {
     switch (metricType) {
@@ -69,6 +82,6 @@ struct MetricDefinitionStorage {
     }
   };
 
-  static const std::map<std::string, MetricDefinition> metrics;
+  static std::map<std::string, MetricDefinition> metrics;
 };
 #endif /* DISABLE_PROMETHEUS */

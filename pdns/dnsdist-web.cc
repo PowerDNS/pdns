@@ -131,9 +131,9 @@ private:
 };
 
 #ifndef DISABLE_PROMETHEUS
-static const MetricDefinitionStorage s_metricDefinitions;
+static MetricDefinitionStorage s_metricDefinitions;
 
-const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
+std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "responses",                             MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
   { "servfail-responses",                    MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
   { "queries",                               MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
@@ -197,6 +197,14 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "proxy-protocol-invalid",                MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
 #endif /* DISABLE_PROMETHEUS */
+
+bool addMetricDefinition(const std::string& name, const std::string type, const std::string& description) {
+#ifndef DISABLE_PROMETHEUS
+  return MetricDefinitionStorage::addMetricDefinition(name, type, description);
+#else
+  return true;
+#endif /* DISABLE_PROMETHEUS */
+}
 
 #ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
