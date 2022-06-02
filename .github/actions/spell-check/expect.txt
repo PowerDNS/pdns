@@ -303,6 +303,7 @@ csync
 ctime
 ctor
 ctx
+custommetrics
 cve
 cvename
 cvs

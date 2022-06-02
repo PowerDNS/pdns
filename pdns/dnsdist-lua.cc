@@ -2879,13 +2879,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_stats.entries.emplace_back(name, &g_stats.customCounters[name]);
         addMetricDefinition(name, "counter", description);
       }
-    } else if (type == "gauge") {
+    }
+    else if (type == "gauge") {
       auto itp = g_stats.customGauges.emplace(name, 0.);
       if (itp.second) {
         g_stats.entries.emplace_back(name, &g_stats.customGauges[name]);
         addMetricDefinition(name, "gauge", description);
       }
-    } else {
+    }
+    else {
       g_outputBuffer = "declareMetric unknown type '" + type + "'\n";
       errlog("Unable to declareMetric '%s': no such type '%s'", name, type);
       return false;
@@ -2924,7 +2926,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto counter = g_stats.customCounters.find(name);
     if (counter != g_stats.customCounters.end()) {
       return (double)counter->second.load();
-    } else {
+    }
+    else {
       auto gauge = g_stats.customGauges.find(name);
       if (gauge != g_stats.customGauges.end()) {
         return gauge->second.load();
