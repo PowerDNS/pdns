@@ -792,7 +792,7 @@ std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
     int res = bpf_get_next_key(map.d_fd.getHandle(), &cidr6[0], &cidr6[1]);
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr6[1], &value) == 0) {
-        v6Addr.sin6_addr = cidr6[0].addr;
+        v6Addr.sin6_addr = cidr6[1].addr;
         result.emplace_back(Netmask(&v6Addr, cidr6[1].cidr), value.counter);
       }
 
