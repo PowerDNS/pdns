@@ -72,7 +72,7 @@ static void addToDomainMap(SyncRes::domainmap_t& newMap,
 
 static void makeNameToIPZone(SyncRes::domainmap_t& newMap,
                              const DNSName& hostname,
-                             const ComboAddress& addr,
+                             const ComboAddress& address,
                              Logr::log_t log)
 {
   DNSRecord dr;
@@ -80,33 +80,30 @@ static void makeNameToIPZone(SyncRes::domainmap_t& newMap,
 
   SyncRes::AuthDomain ad = makeSOAAndNSNodes(dr, "localhost.");
 
-  auto recType = addr.isIPv6() ? QType::AAAA : QType::A;
+  auto recType = address.isIPv6() ? QType::AAAA : QType::A;
   dr.d_type = recType;
-  dr.d_content = DNSRecordContent::mastermake(recType, 1, addr.toStringNoInterface());
+  dr.d_content = DNSRecordContent::mastermake(recType, 1, address.toStringNoInterface());
   ad.d_records.insert(dr);
 
   addToDomainMap(newMap, ad, dr.d_name, log);
 }
 
 static void makeIPToNamesZone(SyncRes::domainmap_t& newMap,
-                              const ComboAddress& addr,
-                              const std::vector<std::string>& parts,
+                              const ComboAddress& address,
+                              const std::string& canonicalHostname,
                               Logr::log_t log)
 {
   DNSRecord dr;
-  dr.d_name = DNSName(addr.toStringReversed());
-  dr.d_name.appendRawLabel(addr.isIPv4() ? "in-addr" : "ip6");
+  dr.d_name = DNSName(address.toStringReversed());
+  dr.d_name.appendRawLabel(address.isIPv4() ? "in-addr" : "ip6");
   dr.d_name.appendRawLabel("arpa");
 
   SyncRes::AuthDomain ad = makeSOAAndNSNodes(dr, DNSName("localhost."));
 
-  // Go over the hostname and aliases (parts[1], parts[2], etc...) and add PTR entries for
-  // reverse lookups.
+  // Add a PTR entry for the primary name for reverse lookups.
   dr.d_type = QType::PTR;
-  for (auto name = parts.cbegin() + 1; name != parts.cend(); ++name) {
-    dr.d_content = DNSRecordContent::mastermake(QType::PTR, 1, DNSName(*name).toString());
-    ad.d_records.insert(dr);
-  }
+  dr.d_content = DNSRecordContent::mastermake(QType::PTR, 1, DNSName(canonicalHostname).toString());
+  ad.d_records.insert(dr);
 
   addToDomainMap(newMap, ad, dr.d_name, log, false, true);
 }
@@ -148,8 +145,8 @@ void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
     }
   }
 
-  // Add entries for reverse lookups.
-  makeIPToNamesZone(newMap, address, parts, log);
+  // Add entries for the primary name for reverse lookups.
+  makeIPToNamesZone(newMap, address, parts[1], log);
 }
 
 bool parseEtcHostsLine(std::vector<std::string>& parts, std::string& line)

@@ -72,7 +72,6 @@ struct Fixture
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("1.0.168.192.in-addr.arpa", makePtrDRC("foo."), QType::PTR),
-        DNSRecord("1.0.168.192.in-addr.arpa", makePtrDRC("bar."), QType::PTR),
       });
     addDomainMapFixtureEntry("baz", QType::A, "192.168.0.2");
     addDomainMapFixtureEntry(
@@ -108,7 +107,6 @@ struct Fixture
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("foo6."), QType::PTR),
-        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("bar6."), QType::PTR),
       });
 
     addDomainMapFixtureEntry("localhost", QType::AAAA, "::1");
@@ -119,7 +117,6 @@ struct Fixture
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("localhost."), QType::PTR),
-        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("self."), QType::PTR),
       });
 
     addDomainMapFixtureEntry("some", QType::AAAA, "2001:db8::567:89ac");
@@ -131,8 +128,6 @@ struct Fixture
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some.address.somewhere."), QType::PTR),
-        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some."), QType::PTR),
-        DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some.address."), QType::PTR),
       });
   }
 
