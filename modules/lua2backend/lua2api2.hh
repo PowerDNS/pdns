@@ -68,6 +68,7 @@ private:
 public:
   Lua2BackendAPIv2(const string& suffix)
   {
+    d_include_path = ::arg()["lua-global-include-dir"];
     setArgPrefix("lua2" + suffix);
     d_debug_log = mustDo("query-logging");
     prepareContext();

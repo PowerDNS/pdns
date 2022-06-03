@@ -1046,6 +1046,18 @@ Amount of time (in seconds) between subsequent cleanup routines for pre-computed
 
 Amount of time (in seconds) a pre-computed hash entry will be considered as expired when unused. See :func:`pickchashed()`.
 
+.. _setting-lua-global-include-dir:
+
+``lua-global-include-dir``
+---------------------------
+
+-  String
+-  Default: empty
+-  Example: ``/etc/pdns/lua-global/``
+
+When creating a Lua context, scan this directory for additional lua files. All files that end with
+.lua are loaded in order using ``POSIX`` as locale with Lua scripts.
+
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``

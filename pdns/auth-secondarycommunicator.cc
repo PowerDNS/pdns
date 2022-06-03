@@ -689,8 +689,8 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
 
     unique_ptr<AuthLua4> pdl{nullptr};
     vector<string> scripts;
-    string script = ::arg()["lua-axfr-script"];
-    if (B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
+    string script= ::arg()["lua-axfr-script"];
+    if(B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
       if (pdns_iequals(scripts[0], "NONE")) {
         script.clear();
       }
@@ -700,7 +700,7 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
     }
     if (!script.empty()) {
       try {
-        pdl = make_unique<AuthLua4>();
+        pdl = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
         pdl->loadFile(script);
         g_log << Logger::Info << logPrefix << "loaded Lua script '" << script << "'" << endl;
       }
