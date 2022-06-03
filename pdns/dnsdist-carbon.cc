@@ -75,6 +75,8 @@ void carbonDumpThread()
             str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
             if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
               str<<(*val)->load();
+            else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second))
+              str<<(*adval)->load();
             else if (const auto& dval = boost::get<double*>(&e.second))
               str<<**dval;
             else

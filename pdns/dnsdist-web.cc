@@ -131,9 +131,9 @@ private:
 };
 
 #ifndef DISABLE_PROMETHEUS
-static const MetricDefinitionStorage s_metricDefinitions;
+static MetricDefinitionStorage s_metricDefinitions;
 
-const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
+std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "responses",                             MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
   { "servfail-responses",                    MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
   { "queries",                               MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
@@ -197,6 +197,14 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "proxy-protocol-invalid",                MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
 #endif /* DISABLE_PROMETHEUS */
+
+bool addMetricDefinition(const std::string& name, const std::string type, const std::string& description) {
+#ifndef DISABLE_PROMETHEUS
+  return MetricDefinitionStorage::addMetricDefinition(name, type, description);
+#else
+  return true;
+#endif /* DISABLE_PROMETHEUS */
+}
 
 #ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
@@ -465,6 +473,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
     if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e)))
       output << (*val)->load();
+    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&std::get<1>(e)))
+      output << (*adval)->load();
     else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
       output << **dval;
     else
@@ -852,12 +862,15 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     for (const auto& e : g_stats.entries) {
       if (e.first == "special-memory-usage")
         continue; // Too expensive for get-all
-      if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
+      if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
         obj.insert({e.first, (double)(*val)->load()});
-      else if (const auto& dval = boost::get<double*>(&e.second))
+      } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+        obj.insert({e.first, (*adval)->load()});
+      } else if (const auto& dval = boost::get<double*>(&e.second)) {
         obj.insert({e.first, (**dval)});
-      else
+      } else {
         obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+      }
     }
     Json my_json = obj;
     resp.body = my_json.dump();
@@ -1232,11 +1245,18 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
     if (item.first == "special-memory-usage")
       continue; // Too expensive for get-all
 
-    if(const auto& val = boost::get<pdns::stat_t*>(&item.second)) {
+    if (const auto& val = boost::get<pdns::stat_t*>(&item.second)) {
       doc.push_back(Json::object {
           { "type", "StatisticItem" },
           { "name", item.first },
           { "value", (double)(*val)->load() }
+        });
+    }
+    else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.second)) {
+      doc.push_back(Json::object {
+          { "type", "StatisticItem" },
+          { "name", item.first },
+          { "value", (*adval)->load() }
         });
     }
     else if (const auto& dval = boost::get<double*>(&item.second)) {

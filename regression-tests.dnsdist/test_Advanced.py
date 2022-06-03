@@ -454,3 +454,66 @@ class TestProtocols(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
+
+class TestCustomMetrics(DNSDistTest):
+    _config_template = """
+    function custommetrics(dq)
+      initialCounter = getMetric("my-custom-counter")
+      initialGauge = getMetric("my-custom-counter")
+      incMetric("my-custom-counter")
+      setMetric("my-custom-gauge", initialGauge + 1.3)
+      if getMetric("my-custom-counter") ~= (initialCounter + 1) or getMetric("my-custom-gauge") ~= (initialGauge + 1.3) then
+        return DNSAction.Spoof, '1.2.3.5'
+      end
+      return DNSAction.Spoof, '4.3.2.1'
+    end
+
+    function declareNewMetric(dq)
+      if declareMetric("new-runtime-metric", "counter", "Metric declaration at runtime should fail") then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    declareMetric("my-custom-counter", "counter", "Number of tests run")
+    declareMetric("my-custom-gauge", "gauge", "Temperature of the tests")
+    addAction("declare.metric.advanced.tests.powerdns.com.", LuaAction(declareNewMetric))
+    addAction("operations.metric.advanced.tests.powerdns.com.", LuaAction(custommetrics))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testDeclareAfterConfig(self):
+        """
+        Advanced: Test custom metric declaration after config done
+        """
+        name = 'declare.metric.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
+
+    def testMetricOperations(self):
+        """
+        Advanced: Test basic operations on custom metrics
+        """
+        name = 'operations.metric.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '4.3.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)

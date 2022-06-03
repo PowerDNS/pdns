@@ -25,3 +25,4 @@ These chapters contain extensive information on all functions and object availab
   logging
   web
   svc
+  custommetrics
