@@ -770,6 +770,8 @@ std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
   memset(cidr6, 0, sizeof(cidr6));
   memset(&v4Addr, 0, sizeof(v4Addr));
   memset(&v6Addr, 0, sizeof(v6Addr));
+  v4Addr.sin_family = AF_INET;
+  v6Addr.sin6_family = AF_INET6;
   auto maps = d_maps.lock();
   result.reserve(maps->d_cidr4.d_count + maps->d_cidr6.d_count);
   {
