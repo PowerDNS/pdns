@@ -1721,6 +1721,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setVerbose", [](bool verbose) { g_verbose = verbose; });
   luaCtx.writeFunction("getVerbose", []() { return g_verbose; });
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
+  luaCtx.writeFunction("setVerboseLogDestination", [](const std::string& dest) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setVerboseLogDestination() cannot be used at runtime!\n";
+      return;
+    }
+    try {
+      auto stream = std::ofstream(dest.c_str());
+      g_verboseStream = std::move(stream);
+    }
+    catch (const std::exception& e) {
+      errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what());
+    }
+  });
 
   luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {
     checkParameterBound("setStaleCacheEntriesTTL", ttl, std::numeric_limits<uint32_t>::max());
