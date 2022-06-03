@@ -34,8 +34,6 @@
 #include <unordered_set>
 #include "rec-main.hh"
 
-RecursorLua4::RecursorLua4() { prepareContext(); }
-
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
   if (dh != nullptr) {
@@ -495,6 +493,9 @@ void RecursorLua4::postPrepareContext()
       (*event.discardedPolicies)[policy] = true;
     }
   });
+  if (!d_include_path.empty()) {
+    includePath(d_include_path);
+  }
 }
 
 // clang-format on

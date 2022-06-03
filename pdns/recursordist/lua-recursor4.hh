@@ -72,7 +72,11 @@ struct LuaContext::Pusher<pdns_postresolve_ffi_handle*>
 class RecursorLua4 : public BaseLua4
 {
 public:
-  RecursorLua4();
+  RecursorLua4(const std::string& includePath = "") :
+    BaseLua4(includePath)
+  {
+    prepareContext();
+  };
   RecursorLua4(const RecursorLua4&) = delete;
   RecursorLua4(RecursorLua4&&) = delete;
   RecursorLua4& operator=(const RecursorLua4&) = delete;

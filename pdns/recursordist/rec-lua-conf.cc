@@ -351,7 +351,8 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 class RecLuaConfigContext : public BaseLua4
 {
 public:
-  RecLuaConfigContext()
+  RecLuaConfigContext() :
+    BaseLua4("")
   {
     prepareContext();
   }
