@@ -37,9 +37,11 @@ struct Fixture
     return DNSRecordContent::mastermake(QType::PTR, QClass::IN, name);
   }
 
-  void addDomainMapFixtureEntry(const std::string& name, const SyncRes::AuthDomain::records_t& records)
+  static void addDomainMapFixtureEntry(SyncRes::domainmap_t& domainMap,
+                                       const std::string& name,
+                                       const SyncRes::AuthDomain::records_t& records)
   {
-    domainMapFixture[DNSName{name}] = SyncRes::AuthDomain{
+    domainMap[DNSName{name}] = SyncRes::AuthDomain{
       .d_records = records,
       .d_servers = {},
       .d_name = DNSName{name},
@@ -47,9 +49,12 @@ struct Fixture
     };
   }
 
-  void addDomainMapFixtureEntry(const std::string& name, const QType type, const std::string& address)
+  static void addDomainMapFixtureEntry(SyncRes::domainmap_t& domainMap,
+                                       const std::string& name,
+                                       const QType type,
+                                       const std::string& address)
   {
-    domainMapFixture[DNSName{name}] = SyncRes::AuthDomain{
+    domainMap[DNSName{name}] = SyncRes::AuthDomain{
       .d_records = {
         DNSRecord(name, DNSRecordContent::mastermake(type, QClass::IN, address), type),
         DNSRecord(name, makeLocalhostDRC(), QType::NS),
@@ -61,36 +66,43 @@ struct Fixture
     };
   }
 
-  Fixture()
+  static void populateDomainMapFixture(SyncRes::domainmap_t& domainMap,
+                                       const std::string& searchSuffix = "")
   {
-    addDomainMapFixtureEntry("foo", QType::A, "192.168.0.1");
-    addDomainMapFixtureEntry("bar", QType::A, "192.168.0.1");
-    addDomainMapFixtureEntry("dupfoo", QType::A, "192.168.0.1");
+    const auto actualSearchSuffix = searchSuffix.empty() ? "" : "." + searchSuffix;
+
+    addDomainMapFixtureEntry(domainMap, "foo" + actualSearchSuffix, QType::A, "192.168.0.1");
+    addDomainMapFixtureEntry(domainMap, "bar" + actualSearchSuffix, QType::A, "192.168.0.1");
+    addDomainMapFixtureEntry(domainMap, "dupfoo" + actualSearchSuffix, QType::A, "192.168.0.1");
     addDomainMapFixtureEntry(
+      domainMap,
       "1.0.168.192.in-addr.arpa",
       {
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("1.0.168.192.in-addr.arpa", makePtrDRC("foo."), QType::PTR),
       });
-    addDomainMapFixtureEntry("baz", QType::A, "192.168.0.2");
+    addDomainMapFixtureEntry(domainMap, "baz" + actualSearchSuffix, QType::A, "192.168.0.2");
     addDomainMapFixtureEntry(
+      domainMap,
       "2.0.168.192.in-addr.arpa",
       {
         DNSRecord("2.0.168.192.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("2.0.168.192.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("2.0.168.192.in-addr.arpa", makePtrDRC("baz."), QType::PTR),
       });
-    addDomainMapFixtureEntry("fancy", QType::A, "1.1.1.1");
+    addDomainMapFixtureEntry(domainMap, "fancy" + actualSearchSuffix, QType::A, "1.1.1.1");
     addDomainMapFixtureEntry(
+      domainMap,
       "1.1.1.1.in-addr.arpa",
       {
         DNSRecord("1.1.1.1.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.1.1.1.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("1.1.1.1.in-addr.arpa", makePtrDRC("fancy."), QType::PTR),
       });
-    addDomainMapFixtureEntry("more.fancy", QType::A, "2.2.2.2");
+    addDomainMapFixtureEntry(domainMap, "more.fancy", QType::A, "2.2.2.2");
     addDomainMapFixtureEntry(
+      domainMap,
       "2.2.2.2.in-addr.arpa",
       {
         DNSRecord("2.2.2.2.in-addr.arpa", makeLocalhostDRC(), QType::NS),
@@ -98,10 +110,11 @@ struct Fixture
         DNSRecord("2.2.2.2.in-addr.arpa", makePtrDRC("more.fancy."), QType::PTR),
       });
 
-    addDomainMapFixtureEntry("foo6", QType::AAAA, "2001:db8::567:89ab");
-    addDomainMapFixtureEntry("bar6", QType::AAAA, "2001:db8::567:89ab");
-    addDomainMapFixtureEntry("dupfoo6", QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry(domainMap, "foo6" + actualSearchSuffix, QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry(domainMap, "bar6" + actualSearchSuffix, QType::AAAA, "2001:db8::567:89ab");
+    addDomainMapFixtureEntry(domainMap, "dupfoo6" + actualSearchSuffix, QType::AAAA, "2001:db8::567:89ab");
     addDomainMapFixtureEntry(
+      domainMap,
       "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa",
       {
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
@@ -109,9 +122,10 @@ struct Fixture
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("foo6."), QType::PTR),
       });
 
-    addDomainMapFixtureEntry("localhost", QType::AAAA, "::1");
-    addDomainMapFixtureEntry("self", QType::AAAA, "::1");
+    addDomainMapFixtureEntry(domainMap, "localhost" + actualSearchSuffix, QType::AAAA, "::1");
+    addDomainMapFixtureEntry(domainMap, "self" + actualSearchSuffix, QType::AAAA, "::1");
     addDomainMapFixtureEntry(
+      domainMap,
       "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
       {
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostDRC(), QType::NS),
@@ -119,16 +133,23 @@ struct Fixture
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("localhost."), QType::PTR),
       });
 
-    addDomainMapFixtureEntry("some", QType::AAAA, "2001:db8::567:89ac");
-    addDomainMapFixtureEntry("some.address.somewhere", QType::AAAA, "2001:db8::567:89ac");
-    addDomainMapFixtureEntry("some.address", QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry(domainMap, "some" + actualSearchSuffix, QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry(domainMap, "some.address.somewhere", QType::AAAA, "2001:db8::567:89ac");
+    addDomainMapFixtureEntry(domainMap, "some.address", QType::AAAA, "2001:db8::567:89ac");
     addDomainMapFixtureEntry(
+      domainMap,
       "c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa",
       {
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
         DNSRecord("c.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("some.address.somewhere."), QType::PTR),
       });
+  }
+
+  Fixture()
+  {
+    populateDomainMapFixture(domainMapFixture);
+    populateDomainMapFixture(domainMapFixtureWithSearchSuffix, "search.suffix");
   }
 
   using DomainMapEntry = std::pair<DNSName, SyncRes::AuthDomain>;
@@ -162,8 +183,14 @@ struct Fixture
     return sortDomainMap(domainMapFixture);
   }
 
+  std::vector<DomainMapEntry> getDomainMapFixtureWithSearchSuffix() const
+  {
+    return sortDomainMap(domainMapFixtureWithSearchSuffix);
+  }
+
 private:
   SyncRes::domainmap_t domainMapFixture{};
+  SyncRes::domainmap_t domainMapFixtureWithSearchSuffix{};
 };
 
 BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
@@ -171,11 +198,15 @@ BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
   auto log = g_slog->withName("config");
 
   auto domainMap = std::make_shared<SyncRes::domainmap_t>();
+  auto domainMapWithSearchSuffix = std::make_shared<SyncRes::domainmap_t>();
   std::vector<std::string> parts{};
   for (auto line : hostLines) {
     BOOST_REQUIRE(parseEtcHostsLine(parts, line));
     addForwardAndReverseLookupEntries(*domainMap, "", parts, log);
+    addForwardAndReverseLookupEntries(*domainMapWithSearchSuffix, "search.suffix", parts, log);
   }
+
+  BOOST_TEST_MESSAGE("Actual and expected outputs without search suffixes:");
 
   auto actual = sortDomainMap(*domainMap);
   BOOST_TEST_MESSAGE("Actual:");
@@ -190,6 +221,26 @@ BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
     BOOST_CHECK(actual[i].first == expected[i].first);
     BOOST_CHECK(actual[i].second == expected[i].second);
   }
+
+  BOOST_TEST_MESSAGE("-----------------------------------------------------");
+
+  BOOST_TEST_MESSAGE("Actual and expected outputs with search suffixes:");
+
+  auto actualSearchSuffix = sortDomainMap(*domainMapWithSearchSuffix);
+  BOOST_TEST_MESSAGE("Actual (with search suffix):");
+  BOOST_TEST_MESSAGE(printDomainMap(actualSearchSuffix));
+
+  auto expectedSearchSuffix = getDomainMapFixtureWithSearchSuffix();
+  BOOST_TEST_MESSAGE("Expected (with search suffix):");
+  BOOST_TEST_MESSAGE(printDomainMap(expectedSearchSuffix));
+
+  BOOST_CHECK_EQUAL(actualSearchSuffix.size(), expectedSearchSuffix.size());
+  for (std::vector<DomainMapEntry>::size_type i = 0; i < actualSearchSuffix.size(); i++) {
+    BOOST_CHECK(actualSearchSuffix[i].first == expectedSearchSuffix[i].first);
+    BOOST_CHECK(actualSearchSuffix[i].second == expectedSearchSuffix[i].second);
+  }
+
+  BOOST_TEST_MESSAGE("-----------------------------------------------------");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
