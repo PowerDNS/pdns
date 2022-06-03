@@ -426,12 +426,12 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
       }
       catch(const std::exception& e) {
         SLOG(g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<primary<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl,
-             logger->info(Logr::Warning, "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable(e.what()), "refresh", Logging::Loggable(refresh)));
+             logger->error(Logr::Warning, e.what(), "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("std::exception"), "refresh", Logging::Loggable(refresh)));
         incRPZFailedTransfers(polName);
       }
       catch(const PDNSException& e) {
         SLOG(g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<primary<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl,
-             logger->info(Logr::Warning, "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(refresh)));
+             logger->error(Logr::Warning, e.reason, "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(refresh)));
         incRPZFailedTransfers(polName);
       }
     }
@@ -482,7 +482,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
         break;
       } catch(const std::runtime_error& e ){
         SLOG(g_log<<Logger::Warning<<e.what()<<endl,
-             logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta"));
+             logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta", "exception", Logging::Loggable("std::runtime_error")));
         incRPZFailedTransfers(polName);
         continue;
       }
@@ -597,7 +597,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Error while applying the update received over XFR for "<<zoneName<<", skipping the update: "<< e.what() <<endl,
-           logger->error(Logr::Error, e.what(), "Exception while applying the update received over XFR, skipping"));
+           logger->error(Logr::Error, e.what(), "Exception while applying the update received over XFR, skipping", "exception", Logging::Loggable("std::exception")));
     }
   }
 }
