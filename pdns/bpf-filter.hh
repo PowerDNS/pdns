@@ -136,7 +136,7 @@ private:
     struct in6_addr addr;
     CIDR6(Netmask address)
     {
-      if (address.isIPv6()) {
+      if (!address.isIPv6()) {
         throw std::runtime_error("ComboAddress is invalid");
       }
       addr = address.getNetwork().sin6.sin6_addr;
