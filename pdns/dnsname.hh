@@ -223,26 +223,36 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
-    bool res=std::lexicographical_compare(
-					  d_storage.c_str() + ourpos[ourcount] + 1, 
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
-    
+    const char* ourstr = d_storage.c_str() + ourpos[ourcount] + 1;
+    const char* rhsstr = rhs.d_storage.c_str() + rhspos[rhscount] + 1;
+    uint8_t ourlen = *(ourstr - 1), rhslen = *(rhsstr - 1);
+    bool res;
+
+    // If both names are integers of different lengths: longer name is greater
+    if (ourlen != rhslen) {
+      res = true;
+      for (int i = 0; res && i < ourlen; i++)
+        res = isdigit(ourstr[i]);
+      for (int i = 0; res && i < rhslen; i++)
+        res = isdigit(rhsstr[i]);
+      if (res)
+        return ourlen < rhslen;
+    }
+
+    res = std::lexicographical_compare(ourstr, ourstr + ourlen,
+                                       rhsstr, rhsstr + rhslen,
+                                       [](const unsigned char& a, const unsigned char& b) {
+                                         return dns_tolower(a) < dns_tolower(b);
+                                       });
     //    cout<<"Forward: "<<res<<endl;
     if(res)
       return true;
 
-    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  d_storage.c_str() + ourpos[ourcount] + 1, 
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
+    res = std::lexicographical_compare(rhsstr, rhsstr + rhslen,
+                                       ourstr, ourstr + ourlen,
+                                       [](const unsigned char& a, const unsigned char& b) {
+                                         return dns_tolower(a) < dns_tolower(b);
+                                       });
     //    cout<<"Reverse: "<<res<<endl;
     if(res)
       return false;
