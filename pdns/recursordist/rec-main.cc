@@ -958,13 +958,13 @@ static void doStats(void)
                 "record-cache-acquired", Logging::Loggable(rc_stats.second),
                 "record-cache-contended-perc", Logging::Loggable(r));
       log->info(Logr::Info, m,
-                "trottle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
+                "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
                 "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
                 "failed-host-entries", Logging::Loggable(SyncRes::getFailedServersSize()),
                 "edns-entries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)),
                 "non-resolving-nameserver-entries", Logging::Loggable(SyncRes::getNonResolvingNSSize()),
                 "saved-parent-ns-sets-entries", Logging::Loggable(SyncRes::getSaveParentsNSSetsSize()),
-                "outqueries-per-qeuery", Logging::Loggable(ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)));
+                "outqueries-per-query", Logging::Loggable(ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)));
       log->info(Logr::Info, m,
                 "throttled-queries-perc", Logging::Loggable(ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries)),
                 "tcp-outqueries", Logging::Loggable(SyncRes::s_tcpoutqueries),
