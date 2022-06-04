@@ -81,7 +81,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     :param ComboAddress address: The address to block
 
-  .. method:: BPFFilter:blockRange(Netmask [, force=false])
+  .. method:: BPFFilter:addRangeRule(Netmask , action [, force=false])
 
   .. versionchanged:: 1.8.0
 
@@ -89,7 +89,8 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
 
-    :param string Netmask: The ip range to block
+    :param string Netmask: The ip range to block or unblock
+    :param int action: set ``action``  to ``0`` to unblock a range, set ``action`` to ``1`` to block a range.
     :param bool force: When ``force`` is set to true, DNSDist always accepts adding a new item to BPF maps, even if the item to be added may already be included in the larger network range.
 
   .. method:: BPFFilter:blockQName(name [, qtype=255])
@@ -109,16 +110,17 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     :param ComboAddress address: The address to unblock
 
-  .. method:: BPFFilter:allowRange(Netmask)
+  .. method:: BPFFilter:rmRangeRule(Netmask)
 
   .. versionchanged:: 1.8.0
 
-    Allow all IP address in this range.
-    DNSDist will attempt to delete the item specified by Netmask first, and if no such item can be found, a new item will be inserted to indicate the exception for this subnet.
-    DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
-    If a query coming from an IP or range marked as allowed, but is for a qname for which a DNSName block exists, the packet will be accepted as the first match wins.
+    :param Netmask string: The rule you want to remove
 
-    :param Netmask string: The ip range to unblock
+  .. method:: BPFFilter:lsRangeRule()
+
+  .. versionchanged:: 1.8.0
+
+    List all range rule.
 
   .. method:: BPFFilter:unblockQName(name [, qtype=255])
 

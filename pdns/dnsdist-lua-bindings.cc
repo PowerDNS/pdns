@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "bpf-filter.hh"
 #include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
@@ -500,12 +501,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         }
       }
     });
-  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range, boost::optional<bool> force, boost::optional<uint32_t> action)>("blockRange", [](std::shared_ptr<BPFFilter> bpf, const string& range, boost::optional<bool> force, boost::optional<uint32_t> action) {
+  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range, uint32_t action, boost::optional<bool> force)>("addRangeRule", [](std::shared_ptr<BPFFilter> bpf, const string& range, uint32_t action, boost::optional<bool> force) {
     if (!bpf) {
       return;
     }
     BPFFilter::MatchAction match;
-    switch (action.value_or(1)) {
+    switch (action) {
     case 0:
       match = BPFFilter::MatchAction::Pass;
       break;
@@ -518,7 +519,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     default:
       throw std::runtime_error("Unsupported action for BPFFilter::block");
     }
-    return bpf->block(Netmask(range), force.value_or(false), match);
+    return bpf->addRangeRule(Netmask(range), force.value_or(false), match);
   });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action) {
       if (bpf) {
@@ -551,11 +552,28 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         return bpf->unblock(ca);
       }
     });
-  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range)>("allowRange", [](std::shared_ptr<BPFFilter> bpf, const string& range) {
+  luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)(const string& range)>("rmRangeRule", [](std::shared_ptr<BPFFilter> bpf, const string& range) {
     if (!bpf) {
       return;
     }
-    bpf->allow(Netmask(range));
+    bpf->rmRangeRule(Netmask(range));
+  });
+  luaCtx.registerFunction<std::string (std::shared_ptr<BPFFilter>::*)() const>("lsRangeRule", [](const std::shared_ptr<BPFFilter> bpf) {
+    setLuaNoSideEffect();
+    std::string res;
+    if (!bpf) {
+      return res;
+    }
+    const auto rangeStat = bpf->getRangeRule();
+    for (const auto& value : rangeStat) {
+      if (value.first.isIPv4()) {
+        res += BPFFilter::toString(value.second.action) + "\t " + value.first.toString() + "\n";
+      }
+      else if (value.first.isIPv6()) {
+        res += BPFFilter::toString(value.second.action) + "\t[" + value.first.toString() + "]\n";
+      }
+    }
+    return res;
   });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype)>("unblockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype) {
       if (bpf) {
@@ -576,13 +594,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
             res += "[" + value.first.toString() + "]: " + std::to_string(value.second) + "\n";
           }
         }
-        const auto rangeStat = bpf->getRangeStats();
+        const auto rangeStat = bpf->getRangeRule();
         for (const auto& value : rangeStat) {
           if (value.first.isIPv4()) {
-            res += value.first.toString() + ": " + std::to_string(value.second) + "\n";
+            res += BPFFilter::toString(value.second.action) + "\t " + value.first.toString() + ": " + std::to_string(value.second.counter) + "\n";
           }
           else if (value.first.isIPv6()) {
-            res += "[" + value.first.toString() + "]: " + std::to_string(value.second) + "\n";
+            res += BPFFilter::toString(value.second.action) + "\t[" + value.first.toString() + "]: " + std::to_string(value.second.counter) + "\n";
           }
         }
         auto qstats = bpf->getQNameStats();

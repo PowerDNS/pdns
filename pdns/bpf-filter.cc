@@ -192,11 +192,7 @@ struct QNameValue
   uint16_t qtype{0};
 };
 
-struct CounterAndActionValue
-{
-  uint64_t counter{0};
-  BPFFilter::MatchAction action{BPFFilter::MatchAction::Pass};
-};
+using CounterAndActionValue = BPFFilter::CounterAndActionValue;
 
 BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFormat format): d_config(config)
 {
@@ -515,7 +511,7 @@ void BPFFilter::unblock(const ComboAddress& addr)
   }
 }
 
-void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction action)
+void BPFFilter::addRangeRule(const Netmask& addr, bool force, BPFFilter::MatchAction action)
 {
   CounterAndActionValue value;
 
@@ -528,12 +524,12 @@ void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction ac
       throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
     }
     if (map.d_count >= map.d_config.d_maxItems) {
-      throw std::runtime_error("Table full when trying to block " + addr.toString());
+      throw std::runtime_error("Table full when trying to add this rule: " + addr.toString());
     }
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
-    if (res != -1 && value.action == action && !force) {
-      throw std::runtime_error("Trying to block an already blocked netmask: " + addr.toString());
+    if (((res != -1 && value.action == action) || (res == -1 && value.action == BPFFilter::MatchAction::Pass)) && !force) {
+      throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
     }
 
     value.counter = 0;
@@ -553,12 +549,12 @@ void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction ac
       throw std::runtime_error("Trying to use an unsupported map type, likely adding a range to a legacy eBPF program");
     }
     if (map.d_count >= map.d_config.d_maxItems) {
-      throw std::runtime_error("Table full when trying to block " + addr.toString());
+      throw std::runtime_error("Table full when trying to add this rule: " + addr.toString());
     }
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
-    if (res != -1 && value.action == action) {
-      throw std::runtime_error("Trying to block an already blocked netmask: " + addr.toString());
+    if (((res != -1 && value.action == action) || (res == -1 && value.action == BPFFilter::MatchAction::Pass)) && !force) {
+      throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
     }
 
     value.counter = 0;
@@ -571,11 +567,11 @@ void BPFFilter::block(const Netmask& addr, bool force, BPFFilter::MatchAction ac
   }
 
   if (res != 0) {
-    throw std::runtime_error("Error adding blocked address " + addr.toString() + ": " + stringerror());
+    throw std::runtime_error("Error adding this rule: " + addr.toString() + ": " + stringerror());
   }
 }
 
-void BPFFilter::allow(const Netmask& addr)
+void BPFFilter::rmRangeRule(const Netmask& addr)
 {
   int res = 0;
   CounterAndActionValue value;
@@ -593,9 +589,7 @@ void BPFFilter::allow(const Netmask& addr)
       --map.d_count;
     }
     else {
-      res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
-      if (res == 0)
-        ++map.d_count;
+      throw std::runtime_error("Cannot remove '" + addr.toString() + "': No such rule");
     }
   }
   else if (addr.isIPv6()) {
@@ -611,14 +605,12 @@ void BPFFilter::allow(const Netmask& addr)
       --map.d_count;
     }
     else {
-      res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
-      if (res == 0)
-        ++map.d_count;
+      throw std::runtime_error("Cannot remove '" + addr.toString() + "': No such rule");
     }
   }
 
   if (res != 0) {
-    throw std::runtime_error("Error removing blocked netmask" + addr.toString() + ": " + stringerror());
+    throw std::runtime_error("Error removing this rule: " + addr.toString() + ": " + stringerror());
   }
 }
 
@@ -756,11 +748,11 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   return result;
 }
 
-std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
+std::vector<std::pair<Netmask, CounterAndActionValue>> BPFFilter::getRangeRule()
 {
   CIDR4 cidr4[2];
   CIDR6 cidr6[2];
-  std::vector<std::pair<Netmask, uint64_t>> result;
+  std::vector<std::pair<Netmask, CounterAndActionValue>> result;
 
   sockaddr_in v4Addr;
   sockaddr_in6 v6Addr;
@@ -780,7 +772,7 @@ std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr4[1], &value) == 0) {
         v4Addr.sin_addr.s_addr = cidr4[1].addr.s_addr;
-        result.emplace_back(Netmask(&v4Addr, cidr4[1].cidr), value.counter);
+        result.emplace_back(Netmask(&v4Addr, cidr4[1].cidr), value);
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &cidr4[1], &cidr4[1]);
@@ -793,7 +785,7 @@ std::vector<std::pair<Netmask, uint64_t>> BPFFilter::getRangeStats()
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &cidr6[1], &value) == 0) {
         v6Addr.sin6_addr = cidr6[1].addr;
-        result.emplace_back(Netmask(&v6Addr, cidr6[1].cidr), value.counter);
+        result.emplace_back(Netmask(&v6Addr, cidr6[1].cidr), value);
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &cidr6[1], &cidr6[1]);
@@ -918,15 +910,19 @@ void BPFFilter::unblock(const DNSName&, uint16_t)
   throw std::runtime_error("eBPF support not enabled");
 }
 
-void BPFFilter::block(const Netmask&, bool, BPFFilter::MatchAction)
+void BPFFilter::addRangeRule(const Netmask&, bool, BPFFilter::MatchAction)
 {
   throw std::runtime_error("eBPF support not enabled");
 }
-void BPFFilter::allow(const Netmask&)
+void BPFFilter::rmRangeRule(const Netmask&)
 {
   throw std::runtime_error("eBPF support not enabled");
 }
 
+std::vector<std::pair<Netmask, CounterAndActionValue>> BPFFilter::getRangeRule(){
+  std::vector<std::pair<Netmask, CounterAndActionValue>> result;
+  return result;
+}
 std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 {
   std::vector<std::pair<ComboAddress, uint64_t> > result;
