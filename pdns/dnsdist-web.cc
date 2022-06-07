@@ -837,6 +837,24 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
 using namespace json11;
 
+static void addStatsToJSONObject(Json::object& obj)
+{
+  for (const auto& e : g_stats.entries) {
+    if (e.first == "special-memory-usage") {
+      continue; // Too expensive for get-all
+    }
+    if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
+      obj.insert({e.first, (double)(*val)->load()});
+    } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+      obj.insert({e.first, (*adval)->load()});
+    } else if (const auto& dval = boost::get<double*>(&e.second)) {
+      obj.insert({e.first, (**dval)});
+    } else {
+      obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+    }
+  }
+}
+
 #ifndef DISABLE_BUILTIN_HTML
 static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
@@ -859,19 +877,8 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       { "server-policy", g_policy.getLocal()->getName()}
     };
 
-    for (const auto& e : g_stats.entries) {
-      if (e.first == "special-memory-usage")
-        continue; // Too expensive for get-all
-      if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
-        obj.insert({e.first, (double)(*val)->load()});
-      } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
-        obj.insert({e.first, (*adval)->load()});
-      } else if (const auto& dval = boost::get<double*>(&e.second)) {
-        obj.insert({e.first, (**dval)});
-      } else {
-        obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
-      }
-    }
+    addStatsToJSONObject(obj);
+
     Json my_json = obj;
     resp.body = my_json.dump();
     resp.headers["Content-Type"] = "application/json";
@@ -1165,6 +1172,9 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     localaddressesStr += addr;
   }
 
+  Json::object stats;
+  addStatsToJSONObject(stats);
+
   Json my_json = Json::object {
     { "daemon_type", "dnsdist" },
     { "version", VERSION},
@@ -1177,7 +1187,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     { "self-answered-response-rules", selfAnsweredResponseRules},
     { "acl", acl},
     { "local", localaddressesStr},
-    { "dohFrontends", dohs }
+    { "dohFrontends", dohs },
+    { "statistics", stats }
   };
   resp.headers["Content-Type"] = "application/json";
   resp.body = my_json.dump();
@@ -1252,7 +1263,7 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
           { "value", (double)(*val)->load() }
         });
     }
-    else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.second)) {
+    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.second)) {
       doc.push_back(Json::object {
           { "type", "StatisticItem" },
           { "name", item.first },
