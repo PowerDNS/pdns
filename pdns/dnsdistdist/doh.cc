@@ -721,20 +721,33 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       ids->destHarvested = false;
     }
 
+    bool failed = false;
     if (du->downstream->useProxyProtocol) {
-      size_t payloadSize = 0;
-      if (addProxyProtocol(dq, &payloadSize)) {
-        du->proxyProtocolPayloadSize = payloadSize;
+      try {
+        size_t payloadSize = 0;
+        if (addProxyProtocol(dq, &payloadSize)) {
+          du->proxyProtocolPayloadSize = payloadSize;
+        }
+      }
+      catch (const std::exception& e) {
+        vinfolog("Adding proxy protocol payload to DoH query from %s failed: %s", ids->origDest.toStringWithPort(), e.what());
+        failed = true;
       }
     }
 
-    int fd = pickBackendSocketForSending(du->downstream);
     try {
-      /* you can't touch du after this line, unless the call returned a non-negative value,
-         because it might already have been freed */
-      ssize_t ret = udpClientSendRequestToBackend(du->downstream, fd, du->query);
+      if (!failed) {
+        int fd = pickBackendSocketForSending(du->downstream);
+        /* you can't touch du after this line, unless the call returned a non-negative value,
+           because it might already have been freed */
+        ssize_t ret = udpClientSendRequestToBackend(du->downstream, fd, du->query);
 
-      if (ret < 0) {
+        if (ret < 0) {
+          failed = true;
+        }
+      }
+
+      if (failed) {
         /* we are about to handle the error, make sure that
            this pointer is not accessed when the state is cleaned,
            but first check that it still belongs to us */
