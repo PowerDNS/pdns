@@ -1926,13 +1926,15 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
+  auto log = g_slog->withName("control");
   try {
     FDWrapper clientfd = accept(fd, nullptr, nullptr);
     if (clientfd == -1) {
       throw PDNSException("accept failed");
     }
     string msg = g_rcc.recv(clientfd).d_str;
-    g_log << Logger::Info << "Received rec_control command '" << msg << "' via controlsocket" << endl;
+    SLOG(g_log << Logger::Info << "Received rec_control command '" << msg << "' via controlsocket" << endl,
+         log->info(Logr::Info, "Received rec_control command via controlsocket", "command", Logging::Loggable(msg)));
 
     RecursorControlParser rcp;
     RecursorControlParser::func_t* command;
@@ -1942,10 +1944,12 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
     command();
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << "Error dealing with control socket request: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "Error dealing with control socket request: " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "Exception while dealing with control request", "exception", Logging::Loggable("std::exception")));
   }
   catch (const PDNSException& ae) {
-    g_log << Logger::Error << "Error dealing with control socket request: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "Error dealing with control socket request: " << ae.reason << endl,
+         log->error(Logr::Error, ae.reason, "Exception while dealing with control request", "exception", Logging::Loggable("PDNSException")));
   }
 }
 

@@ -864,7 +864,7 @@ void checkFastOpenSysctl(bool active, Logr::log_t log)
 #endif
 }
 
-void checkTFOconnect( Logr::log_t log)
+void checkTFOconnect(Logr::log_t log)
 {
   try {
     Socket s(AF_INET, SOCK_STREAM);

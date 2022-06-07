@@ -292,7 +292,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     zone->setName(polName);
     zoneIdx = lci.dfe.addZone(zone);
 
-    auto log =  lci.d_slog->withValues("seedfile", Logging::Loggable(seedFile), "zone",  Logging::Loggable(zoneName));
+    auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(seedFile), "zone", Logging::Loggable(zoneName));
     if (!seedFile.empty()) {
       SLOG(g_log << Logger::Info << "Pre-loading RPZ zone " << zoneName << " from seed file '" << seedFile << "'" << endl,
            log->info(Logr::Info, "Pre-loading RPZ zone from seed file"));

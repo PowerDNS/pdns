@@ -7,11 +7,11 @@
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #include "logger.hh"
-#include "logging.hh"
 #define WE_ARE_RECURSOR
 #else
 #include "dolog.hh"
 #endif
+#include "logging.hh"
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 {
@@ -224,11 +224,11 @@ void RemoteLogger::maintenanceThread()
   }
   catch (const std::exception& e)
   {
-    SLOG(g_log << "Remote Logger's maintenance thead died on: " << e.what() << endl,
+    SLOG(cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thead died"));
   }
   catch (...) {
-    SLOG(g_log << "Remote Logger's maintenance thead died on unknown exception" << endl,
+    SLOG(cerr << "Remote Logger's maintenance thead died on unknown exception" << endl,
           g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thead died"));
   }
 }
