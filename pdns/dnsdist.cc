@@ -32,6 +32,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
+#ifdef HAVE_LIBEDIT
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 // If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
 #undef __STRICT_ANSI__
@@ -39,6 +40,7 @@
 #else
 #include <editline/readline.h>
 #endif
+#endif /* HAVE_LIBEDIT */
 
 #include "dnsdist-systemd.hh"
 #ifdef HAVE_SYSTEMD
