@@ -67,7 +67,6 @@ private:
   {
     DNSName qname;
     mutable vector<DNSZoneRecord> drs;
-    mutable time_t created{0};
     mutable time_t ttd{0};
     uint16_t qtype{0};
     int zoneID{-1};

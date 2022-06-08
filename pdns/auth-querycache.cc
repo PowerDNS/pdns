@@ -76,10 +76,9 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNS
 
   if(!ttl)
     return;
-  
+
   time_t now = time(nullptr);
   CacheEntry val;
-  val.created = now;
   val.ttd = now + ttl;
   val.qname = qname;
   val.qtype = qtype.getCode();
