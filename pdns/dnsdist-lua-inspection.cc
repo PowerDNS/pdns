@@ -690,19 +690,27 @@ void setupLuaInspection(LuaContext& luaCtx)
 	     return a.first < b.first;
 	   });
       boost::format flt("    %9.1f");
-      for(const auto& e : entries) {
-	string second;
-	if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
-	  second=std::to_string((*val)->load());
-	else if (const auto& dval = boost::get<double*>(&e.second))
-	  second=(flt % (**dval)).str();
-	else
-	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+      for (const auto& e : entries) {
+        string second;
+        if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
+          second = std::to_string((*val)->load());
+        }
+        else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+          second = (flt % (*adval)->load()).str();
+        }
+        else if (const auto& dval = boost::get<double*>(&e.second)) {
+          second = (flt % (**dval)).str();
+        }
+        else {
+          second = std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+        }
 
-	if(leftcolumn.size() < g_stats.entries.size()/2)
-	  leftcolumn.push_back((fmt % e.first % second).str());
-	else
-	  rightcolumn.push_back((fmt % e.first % second).str());
+        if (leftcolumn.size() < g_stats.entries.size()/2) {
+          leftcolumn.push_back((fmt % e.first % second).str());
+        }
+        else {
+          rightcolumn.push_back((fmt % e.first % second).str());
+        }
       }
 
       auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
