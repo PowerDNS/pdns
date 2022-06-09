@@ -66,6 +66,10 @@ This state can be modified from the various hooks.
 
     Whether to skip cache lookup / storing the answer for this question, settable.
 
+  .. attribute:: DNSQuestion.tempFailureTTL
+  
+    On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds, settable.
+
   .. attribute:: DNSQuestion.tcp
 
     Whether the query was received over TCP.
