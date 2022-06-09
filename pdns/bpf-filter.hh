@@ -178,3 +178,4 @@ private:
   bool d_external;
 #endif /* HAVE_EBPF */
 };
+using CounterAndActionValue = BPFFilter::CounterAndActionValue;

@@ -192,7 +192,6 @@ struct QNameValue
   uint16_t qtype{0};
 };
 
-using CounterAndActionValue = BPFFilter::CounterAndActionValue;
 
 BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFormat format): d_config(config)
 {
