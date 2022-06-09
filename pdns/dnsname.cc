@@ -562,3 +562,61 @@ const unsigned char dns_tolower_table[256] = {
   0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
   0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
+
+DNSName::RawLabelsVisitor::RawLabelsVisitor(const DNSName::string_t& storage): d_storage(storage)
+{
+  size_t position = 0;
+  while (position < storage.size()) {
+    auto labelLength = static_cast<uint8_t>(storage.at(position));
+    if (labelLength == 0) {
+      break;
+    }
+    d_labelPositions.at(d_position) = position;
+    d_position++;
+    position += labelLength + 1;
+  }
+}
+
+DNSName::RawLabelsVisitor DNSName::getRawLabelsVisitor() const
+{
+  return DNSName::RawLabelsVisitor(getStorage());
+}
+
+std::string_view DNSName::RawLabelsVisitor::front() const
+{
+  if (d_position == 0) {
+    throw std::out_of_range("trying to access the front of an empty DNSName::RawLabelsVisitor");
+  }
+  uint8_t length = d_storage.at(0);
+  if (length == 0) {
+    return std::string_view();
+  }
+  return std::string_view(&d_storage.at(1), length);
+}
+
+std::string_view DNSName::RawLabelsVisitor::back() const
+{
+  if (d_position == 0) {
+    throw std::out_of_range("trying to access the back of an empty DNSName::RawLabelsVisitor");
+  }
+  size_t offset = d_labelPositions.at(d_position-1);
+  uint8_t length = d_storage.at(offset);
+  if (length == 0) {
+    return std::string_view();
+  }
+  return std::string_view(&d_storage.at(offset + 1), length);
+}
+
+bool DNSName::RawLabelsVisitor::pop_back()
+{
+  if (d_position > 0) {
+    d_position--;
+    return true;
+  }
+  return false;
+}
+
+bool DNSName::RawLabelsVisitor::empty() const
+{
+  return d_position == 0;
+}

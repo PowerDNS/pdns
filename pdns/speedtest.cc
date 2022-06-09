@@ -769,7 +769,33 @@ struct DNSNameRootTest
 
 };
 
+struct SuffixMatchNodeTest
+{
+  SuffixMatchNodeTest()
+  {
+    d_smn.add(d_exist);
+  }
 
+  string getName() const
+  {
+    return "SuffixMatchNode";
+  }
+
+  void operator()() const
+  {
+    if (!d_smn.check(d_exist)) {
+      throw std::runtime_error("Entry not found in SuffixMatchNodeTest");
+    }
+    if (d_smn.check(d_does_not_exist)) {
+      throw std::runtime_error("Non-existent entry found in SuffixMatchNodeTest");
+    }
+  }
+
+private:
+  const DNSName d_exist{"a.bb.ccc.ddd."};
+  const DNSName d_does_not_exist{"e.bb.ccc.ddd"};
+  SuffixMatchNode d_smn;
+};
 
 struct IEqualsTest
 {
@@ -1257,6 +1283,8 @@ try
 
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
+
+  doRun(SuffixMatchNodeTest());
 
   doRun(NetmaskTreeTest());
 
