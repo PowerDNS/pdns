@@ -291,7 +291,7 @@ protected:
 struct DNSRecord
 {
   DNSRecord() :
-    d_type(0), d_class(QClass::IN), d_place(DNSResourceRecord::ANSWER)
+    d_class(QClass::IN)
   {}
   explicit DNSRecord(const DNSResourceRecord& rr);
   DNSRecord(const std::string& name, std::shared_ptr<DNSRecordContent> content, const uint16_t type, const uint16_t qclass = QClass::IN, const uint32_t ttl = 86400, const uint16_t clen = 0, const DNSResourceRecord::Place place = DNSResourceRecord::ANSWER) :
@@ -299,11 +299,11 @@ struct DNSRecord
 
   DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
-  uint16_t d_type;
+  uint16_t d_type{};
   uint16_t d_class{};
   uint32_t d_ttl{};
   uint16_t d_clen{};
-  DNSResourceRecord::Place d_place;
+  DNSResourceRecord::Place d_place{DNSResourceRecord::ANSWER};
 
   [[nodiscard]] std::string print(const std::string& indent = "") const
   {
