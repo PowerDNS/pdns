@@ -61,7 +61,7 @@ public:
     case MatchAction::Truncate:
       return "Truncate";
     }
-    return "Unknow";
+    return "Unknown";
   }
 
   struct MapConfiguration
