@@ -89,8 +89,8 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
 
-    :param string Netmask: The ip range to block or unblock
-    :param int action: set ``action``  to ``0`` to unblock a range, set ``action`` to ``1`` to block a range.
+    :param string Netmask: The ip range to block, allow or truncate
+    :param int action: set ``action``  to ``0`` to allow a range, set ``action`` to ``1`` to block a range, set ``action`` to ``2`` to truncate a range.
     :param bool force: When ``force`` is set to true, DNSDist always accepts adding a new item to BPF maps, even if the item to be added may already be included in the larger network range.
 
   .. method:: BPFFilter:blockQName(name [, qtype=255])
