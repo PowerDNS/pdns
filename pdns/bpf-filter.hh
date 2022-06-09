@@ -59,7 +59,7 @@ public:
     case MatchAction::Drop:
       return "Drop";
     case MatchAction::Truncate:
-      return "Truncat";
+      return "Truncate";
     }
     return "Unknow";
   }
