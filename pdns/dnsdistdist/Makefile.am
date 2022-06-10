@@ -201,6 +201,7 @@ dnsdist_SOURCES = \
 	iputils.cc iputils.hh \
 	libssl.cc libssl.hh \
 	lock.hh \
+	logging.hh \
 	misc.cc misc.hh \
 	mplexer.hh \
 	namespaces.hh \

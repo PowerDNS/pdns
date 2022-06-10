@@ -839,28 +839,32 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
   TCPIOHandlerStateChange(pid->lowState, newstate, pid);
 }
 
-void checkFastOpenSysctl(bool active)
+void checkFastOpenSysctl(bool active, Logr::log_t log)
 {
 #ifdef __linux__
   string line;
   if (readFileIfThere("/proc/sys/net/ipv4/tcp_fastopen", &line)) {
     int flag = std::stoi(line);
     if (active && !(flag & 1)) {
-      g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+      SLOG(g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl,
+           log->info(Logr::Error, "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it"));
     }
     if (!active && !(flag & 2)) {
-      g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+      SLOG(g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl,
+           log->info(Logr::Error, "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it"));
     }
   }
   else {
-    g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+    SLOG(g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl,
+         log->info(Logr::Notice, "Cannot determine if kernel settings allow fast-open"));
   }
 #else
-  g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+  SLOG(g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl,
+       log->info(Logr::Notice, "Cannot determine if kernel settings allow fast-open"));
 #endif
 }
 
-void checkTFOconnect()
+void checkTFOconnect(Logr::log_t log)
 {
   try {
     Socket s(AF_INET, SOCK_STREAM);
@@ -868,7 +872,8 @@ void checkTFOconnect()
     s.setFastOpenConnect();
   }
   catch (const NetworkError& e) {
-    g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "tcp-fast-open-connect enabled but returned error"));
   }
 }
 
@@ -1026,7 +1031,9 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 
     int tmp = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
-      g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl;
+      int err = errno;
+      SLOG(g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl,
+           log->error(Logr::Critical, err, "Setsockopt failed for TCP listening socket"));
       exit(1);
     }
     if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
@@ -1066,7 +1073,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     }
 
     if (SyncRes::s_tcp_fast_open > 0) {
-      checkFastOpenSysctl(false);
+      checkFastOpenSysctl(false, log);
 #ifdef TCP_FASTOPEN
       if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
