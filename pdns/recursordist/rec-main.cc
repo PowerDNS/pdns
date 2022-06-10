@@ -2085,7 +2085,7 @@ static void houseKeeping(void*)
     // Likley a few handler tasks could be moved to the taskThread
     if (info.isTaskThread()) {
       // TaskQueue is run always
-      runTasks(g_logCommonErrors, 10);
+      runTasks(10, g_logCommonErrors);
 
       static PeriodicTask ztcTask{"ZTC", 60};
       static map<DNSName, RecZoneToCache::State> ztcStates;
