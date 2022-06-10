@@ -587,7 +587,7 @@ static void sendNODLookup(Logr::log_t nodlogger, const DNSName& dname)
     }
     nodlogger->v(10)->info(Logr::Debug, "Sending NOD lookup", "nodqname", Logging::Loggable(qname));
     vector<DNSRecord> dummy;
-    directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false);
+    directResolve(qname, QType::A, QClass::IN, dummy, nullptr, false, nodlogger);
   }
 }
 
@@ -635,7 +635,8 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
     return rcode;
   }
 
-  rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl);
+  auto log = g_slog->withName("lua")->withValues("method", Logging::Loggable("followCNAMERecords"));
+  rcode = directResolve(target, qtype, QClass::IN, resolved, t_pdl, log);
 
   if (g_dns64Prefix && qtype == QType::AAAA && answerIsNOData(qtype, rcode, resolved)) {
     rcode = getFakeAAAARecords(target, *g_dns64Prefix, resolved);
@@ -651,11 +652,12 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
 
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret)
 {
+  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getAAAA"));
   /* we pass a separate vector of records because we will be resolving the initial qname
      again, possibly encountering the same CNAME(s), and we don't want to trigger the CNAME
      loop detection. */
   vector<DNSRecord> newRecords;
-  int rcode = directResolve(qname, QType::A, QClass::IN, newRecords, t_pdl);
+  int rcode = directResolve(qname, QType::A, QClass::IN, newRecords, t_pdl, log);
 
   ret.reserve(ret.size() + newRecords.size());
   for (auto& record : newRecords) {
@@ -735,7 +737,8 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
   ret.push_back(rr);
 
-  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl);
+  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
+  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl, log);
 
   g_stats.dns64prefixanswers++;
   return rcode;

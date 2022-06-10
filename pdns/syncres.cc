@@ -5626,13 +5626,15 @@ void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
 }
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_recursor.cc
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, Logr::log_t log)
 {
-  return directResolve(qname, qtype, qclass, ret, pdl, SyncRes::s_qnameminimization);
+  return directResolve(qname, qtype, qclass, ret, pdl, SyncRes::s_qnameminimization, log);
 }
 
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm, Logr::log_t slog)
 {
+  auto log = slog->withValues("qname", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype));
+
   struct timeval now;
   gettimeofday(&now, 0);
 
@@ -5643,27 +5645,33 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   }
 
   int res = -1;
+  const std::string msg = "Exception while resolving";
   try {
     res = sr.beginResolve(qname, qtype, qclass, ret, 0);
   }
   catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got pdns exception: "<<e.reason<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got pdns exception: "<<e.reason<<endl,
+         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
     ret.clear();
   }
   catch(const ImmediateServFailException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got ImmediateServFailException: "<<e.reason<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got ImmediateServFailException: "<<e.reason<<endl,
+         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
     ret.clear();
   }
   catch(const PolicyHitException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got a policy hit"<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got a policy hit"<<endl,
+         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
     ret.clear();
   }
   catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got STL error: "<<e.what()<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got STL error: "<<e.what()<<endl,
+         log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
     ret.clear();
   }
   catch(...) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got an exception"<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got an exception"<<endl,
+         log->info(Logr::Error, msg));
     ret.clear();
   }
 
