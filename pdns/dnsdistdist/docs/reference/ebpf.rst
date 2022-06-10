@@ -118,7 +118,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. method:: BPFFilter:lsRangeRule()
 
-  .. versionchanged:: 1.8.0
+    .. versionadded:: 1.8.0
 
     List all range rule.
 
