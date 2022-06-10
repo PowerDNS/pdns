@@ -224,12 +224,12 @@ void RemoteLogger::maintenanceThread()
   }
   catch (const std::exception& e)
   {
-    SLOG(cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl,
-         g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thead died"));
+    SLOG(cerr << "Remote Logger's maintenance thread died on: " << e.what() << endl,
+         g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
   }
   catch (...) {
-    SLOG(cerr << "Remote Logger's maintenance thead died on unknown exception" << endl,
-          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thead died"));
+    SLOG(cerr << "Remote Logger's maintenance thread died on unknown exception" << endl,
+         g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
   }
 }
 
