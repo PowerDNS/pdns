@@ -83,7 +83,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. method:: BPFFilter:addRangeRule(Netmask , action [, force=false])
 
-  .. versionchanged:: 1.8.0
+    .. versionadded:: 1.8.0
 
     Block all IP addresses in this range. 
 
