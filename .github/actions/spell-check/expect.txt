@@ -1774,6 +1774,7 @@ unitialized
 unixodbc
 unixtime
 unparseable
+UNPRIV
 Unprocessable
 unpublish
 unpublishdomainkey

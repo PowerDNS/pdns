@@ -6,6 +6,9 @@ eBPF Socket Filtering
 .. note::
    To retain the required capability, ``CAP_SYS_ADMIN`` or ``CAP_BPF`` depending on the Linux kernel version, it is necessary to call :func:`addCapabilitiesToRetain` during startup, as :program:`dnsdist` drops capabilities after startup.
 
+.. note::
+   eBPF can be used by unprivileged users lacking the ``CAP_SYS_ADMIN`` (or ``CAP_BPF``) capability on some kernels, depending on the value of the ``kernel.unprivileged_bpf_disabled`` sysctl. Since 5.15 that kernel build setting ``BPF_UNPRIV_DEFAULT_OFF`` is enabled by default, which prevents unprivileged users from using eBPF.
+
 This feature allows dnsdist to ask the kernel to discard incoming packets in kernel-space instead of them being copied to userspace just to be dropped, thus being a lot of faster. The current implementation supports dropping UDP and TCP queries based on the source IP and UDP datagrams on exact DNS names. We have not been able to implement suffix matching yet, due to a limit on the maximum number of EBPF instructions.
 
 The following figure show the CPU usage of dropping around 20k qps of traffic, first in userspace (34 to 36) then in kernel space with eBPF (37 to 39). The spikes are caused because the drops are triggered by dynamic rules, so the first spike is the abuse traffic before a rule is automatically inserted, and the second spike is because the rule expires automatically after 60s before being inserted again.
@@ -68,8 +71,36 @@ The dynamic eBPF blocks and the number of queries they blocked can be seen in th
 
 They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
 
-Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`.
+Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`, which provides a better way to combine dynamic blocks with eBPF filtering.
 
-That feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
+Requirements
+------------
+
+In addition to the capabilities explained above, that feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
 When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
-Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=infinity`` in the systemd unit file.
+
+Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=infinity`` in the systemd unit file. It can also be done manually for testing purposes, in a non-permanent way, by using ``ulimit -l``.
+
+External program, maps and XDP filtering
+----------------------------------------
+
+Since 1.7.0 dnsdist has the ability to expose its eBPF map to external programs. That feature makes it possible to populate the client IP addresses and qnames maps from dnsdist, usually using the dynamic block mechanism, and to act on the content of these maps from an external program, including a XDP one.
+For example, to instruct dnsdist to create under the ``/sys/fs/bpf`` mount point of type ``bpf`` three maps of maximum 1024 entries each, respectively pinned to ``/sys/fs/bpf/dnsdist/addr-v4``, ``/sys/fs/bpf/dnsdist/addr-v6``, ``/sys/fs/bpf/dnsdist/qnames`` for IPv4 addresses, IPv6 ones, and qnames:
+
+.. code-block:: lua
+
+  bpf = newBPFFilter({maxItems=1024, pinnedPath='/sys/fs/bpf/dnsdist/addr-v4'}, {maxItems=1024, pinnedPath='/sys/fs/bpf/dnsdist/addr-v6'}, {maxItems=1024, pinnedPath='/sys/fs/bpf/dnsdist/qnames'}, true)
+
+.. note::
+   By default only root can write into a bpf mount point, but it is possible to create a ``dnsdist/`` sub-directory with ``mkdir`` and to make it owned by the ``dnsdist`` user with ``chown``.
+
+The last parameter to :func:`newBPFFilter` is set to ``true`` to indicate to dnsdist not to load its internal eBPF socket filter program, which is not needed since packets will be intercepted by an external program and would at best duplicate the work done by the other program. It also tell dnsdist to use a slightly different format for the eBPF maps:
+
+ * IPv4 and IPv6 maps still use the address as key, but the value contains an action field in addition to the 'matched' counter, to allow for more actions than just dropping the packet
+ * the qname map now uses the qname and qtype as key, instead of using only the qname, and the value contains the action and counter fields described above instead of having a counter and the qtype
+
+The first, legacy format is still used because of the limitations of eBPF socket filter programs on older kernels, and the number of instructions in particular, that prevented us from using the qname and qtype as key. We will likely switch to the newer format by default once Linux distributions stop shipping these older kernels. XDP programs require newer kernel versions anyway and have thus fewer limitations.
+
+XDP programs are more powerful than eBPF socket filtering ones as they are not limited to accepting or denying a packet, but can immediately craft and send an answer. They are also executed a bit earlier in the kernel networking path so can provide better performance.
+
+A sample program using the maps populated by dnsdist in an external XDP program can be found in the `contrib/ directory of our git repository <https://github.com/PowerDNS/pdns/tree/master/contrib>`__. That program supports answering with a TC=1 response instead of simply dropping the packet.
