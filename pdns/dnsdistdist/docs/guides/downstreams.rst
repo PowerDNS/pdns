@@ -108,8 +108,8 @@ If it is absolutely necessary to support UDP exchanges over an untrusted network
 1.8.0 to make spoofing attempts harder:
 
 - :func:`setRandomizedIdsOverUDP` will randomize the IDs in outgoing queries, at a small performance cost. :func:`setMaxUDPOutstanding`
-should be set at its highest possible value (default since 1.4.0) to make that setting fully efficient.
+  should be set at its highest possible value (default since 1.4.0) to make that setting fully efficient.
 
 - :func:`setRandomizedOutgoingSockets` can be used to randomize the outgoing socket used when forwarding a query to a backend.
-This requires configuring the backend to use more than one outgoing socket via the ``sockets`` parameter of :func:`newServer`
-to be of any use.
+  This requires configuring the backend to use more than one outgoing socket via the ``sockets`` parameter of :func:`newServer`
+  to be of any use.
