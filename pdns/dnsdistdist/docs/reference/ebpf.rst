@@ -112,7 +112,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. method:: BPFFilter:rmRangeRule(Netmask)
 
-  .. versionchanged:: 1.8.0
+    .. versionadded:: 1.8.0
 
     :param Netmask string: The rule you want to remove
 
