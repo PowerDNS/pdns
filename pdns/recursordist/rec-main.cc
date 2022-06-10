@@ -880,26 +880,26 @@ static void loggerSDBackend(const Logging::Entry& entry)
 {
   // We need to keep the string in mem until sd_journal_sendv has ben called
   vector<string> strings;
-  auto h = [&strings](const string& k, const string& v) {
+  auto appendKeyAndVal = [&strings](const string& k, const string& v) {
     strings.emplace_back(k + "=" + v);
   };
-  h("MESSAGE", entry.message);
+  appendKeyAndVal("MESSAGE", entry.message);
   if (entry.error) {
-    h("ERROR", entry.error.get());
+    appendKeyAndVal("ERROR", entry.error.get());
   }
-  h("LEVEL", std::to_string(entry.level));
-  h("PRIORITY", std::to_string(entry.d_priority));
+  appendKeyAndVal("LEVEL", std::to_string(entry.level));
+  appendKeyAndVal("PRIORITY", std::to_string(entry.d_priority));
   if (entry.name) {
-    h("SUBSYSTEM", entry.name.get());
+    appendKeyAndVal("SUBSYSTEM", entry.name.get());
   }
   char timebuf[64];
-  h("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
+  appendKeyAndVal("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
   for (auto const& v : entry.values) {
-    h(toUpper(v.first), v.second);
+    appendKeyAndVal(toUpper(v.first), v.second);
   }
   // Thread id filled in by backend, since the SL code does not know about RecursorThreads
   // We use the Recursor thread, other threads get id 0. May need to revisit.
-  h("TID", std::to_string(RecThreadInfo::id()));
+  appendKeyAndVal("TID", std::to_string(RecThreadInfo::id()));
 
   vector<iovec> iov;
   iov.reserve(strings.size());
