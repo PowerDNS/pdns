@@ -33,20 +33,21 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
 {
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
-  size_t position = 0;
+  size_t usableServers = 0;
   for (const auto& d : servers) {
     if (d.second->isUp()) {
-      poss[position] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), position);
+      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), d.first);
+      usableServers++;
     }
-    ++position;
   }
 
-  if (position == 0) {
+  if (usableServers == 0) {
     return shared_ptr<DownstreamState>();
   }
 
-  nth_element(poss.begin(), poss.begin(), poss.begin() + position, [](const typename T::value_type& a, const typename T::value_type& b) { return a.first < b.first; });
-  return servers.at(poss.begin()->second).second;
+  nth_element(poss.begin(), poss.begin(), poss.begin() + usableServers, [](const typename T::value_type& a, const typename T::value_type& b) { return a.first < b.first; });
+  // minus 1 because the NumberedServerVector starts at 1 for Lua
+  return servers.at(poss.begin()->second - 1).second;
 }
 
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
@@ -83,7 +84,7 @@ template <class T> static std::shared_ptr<DownstreamState> getValRandom(const Se
   int sum = 0;
   int max = std::numeric_limits<int>::max();
 
-  size_t position = 0;
+  size_t usableServers = 0;
   for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
     if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
@@ -93,22 +94,23 @@ template <class T> static std::shared_ptr<DownstreamState> getValRandom(const Se
         sum += d.second->d_config.d_weight;
       }
 
-      poss[position]  = std::make_pair(sum, d.first);
-      position++;
+      poss[usableServers]  = std::make_pair(sum, d.first);
+      usableServers++;
     }
   }
 
   // Catch poss & sum are empty to avoid SIGFPE
-  if (position == 0 || sum == 0) {
+  if (usableServers == 0 || sum == 0) {
     return shared_ptr<DownstreamState>();
   }
 
   int r = val % sum;
-  auto p = upper_bound(poss.begin(), poss.begin() + position, r, [](int r_, const typename T::value_type& a) { return  r_ < a.first;});
+  auto p = upper_bound(poss.begin(), poss.begin() + usableServers, r, [](int r_, const typename T::value_type& a) { return  r_ < a.first;});
   if (p == poss.end()) {
     return shared_ptr<DownstreamState>();
   }
 
+  // minus 1 because the NumberedServerVector starts at 1 for Lua
   return servers.at(p->second - 1).second;
 }
 
