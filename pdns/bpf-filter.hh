@@ -26,6 +26,8 @@
 
 #include "iputils.hh"
 #include "lock.hh"
+#include <netinet/in.h>
+#include <stdexcept>
 
 class BPFFilter
 {
@@ -34,7 +36,9 @@ public:
     IPv4,
     IPv6,
     QNames,
-    Filters
+    Filters,
+    CIDR4,
+    CIDR6
   };
 
   enum class MapFormat : uint8_t {
@@ -47,6 +51,18 @@ public:
     Drop = 1,
     Truncate = 2
   };
+  static std::string toString(MatchAction s) noexcept
+  {
+    switch (s) {
+    case MatchAction::Pass:
+      return "Pass";
+    case MatchAction::Drop:
+      return "Drop";
+    case MatchAction::Truncate:
+      return "Truncate";
+    }
+    return "Unknown";
+  }
 
   struct MapConfiguration
   {
@@ -55,6 +71,12 @@ public:
     MapType d_type;
   };
 
+  struct CounterAndActionValue
+  {
+    uint64_t counter{0};
+    BPFFilter::MatchAction action{BPFFilter::MatchAction::Pass};
+  };
+  
 
   BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external);
   BPFFilter(const BPFFilter&) = delete;
@@ -65,11 +87,14 @@ public:
   void addSocket(int sock);
   void removeSocket(int sock);
   void block(const ComboAddress& addr, MatchAction action);
+  void addRangeRule(const Netmask& address, bool force, BPFFilter::MatchAction action);
   void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);
+  void rmRangeRule(const Netmask& address);
   void unblock(const DNSName& qname, uint16_t qtype=255);
 
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
+  std::vector<std::pair<Netmask, CounterAndActionValue>> getRangeRule();
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
 
   uint64_t getHits(const ComboAddress& requestor);
@@ -94,6 +119,8 @@ private:
   {
     Map d_v4;
     Map d_v6;
+    Map d_cidr4;
+    Map d_cidr6;
     Map d_qnames;
     /* The qname filter program held in d_qnamefilter is
        stored in an eBPF map, so we can call it from the
@@ -107,7 +134,34 @@ private:
   FDWrapper d_mainfilter;
   /* qname filtering program */
   FDWrapper d_qnamefilter;
-
+  struct CIDR4
+  {
+    uint32_t cidr;
+    struct in_addr addr;
+    explicit CIDR4(Netmask address)
+    {
+      if (!address.isIPv4()) {
+        throw std::runtime_error("ComboAddress is invalid");
+      }
+      addr = address.getNetwork().sin4.sin_addr;
+      cidr = address.getBits();
+    }
+    CIDR4() = default;
+  };
+  struct CIDR6
+  {
+    uint32_t cidr;
+    struct in6_addr addr;
+    CIDR6(Netmask address)
+    {
+      if (!address.isIPv6()) {
+        throw std::runtime_error("ComboAddress is invalid");
+      }
+      addr = address.getNetwork().sin6.sin6_addr;
+      cidr = address.getBits();
+    }
+    CIDR6() = default;
+  };
   /* whether the maps are in the 'old' format, which we need
      to keep to prevent going over the 4k instructions per eBPF
      program limit in kernels < 5.2, as well as the complexity limit:
@@ -124,3 +178,4 @@ private:
   bool d_external;
 #endif /* HAVE_EBPF */
 };
+using CounterAndActionValue = BPFFilter::CounterAndActionValue;

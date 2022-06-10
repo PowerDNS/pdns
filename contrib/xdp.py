@@ -18,9 +18,12 @@ DEV = "eth0"
 
 # The list of blocked IPv4, IPv6 and QNames
 # IP format : (IPAddress, Action)
+# CIDR format : (IPAddress/cidr, Action)
 # QName format : (QName, QType, Action)
 blocked_ipv4 = [("192.0.2.1", TC_ACTION)]
 blocked_ipv6 = [("2001:db8::1", TC_ACTION)]
+blocked_cidr4 = [("192.0.1.1/24", TC_ACTION)]
+blocked_cidr6 = [("2001:db8::1/128", TC_ACTION)]
 blocked_qnames = [("localhost", "A", DROP_ACTION), ("test.com", "*", TC_ACTION)]
 
 # Main
@@ -31,6 +34,8 @@ xdp.attach_xdp(DEV, fn, 0)
 
 v4filter = xdp.get_table("v4filter")
 v6filter = xdp.get_table("v6filter")
+cidr4filter = xdp.get_table("cidr4filter")
+cidr6filter = xdp.get_table("cidr6filter")
 qnamefilter = xdp.get_table("qnamefilter")
 
 for ip in blocked_ipv4:
@@ -50,6 +55,30 @@ for ip in blocked_ipv6:
   leaf.counter = 0
   leaf.action = ip[1]
   v6filter[key] = leaf
+
+for item in blocked_cidr4:
+  print(f"Blocking {item}")
+  key = cidr4filter.Key()
+  network = netaddr.IPNetwork(item[0])
+  key.cidr = network.prefixlen
+  key.addr = socket.htonl(network.network.value)
+  leaf = cidr4filter.Leaf()
+  leaf.counter = 0
+  leaf.action = item[1]
+  cidr4filter[key] = leaf
+
+for item in blocked_cidr6:
+  print(f"Blocking {item}")
+  key = cidr6filter.Key()
+  network = netaddr.IPNetwork(item[0])
+  key.cidr = network.prefixlen
+  ipv6_int = int(network.network.value)
+  ipv6_bytes = bytearray([(ipv6_int & (255 << 8*(15-i))) >> (8*(15-i)) for i in range(16)])
+  key.addr.in6_u.u6_addr8 = (ct.c_uint8 * 16).from_buffer(ipv6_bytes)
+  leaf = cidr6filter.Leaf()
+  leaf.counter = 0
+  leaf.action = item[1]
+  cidr6filter[key] = leaf
 
 for qname in blocked_qnames:
   print(f"Blocking {qname}")
@@ -77,6 +106,11 @@ for item in v4filter.items():
   print(f"{str(netaddr.IPAddress(item[0].value))} ({ACTIONS[item[1].action]}): {item[1].counter}")
 for item in v6filter.items():
   print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0]))} ({ACTIONS[item[1].action]}): {item[1].counter}")
+for item in cidr4filter.items():
+  addr = netaddr.IPAddress(socket.ntohl(item[0].addr))
+  print(f"{str(addr)}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
+for item in cidr6filter.items():
+  print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0].addr))}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
 for item in qnamefilter.items():
   print(f"{''.join(map(chr, item[0].qname)).strip()}/{INV_QTYPES[item[0].qtype]} ({ACTIONS[item[1].action]}): {item[1].counter}")
 
