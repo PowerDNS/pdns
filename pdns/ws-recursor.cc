@@ -1368,7 +1368,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
   HttpRequest req(logprefix);
   HttpResponse resp;
 #ifdef RECURSOR
-  auto log = d_slog->withValues("uniqueid",  Logging::Loggable(to_string(unique)));
+  auto log = d_slog->withValues("uniqueid", Logging::Loggable(to_string(unique)));
   req.setSLog(log);
   resp.setSLog(log);
 #endif
@@ -1409,7 +1409,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     catch (YaHTTP::ParseError& e) {
       // request stays incomplete
       SLOG(g_log << Logger::Warning << logprefix << "Unable to parse request: " << e.what() << endl,
-           req.d_slog->error(Logr::Warning,  e.what(), "Unable to parse request"));
+           req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
     logRequest(req, remote);
@@ -1440,13 +1440,14 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
   }
   catch (...) {
     SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
-         req.d_slog->error(Logr::Error, "Exception handing request"))  }
+         req.d_slog->error(Logr::Error, "Exception handing request"))
+  }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
     SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
          req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
                           "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
-                          "status", Logging::Loggable(resp.status), "respsize",  Logging::Loggable(reply.size())));
+                          "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
   }
 }
 
