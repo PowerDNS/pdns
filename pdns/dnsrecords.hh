@@ -368,7 +368,7 @@ public:
   string d_key;
   bool operator<(const DNSKEYRecordContent& rhs) const
   {
-    return std::tie(d_flags, d_protocol, d_algorithm, d_key) < 
+    return std::tie(d_flags, d_protocol, d_algorithm, d_key) <
       std::tie(rhs.d_flags, rhs.d_protocol, rhs.d_algorithm, rhs.d_key);
   }
 };
@@ -552,7 +552,7 @@ public:
 class RRSIGRecordContent : public DNSRecordContent
 {
 public:
-  RRSIGRecordContent(); 
+  RRSIGRecordContent();
   includeboilerplate(RRSIG)
 
   uint16_t d_type{0};
@@ -564,7 +564,7 @@ public:
 };
 
 //namespace {
-  struct soatimes 
+  struct soatimes
   {
     uint32_t serial;
     uint32_t refresh;
@@ -891,7 +891,7 @@ private:
   DNSName d_fqdn;
 };
 
-class EUI48RecordContent : public DNSRecordContent 
+class EUI48RecordContent : public DNSRecordContent
 {
 public:
   EUI48RecordContent() {};
@@ -903,7 +903,7 @@ public:
   uint16_t getType() const override { return QType::EUI48; }
 private:
  // storage for the bytes
- uint8_t d_eui48[6]; 
+ uint8_t d_eui48[6];
 };
 
 class EUI64RecordContent : public DNSRecordContent
@@ -1031,8 +1031,8 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
   RecordTextWriter rtw(ret, noDot);                                                                       \
   const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
   return ret;                                                                                      \
-}                                                                                                  
-                                                                                           
+}
+
 
 #define boilerplate_conv(RNAME, CONV)                             \
 boilerplate(RNAME)                                                \

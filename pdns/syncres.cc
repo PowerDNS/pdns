@@ -860,6 +860,38 @@ void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
   }
 }
 
+bool SyncRes::AuthDomain::operator==(const AuthDomain& rhs) const
+{
+  return d_records == rhs.d_records
+    && d_servers == rhs.d_servers
+    && d_name == rhs.d_name
+    && d_rdForward == rhs.d_rdForward;
+}
+
+[[nodiscard]] std::string SyncRes::AuthDomain::print(const std::string& indent,
+                                                     const std::string& indentLevel) const
+{
+  std::stringstream s;
+  s << indent << "DNSName = " << d_name << std::endl;
+  s << indent << "rdForward = " << d_rdForward << std::endl;
+  s << indent << "Records {" << std::endl;
+  auto recordContentIndentation = indent;
+  recordContentIndentation += indentLevel;
+  recordContentIndentation += indentLevel;
+  for (const auto& record : d_records) {
+    s << indent << indentLevel << "Record `" << record.d_name << "` {" << std::endl;
+    s << record.print(recordContentIndentation);
+    s << indent << indentLevel << "}" << std::endl;
+  }
+  s << indent << "}" << std::endl;
+  s << indent << "Servers {" << std::endl;
+  for (const auto& server : d_servers) {
+    s << indent << indentLevel << server.toString() << std::endl;
+  }
+  s << indent << "}" << std::endl;
+  return s.str();
+}
+
 int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
 {
   int result = RCode::NoError;

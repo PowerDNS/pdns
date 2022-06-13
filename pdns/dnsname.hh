@@ -61,14 +61,14 @@ uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
 //#include <ext/vstring.h>
 
-/* Quest in life: 
+/* Quest in life:
      accept escaped ascii presentations of DNS names and store them "natively"
      accept a DNS packet with an offset, and extract a DNS name from it
      build up DNSNames with prepend and append of 'raw' unescaped labels
 
    Be able to turn them into ASCII and "DNS name in a packet" again on request
 
-   Provide some common operators for comparison, detection of being part of another domain 
+   Provide some common operators for comparison, detection of being part of another domain
 
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
@@ -98,7 +98,7 @@ public:
   explicit DNSName(const char* p, size_t len);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str(), str.length()) {}; //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=nullptr, uint16_t* qclass=nullptr, unsigned int* consumed=nullptr, uint16_t minOffset=0); //!< Construct from a DNS Packet, taking the first question if offset=12. If supplied, consumed is set to the number of bytes consumed from the packet, which will not be equal to the wire length of the resulting name in case of compression.
-  
+
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name? Note that name.isPartOf(name).
   inline bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive) - empty compares to empty
   bool operator!=(const DNSName& other) const { return !(*this == other); }
@@ -162,7 +162,7 @@ public:
 
   bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
-    return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
+    return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(),
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
 				 [](const unsigned char& a, const unsigned char& b) {
 					  return dns_tolower(a) < dns_tolower(b);
@@ -170,7 +170,7 @@ public:
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
-  bool slowCanonCompare(const DNSName& rhs) const;  
+  bool slowCanonCompare(const DNSName& rhs) const;
 
 #if BOOST_VERSION >= 105300
   typedef boost::container::string string_t;
@@ -230,7 +230,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   //
   // 0,2,6,a
   // 0,4,a
-  
+
   uint8_t ourpos[64], rhspos[64];
   uint8_t ourcount=0, rhscount=0;
   //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
@@ -242,7 +242,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
     return slowCanonCompare(rhs);
   }
-  
+
   for(;;) {
     if(ourcount == 0 && rhscount != 0)
       return true;
@@ -252,21 +252,21 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     rhscount--;
 
     bool res=std::lexicographical_compare(
-					  d_storage.c_str() + ourpos[ourcount] + 1, 
+					  d_storage.c_str() + ourpos[ourcount] + 1,
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
+					  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
 					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns_tolower(a) < dns_tolower(b);
 					  });
-    
+
     //    cout<<"Forward: "<<res<<endl;
     if(res)
       return true;
 
-    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
+    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  d_storage.c_str() + ourpos[ourcount] + 1, 
+					  d_storage.c_str() + ourpos[ourcount] + 1,
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns_tolower(a) < dns_tolower(b);
@@ -320,7 +320,7 @@ struct SuffixMatchTree
   {
     return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
   }
-  
+
   std::string d_name;
   mutable std::set<SuffixMatchTree, std::less<>> children;
   mutable bool endNode;
@@ -582,16 +582,19 @@ namespace std {
 }
 
 DNSName::string_t segmentDNSNameRaw(const char* input, size_t inputlen); // from ragel
+
 bool DNSName::operator==(const DNSName& rhs) const
 {
-  if(rhs.empty() != empty() || rhs.d_storage.size() != d_storage.size())
+  if (rhs.empty() != empty() || rhs.d_storage.size() != d_storage.size()) {
     return false;
+  }
 
-  auto us = d_storage.cbegin();
-  auto p = rhs.d_storage.cbegin();
-  for(; us != d_storage.cend() && p != rhs.d_storage.cend(); ++us, ++p) { 
-    if(dns_tolower(*p) != dns_tolower(*us))
+  const auto* us = d_storage.cbegin();
+  const auto* p = rhs.d_storage.cbegin();
+  for (; us != d_storage.cend() && p != rhs.d_storage.cend(); ++us, ++p) {
+    if (dns_tolower(*p) != dns_tolower(*us)) {
       return false;
+    }
   }
   return true;
 }

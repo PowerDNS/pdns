@@ -175,7 +175,7 @@ public:
        = 15
     */
     const dnsheader_aligned dnsheaderdata(query.data());
-    const struct dnsheader* dh = dnsheaderdata.get();    
+    const struct dnsheader* dh = dnsheaderdata.get();
     if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) >= querySize || optionsToIgnore.empty()) {
       return cachedQuery.compare(pos, cachedQuerySize - pos, query, pos, querySize - pos) == 0;
     }

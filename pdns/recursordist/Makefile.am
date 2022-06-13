@@ -175,6 +175,7 @@ pdns_recursor_SOURCES = \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
+	reczones-helpers.cc reczones-helpers.hh \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolve-context.hh \
@@ -290,6 +291,7 @@ testrunner_SOURCES = \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
+	reczones-helpers.cc reczones-helpers.hh \
 	resolver.hh resolver.cc \
 	responsestats.cc \
 	root-dnssec.hh \
@@ -329,6 +331,7 @@ testrunner_SOURCES = \
 	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-reczones-helpers.cc \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \

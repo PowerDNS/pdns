@@ -283,6 +283,32 @@ union ComboAddress {
       return "invalid "+stringerror();
   }
 
+  [[nodiscard]] string toStringReversed() const
+  {
+    if (isIPv4()) {
+      const auto ip = ntohl(sin4.sin_addr.s_addr);
+      auto a = (ip >> 0) & 0xFF;
+      auto b = (ip >> 8) & 0xFF;
+      auto c = (ip >> 16) & 0xFF;
+      auto d = (ip >> 24) & 0xFF;
+      return std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." + std::to_string(d);
+    }
+    else {
+      const auto* addr = &sin6.sin6_addr;
+      std::stringstream res{};
+      res << std::hex;
+      for (int i = 15; i >= 0; i--) {
+        auto byte = addr->s6_addr[i];
+        res << ((byte >> 0) & 0xF) << ".";
+        res << ((byte >> 4) & 0xF);
+        if (i != 0) {
+          res << ".";
+        }
+      }
+      return res.str();
+    }
+  }
+
   string toStringWithPort() const
   {
     if(sin4.sin_family==AF_INET)
