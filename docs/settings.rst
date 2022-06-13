@@ -106,6 +106,10 @@ When notifying a zone, also notify these nameservers. Example:
 ``also-notify`` always receive a notification. Even if they do not match
 the list in :ref:`setting-only-notify`.
 
+You may specify an alternate port by appending :port. Example:
+``also-notify=192.0.2.1:5300``. If no port is specified, port 53
+is used.
+
 .. _setting-any-to-tcp:
 
 ``any-to-tcp``
