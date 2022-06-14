@@ -2,6 +2,52 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.2
+  :released: 14th of June 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11579
+    :tickets: 11576
+
+    Scan the UDP buckets only when we have outstanding queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11580
+    :tickets: 11422
+
+    Only allocate the health-check mplexer when needed
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 11664
+    :tickets: 11602
+
+    Add missing descriptions for prometheus metrics
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 11665
+    :tickets: 11604
+
+    Fix invalid proxy protocol payload on a DoH TC to TCP retry
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11666
+    :tickets: 11606
+
+    Add Lua bindings to access the DNS payload as a string
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 11667
+    :tickets: 11621
+
+    Fix a crash on a invalid protocol in DoH forwarded-for header
+
+.. changelog::
   :version: 1.7.1
   :released: 25th of April 2022
 
