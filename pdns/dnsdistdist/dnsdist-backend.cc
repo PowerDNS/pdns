@@ -58,17 +58,18 @@ bool DownstreamState::reconnect()
     }
     if (!IsAnyAddress(d_config.remote)) {
       fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
+
+      if (!d_config.sourceItfName.empty()) {
+#ifdef SO_BINDTODEVICE
+        int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
+        if (res != 0) {
+          infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
+        }
+#endif
+      }
+
       if (!IsAnyAddress(d_config.sourceAddr)) {
         SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-        if (!d_config.sourceItfName.empty()) {
-#ifdef SO_BINDTODEVICE
-          int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
-          if (res != 0) {
-            infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
-          }
-#endif
-        }
-
         SBind(fd, d_config.sourceAddr);
       }
       try {
@@ -78,7 +79,7 @@ bool DownstreamState::reconnect()
         }
         connected = true;
       }
-      catch(const std::runtime_error& error) {
+      catch (const std::runtime_error& error) {
         infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
         connected = false;
         break;
