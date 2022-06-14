@@ -239,13 +239,13 @@ BOOST_AUTO_TEST_CASE(test_root_primed_ns_update)
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   ret.clear();
-  time_t cached = g_recCache->get(now.tv_sec, aroot, QType::A, false, &ret, ComboAddress());
+  time_t cached = g_recCache->get(now.tv_sec, aroot, QType::A, MemRecursorCache::None, &ret, ComboAddress());
   BOOST_CHECK(cached > 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress(newA));
 
   ret.clear();
-  cached = g_recCache->get(now.tv_sec, aroot, QType::AAAA, false, &ret, ComboAddress());
+  cached = g_recCache->get(now.tv_sec, aroot, QType::AAAA, MemRecursorCache::None, &ret, ComboAddress());
   BOOST_CHECK(cached > 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(getRR<AAAARecordContent>(ret[0])->getCA() == ComboAddress(newAAAA));

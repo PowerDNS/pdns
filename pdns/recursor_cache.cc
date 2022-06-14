@@ -267,8 +267,10 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
   return ttl;
 }
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
+  bool requireAuth = flags & RequireAuth;
+  bool refresh = flags & Refresh;
   boost::optional<vState> cachedState{boost::none};
   uint32_t origTTL;
 

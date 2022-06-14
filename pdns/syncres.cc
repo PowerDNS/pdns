@@ -533,7 +533,8 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
   case AdditionalMode::CacheOnly:
   case AdditionalMode::CacheOnlyRequireAuth: {
     // Peek into cache
-    if (g_recCache->get(d_now.tv_sec, qname, qtype, mode == AdditionalMode::CacheOnlyRequireAuth, &addRecords, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
+    MemRecursorCache::Flags flags = mode == AdditionalMode::CacheOnlyRequireAuth ? MemRecursorCache::RequireAuth : MemRecursorCache::None;
+    if (g_recCache->get(d_now.tv_sec, qname, qtype, flags, &addRecords, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, &state) <= 0) {
       return;
     }
     // See the comment for the ResolveImmediately case
@@ -2049,14 +2050,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   try {
     // First look for both A and AAAA in the cache
     res_t cset;
-    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
+    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<ARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
         }
       }
     }
-    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
+    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<AAAARecordContent>(i)) {
           seenV6 = true;
@@ -2096,7 +2097,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         } else {
           // We have some IPv4 records, consult the cache, we might have encountered some IPv6 glue
           cset.clear();
-          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
+          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
             for (const auto &i : cset) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
                 seenV6 = true;
@@ -2198,7 +2199,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, false, d_routingTag) > 0) {
+    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, MemRecursorCache::None, &ns, d_cacheRemote, d_routingTag) > 0) {
       if (s_maxnsperresolve > 0 && ns.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2220,7 +2221,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
-                                                                          false, doLog() ? &aset : 0, d_cacheRemote, false, d_routingTag) > 0)) {
+                                                                          MemRecursorCache::None, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 0)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -2422,7 +2423,14 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
   QType foundQT = QType::ENT;
 
   /* we don't require auth data for forward-recurse lookups */
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+  MemRecursorCache::Flags flags = MemRecursorCache::None;
+  if (!wasForwardRecurse && d_requireAuthData) {
+    flags |= MemRecursorCache::RequireAuth;
+  }
+  if (d_refresh) {
+    flags |= MemRecursorCache::Refresh;
+  }
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
   }
@@ -2438,7 +2446,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
         foundName = dnameName;
         foundQT = QType::DNAME;
         break;
@@ -2823,8 +2831,15 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   uint32_t ttl=0;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth;
+  MemRecursorCache::Flags flags = MemRecursorCache::None;
+  if (!wasForwardRecurse && d_requireAuthData) {
+    flags |= MemRecursorCache::RequireAuth;
+  }
+  if (d_refresh) {
+    flags |= MemRecursorCache::Refresh;
+  }
 
-  if(g_recCache->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
+  if(g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.toString()<<": ");
 
@@ -4173,7 +4188,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
 {
   vector<DNSRecord> existing;
   bool wasAuth = false;
-  auto ttl = g_recCache->get(d_now.tv_sec, domain, QType::NS, false, &existing, d_cacheRemote, false, d_routingTag, nullptr, nullptr, nullptr, nullptr, &wasAuth);
+  auto ttl = g_recCache->get(d_now.tv_sec, domain, QType::NS, MemRecursorCache::None, &existing, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &wasAuth);
 
   if (ttl <= 0 || wasAuth) {
     return;

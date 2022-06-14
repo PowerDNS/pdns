@@ -56,7 +56,13 @@ public:
 
   typedef boost::optional<std::string> OptTag;
 
-  time_t get(time_t, const DNSName& qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh = false, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
+  typedef uint8_t Flags;
+  static const Flags None = 0;
+  static const Flags RequireAuth = 1 << 0;
+  static const Flags Refresh = 1 << 1;
+  static const Flags ServeStale = 1 << 2;
+
+  time_t get(time_t, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
 
   void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none);
 
