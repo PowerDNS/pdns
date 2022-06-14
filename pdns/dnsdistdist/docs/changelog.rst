@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.7.2
-  :released: TBD
+  :released: 14th of June 2022
 
   .. change::
     :tags: Improvements
