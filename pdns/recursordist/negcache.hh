@@ -65,9 +65,9 @@ public:
     mutable time_t d_ttd; // Timestamp when this entry should die
     mutable vState d_validationState{vState::Indeterminate};
     QType d_qtype; // The denied type
-    time_t getTTD() const
+    bool isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     };
   };
 

@@ -31,7 +31,7 @@ size_t hash_value(const ComboAddress&);
 }
 
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
@@ -61,10 +61,11 @@ struct ResolveTask
   ComboAddress d_ip;
   // NS name used by DoT probe task, not part of index and not used by operator<()
   DNSName d_nsname;
+  Netmask d_netmask;
 
   bool operator<(const ResolveTask& a) const
   {
-    return std::tie(d_qname, d_qtype, d_refreshMode, d_func, d_ip) < std::tie(a.d_qname, a.d_qtype, a.d_refreshMode, a.d_func, d_ip);
+    return std::tie(d_qname, d_qtype, d_refreshMode, d_func, d_ip, d_netmask) < std::tie(a.d_qname, a.d_qtype, a.d_refreshMode, a.d_func, a.d_ip, a.d_netmask);
   }
 
   bool run(bool logErrors);
@@ -118,13 +119,14 @@ private:
   typedef multi_index_container<
     ResolveTask,
     indexed_by<
-      hashed_unique<tag<HashTag>,
+      ordered_unique<tag<HashTag>,
                     composite_key<ResolveTask,
                                   member<ResolveTask, DNSName, &ResolveTask::d_qname>,
                                   member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
                                   member<ResolveTask, bool, &ResolveTask::d_refreshMode>,
                                   member<ResolveTask, ResolveTask::TaskFunction, &ResolveTask::d_func>,
-                                  member<ResolveTask, ComboAddress, &ResolveTask::d_ip>>>,
+                                  member<ResolveTask, ComboAddress, &ResolveTask::d_ip>,
+                                  member<ResolveTask, Netmask, &ResolveTask::d_netmask>>>,
       sequenced<tag<SequencedTag>>>>
     queue_t;
 
