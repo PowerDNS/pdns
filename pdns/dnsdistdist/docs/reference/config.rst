@@ -1590,6 +1590,20 @@ If you are looking for exact name matching, your might want to consider using a 
     :param string name: The suffix to add to the set.
     :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
 
+  .. method:: SuffixMatchNode:check(name) -> bool
+
+    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
+
+    :param DNSName name: The name to test against the set.
+
+  .. method:: SuffixMatchNode:getBestMatch(name) -> DNSName
+
+    .. versionadded:: 1.8.0
+
+    Returns the best match for the supplied name, or nil if there was no match.
+
+    :param DNSName name: The name to look up.
+
   .. method:: SuffixMatchNode:remove(name)
 
     .. versionadded:: 1.5.0
@@ -1599,12 +1613,6 @@ If you are looking for exact name matching, your might want to consider using a 
     :param DNSName name: The suffix to remove from the set.
     :param string name: The suffix to remove from the set.
     :param table name: The suffixes to remove from the set. Elements of the table should be of the same type, either DNSName or string.
-
-  .. method:: SuffixMatchNode:check(name) -> bool
-
-    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
-
-    :param DNSName name: The name to test against the set.
 
 Outgoing TLS tickets cache management
 -------------------------------------

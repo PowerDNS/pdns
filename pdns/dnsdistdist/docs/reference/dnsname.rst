@@ -50,6 +50,17 @@ Functions and methods of a ``DNSName``
 
     :param DNSName name: The name to check against
 
+  .. method:: DNSName:makeRelative(name) -> DNSName
+
+    .. versionadded:: 1.8.0
+
+    Provided that the current name is part of the supplied name, returns a new DNSName
+    composed only of the labels that are below the supplied name (ie making www.powerdns.com
+    relative to powerdns.com would return only wwww)
+    Otherwise an empty (unset) DNSName is returned.
+
+    :param DNSName name: The name to make us relative against
+
   .. method:: DNSName:toDNSString() -> string
 
     Returns a wire format form of the DNSName, suitable for usage in :func:`SpoofRawAction`.
@@ -58,6 +69,12 @@ Functions and methods of a ``DNSName``
               DNSName:tostring() -> string
 
     Returns a human-readable form of the DNSName.
+
+  .. method:: DNSName:toStringNoDot() -> string
+
+    .. versionadded:: 1.8.0
+
+    Returns a human-readable form of the DNSName, without the trailing dot.
 
   .. method:: DNSName:wirelength() -> int
 
