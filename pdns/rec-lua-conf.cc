@@ -506,7 +506,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.ztcConfigs[validZoneName] = conf;
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl;
+      SLOG(g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl,
+           lci.d_slog->error(Logr::Error, e.what(), "Problem configuring zoneToCache", "zone", Logging::Loggable(zoneName),
+                             "exception", Logging::Loggable("std::exception")));
     }
   });
 
@@ -537,7 +539,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
                          }
                        }
                        catch (std::exception& e) {
-                         g_log << Logger::Error << "Error in addSortList: " << e.what() << endl;
+                         SLOG(g_log << Logger::Error << "Error in addSortList: " << e.what() << endl,
+                              lci.d_slog->error(Logr::Error, e.what(), "Error in addSortList", "exception",  Logging::Loggable("std::exception")));
                        }
                      });
 
@@ -559,7 +562,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   /* Remove in 4.3 */
   Lua->writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
     warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
-    g_log << Logger::Warning << "addDS is deprecated and will be removed in the future, switch to addTA" << endl;
+    SLOG(g_log << Logger::Warning << "addDS is deprecated and will be removed in the future, switch to addTA" << endl,
+         lci.d_slog->info(Logr::Warning, "addDS is deprecated and will be removed in the future, switch to addTA"));
     DNSName zone(who);
     auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
     lci.dsAnchors[zone].insert(*ds);
@@ -567,7 +571,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   /* Remove in 4.3 */
   Lua->writeFunction("clearDS", [&lci](boost::optional<string> who) {
-    g_log << Logger::Warning << "clearDS is deprecated and will be removed in the future, switch to clearTA" << endl;
+    SLOG(g_log << Logger::Warning << "clearDS is deprecated and will be removed in the future, switch to clearTA" << endl,
+         lci.d_slog->info(Logr::Warning, "clearDS is deprecated and will be removed in the future, switch to clearTA"));
     warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearDS), but dnssec is set to 'off'!");
     if (who)
       lci.dsAnchors.erase(DNSName(*who));
@@ -725,7 +730,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     case QType::NAPTR:
       break;
     default:
-      g_log << Logger::Error << "addAllowedAdditionalQType does not support " << QType(qtype).toString() << endl;
+      SLOG(g_log << Logger::Error << "addAllowedAdditionalQType does not support " << QType(qtype).toString() << endl,
+           lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType does not support this qtype", "qtype", Logging::Loggable(QType(qtype).toString())));
       return;
     }
 
@@ -740,14 +746,15 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       if (const auto it = options->find("mode"); it != options->end()) {
         mode = static_cast<AdditionalMode>(it->second);
         if (mode > AdditionalMode::ResolveDeferred) {
-          g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl;
+          SLOG(g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl,
+               lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType: unknown mode", "mode", Logging::Loggable( it->second)));
         }
       }
     }
     lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
   });
 
-  Lua->writeFunction("addProxyMapping", [&proxyMapping](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
+  Lua->writeFunction("addProxyMapping", [&proxyMapping,&lci](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
     try {
       Netmask netmask(netmaskArg);
       ComboAddress address(addressArg);
@@ -761,10 +768,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       proxyMapping.insert_or_assign(netmask, {address, smn});
     }
     catch (std::exception& e) {
-      g_log << Logger::Error << "Error processing addProxyMapping: " << e.what() << endl;
+      SLOG(g_log << Logger::Error << "Error processing addProxyMapping: " << e.what() << endl,
+           lci.d_slog->error(Logr::Error, e.what(), "Exception processing addProxyMapping", "exception", Logging::Loggable("std::exception")));
     }
     catch (PDNSException& e) {
-      g_log << Logger::Error << "Error processing addProxyMapping: " << e.reason << endl;
+      SLOG(g_log << Logger::Error << "Error processing addProxyMapping: " << e.reason << endl,
+           lci.d_slog->error(Logr::Error, e.reason, "Exception processing addProxyMapping", "exception", Logging::Loggable("PDNSException")));
     }
   });
 
@@ -773,22 +782,25 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     g_luaconfs.setState(std::move(lci));
   }
   catch (const LuaContext::ExecutionErrorException& e) {
-    g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ";
+    SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ",
+         lci.d_slog->error(Logr::Error, e.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname)));
     try {
       std::rethrow_if_nested(e);
     }
     catch (const std::exception& exp) {
       // exp is the exception that was thrown from inside the lambda
-      g_log << exp.what() << std::endl;
+      SLOG(g_log << exp.what() << std::endl,
+           lci.d_slog->error(Logr::Error, exp.what(), "Exception loading Lua", "exception", Logging::Loggable("std::exception")));
     }
     catch (const PDNSException& exp) {
       // exp is the exception that was thrown from inside the lambda
-      g_log << exp.reason << std::endl;
-    }
+      SLOG(g_log << exp.reason << std::endl,
+           lci.d_slog->error(Logr::Error, exp.reason, "Exception loading Lua", "exception", Logging::Loggable("PDNSException")))    }
     throw;
   }
   catch (std::exception& err) {
-    g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': " << err.what() << endl;
+    SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': " << err.what() << endl,
+         lci.d_slog->error(Logr::Error, err.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname), "exception", Logging::Loggable("std::exception")));
     throw;
   }
 }
