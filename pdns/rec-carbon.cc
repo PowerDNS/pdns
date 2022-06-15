@@ -6,6 +6,7 @@
 #include "rec_channel.hh"
 #include "iputils.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "arguments.hh"
 #include "lock.hh"
 
@@ -13,6 +14,7 @@ GlobalStateHolder<CarbonConfig> g_carbonConfig;
 
 void doCarbonDump(void*)
 {
+  auto log = g_slog->withName("carbon");
   try {
     static thread_local auto configHolder = g_carbonConfig.getLocal();
 
@@ -66,21 +68,27 @@ void doCarbonDump(void*)
 
       auto ret = asendtcp(msg, handler); // this will actually do the right thing waiting on the connect
       if (ret == LWResult::Result::Timeout) {
-        g_log << Logger::Warning << "Timeout connecting/writing carbon data to " << remote.toStringWithPort() << endl;
+        SLOG(g_log << Logger::Warning << "Timeout connecting/writing carbon data to " << remote.toStringWithPort() << endl,
+             log->info(Logr::Warning, "Timeout connecting/writing carbon data", "address", Logging::Loggable(remote)));
       }
       else if (ret != LWResult::Result::Success) {
-        g_log << Logger::Warning << "Error writing carbon data to " << remote.toStringWithPort() << ": " << stringerror() << endl;
+        int err = errno;
+        SLOG(g_log << Logger::Warning << "Error writing carbon data to " << remote.toStringWithPort() << ": " << stringerror(err) << endl,
+             log->error(Logr::Warning, err, "Error writing carbon data", "address", Logging::Loggable(remote)));
       }
       handler->close();
     }
   }
   catch (const PDNSException& e) {
-    g_log << Logger::Error << "Error in carbon thread: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << "Error in carbon thread: " << e.reason << endl,
+         log->error(Logr::Error, e.reason, "Error in carbon thread", "exception", Logging::Loggable("PDNSException")));
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << "Error in carbon thread: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "Error in carbon thread: " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "Error in carbon thread", "exception", Logging::Loggable("std::exception")));
   }
   catch (...) {
-    g_log << Logger::Error << "Unknown error in carbon thread" << endl;
+    SLOG(g_log << Logger::Error << "Unknown error in carbon thread" << endl,
+         log->info(Logr::Error, "Error in carbon thread"));
   }
 }

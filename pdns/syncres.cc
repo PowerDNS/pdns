@@ -5012,8 +5012,13 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
 
 bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsName, ComboAddress address, time_t now)
 {
-  auto logHelper = [](const string& msg) {
-    g_log<<Logger::Debug<<"Failed to probe DoT records, got an exception: "<<msg<<endl;
+  auto log = g_slog->withName("taskq")->withValues("method", Logging::Loggable("tryDoT"), "name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()), "ip", Logging::Loggable(address));
+
+  auto logHelper1 = [&log](const string& ename) {
+    log->info(Logr::Debug, "Failed to probe DoT records, got an exception", "exception", Logging::Loggable(ename));
+  };
+  auto logHelper2 = [&log](const string& msg, const string& ename) {
+    log->error(Logr::Debug, msg, "Failed to probe DoT records, got an exception", "exception", Logging::Loggable(ename));
   };
   LWResult lwr;
   bool truncated;
@@ -5027,19 +5032,19 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
     ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
   }
   catch(const PDNSException& e) {
-    logHelper(e.reason);
+    logHelper2(e.reason, "PDNSException");
   }
   catch(const ImmediateServFailException& e) {
-    logHelper(e.reason);
+    logHelper2(e.reason, "ImmediateServFailException");
   }
   catch(const PolicyHitException& e) {
-    logHelper("PolicyHitException");
+    logHelper1("PolicyHitException");
   }
   catch(const std::exception& e) {
-    logHelper(e.what());
+    logHelper2(e.what(), "std::exception");
   }
   catch(...) {
-    logHelper("other");
+    logHelper1("other");
   }
   updateDoTStatus(address, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
   return ok;

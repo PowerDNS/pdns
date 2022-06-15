@@ -468,7 +468,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
       auto soa = getRR<SOARecordContent>(dr);
       auto serial = soa ? soa->d_st.serial : 0;
       SLOG(g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<primary.toStringWithPort()<<", our serial: "<<serial<<endl,
-           logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary)));
+           logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial)));
 
       ComboAddress local(localAddress);
       if (local == ComboAddress()) {
