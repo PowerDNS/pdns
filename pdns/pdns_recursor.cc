@@ -974,6 +974,12 @@ void startDoResolve(void* p)
     dq.meta = std::move(dc->d_meta);
     dq.fromAuthIP = &sr.d_fromAuthIP;
 
+    sr.d_slog = sr.d_slog->withValues("qname", Logging::Loggable(dc->d_mdp.d_qname),
+                                      "qtype", Logging::Loggable(QType(dc->d_mdp.d_qtype)),
+                                      "remote", Logging::Loggable(dc->getRemote()),
+                                      "proto", Logging::Loggable(dc->d_tcp ? "tcp" : "udp"),
+                                      "ecs",  Logging::Loggable(dc->d_ednssubnet.source.empty() ? "" : dc->d_ednssubnet.source.toString()),
+                                      "mtid", Logging::Loggable(MT->getTid()));
     RunningResolveGuard tcpGuard(dc);
 
     if (ednsExtRCode != 0 || dc->d_mdp.d_header.opcode == Opcode::Notify) {
@@ -993,12 +999,17 @@ void startDoResolve(void* p)
     }
 
     if (!g_quiet || tracedQuery) {
-      g_log << Logger::Warning << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] " << (dc->d_tcp ? "TCP " : "") << "question for '" << dc->d_mdp.d_qname << "|"
+      if (!g_slogStructured) {
+        g_log << Logger::Warning << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] " << (dc->d_tcp ? "TCP " : "") << "question for '" << dc->d_mdp.d_qname << "|"
             << QType(dc->d_mdp.d_qtype) << "' from " << dc->getRemote();
-      if (!dc->d_ednssubnet.source.empty()) {
-        g_log << " (ecs " << dc->d_ednssubnet.source.toString() << ")";
+        if (!dc->d_ednssubnet.source.empty()) {
+          g_log << " (ecs " << dc->d_ednssubnet.source.toString() << ")";
+        }
+        g_log << endl;
       }
-      g_log << endl;
+      else {
+        sr.d_slog->info(Logr::Info, "Question");
+      }
     }
 
     if (!dc->d_mdp.d_header.rd) {

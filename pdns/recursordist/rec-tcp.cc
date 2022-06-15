@@ -60,10 +60,12 @@ TCPConnection::~TCPConnection()
 {
   try {
     if (closesocket(d_fd) < 0)
-      g_log << Logger::Error << "Error closing socket for TCPConnection" << endl;
+      SLOG(g_log << Logger::Error << "Error closing socket for TCPConnection" << endl,
+           g_logtcpin->info(Logr::Error, "Error closing socket for TCPConnection"));
   }
   catch (const PDNSException& e) {
-    g_log << Logger::Error << "Error closing TCPConnection socket: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << "Error closing TCPConnection socket: " << e.reason << endl,
+         g_logtcpin->error(Logr::Error, e.reason, "Error closing TCPConnection socket", "exception", Logging::Loggable("PDNSException")));
   }
 
   if (t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
@@ -224,7 +226,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     ssize_t remaining = isProxyHeaderComplete(conn->data);
     if (remaining == 0) {
       if (g_logCommonErrors) {
-        g_log << Logger::Error << "Unable to consume proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
+        SLOG(g_log << Logger::Error << "Unable to consume proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+             g_logtcpin->info(Logr::Error, "Unable to consume proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
       }
       ++g_stats.proxyProtocolInvalidCount;
       return;
@@ -244,14 +247,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
       if (used <= 0) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+               g_logtcpin->info(Logr::Error, "Unable to parse proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
         }
         ++g_stats.proxyProtocolInvalidCount;
         return;
       }
       else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl;
+          SLOG(g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl,
+               g_logtcpin->info(Logr::Error, "Proxy protocol header in packet from TCP client is larger than proxy-protocol-maximum-size", "remote", Logging::Loggable(conn->d_remote), "size", Logging::Loggable(used)));
         }
         ++g_stats.proxyProtocolInvalidCount;
         return;
@@ -268,7 +273,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl;
+          SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl,
+               g_logtcpin->info(Logr::Error, "Dropping TCP query, address not matched by allow-from", "remote", Logging::Loggable(conn->d_remote)));
         }
 
         ++g_stats.unauthorizedTCP;
@@ -307,7 +313,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if (bytes <= 0) {
       if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected after first byte" << endl;
+          SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected after first byte" << endl,
+               g_logtcpin->info(Logr::Error, "TCP client disconnected after first byte", "remote", Logging::Loggable(conn->d_remote)));
         }
       }
       return;
@@ -319,14 +326,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if (bytes <= 0) {
       if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected while reading question body" << endl;
+          SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected while reading question body" << endl,
+               g_logtcpin->info(Logr::Error, "TCP client disconnected while reading question body", "remote", Logging::Loggable(conn->d_remote)));
         }
       }
       return;
     }
     else if (bytes > std::numeric_limits<std::uint16_t>::max()) {
       if (g_logCommonErrors) {
-        g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " sent an invalid question size while reading question body" << endl;
+        SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " sent an invalid question size while reading question body" << endl,
+             g_logtcpin->info(Logr::Error, "TCP client sent an invalid question size while reading question body", "remote", Logging::Loggable(conn->d_remote)));
       }
       return;
     }
@@ -340,14 +349,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       catch (const MOADNSException& mde) {
         g_stats.clientParseError++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+               g_logtcpin->info(Logr::Error, "Unable to parse packet from TCP client", "remte", Logging::Loggable(conn->d_remote)));
         }
         return;
       }
       if (SyncRes::isUnsupported(dc->d_mdp.d_qtype)) {
         g_stats.ignoredCount++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unsupported qtype " << dc->d_mdp.d_qtype << " from TCP client " << conn->d_remote.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Unsupported qtype " << dc->d_mdp.d_qtype << " from TCP client " << conn->d_remote.toStringWithPort() << endl,
+               g_logtcpin->info(Logr::Error, "Unsupported qtype from TCP client", "remote", Logging::Loggable(conn->d_remote), "qtype", Logging::Loggable(dc->d_mdp.d_qtype)));
         }
         return;
       }
@@ -424,14 +435,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
             catch (const std::exception& e) {
               if (g_logCommonErrors) {
-                g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl;
+                SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
+                     g_logtcpin->info(Logr::Warning, "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(conn->d_remote), "qname", Logging::Loggable(qname)));
               }
             }
           }
         }
         catch (const std::exception& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl;
+            SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
+                 g_logtcpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
           }
         }
       }
@@ -459,7 +472,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         catch (const std::exception& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl;
+            SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
+                  g_logtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
           }
         }
       }
@@ -468,7 +482,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh, dc->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
-            g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl;
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
+                 g_logtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable( dc->d_source)));
           }
           g_stats.policyDrops++;
           return;
@@ -478,14 +493,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl,
+               g_logtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(dc->getRemote())));
         }
         return;
       }
       if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
         g_stats.ignoredCount++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl,
+               g_logtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(dc->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(dc->d_mdp.d_header.opcode))));
         }
         sendErrorOverTCP(dc, RCode::NotImp);
         tcpGuard.keep();
@@ -494,7 +511,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else if (dh->qdcount == 0) {
         g_stats.emptyQueriesCount++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl,
+               g_logtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket",  "remote", Logging::Loggable(dc->getRemote())));
         }
         sendErrorOverTCP(dc, RCode::NotImp);
         tcpGuard.keep();
@@ -508,7 +526,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_mappedSource)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl;
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+                   g_logtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(dc->d_mappedSource)));
             }
 
             g_stats.sourceDisallowedNotify++;
@@ -517,7 +536,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (!isAllowNotifyForZone(qname)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl;
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+                   g_logtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(dc->d_mappedSource), "zone", Logging::Loggable(qname)));
             }
 
             g_stats.zoneDisallowedNotify++;
@@ -538,7 +558,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (cacheHit) {
             if (!g_quiet) {
-              g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+              SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
+                   g_logtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(dc->d_tag), "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
             }
 
             bool hadError = sendResponseOverTCP(dc, response);
@@ -558,7 +579,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-              g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
+              SLOG(g_log << Logger::Info << dc->d_eventTrace.toString() << endl,
+                   g_logtcpin->info(Logr::Info, dc->d_eventTrace.toString())); // More fancy?
             }
             tcpGuard.keep();
             return;
@@ -567,7 +589,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!g_quiet) {
-            g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
+                 g_logtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
           }
 
           requestWipeCaches(qname);
@@ -612,7 +635,8 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
         closesocket(newsock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl,
+             g_logtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an over capacity drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
@@ -630,14 +654,16 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
       if (!g_quiet)
-        g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl;
+        SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
+             g_logtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
 
       g_stats.unauthorizedTCP++;
       try {
         closesocket(newsock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl,
+             g_logtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an ACL drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
@@ -648,7 +674,8 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
         closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl,
+             g_logtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an overflow drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
