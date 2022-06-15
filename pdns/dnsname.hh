@@ -22,6 +22,7 @@
 #pragma once
 #include <array>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 #include <set>
@@ -294,6 +295,8 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
   return ret;
 }
 
+extern const DNSName g_rootdnsname, g_wildcarddnsname;
+
 template<typename T>
 struct SuffixMatchTree
 {
@@ -447,42 +450,23 @@ struct SuffixMatchTree
     child->remove(labels);
   }
 
-  T* lookup(const DNSName& name)  const
+  T* lookup(const DNSName& name) const
+  {
+    auto bestNode = getBestNode(name);
+    if (bestNode) {
+      return &bestNode->d_value;
+    }
+    return nullptr;
+  }
+
+  std::optional<DNSName> getBestMatch(const DNSName& name) const
   {
     if (children.empty()) { // speed up empty set
-      if (endNode) {
-        return &d_value;
-      }
-      return nullptr;
+      return endNode ? std::optional<DNSName>(g_rootdnsname) : std::nullopt;
     }
 
     auto visitor = name.getRawLabelsVisitor();
-    return lookup(visitor);
-  }
-
-  T* lookup(DNSName::RawLabelsVisitor& visitor) const
-  {
-    if (visitor.empty()) { // optimization
-      if (endNode) {
-        return &d_value;
-      }
-      return nullptr;
-    }
-
-    const LightKey lk{visitor.back()};
-    auto child = children.find(lk);
-    if (child == children.end()) {
-      if(endNode) {
-        return &d_value;
-      }
-      return nullptr;
-    }
-    visitor.pop_back();
-    auto result = child->lookup(visitor);
-    if (result) {
-      return result;
-    }
-    return endNode ? &d_value : nullptr;
+    return getBestMatch(visitor);
   }
 
   // Returns all end-nodes, fully qualified (not as separate labels)
@@ -499,6 +483,73 @@ struct SuffixMatchTree
       }
     }
     return ret;
+  }
+
+private:
+  const SuffixMatchTree* getBestNode(const DNSName& name)  const
+  {
+    if (children.empty()) { // speed up empty set
+      if (endNode) {
+        return this;
+      }
+      return nullptr;
+    }
+
+    auto visitor = name.getRawLabelsVisitor();
+    return getBestNode(visitor);
+  }
+
+  const SuffixMatchTree* getBestNode(DNSName::RawLabelsVisitor& visitor) const
+  {
+    if (visitor.empty()) { // optimization
+      if (endNode) {
+        return this;
+      }
+      return nullptr;
+    }
+
+    const LightKey lk{visitor.back()};
+    auto child = children.find(lk);
+    if (child == children.end()) {
+      if (endNode) {
+        return this;
+      }
+      return nullptr;
+    }
+    visitor.pop_back();
+    auto result = child->getBestNode(visitor);
+    if (result) {
+      return result;
+    }
+    return endNode ? this : nullptr;
+  }
+
+  std::optional<DNSName> getBestMatch(DNSName::RawLabelsVisitor& visitor) const
+  {
+    if (visitor.empty()) { // optimization
+      if (endNode) {
+        return std::optional<DNSName>(d_name);
+      }
+      return std::nullopt;
+    }
+
+    const LightKey lk{visitor.back()};
+    auto child = children.find(lk);
+    if (child == children.end()) {
+      if (endNode) {
+        return std::optional<DNSName>(d_name);
+      }
+      return std::nullopt;
+    }
+    visitor.pop_back();
+    auto result = child->getBestMatch(visitor);
+    if (result) {
+      if (!d_name.empty()) {
+        result->appendRawLabel(d_name);
+      }
+      return result;
+    }
+    return endNode ? std::optional<DNSName>(d_name) : std::nullopt;
   }
 };
 
@@ -555,6 +606,11 @@ struct SuffixMatchNode
       return d_tree.lookup(dnsname) != nullptr;
     }
 
+    std::optional<DNSName> getBestMatch(const DNSName& name) const
+    {
+      return d_tree.getBestMatch(name);
+    }
+
     std::string toString() const
     {
       std::string ret;
@@ -598,8 +654,6 @@ bool DNSName::operator==(const DNSName& rhs) const
   }
   return true;
 }
-
-extern const DNSName g_rootdnsname, g_wildcarddnsname;
 
 struct DNSNameSet: public std::unordered_set<DNSName> {
     std::string toString() const {

@@ -523,14 +523,19 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   smn.add(DNSName("news.bbc.co.uk."));
   BOOST_CHECK(smn.check(DNSName("news.bbc.co.uk.")));
+  BOOST_CHECK(smn.getBestMatch(DNSName("news.bbc.co.uk")) == DNSName("news.bbc.co.uk."));
   BOOST_CHECK(smn.check(DNSName("www.news.bbc.co.uk.")));
+  BOOST_CHECK(smn.getBestMatch(DNSName("www.news.bbc.co.uk")) == DNSName("news.bbc.co.uk."));
   BOOST_CHECK(smn.check(DNSName("www.www.www.www.www.news.bbc.co.uk.")));
   BOOST_CHECK(!smn.check(DNSName("images.bbc.co.uk.")));
+  BOOST_CHECK(smn.getBestMatch(DNSName("images.bbc.co.uk")) == std::nullopt);
 
   BOOST_CHECK(!smn.check(DNSName("www.news.gov.uk.")));
+  BOOST_CHECK(smn.getBestMatch(DNSName("www.news.gov.uk")) == std::nullopt);
 
   smn.add(g_rootdnsname); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+  BOOST_CHECK(smn.getBestMatch(DNSName("a.root-servers.net.")) == g_rootdnsname);
 
   DNSName examplenet("example.net.");
   DNSName net("net.");
