@@ -113,7 +113,8 @@ LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, int* fd)
       closesocket(*fd);
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "Error closing UDP socket after connect() failed: " << e.reason << endl;
+      SLOG(g_log << Logger::Error << "Error closing UDP socket after connect() failed: " << e.reason << endl,
+           g_slogout->error(Logr::Error, e.reason, "Error closing UDP socket after connect() failed", "exception", Logging::Loggable("PDNSException")));
     }
 
     if (err == ENETUNREACH) { // Seth "My Interfaces Are Like A Yo Yo" Arnold special
@@ -141,7 +142,8 @@ void UDPClientSocks::returnSocket(int fd)
     closesocket(fd);
   }
   catch (const PDNSException& e) {
-    g_log << Logger::Error << "Error closing returned UDP socket: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << "Error closing returned UDP socket: " << e.reason << endl,
+         g_slogout->error(Logr::Error, e.reason, "Error closing returned UDP socket", "exception", Logging::Loggable("PDNSException")));
   }
 
   --d_numsocks;
@@ -210,7 +212,8 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 
   ssize_t ret = recvfrom(fd, resp.data(), resp.size(), 0, (sockaddr*)&fromaddr, &addrlen);
   if (fromaddr != pident->remote) {
-    g_log << Logger::Notice << "Response received from the wrong remote host (" << fromaddr.toStringWithPort() << " instead of " << pident->remote.toStringWithPort() << "), discarding" << endl;
+    SLOG(g_log << Logger::Notice << "Response received from the wrong remote host (" << fromaddr.toStringWithPort() << " instead of " << pident->remote.toStringWithPort() << "), discarding" << endl,
+         g_slog->withName("lua")->info(Logr::Notice, "Response received from the wrong remote host. discarding", "method", Logging::Loggable("GenUDPQueryResponse"), "fromaddr", Logging::Loggable(fromaddr), "expected", Logging::Loggable(pident->remote)));
   }
 
   t_fdm->removeReadFD(fd);
@@ -330,7 +333,12 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& 
     if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
          for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
-      g_log << Logger::Error << "Too many (" << pident->nearMisses << " > " << nearMissLimit << ") answers with a wrong message ID for '" << domain << "' from " << fromaddr.toString() << ", assuming spoof attempt." << endl;
+      SLOG(g_log << Logger::Error << "Too many (" << pident->nearMisses << " > " << nearMissLimit << ") answers with a wrong message ID for '" << domain << "' from " << fromaddr.toString() << ", assuming spoof attempt." << endl,
+           g_slogudpin->info(Logr::Error, "Too many answers with a wrong message ID, assuming spoofing attempt",
+                             "nearmisses", Logging::Loggable(pident->nearMisses),
+                             "nearmisslimit",  Logging::Loggable(nearMissLimit),
+                             "qname", Logging::Loggable(domain),
+                             "from",  Logging::Loggable(fromaddr)));
       g_stats.spoofCount++;
       return LWResult::Result::Spoofed;
     }
@@ -482,7 +490,8 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
   }
 
   if (sr.doLog() && appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << appliedPolicy.getLogString() << endl;
+    SLOG(g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << appliedPolicy.getLogString() << endl,
+         appliedPolicy.info(Logr::Warning, sr.d_slog));
   }
 
   if (appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
@@ -530,14 +539,18 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
         }
         catch (const ImmediateServFailException& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because: " << e.reason << endl;
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because: " << e.reason << endl,
+                 sr.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during resolve of the custom filter policy",
+                                  "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("ImmediateServFailException")));
           }
           res = RCode::ServFail;
           break;
         }
         catch (const PolicyHitException& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because another RPZ policy was hit" << endl;
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because another RPZ policy was hit" << endl,
+                 sr.d_slog->info(Logr::Notice, "Sending SERVFAIL during resolve of the custom filter policy because another RPZ policy was hit",
+                                 "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("PolicyHitException"))); 
           }
           res = RCode::ServFail;
           break;
@@ -603,7 +616,7 @@ static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname,
         // This should also probably log to a dedicated file.
         SLOG(g_log << Logger::Notice << "Unique response observed: qname=" << dname << " qtype=" << QType(qtype) << " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl,
              nodlogger->info(Logr::Debug, "New response observed",
-                             "qtype", Logging::Loggable(qtype),
+                             "qtype", Logging::Loggable(QType(qtype)),
                              "rrtype", Logging::Loggable(QType(record.d_type)),
                              "rrname", Logging::Loggable(record.d_name),
                              "rrcontent", Logging::Loggable(record.d_content->getZoneRepresentation())););
@@ -780,6 +793,7 @@ bool isAllowNotifyForZone(DNSName qname)
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
+  SyncRes sr(dc->d_now);
   try {
     if (t_queryring)
       t_queryring->push_back({dc->d_mdp.d_qname, dc->d_mdp.d_qtype});
@@ -885,7 +899,6 @@ void startDoResolve(void* p)
        cap no matter what. */
     uint32_t minTTL = dc->d_ttlCap;
 
-    SyncRes sr(dc->d_now);
     sr.d_eventTrace = std::move(dc->d_eventTrace);
     sr.setId(MT->getTid());
 
@@ -1110,12 +1123,14 @@ void startDoResolve(void* p)
       catch (const ImmediateQueryDropException& e) {
         // XXX We need to export a protobuf message (and do a NOD lookup) if requested!
         g_stats.policyDrops++;
-        g_log << Logger::Debug << "Dropping query because of a filtering policy " << makeLoginfo(dc) << endl;
+        SLOG(g_log << Logger::Debug << "Dropping query because of a filtering policy " << makeLoginfo(dc) << endl,
+             sr.d_slog->info(Logr::Debug, "Dropping query because of a filtering policy"));
         return;
       }
       catch (const ImmediateServFailException& e) {
         if (g_logCommonErrors) {
-          g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of '" << dc->d_mdp.d_qname << "' because: " << e.reason << endl;
+          SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of '" << dc->d_mdp.d_qname << "' because: " << e.reason << endl,
+               sr.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during resolve"));
         }
         res = RCode::ServFail;
       }
@@ -1243,16 +1258,19 @@ void startDoResolve(void* p)
           auto state = sr.getValidationState();
 
           string x_marker;
+          auto log = sr.d_slog;
           if (sr.doLog() || vStateIsBogus(state)) {
+            log = log->withValues("vstate", Logging::Loggable(state));
             auto xdnssec = g_xdnssec.getLocal();
             if (xdnssec->check(dc->d_mdp.d_qname)) {
+              log = log->withValues("in-x-dnssec-names", Logging::Loggable("1"));
               x_marker = " [in x-dnssec-names]";
             }
           }
-
           if (state == vState::Secure) {
             if (sr.doLog()) {
-              g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates correctly" << endl;
+              SLOG(g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates correctly" << endl,
+                   log->info(Logr::Info, "Validates Correctly"));
             }
 
             // Is the query source interested in the value of the ad-bit?
@@ -1261,7 +1279,8 @@ void startDoResolve(void* p)
           }
           else if (state == vState::Insecure) {
             if (sr.doLog()) {
-              g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates as Insecure" << endl;
+              SLOG(g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates as Insecure" << endl,
+                   log->info(Logr::Info, "Validates as Insecure"));
             }
 
             pw.getHeader()->ad = 0;
@@ -1272,13 +1291,15 @@ void startDoResolve(void* p)
             if (t_bogusqueryring)
               t_bogusqueryring->push_back({dc->d_mdp.d_qname, dc->d_mdp.d_qtype});
             if (g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
-              g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates as " << vStateToString(state) << endl;
+              SLOG(g_log << Logger::Warning << "Answer to " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " for " << dc->getRemote() << " validates as " << vStateToString(state) << endl,
+                   log->info(Logr::Notice, "Validates as Bogus"));
             }
 
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
             if (!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad || DNSSECOK)) {
               if (sr.doLog()) {
-                g_log << Logger::Warning << "Sending out SERVFAIL for " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << " because recursor or query demands it for Bogus results" << endl;
+                SLOG(g_log << Logger::Warning << "Sending out SERVFAIL for " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << " because recursor or query demands it for Bogus results" << endl,
+                     log->info(Logr::Notice, "Sending out SERVFAIL because recursor or query demands it for Bogus results"));
               }
 
               pw.getHeader()->rcode = RCode::ServFail;
@@ -1286,15 +1307,16 @@ void startDoResolve(void* p)
             }
             else {
               if (sr.doLog()) {
-                g_log << Logger::Warning << "Not sending out SERVFAIL for " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " Bogus validation since neither config nor query demands this" << endl;
+                SLOG(g_log << Logger::Warning << "Not sending out SERVFAIL for " << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << x_marker << " Bogus validation since neither config nor query demands this" << endl,
+                     log->info(Logr::Notice, "Sending out SERVFAIL because recursor or query demands it for Bogus results"));
               }
             }
           }
         }
         catch (const ImmediateServFailException& e) {
           if (g_logCommonErrors)
-            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during validation of '" << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << "' because: " << e.reason << endl;
-          pw.getHeader()->rcode = RCode::ServFail;
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during validation of '" << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << "' because: " << e.reason << endl,
+                 sr.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during validation", "exception", Logging::Loggable("ImmediateServFailException")));
           goto sendit;
         }
       }
@@ -1527,8 +1549,9 @@ void startDoResolve(void* p)
       }
       int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
       if (sendErr && g_logCommonErrors) {
-        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
-              << strerror(sendErr) << endl;
+        SLOG(g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
+             << strerror(sendErr) << endl,
+             g_slogudpin->error(Logr::Warning, sendErr, "Sending UDP reply to client failed"));
       }
     }
     else {
@@ -1599,20 +1622,37 @@ void startDoResolve(void* p)
     }
 
     if (sr.d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-      g_log << Logger::Info << sr.d_eventTrace.toString() << endl;
+      SLOG(g_log << Logger::Info << sr.d_eventTrace.toString() << endl,
+           sr.d_slog->info(Logr::Info, sr.d_eventTrace.toString())); // Maybe we want it to be more fancy?
     }
 
     // Originally this code used a mix of floats, doubles, uint64_t with different units.
     // Now it always uses an integral number of microseconds, except for averages, which use doubles
     uint64_t spentUsec = uSec(sr.getNow() - dc->d_now);
     if (!g_quiet) {
-      g_log << Logger::Error << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] answer to " << (dc->d_mdp.d_header.rd ? "" : "non-rd ") << "question '" << dc->d_mdp.d_qname << "|" << DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
-      g_log << "': " << ntohs(pw.getHeader()->ancount) << " answers, " << ntohs(pw.getHeader()->arcount) << " additional, took " << sr.d_outqueries << " packets, " << sr.d_totUsec / 1000.0 << " netw ms, " << spentUsec / 1000.0 << " tot ms, " << sr.d_throttledqueries << " throttled, " << sr.d_timeouts << " timeouts, " << sr.d_tcpoutqueries << "/" << sr.d_dotoutqueries << " tcp/dot connections, rcode=" << res;
+      if (!g_slogStructured) {
+        g_log << Logger::Error << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] answer to " << (dc->d_mdp.d_header.rd ? "" : "non-rd ") << "question '" << dc->d_mdp.d_qname << "|" << DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
+        g_log << "': " << ntohs(pw.getHeader()->ancount) << " answers, " << ntohs(pw.getHeader()->arcount) << " additional, took " << sr.d_outqueries << " packets, " << sr.d_totUsec / 1000.0 << " netw ms, " << spentUsec / 1000.0 << " tot ms, " << sr.d_throttledqueries << " throttled, " << sr.d_timeouts << " timeouts, " << sr.d_tcpoutqueries << "/" << sr.d_dotoutqueries << " tcp/dot connections, rcode=" << res;
 
-      if (!shouldNotValidate && sr.isDNSSECValidationRequested()) {
-        g_log << ", dnssec=" << sr.getValidationState();
+        if (!shouldNotValidate && sr.isDNSSECValidationRequested()) {
+          g_log << ", dnssec=" << sr.getValidationState();
+        }
+        g_log << endl;
       }
-      g_log << endl;
+      else {
+        sr.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(dc->d_mdp.d_header.rd),
+                        "answers", Logging::Loggable(ntohs(pw.getHeader()->ancount)),
+                        "additional", Logging::Loggable(ntohs(pw.getHeader()->arcount)),
+                        "outqueries", Logging::Loggable(sr.d_outqueries),
+                        "netms",  Logging::Loggable(sr.d_totUsec / 1000.0),
+                        "totms", Logging::Loggable(spentUsec / 1000.0),
+                        "throttled", Logging::Loggable(sr.d_throttledqueries),
+                        "timeouts", Logging::Loggable(sr.d_timeouts),
+                        "tcpout",  Logging::Loggable(sr.d_tcpoutqueries),
+                        "dotout", Logging::Loggable(sr.d_dotoutqueries),
+                        "rcode", Logging::Loggable(res),
+                        "validationState", Logging::Loggable(sr.getValidationState()));
+      }
     }
 
     if (dc->d_mdp.d_header.opcode == Opcode::Query) {
@@ -1648,28 +1688,34 @@ void startDoResolve(void* p)
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
   }
   catch (const PDNSException& ae) {
-    g_log << Logger::Error << "startDoResolve problem " << makeLoginfo(dc) << ": " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "startDoResolve problem " << makeLoginfo(dc) << ": " << ae.reason << endl,
+         sr.d_slog->error(Logr::Error, ae.reason, "startDoResolve problem", "exception", Logging::Loggable("PDNSException")));
   }
   catch (const MOADNSException& mde) {
-    g_log << Logger::Error << "DNS parser error " << makeLoginfo(dc) << ": " << dc->d_mdp.d_qname << ", " << mde.what() << endl;
+    SLOG(g_log << Logger::Error << "DNS parser error " << makeLoginfo(dc) << ": " << dc->d_mdp.d_qname << ", " << mde.what() << endl,
+         sr.d_slog->error(Logr::Error, mde.what(), "DNS parser error"));
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << "STL error " << makeLoginfo(dc) << ": " << e.what();
+    SLOG(g_log << Logger::Error << "STL error " << makeLoginfo(dc) << ": " << e.what(),
+         sr.d_slog->error(Logr::Error, e.what(), "Exception in resolver context ", "exception", Logging::Loggable("std::exception")));
 
     // Luawrapper nests the exception from Lua, so we unnest it here
     try {
       std::rethrow_if_nested(e);
     }
     catch (const std::exception& ne) {
-      g_log << ". Extra info: " << ne.what();
+      SLOG(g_log << ". Extra info: " << ne.what(),
+           sr.d_slog->error(Logr::Error, ne.what(), "Nested exception in resolver context", Logging::Loggable("std::exception")));
     }
     catch (...) {
     }
-
-    g_log << endl;
+    if (!g_slogStructured) {
+      g_log << endl;
+    }
   }
   catch (...) {
-    g_log << Logger::Error << "Any other exception in a resolver context " << makeLoginfo(dc) << endl;
+    SLOG(g_log << Logger::Error << "Any other exception in a resolver context " << makeLoginfo(dc) << endl,
+         sr.d_slog->info(Logr::Error, "Any other exception in a resolver context"));
   }
 
   runTaskOnce(g_logCommonErrors);
@@ -1801,7 +1847,8 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
 static void* pleaseWipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
 {
   auto res = wipeCaches(canon, subtree, qtype);
-  g_log << Logger::Info << "Wiped caches for " << canon << ": " << res.record_count << " records; " << res.negative_record_count << " negative records; " << res.packet_count << " packets" << endl;
+  SLOG(g_log << Logger::Info << "Wiped caches for " << canon << ": " << res.record_count << " records; " << res.negative_record_count << " negative records; " << res.packet_count << " packets" << endl,
+       g_slog->withName("runtime")->info(Logr::Info, "Wiped cache", "qname", Logging::Loggable(canon), "records", Logging::Loggable(res.record_count), "negrecords", Logging::Loggable(res.negative_record_count), "packets", Logging::Loggable(res.packet_count)));
   return nullptr;
 }
 
@@ -1938,14 +1985,16 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           }
           catch (const std::exception& e) {
             if (g_logCommonErrors) {
-              g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl;
+              SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
+                   g_slogudpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "qname", Logging::Loggable(qname), "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std;:exception")));
             }
           }
         }
       }
       catch (const std::exception& e) {
         if (g_logCommonErrors) {
-          g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl;
+          SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
+               g_slogudpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0","remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std;:exception")));
         }
       }
     }
@@ -1970,7 +2019,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
       if (cacheHit) {
         if (!g_quiet) {
-          g_log << Logger::Notice << RecThreadInfo::id() << " question answered from packet cache tag=" << ctag << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+          SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " question answered from packet cache tag=" << ctag << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl,
+               g_slogudpin->info(Logr::Notice, "Question answered from packet cache", "tag", Logging::Loggable(ctag),
+                                 "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
+                                 "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
         struct msghdr msgh;
         struct iovec iov;
@@ -1989,12 +2041,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         }
 
         if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-          g_log << Logger::Info << eventTrace.toString() << endl;
+          SLOG(g_log << Logger::Info << eventTrace.toString() << endl,
+               g_slogudpin->info(Logr::Info, eventTrace.toString())); // Do we want more fancy logging here?
         }
         if (sendErr && g_logCommonErrors) {
-          g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
-                << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
-                << strerror(sendErr) << endl;
+          SLOG(g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
+               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
+               << strerror(sendErr) << endl,
+               g_slogudpin->error(Logr::Error, sendErr, "Sending UDP reply to client failed", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
         struct timeval now;
         Utility::gettimeofday(&now, nullptr);
@@ -2006,7 +2060,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
   catch (const std::exception& e) {
     if (g_logCommonErrors) {
-      g_log << Logger::Error << "Error processing or aging answer packet: " << e.what() << endl;
+      SLOG(g_log << Logger::Error << "Error processing or aging answer packet: " << e.what() << endl,
+           g_slogudpin->error(Logr::Error, e.what(), "Error processing or aging answer packet", "exception", Logging::Loggable("std::exception")));
     }
     return 0;
   }
@@ -2015,7 +2070,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool ipf = t_pdl->ipfilter(source, destination, *dh, eventTrace);
     if (ipf) {
       if (!g_quiet) {
-        g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " based on policy" << endl;
+        SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " based on policy" << endl,
+             g_slogudpin->info(Logr::Notice, "Dropped question based on policy", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
       }
       g_stats.policyDrops++;
       return 0;
@@ -2025,7 +2081,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   if (dh->opcode == Opcode::Notify) {
     if (!isAllowNotifyForZone(qname)) {
       if (!g_quiet) {
-        g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl;
+        SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+            g_slogudpin->info(Logr::Notice, "Dropping UDP NOTIFY, zone not matched by allow-notify-for", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
       }
 
       g_stats.zoneDisallowedNotify++;
@@ -2033,7 +2090,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     if (!g_quiet) {
-      g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+      SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl,
+           g_slogudpin->info(Logr::Notice, "Got NOTIFY", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr), "qname", Logging::Loggable(qname)));
     }
 
     requestWipeCaches(qname);
@@ -2047,7 +2105,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if (MT->numProcesses() > g_maxMThreads) {
     if (!g_quiet)
-      g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl;
+      SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl,
+           g_slogudpin->info(Logr::Notice, "Dropped question, over capacity",  "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -2058,7 +2117,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   if (SyncRes::isUnsupported(dc->d_mdp.d_qtype)) {
     g_stats.ignoredCount++;
     if (!g_quiet) {
-      g_log << Logger::Notice << RecThreadInfo::id() << " Unsupported qtype " << dc->d_mdp.d_qtype << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl;
+      SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " Unsupported qtype " << dc->d_mdp.d_qtype << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl,
+           g_slogudpin->info(Logr::Notice, "Unsupported qtype", "qtype", Logging::Loggable(QType(dc->d_mdp.d_qtype)), "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
     }
 
     return 0;
@@ -2133,7 +2193,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (msgh.msg_flags & MSG_TRUNC) {
         g_stats.truncatedDrops++;
         if (!g_quiet) {
-          g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toString() << endl;
+          SLOG(g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toString() << endl,
+               g_slogudpin->info(Logr::Error, "Ignoring truncated query", "remote", Logging::Loggable(fromaddr)));
         }
         return;
       }
@@ -2146,13 +2207,17 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (used <= 0) {
           ++g_stats.proxyProtocolInvalidCount;
           if (!g_quiet) {
-            g_log << Logger::Error << "Ignoring invalid proxy protocol (" << std::to_string(len) << ", " << std::to_string(used) << ") query from " << fromaddr.toStringWithPort() << endl;
+            SLOG(g_log << Logger::Error << "Ignoring invalid proxy protocol (" << std::to_string(len) << ", " << std::to_string(used) << ") query from " << fromaddr.toStringWithPort() << endl,
+                 g_slogudpin->info(Logr::Error, "Ignoring invalid proxy protocol query", "length", Logging::Loggable(len),
+                                  "used", Logging::Loggable(used), "remote", Logging::Loggable(fromaddr)));
           }
           return;
         }
         else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
           if (g_quiet) {
-            g_log << Logger::Error << "Proxy protocol header in UDP packet from " << fromaddr.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl;
+            SLOG(g_log << Logger::Error << "Proxy protocol header in UDP packet from " << fromaddr.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl,
+                 g_slogudpin->info(Logr::Error, "Proxy protocol header in UDP packet  is larger than proxy-protocol-maximum-size",
+                                  "used", Logging::Loggable(used), "remote", Logging::Loggable(fromaddr)));
           }
           ++g_stats.proxyProtocolInvalidCount;
           return;
@@ -2164,7 +2229,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         /* we only allow UDP packets larger than 512 for those with a proxy protocol header */
         g_stats.truncatedDrops++;
         if (!g_quiet) {
-          g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toStringWithPort() << endl,
+               g_slogudpin->info(Logr::Error, "Ignoring truncated query", "remote", Logging::Loggable(fromaddr)));
         }
         return;
       }
@@ -2172,7 +2238,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (data.size() < sizeof(dnsheader)) {
         g_stats.ignoredCount++;
         if (!g_quiet) {
-          g_log << Logger::Error << "Ignoring too-short (" << std::to_string(data.size()) << ") query from " << fromaddr.toString() << endl;
+          SLOG(g_log << Logger::Error << "Ignoring too-short (" << std::to_string(data.size()) << ") query from " << fromaddr.toString() << endl,
+               g_slogudpin->info(Logr::Error, "Ignoring too-short query", "length", Logging::Loggable(data.size()),
+                                "remote", Logging::Loggable(fromaddr)));
         }
         return;
       }
@@ -2192,7 +2260,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if (t_allowFrom && !t_allowFrom->match(&mappedSource)) {
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << mappedSource.toString() << ", address not matched by allow-from" << endl;
+          SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << mappedSource.toString() << ", address not matched by allow-from" << endl,
+               g_slogudpin->info(Logr::Error, "Dropping UDP query, address not matched by allow-from", "source", Logging::Loggable(mappedSource)));
         }
 
         g_stats.unauthorizedUDP++;
@@ -2202,7 +2271,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
       if (!fromaddr.sin4.sin_port) { // also works for IPv6
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << fromaddr.toStringWithPort() << ", can't deal with port 0" << endl;
+          SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP query from " << fromaddr.toStringWithPort() << ", can't deal with port 0" << endl,
+               g_slogudpin->info(Logr::Error, "Dropping UDP query can't deal with port 0", "remote", Logging::Loggable(fromaddr)));
         }
 
         g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
@@ -2216,26 +2286,31 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (dh->qr) {
           g_stats.ignoredCount++;
           if (g_logCommonErrors) {
-            g_log << Logger::Error << "Ignoring answer from " << fromaddr.toString() << " on server socket!" << endl;
+            SLOG(g_log << Logger::Error << "Ignoring answer from " << fromaddr.toString() << " on server socket!" << endl,
+                 g_slogudpin->info(Logr::Error,  "Ignoring answer on server socket",  "remote", Logging::Loggable(fromaddr)));
           }
         }
         else if (dh->opcode != Opcode::Query && dh->opcode != Opcode::Notify) {
           g_stats.ignoredCount++;
           if (g_logCommonErrors) {
-            g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dh->opcode) << " from " << fromaddr.toString() << " on server socket!" << endl;
+            SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dh->opcode) << " from " << fromaddr.toString() << " on server socket!" << endl,
+                 g_slogudpin->info(Logr::Error, "Ignoring unsupported opcode server socket", "remote", Logging::Loggable(fromaddr), "opcode", Logging::Loggable(Opcode::to_s(dh->opcode))));
           }
         }
         else if (dh->qdcount == 0) {
           g_stats.emptyQueriesCount++;
           if (g_logCommonErrors) {
-            g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << fromaddr.toString() << " on server socket!" << endl;
+            SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << fromaddr.toString() << " on server socket!" << endl,
+                 g_slogudpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket!", "remote", Logging::Loggable(fromaddr)));
           }
         }
         else {
           if (dh->opcode == Opcode::Notify) {
             if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(&mappedSource)) {
               if (!g_quiet) {
-                g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << mappedSource.toString() << ", address not matched by allow-notify-from" << endl;
+                SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping UDP NOTIFY from " << mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+                     g_slogudpin->info(Logr::Error, "Dropping UDP NOTIFY from address not matched by allow-notify-from",
+                                      "source", Logging::Loggable(mappedSource)));
               }
 
               g_stats.sourceDisallowedNotify++;
@@ -2282,13 +2357,15 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       catch (const MOADNSException& mde) {
         g_stats.clientParseError++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << mde.what() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << mde.what() << endl,
+               g_slogudpin->error(Logr::Error, mde.what(), "Unable to parse packet from remote UDP client", "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("MOADNSException")));
         }
       }
       catch (const std::runtime_error& e) {
         g_stats.clientParseError++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << e.what() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << e.what() << endl,
+            g_slogudpin->error(Logr::Error, e.what(), "Unable to parse packet from remote UDP client", "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std::runtime_error")));
         }
       }
     }
@@ -2399,7 +2476,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     deferredAdds.emplace_back(fd, handleNewUDPQuestion);
     g_listenSocketsAddresses[fd] = sin; // this is written to only from the startup thread, not from the workers
     SLOG(g_log << Logger::Info << "Listening for UDP queries on " << sin.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("UDP"), "address", Logging::Loggable(sin)));
+         log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(sin)));
   }
 }
 
@@ -2407,7 +2484,8 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 {
   auto& targetInfo = RecThreadInfo::info(target);
   if (!targetInfo.isWorker()) {
-    g_log << Logger::Error << "distributeAsyncFunction() tried to assign a query to a non-worker thread" << endl;
+    SLOG(g_log << Logger::Error << "distributeAsyncFunction() tried to assign a query to a non-worker thread" << endl,
+         g_slog->withName("runtime")->info(Logr::Error, "distributeAsyncFunction() tried to assign a query to a non-worker thread"));
     _exit(1);
   }
 
@@ -2476,7 +2554,8 @@ static unsigned int selectWorker(unsigned int hash)
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (!RecThreadInfo::self().isDistributor()) {
-    g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << RecThreadInfo::id() << ")" << endl;
+    SLOG(g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
+         g_slog->info(Logr::Error, "distributeAsyncFunction() has been called by a worker")); // tid will be added
     _exit(1);
   }
 
@@ -2543,7 +2622,8 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     else {
       g_stats.serverParseError++;
       if (g_logCommonErrors)
-        g_log << Logger::Error << "Unable to parse packet from remote UDP server " << fromaddr.toString() << ": packet smaller than DNS header" << endl;
+        SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP server " << fromaddr.toString() << ": packet smaller than DNS header" << endl,
+             g_slogout->info(Logr::Error,  "Unable to parse packet from remote UDP server", "from", Logging::Loggable(fromaddr)));
     }
 
     t_udpclientsocks->returnSocket(fd);
@@ -2567,7 +2647,8 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   pident->fd = fd;
 
   if (!dh.qr && g_logCommonErrors) {
-    g_log << Logger::Notice << "Not taking data from question on outgoing socket from " << fromaddr.toStringWithPort() << endl;
+    SLOG(g_log << Logger::Notice << "Not taking data from question on outgoing socket from " << fromaddr.toStringWithPort() << endl,
+         g_slogout->info(Logr::Error, "Not taking data from question on outgoing socket", "from", Logging::Loggable(fromaddr)));
   }
 
   if (!dh.qdcount || // UPC, Nominum, very old BIND on FormErr, NSD
@@ -2582,7 +2663,8 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     }
     catch (std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
-      g_log << Logger::Warning << "Error in packet from remote nameserver " << fromaddr.toStringWithPort() << ": " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << "Error in packet from remote nameserver " << fromaddr.toStringWithPort() << ": " << e.what() << endl,
+           g_slogudpin->error(Logr::Warning, "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr)));
       return;
     }
   }
@@ -2616,7 +2698,11 @@ retryWithName:
     }
     g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
     if (g_logCommonErrors) {
-      g_log << Logger::Warning << "Discarding unexpected packet from " << fromaddr.toStringWithPort() << ": " << (pident->domain.empty() ? "<empty>" : pident->domain.toString()) << ", " << pident->type << ", " << MT->d_waiters.size() << " waiters" << endl;
+      SLOG(g_log << Logger::Warning << "Discarding unexpected packet from " << fromaddr.toStringWithPort() << ": " << (pident->domain.empty() ? "<empty>" : pident->domain.toString()) << ", " << pident->type << ", " << MT->d_waiters.size() << " waiters" << endl,
+           g_slogudpin->info(Logr::Warning, "Discarding unexpected packet", "from", Logging::Loggable(fromaddr),
+                             "qname",  Logging::Loggable(pident->domain),
+                             "qtype", Logging::Loggable(QType(pident->type)),
+                             "waiters",  Logging::Loggable(MT->d_waiters.size())));
     }
   }
   else if (fd >= 0) {

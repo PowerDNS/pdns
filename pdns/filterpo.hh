@@ -24,6 +24,7 @@
 #include "dns.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
+#include "logging.hh"
 #include <map>
 #include <unordered_map>
 #include <limits>
@@ -155,6 +156,7 @@ public:
     }
 
     std::string getLogString() const;
+    void info(Logr::Priority prio, const std::shared_ptr<Logr::Logger>& log) const;
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 

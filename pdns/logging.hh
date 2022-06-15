@@ -103,14 +103,14 @@ struct Loggable : public Logr::Loggable
     if constexpr (std::is_same_v<T, std::string>) {
       return _t;
     }
-    else if constexpr (is_to_string_available<T>::value) {
-      return std::to_string(_t);
-    }
     else if constexpr (is_toLogString_available<T>::value) {
       return _t.toLogString();
     }
     else if constexpr (is_toString_available<T>::value) {
       return _t.toString();
+    }
+    else if constexpr (is_to_string_available<T>::value) {
+      return std::to_string(_t);
     }
     else {
       std::ostringstream oss;

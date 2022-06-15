@@ -99,8 +99,9 @@ char** g_argv;
 static string s_structured_logger_backend;
 static Logger::Urgency s_logUrgency;
 
-std::shared_ptr<Logr::Logger> g_logtcpin;
-std::shared_ptr<Logr::Logger> g_logudpin;
+std::shared_ptr<Logr::Logger> g_slogtcpin;
+std::shared_ptr<Logr::Logger> g_slogudpin;
+std::shared_ptr<Logr::Logger> g_slogudpout;
 
 /* without reuseport, all listeners share the same sockets */
 deferredAdd_t g_deferredAdds;
@@ -2450,7 +2451,7 @@ static void recursorThread()
           shared_ptr<TCPConnection> conn = boost::any_cast<shared_ptr<TCPConnection>>(i->second);
           if (g_logCommonErrors)
             SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
-                 g_logtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+                 g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
           t_fdm->removeReadFD(i->first);
         }
       }
@@ -2864,8 +2865,9 @@ int main(int argc, char** argv)
 
     // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("config");
-    g_logtcpin = g_slog->withName("tcpin");
-    g_logudpin = g_slog->withName("udpin");
+    g_slogtcpin = g_slog->withName("in")->withValues("proto", Logging::Loggable("tcp"));
+    g_slogudpin = g_slog->withName("in")->withValues("proto", Logging::Loggable("udp"));
+    g_slogout = g_slog->withName("out");
 
     ::arg().setSLog(startupLog);
     if (!::arg().file(configname.c_str())) {
