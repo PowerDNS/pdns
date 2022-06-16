@@ -414,7 +414,8 @@ Helper functions
   Returns two letter ISO country code based ``bestwho`` IP address, as described in :doc:`../backends/geoip`.
   If the two letter ISO country code is unknown "--" will be returned.
 
-.. function:: region()
+.. function:: region(region)
+              region(regions)
 
   Returns true if the ``bestwho`` IP address of the client is within the
   two letter ISO region code passed, as described in :doc:`../backends/geoip`.
@@ -427,7 +428,8 @@ Helper functions
   Returns two letter ISO region code based ``bestwho`` IP address, as described in :doc:`../backends/geoip`.
   If the two letter ISO region code is unknown "--" will be returned.
 
-.. function:: continent()
+.. function:: continent(continent)
+              continent(continents)
 
   Returns true if the ``bestwho`` IP address of the client is within the
   continent passed, as described in :doc:`../backends/geoip`.
