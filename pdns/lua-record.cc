@@ -311,7 +311,8 @@ static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttri
     return g_getGeo(ip, (int)qa);
 }
 
-static string pickRandomString(const vector<string>& items)
+template <typename T>
+static T pickRandom(const vector<T>& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
@@ -319,15 +320,8 @@ static string pickRandomString(const vector<string>& items)
   return items[dns_random(items.size())];
 }
 
-static ComboAddress pickRandomComboAddress(const vector<ComboAddress>& items)
-{
-  if (items.empty()) {
-    throw std::invalid_argument("The items list cannot be empty");
-  }
-  return items[dns_random(items.size())];
-}
-
-static string pickHashedString(const ComboAddress& who, const vector<string>& items)
+template <typename T>
+static T pickHashed(const ComboAddress& who, const vector<T>& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
@@ -336,22 +330,14 @@ static string pickHashedString(const ComboAddress& who, const vector<string>& it
   return items[aoh(who) % items.size()];
 }
 
-static ComboAddress pickHashedComboAddress(const ComboAddress& who, const vector<ComboAddress>& items)
-{
-  if (items.empty()) {
-    throw std::invalid_argument("The items list cannot be empty");
-  }
-  ComboAddress::addressOnlyHash aoh;
-  return items[aoh(who) % items.size()];
-}
-
-static string pickWeightedRandomString(const vector< pair<int, string> >& items)
+template <typename T>
+static T pickWeightedRandom(const vector< pair<int, T> >& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
   }
   int sum=0;
-  vector< pair<int, string> > pick;
+  vector< pair<int, T> > pick;
   pick.reserve(items.size());
 
   for(auto& i : items) {
@@ -360,46 +346,22 @@ static string pickWeightedRandomString(const vector< pair<int, string> >& items)
   }
   
   if (sum == 0) {
-    /* we should not have any weight of zero, but better safe than sorry */
-    return std::string();
+    throw std::invalid_argument("The sum of items cannot be zero");
   }
   
   int r = dns_random(sum);
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
 
-static ComboAddress pickWeightedRandomComboAddress(const vector< pair<int, ComboAddress> >& items)
+template <typename T>
+static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
   }
   int sum=0;
-  vector< pair<int, ComboAddress> > pick;
-  pick.reserve(items.size());
-
-  for(auto& i : items) {
-    sum += i.first;
-    pick.emplace_back(sum, ComboAddress(i.second));
-  }
-  
-  if (sum == 0) {
-    /* we should not have any weight of zero, but better safe than sorry */
-    return ComboAddress();
-  }
-  
-  int r = dns_random(sum);
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
-  return p->second;
-}
-
-static string pickWeightedHashedString(const ComboAddress& bestwho, vector< pair<int, string> >& items)
-{
-  if (items.empty()) {
-    throw std::invalid_argument("The items list cannot be empty");
-  }
-  int sum=0;
-  vector< pair<int, string> > pick;
+  vector< pair<int, T> > pick;
   pick.reserve(items.size());
 
   for(auto& i : items) {
@@ -408,48 +370,23 @@ static string pickWeightedHashedString(const ComboAddress& bestwho, vector< pair
   }
   
   if (sum == 0) {
-    /* we should not have any weight of zero, but better safe than sorry */
-    return std::string();
+    throw std::invalid_argument("The sum of items cannot be zero");
   }
 
   ComboAddress::addressOnlyHash aoh;
   int r = aoh(bestwho) % sum;
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
 
-static ComboAddress pickWeightedHashedComboAddress(const ComboAddress& bestwho, vector< pair<int, ComboAddress> >& items)
-{
-  if (items.empty()) {
-    throw std::invalid_argument("The items list cannot be empty");
-  }
-  int sum=0;
-  vector< pair<int, ComboAddress> > pick;
-  pick.reserve(items.size());
-  
-  for(auto& i : items) {
-    sum += i.first;
-    pick.push_back({sum, ComboAddress(i.second)});
-  }
-  
-  if (sum == 0) {
-    /* we should not have any weight of zero, but better safe than sorry */
-    return ComboAddress();
-  }
-
-  ComboAddress::addressOnlyHash aoh;
-  int r = aoh(bestwho) % sum;
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
-  return p->second;
-}
-
-static vector<string> pickRandomStrings(int n, const vector<string>& items) 
+template <typename T>
+static vector<T> pickRandomSample(int n, const vector<T>& items) 
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
   }
   
-  vector<string> pick;
+  vector<T> pick;
   pick.reserve(items.size());
   
   for(auto& item : items) {
@@ -459,14 +396,14 @@ static vector<string> pickRandomStrings(int n, const vector<string>& items)
   int count = std::min(std::max<size_t>(0, n), items.size());
 
   if (count == 0) {
-    return vector<string>();
+    return vector<T>();
   }  
 
   auto rdev = std::random_device {}; 
   auto reng = std::default_random_engine { rdev() };
   std::shuffle(pick.begin(), pick.end(), reng);
   
-  vector<string> result = {pick.begin(), pick.begin() + count};
+  vector<T> result = {pick.begin(), pick.begin() + count};
   return result;
 }
 
@@ -512,7 +449,7 @@ static bool getLatLon(const std::string& ip, string& loc)
     >>> deg = int(R)
     >>> min = int((R - int(R)) * 60.0)
     >>> sec = (((R - int(R)) * 60.0) - min) * 60.0
-    >>> print("{}º {}' {}\"".format(deg, min, sec))
+    >>> print("{}ยบ {}' {}\"".format(deg, min, sec))
   */
 
 
@@ -590,14 +527,14 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
   if(selector=="all")
     return candidates;
   else if(selector=="random")
-    ret.emplace_back(pickRandomComboAddress(candidates));
+    ret.emplace_back(pickRandom<ComboAddress>(candidates));
   else if(selector=="pickclosest")
     ret.emplace_back(pickclosest(bestwho, candidates));
   else if(selector=="hashed")
-    ret.emplace_back(pickHashedComboAddress(bestwho, candidates));
+    ret.emplace_back(pickHashed<ComboAddress>(bestwho, candidates));
   else {
     g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
-    ret.emplace_back(pickRandomComboAddress(candidates));
+    ret.emplace_back(pickRandom<ComboAddress>(candidates));
   }
 
   return ret;
@@ -1005,17 +942,17 @@ static void setupLuaRecords()
    */
   lua.writeFunction("pickrandom", [](const iplist_t& ips) {
       vector<string> items = convStringList(ips);
-      return pickRandomString(items);
+      return pickRandom<string>(items);
     });
 
   lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {
       vector<string> items = convStringList(ips);
-	  return pickRandomStrings(n, items);
+	  return pickRandomSample<string>(n, items);
     });
 
   lua.writeFunction("pickhashed", [](const iplist_t& ips) {
       vector<string> items = convStringList(ips);
-      return pickHashedString(s_lua_record_ctx->bestwho, items);
+      return pickHashed<string>(s_lua_record_ctx->bestwho, items);
     });
   /*
    * Returns a random IP address from the supplied list, as weighted by the
@@ -1024,7 +961,7 @@ static void setupLuaRecords()
    */
   lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
       vector< pair<int, string> > items = convIntStringPairList(ips);
-      return pickWeightedRandomString(items);
+      return pickWeightedRandom<string>(items);
     });
 
   /*
@@ -1039,7 +976,7 @@ static void setupLuaRecords()
       for(auto& i : ips)
         items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
 
-      return pickWeightedHashedString(s_lua_record_ctx->bestwho, items);
+      return pickWeightedHashed<string>(s_lua_record_ctx->bestwho, items);
     });
 
 
