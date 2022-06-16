@@ -397,7 +397,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     }
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-      if(rr.dr.d_type == QType::LUA) {
+      if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
         if(!doLua) {
           DLOG(g_log<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
           continue;
@@ -629,21 +629,38 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   }
 
   DNSZoneRecord rr;
+#ifdef HAVE_LUA_RECORDS
+  bool first{true};
+  bool doLua{false};
+#endif
 
   B.lookup(QType(QType::ANY), name, d_sd.domain_id);
   while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-    if(rr.dr.d_type == QType::LUA)
+    if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.qname)) {
+      first = false;
+      doLua = g_doLuaRecord;
+      if (!doLua) {
+        string val;
+        d_dk.getFromMeta(d_sd.qname, "ENABLE-LUA-RECORDS", val);
+        doLua = (val == "1");
+      }
+    }
+
+    if (rr.dr.d_type == QType::LUA && doLua) {
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
+    }
     else
 #endif
-    if(rr.dr.d_type == QType::ALIAS) {
+      if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
       // Set the A and AAAA in the NSEC bitmap so aggressive NSEC
       // does not falsely deny the type for this name.
       // This does NOT add the ALIAS to the bitmap, as that record cannot
       // be requested.
-      nrc.set(QType::A);
-      nrc.set(QType::AAAA);
+      if (!d_dk.isPresigned(d_sd.qname)) {
+        nrc.set(QType::A);
+        nrc.set(QType::AAAA);
+      }
     }
     else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
       continue;
@@ -697,20 +714,38 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
       }
     }
 
+#ifdef HAVE_LUA_RECORDS
+    bool first{true};
+    bool doLua{false};
+#endif
+
     B.lookup(QType(QType::ANY), name, d_sd.domain_id);
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-      if(rr.dr.d_type == QType::LUA)
+      if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.qname)) {
+        first = false;
+        doLua = g_doLuaRecord;
+        if (!doLua) {
+          string val;
+          d_dk.getFromMeta(d_sd.qname, "ENABLE-LUA-RECORDS", val);
+          doLua = (val == "1");
+        }
+      }
+
+      if (rr.dr.d_type == QType::LUA && doLua) {
         n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
+      }
       else
 #endif
-      if(rr.dr.d_type == QType::ALIAS) {
+        if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
         // Set the A and AAAA in the NSEC3 bitmap so aggressive NSEC
         // does not falsely deny the type for this name.
         // This does NOT add the ALIAS to the bitmap, as that record cannot
         // be requested.
-        n3rc.set(QType::A);
-        n3rc.set(QType::AAAA);
+        if (!d_dk.isPresigned(d_sd.qname)) {
+          n3rc.set(QType::A);
+          n3rc.set(QType::AAAA);
+        }
       }
       else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
         continue;
@@ -1516,13 +1551,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     // see what we get..
     B.lookup(QType(QType::ANY), target, d_sd.domain_id, &p);
     rrset.clear();
-    haveAlias.trimToLabels(0);
+    haveAlias.clear();
     aliasScopeMask = 0;
     weDone = weRedirected = weHaveUnauth =  false;
 
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-      if(rr.dr.d_type == QType::LUA) {
+      if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
         if(!doLua)
           continue;
         auto rec=getRR<LUARecordContent>(rr.dr);
@@ -1573,7 +1608,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
         weRedirected=true;
 
-      if(DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY)) {
+      if (DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
         if (!d_doExpandALIAS) {
           g_log<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
           continue;
@@ -1689,12 +1724,20 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
     else if(weDone) {
       bool haveRecords = false;
+      bool presigned = d_dk.isPresigned(d_sd.qname);
       for(const auto& loopRR: rrset) {
+        if (loopRR.dr.d_type == QType::ENT) {
+          continue;
+        }
+        if (loopRR.dr.d_type == QType::ALIAS && d_doExpandALIAS && !presigned) {
+          continue;
+        }
 #ifdef HAVE_LUA_RECORDS
-        if(loopRR.dr.d_type == QType::LUA)
-            continue;
+        if (loopRR.dr.d_type == QType::LUA && !presigned) {
+          continue;
+        }
 #endif
-        if((p.qtype.getCode() == QType::ANY || loopRR.dr.d_type == p.qtype.getCode()) && loopRR.dr.d_type && loopRR.dr.d_type != QType::ALIAS && loopRR.auth) {
+        if ((p.qtype.getCode() == QType::ANY || loopRR.dr.d_type == p.qtype.getCode()) && loopRR.auth) {
           r->addRecord(DNSZoneRecord(loopRR));
           haveRecords = true;
         }
