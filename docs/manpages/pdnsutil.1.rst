@@ -282,6 +282,10 @@ bench-db [*FILE*]
 
 OTHER TOOLS
 -----------
+b2b-migrate *OLD* *NEW*
+    Migrate data from one backend to another.
+    Needs ``launch=OLD,NEW`` in the configuration.
+
 ipencrypt *IP-ADDRESS* password
     Encrypt an IP address according to the 'ipcipher' standard
 
