@@ -154,6 +154,33 @@ std::set<std::string> g_capabilitiesToRetain;
 static size_t const s_initialUDPPacketBufferSize = s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
 static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
+static ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
+{
+  if (from.sin4.sin_family == 0) {
+    return sendto(sock, data, len, flags, reinterpret_cast<const struct sockaddr*>(&to), to.getSocklen());
+  }
+  struct msghdr msgh;
+  struct iovec iov;
+  cmsgbuf_aligned cbuf;
+
+  /* Set up iov and msgh structures. */
+  memset(&msgh, 0, sizeof(struct msghdr));
+  iov.iov_base = const_cast<void*>(data);
+  iov.iov_len = len;
+  msgh.msg_iov = &iov;
+  msgh.msg_iovlen = 1;
+  msgh.msg_name = (struct sockaddr*)&to;
+  msgh.msg_namelen = to.getSocklen();
+
+  if(from.sin4.sin_family) {
+    addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
+  }
+  else {
+    msgh.msg_control=nullptr;
+  }
+  return sendmsg(sock, &msgh, flags);
+}
+
 static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength)
 {
   try
@@ -188,13 +215,7 @@ struct DelayedPacket
   ComboAddress origDest;
   void operator()()
   {
-    ssize_t res;
-    if(origDest.sin4.sin_family == 0) {
-      res = sendto(fd, packet.data(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
-    }
-    else {
-      res = sendfromto(fd, packet.data(), packet.size(), 0, origDest, destination);
-    }
+    ssize_t res = sendfromto(fd, packet.data(), packet.size(), 0, origDest, destination);
     if (res == -1) {
       int err = errno;
       vinfolog("Error sending delayed response to %s: %s", destination.toStringWithPort(), strerror(err));
@@ -526,13 +547,7 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
     g_delay->submit(dp, delayMsec);
   }
   else {
-    ssize_t res;
-    if (origDest.sin4.sin_family == 0) {
-      res = sendto(origFD, response.data(), response.size(), 0, reinterpret_cast<const struct sockaddr*>(&origRemote), origRemote.getSocklen());
-    }
-    else {
-      res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
-    }
+    ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
     if (res == -1) {
       int err = errno;
       vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
