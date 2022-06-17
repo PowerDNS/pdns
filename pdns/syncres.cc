@@ -1462,19 +1462,19 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
 LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
 {
   /* what is your QUEST?
-     the goal is to get as many remotes as possible on the highest level of EDNS support
+     the goal is to get as many remotes as possible on the best level of EDNS support
      The levels are:
 
      1) EDNSOK: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
      3) NOEDNS: Generates FORMERR on EDNS queries
 
-     Everybody starts out assumed to be EDNS.
-     If EDNS, send out EDNS0
+     Everybody starts out assumed to be EDNSOK.
+     If EDNSOK, send out EDNS0
         If you FORMERR us, go to NOEDNS, 
         If no EDNS in response, go to EDNSIGNORANT
      If EDNSIGNORANT, keep on including EDNS0, see what happens
-        Same behaviour as EDNS
+        Same behaviour as EDNSOK
      If NOEDNS, send bare queries
   */
 
@@ -1491,7 +1491,6 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     }
   }
 
-  int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
   ctx.d_initialRequestId = d_initialRequestId;
@@ -1504,12 +1503,12 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
   for (int tries = 0; tries < 2; ++tries) {
 
-    if (mode == EDNSStatus::NOEDNS) {
-      g_stats.noEdnsOutQueries++;
-      EDNSLevel = 0; // level != mode
+    int EDNSLevel = 1;
+    if (mode == EDNSStatus::NOEDNS && !ednsMANDATORY) {
+      EDNSLevel = 0;
     }
-    else if (ednsMANDATORY || mode != EDNSStatus::NOEDNS) {
-      EDNSLevel = 1;
+    if (EDNSLevel == 0) {
+      g_stats.noEdnsOutQueries++;
     }
 
     DNSName sendQname(domain);
