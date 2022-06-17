@@ -1567,7 +1567,10 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
         lock->setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT, d_now.tv_sec);
       }
       else {
-        lock->erase(ip);
+        // New status is EDNSOK
+        if (ednsstatus != lock->end()) {
+          lock->erase(ip);
+        }
       }
     }
 
