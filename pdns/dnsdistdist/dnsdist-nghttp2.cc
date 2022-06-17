@@ -135,6 +135,11 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
   struct timeval now;
   gettimeofday(&now, nullptr);
   try {
+    if (!d_healthCheckQuery) {
+      const double udiff = request.d_query.d_idstate.sentTime.udiff();
+      d_ds->latencyUsecTCP = (127.0 * d_ds->latencyUsecTCP / 128.0) + udiff / 128.0;
+    }
+
     request.d_sender->handleResponse(now, TCPResponse(std::move(request.d_buffer), std::move(request.d_query.d_idstate), shared_from_this()));
   }
   catch (const std::exception& e) {
