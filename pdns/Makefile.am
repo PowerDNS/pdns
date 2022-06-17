@@ -199,6 +199,7 @@ pdns_server_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
 	bindlexer.l \
 	bindparser.cc \
+	burtle.hh \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	comment.hh \
