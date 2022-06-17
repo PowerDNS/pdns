@@ -984,7 +984,7 @@ static void doStats(void)
             << SyncRes::getThrottledServersSize() << ", ns speeds: "
             << SyncRes::getNSSpeedsSize() << ", failed ns: "
             << SyncRes::getFailedServersSize() << ", ednsmap: "
-            << broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize) << ", non-resolving: "
+            << SyncRes::getEDNSStatusesSize() << ", non-resolving: "
             << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
             << SyncRes::getSaveParentsNSSetsSize()
             << endl;
@@ -1010,7 +1010,7 @@ static void doStats(void)
                 "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
                 "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
                 "failed-host-entries", Logging::Loggable(SyncRes::getFailedServersSize()),
-                "edns-entries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)),
+                "edns-entries", Logging::Loggable(SyncRes::getEDNSStatusesSize()),
                 "non-resolving-nameserver-entries", Logging::Loggable(SyncRes::getNonResolvingNSSize()),
                 "saved-parent-ns-sets-entries", Logging::Loggable(SyncRes::getSaveParentsNSSetsSize()),
                 "outqueries-per-query", Logging::Loggable(ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)));
@@ -2069,11 +2069,6 @@ static void houseKeeping(void*)
       });
     }
 
-    static thread_local PeriodicTask pruneEDNSTask{"pruneEDNSTask", 5}; // period could likely be longer
-    pruneEDNSTask.runIfDue(now, [now]() {
-      SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
-    });
-
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
     pruneTCPTask.runIfDue(now, [now]() {
       t_tcp_manager.cleanup(now);
@@ -2118,6 +2113,11 @@ static void houseKeeping(void*)
       static PeriodicTask pruneNSpeedTask{"pruneNSSpeedTask", 30};
       pruneNSpeedTask.runIfDue(now, [now]() {
         SyncRes::pruneNSSpeeds(now.tv_sec - 300);
+      });
+
+      static PeriodicTask pruneEDNSTask{"pruneEDNSTask", 60};
+      pruneEDNSTask.runIfDue(now, [now]() {
+        SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
       });
 
       if (SyncRes::s_max_busy_dot_probes > 0) {

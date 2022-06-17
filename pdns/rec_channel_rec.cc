@@ -971,11 +971,6 @@ static uint64_t getNegCacheSize()
   return g_negCache->size();
 }
 
-uint64_t* pleaseGetEDNSStatusesSize()
-{
-  return new uint64_t(SyncRes::getEDNSStatusesSize());
-}
-
 uint64_t* pleaseGetConcurrentQueries()
 {
   return new uint64_t(getMT() ? getMT()->numProcesses() : 0);
@@ -1977,7 +1972,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doDumpToFile(s, pleaseDumpDoTProbeMap, cmd, false);
   }
   if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
-    return doDumpToFile(s, pleaseDumpEDNSMap, cmd);
+    return doDumpToFile(s, pleaseDumpEDNSMap, cmd, false);
   }
   if (cmd == "dump-nsspeeds") {
     return doDumpToFile(s, pleaseDumpNSSpeeds, cmd, false);
