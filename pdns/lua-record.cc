@@ -399,9 +399,7 @@ static vector<T> pickRandomSample(int n, const vector<T>& items)
     return vector<T>();
   }  
 
-  auto rdev = std::random_device {}; 
-  auto reng = std::default_random_engine { rdev() };
-  std::shuffle(pick.begin(), pick.end(), reng);
+  std::shuffle(pick.begin(), pick.end(), pdns::dns_random_engine());
   
   vector<T> result = {pick.begin(), pick.begin() + count};
   return result;
@@ -444,14 +442,6 @@ static bool getLatLon(const std::string& ip, string& loc)
     lon = -lon;
     lonhem='W';
   }
-
-  /*
-    >>> deg = int(R)
-    >>> min = int((R - int(R)) * 60.0)
-    >>> sec = (((R - int(R)) * 60.0) - min) * 60.0
-    >>> print("{}ยบ {}' {}\"".format(deg, min, sec))
-  */
-
 
   latdeg = lat;
   latmin = (lat - latdeg)*60.0;
@@ -571,18 +561,6 @@ static vector<string> convStringList(const iplist_t& items)
 
   for(const auto& item : items) {
     result.emplace_back(item.second);
-  }
-
-  return result;
-}
-
-static vector< pair<int, ComboAddress> > convIntComboAddressList(const std::unordered_map<int, wiplist_t >& items)
-{
-  vector< pair<int,ComboAddress> > result;
-  result.reserve(items.size());
-  
-  for(const auto& item : items) {
-    result.emplace_back(atoi(item.second.at(1).c_str()), ComboAddress(item.second.at(2)));
   }
 
   return result;
