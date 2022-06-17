@@ -23,7 +23,7 @@
 
 #ifndef DISABLE_PROMETHEUS
 // Metric types for Prometheus
-enum class PrometheusMetricType: int {
+enum class PrometheusMetricType: uint8_t {
     counter = 1,
     gauge = 2
 };
@@ -38,7 +38,7 @@ struct MetricDefinition {
   // Metric description
   std::string description;
   // Metric type for Prometheus
-  PrometheusMetricType prometheusType;
+  PrometheusMetricType prometheusType{PrometheusMetricType::counter};
 };
 
 struct MetricDefinitionStorage {
@@ -54,7 +54,7 @@ struct MetricDefinitionStorage {
     return true;
   };
 
-  static bool addMetricDefinition(const std::string& name, const std::string type, const std::string& description) {
+  static bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
     static const std::map<std::string, PrometheusMetricType> namesToTypes = {
       {"counter", PrometheusMetricType::counter},
       {"gauge",   PrometheusMetricType::gauge},

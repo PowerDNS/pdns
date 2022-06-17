@@ -198,7 +198,7 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
-bool addMetricDefinition(const std::string& name, const std::string type, const std::string& description) {
+bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
 #ifndef DISABLE_PROMETHEUS
   return MetricDefinitionStorage::addMetricDefinition(name, type, description);
 #else
