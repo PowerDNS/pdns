@@ -1488,8 +1488,8 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   {
     auto lock = s_ednsstatus.lock();
     auto ednsstatus = lock->insert(ip).first; // does this include port? YES
-    auto &ind = lock->get<ComboAddress>();
     if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
+      auto &ind = lock->get<ComboAddress>();
       lock->reset(ind, ednsstatus);
     }
     mode = ednsstatus->mode;
