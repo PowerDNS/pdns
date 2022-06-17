@@ -654,6 +654,11 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dh->id = ids->origID;
         ++dss->responses;
 
+        double udiff = ids->sentTime.udiff();
+        // do that _before_ the processing, otherwise it's not fair to the backend
+        cerr<<"udiff is "<<(udiff/1000.0)<<endl;
+        dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
+
         /* don't call processResponse for DOH */
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -686,13 +691,11 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           sendUDPResponse(origFD, response, dr.delayMsec, ids->hopLocal, ids->hopRemote);
         }
 
-        double udiff = ids->sentTime.udiff();
+        udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->d_config.remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
         handleResponseSent(*ids, udiff, *dr.remote, dss->d_config.remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
         dss->releaseState(queryId);
-
-        dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
         doLatencyStats(udiff);
       }
@@ -1383,8 +1386,6 @@ public:
     vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", d_ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
 
     handleResponseSent(ids, udiff, *dr.remote, d_ds->d_config.remote, response.d_buffer.size(), cleartextDH, d_ds->getProtocol());
-
-    d_ds->latencyUsec = (127.0 * d_ds->latencyUsec / 128.0) + udiff/128.0;
 
     doLatencyStats(udiff);
   }

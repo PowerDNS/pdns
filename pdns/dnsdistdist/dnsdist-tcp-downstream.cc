@@ -659,6 +659,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   --conn->d_ds->outstanding;
   auto ids = std::move(it->second.d_query.d_idstate);
+  const double udiff = ids.sentTime.udiff();
+  conn->d_ds->latencyUsecTCP = (127.0 * conn->d_ds->latencyUsecTCP / 128.0) + udiff / 128.0;
+
   d_pendingResponses.erase(it);
   /* marking as idle for now, so we can accept new queries if our queues are empty */
   if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
