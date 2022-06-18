@@ -86,7 +86,7 @@ Record creation functions
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
-  - ``headers``: A comma seperated list of headers to be added to the request.
+  - ``headers``: A comma separated list of headers to be added to the request.
 
   An example of a list of address sets:
 
