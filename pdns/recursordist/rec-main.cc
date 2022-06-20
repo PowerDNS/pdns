@@ -96,6 +96,7 @@ bool g_addExtendedResolutionDNSErrors;
 static std::atomic<uint32_t> s_counter;
 int g_argc;
 char** g_argv;
+static string s_structured_logger_backend;
 
 /* without reuseport, all listeners share the same sockets */
 deferredAdd_t g_deferredAdds;
@@ -2758,6 +2759,7 @@ int main(int argc, char** argv)
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
     ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
+    ::arg().set("structured-logging-backend", "Structured logging backend") = "default";
     ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
     ::arg().set("max-busy-dot-probes", "Maximum number of concurrent DoT probes") = "0";
 
@@ -2784,6 +2786,7 @@ int main(int argc, char** argv)
     g_quiet = ::arg().mustDo("quiet");
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     g_slogStructured = ::arg().mustDo("structured-logging");
+    s_structured_logger_backend = ::arg()["structured-logging-backend"];
 
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;
@@ -2823,14 +2826,18 @@ int main(int argc, char** argv)
       exit(0);
     }
 
+    if (s_structured_logger_backend == "systemd-journal") {
 #ifdef HAVE_SYSTEMD
-    if (getenv("NOTIFY_SOCKET") != nullptr) {
       if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
         g_slog = Logging::Logger::create(loggerSDBackend);
         close(fd);
       }
-    }
 #endif
+      if (g_slog == nullptr) {
+        cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
+      }
+    }
+
     if (g_slog == nullptr) {
       g_slog = Logging::Logger::create(loggerBackend);
     }
