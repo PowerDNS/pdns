@@ -454,6 +454,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            config.d_maxInFlightQueriesPerConn = std::stoi(boost::get<string>(vars["maxInFlight"]));
                          }
 
+                         if (vars.count("maxConcurrentTCPConnections")) {
+                           config.d_tcpConcurrentConnectionsLimit = std::stoi(boost::get<string>(vars.at("maxConcurrentTCPConnections")));
+                         }
+
                          if (vars.count("name")) {
                            config.name = boost::get<string>(vars["name"]);
                          }

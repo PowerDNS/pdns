@@ -1676,10 +1676,10 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       /* send the response */
       s_steps.push_back({ ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2 });
     };
+    /* close the connection with the backend */
+    s_steps.push_back({ ExpectedStep::ExpectedRequest::closeBackend, IOState::Done });
     /* close the connection with the client */
     s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
-    /* eventually with the backend as well */
-    s_steps.push_back({ ExpectedStep::ExpectedRequest::closeBackend, IOState::Done });
 
     s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
@@ -2175,11 +2175,11 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         timeout = true;
       } },
 
-      /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
-
       /* closing a connection to the backend */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+
+      /* closing client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
 
     s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -2452,10 +2452,10 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&timeout](int desc) {
         timeout = true;
       } },
-      /* client times out again, this time we close the connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
       /* closing a connection to the backend */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* client times out again, this time we close the connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
     };
 
     s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3375,10 +3375,10 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       } },
       /* client closes the connection */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
-      /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
       /* closing the backend connection */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3801,10 +3801,10 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&timeout](int desc) {
         timeout = true;
       } },
-      /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
       /* closing a connection to the backend */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* closing client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
 
     s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {

@@ -238,7 +238,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
   return IOState::Done;
 }
 
-static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
+static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, TCPResponse& currentResponse)
 {
   if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
     return;
@@ -261,6 +261,9 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     const auto& ids = currentResponse.d_idstate;
     ::handleResponseSent(ids, 0., state->d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol);
   }
+
+  currentResponse.d_buffer.clear();
+  currentResponse.d_connection.reset();
 }
 
 static void prependSizeToTCPQuery(PacketBuffer& buffer, size_t proxyProtocolPayloadSize)
