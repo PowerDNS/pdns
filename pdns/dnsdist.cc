@@ -2129,16 +2129,16 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     SListen(cs->tcpFD, cs->tcpListenQueueSize);
 
     if (cs->tlsFrontend != nullptr) {
-      warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
+      infolog("Listening on %s for TLS", cs->local.toStringWithPort());
     }
     else if (cs->dohFrontend != nullptr) {
-      warnlog("Listening on %s for DoH", cs->local.toStringWithPort());
+      infolog("Listening on %s for DoH", cs->local.toStringWithPort());
     }
     else if (cs->dnscryptCtx != nullptr) {
-      warnlog("Listening on %s for DNSCrypt", cs->local.toStringWithPort());
+      infolog("Listening on %s for DNSCrypt", cs->local.toStringWithPort());
     }
     else {
-      warnlog("Listening on %s", cs->local.toStringWithPort());
+      infolog("Listening on %s", cs->local.toStringWithPort());
     }
   }
 
@@ -2535,7 +2535,7 @@ int main(int argc, char** argv)
       }
     }
 
-    warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+    infolog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
 
     vector<string> vec;
     std::string acls;
