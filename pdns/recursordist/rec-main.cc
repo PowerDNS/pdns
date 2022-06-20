@@ -2117,7 +2117,7 @@ static void houseKeeping(void*)
 
       static PeriodicTask pruneEDNSTask{"pruneEDNSTask", 60};
       pruneEDNSTask.runIfDue(now, [now]() {
-        SyncRes::pruneEDNSStatuses(now.tv_sec - 2 * 3600);
+        SyncRes::pruneEDNSStatuses(now.tv_sec);
       });
 
       if (SyncRes::s_max_busy_dot_probes > 0) {

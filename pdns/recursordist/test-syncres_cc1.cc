@@ -348,7 +348,7 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled)
   BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(queriesWithEDNS, 26U);
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0U);
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26U);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 0U);
   BOOST_CHECK_EQUAL(usedServers.size(), 26U);
   for (const auto& server : usedServers) {
     BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
