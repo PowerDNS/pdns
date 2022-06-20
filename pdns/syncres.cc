@@ -1491,6 +1491,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     }
   }
 
+  int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
   ctx.d_initialRequestId = d_initialRequestId;
@@ -1503,12 +1504,12 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
   for (int tries = 0; tries < 2; ++tries) {
 
-    int EDNSLevel = 1;
-    if (mode == EDNSStatus::NOEDNS && !ednsMANDATORY) {
-      EDNSLevel = 0;
-    }
-    if (EDNSLevel == 0) {
+    if (mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
+      EDNSLevel = 0; // level != mode
+    }
+    else if (ednsMANDATORY || mode != EDNSStatus::NOEDNS) {
+      EDNSLevel = 1;
     }
 
     DNSName sendQname(domain);
