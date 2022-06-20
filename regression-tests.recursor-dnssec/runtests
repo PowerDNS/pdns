@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PYTHON=${PYTHON:-python2}
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 if [ ! -d .venv ]; then
 	virtualenv -p ${PYTHON} .venv
