@@ -887,8 +887,11 @@ static const char* toTimestampStringMilli(const struct timeval& tv, char* buf, s
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
+  // First map SL priority to syslog's Urgency
   Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (u > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
     return;
   }
   // We need to keep the string in mem until sd_journal_sendv has ben called
@@ -928,8 +931,11 @@ static void loggerBackend(const Logging::Entry& entry)
 {
   static thread_local std::stringstream buf;
 
+  // First map SL priority to syslog's Urgency
   Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (u > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
     return;
   }
   buf.str("");
@@ -2797,8 +2803,9 @@ int main(int argc, char** argv)
     g_slogStructured = ::arg().mustDo("structured-logging");
     s_structured_logger_backend = ::arg()["structured-logging-backend"];
 
-    if (s_logUrgency < Logger::Error)
+    if (s_logUrgency < Logger::Error) {
       s_logUrgency = Logger::Error;
+    }
     if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
       s_logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
     }
@@ -2866,8 +2873,9 @@ int main(int argc, char** argv)
     s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     g_slogStructured = ::arg().mustDo("structured-logging");
 
-    if (s_logUrgency < Logger::Error)
+    if (s_logUrgency < Logger::Error) {
       s_logUrgency = Logger::Error;
+    }
     if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
       s_logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
     }
