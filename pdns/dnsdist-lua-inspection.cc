@@ -527,11 +527,17 @@ void setupLuaInspection(LuaContext& luaCtx)
 	    extra.clear();
           }
 
+          std::string server = c.ds.toStringWithPort();
+          std::string protocol = dnsdist::Protocol(c.protocol).toString();
+          if (server == "0.0.0.0:0") {
+            server = "Cache";
+            protocol = "-";
+          }
           if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
-            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
           else {
-            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
 
           if (limit && *limit == ++num) {
