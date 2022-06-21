@@ -653,7 +653,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
 
-                         if (autoUpgrade) {
+                         if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
                            dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);
                          }
 
