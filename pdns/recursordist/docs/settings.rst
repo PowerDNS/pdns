@@ -2016,6 +2016,22 @@ A list of comma-separated statistic names, that are prevented from being exporte
 
 Prefer structured logging when both an old style and a structured log messages is available.
 
+.. _setting-structured-logging-backend:
+
+``structured-logging-backend``
+------------------------------
+.. versionadded:: 4.8.0
+
+- String
+- Default: "default"
+
+The backend used for structured logging output.
+Available backends are:
+
+- ``default``: use the traditional logging system to output structured logging information.
+- ``systemd-journal``: use systemd-journal.
+  When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
+
 .. _setting-tcp-fast-open:
 
 ``tcp-fast-open``

@@ -96,6 +96,8 @@ bool g_addExtendedResolutionDNSErrors;
 static std::atomic<uint32_t> s_counter;
 int g_argc;
 char** g_argv;
+static string s_structured_logger_backend;
+static Logger::Urgency s_logUrgency;
 
 /* without reuseport, all listeners share the same sockets */
 deferredAdd_t g_deferredAdds;
@@ -885,6 +887,13 @@ static const char* toTimestampStringMilli(const struct timeval& tv, char* buf, s
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (u > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
   // We need to keep the string in mem until sd_journal_sendv has ben called
   vector<string> strings;
   auto appendKeyAndVal = [&strings](const string& k, const string& v) {
@@ -922,6 +931,13 @@ static void loggerBackend(const Logging::Entry& entry)
 {
   static thread_local std::stringstream buf;
 
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (u > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
   buf.str("");
   buf << "msg=" << std::quoted(entry.message);
   if (entry.error) {
@@ -944,7 +960,7 @@ static void loggerBackend(const Logging::Entry& entry)
     buf << " ";
     buf << v.first << "=" << std::quoted(v.second);
   }
-  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
+
   g_log << u << buf.str() << endl;
 }
 
@@ -2758,6 +2774,7 @@ int main(int argc, char** argv)
     ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
     ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
     ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
+    ::arg().set("structured-logging-backend", "Structured logging backend") = "default";
     ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
     ::arg().set("max-busy-dot-probes", "Maximum number of concurrent DoT probes") = "0";
 
@@ -2782,16 +2799,18 @@ int main(int argc, char** argv)
 
     // Pick up options given on command line to setup logging asap.
     g_quiet = ::arg().mustDo("quiet");
-    Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+    s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     g_slogStructured = ::arg().mustDo("structured-logging");
+    s_structured_logger_backend = ::arg()["structured-logging-backend"];
 
-    if (logUrgency < Logger::Error)
-      logUrgency = Logger::Error;
-    if (!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
-      logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    if (s_logUrgency < Logger::Error) {
+      s_logUrgency = Logger::Error;
     }
-    g_log.setLoglevel(logUrgency);
-    g_log.toConsole(logUrgency);
+    if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      s_logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    }
+    g_log.setLoglevel(s_logUrgency);
+    g_log.toConsole(s_logUrgency);
 
     string configname = ::arg()["config-dir"] + "/recursor.conf";
     if (::arg()["config-name"] != "") {
@@ -2823,14 +2842,18 @@ int main(int argc, char** argv)
       exit(0);
     }
 
+    if (s_structured_logger_backend == "systemd-journal") {
 #ifdef HAVE_SYSTEMD
-    if (getenv("NOTIFY_SOCKET") != nullptr) {
       if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
         g_slog = Logging::Logger::create(loggerSDBackend);
         close(fd);
       }
-    }
 #endif
+      if (g_slog == nullptr) {
+        cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
+      }
+    }
+
     if (g_slog == nullptr) {
       g_slog = Logging::Logger::create(loggerBackend);
     }
@@ -2847,16 +2870,17 @@ int main(int argc, char** argv)
     ::arg().parse(argc, argv);
 
     g_quiet = ::arg().mustDo("quiet");
-    logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+    s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     g_slogStructured = ::arg().mustDo("structured-logging");
 
-    if (logUrgency < Logger::Error)
-      logUrgency = Logger::Error;
-    if (!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
-      logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    if (s_logUrgency < Logger::Error) {
+      s_logUrgency = Logger::Error;
     }
-    g_log.setLoglevel(logUrgency);
-    g_log.toConsole(logUrgency);
+    if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      s_logUrgency = Logger::Info; // if you do --quiet=no, you need Info to also see the query log
+    }
+    g_log.setLoglevel(s_logUrgency);
+    g_log.toConsole(s_logUrgency);
 
     if (!::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty()) {
       SLOG(g_log << Logger::Error << "Using chroot and enabling the API is not possible" << endl,
