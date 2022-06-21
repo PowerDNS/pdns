@@ -17,11 +17,11 @@ do
 	echo "};"
 done
 
-echo "static const std::map<std::string,std::string> g_urlmapgz = {"
+echo "static std::map<std::string,std::pair<std::string,std::string>> g_urlmapgz = {"
 for a in $files
 do
 	b=$(echo $a | sed s:${DIR}html/::g)
 	c=$(echo $b | tr "/.-" "___")
-	echo "{\"$b\", std::string((const char*)g${c}Data, sizeof(g${c}Data))},"
+	echo "{\"$b\", std::make_pair(std::string((const char*)g${c}Data, sizeof(g${c}Data)),std::string())},"
 done
 echo "};"

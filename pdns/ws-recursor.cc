@@ -535,13 +535,18 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   if (!req->url.path.empty()) {
     const auto it = g_urlmapgz.find(req->url.path.c_str() + 1);
     if (it != g_urlmapgz.end()) {
-      boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-      inbuf.push(boost::iostreams::gzip_decompressor());
-      std::istringstream in(it->second);
-      inbuf.push(in);
-      std::ostringstream out;
-      boost::iostreams::copy(inbuf, out);
-      resp->body = out.str();
+      const auto& gz = it->second.first;
+      auto& expanded = it->second.second;
+      if (expanded.empty()) {
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+        inbuf.push(boost::iostreams::gzip_decompressor());
+        std::istringstream in(gz);
+        inbuf.push(in);
+        std::ostringstream out;
+        boost::iostreams::copy(inbuf, out);
+        expanded = out.str();
+      }
+      resp->body = expanded;
       resp->status = 200;
       return;
     }
