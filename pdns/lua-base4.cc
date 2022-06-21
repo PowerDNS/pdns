@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <typeinfo>
 #include "logger.hh"
+#include "logging.hh"
 #include "iputils.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
@@ -21,7 +22,8 @@ int BaseLua4::loadFile(const std::string &fname) {
   std::ifstream ifs(fname);
   if (!ifs) {
     ret = errno;
-    g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror()<<endl;
+    SLOG(g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror(ret)<<endl,
+         g_slog->withName("lua")->error(Logr::Error, ret, "Unable to read configuration file", "file", Logging::Loggable(fname)));
     return ret;
   }
   loadStream(ifs);
@@ -167,7 +169,10 @@ void BaseLua4::prepareContext() {
       else
         cas.insert(boost::get<ComboAddress>(in));
       }
-      catch(std::exception& e) { g_log <<Logger::Error<<e.what()<<endl; }
+      catch(std::exception& e) {
+        SLOG(g_log <<Logger::Error<<e.what()<<endl,
+             g_slog->withName("lua")->error(Logr::Error, e.what(), "Exception in newCAS", "exception", Logging::Loggable("std::exception")));
+      }
     });
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
 
@@ -229,7 +234,10 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
 
   // pdnsload
-  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
+    SLOG(g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl,
+         g_slog->withName("lua")->info(static_cast<Logr::Priority>(loglevel.get_value_or(Logr::Warning)), msg));
+  });
   d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
 
   // certain constants

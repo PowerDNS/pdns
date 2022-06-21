@@ -5030,8 +5030,13 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
 
 bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsName, ComboAddress address, time_t now)
 {
-  auto logHelper = [](const string& msg) {
-    g_log<<Logger::Debug<<"Failed to probe DoT records, got an exception: "<<msg<<endl;
+  auto log = g_slog->withName("taskq")->withValues("method", Logging::Loggable("tryDoT"), "name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()), "ip", Logging::Loggable(address));
+
+  auto logHelper1 = [&log](const string& ename) {
+    log->info(Logr::Debug, "Failed to probe DoT records, got an exception", "exception", Logging::Loggable(ename));
+  };
+  auto logHelper2 = [&log](const string& msg, const string& ename) {
+    log->error(Logr::Debug, msg, "Failed to probe DoT records, got an exception", "exception", Logging::Loggable(ename));
   };
   LWResult lwr;
   bool truncated;
@@ -5045,19 +5050,19 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
     ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
   }
   catch(const PDNSException& e) {
-    logHelper(e.reason);
+    logHelper2(e.reason, "PDNSException");
   }
   catch(const ImmediateServFailException& e) {
-    logHelper(e.reason);
+    logHelper2(e.reason, "ImmediateServFailException");
   }
   catch(const PolicyHitException& e) {
-    logHelper("PolicyHitException");
+    logHelper1("PolicyHitException");
   }
   catch(const std::exception& e) {
-    logHelper(e.what());
+    logHelper2(e.what(), "std::exception");
   }
   catch(...) {
-    logHelper("other");
+    logHelper1("other");
   }
   updateDoTStatus(address, ok ? DoTStatus::Good : DoTStatus::Bad, now + (ok ? dotSuccessWait : dotFailWait), true);
   return ok;
@@ -5797,6 +5802,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
   sr.setAsyncCallback(asyncCallback);
 
+  const string msg = "Failed to update . records";
   vector<DNSRecord> ret;
   int res = -1;
   try {
@@ -5808,21 +5814,26 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
       }
     }
   }
-  catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  catch (const PDNSException& e) {
+    SLOG(g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl,
+         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
   }
-  catch(const ImmediateServFailException& e) {
-    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  catch (const ImmediateServFailException& e) {
+    SLOG(g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl,
+         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
   }
-  catch(const PolicyHitException& e) {
-    g_log<<Logger::Error<<"Failed to update . records, got a policy hit"<<endl;
+  catch (const PolicyHitException& e) {
+    SLOG(g_log<<Logger::Error<<"Failed to update . records, got a policy hit"<<endl,
+         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
     ret.clear();
   }
-  catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+  catch (const std::exception& e) {
+    SLOG(g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl,
+         log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
   }
-  catch(...) {
-    g_log<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+  catch (...) {
+    SLOG(g_log<<Logger::Error<<"Failed to update . records, got an exception"<<endl,
+         log->info(Logr::Error, msg));
   }
 
   if (res == 0) {
@@ -5830,7 +5841,8 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
          log->info(Logr::Debug, "Refreshed . records"));
   }
   else {
-    g_log<<Logger::Warning<<"Failed to update root NS records, RCODE="<<res<<endl;
+    SLOG(g_log<<Logger::Warning<<"Failed to update root NS records, RCODE="<<res<<endl,
+         log->info(Logr::Warning, msg, "rcode", Logging::Loggable(res)));
   }
   return res;
 }

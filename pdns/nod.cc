@@ -30,6 +30,7 @@
 #include "threadname.hh"
 #include <stdlib.h>
 #include "logger.hh"
+#include "logging.hh"
 #include "misc.hh"
 
 using namespace nod;
@@ -58,6 +59,7 @@ bool PersistentSBF::init(bool ignore_pid) {
   if (d_init)
     return false;
 
+  auto log = g_slog->withName("nod");
   std::lock_guard<std::mutex> lock(d_cachedir_mutex);
   if (d_cachedir.length()) {
     filesystem::path p(d_cachedir);
@@ -86,7 +88,8 @@ bool PersistentSBF::init(bool ignore_pid) {
           std::ifstream infile;
           try {
             infile.open(filename, std::ios::in | std::ios::binary);
-            g_log << Logger::Warning << "Found SBF file " << filename << endl;
+            SLOG(g_log << Logger::Warning << "Found SBF file " << filename << endl,
+                 log->info(Logr::Warning, "Found SBF File", "file", Logging::Loggable(filename)));
             // read the file into the sbf
             d_sbf.lock()->restore(infile);
             infile.close();
@@ -98,13 +101,15 @@ bool PersistentSBF::init(bool ignore_pid) {
           catch (const std::runtime_error& e) {
             infile.close();
             filesystem::remove(newest_file);
-            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl;
+            SLOG(g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl,
+                 log->error(Logr::Warning, e.what(), "NODDB init: Cannot parse file, removed", "file",  Logging::Loggable(filename)));
           }
         }
       }
     }
     catch (const filesystem::filesystem_error& e) {
-      g_log<<Logger::Warning<<"NODDB init failed:: " << e.what() << endl;
+      SLOG(g_log<<Logger::Warning<<"NODDB init failed: " << e.what() << endl,
+           log->error(Logr::Warning, e.what(), "NODDB init failed", "exception", Logging::Loggable("filesystem::filesystem_error")));
       return false;
     }
   }
@@ -130,6 +135,7 @@ void PersistentSBF::setCacheDir(const std::string& cachedir)
 // file IO to complete
 bool PersistentSBF::snapshotCurrent(std::thread::id tid)
 {
+  auto log = g_slog->withName("nod");
   if (d_cachedir.length()) {
     filesystem::path p(d_cachedir);
     filesystem::path f(d_cachedir);
@@ -165,18 +171,21 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           filesystem::rename(ftmp, f);
         }
         catch (const std::runtime_error& e) {
-          g_log<<Logger::Warning<<"NODDB snapshot: Cannot rename file: " << e.what() << endl;
+          SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot rename file: " << e.what() << endl,
+               log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot rename file", "exception", Logging::Loggable("std::runtime_error")));
           filesystem::remove(ftmp);
           throw;
         }
         return true;
       }
       catch (const std::runtime_error& e) {
-        g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl;
+        SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl,
+              log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot write file", "exception", Logging::Loggable("std::runtime_error")));
       }
     }
     else {
-      g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl;
+      SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl,
+           log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(f.string())));
     }
   }
   return false;

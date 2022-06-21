@@ -5,6 +5,7 @@
 #include "rec_channel.hh"
 
 #include "logger.hh"
+#include "logging.hh"
 
 #ifdef HAVE_NET_SNMP
 
@@ -200,12 +201,14 @@ static int handleDisabledCounter64Stats(netsnmp_mib_handler* handler,
 static void registerCounter64Stat(const std::string& name, const oid statOID[], size_t statOIDLength)
 {
   if (statOIDLength != OID_LENGTH(questionsOID)) {
-    g_log << Logger::Error << "Invalid OID for SNMP Counter64 statistic " << name << endl;
+    SLOG(g_log << Logger::Error << "Invalid OID for SNMP Counter64 statistic " << name << endl,
+         g_slog->withName("snmp")->info(Logr::Error, "Invalid OID for SNMP Counter64 statistic", "name", Logging::Loggable(name)));
     return;
   }
 
   if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
-    g_log << Logger::Error << "OID for SNMP Counter64 statistic " << name << " has already been registered" << endl;
+    SLOG(g_log << Logger::Error << "OID for SNMP Counter64 statistic " << name << " has already been registered" << endl,
+         g_slog->withName("snmp")->info(Logr::Error, "OID for SNMP Counter64 statistic has already been registered", "name", Logging::Loggable(name)));
     return;
   }
 

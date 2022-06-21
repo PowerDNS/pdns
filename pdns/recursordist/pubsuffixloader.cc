@@ -25,6 +25,7 @@
 
 #include "dnsname.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "misc.hh"
 #include "pubsuffix.hh"
 
@@ -66,11 +67,13 @@ void initPublicSuffixList(const std::string& file)
         }
       }
 
-      g_log << Logger::Info << "Loaded the Public Suffix List from '" << file << "'" << endl;
+      SLOG(g_log << Logger::Info << "Loaded the Public Suffix List from '" << file << "'" << endl,
+           g_slog->withName("runtime")->info(Logr::Info, "Loaded the Public Suffix List", "file", Logging::Loggable(file)));
       loaded = true;
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << "Error while loading the Public Suffix List from '" << file << "', falling back to the built-in list: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << "Error while loading the Public Suffix List from '" << file << "', falling back to the built-in list: " << e.what() << endl,
+           g_slog->withName("runtime")->error(Logr::Error, e.what(), "Loaded the Public Suffix List", "file", Logging::Loggable(file)));
     }
   }
 
