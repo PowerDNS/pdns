@@ -1163,7 +1163,7 @@ static void validatePrometheusMetrics()
 
     if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
       SLOG(g_log << Logger::Debug << "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")}," << endl,
-           g_slog->ingo(Logr::Debug, "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
+           g_slog->info(Logr::Debug, "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
     }
   }
 }

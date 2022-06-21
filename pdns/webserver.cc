@@ -167,7 +167,7 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
 
   if (!d_apikey) {
     SLOG(g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl,
-         d_slog->info(Logr::Error, "HTTP API Request: Authentication failed, API Key missing in config", "urlpath", Logging::Loggable(req->url.path)));
+         d_slog->info(Logr::Error, "Authentication failed, API Key missing in config", "urlpath", Logging::Loggable(req->url.path)));
     throw HttpUnauthorizedException("X-API-Key");
   }
 
@@ -183,7 +183,7 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
 
   if (!auth_ok) {
     SLOG(g_log<<Logger::Error<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl,
-         d_slog->info(Logr::Error, "HTTP Request: Authentication by API Key failed", "urlpath", Logging::Loggable(req->url.path)));
+         d_slog->info(Logr::Error, "Authentication by API Key failed", "urlpath", Logging::Loggable(req->url.path)));
     throw HttpUnauthorizedException("X-API-Key");
   }
 
@@ -498,6 +498,7 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
            d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
+    // Uses of `remote` below guarded by d_loglevel
     if (d_loglevel > WebServer::LogLevel::None) {
       client->getRemote(remote);
     }
