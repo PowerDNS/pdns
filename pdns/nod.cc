@@ -108,7 +108,7 @@ bool PersistentSBF::init(bool ignore_pid) {
       }
     }
     catch (const filesystem::filesystem_error& e) {
-      SLOG(g_log<<Logger::Warning<<"NODDB init failed:: " << e.what() << endl,
+      SLOG(g_log<<Logger::Warning<<"NODDB init failed: " << e.what() << endl,
            log->error(Logr::Warning, e.what(), "NODDB init failed", "exception", Logging::Loggable("filesystem::filesystem_error")));
       return false;
     }

@@ -102,8 +102,9 @@ void Utility::setBindAny(int af, sock_t sock)
 #ifdef IPV6_BINDANY
   if (af == AF_INET6) {
     if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0) {
+      int err = errno;
       SLOG(g_log<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<stringerror(err)<<endl,
-           g_slog->withName("runtime")->error(Logr::Warning, err, ""Warning: IPV6_BINDANY setsockopt failed"));
+           g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: IPV6_BINDANY setsockopt failed"));
     }
   }
 #endif
