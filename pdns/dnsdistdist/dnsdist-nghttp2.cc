@@ -466,14 +466,16 @@ void DoHConnectionToBackend::stopIO()
 {
   d_ioState->reset();
 
-  auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
-  if (!willBeReusable(false)) {
-    /* remove ourselves from the connection cache, this might mean that our
-       reference count drops to zero after that, so we need to be careful */
-    t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
-  }
-  else {
-    t_downstreamDoHConnectionsManager.moveToIdle(shared);
+  if (isIdle()) {
+    auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
+    if (!willBeReusable(false)) {
+      /* remove ourselves from the connection cache, this might mean that our
+         reference count drops to zero after that, so we need to be careful */
+      t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
+    }
+    else {
+      t_downstreamDoHConnectionsManager.moveToIdle(shared);
+    }
   }
 }
 
