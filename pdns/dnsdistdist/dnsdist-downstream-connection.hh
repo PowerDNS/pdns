@@ -79,6 +79,7 @@ public:
     }
 
     if (ds->d_config.d_tcpConcurrentConnectionsLimit > 0 && ds->tcpCurrentConnections.load() >= ds->d_config.d_tcpConcurrentConnectionsLimit) {
+      ++ds->tcpTooManyConcurrentConnections;
       throw std::runtime_error("Maximum number of TCP connections to " + ds->getNameWithAddr() + " reached, not creating a new one");
     }
 
@@ -240,7 +241,9 @@ protected:
         continue;
       }
 
-      (*connIt)->release();
+      if (entry->isIdle()) {
+        (*connIt)->release();
+      }
       connIt = sidx.erase(connIt);
     }
   }

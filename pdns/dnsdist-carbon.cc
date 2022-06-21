@@ -107,6 +107,7 @@ void carbonDumpThread()
             str<<base<<"tlsresumptions" << ' '<< state->tlsResumptions.load() << " " << now << "\r\n";
             str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
             str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
+            str<<base<<"tcptoomanyconcurrentconnections" << ' '<< state->tcpTooManyConcurrentConnections.load() << " " << now << "\r\n";
           }
 
           std::map<std::string,uint64_t> frontendDuplicates;

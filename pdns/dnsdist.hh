@@ -821,6 +821,8 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
   stat_t tcpCurrentConnections{0};
   /* maximum number of concurrent connections to this backend reached */
   stat_t tcpMaxConcurrentConnections{0};
+  /* number of times we had to enforce the maximum concurrent connections limit */
+  stat_t tcpTooManyConcurrentConnections{0};
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};
   stat_t tlsResumptions{0};
