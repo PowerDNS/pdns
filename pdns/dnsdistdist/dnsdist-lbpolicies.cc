@@ -57,18 +57,18 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  using LeastOustandingType = std::tuple<int,int,double>;
+  using LeastOutstandingType = std::tuple<int,int,double>;
 
   if (servers.size() == 1 && servers[0].second->isUp()) {
     return servers[0].second;
   }
 
   if (servers.size() <= s_staticArrayCutOff) {
-    StaticIndexArray<LeastOustandingType> poss;
+    StaticIndexArray<LeastOutstandingType> poss;
     return getLeastOutstanding(servers, poss);
   }
 
-  DynamicIndexArray<LeastOustandingType> poss;
+  DynamicIndexArray<LeastOutstandingType> poss;
   poss.resize(servers.size());
   return getLeastOutstanding(servers, poss);
 }
