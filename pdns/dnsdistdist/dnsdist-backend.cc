@@ -59,19 +59,25 @@ bool DownstreamState::reconnect()
     if (!IsAnyAddress(d_config.remote)) {
       fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
 
-      if (!d_config.sourceItfName.empty()) {
 #ifdef SO_BINDTODEVICE
+      if (!d_config.sourceItfName.empty()) {
         int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
         if (res != 0) {
           infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
         }
-#endif
       }
+#endif
 
       if (!IsAnyAddress(d_config.sourceAddr)) {
         SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef IP_BIND_ADDRESS_NO_PORT
+        if (d_config.ipBindAddrNoPort) {
+          SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
+#endif
         SBind(fd, d_config.sourceAddr);
       }
+
       try {
         SConnect(fd, d_config.remote);
         if (sockets.size() > 1) {
