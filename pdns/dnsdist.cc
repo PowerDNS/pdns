@@ -246,25 +246,58 @@ bool DNSQuestion::setTrailingData(const std::string& tail)
   return true;
 }
 
-void doLatencyStats(double udiff)
+void doLatencyStats(dnsdist::Protocol protocol, double udiff)
 {
-  if(udiff < 1000) ++g_stats.latency0_1;
-  else if(udiff < 10000) ++g_stats.latency1_10;
-  else if(udiff < 50000) ++g_stats.latency10_50;
-  else if(udiff < 100000) ++g_stats.latency50_100;
-  else if(udiff < 1000000) ++g_stats.latency100_1000;
-  else ++g_stats.latencySlow;
-  g_stats.latencySum += udiff / 1000;
-  ++g_stats.latencyCount;
-
-  auto doAvg = [](double& var, double n, double weight) {
+  constexpr auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
   };
 
-  doAvg(g_stats.latencyAvg100,     udiff,     100);
-  doAvg(g_stats.latencyAvg1000,    udiff,    1000);
-  doAvg(g_stats.latencyAvg10000,   udiff,   10000);
-  doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
+  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
+    if (udiff < 1000) {
+      ++g_stats.latency0_1;
+    }
+    else if (udiff < 10000) {
+      ++g_stats.latency1_10;
+    }
+    else if (udiff < 50000) {
+      ++g_stats.latency10_50;
+    }
+    else if (udiff < 100000) {
+      ++g_stats.latency50_100;
+    }
+    else if (udiff < 1000000) {
+      ++g_stats.latency100_1000;
+    }
+    else {
+      ++g_stats.latencySlow;
+    }
+
+    g_stats.latencySum += udiff / 1000;
+    ++g_stats.latencyCount;
+
+    doAvg(g_stats.latencyAvg100,     udiff,     100);
+    doAvg(g_stats.latencyAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
+    doAvg(g_stats.latencyTCPAvg100,     udiff,     100);
+    doAvg(g_stats.latencyTCPAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyTCPAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyTCPAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoT) {
+    doAvg(g_stats.latencyDoTAvg100,     udiff,     100);
+    doAvg(g_stats.latencyDoTAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyDoTAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyDoTAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoH) {
+    doAvg(g_stats.latencyDoHAvg100,     udiff,     100);
+    doAvg(g_stats.latencyDoHAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyDoHAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyDoHAvg1000000, udiff, 1000000);
+  }
 }
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength)
@@ -566,16 +599,16 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
   return true;
 }
 
-void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol)
 {
-  handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, protocol);
+  handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol);
 }
 
-void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
+void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol)
 {
   struct timespec ts;
   gettime(&ts);
-  g_rings.insertResponse(ts, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, protocol);
+  g_rings.insertResponse(ts, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, outgoingProtocol);
 
   switch (cleartextDH.rcode) {
   case RCode::NXDomain:
@@ -589,6 +622,8 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
     ++g_stats.frontendNoError;
     break;
   }
+
+  doLatencyStats(incomingProtocol, udiff);
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
@@ -724,8 +759,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         handleResponseSent(*ids, udiff, *dr.remote, dss->d_config.remote, static_cast<unsigned int>(got), cleartextDH, dss->getProtocol());
         dss->releaseState(queryId);
-
-        doLatencyStats(udiff);
       }
     }
     catch (const std::exception& e){
@@ -1221,7 +1254,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
     break;
   }
 
-  doLatencyStats(0);  // we're not going to measure this
+  doLatencyStats(cs.getProtocol(), 0);  // we're not going to measure this
   return true;
 }
 
@@ -1416,8 +1449,6 @@ public:
     vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", d_ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
 
     handleResponseSent(ids, udiff, *dr.remote, d_ds->d_config.remote, response.d_buffer.size(), cleartextDH, d_ds->getProtocol());
-
-    doLatencyStats(udiff);
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1547,7 +1578,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
 
-      handleResponseSent(qname, qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP);
+      handleResponseSent(qname, qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP);
       return;
     }
 
