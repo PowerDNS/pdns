@@ -1258,12 +1258,13 @@ void startDoResolve(void* p)
           auto state = sr.getValidationState();
 
           string x_marker;
-          auto log = sr.d_slog;
+          std::shared_ptr<Logr::Logger> log;
           if (sr.doLog() || vStateIsBogus(state)) {
-            log = log->withValues("vstate", Logging::Loggable(state));
+            // Only create logging object if needed below, beware if you change the logging logic!
+            log = sr.d_slog->withValues("vstate", Logging::Loggable(state));
             auto xdnssec = g_xdnssec.getLocal();
             if (xdnssec->check(dc->d_mdp.d_qname)) {
-              log = log->withValues("in-x-dnssec-names", Logging::Loggable("1"));
+              log = log->withValues("in-x-dnssec-names", Logging::Loggable(1));
               x_marker = " [in x-dnssec-names]";
             }
           }
