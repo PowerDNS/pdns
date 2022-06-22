@@ -80,7 +80,7 @@ struct is_toLogString_available<T, std::void_t<decltype(std::declval<T>().toLogS
 {
 };
 
-  template <typename T, typename = void>
+template <typename T, typename = void>
 struct is_toString_available : std::false_type
 {
 };
