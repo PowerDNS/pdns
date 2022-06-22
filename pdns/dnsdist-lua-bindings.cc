@@ -242,8 +242,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction<size_t(DNSName::*)()const>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   luaCtx.registerFunction<string(DNSName::*)()const>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   luaCtx.registerFunction<string(DNSName::*)()const>("toString", [](const DNSName&dn ) { return dn.toString(); });
+  luaCtx.registerFunction<string(DNSName::*)()const>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
   luaCtx.registerFunction<string(DNSName::*)()const>("__tostring", [](const DNSName&dn ) { return dn.toString(); });
   luaCtx.registerFunction<string(DNSName::*)()const>("toDNSString", [](const DNSName&dn ) { return dn.toDNSString(); });
+  luaCtx.registerFunction<DNSName(DNSName::*)(const DNSName&)const>("makeRelative", [](const DNSName& dn, const DNSName& to) { return dn.makeRelative(to); });
   luaCtx.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   luaCtx.writeFunction("newDNSNameFromRaw", [](const std::string& name) { return DNSName(name.c_str(), name.size(), 0, false); });
   luaCtx.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
@@ -317,7 +319,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
   });
 
-  luaCtx.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
+  luaCtx.registerFunction("check", (bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
+  luaCtx.registerFunction<boost::optional<DNSName> (SuffixMatchNode::*)(const DNSName&) const>("getBestMatch", [](const SuffixMatchNode& smn, const DNSName& needle) {
+    boost::optional<DNSName> result{boost::none};
+    auto res = smn.getBestMatch(needle);
+    if (res) {
+      result = *res;
+    }
+    return result;
+  });
 #endif /* DISABLE_SUFFIX_MATCH_BINDINGS */
 
 #ifndef DISABLE_NETMASK_BINDINGS
