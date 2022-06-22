@@ -39,6 +39,7 @@
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "uuid-utils.hh"
@@ -1161,7 +1162,8 @@ static void validatePrometheusMetrics()
     MetricDefinition metricDetails;
 
     if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      g_log << Logger::Debug << "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")}," << endl;
+      SLOG(g_log << Logger::Debug << "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")}," << endl,
+           g_slog->info(Logr::Debug, "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
     }
   }
 }
@@ -1176,6 +1178,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 #endif
 
   d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_ws->setSLog(g_slog->withName("webserver"));
 
   d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
   d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
@@ -1329,11 +1332,13 @@ void AsyncServerNewConnectionMT(void* p)
   }
   catch (NetworkError& e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
-    g_log << Logger::Warning << "Network error in web thread: " << e.what() << endl;
+    SLOG(g_log << Logger::Warning << "Network error in web thread: " << e.what() << endl,
+         g_slog->withName("webserver")->error(Logr::Warning, e.what(), "Exception in web tread", Logging::Loggable("NetworkError")));
     return;
   }
   catch (...) {
-    g_log << Logger::Warning << "Unknown error in web thread" << endl;
+    SLOG(g_log << Logger::Warning << "Unknown error in web thread" << endl,
+         g_slog->withName("webserver")->info(Logr::Warning, "Exception in web tread"));
 
     return;
   }
@@ -1357,10 +1362,17 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     return;
   }
 
-  const string logprefix = d_logprefix + to_string(getUniqueID()) + " ";
+  const auto unique = getUniqueID();
+  const string logprefix = d_logprefix + to_string(unique) + " ";
 
   HttpRequest req(logprefix);
   HttpResponse resp;
+#ifdef RECURSOR
+  auto log = d_slog->withValues("uniqueid", Logging::Loggable(to_string(unique)));
+  req.setSLog(log);
+  resp.setSLog(log);
+#endif
+
   ComboAddress remote;
   PacketBuffer reply;
 
@@ -1374,6 +1386,9 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
       g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000
     };
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    if (d_loglevel > WebServer::LogLevel::None) {
+      client->getRemote(remote);
+    }
     auto handler = std::make_shared<TCPIOHandler>("", false, client->releaseHandle(), timeout, tlsCtx, time(nullptr));
 
     PacketBuffer data;
@@ -1393,11 +1408,8 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     }
     catch (YaHTTP::ParseError& e) {
       // request stays incomplete
-      g_log << Logger::Warning << logprefix << "Unable to parse request: " << e.what() << endl;
-    }
-
-    if (d_loglevel >= WebServer::LogLevel::None) {
-      client->getRemote(remote);
+      SLOG(g_log << Logger::Warning << logprefix << "Unable to parse request: " << e.what() << endl,
+           req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
     logRequest(req, remote);
@@ -1412,23 +1424,30 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
 
     // now send the reply
     if (asendtcp(reply, handler) != LWResult::Result::Success || reply.empty()) {
-      g_log << Logger::Error << logprefix << "Failed sending reply to HTTP client" << endl;
+      SLOG(g_log << Logger::Error << logprefix << "Failed sending reply to HTTP client" << endl,
+           req.d_slog->info(Logr::Error, "Failed sending reply to HTTP client"));
     }
     handler->close(); // needed to signal "done" to client
   }
   catch (PDNSException& e) {
-    g_log << Logger::Error << logprefix << "Exception: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << logprefix << "Exception: " << e.reason << endl,
+         req.d_slog->error(Logr::Error, e.reason, "Exception handing request", "exception", Logging::Loggable("PDNSException")));
   }
   catch (std::exception& e) {
     if (strstr(e.what(), "timeout") == 0)
-      g_log << Logger::Error << logprefix << "STL Exception: " << e.what() << endl;
+      SLOG(g_log << Logger::Error << logprefix << "STL Exception: " << e.what() << endl,
+           req.d_slog->error(Logr::Error, e.what(), "Exception handing request", "exception", Logging::Loggable("std::exception")));
   }
   catch (...) {
-    g_log << Logger::Error << logprefix << "Unknown exception" << endl;
+    SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
+         req.d_slog->error(Logr::Error, "Exception handing request"))
   }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
-    g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl;
+    SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
+         req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
+                          "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
+                          "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
   }
 }
 
