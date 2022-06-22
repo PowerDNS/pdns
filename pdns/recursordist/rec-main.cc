@@ -3012,17 +3012,17 @@ int main(int argc, char** argv)
   }
   catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         g_slog->withName("config")->error(Logr::Error, ae.reason, "Exception"));
+         g_slog->withName("config")->error(Logr::Critical, ae.reason, "Fatal error", "exception", Logging::Loggable("PDNSException")));
     ret = EXIT_FAILURE;
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         g_slog->withName("config")->error(Logr::Error, e.what(), "STL Exception"));
+         g_slog->withName("config")->error(Logr::Critical, e.what(), "Fatal error", "exception", Logging::Loggable("std::exception")));
     ret = EXIT_FAILURE;
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
-         g_slog->withName("config")->error(Logr::Error, "Unknown", "Exception"));
+         g_slog->withName("config")->info(Logr::Critical, "Fatal error"));
     ret = EXIT_FAILURE;
   }
 
@@ -3032,10 +3032,12 @@ int main(int argc, char** argv)
 static RecursorControlChannel::Answer* doReloadLuaScript()
 {
   string fname = ::arg()["lua-dns-script"];
+  auto log = g_slog->withName("runtime")->withValues("name", Logging::Loggable(fname));
   try {
     if (fname.empty()) {
       t_pdl.reset();
-      g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl;
+      SLOG(g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl,
+           log->info(Logr::Info, "Unloaded current lua script"));
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
 
@@ -3045,16 +3047,19 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
     }
     catch (std::runtime_error& ex) {
       string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
-      g_log << Logger::Error << msg << endl;
+      SLOG(g_log << Logger::Error << msg << endl,
+           log->error(Logr::Error, ex.what(), "Retaining current script, could not read new script"));
       return new RecursorControlChannel::Answer{1, msg + "\n"};
     }
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << RecThreadInfo::id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl;
+    SLOG(g_log << Logger::Error << RecThreadInfo::id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "Retaining current script, error in new script"));
     return new RecursorControlChannel::Answer{1, string("retaining current script, error from '" + fname + "': " + e.what() + "\n")};
   }
 
-  g_log << Logger::Warning << RecThreadInfo::id() << " (Re)loaded lua script from '" << fname << "'" << endl;
+  SLOG(g_log << Logger::Warning << RecThreadInfo::id() << " (Re)loaded lua script from '" << fname << "'" << endl,
+       log->info(Logr::Warning, "(Re)loaded lua script"));
   return new RecursorControlChannel::Answer{0, string("(re)loaded '" + fname + "'\n")};
 }
 
@@ -3105,7 +3110,9 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
     }
   }
   catch (const std::exception& e) {
-    g_log << Logger::Warning << ", failed: " << e.what() << endl;
+    auto log = g_slog->withName("runtime");
+    SLOG(g_log << Logger::Warning << ", failed: " << e.what() << endl,
+         log->error(Logr::Warning, e.what(), "Wipecache failed"));
   }
 
   return res;

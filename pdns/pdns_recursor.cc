@@ -2450,7 +2450,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Exception while setting socker buffer size"));
+           log->error(Logr::Error, e.what(), "Exception while setting socket buffer size"));
     }
     sin.sin4.sin_port = htons(st.port);
 
