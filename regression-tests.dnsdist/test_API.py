@@ -132,11 +132,11 @@ class TestAPIBasics(APITestsBase):
                         'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
-                        'tcpAvgConnectionDuration', 'protocol']:
+                        'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order']:
+                        'qps', 'queries', 'order', 'tcpLatency']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
@@ -189,11 +189,11 @@ class TestAPIBasics(APITestsBase):
                         'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
-                        'tcpAvgConnectionDuration', 'protocol']:
+                        'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order']:
+                        'qps', 'queries', 'order', 'tcpLatency']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
@@ -361,6 +361,7 @@ class TestAPIServerDown(APITestsBase):
         content = r.json()
 
         self.assertEqual(content['servers'][0]['latency'], None)
+        self.assertEqual(content['servers'][0]['tcpLatency'], None)
 
 class TestAPIWritable(APITestsBase):
     __test__ = True

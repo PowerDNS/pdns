@@ -548,6 +548,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tcpavgconnduration "          << "gauge"                                                             << "\n";
   output << "# HELP " << statesbase << "tlsresumptions "              << "The number of times a TLS session has been resumed"                << "\n";
   output << "# TYPE " << statesbase << "tlsersumptions "              << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "tcplatency "                  << "Server's latency when answering TCP questions in milliseconds"     << "\n";
+  output << "# TYPE " << statesbase << "tcplatency "                  << "gauge"                                                             << "\n";
 
   for (const auto& state : *states) {
     string serverName;
@@ -568,8 +570,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "queries"                      << label << " " << state->queries.load()              << "\n";
     output << statesbase << "responses"                    << label << " " << state->responses.load()            << "\n";
     output << statesbase << "drops"                        << label << " " << state->reuseds.load()              << "\n";
-    if (state->isUp())
-        output << statesbase << "latency"                  << label << " " << state->latencyUsec/1000.0          << "\n";
+    if (state->isUp()) {
+      output << statesbase << "latency"                    << label << " " << state->latencyUsec/1000.0          << "\n";
+      output << statesbase << "tcplatency"                 << label << " " << state->latencyUsecTCP/1000.0       << "\n";
+    }
     output << statesbase << "senderrors"                   << label << " " << state->sendErrors.load()           << "\n";
     output << statesbase << "outstanding"                  << label << " " << state->outstanding.load()          << "\n";
     output << statesbase << "order"                        << label << " " << state->d_config.order              << "\n";
@@ -996,12 +1000,14 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
     {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
     {"tlsResumptions", (double)a->tlsResumptions},
+    {"tcpLatency", (double)(a->latencyUsecTCP/1000.0)},
     {"dropRate", (double)a->dropRate}
   };
 
   /* sending a latency for a DOWN server doesn't make sense */
   if (a->d_config.availability == DownstreamState::Availability::Down) {
     server["latency"] = nullptr;
+    server["tcpLatency"] = nullptr;
   }
 
   servers.push_back(std::move(server));
