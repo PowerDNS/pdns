@@ -656,7 +656,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         double udiff = ids->sentTime.udiff();
         // do that _before_ the processing, otherwise it's not fair to the backend
-        cerr<<"udiff is "<<(udiff/1000.0)<<endl;
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
 
         /* don't call processResponse for DOH */
