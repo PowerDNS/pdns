@@ -29,36 +29,53 @@
 GlobalStateHolder<ServerPolicy> g_policy;
 bool g_roundrobinFailOnNoServer{false};
 
+static constexpr size_t s_staticArrayCutOff = 16;
+template <typename T> using DynamicIndexArray = std::vector<std::pair<T, size_t>>;
+template <typename T> using StaticIndexArray = std::array<std::pair<T, size_t>, s_staticArrayCutOff>;
+
+template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(const ServerPolicy::NumberedServerVector& servers, T& poss)
+{
+  /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
+     which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
+  size_t usableServers = 0;
+  for (const auto& d : servers) {
+    if (d.second->isUp()) {
+      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), d.first);
+      usableServers++;
+    }
+  }
+
+  if (usableServers == 0) {
+    return shared_ptr<DownstreamState>();
+  }
+
+  std::nth_element(poss.begin(), poss.begin(), poss.begin() + usableServers, [](const typename T::value_type& a, const typename T::value_type& b) { return a.first < b.first; });
+  // minus 1 because the NumberedServerVector starts at 1 for Lua
+  return servers.at(poss.begin()->second - 1).second;
+}
+
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  using LeastOutstandingType = std::tuple<int,int,double>;
+
   if (servers.size() == 1 && servers[0].second->isUp()) {
     return servers[0].second;
   }
 
-  vector<pair<std::tuple<int,int,double>, size_t>> poss;
-  /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
-     which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
-  poss.reserve(servers.size());
-  size_t position = 0;
-  for(const auto& d : servers) {
-    if(d.second->isUp()) {
-      poss.emplace_back(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), position);
-    }
-    ++position;
+  if (servers.size() <= s_staticArrayCutOff) {
+    StaticIndexArray<LeastOutstandingType> poss;
+    return getLeastOutstanding(servers, poss);
   }
 
-  if (poss.empty()) {
-    return shared_ptr<DownstreamState>();
-  }
-
-  nth_element(poss.begin(), poss.begin(), poss.end(), [](const decltype(poss)::value_type& a, const decltype(poss)::value_type& b) { return a.first < b.first; });
-  return servers.at(poss.begin()->second).second;
+  DynamicIndexArray<LeastOutstandingType> poss;
+  poss.resize(servers.size());
+  return getLeastOutstanding(servers, poss);
 }
 
 shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  for(auto& d : servers) {
+  for (auto& d : servers) {
     if (d.second->isUp() && d.second->qps.checkOnly()) {
       return d.second;
     }
@@ -68,12 +85,44 @@ shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVec
 
 double g_weightedBalancingFactor = 0;
 
-static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolicy::NumberedServerVector& servers)
+template <class T> static std::shared_ptr<DownstreamState> getValRandom(const ServerPolicy::NumberedServerVector& servers, T& poss, const unsigned int val, const double targetLoad)
 {
-  vector<pair<int, size_t>> poss;
-  poss.reserve(servers.size());
+  constexpr int max = std::numeric_limits<int>::max();
   int sum = 0;
-  int max = std::numeric_limits<int>::max();
+
+  size_t usableServers = 0;
+  for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
+    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
+      // Don't overflow sum when adding high weights
+      if (d.second->d_config.d_weight > max - sum) {
+        sum = max;
+      } else {
+        sum += d.second->d_config.d_weight;
+      }
+
+      poss[usableServers]  = std::make_pair(sum, d.first);
+      usableServers++;
+    }
+  }
+
+  // Catch the case where usableServers or sum are equal to 0 to avoid a SIGFPE
+  if (usableServers == 0 || sum == 0) {
+    return shared_ptr<DownstreamState>();
+  }
+
+  int r = val % sum;
+  auto p = std::upper_bound(poss.begin(), poss.begin() + usableServers, r, [](int r_, const typename T::value_type& a) { return  r_ < a.first;});
+  if (p == poss.begin() + usableServers) {
+    return shared_ptr<DownstreamState>();
+  }
+
+  // minus 1 because the NumberedServerVector starts at 1 for Lua
+  return servers.at(p->second - 1).second;
+}
+
+static shared_ptr<DownstreamState> valrandom(const unsigned int val, const ServerPolicy::NumberedServerVector& servers)
+{
+  using ValRandomType = int;
   double targetLoad = std::numeric_limits<double>::max();
 
   if (g_weightedBalancingFactor > 0) {
@@ -92,31 +141,14 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
     }
   }
 
-  for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
-      // Don't overflow sum when adding high weights
-      if (d.second->d_config.d_weight > max - sum) {
-        sum = max;
-      } else {
-        sum += d.second->d_config.d_weight;
-      }
-
-      poss.emplace_back(sum, d.first);
-    }
+  if (servers.size() <= s_staticArrayCutOff) {
+    StaticIndexArray<ValRandomType> poss;
+    return getValRandom(servers, poss, val, targetLoad);
   }
 
-  // Catch poss & sum are empty to avoid SIGFPE
-  if (poss.empty() || sum == 0) {
-    return shared_ptr<DownstreamState>();
-  }
-
-  int r = val % sum;
-  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});
-  if (p == poss.end()) {
-    return shared_ptr<DownstreamState>();
-  }
-
-  return servers.at(p->second - 1).second;
+  DynamicIndexArray<ValRandomType> poss;
+  poss.resize(servers.size());
+  return getValRandom(servers, poss, val, targetLoad);
 }
 
 shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
@@ -244,7 +276,7 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
     if (!poolName.empty())
       vinfolog("Creating pool %s", poolName);
     pool = std::make_shared<ServerPool>();
-    pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
+    pools.insert(std::pair<std::string, std::shared_ptr<ServerPool> >(poolName, pool));
   }
   return pool;
 }
