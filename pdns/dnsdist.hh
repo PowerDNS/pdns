@@ -577,6 +577,7 @@ struct ClientState
   }
 
   stat_t queries{0};
+  stat_t nonCompliantQueries{0};
   mutable stat_t responses{0};
   mutable stat_t tcpDiedReadingQuery{0};
   mutable stat_t tcpDiedSendingResponse{0};
@@ -1104,7 +1105,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
-bool checkQueryHeaders(const struct dnsheader* dh);
+bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs);
 
 extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);

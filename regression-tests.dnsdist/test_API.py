@@ -142,10 +142,10 @@ class TestAPIBasics(APITestsBase):
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
 
         for frontend in content['frontends']:
-            for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries']:
+            for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries', 'nonCompliantQueries']:
                 self.assertIn(key, frontend)
 
-            for key in ['id', 'queries']:
+            for key in ['id', 'queries', 'nonCompliantQueries']:
                 self.assertTrue(frontend[key] >= 0)
 
         for pool in content['pools']:

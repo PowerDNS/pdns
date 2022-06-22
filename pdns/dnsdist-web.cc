@@ -596,6 +596,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   const string frontsbase = "dnsdist_frontend_";
   output << "# HELP " << frontsbase << "queries " << "Amount of queries received by this frontend" << "\n";
   output << "# TYPE " << frontsbase << "queries " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "noncompliantqueries " << "Amount of non-compliant queries received by this frontend" << "\n";
+  output << "# TYPE " << frontsbase << "noncompliantqueries " << "counter" << "\n";
   output << "# HELP " << frontsbase << "responses " << "Amount of responses sent by this frontend" << "\n";
   output << "# TYPE " << frontsbase << "responses " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpdiedreadingquery " << "Amount of TCP connections terminated while reading the query from the client" << "\n";
@@ -648,6 +650,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
                                          % frontName % proto % threadNumber);
 
     output << frontsbase << "queries" << label << front->queries.load() << "\n";
+    output << frontsbase << "noncompliantqueries" << label << front->nonCompliantQueries.load() << "\n";
     output << frontsbase << "responses" << label << front->responses.load() << "\n";
     if (front->isTCP()) {
       output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
@@ -1037,6 +1040,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       { "tcp", front->tcpFD >= 0 },
       { "type", front->getType() },
       { "queries", (double) front->queries.load() },
+      { "nonCompliantQueries", (double) front->nonCompliantQueries.load() },
       { "responses", (double) front->responses.load() },
       { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
       { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },

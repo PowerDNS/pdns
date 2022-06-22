@@ -1069,6 +1069,7 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   if (msgh->msg_flags & MSG_TRUNC) {
     /* message was too large for our buffer */
     vinfolog("Dropping message too large for our buffer");
+    ++cs.nonCompliantQueries;
     ++g_stats.nonCompliantQueries;
     return false;
   }
@@ -1132,10 +1133,11 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
   return false;
 }
 
-bool checkQueryHeaders(const struct dnsheader* dh)
+bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs)
 {
   if (dh->qr) {   // don't respond to responses
     ++g_stats.nonCompliantQueries;
+    ++cs.nonCompliantQueries;
     return false;
   }
 
@@ -1492,7 +1494,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query.data());
       queryId = ntohs(dh->id);
 
-      if (!checkQueryHeaders(dh)) {
+      if (!checkQueryHeaders(dh, cs)) {
         return;
       }
 
@@ -1673,6 +1675,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 
       if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
         ++g_stats.nonCompliantQueries;
+        ++cs->nonCompliantQueries;
         continue;
       }
 
@@ -1739,6 +1742,7 @@ static void udpClientThread(ClientState* cs)
 
         if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
           ++g_stats.nonCompliantQueries;
+          ++cs->nonCompliantQueries;
           continue;
         }
 

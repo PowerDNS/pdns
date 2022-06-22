@@ -643,6 +643,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 {
   if (state->d_querySize < sizeof(dnsheader)) {
     ++g_stats.nonCompliantQueries;
+    ++state->d_ci.cs->nonCompliantQueries;
     state->terminateClientConnection();
     return;
   }
@@ -690,7 +691,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
     auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
-    if (!checkQueryHeaders(dh)) {
+    if (!checkQueryHeaders(dh, *state->d_ci.cs)) {
       state->terminateClientConnection();
       return;
     }
