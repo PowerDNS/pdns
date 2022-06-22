@@ -622,7 +622,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       }
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->response.data()));
 
-      handleResponseSent(qname, QType(qtype), 0., du->downstream->d_config.remote, ComboAddress(), du->response.size(), *dh, du->downstream->getProtocol());
+      handleResponseSent(qname, QType(qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoH);
       sendDoHUnitToTheMainThread(std::move(du), "DoH self-answered response");
       return;
     }
