@@ -510,6 +510,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "queries "                     << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "responses "                   << "Amount of responses received from this server"                     << "\n";
   output << "# TYPE " << statesbase << "responses "                   << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "noncompliantresponses "       << "Amount of non-compliant responses received from this server"       << "\n";
+  output << "# TYPE " << statesbase << "noncompliantresponses "       << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "drops "                       << "Amount of queries not answered by server"                          << "\n";
   output << "# TYPE " << statesbase << "drops "                       << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "latency "                     << "Server's latency when answering questions in milliseconds"         << "\n";
@@ -569,6 +571,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "status"                       << label << " " << (state->isUp() ? "1" : "0")        << "\n";
     output << statesbase << "queries"                      << label << " " << state->queries.load()              << "\n";
     output << statesbase << "responses"                    << label << " " << state->responses.load()            << "\n";
+    output << statesbase << "noncompliantresponses"        << label << " " << state->nonCompliantResponses.load()<< "\n";
     output << statesbase << "drops"                        << label << " " << state->reuseds.load()              << "\n";
     if (state->isUp()) {
       output << statesbase << "latency"                    << label << " " << state->latencyUsec/1000.0          << "\n";
@@ -989,6 +992,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"latency", (double)(a->latencyUsec/1000.0)},
     {"queries", (double)a->queries},
     {"responses", (double)a->responses},
+    {"nonCompliantResponses", (double)a->nonCompliantResponses},
     {"sendErrors", (double)a->sendErrors},
     {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
     {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},

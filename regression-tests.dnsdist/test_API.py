@@ -129,14 +129,14 @@ class TestAPIBasics(APITestsBase):
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
                         'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
-                        'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
+                        'dropRate', 'responses', 'nonCompliantResponses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
                         'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order', 'tcpLatency']:
+                        'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
@@ -186,14 +186,14 @@ class TestAPIBasics(APITestsBase):
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
                         'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
-                        'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
+                        'dropRate', 'responses', 'nonCompliantResponses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
                         'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order', 'tcpLatency']:
+                        'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])

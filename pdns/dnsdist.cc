@@ -267,7 +267,7 @@ void doLatencyStats(double udiff)
   doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength)
 {
   if (response.size() < sizeof(dnsheader)) {
     return false;
@@ -276,6 +276,9 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response.data());
   if (dh->qr == 0) {
     ++g_stats.nonCompliantResponses;
+    if (remote) {
+      ++remote->nonCompliantResponses;
+    }
     return false;
   }
 
@@ -285,6 +288,9 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     }
     else {
       ++g_stats.nonCompliantResponses;
+      if (remote) {
+        ++remote->nonCompliantResponses;
+      }
       return false;
     }
   }
@@ -295,10 +301,13 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     rqname = DNSName(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), false, &rqtype, &rqclass, &qnameWireLength);
   }
   catch (const std::exception& e) {
-    if(response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
-      infolog("Backend %s sent us a response with id %d that did not parse: %s", remote.toStringWithPort(), ntohs(dh->id), e.what());
+    if (remote && response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
+      infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
     ++g_stats.nonCompliantResponses;
+    if (remote) {
+      ++remote->nonCompliantResponses;
+    }
     return false;
   }
 
@@ -647,7 +656,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         int origFD = ids->origFD;
 
         unsigned int qnameWireLength = 0;
-        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->d_config.remote, qnameWireLength)) {
+        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss, qnameWireLength)) {
           continue;
         }
 
