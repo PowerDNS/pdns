@@ -368,14 +368,15 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     Socket sock(ds->d_config.remote.sin4.sin_family, ds->doHealthcheckOverTCP() ? SOCK_STREAM : SOCK_DGRAM);
 
     sock.setNonBlocking();
-    if (!ds->d_config.sourceItfName.empty()) {
+
 #ifdef SO_BINDTODEVICE
+    if (!ds->d_config.sourceItfName.empty()) {
       int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->d_config.sourceItfName.c_str(), ds->d_config.sourceItfName.length());
       if (res != 0 && g_verboseHealthChecks) {
         infolog("Error setting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
       }
-#endif
     }
+#endif
 
     if (!IsAnyAddress(ds->d_config.sourceAddr)) {
       sock.setReuseAddr();
