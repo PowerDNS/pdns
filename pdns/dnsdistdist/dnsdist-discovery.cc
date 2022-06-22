@@ -254,6 +254,13 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     Socket sock(addr.sin4.sin_family, SOCK_STREAM);
     sock.setNonBlocking();
+
+#ifdef SO_BINDTODEVICE
+    if (!backend->d_config.sourceItfName.empty()) {
+      setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
+    }
+#endif
+
     if (!IsAnyAddress(backend->d_config.sourceAddr)) {
       sock.setReuseAddr();
 #ifdef IP_BIND_ADDRESS_NO_PORT
@@ -261,12 +268,6 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
 #endif
-
-      if (!backend->d_config.sourceItfName.empty()) {
-#ifdef SO_BINDTODEVICE
-        setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
-#endif
-      }
       sock.bind(backend->d_config.sourceAddr);
     }
     sock.connect(addr, backend->d_config.tcpConnectTimeout);

@@ -76,6 +76,15 @@ bool ConnectionToBackend::reconnect()
       auto socket = std::make_unique<Socket>(d_ds->d_config.remote.sin4.sin_family, SOCK_STREAM, 0);
       DEBUGLOG("result of socket() is "<<socket->getHandle());
 
+#ifdef SO_BINDTODEVICE
+      if (!d_ds->d_config.sourceItfName.empty()) {
+        int res = setsockopt(socket->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
+        if (res != 0) {
+          vinfolog("Error setting up the interface on backend TCP socket '%s': %s", d_ds->getNameWithAddr(), stringerror());
+        }
+      }
+#endif
+
       if (!IsAnyAddress(d_ds->d_config.sourceAddr)) {
         SSetsockopt(socket->getHandle(), SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
@@ -83,16 +92,9 @@ bool ConnectionToBackend::reconnect()
           SSetsockopt(socket->getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
         }
 #endif
-#ifdef SO_BINDTODEVICE
-        if (!d_ds->d_config.sourceItfName.empty()) {
-          int res = setsockopt(socket->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
-          if (res != 0) {
-            vinfolog("Error setting up the interface on backend TCP socket '%s': %s", d_ds->getNameWithAddr(), stringerror());
-          }
-        }
-#endif
         socket->bind(d_ds->d_config.sourceAddr, false);
       }
+
       socket->setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
