@@ -257,6 +257,9 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
       backendProtocol = dnsdist::Protocol::DoTCP;
     }
     ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->d_config.remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, backendProtocol);
+  } else {
+    const auto& ids = currentResponse.d_idstate;
+    ::handleResponseSent(ids, 0., state->d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol);
   }
 }
 
@@ -742,7 +745,13 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   if (result == ProcessQueryResult::SendAnswer) {
     TCPResponse response;
     response.d_selfGenerated = true;
+    response.d_idstate.origID = dh->id;
+    response.d_idstate.cs = state->d_ci.cs;
+    setIDStateFromDNSQuestion(response.d_idstate, dq, std::move(qname));
+
+    memcpy(&response.d_cleartextDH, dh, sizeof(response.d_cleartextDH));
     response.d_buffer = std::move(state->d_buffer);
+
     state->d_state = IncomingTCPConnectionState::State::idle;
     ++state->d_currentQueriesCount;
     state->queueResponse(state, now, std::move(response));

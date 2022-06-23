@@ -559,9 +559,14 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
 
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
 {
+  handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, protocol);
+}
+
+void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
+{
   struct timespec ts;
   gettime(&ts);
-  g_rings.insertResponse(ts, client, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, protocol);
+  g_rings.insertResponse(ts, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, protocol);
 
   switch (cleartextDH.rcode) {
   case RCode::NXDomain:
@@ -1530,6 +1535,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 #endif /* DISABLE_RECVMMSG */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
+
+      handleResponseSent(qname, qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP);
       return;
     }
 
