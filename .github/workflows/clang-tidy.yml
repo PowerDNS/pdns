@@ -1,0 +1,43 @@
+---
+name: 'Clang Tidy Checks'
+
+on:
+  pull_request:
+
+jobs:
+  clang-tidy-auth:
+    name: Clang Tidy Auth
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - name: get timestamp for cache
+        id: get-stamp
+        run: |
+          echo "::set-output name=stamp::$(/bin/date +%s)"
+        shell: bash
+      - name: let GitHub cache our ccache data
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: auth-ccache-
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang
+      - run: inv install-bear
+      - run: inv install-auth-build-deps
+      - run: inv ci-autoconf
+      - run: inv ci-auth-configure-without-sanitizers
+      - run: inv ci-auth-make-with-bear
+      - run: ccache -s
+      - name: Clang Tidy
+        id: clang_tidy
+        uses: fredmorcos/clang-tidy-review@v0.8.6
+        with:
+          config_file: '.clang-tidy.full'
+          clang_tidy_version: '12'
+          apt_packages: 'ccache,libboost-all-dev,libluajit-5.1-dev,libsodium-dev,libssl-dev,libsystemd-dev,libtool,make,pkg-config,python3-venv,systemd,default-libmysqlclient-dev,libcdb-dev,libcurl4-openssl-dev,libgeoip-dev,libkrb5-dev,libldap2-dev,liblmdb-dev,libmaxminddb-dev,libp11-kit-dev,libpq-dev,libsqlite3-dev,libyaml-cpp-dev,libzmq3-dev,ruby-bundler,ruby-dev,sqlite3,unixodbc-dev'
+      - if: steps.clang_tidy.outputs.total_comments > 0
+        run: exit 1             # Fail if we've had any warnings from clang-tidy

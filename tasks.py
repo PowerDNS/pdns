@@ -5,6 +5,8 @@ import os
 import sys
 import time
 
+# IMPORTANT: When this is updated, remember to update the relevant lists in
+# `clang-tidy.yml`.
 all_build_deps = [
     'ccache',
     'libboost-all-dev',
@@ -18,6 +20,7 @@ all_build_deps = [
     'python3-venv',
     'systemd',
 ]
+
 git_build_deps = [
     'autoconf',
     'automake',
@@ -28,6 +31,9 @@ git_build_deps = [
     'git',
     'ragel'
 ]
+
+# IMPORTANT: When this is updated, remember to update the relevant list in
+# `clang-tidy.yml`.
 auth_build_deps = [    # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file
     'default-libmysqlclient-dev',
     'libcdb-dev',
@@ -47,11 +53,13 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'sqlite3',
     'unixodbc-dev',
 ]
+
 rec_build_deps = [
     'libcap-dev',
     'libfstrm-dev',
     'libsnmp-dev',
 ]
+
 rec_bulk_deps = [
     'curl',
     'libboost-all-dev',
@@ -66,6 +74,7 @@ rec_bulk_deps = [
     'pdns-tools',
     'unzip'
 ]
+
 dnsdist_build_deps = [
     'libcap-dev',
     'libcdb-dev',
@@ -78,6 +87,7 @@ dnsdist_build_deps = [
     'libre2-dev',
     'libsnmp-dev',
 ]
+
 auth_test_deps = [   # FIXME: we should be generating some of these from shlibdeps in build
     'authbind',
     'bc',
@@ -126,6 +136,13 @@ def install_clang(c):
     install clang-12 and llvm-12
     """
     c.sudo('apt-get -qq -y --no-install-recommends install clang-12 llvm-12')
+
+@task
+def install_bear(c):
+    """
+    install bear
+    """
+    c.sudo('apt-get -qq -y --no-install-recommends install bear')
 
 @task
 def install_clang_runtime(c):
@@ -251,10 +268,10 @@ def install_dnsdist_build_deps(c):
 def ci_autoconf(c):
     c.run('BUILDER_VERSION=0.0.0-git1 autoreconf -vfi')
 
-@task
-def ci_auth_configure(c):
-    res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
-                   CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
+def ci_auth_configure_helper(c, sanitizers=True):
+    cmd = '''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int \
+                       -Wp,-D_GLIBCXX_ASSERTIONS" \
                    ./configure \
                       CC='clang-12' \
                       CXX='clang++-12' \
@@ -272,12 +289,26 @@ def ci_auth_configure(c):
                       --with-libsodium \
                       --with-libdecaf \
                       --prefix=/opt/pdns-auth \
-                      --enable-ixfrdist \
-                      --enable-asan \
-                      --enable-ubsan''', warn=True)
+                      --enable-ixfrdist'''
+
+    if sanitizers:
+        cmd += ''' \
+                  --enable-asan \
+                  --enable-ubsan'''
+
+    res = c.run(cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
+
+@task
+def ci_auth_configure_without_sanitizers(c):
+    ci_auth_configure_helper(c, sanitizers=False)
+
+@task
+def ci_auth_configure(c):
+    ci_auth_configure_helper(c)
+
 @task
 def ci_rec_configure(c):
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
@@ -376,6 +407,13 @@ def ci_dnsdist_configure(c, features):
 @task
 def ci_auth_make(c):
     c.run('make -j8 -k V=1')
+
+@task
+def ci_auth_make_with_bear(c):
+    # Switch to this command for newer version of bear
+    # c.run('bear -- make -j8 -k V=1')
+
+    c.run('bear make -j8 -k V=1')
 
 @task
 def ci_rec_make(c):
