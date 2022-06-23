@@ -286,7 +286,7 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) {
   drc.d_algorithm = d_algorithm;
   d_key = std::unique_ptr<RSA, decltype(&RSA_free)>(PEM_read_RSAPrivateKey(&fp, nullptr, nullptr, nullptr), &RSA_free);
-  if (d_key == nullptr) {
+  if (d_key == NULL) {
     throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
   }
 }
