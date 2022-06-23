@@ -239,7 +239,7 @@ public:
 
   bool reachedMaxConcurrentQueries() const override
   {
-    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size();
+    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size() + (d_state == State::sendingQueryToBackend ? 1 : 0);
     if (concurrent > 0 && concurrent >= d_ds->d_config.d_maxInFlightQueriesPerConn) {
       return true;
     }
