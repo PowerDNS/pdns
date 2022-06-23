@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-lua-ffi.hh"
 #include "dnsdist-lua-network.hh"
 #include "dolog.hh"
 
@@ -70,6 +71,22 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
       {
         auto lock = g_lua.lock();
         cb(endpoint, dgram, from);
+      }
+      dnsdist::handleQueuedAsynchronousEvents();
+    });
+  });
+
+  // if you make the dnsdist_ffi_network_message_t* in the function prototype const, LuaWrapper will stop treating it like a lightuserdata, messing everything up!!
+  luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::NetworkListener>::*)(const std::string&, uint16_t, std::function<void(dnsdist_ffi_network_message_t*)>)>("addUnixListeningEndpointFFI", [client](std::shared_ptr<dnsdist::NetworkListener>& listener, const std::string& path, uint16_t endpointID, std::function<void(dnsdist_ffi_network_message_t*)> cb) {
+    if (client) {
+      return false;
+    }
+
+    return listener->addUnixListeningEndpoint(path, endpointID, [cb](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+      {
+        auto lock = g_lua.lock();
+        dnsdist_ffi_network_message_t msg(dgram, from, endpoint);
+        cb(&msg);
       }
       dnsdist::handleQueuedAsynchronousEvents();
     });
