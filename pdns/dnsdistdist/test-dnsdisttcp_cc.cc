@@ -48,7 +48,7 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
   return false;
 }
 
-bool checkQueryHeaders(const struct dnsheader* dh)
+bool checkQueryHeaders(const struct dnsheader* dh, ClientState&)
 {
   return true;
 }
@@ -73,14 +73,8 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
   return ProcessQueryResult::Drop;
 }
 
-static std::function<bool(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)> s_responseContentMatches;
-
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength)
 {
-  if (s_responseContentMatches) {
-    return s_responseContentMatches(response, qname, qtype, qclass, remote, qnameWireLength);
-  }
-
   return true;
 }
 

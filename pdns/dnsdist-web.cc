@@ -161,6 +161,18 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "latency-avg1000",                       MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000 packets")},
   { "latency-avg10000",                      MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 10000 packets")},
   { "latency-avg1000000",                    MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000000 packets")},
+  { "latency-tcp-avg100",                    MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 100 packets received over TCP")},
+  { "latency-tcp-avg1000",                   MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000 packets received over TCP")},
+  { "latency-tcp-avg10000",                  MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 10000 packets received over TCP")},
+  { "latency-tcp-avg1000000",                MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000000 packets received over TCP")},
+  { "latency-dot-avg100",                    MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 100 packets received over DoT")},
+  { "latency-dot-avg1000",                   MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000 packets received over DoT")},
+  { "latency-dot-avg10000",                  MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 10000 packets received over DoT")},
+  { "latency-dot-avg1000000",                MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000000 packets received over DoT")},
+  { "latency-doh-avg100",                    MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 100 packets received over DoH")},
+  { "latency-doh-avg1000",                   MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000 packets received over DoH")},
+  { "latency-doh-avg10000",                  MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 10000 packets received over DoH")},
+  { "latency-doh-avg1000000",                MetricDefinition(PrometheusMetricType::gauge,   "Average response latency, in microseconds, of the last 1000000 packets received over DoH")},
   { "uptime",                                MetricDefinition(PrometheusMetricType::gauge,   "Uptime of the dnsdist process in seconds")},
   { "real-memory-usage",                     MetricDefinition(PrometheusMetricType::gauge,   "Current memory usage in bytes")},
   { "noncompliant-queries",                  MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped as non-compliant")},
@@ -510,6 +522,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "queries "                     << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "responses "                   << "Amount of responses received from this server"                     << "\n";
   output << "# TYPE " << statesbase << "responses "                   << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "noncompliantresponses "       << "Amount of non-compliant responses received from this server"       << "\n";
+  output << "# TYPE " << statesbase << "noncompliantresponses "       << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "drops "                       << "Amount of queries not answered by server"                          << "\n";
   output << "# TYPE " << statesbase << "drops "                       << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "latency "                     << "Server's latency when answering questions in milliseconds"         << "\n";
@@ -569,6 +583,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "status"                       << label << " " << (state->isUp() ? "1" : "0")        << "\n";
     output << statesbase << "queries"                      << label << " " << state->queries.load()              << "\n";
     output << statesbase << "responses"                    << label << " " << state->responses.load()            << "\n";
+    output << statesbase << "noncompliantresponses"        << label << " " << state->nonCompliantResponses.load()<< "\n";
     output << statesbase << "drops"                        << label << " " << state->reuseds.load()              << "\n";
     if (state->isUp()) {
       output << statesbase << "latency"                    << label << " " << state->latencyUsec/1000.0          << "\n";
@@ -596,6 +611,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   const string frontsbase = "dnsdist_frontend_";
   output << "# HELP " << frontsbase << "queries " << "Amount of queries received by this frontend" << "\n";
   output << "# TYPE " << frontsbase << "queries " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "noncompliantqueries " << "Amount of non-compliant queries received by this frontend" << "\n";
+  output << "# TYPE " << frontsbase << "noncompliantqueries " << "counter" << "\n";
   output << "# HELP " << frontsbase << "responses " << "Amount of responses sent by this frontend" << "\n";
   output << "# TYPE " << frontsbase << "responses " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpdiedreadingquery " << "Amount of TCP connections terminated while reading the query from the client" << "\n";
@@ -648,6 +665,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
                                          % frontName % proto % threadNumber);
 
     output << frontsbase << "queries" << label << front->queries.load() << "\n";
+    output << frontsbase << "noncompliantqueries" << label << front->nonCompliantQueries.load() << "\n";
     output << frontsbase << "responses" << label << front->responses.load() << "\n";
     if (front->isTCP()) {
       output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
@@ -986,6 +1004,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"latency", (double)(a->latencyUsec/1000.0)},
     {"queries", (double)a->queries},
     {"responses", (double)a->responses},
+    {"nonCompliantResponses", (double)a->nonCompliantResponses},
     {"sendErrors", (double)a->sendErrors},
     {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
     {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
@@ -1037,6 +1056,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       { "tcp", front->tcpFD >= 0 },
       { "type", front->getType() },
       { "queries", (double) front->queries.load() },
+      { "nonCompliantQueries", (double) front->nonCompliantQueries.load() },
       { "responses", (double) front->responses.load() },
       { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
       { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },

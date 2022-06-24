@@ -29,7 +29,10 @@ class APITestsBase(DNSDistTest):
                         'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                         'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
                         'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
-                        'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
+                        'latency-avg10000', 'latency-avg1000000', 'latency-tcp-avg100', 'latency-tcp-avg1000',
+                        'latency-tcp-avg10000', 'latency-tcp-avg1000000', 'latency-dot-avg100', 'latency-dot-avg1000',
+                        'latency-dot-avg10000', 'latency-dot-avg1000000', 'latency-doh-avg100', 'latency-doh-avg1000',
+                        'latency-doh-avg10000', 'latency-doh-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                         'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                         'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
                         'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
@@ -129,23 +132,23 @@ class TestAPIBasics(APITestsBase):
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
                         'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
-                        'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
+                        'dropRate', 'responses', 'nonCompliantResponses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
                         'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order', 'tcpLatency']:
+                        'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
 
         for frontend in content['frontends']:
-            for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries']:
+            for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries', 'nonCompliantQueries']:
                 self.assertIn(key, frontend)
 
-            for key in ['id', 'queries']:
+            for key in ['id', 'queries', 'nonCompliantQueries']:
                 self.assertTrue(frontend[key] >= 0)
 
         for pool in content['pools']:
@@ -186,14 +189,14 @@ class TestAPIBasics(APITestsBase):
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
                         'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
-                        'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
+                        'dropRate', 'responses', 'nonCompliantResponses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
                         'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
-                        'qps', 'queries', 'order', 'tcpLatency']:
+                        'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertTrue(server[key] >= 0)
 
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])

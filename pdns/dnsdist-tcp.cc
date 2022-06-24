@@ -522,7 +522,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   try {
     auto& ids = response.d_idstate;
     unsigned int qnameWireLength;
-    if (!response.d_connection || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
+    if (!response.d_connection || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getDS(), qnameWireLength)) {
       state->terminateClientConnection();
       return;
     }
@@ -643,6 +643,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 {
   if (state->d_querySize < sizeof(dnsheader)) {
     ++g_stats.nonCompliantQueries;
+    ++state->d_ci.cs->nonCompliantQueries;
     state->terminateClientConnection();
     return;
   }
@@ -690,7 +691,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
     auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
-    if (!checkQueryHeaders(dh)) {
+    if (!checkQueryHeaders(dh, *state->d_ci.cs)) {
       state->terminateClientConnection();
       return;
     }
