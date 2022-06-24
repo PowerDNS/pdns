@@ -31,11 +31,21 @@
 #include <openssl/rand.h>
 #endif /* HAVE_RAND_BYTES */
 
+#if defined(HAVE_GETRANDOM)
+#include <sys/random.h>
+#endif
+
 #include "dnsdist-random.hh"
 #include "dns_random.hh"
+#include "dolog.hh"
+#include "misc.hh"
 
 namespace dnsdist
 {
+#if !defined(HAVE_LIBSODIUM) && defined(HAVE_GETRANDOM)
+static bool s_useGetRandom{true};
+#endif
+
 void initRandom()
 {
 #ifdef HAVE_LIBSODIUM
@@ -43,6 +53,15 @@ void initRandom()
 #else
   {
     auto getSeed = []() {
+#if defined(HAVE_GETRANDOM)
+      char buf[1];
+      // some systems define getrandom but it does not really work, e.g. because it's
+      // not present in kernel.
+      if (getrandom(buf, sizeof(buf), 0) == -1 && errno != EINTR) {
+        warnlog("getrandom() failed %s", stringerror());
+        s_useGetRandom = false;
+      }
+#endif /* HAVE_GETRANDOM */
 #ifdef HAVE_RAND_BYTES
       unsigned int seed;
       if (RAND_bytes(reinterpret_cast<unsigned char*>(&seed), sizeof(seed)) == 1) {
@@ -64,8 +83,24 @@ uint32_t getRandomValue(uint32_t upperBound)
 #ifdef HAVE_LIBSODIUM
   return randombytes_uniform(upperBound);
 #else /* HAVE_LIBSODIUM */
-  uint32_t result;
+  uint32_t result = 0;
   unsigned int min = pdns::random_minimum_acceptable_value(upperBound);
+
+#if defined(HAVE_GETRANDOM)
+  if (s_useGetRandom) {
+    do {
+      auto got = getrandom(&result, sizeof(result), 0);
+      if (got == -1 && errno == EINTR) {
+        continue;
+      }
+      if (got != sizeof(result)) {
+        throw std::runtime_error("Error getting a random value via getrandom(): " + stringerror());
+      }
+    } while (result < min);
+
+    return result % upperBound;
+  }
+#endif /* HAVE_GETRANDOM */
 #ifdef HAVE_RAND_BYTES
   do {
     if (RAND_bytes(reinterpret_cast<unsigned char*>(&result), sizeof(result)) != 1) {
