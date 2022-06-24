@@ -32,6 +32,7 @@
 #include "lock.hh"
 #include "stat_t.hh"
 #include "dnsdist-protocols.hh"
+#include "dnsdist-mac-address.hh"
 
 struct Rings {
   struct Query
@@ -105,7 +106,7 @@ struct Rings {
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
     char macaddress[6];
     bool hasmac{false};
-    if (getMACAddress(requestor, macaddress, sizeof(macaddress)) == 0) {
+    if (dnsdist::MacAddressesCache::get(requestor, macaddress, sizeof(macaddress)) == 0) {
       hasmac = true;
     }
 #endif
