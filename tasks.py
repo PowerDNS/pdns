@@ -150,6 +150,7 @@ def install_clang_runtime(c):
     c.sudo('apt-get -qq -y --no-install-recommends install clang-12')
 
 def install_libdecaf(c, product):
+    c.sudo('apt-get install -qq -y --no-install-recommends cmake')
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
