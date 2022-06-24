@@ -88,7 +88,7 @@ public:
 private:
   static thread_local std::default_random_engine t_randomEngine;
   std::vector<ComboAddress> d_addrs;
-  std::set<uint16_t> d_types;
+  std::unordered_set<uint16_t> d_types;
   std::vector<std::string> d_rawResponses;
   PacketBuffer d_raw;
   DNSName d_cname;
@@ -99,7 +99,7 @@ class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyab
 public:
   LimitTTLResponseAction() {}
 
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), std::set<QType> types = {}) : d_types(types), d_min(min), d_max(max)
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), std::unordered_set<QType> types = {}) : d_types(types), d_min(min), d_max(max)
   {
   }
 
@@ -146,7 +146,7 @@ public:
   }
 
 private:
-  std::set<QType> d_types;
+  std::unordered_set<QType> d_types;
   uint32_t d_min{0};
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };
