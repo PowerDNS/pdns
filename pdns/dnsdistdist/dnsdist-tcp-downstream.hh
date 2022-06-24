@@ -25,13 +25,19 @@ public:
   }
 
   /* whether the underlying socket has been closed under our feet, basically */
-  bool isUsable() const
+  bool isUsable()
   {
     if (!d_handler) {
+      d_connectionDied = true;
       return false;
     }
 
-    return d_handler->isUsable();
+    if (d_handler->isUsable()) {
+      return true;
+    }
+
+    d_connectionDied = true;
+    return false;
   }
 
   const std::shared_ptr<DownstreamState>& getDS() const

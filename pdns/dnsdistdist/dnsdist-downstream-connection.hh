@@ -78,7 +78,13 @@ public:
       }
     }
 
+    if (ds->d_config.d_tcpConcurrentConnectionsLimit > 0 && ds->tcpCurrentConnections.load() >= ds->d_config.d_tcpConcurrentConnectionsLimit) {
+      ++ds->tcpTooManyConcurrentConnections;
+      throw std::runtime_error("Maximum number of TCP connections to " + ds->getNameWithAddr() + " reached, not creating a new one");
+    }
+
     auto newConnection = std::make_shared<T>(ds, mplexer, now, std::move(proxyProtocolPayload));
+    // might make sense to check whether max in flight > 0?
     if (!haveProxyProtocol) {
       auto& list = d_downstreamConnections[backendId].d_actives;
       list.template get<SequencedTag>().push_front(newConnection);
@@ -196,6 +202,8 @@ public:
     backendIt->second.d_actives.erase(it);
 
     if (backendIt->second.d_idles.size() >= s_maxIdleConnectionsPerDownstream) {
+      auto old = backendIt->second.d_idles.template get<SequencedTag>().back();
+      old->release();
       backendIt->second.d_idles.template get<SequencedTag>().pop_back();
     }
 
@@ -223,6 +231,7 @@ protected:
 
       if (entry->isIdle() && entry->getLastDataReceivedTime() < idleCutOff) {
         /* idle for too long */
+        (*connIt)->release();
         connIt = sidx.erase(connIt);
         continue;
       }
@@ -232,6 +241,9 @@ protected:
         continue;
       }
 
+      if (entry->isIdle()) {
+        (*connIt)->release();
+      }
       connIt = sidx.erase(connIt);
     }
   }
