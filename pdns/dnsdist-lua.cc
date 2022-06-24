@@ -270,6 +270,15 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
 static void LuaThread(const std::string code)
 {
   LuaContext l;
+
+  // mask SIGTERM on threads so the signal always comes to dnsdist itself
+  sigset_t blockSignals;
+
+  sigemptyset(&blockSignals);
+  sigaddset(&blockSignals, SIGTERM);
+
+  pthread_sigmask(SIG_BLOCK, &blockSignals, nullptr);
+
   // submitToMainThread is camelcased, threadmessage is not.
   // This follows our tradition of hooks we call being lowercased but functions the user can call being camelcased.
   l.writeFunction("submitToMainThread", [](std::string cmd, LuaAssociativeTable<std::string> data) {
@@ -2873,6 +2882,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
     std::thread newThread(LuaThread, code);
+
     newThread.detach();
   });
 
