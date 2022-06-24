@@ -745,6 +745,42 @@ void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(
   }
 }
 
+static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::set<QType>& qtypes)
+{
+  auto length = packet.size();
+  if (length < sizeof(dnsheader)) {
+    return false;
+  }
+
+  try {
+    auto dh = reinterpret_cast<const dnsheader*>(packet.data());
+    DNSPacketMangler dpm(const_cast<char*>(reinterpret_cast<const char*>(packet.data())), length);
+
+    const uint16_t qdcount = ntohs(dh->qdcount);
+    for (size_t n = 0; n < qdcount; ++n) {
+      dpm.skipDomainName();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+    const size_t recordsCount = static_cast<size_t>(ntohs(dh->ancount)) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    for (size_t n = 0; n < recordsCount; ++n) {
+      dpm.skipDomainName();
+      uint16_t dnstype = dpm.get16BitInt();
+      uint16_t dnsclass = dpm.get16BitInt();
+      if (dnsclass == QClass::IN && qtypes.count(dnstype) > 0) {
+        return true;
+      }
+      /* ttl */
+      dpm.skipBytes(4);
+      dpm.skipRData();
+    }
+  }
+  catch (...) {
+  }
+
+  return false;
+}
+
 static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::set<QType>& qtypes)
 {
   static const std::set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
@@ -866,6 +902,10 @@ void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& q
 
 void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
 {
+  if (!checkIfPacketContainsRecords(packet, qtypes)) {
+    return;
+  }
+
   PacketBuffer newContent;
 
   auto result = rewritePacketWithoutRecordTypes(packet, newContent, qtypes);
