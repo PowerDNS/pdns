@@ -94,7 +94,7 @@ public:
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=:domain_id and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=:domain_id and name=:qname and type is null");
 
-    declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
+    declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,account from domains where name=:domain");
 
     declare(suffix, "info-all-slaves-query", "", "select id,name,master,last_check from domains where type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
@@ -120,6 +120,7 @@ public:
 
     declare(suffix, "update-master-query", "", "update domains set master=:master where name=:domain");
     declare(suffix, "update-kind-query", "", "update domains set type=:kind where name=:domain");
+    declare(suffix, "update-options-query", "", "update domains set options=:options where name=:domain");
     declare(suffix, "update-account-query", "", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");

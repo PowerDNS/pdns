@@ -74,6 +74,7 @@ protected:
       d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
       d_UpdateMasterOfZoneQuery_stmt = d_db->prepare(d_UpdateMasterOfZoneQuery, 2);
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
+      d_UpdateOptionsOfZoneQuery_stmt = d_db->prepare(d_UpdateOptionsOfZoneQuery, 2);
       d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
       d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
@@ -140,6 +141,7 @@ protected:
     d_InsertEmptyNonTerminalOrderQuery_stmt.reset();
     d_UpdateMasterOfZoneQuery_stmt.reset();
     d_UpdateKindOfZoneQuery_stmt.reset();
+    d_UpdateOptionsOfZoneQuery_stmt.reset();
     d_UpdateAccountOfZoneQuery_stmt.reset();
     d_UpdateSerialOfZoneQuery_stmt.reset();
     d_UpdateLastCheckOfZoneQuery_stmt.reset();
@@ -212,6 +214,7 @@ public:
   void setNotified(uint32_t domain_id, uint32_t serial) override;
   bool setMasters(const DNSName &domain, const vector<ComboAddress> &masters) override;
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;
+  bool setOptions(const DNSName& domain, const string& options) override;
   bool setAccount(const DNSName &domain, const string &account) override;
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
@@ -303,6 +306,7 @@ private:
   string d_InsertEmptyNonTerminalOrderQuery;
   string d_UpdateMasterOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
+  string d_UpdateOptionsOfZoneQuery;
   string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckOfZoneQuery;
@@ -376,6 +380,7 @@ private:
   unique_ptr<SSqlStatement> d_InsertEmptyNonTerminalOrderQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateMasterOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateKindOfZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_UpdateOptionsOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateAccountOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateSerialOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateLastCheckOfZoneQuery_stmt;

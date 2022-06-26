@@ -53,6 +53,7 @@
 
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
+BOOST_CLASS_VERSION(DomainInfo, 1)
 
 static bool s_first = true;
 static int s_shards = 0;
@@ -191,7 +192,7 @@ namespace serialization
   }
 
   template <class Archive>
-  void serialize(Archive& ar, DomainInfo& g, const unsigned int version)
+  void save(Archive& ar, const DomainInfo& g, const unsigned int version)
   {
     ar& g.zone;
     ar& g.last_check;
@@ -200,6 +201,25 @@ namespace serialization
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
+    ar& g.options;
+  }
+
+  template <class Archive>
+  void load(Archive& ar, DomainInfo& g, const unsigned int version)
+  {
+    ar& g.zone;
+    ar& g.last_check;
+    ar& g.account;
+    ar& g.masters;
+    ar& g.id;
+    ar& g.notified_serial;
+    ar& g.kind;
+    if (version >= 1) {
+      ar& g.options;
+    }
+    else {
+      g.options.clear();
+    }
   }
 
   template <class Archive>
@@ -240,6 +260,7 @@ namespace serialization
 BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(QType);
 BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
+BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template <>
@@ -950,6 +971,13 @@ bool LMDBBackend::setKind(const DNSName& domain, const DomainInfo::DomainKind ki
 {
   return genChangeDomain(domain, [kind](DomainInfo& di) {
     di.kind = kind;
+  });
+}
+
+bool LMDBBackend::setOptions(const DNSName& domain, const std::string& options)
+{
+  return genChangeDomain(domain, [options](DomainInfo& di) {
+    di.options = options;
   });
 }
 

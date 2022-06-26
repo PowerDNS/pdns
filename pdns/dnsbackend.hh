@@ -50,6 +50,7 @@ struct DomainInfo
 
   DNSName zone;
   time_t last_check;
+  string options;
   string account;
   vector<ComboAddress> masters; 
   DNSBackend *backend;
@@ -345,6 +346,12 @@ public:
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
   virtual bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
+  //! Called when the options of a domain should be changed
+  virtual bool setOptions(const DNSName& domain, const string& options)
   {
     return false;
   }

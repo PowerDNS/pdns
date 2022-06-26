@@ -6,6 +6,7 @@ CREATE TABLE domains (
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INTEGER DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
+  options               VARCHAR(65535) DEFAULT NULL,
   notified_serial       INTEGER DEFAULT NULL,
   account               VARCHAR(40) DEFAULT NULL
 );

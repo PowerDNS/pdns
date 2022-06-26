@@ -106,6 +106,7 @@ public:
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void setNotified(uint32_t id, uint32_t serial) override;
+  bool setOptions(const DNSName& domain, const std::string& options) override;
   bool setAccount(const DNSName& domain, const std::string& account) override;
   bool deleteDomain(const DNSName& domain) override;
 

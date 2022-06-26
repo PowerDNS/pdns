@@ -15,6 +15,7 @@
 #include <boost/program_options.hpp>
 #include <boost/assign/std/vector.hpp>
 #include <boost/assign/list_of.hpp>
+#include "json11.hpp"
 #include "tsigutils.hh"
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
@@ -1858,6 +1859,22 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   return ret;
 }
 
+static int setZoneOptions(const DNSName& zone, const string& options)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "No such zone " << zone << " in the database" << endl;
+    return EXIT_FAILURE;
+  }
+  if (!di.backend->setOptions(zone, options)) {
+    cerr << "Could not find backend willing to accept new zone configuration" << endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 static int setZoneAccount(const DNSName& zone, const string &account)
 {
   UeberBackend B("default");
@@ -2100,6 +2117,10 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         {}
       }
     }
+  }
+  if (!di.options.empty()) {
+    cout << "Options:" << endl;
+    cout << di.options << endl;
   }
   return true;
 }
@@ -2464,6 +2485,7 @@ try
     cout << "secure-all-zones [increase-serial] Secure all zones without keys" << endl;
     cout << "secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE" << endl;
     cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native)" << endl;
+    cout << "set-options ZONE OPTIONS           Change the options of ZONE to OPTIONS" << endl;
     cout << "set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT" << endl;
     cout << "set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow" << endl;
     cout << "set-presigned ZONE                 Use presigned RRSIGs from storage" << endl;
@@ -3109,6 +3131,21 @@ try
     DNSName zone(cmds.at(1));
     auto kind = DomainInfo::stringToKind(cmds.at(2));
     return setZoneKind(zone, kind);
+  }
+  else if (cmds.at(0) == "set-options") {
+    if (cmds.size() != 3) {
+      cerr << "Syntax: pdnsutil set-options ZONE OPTIONS" << endl;
+      return 0;
+    }
+    // Verify json
+    std::string err;
+    json11::Json doc = json11::Json::parse(cmds.at(2), err);
+    if (doc.is_null()) {
+      cerr << "Parsing of JSON document failed:" << err << endl;
+      return EXIT_FAILURE;
+    }
+    DNSName zone(cmds.at(1));
+    return setZoneOptions(zone, cmds.at(2));
   }
   else if (cmds.at(0) == "set-account") {
     if(cmds.size() != 3) {
