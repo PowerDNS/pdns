@@ -1363,7 +1363,7 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
 #endif /* HAVE_IPCIPHER */
 
 static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
-  ZoneParserTNG zpt(fname, zone);
+  ZoneParserTNG zpt(fname, zone, "", true);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
   bool validationDone, validationOK;
