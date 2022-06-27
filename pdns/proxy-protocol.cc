@@ -27,12 +27,12 @@
 #define PROXYMAGIC "\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A"
 #define PROXYMAGICLEN sizeof(PROXYMAGIC)-1
 
-static string proxymagic(PROXYMAGIC, PROXYMAGICLEN);
+static const string proxymagic(PROXYMAGIC, PROXYMAGICLEN);
 
-static void makeSimpleHeader(uint8_t command, uint8_t protocol, uint16_t contentLen, std::string& out)
+static void makeSimpleHeader(uint8_t command, uint8_t protocol, uint16_t contentLen, size_t additionalSize, std::string& out)
 {
   const uint8_t versioncommand = (0x20 | command);
-  const size_t totalSize = proxymagic.size() + sizeof(versioncommand) + sizeof(protocol) + sizeof(contentLen) + contentLen;
+  const size_t totalSize = proxymagic.size() + sizeof(versioncommand) + sizeof(protocol) + sizeof(contentLen) + contentLen + additionalSize;
   if (out.capacity() < totalSize) {
     out.reserve(totalSize);
   }
@@ -48,7 +48,7 @@ static void makeSimpleHeader(uint8_t command, uint8_t protocol, uint16_t content
 std::string makeLocalProxyHeader()
 {
   std::string out;
-  makeSimpleHeader(0x00, 0, 0, out);
+  makeSimpleHeader(0x00, 0, 0, 0, out);
   return out;
 }
 
@@ -82,8 +82,7 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 
   const uint16_t contentlen = htons(static_cast<uint16_t>(total));
   std::string ret;
-  ret.reserve(total);
-  makeSimpleHeader(command, protocol, contentlen, ret);
+  makeSimpleHeader(command, protocol, contentlen, total, ret);
 
   // We already established source and destination sin_family equivalence
   if (source.isIPv4()) {
