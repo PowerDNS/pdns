@@ -108,11 +108,11 @@ DNSName::string_t segmentDNSNameRaw(const char* realinput, size_t inputlen)
         const char* eof = pe;
         int cs;
         char val = 0;
-        char labellen=0;
+        unsigned char labellen=0;
         unsigned int lenpos=0;
         %%{
                 action labelEnd { 
-                        if (labellen < 0 || labellen > 63) {
+                        if (labellen > 63) {
                           throw runtime_error("Unable to parse DNS name '"+string(realinput)+"': invalid label length "+std::to_string(labellen));
                         }
                         ret[lenpos]=labellen;

@@ -255,8 +255,8 @@ bool DNSName::isPartOf(const DNSName& parent) const
       }
       return true;
     }
-    if (*us < 0) {
-      throw std::out_of_range("negative label length in dnsname");
+    if (static_cast<uint8_t>(*us) > 63) {
+      throw std::out_of_range("illegal label length in dnsname");
     }
   }
   return false;
