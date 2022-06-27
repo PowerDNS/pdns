@@ -42,6 +42,7 @@ class DNSPacket;
 #include "dnsname.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
+#include "sha.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -62,12 +63,22 @@ struct DomainInfo
   bool receivedNotify;
 
   uint32_t serial;
-  enum DomainKind : uint8_t { Master, Slave, Native } kind;
-  
+
   bool operator<(const DomainInfo& rhs) const
   {
     return zone < rhs.zone;
   }
+
+  // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
+  enum DomainKind : uint8_t
+  {
+    Master,
+    Slave,
+    Native,
+    Producer,
+    Consumer,
+    All
+  } kind;
 
   const char *getKindString() const
   {
@@ -76,7 +87,7 @@ struct DomainInfo
 
   static const char *getKindString(enum DomainKind kind)
   {
-    const char *kinds[]={"Master", "Slave", "Native"};
+    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
     return kinds[kind];
   }
 
@@ -84,11 +95,19 @@ struct DomainInfo
   {
     if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
       return DomainInfo::Slave;
-    else if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
+    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
       return DomainInfo::Master;
-    else
-      return DomainInfo::Native;
+    if (pdns_iequals(kind, "PRODUCER"))
+      return DomainInfo::Producer;
+    if (pdns_iequals(kind, "CONSUMER"))
+      return DomainInfo::Consumer;
+    // No "ALL" here please. Yes, I really mean it...
+    return DomainInfo::Native;
   }
+
+  bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
+  bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
   bool isMaster(const ComboAddress& ip) const
   {
@@ -100,6 +119,8 @@ struct DomainInfo
   }
 
 };
+
+typedef map<DNSName, pdns::SHADigest> CatalogHashMap;
 
 struct TSIGKey {
    DNSName name;
@@ -320,7 +341,7 @@ public:
   }
 
   //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>* domains)
+  virtual void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
   {
   }
 

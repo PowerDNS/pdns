@@ -80,7 +80,14 @@ public:
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
+  // secondary support
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void setStale(uint32_t domain_id) override;
+  void setFresh(uint32_t domain_id) override;
+
+  // primary support
+  void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void setNotified(uint32_t id, uint32_t serial) override;
 
   bool setMasters(const DNSName& domain, const vector<ComboAddress>& masters) override;
   bool setKind(const DNSName& domain, const DomainInfo::DomainKind kind) override;
@@ -103,9 +110,6 @@ public:
   }
 
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
-  void setStale(uint32_t domain_id) override;
-  void setFresh(uint32_t domain_id) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
   bool setOptions(const DNSName& domain, const std::string& options) override;
   bool setCatalog(const DNSName& domain, const DNSName& options) override;
   bool setAccount(const DNSName& domain, const std::string& account) override;

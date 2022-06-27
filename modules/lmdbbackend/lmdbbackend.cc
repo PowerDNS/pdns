@@ -23,6 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "pdns/auth-catalogzone.hh"
 #include "pdns/utility.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dns.hh"
@@ -998,27 +999,6 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
-void LMDBBackend::setStale(uint32_t domain_id)
-{
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = 0;
-  });
-}
-
-void LMDBBackend::setFresh(uint32_t domain_id)
-{
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = time(0);
-  });
-}
-
-void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
-{
-  genChangeDomain(domain_id, [serial](DomainInfo& di) {
-    di.serial = serial;
-  });
-}
-
 bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& masters)
 {
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
@@ -1067,44 +1047,89 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
-  //  cout<<"Start of getUnfreshSlaveInfos"<<endl;
-  domains->clear();
-  auto txn = d_tdomains->getROTransaction();
-
+  uint32_t serial;
   time_t now = time(0);
+  LMDBResourceRecord lrr;
+  soatimes st;
+
+  auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (iter->kind != DomainInfo::Slave)
+    if (iter->kind != DomainInfo::Slave && iter->kind != DomainInfo::Consumer) {
       continue;
+    }
 
     auto txn2 = getRecordsROTransaction(iter.getID());
     compoundOrdername co;
     MDBOutVal val;
-    uint32_t serial = 0;
     if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
-      LMDBResourceRecord lrr;
       serFromString(val.get<string_view>(), lrr);
-      struct soatimes st;
-
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
-
-      if ((time_t)(iter->last_check + ntohl(st.refresh)) >= now) { // still fresh
-        continue; // try next domain
+      if ((time_t)(iter->last_check + ntohl(st.refresh)) > now) { // still fresh
+        continue;
       }
-      //      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
       serial = ntohl(st.serial);
     }
     else {
-      //      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
       serial = 0;
     }
-    DomainInfo di = *iter;
+
+    DomainInfo di(*iter);
     di.id = iter.getID();
     di.serial = serial;
     di.backend = this;
 
-    domains->push_back(di);
+    domains->emplace_back(di);
   }
-  //  cout<<"END of getUnfreshSlaveInfos"<<endl;
+}
+
+void LMDBBackend::setStale(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = 0;
+  });
+}
+
+void LMDBBackend::setFresh(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = time(nullptr);
+  });
+}
+
+void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+{
+  DomainInfo di;
+  CatalogInfo ci;
+
+  auto txn = d_tdomains->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    if (iter->kind != DomainInfo::Master) {
+      continue;
+    }
+
+    if (iter->kind == DomainInfo::Producer) {
+      catalogs.insert(iter->zone);
+      catalogHashes[iter->zone].process("\0");
+      continue; // Producer fresness check is performed elsewhere
+    }
+
+    if (!iter->catalog.empty()) {
+      ci.fromJson(iter->options, CatalogInfo::CatalogType::Producer);
+      ci.updateHash(catalogHashes, *iter);
+    }
+
+    di = *iter;
+    if (getSerial(di) && di.serial != di.notified_serial) {
+      updatedDomains.emplace_back(di);
+    }
+  }
+}
+
+void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
+{
+  genChangeDomain(domain_id, [serial](DomainInfo& di) {
+    di.serial = serial;
+  });
 }
 
 bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)

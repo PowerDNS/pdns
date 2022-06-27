@@ -173,6 +173,17 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
+bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
+{
+  bool ret;
+  meta.clear();
+  std::vector<string> tmp;
+  if ((ret = getDomainMetadata(name, kind, tmp)) && !tmp.empty()) {
+    meta = *tmp.begin();
+  }
+  return ret;
+}
+
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   for(DNSBackend* db :  backends) {
@@ -180,6 +191,15 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
       return true;
   }
   return false;
+}
+
+bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta)
+{
+  std::vector<string> tmp;
+  if (!meta.empty()) {
+    tmp.push_back(meta);
+  }
+  return setDomainMetadata(name, kind, tmp);
 }
 
 bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
@@ -314,13 +334,11 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   }  
 }
 
-
-
-void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void UeberBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   for (auto & backend : backends)
   {
-    backend->getUpdatedMasters( domains );
+    backend->getUpdatedMasters(domains, catalogs, catalogHashes);
   }
 }
 

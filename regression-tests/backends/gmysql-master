@@ -26,6 +26,8 @@ gmysql-password=$GMYSQLPASSWD
 
 any-to-tcp=no
 zone-cache-refresh-interval=0
+primary=yes
+xfr-cycle-interval=10
 __EOF__
 
 		gsql_master gmysql dyndns

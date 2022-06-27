@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "pdns/auth-catalogzone.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "gsqlbackend.hh"
@@ -396,140 +397,214 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 
 void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
-     id,name,master IP,serial */
+  /*
+    list all domains that need refreshing for which we are secondary, and insert into
+    unfreshDomains: id, name, master, serial
+  */
+
   try {
     reconnectIfNeeded();
 
+    // clang-format off
     d_InfoOfAllSlaveDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
+    // clang-format on
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
   }
 
-  vector<DomainInfo> allSlaves;
+  SOAData sd;
+  DomainInfo di;
+  for (const auto& row : d_result) { // id, name, type, master, last_check, content
+    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 6);
 
-  bool loggedAssertRowColumns = false;
-  for(const auto& row : d_result) { // id,name,master,last_check
-    DomainInfo sd;
     try {
-      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
-    } catch(const PDNSException &e) {
-      if (!loggedAssertRowColumns) {
-        g_log<<Logger::Warning<<e.reason<<endl;
+      di.zone = DNSName(row[1]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    if (!row[5].empty()) {
+      try {
+        fillSOAData(row[5], sd);
       }
-      loggedAssertRowColumns = true;
-      continue;
+      catch (const std::exception& exp) {
+        g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
+        continue;
+      }
+      catch (...) {
+        g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << endl;
+        continue;
+      }
+
+      uint32_t last_check;
+      try {
+        pdns::checked_stoi_into(last_check, row[4]);
+      }
+      catch (const std::exception& e) {
+        g_log << Logger::Warning << "Could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+        continue;
+      }
+
+      if (static_cast<time_t>(last_check + sd.refresh) < time(nullptr)) { // still fresh
+        continue;
+      }
+      di.serial = sd.serial;
     }
 
     try {
-      sd.zone = DNSName(row[1]);
-    } catch(const std::runtime_error &e) {
-      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.what()<<endl;
-      continue;
-    }
-
-    try {
-      pdns::checked_stoi_into(sd.id, row[0]);
+      pdns::checked_stoi_into(di.id, row[0]);
     } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      g_log << Logger::Warning << "Could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
     vector<string> masters;
-    stringtok(masters, row[2], ", \t");
+    stringtok(masters, row[3], ", \t");
     for(const auto& m : masters) {
       try {
-        sd.masters.emplace_back(m, 53);
+        di.masters.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<sd.zone<<"': "<<e.reason<<endl;
+        g_log << Logger::Warning << "Could not parse master address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
       }
     }
-    if (sd.masters.empty()) {
-      g_log<<Logger::Warning<<"No masters for slave zone '"<<sd.zone<<"' found in the database"<<endl;
+    if (di.masters.empty()) {
+      g_log << Logger::Warning << "No masters for secondary zone '" << di.zone << "' found in the database" << endl;
       continue;
     }
 
-    try {
-      pdns::checked_stoi_into(sd.last_check, row[3]);
-    } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
-      continue;
+    if (pdns_iequals(row[2], "SLAVE")) {
+      di.kind = DomainInfo::Slave;
+    }
+    else if (pdns_iequals(row[2], "CONSUMER")) {
+      di.kind = DomainInfo::Consumer;
+    }
+    else {
+      g_log << Logger::Warning << "Type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
     }
 
-    sd.backend=this;
-    sd.kind=DomainInfo::Slave;
-    allSlaves.push_back(sd);
-  }
-
-  for (auto& slave : allSlaves) {
-    try {
-      SOAData sdata;
-      sdata.serial=0;
-      sdata.refresh=0;
-      getSOA(slave.zone, sdata);
-      if(static_cast<time_t>(slave.last_check + sdata.refresh) < time(nullptr)) {
-        slave.serial=sdata.serial;
-        unfreshDomains->push_back(slave);
-      }
-    }
-    catch(const std::exception& exp) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"': "<<exp.what()<<endl;
-      continue;
-    }
-    catch(...) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"', skipping"<<endl;
-      continue;
-    }
+    di.backend = this;
+    unfreshDomains->emplace_back(di);
   }
 }
 
-void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
+void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  /* list all domains that need notifications for which we are master, and insert into updatedDomains
-     id, name, notified_serial, serial */
+  /*
+    list all domains that need notifications for which we are promary, and insert into
+    updatedDomains: id, name, notified_serial, serial
+  */
+
   try {
     reconnectIfNeeded();
 
+    // clang-format off
     d_InfoOfAllMasterDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
+    // clang-format on
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
   }
 
-  size_t numanswers=d_result.size();
-  vector<string>parts;
+  SOAData sd;
   DomainInfo di;
+  CatalogInfo ci;
 
-  di.backend = this;
-  di.kind = DomainInfo::Master;
+  for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content
+    ASSERT_ROW_COLUMNS("info-all-master-query", row, 7);
 
-  for( size_t n = 0; n < numanswers; ++n ) { // id, name, notified_serial, content
-    ASSERT_ROW_COLUMNS( "info-all-master-query", d_result[n], 4 );
-
-    parts.clear();
-    stringtok( parts, d_result[n][3] );
+    di.backend = this;
 
     try {
-      uint32_t serial = parts.size() > 2 ? pdns::checked_stoi<uint32_t>(parts[2]) : 0;
-      auto notified_serial = pdns::checked_stoi<uint32_t>(d_result[n][2]);
-
-      if( serial != notified_serial ) {
-        pdns::checked_stoi_into(di.id, d_result[n][0]);
-        di.zone = DNSName( d_result[n][1] );
-        di.serial = serial;
-        di.notified_serial = notified_serial;
-
-        updatedDomains->emplace_back(di);
-      }
-    } catch ( ... ) {
+      pdns::checked_stoi_into(di.id, row[0]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << "Could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
+    }
+
+    try {
+      di.zone = DNSName(row[1]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    try {
+      di.catalog = DNSName(row[5]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << "Zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << "Zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    if (pdns_iequals(row[2], "PRODUCER")) {
+      catalogs.insert(di.zone);
+      catalogHashes[di.zone].process("\0");
+      continue; // Producer fresness check is performed elsewhere
+    }
+    else if (!pdns_iequals(row[2], "MASTER")) {
+      g_log << Logger::Warning << "Type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
+    }
+
+    try {
+      if (!row[5].empty()) {
+        ci.fromJson(row[3], CatalogInfo::CatalogType::Producer);
+        ci.updateHash(catalogHashes, di);
+      }
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << "Catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl;
+      continue;
+    }
+
+    try {
+      pdns::checked_stoi_into(di.id, row[4]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << "Could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      continue;
+    }
+
+    try {
+      fillSOAData(row[6], sd);
+    }
+    catch (const std::exception& exp) {
+      g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
+      continue;
+    }
+    catch (...) {
+      g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << endl;
+      continue;
+    }
+
+    if (di.notified_serial != sd.serial) {
+      di.kind = DomainInfo::Master;
+      di.serial = sd.serial;
+      di.catalog.clear();
+
+      updatedDomains.emplace_back(di);
     }
   }
 }

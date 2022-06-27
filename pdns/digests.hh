@@ -60,7 +60,7 @@ inline std::string pdns_hash(const EVP_MD * md, const std::string& input)
   return result;
 }
 
-inline std::string pdns_md5sum(const std::string& input)
+inline std::string pdns_md5(const std::string& input)
 {
   const auto md = EVP_md5();
   if (md == nullptr) {
@@ -70,7 +70,7 @@ inline std::string pdns_md5sum(const std::string& input)
   return pdns_hash(md, input);
 }
 
-inline std::string pdns_sha1sum(const std::string& input)
+inline std::string pdns_sha1(const std::string& input)
 {
   const auto md = EVP_sha1();
   if (md == nullptr) {

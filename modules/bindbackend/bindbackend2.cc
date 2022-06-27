@@ -318,7 +318,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordern
   return true;
 }
 
-void Bind2Backend::getUpdatedMasters(vector<DomainInfo>* changedDomains)
+void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   vector<DomainInfo> consider;
   {
@@ -356,7 +356,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>* changedDomains)
       }
       if (di.notified_serial) { // don't do notification storm on startup
         di.serial = soadata.serial;
-        changedDomains->push_back(std::move(di));
+        changedDomains.push_back(std::move(di));
       }
     }
   }

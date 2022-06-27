@@ -188,6 +188,7 @@ pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
+	auth-catalogzone.cc auth-catalogzone.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -331,6 +332,7 @@ endif
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
+	auth-catalogzone.cc auth-catalogzone.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
