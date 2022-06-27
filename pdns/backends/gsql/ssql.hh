@@ -57,7 +57,10 @@ public:
   virtual SSqlStatement* bind(const string& name, unsigned long long value)=0;
   virtual SSqlStatement* bind(const string& name, const std::string& value)=0;
   SSqlStatement* bind(const string& name, const DNSName& value) {
-    return bind(name, value.makeLowerCase().toStringRootDot());
+    if (!value.empty()) {
+      return bind(name, value.makeLowerCase().toStringRootDot());
+    }
+    return bind(name, string(""));
   }
   virtual SSqlStatement* bindNull(const string& name)=0;
   virtual SSqlStatement* execute()=0;;

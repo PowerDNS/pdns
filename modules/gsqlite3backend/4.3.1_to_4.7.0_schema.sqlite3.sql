@@ -9,14 +9,16 @@ BEGIN TRANSACTION;
     type                  VARCHAR(6) NOT NULL,
     notified_serial       INTEGER DEFAULT NULL,
     options               VARCHAR(65535) DEFAULT NULL,
+    catalog               VARCHAR(255) DEFAULT NULL,
     account               VARCHAR(40) DEFAULT NULL
   );
 
-  INSERT INTO domains_temp SELECT id,name,master,last_check,type,motified_serial,NULL,account FROM domains;
+  INSERT INTO domains_temp SELECT id,name,master,last_check,type,motified_serial,NULL,NULL,account FROM domains;
   DROP TABLE domains;
   ALTER TABLE domains_temp RENAME TO domains;
 
   CREATE UNIQUE INDEX name_index ON domains(name);
+  CREATE INDEX catalog_idx ON domains(catalog);
 COMMIT;
 
 PRAGMA foreign_keys = 1;

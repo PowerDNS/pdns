@@ -1,1 +1,4 @@
 ALTER TABLE domains ADD COLUMN options VARCHAR(MAX) DEFAULT NULL;
+ALTER TABLE domains ADD COLUMN catalog VARCHAR(255) DEFAULT NULL;
+
+CREATE INDEX catalog_idx ON domains(catalog);

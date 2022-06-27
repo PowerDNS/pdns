@@ -7,11 +7,13 @@ CREATE TABLE domains (
   last_check            INTEGER DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
   options               VARCHAR(65535) DEFAULT NULL,
+  catalog               VARCHAR(255) DEFAULT NULL,
   notified_serial       INTEGER DEFAULT NULL,
   account               VARCHAR(40) DEFAULT NULL
 );
 
 CREATE UNIQUE INDEX name_index ON domains(name);
+CREATE INDEX catalog_idx ON domains(catalog);
 
 
 CREATE TABLE records (

@@ -80,6 +80,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckOfZoneQuery=getArg("update-lastcheck-query");
   d_UpdateOptionsOfZoneQuery = getArg("update-options-query");
+  d_UpdateCatalogOfZoneQuery = getArg("update-catalog-query");
   d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
@@ -154,6 +155,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateSerialOfZoneQuery_stmt = nullptr;
   d_UpdateLastCheckOfZoneQuery_stmt = nullptr;
   d_UpdateOptionsOfZoneQuery_stmt = nullptr;
+  d_UpdateCatalogOfZoneQuery_stmt = nullptr;
   d_UpdateAccountOfZoneQuery_stmt = nullptr;
   d_InfoOfAllMasterDomainsQuery_stmt = nullptr;
   d_DeleteDomainQuery_stmt = nullptr;
@@ -296,6 +298,25 @@ bool GSQLBackend::setOptions(const DNSName& domain, const string& options)
   return true;
 }
 
+bool GSQLBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+{
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_UpdateCatalogOfZoneQuery_stmt->
+      bind("catalog", catalog)->
+      bind("domain", domain)->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to set catalog of domain '" + domain.toLogString() + "' to '" + catalog.toLogString() + "': " + e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 {
   try {
@@ -334,17 +355,18 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   if(!numanswers)
     return false;
 
-  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 8);
+  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 9);
 
   pdns::checked_stoi_into(di.id, d_result[0][0]);
   try {
     di.zone=DNSName(d_result[0][1]);
+    di.catalog = (!d_result[0][7].empty() ? DNSName(d_result[0][7]) : DNSName());
   } catch (...) {
     return false;
   }
   string type=d_result[0][5];
   di.options = d_result[0][6];
-  di.account = d_result[0][7];
+  di.account = d_result[0][8];
   di.kind = DomainInfo::stringToKind(type);
 
   vector<string> masters;

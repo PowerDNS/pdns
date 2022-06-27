@@ -202,6 +202,7 @@ namespace serialization
     ar& g.notified_serial;
     ar& g.kind;
     ar& g.options;
+    ar& g.catalog;
   }
 
   template <class Archive>
@@ -216,9 +217,11 @@ namespace serialization
     ar& g.kind;
     if (version >= 1) {
       ar& g.options;
+      ar& g.catalog;
     }
     else {
       g.options.clear();
+      g.catalog.clear();
     }
   }
 
@@ -978,6 +981,13 @@ bool LMDBBackend::setOptions(const DNSName& domain, const std::string& options)
 {
   return genChangeDomain(domain, [options](DomainInfo& di) {
     di.options = options;
+  });
+}
+
+bool LMDBBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+{
+  return genChangeDomain(domain, [catalog](DomainInfo& di) {
+    di.catalog = catalog;
   });
 }
 

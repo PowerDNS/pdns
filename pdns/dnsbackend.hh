@@ -49,6 +49,7 @@ struct DomainInfo
   DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
+  DNSName catalog;
   time_t last_check;
   string options;
   string account;
@@ -352,6 +353,12 @@ public:
 
   //! Called when the options of a domain should be changed
   virtual bool setOptions(const DNSName& domain, const string& options)
+  {
+    return false;
+  }
+
+  //! Called when the catalog of a domain should be changed
+  virtual bool setCatalog(const DNSName& domain, const DNSName& catalog)
   {
     return false;
   }

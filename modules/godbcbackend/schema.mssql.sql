@@ -6,11 +6,14 @@ CREATE TABLE domains (
   type                  VARCHAR(6) NOT NULL,
   notified_serial       INT DEFAULT NULL,
   options               VARCHAR(MAX) DEFAULT NULL,
+  catalog               VARCHAR(255) DEFAULT NULL,
   account               VARCHAR(40) DEFAULT NULL,
   PRIMARY KEY (id)
 );
 
 CREATE UNIQUE INDEX name_index ON domains(name);
+CREATE INDEX catalog_idx ON domains(catalog);
+
 
 CREATE TABLE records (
   id                    INT IDENTITY,

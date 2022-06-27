@@ -1875,6 +1875,22 @@ static int setZoneOptions(const DNSName& zone, const string& options)
   return EXIT_SUCCESS;
 }
 
+static int setZoneCatalog(const DNSName& zone, const DNSName& catalog)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "No such zone " << zone << " in the database" << endl;
+    return EXIT_FAILURE;
+  }
+  if (!di.backend->setCatalog(zone, catalog)) {
+    cerr << "Could not find backend willing to accept new zone configuration" << endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 static int setZoneAccount(const DNSName& zone, const string &account)
 {
   UeberBackend B("default");
@@ -2121,6 +2137,10 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
   if (!di.options.empty()) {
     cout << "Options:" << endl;
     cout << di.options << endl;
+  }
+  if (!di.catalog.empty()) {
+    cout << "Catalog: " << endl;
+    cout << di.catalog << endl;
   }
   return true;
 }
@@ -2486,6 +2506,7 @@ try
     cout << "secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE" << endl;
     cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native)" << endl;
     cout << "set-options ZONE OPTIONS           Change the options of ZONE to OPTIONS" << endl;
+    cout << "set-catalog ZONE CATALOG           Change the catalog of ZONE to CATALOG" << endl;
     cout << "set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT" << endl;
     cout << "set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow" << endl;
     cout << "set-presigned ZONE                 Use presigned RRSIGs from storage" << endl;
@@ -3138,14 +3159,28 @@ try
       return 0;
     }
     // Verify json
-    std::string err;
-    json11::Json doc = json11::Json::parse(cmds.at(2), err);
-    if (doc.is_null()) {
-      cerr << "Parsing of JSON document failed:" << err << endl;
-      return EXIT_FAILURE;
+    if (!cmds.at(2).empty()) {
+      std::string err;
+      json11::Json doc = json11::Json::parse(cmds.at(2), err);
+      if (doc.is_null()) {
+        cerr << "Parsing of JSON document failed:" << err << endl;
+        return EXIT_FAILURE;
+      }
     }
     DNSName zone(cmds.at(1));
     return setZoneOptions(zone, cmds.at(2));
+  }
+  else if (cmds.at(0) == "set-catalog") {
+    if (cmds.size() != 3) {
+      cerr << "Syntax: pdnsutil set-catalog ZONE CATALOG" << endl;
+      return 0;
+    }
+    DNSName zone(cmds.at(1));
+    DNSName catalog; // Create an empty DNSName()
+    if (!cmds.at(2).empty()) {
+      catalog = DNSName(cmds.at(2));
+    }
+    return setZoneCatalog(zone, catalog);
   }
   else if (cmds.at(0) == "set-account") {
     if(cmds.size() != 3) {
