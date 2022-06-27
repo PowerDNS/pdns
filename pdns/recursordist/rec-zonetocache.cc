@@ -215,7 +215,7 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
 pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
 {
   DNSResourceRecord drr;
-  ZoneParserTNG zpt(lines, d_zone);
+  ZoneParserTNG zpt(lines, d_zone, true);
   zpt.setMaxGenerateSteps(1);
   zpt.setMaxIncludes(0);
 
