@@ -57,7 +57,6 @@ const std::string badZONEMD = ".	86400	IN	ZONEMD	2021080900 1 1 0ad404980c735405
 const std::string zoneWithBadZONEMD = zone + badZONEMD;
 const std::string zoneWithGoodZONEMD = zone + goodZONEMD;
 
-
 static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns::ZoneMD::Config dnssec, size_t expectedCacheSize)
 {
   char temp[] = "/tmp/ztcXXXXXXXXXX";
@@ -120,17 +119,15 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
 }
 
 // Example from https://github.com/verisign/zonemd-test-cases/blob/master/zones/20-generic-zonemd/example.zone
-const std::string genericTest =
-"example.	86400	IN	NS	ns.example.\n"
-"example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
-  "example.	86400	IN	TYPE63  \\# 54 7848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
-  "ns.example.	3600	IN	A	127.0.0.1\n";
+const std::string genericTest = "example.	86400	IN	NS	ns.example.\n"
+                                "example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
+                                "example.	86400	IN	TYPE63  \\# 54 7848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
+                                "ns.example.	3600	IN	A	127.0.0.1\n";
 
-const std::string genericBadTest =
-"example.	86400	IN	NS	ns.example.\n"
-"example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
-  "example.	86400	IN	TYPE63  \\# 54 8848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
-  "ns.example.	3600	IN	A	127.0.0.1\n";
+const std::string genericBadTest = "example.	86400	IN	NS	ns.example.\n"
+                                   "example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
+                                   "example.	86400	IN	TYPE63  \\# 54 8848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
+                                   "ns.example.	3600	IN	A	127.0.0.1\n";
 
 static void zonemdGenericTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns::ZoneMD::Config dnssec, size_t expectedCacheSize)
 {
@@ -168,7 +165,6 @@ static void zonemdGenericTest(const std::string& lines, pdns::ZoneMD::Config mod
     BOOST_CHECK_GT(g_recCache->get(now, DNSName("ns.example."), QType::A, true, &retrieved, who), 0);
   }
 }
-
 
 BOOST_AUTO_TEST_CASE(test_zonetocachegeneric)
 {
