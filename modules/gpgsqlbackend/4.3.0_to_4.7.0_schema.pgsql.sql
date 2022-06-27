@@ -7,5 +7,7 @@ BEGIN;
   ALTER TABLE domains DROP COLUMN account;
   ALTER TABLE domains RENAME COLUMN account_new TO account;
 
+  ALTER TABLE domains ALTER type VARCHAR(8) NOT NULL;
+
   CREATE INDEX catalog_idx ON domains(catalog);
 COMMIT;

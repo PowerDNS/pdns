@@ -6,7 +6,7 @@ BEGIN TRANSACTION;
     name                  VARCHAR(255) NOT NULL COLLATE NOCASE,
     master                VARCHAR(128) DEFAULT NULL,
     last_check            INTEGER DEFAULT NULL,
-    type                  VARCHAR(6) NOT NULL,
+    type                  VARCHAR(8) NOT NULL,
     notified_serial       INTEGER DEFAULT NULL,
     options               VARCHAR(65535) DEFAULT NULL,
     catalog               VARCHAR(255) DEFAULT NULL,
