@@ -117,11 +117,30 @@ Record creation functions
   The 404s will cause the first group of IPs to get marked as down, after which the URL in the second group is tested.
   The third IP will get marked up assuming ``https://example.net/`` responds with HTTP response code 200.
 
-.. function:: pickrandom(addresses)
+.. function:: pickrandom(values)
 
-  Returns a random IP address from the list supplied.
+  Returns a random value from the list supplied.
 
-  :param addresses: A list of strings with the possible IP addresses.
+  :param values: A list of strings such as IPv4 or IPv6 address.
+
+  This function also works for CNAME or TXT records.
+
+.. function:: pickrandomsample(number, values)
+
+  Returns N random values from the list supplied.
+
+  :param number: Number of values to return
+  :param values: A list of strings such as IPv4 or IPv6 address.
+
+  This function also works for CNAME or TXT records.
+
+.. function:: pickhashed(values)
+
+  Based on the hash of ``bestwho``, returns a random value from the list supplied.
+
+  :param values: A list of strings such as IPv4 or IPv6 address.
+
+  This function also works for CNAME or TXT records.
 
 .. function:: pickclosest(addresses)
 
@@ -159,6 +178,14 @@ Record creation functions
 
   Performs no uptime checking.
 
+.. function:: all(values)
+
+  Returns all values.
+
+  :param values: A list of strings such as IPv4 or IPv6 address.
+
+  This function also works for CNAME or TXT records.
+
 .. function:: view(pairs)
 
   Shorthand function to implement 'views' for all record types.
@@ -177,17 +204,19 @@ Record creation functions
 
   This function also works for CNAME or TXT records.
 
-.. function:: pickwhashed(weightparams)
+.. function:: pickwhashed(values)
 
-  Based on the hash of ``bestwho``, returns an IP address from the list
+  Based on the hash of ``bestwho``, returns a string from the list
   supplied, as weighted by the various ``weight`` parameters.
   Performs no uptime checking.
 
-  :param weightparams: table of weight, IP addresses.
+  :param values: table of weight, string (such as IPv4 or IPv6 address).
 
   Because of the hash, the same client keeps getting the same answer, but
   given sufficient clients, the load is still spread according to the weight
   factors.
+
+  This function also works for CNAME or TXT records.
 
   An example::
 
@@ -197,14 +226,16 @@ Record creation functions
                                             "})                                        ")
 
 
-.. function:: pickwrandom(weightparams)
+.. function:: pickwrandom(values)
 
-  Returns a random IP address from the list supplied, as weighted by the
+  Returns a random string from the list supplied, as weighted by the
   various ``weight`` parameters. Performs no uptime checking.
 
-  :param weightparams: table of weight, IP addresses.
+  :param values: table of weight, string (such as IPv4 or IPv6 address).
 
   See :func:`pickwhashed` for an example.
+
+  This function also works for CNAME or TXT records.
 
 Reverse DNS functions
 ~~~~~~~~~~~~~~~~~~~~~
@@ -378,6 +409,25 @@ Helper functions
   :param string country: A country code like "NL"
   :param [string] countries: A list of country codes
 
+.. function:: countryCode()
+
+  Returns two letter ISO country code based ``bestwho`` IP address, as described in :doc:`../backends/geoip`.
+  If the two letter ISO country code is unknown "--" will be returned.
+
+.. function:: region(region)
+              region(regions)
+
+  Returns true if the ``bestwho`` IP address of the client is within the
+  two letter ISO region code passed, as described in :doc:`../backends/geoip`.
+
+  :param string region: A region code like "CA"
+  :param [string] regions: A list of regions codes
+
+.. function:: regionCode()
+
+  Returns two letter ISO region code based ``bestwho`` IP address, as described in :doc:`../backends/geoip`.
+  If the two letter ISO region code is unknown "--" will be returned.
+
 .. function:: continent(continent)
               continent(continents)
 
@@ -386,6 +436,11 @@ Helper functions
 
   :param string continent: A continent code like "EU"
   :param [string] continents: A list of continent codes
+
+.. function:: continentCode()
+
+  Returns two letter ISO continent code based ``bestwho`` IP address, as described in :doc:`../backends/geoip`.
+  If the two letter ISO continent code is unknown "--" will be returned.
 
 .. function:: netmask(netmasks)
 

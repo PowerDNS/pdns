@@ -2,6 +2,8 @@
 #include <future>
 #include <boost/format.hpp>
 #include <utility>
+#include <algorithm>
+#include <random>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -309,59 +311,98 @@ static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttri
     return g_getGeo(ip, (int)qa);
 }
 
-static ComboAddress pickrandom(const vector<ComboAddress>& ips)
+template <typename T>
+static T pickRandom(const vector<T>& items)
 {
-  if (ips.empty()) {
-    throw std::invalid_argument("The IP list cannot be empty");
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
   }
-  return ips[dns_random(ips.size())];
+  return items[dns_random(items.size())];
 }
 
-static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& ips)
+template <typename T>
+static T pickHashed(const ComboAddress& who, const vector<T>& items)
 {
-  if (ips.empty()) {
-    throw std::invalid_argument("The IP list cannot be empty");
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
   }
   ComboAddress::addressOnlyHash aoh;
-  return ips[aoh(who) % ips.size()];
+  return items[aoh(who) % items.size()];
 }
 
-
-static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
+template <typename T>
+static T pickWeightedRandom(const vector< pair<int, T> >& items)
 {
-  if (wips.empty()) {
-    throw std::invalid_argument("The IP list cannot be empty");
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
   }
   int sum=0;
-  vector<pair<int, ComboAddress> > pick;
-  for(auto& i : wips) {
+  vector< pair<int, T> > pick;
+  pick.reserve(items.size());
+
+  for(auto& i : items) {
     sum += i.first;
     pick.emplace_back(sum, i.second);
   }
+  
+  if (sum == 0) {
+    throw std::invalid_argument("The sum of items cannot be zero");
+  }
+  
   int r = dns_random(sum);
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
 
-static ComboAddress pickwhashed(const ComboAddress& bestwho, vector<pair<int,ComboAddress> >& wips)
+template <typename T>
+static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >& items)
 {
-  if (wips.empty()) {
-    return ComboAddress();
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
   }
   int sum=0;
-  vector<pair<int, ComboAddress> > pick;
-  for(auto& i : wips) {
+  vector< pair<int, T> > pick;
+  pick.reserve(items.size());
+
+  for(auto& i : items) {
     sum += i.first;
     pick.push_back({sum, i.second});
   }
+  
   if (sum == 0) {
-    /* we should not have any weight of zero, but better safe than sorry */
-    return ComboAddress();
+    throw std::invalid_argument("The sum of items cannot be zero");
   }
+
   ComboAddress::addressOnlyHash aoh;
   int r = aoh(bestwho) % sum;
-  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
+}
+
+template <typename T>
+static vector<T> pickRandomSample(int n, const vector<T>& items) 
+{
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
+  }
+  
+  vector<T> pick;
+  pick.reserve(items.size());
+  
+  for(auto& item : items) {
+    pick.push_back(item);
+  }
+  
+  int count = std::min(std::max<size_t>(0, n), items.size());
+
+  if (count == 0) {
+    return vector<T>();
+  }  
+
+  std::shuffle(pick.begin(), pick.end(), pdns::dns_random_engine());
+  
+  vector<T> result = {pick.begin(), pick.begin() + count};
+  return result;
 }
 
 static bool getLatLon(const std::string& ip, double& lat, double& lon)
@@ -402,14 +443,6 @@ static bool getLatLon(const std::string& ip, string& loc)
     lonhem='W';
   }
 
-  /*
-    >>> deg = int(R)
-    >>> min = int((R - int(R)) * 60.0)
-    >>> sec = (((R - int(R)) * 60.0) - min) * 60.0
-    >>> print("{}º {}' {}\"".format(deg, min, sec))
-  */
-
-
   latdeg = lat;
   latmin = (lat - latdeg)*60.0;
   latsec = (((lat - latdeg)*60.0) - latmin)*60.0;
@@ -431,7 +464,7 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
   if (wips.empty()) {
     throw std::invalid_argument("The IP list cannot be empty");
   }
-  map<double,vector<ComboAddress> > ranked;
+  map<double, vector<ComboAddress> > ranked;
   double wlat=0, wlon=0;
   getLatLon(bestwho.toString(), wlat, wlon);
   //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
@@ -484,52 +517,65 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
   if(selector=="all")
     return candidates;
   else if(selector=="random")
-    ret.emplace_back(pickrandom(candidates));
+    ret.emplace_back(pickRandom<ComboAddress>(candidates));
   else if(selector=="pickclosest")
     ret.emplace_back(pickclosest(bestwho, candidates));
   else if(selector=="hashed")
-    ret.emplace_back(hashed(bestwho, candidates));
+    ret.emplace_back(pickHashed<ComboAddress>(bestwho, candidates));
   else {
     g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
-    ret.emplace_back(pickrandom(candidates));
+    ret.emplace_back(pickRandom<ComboAddress>(candidates));
   }
 
   return ret;
 }
 
-static vector<string> convIpListToString(const vector<ComboAddress> &comboAddresses)
+static vector<string> convComboAddressListToString(const vector<ComboAddress>& items)
 {
-  vector<string> ret;
+  vector<string> result;
+  result.reserve(items.size());
 
-  ret.reserve(comboAddresses.size());
-  for (const auto& c : comboAddresses) {
-    ret.emplace_back(c.toString());
+  for (const auto& item : items) {
+    result.emplace_back(item.toString());
   }
 
-  return ret;
+  return result;
 }
 
-static vector<ComboAddress> convIplist(const iplist_t& src)
+static vector<ComboAddress> convComboAddressList(const iplist_t& items)
 {
-  vector<ComboAddress> ret;
+  vector<ComboAddress> result;
+  result.reserve(items.size());
 
-  for(const auto& ip : src) {
-    ret.emplace_back(ip.second);
+  for(const auto& item : items) {
+    result.emplace_back(ComboAddress(item.second));
   }
 
-  return ret;
+  return result;
 }
 
-static vector<pair<int, ComboAddress> > convWIplist(const std::unordered_map<int, wiplist_t >& src)
+static vector<string> convStringList(const iplist_t& items)
 {
-  vector<pair<int,ComboAddress> > ret;
+  vector<string> result;
+  result.reserve(items.size());
 
-  ret.reserve(src.size());
-  for(const auto& i : src) {
-    ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
+  for(const auto& item : items) {
+    result.emplace_back(item.second);
   }
 
-  return ret;
+  return result;
+}
+
+static vector< pair<int, string> > convIntStringPairList(const std::unordered_map<int, wiplist_t >& items)
+{
+  vector<pair<int,string> > result;
+  result.reserve(items.size());
+
+  for(const auto& item : items) {
+    result.emplace_back(atoi(item.second.at(1).c_str()), item.second.at(2));
+  }
+
+  return result;
 }
 
 static thread_local unique_ptr<AuthLua4> s_LUA;
@@ -792,7 +838,7 @@ static void setupLuaRecords()
       }
 
       vector<ComboAddress> res = useSelector(selector, s_lua_record_ctx->bestwho, candidates);
-      return convIpListToString(res);
+      return convComboAddressListToString(res);
     });
 
   lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {
@@ -819,13 +865,13 @@ static void setupLuaRecords()
         }
         if(!available.empty()) {
           vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
-          return convIpListToString(res);
+          return convComboAddressListToString(res);
         }
       }
 
       // All units down, apply backupSelector on all candidates
       vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
-      return convIpListToString(res);
+      return convComboAddressListToString(res);
     });
 
   lua.writeFunction("ifurlup", [](const std::string& url,
@@ -836,12 +882,12 @@ static void setupLuaRecords()
       if(options)
         opts = *options;
       if(auto simple = boost::get<iplist_t>(&ips)) {
-        vector<ComboAddress> unit = convIplist(*simple);
+        vector<ComboAddress> unit = convComboAddressList(*simple);
         candidates.push_back(unit);
       } else {
         auto units = boost::get<ipunitlist_t>(ips);
         for(const auto& u : units) {
-          vector<ComboAddress> unit = convIplist(u.second);
+          vector<ComboAddress> unit = convComboAddressList(u.second);
           candidates.push_back(unit);
         }
       }
@@ -855,7 +901,7 @@ static void setupLuaRecords()
         }
         if(!available.empty()) {
           vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
-          return convIpListToString(res);
+          return convComboAddressListToString(res);
         }
       }
 
@@ -866,28 +912,34 @@ static void setupLuaRecords()
       }
 
       vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
-      return convIpListToString(res);
+      return convComboAddressListToString(res);
     });
   /*
    * Returns a random IP address from the supplied list
    * @example pickrandom({ '1.2.3.4', '5.4.3.2' })"
    */
   lua.writeFunction("pickrandom", [](const iplist_t& ips) {
-      vector<ComboAddress> conv = convIplist(ips);
-
-      return pickrandom(conv).toString();
+      vector<string> items = convStringList(ips);
+      return pickRandom<string>(items);
     });
 
+  lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {
+      vector<string> items = convStringList(ips);
+	  return pickRandomSample<string>(n, items);
+    });
 
+  lua.writeFunction("pickhashed", [](const iplist_t& ips) {
+      vector<string> items = convStringList(ips);
+      return pickHashed<string>(s_lua_record_ctx->bestwho, items);
+    });
   /*
    * Returns a random IP address from the supplied list, as weighted by the
    * various ``weight`` parameters
    * @example pickwrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'} })
    */
   lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
-      vector<pair<int,ComboAddress> > conv = convWIplist(ips);
-
-      return pickwrandom(conv).toString();
+      vector< pair<int, string> > items = convIntStringPairList(ips);
+      return pickWeightedRandom<string>(items);
     });
 
   /*
@@ -896,18 +948,18 @@ static void setupLuaRecords()
    * @example pickwhashed({ {15, '1.2.3.4'}, {50, '5.4.3.2'} })
    */
   lua.writeFunction("pickwhashed", [](std::unordered_map<int, wiplist_t > ips) {
-      vector<pair<int,ComboAddress> > conv;
+      vector< pair<int, string> > items;
 
-      conv.reserve(ips.size());
+      items.reserve(ips.size());
       for(auto& i : ips)
-        conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
+        items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
 
-      return pickwhashed(s_lua_record_ctx->bestwho, conv).toString();
+      return pickWeightedHashed<string>(s_lua_record_ctx->bestwho, items);
     });
 
 
   lua.writeFunction("pickclosest", [](const iplist_t& ips) {
-      vector<ComboAddress > conv = convIplist(ips);
+      vector<ComboAddress> conv = convComboAddressList(ips);
 
       return pickclosest(s_lua_record_ctx->bestwho, conv).toString();
 
@@ -926,17 +978,26 @@ static void setupLuaRecords()
   });
 
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
+
+  lua.writeFunction("asnum", [](const combovar_t& asns) {
+      string res=getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::ASn);
+      return doCompare(asns, res, [](const std::string& a, const std::string& b) {
+          return !strcasecmp(a.c_str(), b.c_str());
+        });
+    });
   lua.writeFunction("continent", [](const combovar_t& continent) {
      string res=getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
       return doCompare(continent, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });
-  lua.writeFunction("asnum", [](const combovar_t& asns) {
-      string res=getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::ASn);
-      return doCompare(asns, res, [](const std::string& a, const std::string& b) {
-          return !strcasecmp(a.c_str(), b.c_str());
-        });
+  lua.writeFunction("continentCode", []() {
+      string unknown("unknown");
+      string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
+      if ( res == unknown ) {
+       return std::string("--");
+      }
+      return res;
     });
   lua.writeFunction("country", [](const combovar_t& var) {
       string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
@@ -944,6 +1005,29 @@ static void setupLuaRecords()
           return !strcasecmp(a.c_str(), b.c_str());
         });
 
+    });
+  lua.writeFunction("countryCode", []() {
+      string unknown("unknown");
+      string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
+      if ( res == unknown ) {
+       return std::string("--");
+      }
+      return res;
+    });
+  lua.writeFunction("region", [](const combovar_t& var) {
+      string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
+      return doCompare(var, res, [](const std::string& a, const std::string& b) {
+          return !strcasecmp(a.c_str(), b.c_str());
+        });
+
+    });
+  lua.writeFunction("regionCode", []() {
+      string unknown("unknown");
+      string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
+      if ( res == unknown ) {
+       return std::string("--");
+      }
+      return res;
     });
   lua.writeFunction("netmask", [](const iplist_t& ips) {
       for(const auto& i :ips) {
@@ -978,9 +1062,20 @@ static void setupLuaRecords()
         }
       }
       return std::string();
-    }
-    );
+    });
 
+  lua.writeFunction("all", [](const vector< pair<int,string> >& ips) {
+      vector<string> result;
+	  result.reserve(ips.size());
+	  
+      for(const auto& ip : ips) {
+          result.emplace_back(ip.second);
+      }
+      if(result.empty()) {
+        throw std::invalid_argument("The IP list cannot be empty");
+      }
+      return result;
+    });
 
   lua.writeFunction("include", [&lua](string record) {
       DNSName rec;
