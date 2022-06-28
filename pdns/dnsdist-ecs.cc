@@ -240,9 +240,11 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       std::vector<std::pair<uint16_t, std::string>> options;
       getEDNSOptionsFromContent(blob, options);
 
+      /* getDnsrecordheader() has helpfully converted the TTL for us, which we do not want in that case */
+      uint32_t ttl = htonl(ah.d_ttl);
       EDNS0Record edns0;
-      static_assert(sizeof(edns0) == sizeof(ah.d_ttl), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
-      memcpy(&edns0, &ah.d_ttl, sizeof(edns0));
+      static_assert(sizeof(edns0) == sizeof(ttl), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+      memcpy(&edns0, &ttl, sizeof(edns0));
 
       /* addOrReplaceEDNSOption will set it to false if there is already an existing option */
       optionAdded = true;
