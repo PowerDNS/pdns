@@ -1807,7 +1807,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
   for (int loop = 0; loop < iterations; loop++) {
 
     // First try a regular resolve
-    const bool serveStale = loop == 1;
+    d_serveStale = loop == 1;
 
     // When we're not on the last iteration, a timeout is not fatal
     const bool exceptionOnTimeout = loop == iterations - 1;
@@ -1877,7 +1877,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
         /* When we are looking for a DS, we want to the non-CNAME cache check first
            because we can actually have a DS (from the parent zone) AND a CNAME (from
            the child zone), and what we really want is the DS */
-        if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse, serveStale)) { // will reroute us if needed
+        if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
           d_wasOutOfBand = wasAuthZone;
           // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
           // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -1906,7 +1906,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
           return res;
         }
 
-        if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state, serveStale)) {
+        if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
           // we done
           d_wasOutOfBand = wasAuthZone;
           if (fromCache) {
@@ -1926,7 +1926,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
         }
 
         /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
-        if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse, serveStale)) { // will reroute us if needed
+        if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
           d_wasOutOfBand = wasAuthZone;
           // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
           // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -1975,7 +1975,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
         subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
       }
 
-      res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr, serveStale);
+      res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr);
 
       if (res == -1 && s_save_parent_ns_set) {
         // It did not work out, lets check if we have a saved parent NS set
@@ -1995,7 +1995,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
         }
         if (fallBack.size() > 0) {
           LOG(prefix<<qname<<": Failure, but we have a saved parent NS set, trying that one"<< endl)
-            res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack, serveStale);
+            res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack);
           if (res == 0) {
             // It did work out
             s_savedParentNSSet.lock()->inc(subdomain);
@@ -2047,7 +2047,7 @@ struct speedOrderCA
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS, bool serveStale)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
 {
   typedef vector<DNSRecord> res_t;
   typedef vector<ComboAddress> ret_t;
@@ -2064,7 +2064,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_followCNAME = true;
 
   MemRecursorCache::Flags flags = MemRecursorCache::None;
-  if (serveStale) {
+  if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
   try {
@@ -2210,6 +2210,10 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
   }
   bestns.clear();
   bool brokeloop;
+  MemRecursorCache::Flags flags = MemRecursorCache::None;
+  if (d_serveStale) {
+    flags |= MemRecursorCache::ServeStale;
+  }
   do {
     if (cutOffDomain && (subdomain == *cutOffDomain || !subdomain.isPartOf(*cutOffDomain))) {
       break;
@@ -2219,7 +2223,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, MemRecursorCache::None, &ns, d_cacheRemote, d_routingTag) > 0) {
+    if (g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &ns, d_cacheRemote, d_routingTag) > 0) {
       if (s_maxnsperresolve > 0 && ns.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2419,7 +2423,7 @@ static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& recor
   return false;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse, bool serveStale)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
   if(doLog()) {
@@ -2450,7 +2454,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
   }
-  if (serveStale) {
+  if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
   if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
@@ -2743,7 +2747,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, bool serveStale)
+bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
 {
   bool giveNegative=false;
 
@@ -2861,7 +2865,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
   }
-  if (serveStale) {
+  if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
   if(g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
@@ -3328,7 +3332,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &nretrieveAddressesForNS, bool serveStale)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &nretrieveAddressesForNS)
 {
   vector<ComboAddress> result;
 
@@ -3345,7 +3349,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
     const unsigned int oldOutQueries = d_outqueries;
     try {
-      result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS, serveStale);
+      result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS);
     }
     // Other exceptions should likely not throttle...
     catch (const ImmediateServFailException& ex) {
@@ -4250,7 +4254,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
       const DNSName& name = content->getNS();
       set<GetBestNSAnswer> beenthereIgnored;
       unsigned int nretrieveAddressesForNSIgnored;
-      auto addresses = getAddrs(name, depth, beenthereIgnored, true, nretrieveAddressesForNSIgnored, false);
+      auto addresses = getAddrs(name, depth, beenthereIgnored, true, nretrieveAddressesForNSIgnored);
       entries.emplace(name, addresses);
     }
     s_savedParentNSSet.lock()->emplace(domain, std::move(entries), d_now.tv_sec + ttl);
@@ -5492,7 +5496,7 @@ bool SyncRes::doDoTtoAuth(const DNSName& ns) const
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType qtype,
                          vector<DNSRecord>&ret,
                          unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
-                         map<DNSName, vector<ComboAddress>>* fallBack, bool serveStale)
+                         map<DNSName, vector<ComboAddress>>* fallBack)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -5595,7 +5599,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
         if (remoteIPs.size() == 0) {
-          remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS, serveStale);
+          remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
         }
 
         if(remoteIPs.empty()) {
