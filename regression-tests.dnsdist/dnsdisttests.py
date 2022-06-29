@@ -150,6 +150,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls._sock.close()
         if 'DNSDIST_FAST_TESTS' in os.environ:
             delay = 0.1
         else:
@@ -712,6 +713,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         (responseLen,) = struct.unpack("!I", data)
         data = sock.recv(responseLen)
         response = cls._decryptConsole(data, readingNonce)
+        sock.close()
         return response
 
     def compareOptions(self, a, b):

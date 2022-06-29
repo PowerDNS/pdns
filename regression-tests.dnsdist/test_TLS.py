@@ -12,7 +12,9 @@ class TLSTests(object):
 
     def getServerCertificate(self):
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
-        return conn.getpeercert()
+        cert = conn.getpeercert()
+        conn.close()
+        return cert
 
     def getTLSProvider(self):
         return self.sendConsoleCommand("getBind(0):getEffectiveTLSProvider()").rstrip()
@@ -59,6 +61,7 @@ class TLSTests(object):
         self.generateNewCertificateAndKey()
         self.sendConsoleCommand("reloadAllCertificates()")
 
+        conn.close()
         # open a new connection
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
 
@@ -86,6 +89,7 @@ class TLSTests(object):
 
         # and that the serial is different
         self.assertNotEqual(serialNumber, cert['serialNumber'])
+        conn.close()
 
     def testTLKA(self):
         """
@@ -111,6 +115,8 @@ class TLSTests(object):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
+        conn.close()
 
     def testTLSPipelining(self):
         """
@@ -138,6 +144,8 @@ class TLSTests(object):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
+        conn.close()
 
     def testTLSSNIRouting(self):
         """
@@ -169,6 +177,7 @@ class TLSTests(object):
         self.assertTrue(receivedResponse)
         self.assertEqual(expectedResponse, receivedResponse)
 
+        conn.close()
         # this one should not
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
 
@@ -179,6 +188,7 @@ class TLSTests(object):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
+        conn.close()
 
     def testTLSSNIRoutingAfterResumption(self):
         # we have more complicated tests about session resumption itself,
@@ -352,12 +362,14 @@ class TestDOTWithCache(DNSDistTest):
         self.assertEqual(expectedQuery, receivedQuery)
         self.checkQueryNoEDNS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
+        conn.close()
 
         for _ in range(numberOfQueries):
             conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
             self.sendTCPQueryOverConnection(conn, query, response=None)
             receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
             self.assertEqual(receivedResponse, response)
+            conn.close()
 
 class TestTLSFrontendLimits(DNSDistTest):
 
@@ -461,6 +473,7 @@ class TestProtocols(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
+        conn.close()
 
 class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
     _consoleKey = DNSDistTest.generateConsoleKey()
