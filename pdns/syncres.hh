@@ -647,8 +647,7 @@ private:
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
   bool d_refresh{false};
-  bool d_exceptionOnTimeout{true};
-  
+
   LogMode d_lm;
 };
 
