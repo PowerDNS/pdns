@@ -15,6 +15,7 @@ def writeCDB(fname, variant=1):
     cdb.add(b'this is the value of the qname tag', b'this is the value of the second tag')
     cdb.commit().close()
     os.rename(fname+'.tmp', fname)
+    cdb.close()
 
 @unittest.skipIf('SKIP_CDB_TESTS' in os.environ, 'CDB tests are disabled')
 class CDBTest(DNSDistTest):
