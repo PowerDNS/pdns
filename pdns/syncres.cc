@@ -1974,7 +1974,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
     }
 
-    res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr);
+    res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr, serveStale);
 
     if (res == -1 && s_save_parent_ns_set) {
       // It did not work out, lets check if we have a saved parent NS set
@@ -1994,7 +1994,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       }
       if (fallBack.size() > 0) {
         LOG(prefix<<qname<<": Failure, but we have a saved parent NS set, trying that one"<< endl)
-          res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack);
+          res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack, serveStale);
         if (res == 0) {
           // It did work out
           s_savedParentNSSet.lock()->inc(subdomain);
@@ -2040,7 +2040,7 @@ struct speedOrderCA
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS, bool serveStale)
 {
   typedef vector<DNSRecord> res_t;
   typedef vector<ComboAddress> ret_t;
@@ -2056,17 +2056,21 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_DNSSECValidationRequested = false;
   d_followCNAME = true;
 
+  MemRecursorCache::Flags flags = MemRecursorCache::None;
+  if (serveStale) {
+    flags |= MemRecursorCache::ServeStale;
+  }
   try {
     // First look for both A and AAAA in the cache
     res_t cset;
-    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
+    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, flags, &cset, d_cacheRemote, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<ARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
         }
       }
     }
-    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
+    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, flags, &cset, d_cacheRemote, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<AAAARecordContent>(i)) {
           seenV6 = true;
@@ -2106,7 +2110,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         } else {
           // We have some IPv4 records, consult the cache, we might have encountered some IPv6 glue
           cset.clear();
-          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, MemRecursorCache::None, &cset, d_cacheRemote, d_routingTag) > 0) {
+          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, flags, &cset, d_cacheRemote, d_routingTag) > 0) {
             for (const auto &i : cset) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
                 seenV6 = true;
@@ -3317,7 +3321,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &nretrieveAddressesForNS)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &nretrieveAddressesForNS, bool serveStale)
 {
   vector<ComboAddress> result;
 
@@ -3334,7 +3338,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
     const unsigned int oldOutQueries = d_outqueries;
     try {
-      result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS);
+      result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS, serveStale);
     }
     // Other exceptions should likely not throttle...
     catch (const ImmediateServFailException& ex) {
@@ -4239,7 +4243,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
       const DNSName& name = content->getNS();
       set<GetBestNSAnswer> beenthereIgnored;
       unsigned int nretrieveAddressesForNSIgnored;
-      auto addresses = getAddrs(name, depth, beenthereIgnored, true, nretrieveAddressesForNSIgnored);
+      auto addresses = getAddrs(name, depth, beenthereIgnored, true, nretrieveAddressesForNSIgnored, false);
       entries.emplace(name, addresses);
     }
     s_savedParentNSSet.lock()->emplace(domain, std::move(entries), d_now.tv_sec + ttl);
@@ -5485,7 +5489,7 @@ bool SyncRes::doDoTtoAuth(const DNSName& ns) const
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType qtype,
                          vector<DNSRecord>&ret,
                          unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation,
-                         map<DNSName, vector<ComboAddress>>* fallBack)
+                         map<DNSName, vector<ComboAddress>>* fallBack, bool serveStale)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -5588,7 +5592,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
         if (remoteIPs.size() == 0) {
-          remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
+          remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS, serveStale);
         }
 
         if(remoteIPs.empty()) {
