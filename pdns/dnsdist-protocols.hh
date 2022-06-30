@@ -39,7 +39,14 @@ public:
     DoH
   };
 
-  Protocol(typeenum protocol = DoUDP);
+  Protocol(typeenum protocol = DoUDP) :
+    d_protocol(protocol)
+  {
+    if (protocol >= s_names.size()) {
+      throw std::runtime_error("Unknown protocol: '" + std::to_string(protocol) + "'");
+    }
+  }
+
   explicit Protocol(const std::string& protocol);
 
   bool operator==(typeenum) const;
@@ -50,5 +57,7 @@ public:
 
 private:
   typeenum d_protocol;
+
+  static const std::vector<std::string> s_names;
 };
 }

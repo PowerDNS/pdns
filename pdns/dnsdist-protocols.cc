@@ -27,7 +27,7 @@
 
 namespace dnsdist
 {
-static const std::vector<std::string> names = {
+const std::vector<std::string> Protocol::s_names = {
   "DoUDP",
   "DoTCP",
   "DNSCryptUDP",
@@ -43,22 +43,14 @@ static const std::vector<std::string> prettyNames = {
   "DNS over TLS",
   "DNS over HTTPS"};
 
-Protocol::Protocol(Protocol::typeenum protocol) :
-  d_protocol(protocol)
-{
-  if (protocol >= names.size()) {
-    throw std::runtime_error("Unknown protocol: '" + std::to_string(protocol) + "'");
-  }
-}
-
 Protocol::Protocol(const std::string& s)
 {
-  const auto& it = std::find(names.begin(), names.end(), s);
-  if (it == names.end()) {
+  const auto& it = std::find(s_names.begin(), s_names.end(), s);
+  if (it == s_names.end()) {
     throw std::runtime_error("Unknown protocol name: '" + s + "'");
   }
 
-  auto index = std::distance(names.begin(), it);
+  auto index = std::distance(s_names.begin(), it);
   d_protocol = static_cast<Protocol::typeenum>(index);
 }
 
@@ -74,7 +66,7 @@ bool Protocol::operator!=(Protocol::typeenum type) const
 
 const std::string& Protocol::toString() const
 {
-  return names.at(static_cast<uint8_t>(d_protocol));
+  return s_names.at(static_cast<uint8_t>(d_protocol));
 }
 
 const std::string& Protocol::toPrettyString() const
