@@ -62,3 +62,6 @@ override_dh_fixperms:
 	dh_fixperms
 	# these files often contain passwords.
 	chmod 0640 debian/pdns-server/etc/powerdns/pdns.conf
+
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
