@@ -118,6 +118,7 @@ struct DOHFrontend
   /* whether we require tue query path to exactly match one of configured ones,
      or accept everything below these paths. */
   bool d_exactPathMatching{true};
+  bool d_keepIncomingHeaders{false};
 
   time_t getTicketsKeyRotationDelay() const
   {
@@ -191,10 +192,11 @@ struct DownstreamState;
 
 struct DOHUnit
 {
-  DOHUnit()
+  DOHUnit(PacketBuffer&& q, std::string&& p, std::string&& h): path(std::move(p)), host(std::move(h)), query(std::move(q))
   {
     ids.ednsAdded = false;
   }
+
   DOHUnit(const DOHUnit&) = delete;
   DOHUnit& operator=(const DOHUnit&) = delete;
 
@@ -227,10 +229,10 @@ struct DOHUnit
   std::string scheme;
   std::string host;
   std::string contentType;
-  std::unordered_map<std::string, std::string> headers;
   PacketBuffer query;
   PacketBuffer response;
   std::shared_ptr<DownstreamState> downstream{nullptr};
+  std::unique_ptr<std::unordered_map<std::string, std::string>> headers;
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};

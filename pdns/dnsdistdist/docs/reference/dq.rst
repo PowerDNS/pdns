@@ -110,8 +110,11 @@ This state can be modified from the various hooks.
   .. method:: DNSQuestion:getHTTPHeaders() -> table
 
     .. versionadded:: 1.4.0
+    .. versionchanged:: 1.8.0
+       see ``keepIncomingHeaders`` on :func:`addDOHLocal`
 
     Return the HTTP headers for a DoH query, as a table whose keys are the header names and values the header values.
+    Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this method.
 
     :returns: A table of HTTP headers
 

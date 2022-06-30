@@ -469,7 +469,11 @@ These ``DNSRule``\ s be one of the following items:
 
   .. versionadded:: 1.4.0
 
+  .. versionchanged:: 1.8.0
+     see ``keepIncomingHeaders`` on :func:`addDOHLocal`
+
   Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex``.
+  Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this rule.
 
   :param str name: The case-insensitive name of the HTTP header to match on
   :param str regex: A regular expression to match the content of the specified header
