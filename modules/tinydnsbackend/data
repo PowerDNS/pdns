@@ -20219,6 +20219,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +ttl.test.dyndns:127.0.0.1:3600
 :delete-add.test.dyndns:16:\034Should\040be\040gone\040after\040a\040while:3600
 :txt.test.dyndns:16:\021This\040is\040some\040text:3600
+:xautosplit.test.dyndns:16:\377They\040fixed\040up\040the\040corner\040store\040like\040it\040was\040a\040nightclub\040-\040It\047s\040permanently\040disco\040-\040Everyone\040is\040dressed\040so\040oddly\040I\040can\047t\040recognize\040them\040-\040I\040can\047t\040tell\040the\040staff\040from\040the\040customers\040-\040Baby\040check\040this\040out\054\040I\047ve\040got\040something\040to\040say\040-\040Man\054\040it\047s\040so\040loud\040in\040here\040S-\040When\040they\040stop\040the\040drum\040machine\040and\040I\040can\040think\040again\040-\040I\047ll\040remember\040what\040it\040was:3600
 @test.dyndns::host-1.test.dyndns.:10:3600
 @test.dyndns::host-2.test.dyndns.:20:3600
 Ccname1.test.dyndns:host-1.test.dyndns.:3600

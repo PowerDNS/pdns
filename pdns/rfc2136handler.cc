@@ -1,3 +1,4 @@
+#include "dnswriter.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -398,7 +399,17 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           recordsToDelete.push_back(rec);
       }
       if (rr->d_class == QClass::NONE) { // 3.4.2.4
-        if (rrType == rec.qtype && rec.getZoneRepresentation() == rr->d_content->getZoneRepresentation())
+        auto repr = rec.getZoneRepresentation();
+        if (rec.qtype == QType::TXT) {
+          DLOG(g_log<<msgPrefix<<"Adjusting TXT content from ["<<repr<<"]"<<endl);
+          auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), QClass::IN, repr);
+          auto ser = drc->serialize(rec.qname, true, true);
+          auto rc = DNSRecordContent::deserialize(rec.qname, rec.qtype.getCode(), ser);
+          repr = rc->getZoneRepresentation(true);
+          DLOG(g_log<<msgPrefix<<"Adjusted TXT content to ["<<repr<<"]"<<endl);
+        }
+        DLOG(g_log<<msgPrefix<<"Matching RR in RRset - (adjusted) representation from request=["<<repr<<"], rr->d_content->getZoneRepresentation()=["<<rr->d_content->getZoneRepresentation()<<"]"<<endl);
+        if (rrType == rec.qtype && repr == rr->d_content->getZoneRepresentation())
           recordsToDelete.push_back(rec);
         else
           rrset.push_back(rec);

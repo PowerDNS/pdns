@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 
 ## add + delete with explicit data
 
@@ -130,3 +130,19 @@ answer
 # check if the record was deleted.
 cleandig test.dyndns TXT
 
+## now remove the overly long entry that was autosplit
+
+# check that it exists now
+cleandig xautosplit.test.dyndns TXT
+
+# delete it
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete xautosplit.test.dyndns. TXT "They fixed up the corner store like it was a nightclub - It's permanently disco - Everyone is dressed so oddly I can't recognize them - I can't tell the staff from the customers - Baby check this out, I've got something to say - Man, it's so loud in here " "- When they stop the drum machine and I can think again - I'll remember what it was"
+send
+answer
+!
+
+# check that it is gone
+cleandig xautosplit.test.dyndns TXT
