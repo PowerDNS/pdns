@@ -1,0 +1,2 @@
+A test to see if RFC2136 add and delete record works properly on a TXT records,
+including TXT records containing multiple strings.
