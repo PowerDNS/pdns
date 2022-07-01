@@ -140,7 +140,7 @@ def write_release_files (release):
     if g_verbose:
         print("Writing release files...")
 
-    if release in ['auth-43', 'auth-master']:
+    if release in ['auth-43']:
         write_dockerfile('centos', '6', release)
 
     if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
@@ -180,6 +180,9 @@ def write_release_files (release):
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
+    if release in ['auth-master', 'rec-master', 'dnsdist-master']:
+        write_dockerfile('ubuntu', 'jammy', release)
+        write_list_file('ubuntu', 'jammy', release)
 
 # Test Release Functions
 
