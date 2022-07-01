@@ -1806,8 +1806,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
   const int iterations = !d_refresh && MemRecursorCache::s_maxServedStaleExtensions > 0 ? 2 : 1;
   for (int loop = 0; loop < iterations; loop++) {
 
-    // First try a regular resolve
-    d_serveStale = loop == 1;
+    if (loop == 1) {
+      d_serveStale = true;
+    }
 
     // When we're not on the last iteration, a timeout is not fatal
     const bool exceptionOnTimeout = loop == iterations - 1;
@@ -2017,6 +2018,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       }
 
       LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
+      if (res >= 0) {
+        break;
+      }
     }
     catch (const ImmediateServFailException&) {
       if (exceptionOnTimeout) {
@@ -2066,6 +2070,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
+  }
+  if (d_refresh) {
+    flags |= MemRecursorCache::Refresh;
   }
   try {
     // First look for both A and AAAA in the cache
@@ -2213,6 +2220,9 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
+  }
+  if (d_refresh) {
+    flags |= MemRecursorCache::Refresh;
   }
   do {
     if (cutOffDomain && (subdomain == *cutOffDomain || !subdomain.isPartOf(*cutOffDomain))) {
@@ -2862,11 +2872,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   if (!wasForwardRecurse && d_requireAuthData) {
     flags |= MemRecursorCache::RequireAuth;
   }
-  if (d_refresh) {
-    flags |= MemRecursorCache::Refresh;
-  }
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
+  }
+  if (d_refresh) {
+    flags |= MemRecursorCache::Refresh;
   }
   if(g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
 
