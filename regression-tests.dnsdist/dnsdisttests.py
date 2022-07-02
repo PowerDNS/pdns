@@ -227,6 +227,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if callback:
               wire = callback(request)
             else:
+              if request.edns > 1:
+                forceRcode = dns.rcode.BADVERS
               response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
               if response:
                 wire = response.to_wire()
@@ -262,6 +264,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       if callback:
         wire = callback(request)
       else:
+        if request.edns > 1:
+          forceRcode = dns.rcode.BADVERS
         response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
         if response:
           wire = response.to_wire(max_size=65535)
