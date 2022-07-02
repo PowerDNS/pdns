@@ -33,7 +33,8 @@
 
 BOOST_AUTO_TEST_SUITE(dnsdistluaaction_cc)
 
-BOOST_AUTO_TEST_CASE(test_SetEDNSOptionAction) {
+BOOST_AUTO_TEST_CASE(test_SetEDNSOptionAction)
+{
   DNSName qname("powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
@@ -71,7 +72,7 @@ BOOST_AUTO_TEST_CASE(test_SetEDNSOptionAction) {
   BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::OPT));
   BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, g_rootdnsname);
 
-  EDNS0Record edns0;  
+  EDNS0Record edns0;
   BOOST_REQUIRE(getEDNS0Record(dq, edns0));
   BOOST_CHECK_EQUAL(edns0.version, 0U);
   BOOST_CHECK_EQUAL(edns0.extRCode, 0U);
