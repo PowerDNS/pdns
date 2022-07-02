@@ -245,6 +245,7 @@ testrunner_SOURCES = \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings.cc \
@@ -294,6 +295,7 @@ testrunner_SOURCES = \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistactions_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \

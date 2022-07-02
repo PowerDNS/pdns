@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "dnsdist.hh"
 #include "dnsparser.hh"
 #include <random>
 
@@ -127,6 +128,26 @@ public:
 private:
   uint32_t d_min{0};
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
+};
+
+class SetEDNSOptionAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  SetEDNSOptionAction(uint16_t code, const std::string& data) : d_code(code), d_data(data)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override;
+
+  std::string toString() const override
+  {
+    return "add EDNS Option (code=" + std::to_string(d_code) + ")";
+  }
+
+private:
+  uint16_t d_code;
+  std::string d_data;
 };
 
 template <class T> using LuaArray = std::vector<std::pair<int, T>>;
