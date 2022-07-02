@@ -83,9 +83,13 @@ void setLuaNoSideEffect()
 {
 }
 
-DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>&)
 {
-  return DNSAction::Action::None;
+  return true;
+}
+
+void responderThread(std::shared_ptr<DownstreamState> dss)
+{
 }
 
 string g_outputBuffer;

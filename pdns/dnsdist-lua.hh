@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "dnsdist.hh"
 #include <random>
 
 struct ResponseConfig
@@ -85,6 +86,26 @@ private:
   std::set<uint16_t> d_types;
   std::vector<std::string> d_rawResponses;
   DNSName d_cname;
+};
+
+class SetEDNSOptionAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  SetEDNSOptionAction(uint16_t code, const std::string& data) : d_code(code), d_data(data)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override;
+
+  std::string toString() const override
+  {
+    return "add EDNS Option (code=" + std::to_string(d_code) + ")";
+  }
+
+private:
+  uint16_t d_code;
+  std::string d_data;
 };
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
