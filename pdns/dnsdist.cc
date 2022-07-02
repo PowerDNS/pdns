@@ -1640,6 +1640,10 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   };
   const size_t vectSize = g_udpVectorSize;
 
+  if (vectSize > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The value of setUDPMultipleMessagesVectorSize is too high, the maximum value is " + std::to_string(std::numeric_limits<uint16_t>::max()));
+  }
+
   auto recvData = std::make_unique<MMReceiver[]>(vectSize);
   auto msgVec = std::make_unique<struct mmsghdr[]>(vectSize);
   auto outMsgVec = std::make_unique<struct mmsghdr[]>(vectSize);
