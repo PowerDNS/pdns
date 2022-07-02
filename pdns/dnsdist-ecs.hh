@@ -26,7 +26,7 @@
 #include "iputils.hh"
 #include "noinitvector.hh"
 
-class DNSQuestion;
+struct DNSQuestion;
 
 // root label (1), type (2), class (2), ttl (4) + rdlen (2)
 static const size_t optRecordMinimumSize = 11;
