@@ -23,7 +23,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "pdns/auth-catalogzone.hh"
 #include "pdns/utility.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dns.hh"
@@ -978,20 +977,6 @@ bool LMDBBackend::setKind(const DNSName& domain, const DomainInfo::DomainKind ki
   });
 }
 
-bool LMDBBackend::setOptions(const DNSName& domain, const std::string& options)
-{
-  return genChangeDomain(domain, [options](DomainInfo& di) {
-    di.options = options;
-  });
-}
-
-bool LMDBBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
-{
-  return genChangeDomain(domain, [catalog](DomainInfo& di) {
-    di.catalog = catalog;
-  });
-}
-
 bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
 {
   return genChangeDomain(domain, [account](DomainInfo& di) {
@@ -1054,7 +1039,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (iter->kind != DomainInfo::Slave && iter->kind != DomainInfo::Consumer) {
+    if (!iter->isSecondaryType()) {
       continue;
     }
 
@@ -1103,7 +1088,7 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
 
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (iter->kind != DomainInfo::Master) {
+    if (!iter->isPrimaryType()) {
       continue;
     }
 
@@ -1129,6 +1114,44 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   genChangeDomain(domain_id, [serial](DomainInfo& di) {
     di.serial = serial;
+  });
+}
+
+bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+{
+  auto txn = d_tdomains->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != DomainInfo::Slave) || iter->catalog != catalog) {
+      continue;
+    }
+
+    CatalogInfo ci;
+    ci.d_id = iter->id;
+    ci.d_zone = iter->zone;
+    try {
+      ci.fromJson(iter->options, type);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << iter->options << "' for zone '" << iter->zone << "' is no valid JSON: " << e.what() << endl;
+      members.clear();
+      return false;
+    }
+    members.emplace_back(ci);
+  }
+  return true;
+}
+
+bool LMDBBackend::setOptions(const DNSName& domain, const std::string& options)
+{
+  return genChangeDomain(domain, [options](DomainInfo& di) {
+    di.options = options;
+  });
+}
+
+bool LMDBBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+{
+  return genChangeDomain(domain, [catalog](DomainInfo& di) {
+    di.catalog = catalog;
   });
 }
 

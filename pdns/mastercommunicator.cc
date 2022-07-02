@@ -141,7 +141,6 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
   std::string metaHash;
   std::string mapHash;
   for (auto& ch : catalogHashes) {
-    g_log << Logger::Error << catalogs.size() << " " << ch.first << endl;
     if (!catalogs.count(ch.first)) {
       g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl;
       continue;

@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include "auth-catalogzone.hh"
+#include "dnsbackend.hh"
 
 void CatalogInfo::fromJson(const std::string& json, CatalogType type)
 {
@@ -40,21 +40,25 @@ void CatalogInfo::fromJson(const std::string& json, CatalogType type)
   if (!d_doc.is_null()) {
     if (!d_doc[getTypeString(d_type)].is_null()) {
       auto items = d_doc[getTypeString(type)].object_items();
-      if (items["coo"].is_string()) {
-        if (!items["coo"].string_value().empty()) {
-          this->coo = DNSName(items["coo"].string_value());
+      if (!items["coo"].is_null()) {
+        if (items["coo"].is_string()) {
+          if (!items["coo"].string_value().empty()) {
+            d_coo = DNSName(items["coo"].string_value());
+          }
+        }
+        else {
+          throw std::out_of_range("Key 'coo' is not a string");
         }
       }
-      else {
-        throw std::out_of_range("Key 'coo' is not a string");
-      }
-      if (items["unique"].is_string()) {
-        if (!items["uniq"].string_value().empty()) {
-          this->unique = DNSName(items["unique"].string_value());
+      if (!items["unique"].is_null()) {
+        if (items["unique"].is_string()) {
+          if (!items["unique"].string_value().empty()) {
+            d_unique = DNSName(items["unique"].string_value());
+          }
         }
-      }
-      else {
-        throw std::out_of_range("Key 'unique' is not a string");
+        else {
+          throw std::out_of_range("Key 'unique' is not a string");
+        }
       }
     }
   }
@@ -69,11 +73,11 @@ std::string CatalogInfo::toJson() const
     throw std::runtime_error("CatalogType is set to None");
   }
   json11::Json::object object;
-  if (!coo.empty()) {
-    object["coo"] = coo.toString();
+  if (!d_coo.empty()) {
+    object["coo"] = d_coo.toString();
   }
-  if (!unique.empty()) {
-    object["unique"] = unique.toString();
+  if (!d_unique.empty()) {
+    object["unique"] = d_unique.toString();
   }
   auto tmp = d_doc.object_items();
   tmp[getTypeString(d_type)] = object;
@@ -83,5 +87,42 @@ std::string CatalogInfo::toJson() const
 
 void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
 {
-  hashes[di.catalog].process(static_cast<char>(di.id) + di.zone.toLogString() + "\0" + this->coo.toLogString() + "\0" + this->unique.toLogString());
+  hashes[di.catalog].process(static_cast<char>(di.id) + di.zone.toLogString() + "\0" + d_coo.toLogString() + "\0" + d_unique.toLogString());
+}
+
+DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
+{
+  DNSZoneRecord dzr;
+  dzr.dr.d_name = DNSName("version") + zone;
+  dzr.dr.d_ttl = 0;
+  dzr.dr.d_type = QType::TXT;
+  dzr.dr.d_content = std::make_shared<TXTRecordContent>("2");
+  return dzr;
+}
+
+void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const
+{
+  DNSName prefix;
+  if (d_unique.empty()) {
+    prefix = getUnique();
+  }
+  else {
+    prefix = d_unique;
+  }
+  prefix += DNSName("zones") + zone;
+
+  DNSZoneRecord dzr;
+  dzr.dr.d_name = prefix;
+  dzr.dr.d_ttl = 0;
+  dzr.dr.d_type = QType::PTR;
+  dzr.dr.d_content = std::make_shared<PTRRecordContent>(d_zone.toString());
+  dzrs.emplace_back(dzr);
+
+  if (!d_coo.empty()) {
+    dzr.dr.d_name = DNSName("coo") + prefix;
+    dzr.dr.d_ttl = 0;
+    dzr.dr.d_type = QType::PTR;
+    dzr.dr.d_content = std::make_shared<PTRRecordContent>(d_coo);
+    dzrs.emplace_back(dzr);
+  }
 }

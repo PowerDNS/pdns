@@ -80,6 +80,8 @@ protected:
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
       d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
       d_InfoOfAllMasterDomainsQuery_stmt = d_db->prepare(d_InfoOfAllMasterDomainsQuery, 0);
+      d_InfoProducerMembersQuery_stmt = d_db->prepare(d_InfoProducerMembersQuery, 1);
+      d_InfoConsumerMembersQuery_stmt = d_db->prepare(d_InfoConsumerMembersQuery, 1);
       d_DeleteDomainQuery_stmt = d_db->prepare(d_DeleteDomainQuery, 1);
       d_DeleteZoneQuery_stmt = d_db->prepare(d_DeleteZoneQuery, 1);
       d_DeleteRRSetQuery_stmt = d_db->prepare(d_DeleteRRSetQuery, 3);
@@ -148,6 +150,8 @@ protected:
     d_UpdateSerialOfZoneQuery_stmt.reset();
     d_UpdateLastCheckOfZoneQuery_stmt.reset();
     d_InfoOfAllMasterDomainsQuery_stmt.reset();
+    d_InfoProducerMembersQuery_stmt.reset();
+    d_InfoConsumerMembersQuery_stmt.reset();
     d_DeleteDomainQuery_stmt.reset();
     d_DeleteZoneQuery_stmt.reset();
     d_DeleteRRSetQuery_stmt.reset();
@@ -212,6 +216,7 @@ public:
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
   void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
   bool setMasters(const DNSName &domain, const vector<ComboAddress> &masters) override;
@@ -315,6 +320,8 @@ private:
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckOfZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
+  string d_InfoProducerMembersQuery;
+  string d_InfoConsumerMembersQuery;
   string d_DeleteDomainQuery;
   string d_DeleteZoneQuery;
   string d_DeleteRRSetQuery;
@@ -390,6 +397,8 @@ private:
   unique_ptr<SSqlStatement> d_UpdateSerialOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateLastCheckOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfAllMasterDomainsQuery_stmt;
+  unique_ptr<SSqlStatement> d_InfoProducerMembersQuery_stmt;
+  unique_ptr<SSqlStatement> d_InfoConsumerMembersQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteDomainQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteRRSetQuery_stmt;

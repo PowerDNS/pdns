@@ -43,6 +43,7 @@ class DNSPacket;
 #include "dnsrecords.hh"
 #include "iputils.hh"
 #include "sha.hh"
+#include "auth-catalogzone.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -119,8 +120,6 @@ struct DomainInfo
   }
 
 };
-
-typedef map<DNSName, pdns::SHADigest> CatalogHashMap;
 
 struct TSIGKey {
    DNSName name;
@@ -343,6 +342,12 @@ public:
   //! get list of domains that have been changed since their last notification to slaves
   virtual void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
   {
+  }
+
+  //! get list of all members in a catalog
+  virtual bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+  {
+    return false;
   }
 
   //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness

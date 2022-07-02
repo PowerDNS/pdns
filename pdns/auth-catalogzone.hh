@@ -23,7 +23,13 @@
 #pragma once
 
 #include "ext/json11/json11.hpp"
+#include "base32.hh"
 #include "dnsbackend.hh"
+#include "dnssecinfra.hh"
+
+struct DomainInfo;
+
+typedef map<DNSName, pdns::SHADigest> CatalogHashMap;
 
 class CatalogInfo
 {
@@ -42,26 +48,29 @@ public:
   }
 
   CatalogInfo() :
-    d_type(CatalogType::None) {}
-  CatalogInfo(const DNSName& zone, CatalogType type)
+    d_id(0), d_type(CatalogType::None) {}
+  CatalogInfo(uint32_t id, const DNSName& zone, const std::string& options, CatalogType type)
   {
-    this->zone = zone;
-    d_type = type;
+    d_id = id;
+    d_zone = zone;
+    fromJson(options, type);
   }
-
-  void setType(CatalogType type) { d_type = type; }
 
   void fromJson(const std::string& json, CatalogType type);
   std::string toJson() const;
 
   void updateHash(CatalogHashMap& hashes, const DomainInfo& di) const;
+  DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, d_zone))); } // salt with domain id to detect recreated zones
+  static DNSZoneRecord getCatalogVersionRecord(const DNSName& zone);
+  void toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const;
 
   bool operator<(const CatalogInfo& rhs) const
   {
-    return zone < rhs.zone;
+    return d_zone < rhs.d_zone;
   }
 
-  DNSName coo, unique, zone;
+  uint32_t d_id;
+  DNSName d_zone, d_coo, d_unique;
 
 private:
   CatalogType d_type;

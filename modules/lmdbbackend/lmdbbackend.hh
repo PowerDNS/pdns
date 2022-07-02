@@ -89,6 +89,11 @@ public:
   void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 
+  // catalog zones
+  bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
+  bool setOptions(const DNSName& domain, const std::string& options) override;
+  bool setCatalog(const DNSName& domain, const DNSName& options) override;
+
   bool setMasters(const DNSName& domain, const vector<ComboAddress>& masters) override;
   bool setKind(const DNSName& domain, const DomainInfo::DomainKind kind) override;
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
@@ -110,8 +115,6 @@ public:
   }
 
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
-  bool setOptions(const DNSName& domain, const std::string& options) override;
-  bool setCatalog(const DNSName& domain, const DNSName& options) override;
   bool setAccount(const DNSName& domain, const std::string& account) override;
   bool deleteDomain(const DNSName& domain) override;
 
