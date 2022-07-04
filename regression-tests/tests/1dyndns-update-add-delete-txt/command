@@ -3,7 +3,7 @@
 ## add + delete with explicit data
 
 # check all MX records
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # add mx record
 cleannsupdate <<!
@@ -15,7 +15,7 @@ answer
 !
 
 # check if record was really added
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # delete the just added record
 cleannsupdate <<!
@@ -27,7 +27,7 @@ answer
 !
 
 # check if the record was deleted.
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 
 ## add with explicit data (single string), remove whole RRset
@@ -42,7 +42,7 @@ answer
 !
 
 # check if record was really added
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # delete the just added record
 cleannsupdate <<!
@@ -53,7 +53,7 @@ send
 answer
 !
 # check if the record was deleted.
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 ## add with explicit data (single string), remove whole RRset
 
@@ -67,7 +67,7 @@ answer
 !
 
 # check if record was really added
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # delete the just added record
 cleannsupdate <<!
@@ -78,7 +78,7 @@ send
 answer
 !
 # check if the record was deleted.
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 ## add with explicit data (multiple strings, total over 255), remove whole RRset
 
@@ -92,7 +92,7 @@ answer
 !
 
 # check if record was really added
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # delete the just added record
 cleannsupdate <<!
@@ -103,7 +103,7 @@ send
 answer
 !
 # check if the record was deleted.
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 ## add with explicit data (multiple strings, total over 255), remove whole RRset by content
 
@@ -117,7 +117,7 @@ answer
 !
 
 # check if record was really added
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 # delete the just added record
 cleannsupdate <<!
@@ -128,12 +128,12 @@ send
 answer
 !
 # check if the record was deleted.
-cleandig test.dyndns TXT
+cleandig test.dyndns TXT hidesoadetails
 
 ## now remove the overly long entry that was autosplit
 
 # check that it exists now
-cleandig xautosplit.test.dyndns TXT
+cleandig xautosplit.test.dyndns TXT hidesoadetails
 
 # delete it
 cleannsupdate <<!
@@ -145,4 +145,4 @@ answer
 !
 
 # check that it is gone
-cleandig xautosplit.test.dyndns TXT
+cleandig xautosplit.test.dyndns TXT hidesoadetails
