@@ -86,3 +86,6 @@ override_dh_fixperms:
         # these files often contain passwords. 640 as it is chowned to root:_dnsdist
 	touch debian/dnsdist/etc/dnsdist/dnsdist.conf
 	chmod 0640 debian/dnsdist/etc/dnsdist/dnsdist.conf
+
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
