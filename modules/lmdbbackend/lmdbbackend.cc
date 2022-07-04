@@ -1745,7 +1745,7 @@ bool LMDBBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
     keys.push_back(*iter);
   }
-  return false;
+  return !keys.empty();
 }
 
 class LMDBFactory : public BackendFactory
