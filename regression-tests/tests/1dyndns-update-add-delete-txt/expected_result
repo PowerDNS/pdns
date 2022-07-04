@@ -1,4 +1,4 @@
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070126 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 Answer:
@@ -16,7 +16,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070128 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 Answer:
@@ -34,7 +34,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070130 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 Answer:
@@ -52,7 +52,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070132 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 Answer:
@@ -70,7 +70,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070134 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 Answer:
@@ -88,7 +88,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070136 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=TXT
 0	xautosplit.test.dyndns.	IN	TXT	3600	"They fixed up the corner store like it was a nightclub - It's permanently disco - Everyone is dressed so oddly I can't recognize them - I can't tell the staff from the customers - Baby check this out, I've got something to say - Man, it's so loud in here " "- When they stop the drum machine and I can think again - I'll remember what it was"
@@ -100,6 +100,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2022070137 28800 7200 604800 86400
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='xautosplit.test.dyndns.', qtype=TXT
