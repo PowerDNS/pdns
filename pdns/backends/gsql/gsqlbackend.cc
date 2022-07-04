@@ -976,7 +976,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     throw PDNSException("GSQLBackend unable to retrieve TSIG keys: "+e.txtReason());
   }
 
-  return keys.empty();
+  return !keys.empty();
 }
 
 bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
