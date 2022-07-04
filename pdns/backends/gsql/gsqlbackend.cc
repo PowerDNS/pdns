@@ -880,7 +880,7 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   try {
     reconnectIfNeeded();
@@ -891,14 +891,13 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
 
     SSqlStatement::row_t row;
 
-    content->clear();
     while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-key-query", row, 2);
       try{
-        if(algorithm->empty() || *algorithm==DNSName(row[0])) {
-          *algorithm = DNSName(row[0]);
-          *content = row[1];
+        if (algorithm.empty() || algorithm == DNSName(row[0])) {
+          algorithm = DNSName(row[0]);
+          content = row[1];
         }
       } catch (...) {}
     }
@@ -909,7 +908,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     throw PDNSException("GSQLBackend unable to retrieve TSIG key with name '" + name.toLogString() + "': "+e.txtReason());
   }
 
-  return !content->empty();
+  return true;
 }
 
 bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
@@ -976,7 +975,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     throw PDNSException("GSQLBackend unable to retrieve TSIG keys: "+e.txtReason());
   }
 
-  return !keys.empty();
+  return true;
 }
 
 bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)

@@ -814,8 +814,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
-      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
-      if (keyAlgo.empty() || keyContent.empty()) {
+      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
         throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
       }
       metadata.push_back(keyname.toString());
@@ -830,8 +829,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
-      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
-      if (keyAlgo.empty() || keyContent.empty()) {
+      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
         throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
       }
       metadata.push_back(keyname.toString());
@@ -1476,8 +1474,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& z
 static void checkTSIGKey(UeberBackend& B, const DNSName& keyname, const DNSName& algo, const string& content) {
   DNSName algoFromDB;
   string contentFromDB;
-  B.getTSIGKey(keyname, &algoFromDB, &contentFromDB);
-  if (!contentFromDB.empty() || !algoFromDB.empty()) {
+  if (B.getTSIGKey(keyname, algoFromDB, contentFromDB)) {
     throw HttpConflictException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
   }
 
@@ -1556,7 +1553,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName algo;
   string content;
 
-  if (!B.getTSIGKey(keyname, &algo, &content)) {
+  if (!B.getTSIGKey(keyname, algo, content)) {
     throw HttpNotFoundException("TSIG key with name '"+keyname.toLogString()+"' not found");
   }
 

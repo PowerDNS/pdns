@@ -233,8 +233,8 @@ public:
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
   bool publishDomainKey(const DNSName& name, unsigned int id) override;
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
-  
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
+
+  bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;

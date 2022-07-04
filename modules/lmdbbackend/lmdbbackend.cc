@@ -1693,19 +1693,21 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 }
 
 /* TSIG */
-bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   auto txn = d_ttsig->getROTransaction();
+  auto range = txn.equal_range<0>(name);
 
-  TSIGKey tk;
-  if (!txn.get<0>(name, tk))
-    return false;
-  if (algorithm)
-    *algorithm = tk.algorithm;
-  if (content)
-    *content = tk.key;
+  for (auto& iter = range.first; iter != range.second; ++iter) {
+    if (algorithm.empty() || algorithm == DNSName(iter->algorithm)) {
+      algorithm = DNSName(iter->algorithm);
+      content = iter->key;
+    }
+  }
+
   return true;
 }
+
 // this deletes an old key if it has the same algorithm
 bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
@@ -1745,7 +1747,7 @@ bool LMDBBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
     keys.push_back(*iter);
   }
-  return !keys.empty();
+  return true;
 }
 
 class LMDBFactory : public BackendFactory
