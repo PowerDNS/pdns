@@ -2255,7 +2255,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
-                                                                          MemRecursorCache::None, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 0)) {
+                                                                          flags, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 0)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -2776,7 +2776,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
-      g_negCache->getRootNXTrust(qname, d_now, ne) &&
+     g_negCache->getRootNXTrust(qname, d_now, ne, d_serveStale, d_refresh) &&
       ne.d_auth.isRoot() &&
       !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
     sttl = ne.d_ttd - d_now.tv_sec;
@@ -2784,11 +2784,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     res = RCode::NXDomain;
     giveNegative = true;
     cachedState = ne.d_validationState;
-  } else if (g_negCache->get(qname, qtype, d_now, ne)) {
+  } else if (g_negCache->get(qname, qtype, d_now, ne, false, d_serveStale, d_refresh)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
-        g_negCache->get(qname, qtype, d_now, ne, true))
+        g_negCache->get(qname, qtype, d_now, ne, true, d_serveStale, d_refresh))
     {
       /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
          and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
@@ -2815,7 +2815,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     negCacheName.prependRawLabel(labels.back());
     labels.pop_back();
     while(!labels.empty()) {
-      if (g_negCache->get(negCacheName, QType::ENT, d_now, ne, true)) {
+      if (g_negCache->get(negCacheName, QType::ENT, d_now, ne, true, d_serveStale, d_refresh)) {
         if (ne.d_validationState == vState::Indeterminate && validationEnabled()) {
           // LOG(prefix << negCacheName <<  " negatively cached and vState::Indeterminate, trying to validate NXDOMAIN" << endl);
           // ...
@@ -4754,6 +4754,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       }
 
       ne.d_ttd = d_now.tv_sec + lowestTTL;
+      ne.d_orig_ttl = lowestTTL;
       /* if we get an NXDomain answer with a CNAME, let's not cache the
          target, even the server was authoritative for it,
          and do an additional query for the CNAME target.
@@ -4927,6 +4928,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
           if (denialState == dState::NXQTYPE || denialState == dState::OPTOUT || denialState == dState::INSECURE) {
             ne.d_ttd = lowestTTL + d_now.tv_sec;
+            ne.d_orig_ttl = lowestTTL;
             ne.d_validationState = vState::Secure;
             if (denialState == dState::OPTOUT) {
               ne.d_validationState = vState::Insecure;
@@ -4984,7 +4986,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           rec.d_ttl = min(rec.d_ttl, s_maxbogusttl);
         }
         ne.d_ttd = d_now.tv_sec + lowestTTL;
-
+        ne.d_orig_ttl = lowestTTL;
         if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
           g_negCache->add(ne);
         }

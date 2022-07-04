@@ -120,13 +120,13 @@ private:
     ResolveTask,
     indexed_by<
       ordered_unique<tag<HashTag>,
-                    composite_key<ResolveTask,
-                                  member<ResolveTask, DNSName, &ResolveTask::d_qname>,
-                                  member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
-                                  member<ResolveTask, bool, &ResolveTask::d_refreshMode>,
-                                  member<ResolveTask, ResolveTask::TaskFunction, &ResolveTask::d_func>,
-                                  member<ResolveTask, ComboAddress, &ResolveTask::d_ip>,
-                                  member<ResolveTask, Netmask, &ResolveTask::d_netmask>>>,
+                     composite_key<ResolveTask,
+                                   member<ResolveTask, DNSName, &ResolveTask::d_qname>,
+                                   member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
+                                   member<ResolveTask, bool, &ResolveTask::d_refreshMode>,
+                                   member<ResolveTask, ResolveTask::TaskFunction, &ResolveTask::d_func>,
+                                   member<ResolveTask, ComboAddress, &ResolveTask::d_ip>,
+                                   member<ResolveTask, Netmask, &ResolveTask::d_netmask>>>,
       sequenced<tag<SequencedTag>>>>
     queue_t;
 

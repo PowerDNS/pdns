@@ -49,7 +49,7 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache(size_t mapsCount = 1024);
 
-  // The number of times a state cache entry is extended
+  // The number of times a stale cache entry is extended
   static uint16_t s_maxServedStaleExtensions;
   // The time a stale cache entry is extended
   static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
@@ -62,10 +62,10 @@ public:
   typedef boost::optional<std::string> OptTag;
 
   typedef uint8_t Flags;
-  static const Flags None = 0;
-  static const Flags RequireAuth = 1 << 0;
-  static const Flags Refresh = 1 << 1;
-  static const Flags ServeStale = 1 << 2;
+  static constexpr Flags None = 0;
+  static constexpr Flags RequireAuth = 1 << 0;
+  static constexpr Flags Refresh = 1 << 1;
+  static constexpr Flags ServeStale = 1 << 2;
 
   time_t get(time_t, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
 
@@ -93,7 +93,7 @@ private:
     bool isStale(time_t now) const
     {
       // We like to keep things in cache when we (potentially) should serve stale
-      if  (s_maxServedStaleExtensions > 0) {
+      if (s_maxServedStaleExtensions > 0) {
         return d_ttd + s_maxServedStaleExtensions * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
       }
       else {

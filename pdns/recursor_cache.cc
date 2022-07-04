@@ -218,14 +218,12 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
       else {
         /* this netmask-specific entry has expired */
         moveCacheItemToFront<SequencedTag>(map.d_map, entry);
-        // but is is also stale wrt serve-stale?
-        if (entry->isStale(now)) {
-          ecsIndex->removeNetmask(best);
-          if (ecsIndex->isEmpty()) {
-            map.d_ecsIndex.erase(ecsIndex);
-          }
+        // XXX when serving stale, it should be kept, but we don't want a match wth lookupBestMatch()...
+        ecsIndex->removeNetmask(best);
+        if (ecsIndex->isEmpty()) {
+          map.d_ecsIndex.erase(ecsIndex);
+          break;
         }
-        break;
       }
     }
   }
@@ -312,7 +310,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
   bool requireAuth = flags & RequireAuth;
   bool refresh = flags & Refresh;
   bool serveStale = flags & ServeStale;
-  
+
   boost::optional<vState> cachedState{boost::none};
   uint32_t origTTL;
 
@@ -746,7 +744,6 @@ uint64_t MemRecursorCache::doDump(int fd)
 
 void MemRecursorCache::doPrune(size_t keep)
 {
-  //size_t maxCached = d_maxEntries;
   size_t cacheSize = size();
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
 }

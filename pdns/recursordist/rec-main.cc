@@ -1512,6 +1512,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
   SyncRes::s_max_busy_dot_probes = ::arg().asNum("max-busy-dot-probes");
   MemRecursorCache::s_maxServedStaleExtensions = ::arg().asNum("serve-stale-extensions");
+  NegCache::s_maxServedStaleExtensions = ::arg().asNum("serve-stale-extensions");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true, log);
