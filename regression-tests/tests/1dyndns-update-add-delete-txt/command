@@ -1,0 +1,148 @@
+#!/bin/sh -x
+
+## add + delete with explicit data
+
+# check all MX records
+cleandig test.dyndns TXT hidesoadetails
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3000 TXT 30 host-3.test.dyndns
+send
+answer
+!
+
+# check if record was really added
+cleandig test.dyndns TXT hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3000 TXT 30 host-3.test.dyndns
+send
+answer
+!
+
+# check if the record was deleted.
+cleandig test.dyndns TXT hidesoadetails
+
+
+## add with explicit data (single string), remove whole RRset
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3000 TXT "the quick brown fox"
+send
+answer
+!
+
+# check if record was really added
+cleandig test.dyndns TXT hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3000 TXT
+send
+answer
+!
+# check if the record was deleted.
+cleandig test.dyndns TXT hidesoadetails
+
+## add with explicit data (single string), remove whole RRset
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3000 TXT "the quick brown fox" "jumps over the lazy dog"
+send
+answer
+!
+
+# check if record was really added
+cleandig test.dyndns TXT hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3000 TXT
+send
+answer
+!
+# check if the record was deleted.
+cleandig test.dyndns TXT hidesoadetails
+
+## add with explicit data (multiple strings, total over 255), remove whole RRset
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3000 TXT "Now, why the chicken might have done it, I just couldn't say" "But if I'm gonna make it home, this is the only way" "Five lanes of traffic, an embankment, then a stream" "It's like it’s some kind of amphibianic fever dream" "The total lack of law enforcement on this road's a crime" "I'd write a letter, but I simply haven't got the time"
+send
+answer
+!
+
+# check if record was really added
+cleandig test.dyndns TXT hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3000 TXT
+send
+answer
+!
+# check if the record was deleted.
+cleandig test.dyndns TXT hidesoadetails
+
+## add with explicit data (multiple strings, total over 255), remove whole RRset by content
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3000 TXT "Now, why the chicken might have done it, I just couldn't say" "But if I'm gonna make it home, this is the only way" "Five lanes of traffic, an embankment, then a stream" "It's like it’s some kind of amphibianic fever dream" "The total lack of law enforcement on this road's a crime" "I'd write a letter, but I simply haven't got the time"
+send
+answer
+!
+
+# check if record was really added
+cleandig test.dyndns TXT hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3000 TXT
+send
+answer
+!
+# check if the record was deleted.
+cleandig test.dyndns TXT hidesoadetails
+
+## now remove the overly long entry that was autosplit
+
+# check that it exists now
+cleandig xautosplit.test.dyndns TXT hidesoadetails
+
+# delete it
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete xautosplit.test.dyndns. TXT "They fixed up the corner store like it was a nightclub - It's permanently disco - Everyone is dressed so oddly I can't recognize them - I can't tell the staff from the customers - Baby check this out, I've got something to say - Man, it's so loud in here " "- When they stop the drum machine and I can think again - I'll remember what it was"
+send
+answer
+!
+
+# check that it is gone
+cleandig xautosplit.test.dyndns TXT hidesoadetails
