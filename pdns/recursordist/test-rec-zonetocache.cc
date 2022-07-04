@@ -81,7 +81,6 @@ static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns
   RecZoneToCache::ZoneToCache(config, state);
   unlink(temp);
 
-  g_recCache->doDump(2);
   BOOST_CHECK_EQUAL(g_recCache->size(), expectedCacheSize);
 
   if (expectedCacheSize > 0) {
@@ -100,6 +99,8 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  g_log.setLoglevel(Logger::Critical);
+  g_log.toConsole(Logger::Critical);
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   zonemdTest(zone, pdns::ZoneMD::Config::Ignore, pdns::ZoneMD::Config::Ignore, 17U);
