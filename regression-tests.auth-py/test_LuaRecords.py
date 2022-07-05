@@ -146,6 +146,8 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
 
 newcafromraw     IN    LUA    A    "newCAFromRaw('ABCD'):toString()"
 newcafromraw     IN    LUA    AAAA "newCAFromRaw('ABCD020340506070'):toString()"
+
+counter          IN    LUA    TXT  ";counter = counter or 0 counter=counter+1 return tostring(counter)"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -935,6 +937,30 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
                 self.assertEqual(res.answer, response.answer)
 
+    def _getCounter(self):
+        """
+        Helper function for shared/non-shared testing
+        """
+        name = 'counter.example.org.'
+
+        query = dns.message.make_query(name, 'TXT')
+        responses = []
+
+        for i in range(50):
+            res = self.sendUDPQuery(query)
+            responses.append(res.answer[0][0])
+
+        return(responses)
+
+    def testCounter(self):
+        """
+        Test non-shared behaviour
+        """
+
+        res = set(self._getCounter())
+
+        self.assertEqual(len(res), 1)
+
 class TestLuaRecordsShared(TestLuaRecords):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
@@ -944,6 +970,15 @@ any-to-tcp=no
 enable-lua-records=shared
 lua-health-checks-interval=1
 """
+
+    def testCounter(self):
+        """
+        Test shared behaviour
+        """
+
+        res = set(self._getCounter())
+
+        self.assertEqual(len(res), 50)
 
 if __name__ == '__main__':
     unittest.main()
