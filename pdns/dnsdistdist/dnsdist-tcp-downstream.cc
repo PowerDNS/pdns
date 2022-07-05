@@ -76,6 +76,12 @@ bool ConnectionToBackend::reconnect()
       auto socket = std::make_unique<Socket>(d_ds->d_config.remote.sin4.sin_family, SOCK_STREAM, 0);
       DEBUGLOG("result of socket() is "<<socket->getHandle());
 
+      /* disable NAGLE, which does not play nicely with delayed ACKs.
+         In theory we could be wasting up to 500 milliseconds waiting for
+         the other end to acknowledge our initial packet before we could
+         send the rest. */
+      setTCPNoDelay(socket->getHandle());
+
 #ifdef SO_BINDTODEVICE
       if (!d_ds->d_config.sourceItfName.empty()) {
         int res = setsockopt(socket->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
