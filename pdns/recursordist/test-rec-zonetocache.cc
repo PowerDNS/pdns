@@ -99,6 +99,8 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  g_log.setLoglevel(Logger::Critical);
+  g_log.toConsole(Logger::Critical);
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   zonemdTest(zone, pdns::ZoneMD::Config::Ignore, pdns::ZoneMD::Config::Ignore, 17U);
@@ -116,4 +118,59 @@ BOOST_AUTO_TEST_CASE(test_zonetocache)
   zonemdTest(zoneWithBadZONEMD, pdns::ZoneMD::Config::Require, pdns::ZoneMD::Config::Ignore, 0U);
   zonemdTest(zoneWithBadZONEMD, pdns::ZoneMD::Config::Ignore, pdns::ZoneMD::Config::Require, 0U);
 }
+
+// Example from https://github.com/verisign/zonemd-test-cases/blob/master/zones/20-generic-zonemd/example.zone
+const std::string genericTest = "example.	86400	IN	NS	ns.example.\n"
+                                "example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
+                                "example.	86400	IN	TYPE63  \\# 54 7848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
+                                "ns.example.	3600	IN	A	127.0.0.1\n";
+
+const std::string genericBadTest = "example.	86400	IN	NS	ns.example.\n"
+                                   "example.	86400	IN	SOA	ns.example. admin.example. 2018031900 1800 900 604800 86400\n"
+                                   "example.	86400	IN	TYPE63  \\# 54 8848b91c01018ee54f64ce0d57fd70e1a4811a9ca9e849e2e50cb598edf3ba9c2a58625335c1f966835f0d4338d9f78f557227d63bf6\n"
+                                   "ns.example.	3600	IN	A	127.0.0.1\n";
+
+static void zonemdGenericTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns::ZoneMD::Config dnssec, size_t expectedCacheSize)
+{
+  char temp[] = "/tmp/ztcXXXXXXXXXX";
+  int fd = mkstemp(temp);
+  BOOST_REQUIRE(fd > 0);
+  FILE* fp = fdopen(fd, "w");
+  BOOST_REQUIRE(fp != nullptr);
+  size_t written = fwrite(lines.data(), 1, lines.length(), fp);
+  BOOST_REQUIRE(written == lines.length());
+  BOOST_REQUIRE(fclose(fp) == 0);
+
+  RecZoneToCache::Config config{"example.", "file", {temp}, ComboAddress(), TSIGTriplet()};
+  config.d_refreshPeriod = 0;
+  config.d_retryOnError = 0;
+  config.d_zonemd = mode;
+  config.d_dnssec = dnssec;
+
+  // Start with a new, empty cache
+  g_recCache = std::make_unique<MemRecursorCache>();
+  BOOST_CHECK_EQUAL(g_recCache->size(), 0U);
+  RecZoneToCache::State state;
+  RecZoneToCache::ZoneToCache(config, state);
+  unlink(temp);
+
+  BOOST_CHECK_EQUAL(g_recCache->size(), expectedCacheSize);
+
+  if (expectedCacheSize > 0) {
+    std::vector<DNSRecord> retrieved;
+    time_t now = time(nullptr);
+    ComboAddress who;
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("example."), QType::SOA, true, &retrieved, who), 0);
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("example."), QType::NS, true, &retrieved, who), 0);
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("example."), QType::ZONEMD, true, &retrieved, who), 0);
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("ns.example."), QType::A, true, &retrieved, who), 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_zonetocachegeneric)
+{
+  zonemdGenericTest(genericTest, pdns::ZoneMD::Config::Require, pdns::ZoneMD::Config::Ignore, 4U);
+  zonemdGenericTest(genericBadTest, pdns::ZoneMD::Config::Require, pdns::ZoneMD::Config::Ignore, 0U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
