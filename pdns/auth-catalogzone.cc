@@ -60,6 +60,16 @@ void CatalogInfo::fromJson(const std::string& json, CatalogType type)
           throw std::out_of_range("Key 'unique' is not a string");
         }
       }
+      if (!items["group"].is_null()) {
+        if (items["group"].is_array()) {
+          for (const auto& value : items["group"].array_items()) {
+            d_group.insert(value.string_value());
+          }
+        }
+        else {
+          throw std::out_of_range("Key 'group' is not an array");
+        }
+      }
     }
   }
   else {
@@ -78,6 +88,13 @@ std::string CatalogInfo::toJson() const
   }
   if (!d_unique.empty()) {
     object["unique"] = d_unique.toString();
+  }
+  if (!d_group.empty()) {
+    json11::Json::array entries;
+    for (const string& group : d_group) {
+      entries.push_back(group);
+    }
+    object["group"] = entries;
   }
   auto tmp = d_doc.object_items();
   tmp[getTypeString(d_type)] = object;
@@ -123,6 +140,14 @@ void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& d
     dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::PTR;
     dzr.dr.d_content = std::make_shared<PTRRecordContent>(d_coo);
+    dzrs.emplace_back(dzr);
+  }
+
+  for (const auto& group : d_group) {
+    dzr.dr.d_name = DNSName("group") + prefix;
+    dzr.dr.d_ttl = 0;
+    dzr.dr.d_type = QType::TXT;
+    dzr.dr.d_content = std::make_shared<TXTRecordContent>("\"" + group + "\"");
     dzrs.emplace_back(dzr);
   }
 }

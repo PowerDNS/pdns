@@ -41,7 +41,8 @@ __EOF__
 			$PDNSUTIL --config-dir=. --config-name=gmysql load-zone catalog.invalid zones/catalog.invalid
 			$PDNSUTIL --config-dir=. --config-name=gmysql set-kind catalog.invalid producer
 
-			$PDNSUTIL --config-dir=. --config-name=gmysql set-options test.com '{"producer": {"coo": "other-catalog.invalid","unique": "123"}}'
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-options test.com '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-options tsig.com '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
 		fi
 
 		gsql_master gmysql dyndns

@@ -71,6 +71,7 @@ public:
 
   uint32_t d_id;
   DNSName d_zone, d_coo, d_unique;
+  std::set<std::string> d_group;
 
 private:
   CatalogType d_type;
