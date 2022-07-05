@@ -10,6 +10,8 @@ from authtests import AuthTest
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+webserver = None
+
 class FakeHTTPServer(BaseHTTPRequestHandler):
     def _set_headers(self, response_code=200):
         self.send_response(response_code)
@@ -157,6 +159,9 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
 
     @classmethod
     def startResponders(cls):
+        global webserver
+        if webserver: return  # it is already running
+
         webserver = threading.Thread(name='HTTP Listener',
                                      target=cls.HTTPResponder,
                                      args=[8080]
@@ -930,6 +935,15 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
                 self.assertEqual(res.answer, response.answer)
 
+class TestLuaRecordsShared(TestLuaRecords):
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+enable-lua-records=shared
+lua-health-checks-interval=1
+"""
 
 if __name__ == '__main__':
     unittest.main()
