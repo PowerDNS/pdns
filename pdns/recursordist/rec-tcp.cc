@@ -654,6 +654,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     }
 
     setNonBlocking(newsock);
+    setTCPNoDelay(newsock);
     std::shared_ptr<TCPConnection> tc = std::make_shared<TCPConnection>(newsock, addr);
     tc->d_source = addr;
     tc->d_destination.reset();
