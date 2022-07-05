@@ -40,6 +40,8 @@ geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
 launch=bind geoip
 any-to-tcp=no
+enable-lua-records
+lua-health-checks-interval=1
 """
 
     _zones = {
