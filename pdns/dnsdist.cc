@@ -2617,11 +2617,19 @@ int main(int argc, char** argv)
     uid_t newgid=getegid();
     gid_t newuid=geteuid();
 
-    if(!g_cmdLine.gid.empty())
+    if (!g_cmdLine.gid.empty()) {
       newgid = strToGID(g_cmdLine.gid.c_str());
+    }
 
-    if(!g_cmdLine.uid.empty())
+    if (!g_cmdLine.uid.empty()) {
       newuid = strToUID(g_cmdLine.uid.c_str());
+    }
+
+    bool retainedCapabilities = true;
+    if (!g_capabilitiesToRetain.empty() &&
+        (getegid() != newgid || geteuid() != newuid)) {
+      retainedCapabilities = keepCapabilitiesAfterSwitchingIDs();
+    }
 
     if (getegid() != newgid) {
       if (running_in_service_mgr()) {
@@ -2637,6 +2645,10 @@ int main(int argc, char** argv)
         _exit(EXIT_FAILURE);
       }
       dropUserPrivs(newuid);
+    }
+
+    if (retainedCapabilities) {
+      dropCapabilitiesAfterSwitchingIDs();
     }
 
     try {

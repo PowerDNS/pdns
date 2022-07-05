@@ -27,12 +27,13 @@
 
 #ifdef HAVE_LIBCAP
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #endif
 
 #include "capabilities.hh"
 #include "misc.hh"
 
-void dropCapabilities(std::set<std::string> capabilitiesToKeep)
+bool dropCapabilities(std::set<std::string> capabilitiesToKeep)
 {
 #ifdef HAVE_LIBCAP
    cap_t caps = cap_get_proc();
@@ -66,10 +67,43 @@ void dropCapabilities(std::set<std::string> capabilitiesToKeep)
 
      if (cap_set_proc(caps) != 0) {
        cap_free(caps);
+       if (errno == EPERM) {
+         return false;
+       }
        throw std::runtime_error("Unable to drop capabilities: " + stringerror());
      }
 
      cap_free(caps);
+     return true;
    }
+#endif /* HAVE_LIBCAP */
+   return false;
+}
+
+bool dropCapabilitiesAfterSwitchingIDs()
+{
+#ifdef HAVE_LIBCAP
+#ifdef PR_SET_KEEPCAPS
+  if (prctl(PR_SET_KEEPCAPS, 0, 0, 0, 0) == 0) {
+    return true;
+  }
+#endif /* PR_SET_KEEPCAPS */
+  return false;
+#else
+  return false;
+#endif /* HAVE_LIBCAP */
+}
+
+bool keepCapabilitiesAfterSwitchingIDs()
+{
+#ifdef HAVE_LIBCAP
+#ifdef PR_SET_KEEPCAPS
+  if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) == 0) {
+    return true;
+  }
+#endif /* PR_SET_KEEPCAPS */
+  return false;
+#else
+  return false;
 #endif /* HAVE_LIBCAP */
 }
