@@ -679,8 +679,12 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     id = txn.get<0>(domain, di);
   }
 
-  if (!d_rwtxn || d_transactiondomainid != id) {
-    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a proper transaction");
+  if (!d_rwtxn) {
+    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
+  }
+  if (d_transactiondomainid != id) {
+    commitTransaction();
+    startTransaction(domain);
   }
 
   { // Remove metadata
@@ -1128,6 +1132,7 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     CatalogInfo ci;
     ci.d_id = iter->id;
     ci.d_zone = iter->zone;
+    ci.d_primaries = iter->masters;
     try {
       ci.fromJson(iter->options, type);
     }

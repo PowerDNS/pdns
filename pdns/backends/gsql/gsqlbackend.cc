@@ -628,7 +628,7 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     }
     else if (type == CatalogInfo::CatalogType::Consumer) {
       // clang-format off
-      d_InfoProducerMembersQuery_stmt->
+      d_InfoConsumerMembersQuery_stmt->
         bind("catalog", catalog)->
         execute()->
         getResult(d_result)->
@@ -643,8 +643,13 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of member zones: " + e.txtReason());
   }
 
-  for (const auto& row : d_result) { // id, zone, options
-    ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 3);
+  for (const auto& row : d_result) { // id, zone, options, [master]
+    if (type == CatalogInfo::CatalogType::Producer) {
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 3);
+    }
+    else {
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 4);
+    }
 
     CatalogInfo ci;
 
@@ -678,6 +683,21 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[2] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl;
       members.clear();
       return false;
+    }
+
+    if (row.size() >= 4) { // Consumer only
+      vector<string> masters;
+      stringtok(masters, row[3], ", \t");
+      for (const auto& m : masters) {
+        try {
+          ci.d_primaries.emplace_back(m, 53);
+        }
+        catch (const PDNSException& e) {
+          g_log << Logger::Warning << "Could not parse master address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
+          members.clear();
+          return false;
+        }
+      }
     }
 
     members.emplace_back(ci);

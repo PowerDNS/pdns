@@ -126,8 +126,8 @@ public:
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
     declare(suffix, "info-all-master-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
-    declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.catalog:catalog and records.type='SOA' and records.disabled=0");
-    declare(suffix, "info-consumer-members-query", "", "select domains.id, domains.name, domains.options from domains left join records ON records.domain_id=domains.id and records.type='SOA' and records.name=domains.name where domains.catalog:catalog'");
+    declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog:catalog and records.type='SOA' and records.disabled=0");
+    declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog:catalog");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=:domain");
     declare(suffix, "delete-zone-query", "", "delete from records where domain_id=:domain_id");
     declare(suffix, "delete-rrset-query", "", "delete from records where domain_id=:domain_id and name=:qname and type=:qtype");

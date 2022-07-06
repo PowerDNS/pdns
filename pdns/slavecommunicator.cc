@@ -86,6 +86,311 @@ struct ZoneStatus
   int numDeltas{0};
 };
 
+static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
+{
+  extern CommunicatorClass Communicator;
+
+  bool doTransaction{true};
+  bool inTransaction{false};
+  bool doOptions{false};
+  CatalogInfo ciCreate, ciRemove;
+  vector<CatalogInfo> retrieve;
+
+  try {
+    sort(fromXFR.begin(), fromXFR.end());
+    sort(fromDB.begin(), fromDB.end());
+
+    auto xfr = fromXFR.cbegin();
+    auto db = fromDB.cbegin();
+
+    while (xfr != fromXFR.end() || db != fromDB.end()) {
+      bool create{false};
+      bool remove{false};
+
+      if ((xfr != fromXFR.end() && db == fromDB.end()) || *xfr < *db) { // create
+        ciCreate = *xfr;
+        create = true;
+        ++xfr;
+      }
+      else if ((db != fromDB.end() && xfr == fromXFR.end()) || *db < *xfr) { // remove
+        ciRemove = *db;
+        remove = true;
+        ++db;
+      }
+      else {
+        CatalogInfo ciXFR = *xfr;
+        CatalogInfo ciDB = *db;
+        if (ciXFR.d_unique == ciDB.d_unique) { // update
+
+          if (ciXFR.d_coo != ciDB.d_coo) { // update coo
+            g_log << Logger::Warning << logPrefix << "update coo for zone '" << ciXFR.d_zone << "' to '" << ciXFR.d_coo << "'" << endl;
+            ciDB.d_coo = ciXFR.d_coo;
+            doOptions = true;
+          }
+
+          if (ciXFR.d_group != ciDB.d_group) { // update group
+            g_log << Logger::Warning << logPrefix << "update group for zone '" << ciXFR.d_zone << "' to '" << boost::join(ciXFR.d_group, ", ") << "'" << endl;
+            ciDB.d_group = ciXFR.d_group;
+            doOptions = true;
+          }
+
+          if (doOptions) { // update zone options
+            if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
+              g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
+              doTransaction = false;
+            }
+
+            g_log << Logger::Warning << logPrefix << "update options for zone '" << ciXFR.d_zone << "'" << endl;
+            di.backend->setOptions(ciXFR.d_zone, ciDB.toJson());
+          }
+
+          if (di.masters != ciDB.d_primaries) { // update primaries
+            if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
+              g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
+              doTransaction = false;
+            }
+
+            vector<string> primaries;
+            for (const auto& primary : di.masters) {
+              primaries.push_back(primary.toStringWithPortExcept(53));
+            }
+            g_log << Logger::Warning << logPrefix << "update primaries for zone '" << ciXFR.d_zone << "' to '" << boost::join(primaries, ", ") << "'" << endl;
+            di.backend->setMasters(ciXFR.d_zone, di.masters);
+
+            retrieve.emplace_back(ciXFR);
+          }
+        }
+        else { // reset
+          ciCreate = *xfr;
+          ciRemove = *db;
+          create = true;
+          remove = true;
+        }
+        ++xfr;
+        ++db;
+      }
+
+      DomainInfo d;
+      if (create && remove) {
+        g_log << Logger::Warning << logPrefix << "zone '" << ciCreate.d_zone << "' state reset" << endl;
+      }
+      else if (create && di.backend->getDomainInfo(ciCreate.d_zone, d)) { // detect clash
+        CatalogInfo ci;
+        ci.fromJson(d.options, CatalogInfo::CatalogType::Consumer);
+
+        if (di.zone != d.catalog && di.zone == ci.d_coo) {
+          if (ciCreate.d_unique == ci.d_unique) {
+            g_log << Logger::Warning << logPrefix << "zone '" << d.zone << "' owner change without state reset, old catalog '" << d.catalog << "', new catalog '" << di.zone << "'" << endl;
+
+            if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
+              g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
+              doTransaction = false;
+            }
+
+            di.backend->setMasters(ciCreate.d_zone, di.masters);
+            di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
+            di.backend->setCatalog(ciCreate.d_zone, di.zone);
+
+            retrieve.emplace_back(ciCreate);
+            continue;
+          }
+          g_log << Logger::Warning << logPrefix << "zone '" << d.zone << "' owner change with state reset, old catalog '" << d.catalog << "', new catalog '" << di.zone << "'" << endl;
+
+          ciRemove.d_zone = d.zone;
+          remove = true;
+        }
+        else {
+          g_log << Logger::Warning << logPrefix << "zone '" << d.zone << "' already exists";
+          if (!d.catalog.empty()) {
+            g_log << " in catalog '" << d.catalog;
+          }
+          g_log << "', create skipped" << endl;
+          continue;
+        }
+      }
+
+      if (remove) { // delete zone
+        if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
+          g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
+          doTransaction = false;
+        }
+
+        g_log << Logger::Warning << logPrefix << "delete zone '" << ciRemove.d_zone << "'" << endl;
+        di.backend->deleteDomain(ciRemove.d_zone);
+
+        if (g_zoneCache.isEnabled()) {
+          g_zoneCache.remove(ciRemove.d_zone);
+        }
+      }
+
+      if (create) { // create zone
+        if (doTransaction && (inTransaction = di.backend->startTransaction(ciCreate.d_zone))) {
+          g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
+          doTransaction = false;
+        }
+
+        g_log << Logger::Warning << logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl;
+        di.backend->createDomain(ciCreate.d_zone, DomainInfo::Slave, ciCreate.d_primaries, "");
+
+        di.backend->setMasters(ciCreate.d_zone, di.masters);
+        di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
+        di.backend->setCatalog(ciCreate.d_zone, di.zone);
+
+        retrieve.emplace_back(ciCreate);
+
+        if (g_zoneCache.isEnabled()) {
+          if (di.backend->getDomainInfo(ciCreate.d_zone, d)) {
+            g_zoneCache.add(ciCreate.d_zone, d.id);
+          }
+          else {
+            g_log << Logger::Error << logPrefix << "new zone '" << ciCreate.d_zone << "' does not exists and was not inserted in the zone-cache" << endl;
+          }
+        }
+      }
+    }
+
+    if (inTransaction && di.backend->commitTransaction()) {
+      g_log << Logger::Warning << logPrefix << "backend transaction committed" << endl;
+    }
+
+    // retrieve new and updated zones with new primaries
+    auto masters = di.masters;
+    if (!masters.empty()) {
+      for (auto& ret : retrieve) {
+        shuffle(masters.begin(), masters.end(), pdns::dns_random_engine());
+        const auto& master = masters.front();
+        Communicator.addSuckRequest(ret.d_zone, master, SuckRequest::Notify);
+      }
+    }
+
+    return true;
+  }
+  catch (DBException& re) {
+    g_log << Logger::Error << logPrefix << "DBException " << re.reason << endl;
+  }
+  catch (PDNSException& pe) {
+    g_log << Logger::Error << logPrefix << "PDNSException " << pe.reason << endl;
+  }
+  catch (std::exception& re) {
+    g_log << Logger::Error << logPrefix << "std::exception " << re.what() << endl;
+  }
+
+  if (di.backend && inTransaction) {
+    g_log << Logger::Info << logPrefix << "aborting possible open transaction" << endl;
+    di.backend->abortTransaction();
+  }
+
+  return false;
+}
+
+static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs, string logPrefix)
+{
+  logPrefix += "Catalog-Zone ";
+
+  vector<CatalogInfo> fromXFR, fromDB;
+  std::unordered_set<DNSName> dupcheck;
+
+  // From XFR
+  bool hasSOA{false};
+  bool hasVersion{false};
+  bool zoneInvalid{false};
+
+  CatalogInfo ci;
+
+  vector<DNSResourceRecord> ret;
+
+  const auto compare = [](const DNSResourceRecord& a, const DNSResourceRecord& b) { return a.qname == b.qname ? a.qtype < b.qtype : a.qname.canonCompare(b.qname); };
+  sort(rrs.begin(), rrs.end(), compare);
+
+  DNSName rel;
+  DNSName unique;
+  for (auto& rr : rrs) {
+    if (di.zone == rr.qname) {
+      if (rr.qtype == QType::SOA) {
+        hasSOA = true;
+        continue;
+      }
+    }
+
+    else if (rr.qname == DNSName("version") + di.zone && rr.qtype == QType::TXT) {
+      if (rr.content == "\"2\"") {
+        hasVersion = true;
+        continue;
+      }
+      else {
+        g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', unsupported catalog zone schema version " << rr.content << ", aborting" << endl;
+        return false;
+      }
+    }
+
+    else if (rr.qname.isPartOf(DNSName("zones") + di.zone)) {
+      if (rel.empty() && !hasVersion) {
+        g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', catalog zone schema version missing, aborting" << endl;
+        return false;
+      }
+
+      rel = rr.qname.makeRelative(DNSName("zones") + di.zone);
+
+      if (rel.countLabels() == 1 && rr.qtype == QType::PTR) {
+        if (!unique.empty()) {
+          if (rel != unique) {
+            fromXFR.emplace_back(ci);
+          }
+          else {
+            g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate unique '" << unique << "'" << endl;
+            zoneInvalid = true;
+          }
+        }
+
+        unique = rel;
+
+        ci = {};
+        ci.setType(CatalogInfo::CatalogType::Consumer);
+        ci.d_zone = DNSName(rr.content);
+        ci.d_unique = unique;
+
+        if (!dupcheck.insert(ci.d_zone).second) {
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate member zone'" << ci.d_zone << "'" << endl;
+          zoneInvalid = true;
+        }
+      }
+
+      else if (rel == (DNSName("coo") + unique) && rr.qtype == QType::PTR) {
+        if (!ci.d_coo.empty()) {
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate COO for unique '" << unique << "'" << endl;
+          zoneInvalid = true;
+        }
+        else {
+          ci.d_coo = DNSName(rr.content);
+        }
+      }
+      else if (rel == (DNSName("group") + unique) && rr.qtype == QType::TXT) {
+        std::string content = rr.content;
+        if (content.length() >= 2 && content.at(0) == '\"' && content.at(content.length() - 1) == '\"') { // TXT pain
+          content = content.substr(1, content.length() - 2);
+        }
+        ci.d_group.insert(content);
+      }
+    }
+    rr.disabled = true;
+  }
+  if (!ci.d_zone.empty()) {
+    fromXFR.emplace_back(ci);
+  }
+
+  if (!hasSOA || !hasVersion || zoneInvalid) {
+    g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "' is invalid, skip updates" << endl;
+    return false;
+  }
+
+  // Get catalog ifo from db
+  if (!di.backend->getCatalogMembers(di.zone, fromDB, CatalogInfo::CatalogType::Consumer)) {
+    return false;
+  }
+
+  // Process
+  return catalogDiff(di, fromXFR, fromDB, logPrefix);
+}
 
 void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl,
                                  ZoneStatus& zs, vector<DNSRecord>* axfr)
@@ -327,9 +632,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
     bool wrongDomainKind = false;
     // this checks three error conditions & sets wrongDomainKind if we hit the third
-    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
+    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && !di.isSecondaryType())) { // di.backend and B are mostly identical
       if(wrongDomainKind)
-        g_log<<Logger::Warning<<logPrefix<<"can't determine backend, not configured as slave"<<endl;
+        g_log << Logger::Warning << logPrefix << "can't determine backend, not configured as secondary" << endl;
       else
         g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
       return;
@@ -452,6 +757,12 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       rrs = doAxfr(remote, domain, tt, laddr, pdl, zs);
       logPrefix = "A" + logPrefix; // XFR -> AXFR
       g_log<<Logger::Notice<<logPrefix<<"retrieval finished"<<endl;
+    }
+
+    if (di.kind == DomainInfo::Consumer) {
+      if (!catalogProcess(di, rrs, logPrefix)) {
+        g_log << Logger::Warning << logPrefix << "Catalog-Zone update failed, only import records" << endl;
+      }
     }
 
     if(zs.isNSEC3) {
