@@ -1169,6 +1169,9 @@ The following actions exist.
 
   .. versionadded:: 1.6.0
 
+  .. versionchanged:: 1.8.0
+    Added the ``soaInAuthoritySection`` option.
+
   Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
   Note that this function was called :func:`SetNegativeAndSOAAction` before 1.6.0.
 
@@ -1189,6 +1192,7 @@ The following actions exist.
   * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``soaInAuthoritySection``: bool - Place the SOA record in the authority section for a complete NXDOMAIN/NODATA response that works as a cacheable negative response, rather than the RPZ-style response with a purely informational SOA in the additional section. Default is false (SOA in additional section).
 
 .. function:: NoneAction()
 
