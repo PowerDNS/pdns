@@ -27,6 +27,7 @@
 #include "dnsparser.hh"
 #include "dolog.hh"
 #include "sstuff.hh"
+#include "threadname.hh"
 
 namespace dnsdist
 {
@@ -497,6 +498,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
 void ServiceDiscovery::worker()
 {
+  setThreadName("dnsdist/discove");
   while (true) {
     time_t now = time(nullptr);
 
