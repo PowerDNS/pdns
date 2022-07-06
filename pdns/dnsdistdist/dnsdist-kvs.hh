@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#ifdef DNSDIST
+
 #include "dnsdist.hh"
 
 class KeyValueLookupKey
@@ -143,6 +145,13 @@ public:
 private:
   std::string d_tag;
 };
+
+#else
+#include "namespaces.hh"
+#include "config.h"
+#include "lock.hh"
+#endif // DNSDIST
+
 
 class KeyValueStore
 {
