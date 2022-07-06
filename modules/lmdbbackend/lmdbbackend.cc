@@ -673,6 +673,28 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
   doms.commit();
 
+  {
+    auto md_txn = d_tmeta->getRWTransaction();
+    auto range = md_txn.equal_range<0>(domain);
+
+    for (auto& iter = range.first; iter != range.second; ++iter) {
+      iter.del();
+    }
+
+    md_txn.commit();
+  }
+
+  {
+    auto ck_txn = d_tkdb->getRWTransaction();
+    auto range = ck_txn.equal_range<0>(domain);
+
+    for (auto& iter = range.first; iter != range.second; ++iter) {
+      iter.del();
+    }
+
+    ck_txn.commit();
+  }
+
   return true;
 }
 
