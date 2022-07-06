@@ -6,6 +6,8 @@ GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 
+#ifndef DISABLE_DYNBLOCKS
+
 void DynBlockRulesGroup::apply(const struct timespec& now)
 {
   counts_t counts;
@@ -754,3 +756,4 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
 {
   return s_tops.lock()->topSMTsByReason;
 }
+#endif /* DISABLE_DYNBLOCKS */

@@ -937,6 +937,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     }
   }
 
+#ifndef DISABLE_DYNBLOCKS
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
   if (auto got = holders.dynNMGBlock->lookup(AddressAndPortRange(*dq.remote, dq.remote->isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
@@ -1055,6 +1056,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       }
     }
   }
+#endif /* DISABLE_DYNBLOCKS */
 
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
@@ -1874,12 +1876,14 @@ static void maintThread()
   }
 }
 
+#ifndef DISABLE_DYNBLOCKS
 static void dynBlockMaintenanceThread()
 {
   setThreadName("dnsdist/dynBloc");
 
   DynBlockMaintenance::run();
 }
+#endif
 
 #ifndef DISABLE_SECPOLL
 static void secPollThread()
@@ -2757,8 +2761,10 @@ int main(int argc, char** argv)
 
     thread healththread(healthChecksThread);
 
+#ifndef DISABLE_DYNBLOCKS
     thread dynBlockMaintThread(dynBlockMaintenanceThread);
     dynBlockMaintThread.detach();
+#endif /* DISABLE_DYNBLOCKS */
 
 #ifndef DISABLE_SECPOLL
     if (!g_secPollSuffix.empty()) {

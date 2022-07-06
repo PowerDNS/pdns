@@ -94,6 +94,7 @@ static LuaArray<std::vector<boost::variant<string,double>>> getGenResponses(uint
 }
 #endif /* DISABLE_TOP_N_BINDINGS */
 
+#ifndef DISABLE_DYNBLOCKS
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
 
 typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
@@ -241,6 +242,7 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 }
 
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
+#endif /* DISABLE_DYNBLOCKS */
 
 void setupLuaInspection(LuaContext& luaCtx)
 {
@@ -736,6 +738,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     });
 
+#ifndef DISABLE_DYNBLOCKS
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
   luaCtx.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
@@ -882,4 +885,5 @@ void setupLuaInspection(LuaContext& luaCtx)
   });
   luaCtx.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
   luaCtx.registerFunction("toString", &DynBlockRulesGroup::toString);
+#endif /* DISABLE_DYNBLOCKS */
 }

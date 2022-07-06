@@ -11,6 +11,8 @@
 Rings g_rings;
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
+#ifndef DISABLE_DYNBLOCKS
+
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
@@ -1504,3 +1506,4 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTreePort) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+#endif /* DISABLE_DYNBLOCKS */

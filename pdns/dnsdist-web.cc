@@ -837,6 +837,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   addRulesToPrometheusOutput(output, g_cachehitrespruleactions);
   addRulesToPrometheusOutput(output, g_selfansweredrespruleactions);
 
+#ifndef DISABLE_DYNBLOCKS
   output << "# HELP dnsdist_dynblocks_nmg_top_offenders_hits_per_second " << "Number of hits per second blocked by Dynamic Blocks (netmasks) for the top offenders, averaged over the last 60s" << "\n";
   output << "# TYPE dnsdist_dynblocks_nmg_top_offenders_hits_per_second " << "gauge" << "\n";
   auto topNetmasksByReason = DynBlockMaintenance::getHitsForTopNetmasks();
@@ -854,6 +855,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << "dnsdist_dynblocks_smt_top_offenders_hits_per_second{reason=\"" << entry.first << "\",suffix=\"" << suffix.first.toString() << "\"} " << suffix.second << "\n";
     }
   }
+#endif /* DISABLE_DYNBLOCKS */
 
   output << "# HELP dnsdist_info " << "Info from dnsdist, value is always 1" << "\n";
   output << "# TYPE dnsdist_info " << "gauge" << "\n";
@@ -914,6 +916,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
   else if (command == "dynblocklist") {
     Json::object obj;
+#ifndef DISABLE_DYNBLOCKS
     auto nmg = g_dynblockNMG.getLocal();
     struct timespec now;
     gettime(&now);
@@ -945,7 +948,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         obj.insert({dom, thing});
       }
     });
-
+#endif /* DISABLE_DYNBLOCKS */
     Json my_json = obj;
     resp.body = my_json.dump();
     resp.headers["Content-Type"] = "application/json";
