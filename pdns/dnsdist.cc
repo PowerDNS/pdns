@@ -207,6 +207,7 @@ static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qn
   }
 }
 
+#ifndef DISABLE_DELAY_PIPE
 struct DelayedPacket
 {
   int fd;
@@ -223,7 +224,8 @@ struct DelayedPacket
   }
 };
 
-DelayPipe<DelayedPacket>* g_delay = nullptr;
+static DelayPipe<DelayedPacket>* g_delay = nullptr;
+#endif /* DISABLE_DELAY_PIPE */
 
 std::string DNSQuestion::getTrailingData() const
 {
@@ -584,16 +586,17 @@ static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 
 static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
-  if(delayMsec && g_delay) {
+#ifndef DISABLE_DELAY_PIPE
+  if (delayMsec && g_delay) {
     DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
+    return true;
   }
-  else {
-    ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
-    if (res == -1) {
-      int err = errno;
-      vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
-    }
+#endif /* DISABLE_DELAY_PIPE */
+  ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
+  if (res == -1) {
+    int err = errno;
+    vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
   }
 
   return true;
@@ -2660,7 +2663,9 @@ int main(int argc, char** argv)
     }
 
     /* this need to be done _after_ dropping privileges */
+#ifndef DISABLE_DELAY_PIPE
     g_delay = new DelayPipe<DelayedPacket>();
+#endif /* DISABLE_DELAY_PIPE */
 
     if (g_snmpAgent) {
       g_snmpAgent->run();
