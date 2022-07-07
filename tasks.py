@@ -334,6 +334,8 @@ def ci_dnsdist_configure(c, features):
                       --without-nghttp2 \
                       --without-re2 '
       additional_flags = '-DDISABLE_COMPLETION \
+                          -DDISABLE_DELAY_PIPE \
+                          -DDISABLE_DYNBLOCKS \
                           -DDISABLE_PROMETHEUS \
                           -DDISABLE_PROTOBUF \
                           -DDISABLE_BUILTIN_HTML \
