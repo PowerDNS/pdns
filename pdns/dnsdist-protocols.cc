@@ -27,7 +27,7 @@
 
 namespace dnsdist
 {
-const std::vector<std::string> Protocol::s_names = {
+const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_names = {
   "DoUDP",
   "DoTCP",
   "DNSCryptUDP",
@@ -35,7 +35,7 @@ const std::vector<std::string> Protocol::s_names = {
   "DoT",
   "DoH"};
 
-static const std::vector<std::string> prettyNames = {
+const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_prettyNames = {
   "Do53 UDP",
   "Do53 TCP",
   "DNSCrypt UDP",
@@ -71,7 +71,7 @@ const std::string& Protocol::toString() const
 
 const std::string& Protocol::toPrettyString() const
 {
-  return prettyNames.at(static_cast<uint8_t>(d_protocol));
+  return s_prettyNames.at(static_cast<uint8_t>(d_protocol));
 }
 
 }

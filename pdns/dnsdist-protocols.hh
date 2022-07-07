@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include <vector>
+#include <array>
 #include <string>
 
 namespace dnsdist
@@ -58,6 +58,8 @@ public:
 private:
   typeenum d_protocol;
 
-  static const std::vector<std::string> s_names;
+  static constexpr size_t s_numberOfProtocols = 6;
+  static const std::array<std::string, s_numberOfProtocols> s_names;
+  static const std::array<std::string, s_numberOfProtocols> s_prettyNames;
 };
 }
