@@ -75,6 +75,7 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 make install DESTDIR=%{buildroot}
 
 %{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+%{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
 # change user and group to pdns-recursor and add default include-dir
 sed -i \
