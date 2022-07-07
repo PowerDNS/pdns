@@ -1917,7 +1917,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
     DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
 
-    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, false));
     BOOST_CHECK(packet.size() > query.size());
     MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
 
@@ -1941,7 +1941,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
     DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
 
-    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, false));
     BOOST_CHECK(packet.size() > queryWithEDNS.size());
     MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
 
@@ -1969,7 +1969,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
     DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
 
-    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, false));
     BOOST_CHECK(packet.size() > query.size());
     MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
 
@@ -1993,7 +1993,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
     DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
 
-    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, false));
     BOOST_CHECK(packet.size() > queryWithEDNS.size());
     MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
 
@@ -2003,6 +2003,112 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+  }
+
+  /* SOA in the authority section*/
+
+  /* test NXD */
+  {
+    /* no incoming EDNS */
+    auto packet = query;
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
+
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, true));
+    BOOST_CHECK(packet.size() > query.size());
+    MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
+    BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+  }
+  {
+    /* now with incoming EDNS */
+    auto packet = queryWithEDNS;
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
+
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, true));
+    BOOST_CHECK(packet.size() > queryWithEDNS.size());
+    MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
+    BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NXDomain);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+  }
+
+  /* test No Data */
+  {
+    /* no incoming EDNS */
+    auto packet = query;
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
+
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, true));
+    BOOST_CHECK(packet.size() > query.size());
+    MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
+    BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NoError);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+  }
+  {
+    /* now with incoming EDNS */
+    auto packet = queryWithEDNS;
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, dnsdist::Protocol::DoUDP, &queryTime);
+
+    BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5, true));
+    BOOST_CHECK(packet.size() > queryWithEDNS.size());
+    MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
+    BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NoError);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);

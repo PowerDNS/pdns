@@ -858,9 +858,9 @@ bool addEDNS(PacketBuffer& packet, size_t maximumSize, bool dnssecOK, uint16_t p
 
 /*
   This function keeps the existing header and DNSSECOK bit (if any) but wipes anything else,
-  generating a NXD or NODATA answer with a SOA record in the additional section.
+  generating a NXD or NODATA answer with a SOA record in the additional section (or optionally the authority section for a full cacheable NXDOMAIN/NODATA).
 */
-bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum)
+bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, bool soaInAuthoritySection)
 {
   auto& packet = dq.getMutableData();
   auto dh = dq.getHeader();
@@ -933,7 +933,15 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone,
 
   packet.insert(packet.end(), soa.begin(), soa.end());
   dh = dq.getHeader();
-  dh->arcount = htons(1);
+
+  /* We are populating a response with only the query in place, order of sections is QD,AN,NS,AR
+     NS (authority) is before AR (additional) so we can just decide which section the SOA record is in here
+     and have EDNS added to AR afterwards */
+  if (soaInAuthoritySection) {
+    dh->nscount = htons(1);
+  } else {
+    dh->arcount = htons(1);
+  }
 
   if (hadEDNS) {
     /* now we need to add a new OPT record */

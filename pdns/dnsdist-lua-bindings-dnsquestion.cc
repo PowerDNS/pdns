@@ -310,7 +310,8 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       checkParameterBound("setNegativeAndAdditionalSOA", retry, std::numeric_limits<uint32_t>::max());
       checkParameterBound("setNegativeAndAdditionalSOA", expire, std::numeric_limits<uint32_t>::max());
       checkParameterBound("setNegativeAndAdditionalSOA", minimum, std::numeric_limits<uint32_t>::max());
-      return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum);
+
+      return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
     });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
