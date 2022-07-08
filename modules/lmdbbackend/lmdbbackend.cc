@@ -646,32 +646,48 @@ bool LMDBBackend::upgradeToSchemav3()
 
 bool LMDBBackend::deleteDomain(const DNSName& domain)
 {
-  auto doms = d_tdomains->getRWTransaction();
+  uint32_t id;
 
-  DomainInfo di;
-  auto id = doms.get<0>(domain, di);
-  if (!id)
-    return false;
+  { // get domain id
+    auto txn = d_tdomains->getROTransaction();
 
-  shared_ptr<RecordsRWTransaction> txn;
-  bool needCommit = false;
-  if (d_rwtxn && d_transactiondomainid == id) {
-    txn = d_rwtxn;
-    //    cout<<"Reusing open transaction"<<endl;
-  }
-  else {
-    //    cout<<"Making a new RW txn for delete domain"<<endl;
-    txn = getRecordsRWTransaction(id);
-    needCommit = true;
+    DomainInfo di;
+    id = txn.get<0>(domain, di);
   }
 
-  doms.del(id);
-  deleteDomainRecords(*txn, id);
+  if (!d_rwtxn || d_transactiondomainid != id) {
+    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a proper transaction");
+  }
 
-  if (needCommit)
-    txn->txn->commit();
+  { // Remove metadata
+    auto txn = d_tmeta->getRWTransaction();
+    auto range = txn.equal_range<0>(domain);
 
-  doms.commit();
+    for (auto& iter = range.first; iter != range.second; ++iter) {
+      iter.del();
+    }
+
+    txn.commit();
+  }
+
+  { // Remove cryptokeys
+    auto txn = d_tkdb->getRWTransaction();
+    auto range = txn.equal_range<0>(domain);
+
+    for (auto& iter = range.first; iter != range.second; ++iter) {
+      iter.del();
+    }
+
+    txn.commit();
+  }
+
+  // Remove zone
+  auto txn = d_tdomains->getRWTransaction();
+  txn.del(id);
+  txn.commit();
+
+  // Remove records
+  deleteDomainRecords(*d_rwtxn, id);
 
   return true;
 }
