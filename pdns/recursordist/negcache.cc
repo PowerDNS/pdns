@@ -125,7 +125,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
       if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
         updateStaleEntry(now.tv_sec, firstIndexIterator);
       }
-      if (now.tv_sec < ni->d_ttd) {
+      if (now.tv_sec < ni->d_ttd && !(refresh && ni->d_servedStale > 0)) {
         // Not expired
         ne = *ni;
         moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
