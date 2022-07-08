@@ -1242,9 +1242,9 @@ phishing
 phonedph
 php
 pickclosest
+pickhashed
 pickrandom
 pickrandomsample
-pickhashed
 pickwhashed
 pickwrandom
 pid
@@ -1873,6 +1873,7 @@ Winfried
 wireformat
 wirelength
 Wisiol
+wmem
 Wmissing
 Wojas
 workaround
@@ -1920,7 +1921,7 @@ yubikey
 YYYYMMD
 YYYYMMDD
 YYYYMMDDSS
-wmem
+Zash
 Zealey
 zeha
 Zengers

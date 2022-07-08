@@ -1,6 +1,32 @@
 Changelogs for 4.7.X
 ====================
 .. changelog::
+  :version: 4.7.1
+  :released: 8th of July 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11750
+    :tickets: 11726, 11724
+
+    Allow generic format while parsing zone files for ZoneToCache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11748
+    :tickets: 11692
+
+    Run tasks from housekeeping thread in the proper way, causing
+    queued DoT probes to run more promptly. Thanks to Jerry Lundström!
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11740
+    :tickets: 11735
+
+    Force gzip compression for debian packages (Zash).
+
+.. changelog::
   :version: 4.7.0
   :released: 30th of May 2022
 
