@@ -51,6 +51,7 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException)
     MTasker<> mt;
     mt.makeThread(willThrow, 0);
     struct timeval now;
+    now.tv_sec = now.tv_usec = 0;
 
     for (;;) {
       mt.schedule(&now);

@@ -5331,7 +5331,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   bool needWildcardProof = false;
   bool gatherWildcardProof = false;
-  unsigned int wildcardLabelsCount;
+  unsigned int wildcardLabelsCount = 0;
   *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, sendRDQuery, remoteIP);
   if (*rcode != RCode::NoError) {
     return true;
