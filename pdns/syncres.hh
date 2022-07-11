@@ -391,6 +391,12 @@ public:
     return d_now;
   }
 
+  // For debugging purposes
+  void setNow(const struct timeval& tv)
+  {
+    d_now = tv;
+  }
+
   void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
   void setQuerySource(const Netmask& netmask);
 
