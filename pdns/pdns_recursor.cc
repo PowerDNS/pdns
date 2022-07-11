@@ -215,6 +215,7 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 
   t_fdm->removeReadFD(fd);
   if (ret >= 0) {
+    resp.resize(ret);
     MT->sendEvent(pident, &resp);
   }
   else {
