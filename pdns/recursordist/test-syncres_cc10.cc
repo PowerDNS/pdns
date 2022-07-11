@@ -1075,7 +1075,9 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   size_t downCount = 0;
   size_t lookupCount = 0;
 
-  sr->setAsyncCallback([&downServers,&downCount,&lookupCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  const int theTTL = 5;
+
+  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     /* this will cause issue with qname minimization if we ever implement it */
     if (downServers.find(ip) != downServers.end()) {
       downCount++;
@@ -1091,12 +1093,12 @@ BOOST_AUTO_TEST_CASE(test_servestale)
     }
     else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
       setLWResult(res, 0, false, false, true);
-      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 5);
-      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 5);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
       addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 5);
-      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 5);
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, theTTL);
       addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 5);
-      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 5);
+      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, theTTL);
       return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
@@ -1126,30 +1128,11 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   downServers.insert(ComboAddress("[2001:DB8::2]:53"));
   downServers.insert(ComboAddress("[2001:DB8::3]:53"));
 
-  sr->setNow(timeval{now + 6, 0});
-  
+  sr->setNow(timeval{now + theTTL + 1, 0});
+
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 0U);
+
   // record is expired, so serve stale should kick in
-  ret.clear();
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(ret[0].d_name, target);
-  BOOST_CHECK_EQUAL(downCount, 4U);
-  BOOST_CHECK_EQUAL(lookupCount, 1U);
-
-  // Again, no lookup as the record is marked stale
-  ret.clear();
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(ret[0].d_name, target);
-  BOOST_CHECK_EQUAL(downCount, 4U);
-  BOOST_CHECK_EQUAL(lookupCount, 1U);
-
-  // Again, no lookup as the record is marked stale but as the TTL has passed a task should have been pushed
-  sr->setNow(timeval{now + 12, 0});
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -1164,8 +1147,34 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   BOOST_CHECK(task.d_qname == target);
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 
+  // Again, no lookup as the record is marked stale
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(lookupCount, 1U);
+
+  // Again, no lookup as the record is marked stale but as the TTL has passed a task should have been pushed
+  sr->setNow(timeval{now + 2 * (theTTL + 1), 0});
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(lookupCount, 1U);
+
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 1U);
+  task = taskQueuePop();
+  BOOST_CHECK(task.d_qname == target);
+  BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
+
   // Now simulate a succeeding task execution
-  sr->setNow(timeval{now + 18, 0});
+  sr->setNow(timeval{now + 3 * (theTTL + 1), 0});
   downServers.clear();
   sr->setRefreshAlmostExpired(true);
   ret.clear();
@@ -1187,7 +1196,6 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(downCount, 4U);
   BOOST_CHECK_EQUAL(lookupCount, 2U);
-
 }
 
 BOOST_AUTO_TEST_CASE(test_servestale_neg)
@@ -1205,7 +1213,9 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
   size_t downCount = 0;
   size_t lookupCount = 0;
 
-  sr->setAsyncCallback([&downServers,&downCount,&lookupCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  const int theTTL = 5;
+
+  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     /* this will cause issue with qname minimization if we ever implement it */
     if (downServers.find(ip) != downServers.end()) {
       downCount++;
@@ -1221,12 +1231,12 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
     }
     else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
       setLWResult(res, 0, false, false, true);
-      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 5);
-      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 5);
-      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 5);
-      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 5);
-      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 5);
-      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 5);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, theTTL);
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, theTTL);
+      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, theTTL);
+      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, theTTL);
       return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
@@ -1256,7 +1266,9 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
   downServers.insert(ComboAddress("[2001:DB8::2]:53"));
   downServers.insert(ComboAddress("[2001:DB8::3]:53"));
 
-  sr->setNow(timeval{now + 61, 0});
+  const int negTTL = 60;
+
+  sr->setNow(timeval{now + negTTL + 1, 0});
 
   // record is expired, so serve stale should kick in
   ret.clear();
@@ -1279,7 +1291,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
   BOOST_CHECK_EQUAL(lookupCount, 1U);
 
   // Again, no lookup as the record is marked stale but as the TTL has passed a task should have been pushed
-  sr->setNow(timeval{now + 122, 0});
+  sr->setNow(timeval{now + 2 * (negTTL + 1), 0});
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -1295,7 +1307,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 
   // Now simulate a succeeding task execution
-  sr->setNow(timeval{now + 183, 0});
+  sr->setNow(timeval{now + 3 * (negTTL + 1), 0});
   downServers.clear();
   sr->setRefreshAlmostExpired(true);
   ret.clear();

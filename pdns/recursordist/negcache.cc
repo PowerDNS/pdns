@@ -27,6 +27,7 @@
 #include "utility.hh"
 #include "rec-taskqueue.hh"
 
+// For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
 uint16_t NegCache::s_maxServedStaleExtensions;
 
 NegCache::NegCache(size_t mapsCount) :

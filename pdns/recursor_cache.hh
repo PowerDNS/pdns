@@ -94,11 +94,17 @@ private:
     {
       // We like to keep things in cache when we (potentially) should serve stale
       if (s_maxServedStaleExtensions > 0) {
-        return d_ttd + s_maxServedStaleExtensions * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
+        return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
       }
       else {
         return d_ttd < now;
       }
+    }
+
+    bool isEntryUsable(time_t now, bool serveStale) const
+    {
+      // When serving stale, we consider expired records
+      return d_ttd <= now && !serveStale && d_servedStale == 0;
     }
 
     records_t d_records;
@@ -272,6 +278,7 @@ private:
 
   time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
   void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
+  void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 
 public:
   void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)

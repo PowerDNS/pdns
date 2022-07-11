@@ -56,6 +56,7 @@ class NegCache : public boost::noncopyable
 public:
   NegCache(size_t mapsCount = 1024);
 
+  // For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
   // The number of times a stale cache entry is extended
   static uint16_t s_maxServedStaleExtensions;
   // The time a stale cache entry is extended
@@ -77,7 +78,7 @@ public:
     {
       // We like to keep things in cache when we (potentially) should serve stale
       if (s_maxServedStaleExtensions > 0) {
-        return d_ttd + s_maxServedStaleExtensions * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
+        return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
       }
       else {
         return d_ttd < now;
