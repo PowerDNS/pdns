@@ -416,7 +416,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of slave domains: " + e.txtReason());
   }
 
   SOAData sd;
@@ -428,11 +428,11 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       di.zone = DNSName(row[1]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
       continue;
     }
 
@@ -441,11 +441,11 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
         fillSOAData(row[5], sd);
       }
       catch (const std::exception& exp) {
-        g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
         continue;
       }
       catch (...) {
-        g_log << Logger::Warning << "Error while parsing SOA data for zone '" << di.zone << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl;
         continue;
       }
 
@@ -454,7 +454,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
         pdns::checked_stoi_into(last_check, row[4]);
       }
       catch (const std::exception& e) {
-        g_log << Logger::Warning << "Could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
         continue;
       }
 
@@ -467,7 +467,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     try {
       pdns::checked_stoi_into(di.id, row[0]);
     } catch (const std::exception &e) {
-      g_log << Logger::Warning << "Could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
@@ -477,11 +477,11 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       try {
         di.masters.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log << Logger::Warning << "Could not parse master address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
       }
     }
     if (di.masters.empty()) {
-      g_log << Logger::Warning << "No masters for secondary zone '" << di.zone << "' found in the database" << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no masters for secondary zone '" << di.zone << "' found in the database" << endl;
       continue;
     }
 
@@ -492,7 +492,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       di.kind = DomainInfo::Consumer;
     }
     else {
-      g_log << Logger::Warning << "Type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << "type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
     }
 
     di.backend = this;
@@ -518,7 +518,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
     // clang-format on
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of master domains: " + e.txtReason());
   }
 
   SOAData sd;
@@ -534,7 +534,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       pdns::checked_stoi_into(di.id, row[0]);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << "Could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
@@ -542,11 +542,11 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       di.zone = DNSName(row[1]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << "Zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
       continue;
     }
 
@@ -554,11 +554,11 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       di.catalog = DNSName(row[5]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << "Zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << "Zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl;
       continue;
     }
 
@@ -568,7 +568,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       continue; // Producer fresness check is performed elsewhere
     }
     else if (!pdns_iequals(row[2], "MASTER")) {
-      g_log << Logger::Warning << "Type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
     }
 
     try {
@@ -578,15 +578,15 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       }
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << "Catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl;
       continue;
     }
 
     try {
-      pdns::checked_stoi_into(di.id, row[3]);
+      pdns::checked_stoi_into(di.notified_serial, row[3]);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << "Could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
@@ -594,11 +594,11 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       fillSOAData(row[6], sd);
     }
     catch (const std::exception& exp) {
-      g_log << Logger::Warning << "Error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << "': " << exp.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << "': " << exp.what() << endl;
       continue;
     }
     catch (...) {
-      g_log << Logger::Warning << "Error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << endl;
       continue;
     }
 
@@ -693,7 +693,7 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
           ci.d_primaries.emplace_back(m, 53);
         }
         catch (const PDNSException& e) {
-          g_log << Logger::Warning << "Could not parse master address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
+          g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
           members.clear();
           return false;
         }
