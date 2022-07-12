@@ -224,7 +224,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       }
 
       if (create) { // create zone
-        if (doTransaction && (inTransaction = di.backend->startTransaction(ciCreate.d_zone))) {
+        if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
           g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
           doTransaction = false;
         }
