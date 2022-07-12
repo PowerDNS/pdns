@@ -1465,7 +1465,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
      the goal is to get as many remotes as possible on the best level of EDNS support
      The levels are:
 
-     1) EDNSOK: Honors EDNS0
+     1) EDNSOK: Honors EDNS0, absent from table
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
      3) NOEDNS: Generates FORMERR on EDNS queries
 
@@ -1478,6 +1478,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
      If NOEDNS, send bare queries
   */
 
+  // Read current status, defaulting to OK
   SyncRes::EDNSStatus::EDNSMode mode = EDNSStatus::EDNSOK;
   {
     auto lock = s_ednsstatus.lock();
@@ -1535,43 +1536,26 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     if (EDNSLevel == 1) {
       // We sent out with EDNS
       // ret is LWResult::Result::Success
-      // ednsstatus in table might be pruned or changed by another request/thread, so do a new lookup/insert
-      auto lock = s_ednsstatus.lock();
-      auto ednsstatus = lock->find(ip); // does this include port? YES
-
-      // Read current mode, defaulting to OK
-      mode = EDNSStatus::EDNSOK;
-      if (ednsstatus != lock->end()) {
-        if (ednsstatus->ttd && ednsstatus->ttd  < d_now.tv_sec) {
-          lock->erase(ednsstatus);
-          ednsstatus = lock->end();
-        } else {
-          mode = ednsstatus->mode;
-        }
-      }
+      // ednsstatus in table might be pruned or changed by another request/thread, so do a new lookup/insert if needed
+      auto lock = s_ednsstatus.lock(); // all three branches below need a lock
 
       // Determine new mode
       if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
         mode = EDNSStatus::NOEDNS;
-        if (ednsstatus == lock->end()) {
-          ednsstatus = lock->insert(ip).first;
-        }
+        auto ednsstatus = lock->insert(ip).first;
         auto &ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, mode, d_now.tv_sec);
+        // This is the only path that re-iterates the loop
         continue;
       }
       else if (!res->d_haveEDNS) {
-        if (ednsstatus == lock->end()) {
-          ednsstatus = lock->insert(ip).first;
-        }
+        auto ednsstatus = lock->insert(ip).first;
         auto &ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT, d_now.tv_sec);
       }
       else {
         // New status is EDNSOK
-        if (ednsstatus != lock->end()) {
-          lock->erase(ip);
-        }
+        lock->erase(ip);
       }
     }
 
