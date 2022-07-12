@@ -421,6 +421,9 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   SOAData sd;
   DomainInfo di;
+  vector<string> masters;
+
+  unfreshDomains->reserve(d_result.size());
   for (const auto& row : d_result) { // id, name, type, master, last_check, catalog, content
     ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 6);
 
@@ -471,7 +474,8 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       continue;
     }
 
-    vector<string> masters;
+    di.masters.clear();
+    masters.clear();
     stringtok(masters, row[3], ", \t");
     for(const auto& m : masters) {
       try {
@@ -525,6 +529,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
   DomainInfo di;
   CatalogInfo ci;
 
+  updatedDomains.reserve(d_result.size());
   for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content
     ASSERT_ROW_COLUMNS("info-all-master-query", row, 7);
 
@@ -643,6 +648,7 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of member zones: " + e.txtReason());
   }
 
+  members.reserve(d_result.size());
   for (const auto& row : d_result) { // id, zone, options, [master]
     if (type == CatalogInfo::CatalogType::Producer) {
       ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 3);
