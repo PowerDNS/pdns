@@ -54,6 +54,11 @@ __EOF__
 				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 			fi
 		fi
+		if [ "$zone" = "wtest.com" ]; then
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-catalog $zone catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-options $zone '{"consumer":{"unique":"42"}}'
+		fi
 		if [ "$zone" = "." ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port
 		fi
