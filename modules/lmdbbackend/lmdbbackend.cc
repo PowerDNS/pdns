@@ -162,7 +162,7 @@ namespace serialization
       ar& tmp;
     }
     else
-      ar & "";
+      ar& std::string();
   }
 
   template <class Archive>

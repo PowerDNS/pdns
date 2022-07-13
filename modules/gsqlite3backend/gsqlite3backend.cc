@@ -121,7 +121,7 @@ public:
     declare(suffix, "update-master-query", "", "update domains set master=:master where name=:domain");
     declare(suffix, "update-kind-query", "", "update domains set type=:kind where name=:domain");
     declare(suffix, "update-options-query", "", "update domains set options=:options where name=:domain");
-    declare(suffix, "update-catalog-query", "", "update domains set catalog=:options where name=:domain");
+    declare(suffix, "update-catalog-query", "", "update domains set catalog=:catalog where name=:domain");
     declare(suffix, "update-account-query", "", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
