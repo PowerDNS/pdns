@@ -166,7 +166,9 @@ def write_release_files (release):
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
-    if release in ['auth-master', 'rec-master', 'dnsdist-master']:
+    if release in ['auth-46', 'auth-master',
+                   'rec-47', 'rec-master',
+                   'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
