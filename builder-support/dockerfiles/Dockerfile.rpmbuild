@@ -38,6 +38,12 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
+
+# remove --enablerepo=epel-testing when new re2 lands
+RUN touch /var/lib/rpm/* && if $(grep -q 'release 9' /etc/redhat-release); then \
+      dnf install -y re2 re2-devel --enablerepo=epel-testing; \
+    fi
+
 RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
       yum install -y curl openssl-devel cmake && \
       curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
