@@ -1717,8 +1717,12 @@ static int listAllZones(const string &type="") {
       kindFilter = 1;
     else if (toUpper(type) == "NATIVE")
       kindFilter = 2;
+    else if (toUpper(type) == "PRODUCER")
+      kindFilter = 3;
+    else if (toUpper(type) == "CONSUMER")
+      kindFilter = 4;
     else {
-      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native]" << endl;
+      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native|producer|consumer]" << endl;
       return 1;
     }
   }
@@ -1977,7 +1981,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
   }
   if (!exportDS) {
     cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
-    if(di.kind == DomainInfo::Master) {
+    if (di.isPrimaryType()) {
       cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
       SOAData sd;
       if(B.getSOAUncached(zone, sd)) {
@@ -1988,7 +1992,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         cout<<sd.serial<<" (serial in the database)"<<endl;
       }
     }
-    else if(di.kind == DomainInfo::Slave) {
+    else if (di.isSecondaryType()) {
       cout << "Primar" << addS(di.masters, "y", "ies") << ": ";
       for(const auto& m : di.masters)
         cout<<m.toStringWithPort()<<" ";
@@ -2461,7 +2465,7 @@ try
     cout << "Usage: \npdnsutil [options] <command> [params ..]\n"
          << endl;
     cout << "Commands:" << endl;
-    cout << "activate-tsig-key ZONE NAME {primary|secondary}" << endl;
+    cout << "activate-tsig-key ZONE NAME {primary|secondary|producer|consumer}" << endl;
     cout << "                                   Enable TSIG authenticated AXFR using the key NAME for ZONE" << endl;
     cout << "activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE" << endl;
     cout << "add-record ZONE NAME TYPE [ttl] content" << endl;
@@ -2531,7 +2535,7 @@ try
     cout << "list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset, display all keys for all active zones" << endl;
     cout << "                                   --verbose or -v will also include the keys for disabled or empty zones" << endl;
     cout << "list-zone ZONE                     List zone contents" << endl;
-    cout << "list-all-zones [primary|secondary|native]" << endl;
+    cout << "list-all-zones [primary|secondary|native|producer|consumer]" << endl;
     cout << "                                   List all active zone names. --verbose or -v will also include disabled or empty zones" << endl;
 
     cout << "list-tsig-keys                     List all TSIG keys" << endl;
@@ -2543,7 +2547,7 @@ try
     cout << "       content [content..]" << endl;
     cout << "secure-all-zones [increase-serial] Secure all zones without keys" << endl;
     cout << "secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE" << endl;
-    cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native)" << endl;
+    cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native, producer, consumer)" << endl;
     cout << "set-options-json ZONE JSON         Change the options of ZONE to JSON" << endl;
     cout << "set-option ZONE                    Set or remove an option for ZONE Providing an empty value removes an option" << endl;
     cout << "  [producer|consumer]" << endl;
@@ -2754,7 +2758,7 @@ try
   }
   else if (cmds.at(0) == "list-all-zones") {
     if (cmds.size() > 2) {
-      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native]" << endl;
+      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native|producer|consumer]" << endl;
       return 0;
     }
     if (cmds.size() == 2)
@@ -3701,12 +3705,12 @@ try
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "master")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "master" || cmds.at(3) == "producer")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
       metaKey = "AXFR-MASTER-TSIG";
     else {
-      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary" << endl;
+      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
       return 1;
     }
     UeberBackend B("default");
@@ -3741,17 +3745,17 @@ try
   else if (cmds.at(0) == "deactivate-tsig-key") {
     string metaKey;
     if (cmds.size() < 4) {
-      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {primary|secondary}" << endl;
+      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {primary|secondary|producer|consumer}" << endl;
       return 0;
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "master")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "producer" || cmds.at(3) == "master")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
       metaKey = "AXFR-MASTER-TSIG";
     else {
-      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary" << endl;
+      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
       return 1;
     }
 
