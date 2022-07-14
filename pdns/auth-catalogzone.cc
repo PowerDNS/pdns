@@ -87,6 +87,9 @@ std::string CatalogInfo::toJson() const
     object["coo"] = d_coo.toString();
   }
   if (!d_unique.empty()) {
+    if (d_unique.countLabels() > 1) {
+      throw std::out_of_range("Multiple labels in a unique value are not allowed");
+    }
     object["unique"] = d_unique.toString();
   }
   if (!d_group.empty()) {
