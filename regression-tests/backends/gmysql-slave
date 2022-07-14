@@ -37,19 +37,21 @@ __EOF__
 		if [ "$zone" = "test.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-catalog $zone other-catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-options $zone '{"consumer":{"coo":"catalog.invalid","unique":"42"}}'
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer coo catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer unique 42
 		fi
 		if [ "$zone" = "tsig.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.2:$port
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-catalog $zone catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-options $zone "{\"consumer\":{\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer unique $($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 import-tsig-key test $ALGORITHM $KEY
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 activate-tsig-key tsig.com test secondary
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-catalog $zone other-catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-options $zone "{\"consumer\":{\"coo\":\"catalog.invalid\",\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer coo catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer unique $($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)
 			if [[ $skipreasons != *nolua* ]]; then
 				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 			fi
@@ -57,7 +59,7 @@ __EOF__
 		if [ "$zone" = "wtest.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-catalog $zone catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-options $zone '{"consumer":{"unique":"42"}}'
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 set-option $zone consumer unique 42
 		fi
 		if [ "$zone" = "." ]; then
 			$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone $zone 127.0.0.1:$port

@@ -1859,7 +1859,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   return ret;
 }
 
-static int setZoneOptions(const DNSName& zone, const string& options)
+static int setZoneOptionsJson(const DNSName& zone, const string& options)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1872,6 +1872,45 @@ static int setZoneOptions(const DNSName& zone, const string& options)
     cerr << "Could not find backend willing to accept new zone configuration" << endl;
     return EXIT_FAILURE;
   }
+  return EXIT_SUCCESS;
+}
+
+static int setZoneOption(const DNSName& zone, const string& type, const string& option, const set<string>& values)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+  CatalogInfo ci;
+
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "No such zone " << zone << " in the database" << endl;
+    return EXIT_FAILURE;
+  }
+
+  CatalogInfo::CatalogType ctype;
+  if (type == "producer") {
+    ctype = CatalogInfo::CatalogType::Producer;
+  }
+  else {
+    ctype = CatalogInfo::CatalogType::Consumer;
+  }
+
+  ci.fromJson(di.options, ctype);
+
+  if (option == "coo") {
+    ci.d_coo = (!values.empty() ? DNSName(*values.begin()) : DNSName());
+  }
+  else if (option == "unique") {
+    ci.d_unique = (!values.empty() ? DNSName(*values.begin()) : DNSName());
+  }
+  else if (option == "group") {
+    ci.d_group = values;
+  }
+
+  if (!di.backend->setOptions(zone, ci.toJson())) {
+    cerr << "Could not find backend willing to accept new zone configuration" << endl;
+    return EXIT_FAILURE;
+  }
+
   return EXIT_SUCCESS;
 }
 
@@ -2505,7 +2544,11 @@ try
     cout << "secure-all-zones [increase-serial] Secure all zones without keys" << endl;
     cout << "secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE" << endl;
     cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native)" << endl;
-    cout << "set-options ZONE OPTIONS           Change the options of ZONE to OPTIONS" << endl;
+    cout << "set-options-json ZONE JSON         Change the options of ZONE to JSON" << endl;
+    cout << "set-option ZONE                    Set or remove an option for ZONE Providing an empty value removes an option" << endl;
+    cout << "  [producer|consumer]" << endl;
+    cout << "  [coo|unique|group] VALUE" << endl;
+    cout << "  [VALUE ...]" << endl;
     cout << "set-catalog ZONE CATALOG           Change the catalog of ZONE to CATALOG" << endl;
     cout << "set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT" << endl;
     cout << "set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow" << endl;
@@ -3153,11 +3196,12 @@ try
     auto kind = DomainInfo::stringToKind(cmds.at(2));
     return setZoneKind(zone, kind);
   }
-  else if (cmds.at(0) == "set-options") {
+  else if (cmds.at(0) == "set-options-json") {
     if (cmds.size() != 3) {
-      cerr << "Syntax: pdnsutil set-options ZONE OPTIONS" << endl;
-      return 0;
+      cerr << "Syntax: pdnsutil set-options ZONE VALUE" << endl;
+      return EXIT_FAILURE;
     }
+
     // Verify json
     if (!cmds.at(2).empty()) {
       std::string err;
@@ -3167,8 +3211,31 @@ try
         return EXIT_FAILURE;
       }
     }
+
     DNSName zone(cmds.at(1));
-    return setZoneOptions(zone, cmds.at(2));
+
+    return setZoneOptionsJson(zone, cmds.at(2));
+  }
+  else if (cmds.at(0) == "set-option") {
+    if (cmds.size() < 5 || (cmds.size() > 5 && (cmds.at(3) != "group"))) {
+      cerr << "Syntax: pdnsutil set-option ZONE [producer|consumer] [coo|unique|group] VALUE [VALUE ...]1" << endl;
+      return EXIT_FAILURE;
+    }
+
+    if ((cmds.at(2) != "producer" && cmds.at(2) != "consumer") || (cmds.at(3) != "coo" && cmds.at(3) != "unique" && cmds.at(3) != "group")) {
+      cerr << "Syntax: pdnsutil set-option ZONE [producer|consumer] [coo|unique|group] VALUE [VALUE ...]" << endl;
+      return EXIT_FAILURE;
+    }
+
+    DNSName zone(cmds.at(1));
+    set<string> values;
+    for (unsigned int n = 4; n < cmds.size(); ++n) {
+      if (!cmds.at(n).empty()) {
+        values.insert(cmds.at(n));
+      }
+    }
+
+    return setZoneOption(zone, cmds.at(2), cmds.at(3), values);
   }
   else if (cmds.at(0) == "set-catalog") {
     if (cmds.size() != 3) {

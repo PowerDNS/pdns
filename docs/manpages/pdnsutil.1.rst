@@ -246,6 +246,12 @@ secure-all-zones [**increase-serial**]
     rectify-all-zones' afterwards.
 set-kind *ZONE* *KIND*
     Change the kind of *ZONE* to *KIND* (primary, secondary, native).
+set-options-json *ZONE* *JSON*
+    Change the options of *ZONE* to *JSON*
+set-option *ZONE* [*producer*|*consumer*] [*coo*|*unique*|*group*] *VALUE* [*VALUE* ...]
+    Set or remove an option for *ZONE*. Providing an empty value removes an option.
+set-catalog *ZONE* *CATALOG*
+    Change the catalog of *ZONE* to *CATALOG*
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
 add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...
