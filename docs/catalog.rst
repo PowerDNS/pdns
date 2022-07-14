@@ -1,7 +1,20 @@
 Catalog Zone (RFC  TBD)
 =======================
 
-Starting with the PowerDNS Authoritative Server 4.7.0, catalog zone support is available. The current supported catalog version is "2". All all the important features of catalog zones are supported. There are however a few properties where support is limited:
+Starting with the PowerDNS Authoritative Server 4.7.0, catalog zone support is available.
+
+Supported catalog versions
+--------------------------
+
++-----------------+----------+----------+
+| Catalog version | Producer | Consumer |
++=================+==========+==========+
+| 1 (ICS)         | No       | Yes      |
++-----------------+----------+----------+
+| 2 (RFC TBD)     | Yes      | Yes      |
++-----------------+----------+----------+
+
+All all the important features of catalog zone version "2" are supported. There are however a few properties where support is limited:
 
 -  There is no support for group templates on consumers;
 -  There is no support for custom extensions;

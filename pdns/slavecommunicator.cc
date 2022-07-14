@@ -292,8 +292,8 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
 
   // From XFR
   bool hasSOA{false};
-  bool hasVersion{false};
   bool zoneInvalid{false};
+  int hasVersion{0};
 
   CatalogInfo ci;
 
@@ -313,9 +313,16 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
     }
 
     else if (rr.qname == DNSName("version") + di.zone && rr.qtype == QType::TXT) {
-      if (rr.content == "\"2\"") {
-        hasVersion = true;
-        continue;
+      if (hasVersion) {
+        g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', multiple version records found, aborting" << endl;
+        return false;
+      }
+
+      if (rr.content == "\"1\"") {
+        hasVersion = 1;
+      }
+      else if (rr.content == "\"2\"") {
+        hasVersion = 2;
       }
       else {
         g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', unsupported catalog zone schema version " << rr.content << ", aborting" << endl;
@@ -355,21 +362,23 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
         }
       }
 
-      else if (rel == (DNSName("coo") + unique) && rr.qtype == QType::PTR) {
-        if (!ci.d_coo.empty()) {
-          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate COO for unique '" << unique << "'" << endl;
-          zoneInvalid = true;
+      else if (hasVersion == 2) {
+        if (rel == (DNSName("coo") + unique) && rr.qtype == QType::PTR) {
+          if (!ci.d_coo.empty()) {
+            g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate COO for unique '" << unique << "'" << endl;
+            zoneInvalid = true;
+          }
+          else {
+            ci.d_coo = DNSName(rr.content);
+          }
         }
-        else {
-          ci.d_coo = DNSName(rr.content);
+        else if (rel == (DNSName("group") + unique) && rr.qtype == QType::TXT) {
+          std::string content = rr.content;
+          if (content.length() >= 2 && content.at(0) == '\"' && content.at(content.length() - 1) == '\"') { // TXT pain
+            content = content.substr(1, content.length() - 2);
+          }
+          ci.d_group.insert(content);
         }
-      }
-      else if (rel == (DNSName("group") + unique) && rr.qtype == QType::TXT) {
-        std::string content = rr.content;
-        if (content.length() >= 2 && content.at(0) == '\"' && content.at(content.length() - 1) == '\"') { // TXT pain
-          content = content.substr(1, content.length() - 2);
-        }
-        ci.d_group.insert(content);
       }
     }
     rr.disabled = true;
