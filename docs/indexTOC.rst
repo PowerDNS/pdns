@@ -16,6 +16,7 @@ PowerDNS Authoritative Server
     dnssec/index
     domainmetadata
     dnsupdate
+    catalog
     tsig
     lua-records/index
     guides/index
