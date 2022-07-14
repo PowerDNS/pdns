@@ -157,12 +157,12 @@ namespace serialization
   template <class Archive>
   void save(Archive& ar, const DNSName& g, const unsigned int version)
   {
-    if (!g.empty()) {
-      std::string tmp = g.toDNSStringLC(); // g++ 4.8 woes
-      ar& tmp;
-    }
-    else
+    if (g.empty()) {
       ar& std::string();
+    }
+    else {
+      ar& g.toDNSStringLC();
+    }
   }
 
   template <class Archive>
@@ -170,17 +170,18 @@ namespace serialization
   {
     string tmp;
     ar& tmp;
-    if (tmp.empty())
+    if (tmp.empty()) {
       g = DNSName();
-    else
+    }
+    else {
       g = DNSName(tmp.c_str(), tmp.size(), 0, false);
+    }
   }
 
   template <class Archive>
   void save(Archive& ar, const QType& g, const unsigned int version)
   {
-    uint16_t tmp = g.getCode(); // g++ 4.8 woes
-    ar& tmp;
+    ar& g.getCode();
   }
 
   template <class Archive>
