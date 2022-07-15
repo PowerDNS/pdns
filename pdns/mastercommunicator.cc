@@ -161,7 +161,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
         B->setDomainMetadata(di.zone, "CATALOG-HASH", mapHash);
 
-        g_log << Logger::Warning << "new hash '" << mapHash << "' for zone '" << di.zone << "' REMOVE" << endl; // REMOVE
+        g_log << Logger::Warning << "new CATALOG-HASH '" << mapHash << "' for zone '" << di.zone << "'" << endl;
 
         SOAData sd;
         if (!B->getSOAUncached(di.zone, sd)) {
