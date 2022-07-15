@@ -18,6 +18,7 @@ jobs:
           - ubuntu-bionic
           - el-8
           - centos-8-stream
+          - centos-9-stream
           - debian-bullseye
           - ubuntu-jammy
       fail-fast: false
