@@ -49,7 +49,7 @@
 
 #include "lmdbbackend.hh"
 
-#define SCHEMAVERSION 3
+#define SCHEMAVERSION 4
 
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
