@@ -19,7 +19,7 @@ jobs:
           - el-8
           - centos-8-stream
           - debian-bullseye
-          - ubuntu-jammy
+          - ubuntu-kinetic
       fail-fast: false
     steps:
       - uses: actions/checkout@v2.3.4
