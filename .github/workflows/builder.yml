@@ -19,8 +19,8 @@ jobs:
           - el-8
           - centos-8-stream
           - centos-9-stream
-          - debian-bullseye
           - ubuntu-kinetic
+          - debian-bookworm
       fail-fast: false
     steps:
       - uses: actions/checkout@v2.3.4
