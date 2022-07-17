@@ -1109,8 +1109,8 @@ int PacketHandler::processNotify(const DNSPacket& p)
     }
     g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemoteString()<<endl;
   }
-  else if(::arg().mustDo("primary") && di.kind == DomainInfo::Master) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but we are master (Refused)"<<endl;
+  else if (::arg().mustDo("primary") && di.isPrimaryType()) {
+    g_log << Logger::Warning << "Received NOTIFY for " << p.qdomain << " from " << p.getRemoteString() << " but we are primary (Refused)" << endl;
     return RCode::Refused;
   }
   else if(!di.isMaster(p.getInnerRemote())) {
