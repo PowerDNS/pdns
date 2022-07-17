@@ -94,6 +94,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   bool inTransaction{false};
   bool doOptions{false};
   CatalogInfo ciCreate, ciRemove;
+  std::unordered_map<DNSName, bool> clearCache;
   vector<CatalogInfo> retrieve;
 
   try {
@@ -218,8 +219,8 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         g_log << Logger::Warning << logPrefix << "delete zone '" << ciRemove.d_zone << "'" << endl;
         di.backend->deleteDomain(ciRemove.d_zone);
 
-        if (g_zoneCache.isEnabled()) {
-          g_zoneCache.remove(ciRemove.d_zone);
+        if (!create) {
+          clearCache[ciRemove.d_zone] = false;
         }
       }
 
@@ -236,21 +237,34 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
         di.backend->setCatalog(ciCreate.d_zone, di.zone);
 
+        clearCache[ciCreate.d_zone] = true;
         retrieve.emplace_back(ciCreate);
-
-        if (g_zoneCache.isEnabled()) {
-          if (di.backend->getDomainInfo(ciCreate.d_zone, d)) {
-            g_zoneCache.add(ciCreate.d_zone, d.id);
-          }
-          else {
-            g_log << Logger::Error << logPrefix << "new zone '" << ciCreate.d_zone << "' does not exists and was not inserted in the zone-cache" << endl;
-          }
-        }
       }
     }
 
     if (inTransaction && di.backend->commitTransaction()) {
       g_log << Logger::Warning << logPrefix << "backend transaction committed" << endl;
+    }
+
+    // Update zonecache and clear all caches
+    DomainInfo d;
+    for (const auto& zone : clearCache) {
+      if (g_zoneCache.isEnabled()) {
+        if (zone.second) {
+          if (di.backend->getDomainInfo(zone.first, d)) {
+            g_zoneCache.add(zone.first, d.id);
+          }
+          else {
+            g_log << Logger::Error << logPrefix << "new zone '" << zone.first << "' does not exists and was not inserted in the zone-cache" << endl;
+          }
+        }
+        else {
+          g_zoneCache.remove(zone.first);
+        }
+      }
+
+      DNSSECKeeper::clearCaches(zone.first);
+      purgeAuthCaches(zone.first.toString() + "$");
     }
 
     // retrieve new and updated zones with new primaries
