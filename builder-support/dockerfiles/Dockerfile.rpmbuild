@@ -39,11 +39,6 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 
 @IF [ -n "$M_dnsdist$M_all" ]
 
-# remove --enablerepo=epel-testing when new re2 lands
-RUN touch /var/lib/rpm/* && if $(grep -q 'release 9' /etc/redhat-release); then \
-      dnf install -y re2 re2-devel --enablerepo=epel-testing; \
-    fi
-
 # --allowerasing does not exist on el7, so we fall back to just installing
 # this is fine because --allowerasing is only there to deal with libcurl conflicting with libcurl-minimal on some el9 images
 RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
