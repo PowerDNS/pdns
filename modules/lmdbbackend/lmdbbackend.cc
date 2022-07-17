@@ -671,6 +671,15 @@ bool LMDBBackend::upgradeToSchemav3()
 
 bool LMDBBackend::deleteDomain(const DNSName& domain)
 {
+  if (!d_rwtxn) {
+    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
+  }
+
+  int transactionDomainId = d_transactiondomainid;
+  DNSName transactionDomain = d_transactiondomain;
+
+  abortTransaction();
+
   uint32_t id;
 
   { // get domain id
@@ -680,13 +689,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     id = txn.get<0>(domain, di);
   }
 
-  if (!d_rwtxn) {
-    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
-  }
-  if (d_transactiondomainid != id) {
-    commitTransaction();
-    startTransaction(domain);
-  }
+  startTransaction(domain, id);
 
   { // Remove metadata
     auto txn = d_tmeta->getRWTransaction();
@@ -710,13 +713,14 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     txn.commit();
   }
 
+  // Remove records
+  commitTransaction();
+  startTransaction(transactionDomain, transactionDomainId);
+
   // Remove zone
   auto txn = d_tdomains->getRWTransaction();
   txn.del(id);
   txn.commit();
-
-  // Remove records
-  deleteDomainRecords(*d_rwtxn, id);
 
   return true;
 }
