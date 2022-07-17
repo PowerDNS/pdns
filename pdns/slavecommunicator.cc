@@ -718,10 +718,10 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
 
 
     vector<DNSResourceRecord> rrs;
-    if(dk.isSecuredZone(domain)) {
+    if (dk.isSecuredZone(domain, false)) {
       hadDnssecZone=true;
-      hadPresigned=dk.isPresigned(domain);
-      if (dk.getNSEC3PARAM(domain, &zs.ns3pr, &zs.isNarrow)) {
+      hadPresigned = dk.isPresigned(domain, false);
+      if (dk.getNSEC3PARAM(domain, &zs.ns3pr, &zs.isNarrow, false)) {
         hadNSEC3 = true;
         hadNs3pr = zs.ns3pr;
         hadNarrow = zs.isNarrow;
@@ -779,7 +779,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     }
 
     if(!zs.isPresigned) {
-      DNSSECKeeper::keyset_t keys = dk.getKeys(domain);
+      DNSSECKeeper::keyset_t keys = dk.getKeys(domain, false);
       if(!keys.empty()) {
         zs.isDnssecZone = true;
         zs.isNSEC3 = hadNSEC3;
