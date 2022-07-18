@@ -748,7 +748,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrr.dr.d_name = target;
       zrr.dr.d_ttl = 0;
       zrr.dr.d_type = QType::NS;
-      zrr.dr.d_content = std::make_shared<TXTRecordContent>("invalid.");
+      zrr.dr.d_content = std::make_shared<NSRecordContent>("invalid.");
       zrrs.emplace_back(zrr);
     }
 
