@@ -24,7 +24,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Globals
 
-g_version = '1.0.0'
+g_version = '1.0.1'
 
 g_verbose = False
 
@@ -171,6 +171,12 @@ def write_release_files (release):
                    'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
+
+    if release in ['auth-master',
+                   'rec-master',
+                   'dnsdist-master']:
+        write_pkg_pin_file(release)
+        write_dockerfile('el', '9', release)
 
 # Test Release Functions
 
