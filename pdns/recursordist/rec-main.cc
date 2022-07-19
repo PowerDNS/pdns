@@ -698,14 +698,14 @@ static void writePid(Logr::log_t log)
 
 static void checkSocketDir(Logr::log_t log)
 {
-  struct stat st;
   string dir(::arg()["socket-dir"]);
   string msg;
 
-  if (stat(dir.c_str(), &st) == -1) {
+  struct stat dirStat = {};
+  if (stat(dir.c_str(), &dirStat) == -1) {
     msg = "it does not exist or cannot access";
   }
-  else if (!S_ISDIR(st.st_mode)) {
+  else if (!S_ISDIR(dirStat.st_mode)) {
     msg = "it is not a directory";
   }
   else if (access(dir.c_str(), R_OK | W_OK | X_OK) != 0) {
@@ -715,7 +715,7 @@ static void checkSocketDir(Logr::log_t log)
     return;
   }
   SLOG(g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl,
-       log->error(Logr::Error, msg, "Problem with socket directory, see see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0"));
+       log->error(Logr::Error, msg, "Problem with socket directory, see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0", "dir", Logging::Loggable(dir)));
   _exit(1);
 }
 
