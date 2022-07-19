@@ -146,9 +146,9 @@ def write_release_files (release):
                    'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
                    'dnsdist-master']:
-        write_pkg_pin_file(release)
         write_dockerfile('centos', '7', release)
         write_dockerfile('el', '8', release)
+        write_pkg_pin_file(release)  # for Debian and Ubuntu
         write_dockerfile('debian', 'buster', release)
         write_list_file('debian', 'buster', release)
         write_dockerfile('ubuntu', 'bionic', release)
@@ -157,25 +157,27 @@ def write_release_files (release):
         write_list_file('ubuntu', 'focal', release)
 
     if release in ['dnsdist-15']:
+        write_pkg_pin_file(release)
         write_dockerfile('raspbian', 'buster', release)
         write_list_file('raspbian', 'buster', release)
 
     if release in ['auth-46', 'auth-47', 'auth-master',
                    'rec-45', 'rec-46', 'rec-47', 'rec-master',
                    'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_pkg_pin_file(release)
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
     if release in ['auth-46', 'auth-master',
                    'rec-47', 'rec-master',
                    'dnsdist-master']:
+        write_pkg_pin_file(release)
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
     if release in ['auth-master',
                    'rec-master',
                    'dnsdist-master']:
-        write_pkg_pin_file(release)
         write_dockerfile('el', '9', release)
 
 # Test Release Functions
