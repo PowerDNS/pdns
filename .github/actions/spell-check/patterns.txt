@@ -26,6 +26,14 @@ addNSECRecordToLW.*DNSName.*powerdnt.com.*QType::NS.*res->d_records
 data:[a-zA-Z=;,/0-9+]+
 BOOST_CHECK_EQUAL\(b64, "[a-zA-Z=;,/0-9+]+"
 
+# acceptable duplicates
+# ls directory listings
+[-bcdlpsw](?:[-r][-w][-sx]){3}\s+\d+\s+(\S+)\s+\g{-1}\s+\d+\s+
+# C types
+\s(long|LONG) \g{-1}\s
+# javadoc / .net
+(?:[\\@](?:groupname|param)|(?:public|private)(?:\s+static|\s+readonly)*)\s+(\w+)\s+\g{-1}\s
+
 # ignore long runs of a single character:
 \b([A-Za-z])\g{-1}{3,}\b
 

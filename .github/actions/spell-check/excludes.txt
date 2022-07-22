@@ -19,6 +19,7 @@ SUMS$
 \.asc$
 \.avi$
 \.bmp$
+\.bz2$
 \.cer$
 \.class$
 \.crl$
@@ -30,13 +31,13 @@ SUMS$
 \.eps$
 \.exe$
 \.gif$
+\.gitattributes$
 \.graffle$
 \.gz$
 \.icns$
 \.ico$
 \.jar$
-\.jpeg$
-\.jpg$
+\.jpe?g$
 \.keys?$
 \.lib$
 \.lock$
@@ -48,6 +49,7 @@ SUMS$
 \.mp4$
 \.mp[34]$
 \.nsec3(?:-optout|)$
+\.ocf$
 \.otf$
 \.pdf$
 \.pem$
@@ -63,6 +65,7 @@ SUMS$
 \.ttf$
 \.wav$
 \.woff
+\.woff2?$
 \.xcf$
 \.xls
 \.xpm$
@@ -78,3 +81,4 @@ SUMS$
 ^pdns/recursordist/html/js/
 ^regression-tests\.recursor-dnssec/test_ReadTrustAnchorsFromFile\.py$
 ^\.github/actions/spell-check/
+^\.github/workflows/spelling\.yml$
