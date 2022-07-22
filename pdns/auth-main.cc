@@ -489,7 +489,7 @@ static void declareStats()
   S.declare(
     "xfr-queue", "Size of the queue of zones to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
   S.declareDNSNameQTypeRing("queries", "UDP Queries Received");
-  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for non-existent records within existent zones");
+  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for nonexistent records within existent zones");
   S.declareDNSNameQTypeRing("noerror-queries", "Queries for existing records, but for type we don't have");
   S.declareDNSNameQTypeRing("servfail-queries", "Queries that could not be answered due to backend errors");
   S.declareDNSNameQTypeRing("unauth-queries", "Queries for zones that we are not authoritative for");

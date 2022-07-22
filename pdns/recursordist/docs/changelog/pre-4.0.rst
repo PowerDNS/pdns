@@ -1018,7 +1018,7 @@ Changes between RC2 and -release
 -  'Make install' when an existing configuration file contained a 'fork'
    statement has been fixed. Spotted by Darren Gamble, code in `commit
    1534 <http://wiki.powerdns.com/projects/trac/changeset/1534>`__.
--  Reloading a non-existent allow-from-file caused the control thread to
+-  Reloading a nonexistent allow-from-file caused the control thread to
    stop working. Spotted by Imre Gergely, code in `commit
    1532 <http://wiki.powerdns.com/projects/trac/changeset/1532>`__.
 -  Parser got confused by reading en empty line in auth-forward-zones.
