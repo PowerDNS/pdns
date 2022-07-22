@@ -5246,7 +5246,7 @@ Changes
 ^^^^^^^
 
 -  The monitor command **set** no longer allows the changing of
-   non-existent variables.
+   nonexistent variables.
 -  IBM Universal Database DB2 backend now included in source
    distribution (untested!)
 -  Oracle backend now included in source distribution (slightly tested!)

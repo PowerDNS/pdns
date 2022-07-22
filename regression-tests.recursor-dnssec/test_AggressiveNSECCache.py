@@ -42,7 +42,7 @@ class AggressiveNSECCacheBase(RecursorTest):
 
     def testNoData(self):
 
-        # first we query a non-existent type, to get the NSEC in our cache
+        # first we query a nonexistent type, to get the NSEC in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         res = self.sendQuery('host1.secure.example.', 'TXT')
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -71,7 +71,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
     # do not deny the same names than the non-hashed NSECs do
     def testNXD(self):
 
-        # first we query a non-existent name, to get the needed NSECs (name + widcard) in our cache
+        # first we query a nonexistent name, to get the needed NSECs (name + widcard) in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         hits = self.getMetric('aggressive-nsec-cache-nsec-hits')
         res = self.sendQuery('host2.secure.example.', 'TXT')
@@ -98,7 +98,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
 
     def testWildcard(self):
 
-        # first we query a non-existent name, but for which a wildcard matches,
+        # first we query a nonexistent name, but for which a wildcard matches,
         # to get the NSEC in our cache
         res = self.sendQuery('test1.wildcard.secure.example.', 'A')
         expected = dns.rrset.from_text('test1.wildcard.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
@@ -220,7 +220,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
 
     def testNXD(self):
 
-        # first we query a non-existent name, to get the needed NSEC3s in our cache
+        # first we query a nonexistent name, to get the needed NSEC3s in our cache
         res = self.sendQuery('host2.secure.example.', 'TXT')
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertAnswerEmpty(res)
@@ -247,7 +247,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
 
-        # we query a non-existent name, but for which a wildcard matches,
+        # we query a nonexistent name, but for which a wildcard matches,
         # to get the NSEC3 in our cache
         res = self.sendQuery('test5.wildcard.secure.example.', 'A')
         expected = dns.rrset.from_text('test5.wildcard.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))

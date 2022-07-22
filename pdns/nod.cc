@@ -122,7 +122,7 @@ void PersistentSBF::setCacheDir(const std::string& cachedir)
   if (!d_init) {
     filesystem::path p(cachedir);
     if (!exists(p))
-      throw PDNSException("NODDB setCacheDir specified non-existent directory: " + cachedir);
+      throw PDNSException("NODDB setCacheDir specified nonexistent directory: " + cachedir);
     else if (!is_directory(p))
       throw PDNSException("NODDB setCacheDir specified a file not a directory: " + cachedir);
     d_cachedir = cachedir;
