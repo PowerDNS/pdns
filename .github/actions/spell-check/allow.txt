@@ -175,6 +175,7 @@ authconfdir
 authdir
 authdirs
 authdomain
+authip
 authlog
 authname
 authoritatives
@@ -428,6 +429,7 @@ childstat
 chkconfig
 chr
 chrono
+cidr
 cin
 cinttypes
 ciphersuites
@@ -750,6 +752,7 @@ dnsdistrules
 dnsdisttcp
 dnsdisttests
 dnserrors
+DNSHEADER
 DNSID
 DNSIP
 dnskeyr
@@ -3387,7 +3390,6 @@ SSLRSADNS
 sslsock
 SSLTLS
 SSLTLSIO
-SSLv
 SSocket
 ssql
 ssqlite
