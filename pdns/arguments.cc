@@ -469,49 +469,53 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
-bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
+bool ArgvMap::parseFile(const char* fname, const string& arg, bool lax)
+{
   string line;
   string pline;
   string::size_type pos;
 
   ifstream f(fname);
-  if(!f)
+  if (!f) {
     return false;
+  }
 
-  while(getline(f,pline)) {
+  while (getline(f, pline)) {
     boost::trim_right(pline);
 
-    if(!pline.empty() && pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
+    if (!pline.empty() && pline[pline.size() - 1] == '\\') {
+      line += pline.substr(0, pline.length() - 1);
       continue;
     }
-    else
-      line+=pline;
+    else {
+      line += pline;
+    }
 
     // strip everything after a #
-    if((pos=line.find('#'))!=string::npos) {
+    if ((pos = line.find('#')) != string::npos) {
       // make sure it's either first char or has whitespace before
       // fixes issue #354
-      if (pos == 0 || std::isspace(line[pos-1]))
-        line=line.substr(0,pos);
+      if (pos == 0 || std::isspace(line[pos - 1])) {
+        line = line.substr(0, pos);
+      }
     }
 
     // strip trailing spaces
     boost::trim_right(line);
 
     // strip leading spaces
-    if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
-      line=line.substr(pos);
+    if ((pos = line.find_first_not_of(" \t\r\n")) != string::npos) {
+      line = line.substr(pos);
+    }
 
     // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
 
-    parseOne( string("--") + line, arg, lax );
-    line="";
+    parseOne(string("--") + line, arg, lax);
+    line = "";
   }
 
   return true;
 }
-
 
 bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
 {
@@ -525,12 +529,13 @@ bool ArgvMap::file(const char *fname, bool lax)
    return file(fname,lax,false);
 }
 
-bool ArgvMap::file(const char *fname, bool lax, bool included)
+bool ArgvMap::file(const char* fname, bool lax, bool included)
 {
-  if (!parmIsset("include-dir"))  // inject include-dir
-    set("include-dir","Directory to include configuration files from");
+  if (!parmIsset("include-dir")) { // inject include-dir
+    set("include-dir", "Directory to include configuration files from");
+  }
 
-  if(!parseFile(fname, "", lax)) {
+  if (!parseFile(fname, "", lax)) {
     SLOG(g_log << Logger::Warning << "Unable to open " << fname << std::endl,
          d_log->error(Logr::Warning, "Unable to open file", "name", Logging::Loggable(fname)));
     return false;
@@ -539,12 +544,12 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
   // handle include here (avoid re-include)
   if (!included && !d_params["include-dir"].empty()) {
     std::vector<std::string> extraConfigs;
-    gatherIncludes(extraConfigs); 
-    for(const std::string& fn :  extraConfigs) {
-      if (!file(fn.c_str(), lax, true)) {
-        SLOG(g_log << Logger::Error << fn << " could not be parsed" << std::endl,
-             d_log->info(Logr::Error, "Unable to parse config file", "name", Logging::Loggable(fn)));
-        throw ArgException(fn + " could not be parsed");
+    gatherIncludes(extraConfigs);
+    for (const std::string& filename : extraConfigs) {
+      if (!file(filename.c_str(), lax, true)) {
+        SLOG(g_log << Logger::Error << filename << " could not be parsed" << std::endl,
+             d_log->info(Logr::Error, "Unable to parse config file", "name", Logging::Loggable(filename)));
+        throw ArgException(filename + " could not be parsed");
       }
     }
   }
