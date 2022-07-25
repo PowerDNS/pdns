@@ -110,7 +110,7 @@ bool ArgvMap::contains(const string &var, const string &val)
     return false;
   }
   vector<string> parts;
-  
+
   stringtok(parts, param->second, ", \t");
   for (const auto& part: parts) {
     if (part == val) {
@@ -125,7 +125,7 @@ string ArgvMap::helpstring(string prefix)
 {
   if(prefix=="no")
     prefix="";
-  
+
   string help;
 
   for (const auto& i: helpmap) {
@@ -134,7 +134,7 @@ string ArgvMap::helpstring(string prefix)
 
       help+="  --";
       help+=i.first;
-      
+
       string type=d_typeMap[i.first];
 
       if(type=="Parameter")
@@ -144,7 +144,7 @@ string ArgvMap::helpstring(string prefix)
           help+=" | --"+i.first+"=yes";
           help+=" | --"+i.first+"=no";
         }
-      
+
 
       help+="\n\t";
       help+=i.second;
@@ -230,7 +230,7 @@ const string & ArgvMap::operator[](const string &arg)
   return d_params[arg];
 }
 
-mode_t ArgvMap::asMode(const string &arg) 
+mode_t ArgvMap::asMode(const string &arg)
 {
   mode_t mode;
   const char *cptr_orig;
@@ -241,7 +241,7 @@ mode_t ArgvMap::asMode(const string &arg)
 
   cptr_orig = d_params[arg].c_str();
   mode = static_cast<mode_t>(strtol(cptr_orig, &cptr_ret, 8));
-  if (mode == 0 && cptr_ret == cptr_orig) 
+  if (mode == 0 && cptr_ret == cptr_orig)
     throw ArgException("'" + arg + string("' contains invalid octal mode"));
    return mode;
 }
@@ -309,7 +309,7 @@ int ArgvMap::asNum(const string &arg, int def)
   return retval;
 }
 
-bool ArgvMap::isEmpty(const string &arg) 
+bool ArgvMap::isEmpty(const string &arg)
 {
    if(!parmIsset(arg))
     return true;
@@ -330,7 +330,7 @@ double ArgvMap::asDouble(const string &arg)
 
   cptr_orig = d_params[arg].c_str();
   retval = strtod(cptr_orig, &cptr_ret);
- 
+
   if (retval == 0 && cptr_ret == cptr_orig)
    throw ArgException("'"+arg+string("' is not valid double"));
 
@@ -398,7 +398,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   }
   else // command
     d_cmds.push_back(arg);
- 
+
   boost::trim(var);
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
@@ -480,7 +480,7 @@ bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
 
   while(getline(f,pline)) {
     boost::trim_right(pline);
-    
+
     if(!pline.empty() && pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
