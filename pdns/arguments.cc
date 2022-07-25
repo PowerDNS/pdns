@@ -33,7 +33,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <limits.h>
+#include <climits>
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
@@ -473,29 +473,28 @@ bool ArgvMap::parseFile(const char* fname, const string& arg, bool lax)
 {
   string line;
   string pline;
-  string::size_type pos;
 
-  ifstream f(fname);
-  if (!f) {
+  ifstream configFileStream(fname);
+  if (!configFileStream) {
     return false;
   }
 
-  while (getline(f, pline)) {
+  while (getline(configFileStream, pline)) {
     boost::trim_right(pline);
 
     if (!pline.empty() && pline[pline.size() - 1] == '\\') {
       line += pline.substr(0, pline.length() - 1);
       continue;
     }
-    else {
-      line += pline;
-    }
+
+    line += pline;
 
     // strip everything after a #
-    if ((pos = line.find('#')) != string::npos) {
+    string::size_type pos = line.find('#');
+    if (pos != string::npos) {
       // make sure it's either first char or has whitespace before
       // fixes issue #354
-      if (pos == 0 || std::isspace(line[pos - 1])) {
+      if (pos == 0 || (std::isspace(line[pos - 1]) != 0)) {
         line = line.substr(0, pos);
       }
     }
@@ -504,7 +503,8 @@ bool ArgvMap::parseFile(const char* fname, const string& arg, bool lax)
     boost::trim_right(line);
 
     // strip leading spaces
-    if ((pos = line.find_first_not_of(" \t\r\n")) != string::npos) {
+    pos = line.find_first_not_of(" \t\r\n");
+    if (pos != string::npos) {
       line = line.substr(pos);
     }
 
