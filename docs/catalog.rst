@@ -136,3 +136,5 @@ The only difference is the type, which is now set to CONSUMER.
   pdnsutil set-kind catalog.invalid consumer
 
 Creating producer zones is supported in the :doc:`API <http-api/zone>`.
+
+New member zones on the consumer adopt their primaries from the consumer zone.
