@@ -149,11 +149,11 @@ commands require an *ALGORITHM*, the following are available:
 -  hmac-sha384
 -  hmac-sha512
 
-activate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**}
+activate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**,\ **producer**,\ **consumer**}
     Enable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
-    This sets the ``TSIG-ALLOW-AXFR`` (primary) or ``AXFR-MASTER-TSIG``
-    (secondary) zone metadata.
-deactivate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**}
+    This sets the ``TSIG-ALLOW-AXFR`` (primary/producer) or ``AXFR-MASTER-TSIG``
+    (secondary/consumer) zone metadata.
+deactivate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**,\ **producer**,\ **consumer**}
     Disable TSIG authenticated AXFR using the key *NAME* for zone
     *ZONE*.
 delete-tsig-key *NAME*
@@ -245,7 +245,13 @@ secure-all-zones [**increase-serial**]
     serial of those zones too. You should manually run 'pdnsutil
     rectify-all-zones' afterwards.
 set-kind *ZONE* *KIND*
-    Change the kind of *ZONE* to *KIND* (primary, secondary, native).
+    Change the kind of *ZONE* to *KIND* (primary, secondary, native, producer, consumer).
+set-options-json *ZONE* *JSON*
+    Change the options of *ZONE* to *JSON*
+set-option *ZONE* [*producer*|*consumer*] [*coo*|*unique*|*group*] *VALUE* [*VALUE* ...]
+    Set or remove an option for *ZONE*. Providing an empty value removes an option.
+set-catalog *ZONE* *CATALOG*
+    Change the catalog of *ZONE* to *CATALOG*
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
 add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...

@@ -42,6 +42,8 @@ class DNSPacket;
 #include "dnsname.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
+#include "sha.hh"
+#include "auth-catalogzone.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -49,7 +51,9 @@ struct DomainInfo
   DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
+  DNSName catalog;
   time_t last_check;
+  string options;
   string account;
   vector<ComboAddress> masters; 
   DNSBackend *backend;
@@ -60,12 +64,22 @@ struct DomainInfo
   bool receivedNotify;
 
   uint32_t serial;
-  enum DomainKind : uint8_t { Master, Slave, Native } kind;
-  
+
   bool operator<(const DomainInfo& rhs) const
   {
     return zone < rhs.zone;
   }
+
+  // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
+  enum DomainKind : uint8_t
+  {
+    Master,
+    Slave,
+    Native,
+    Producer,
+    Consumer,
+    All
+  } kind;
 
   const char *getKindString() const
   {
@@ -74,7 +88,7 @@ struct DomainInfo
 
   static const char *getKindString(enum DomainKind kind)
   {
-    const char *kinds[]={"Master", "Slave", "Native"};
+    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
     return kinds[kind];
   }
 
@@ -82,11 +96,19 @@ struct DomainInfo
   {
     if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
       return DomainInfo::Slave;
-    else if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
+    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
       return DomainInfo::Master;
-    else
-      return DomainInfo::Native;
+    if (pdns_iequals(kind, "PRODUCER"))
+      return DomainInfo::Producer;
+    if (pdns_iequals(kind, "CONSUMER"))
+      return DomainInfo::Consumer;
+    // No "ALL" here please. Yes, I really mean it...
+    return DomainInfo::Native;
   }
+
+  bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
+  bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
   bool isMaster(const ComboAddress& ip) const
   {
@@ -318,8 +340,14 @@ public:
   }
 
   //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>* domains)
+  virtual void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
   {
+  }
+
+  //! get list of all members in a catalog
+  virtual bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+  {
+    return false;
   }
 
   //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness
@@ -345,6 +373,18 @@ public:
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
   virtual bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
+  //! Called when the options of a domain should be changed
+  virtual bool setOptions(const DNSName& domain, const string& options)
+  {
+    return false;
+  }
+
+  //! Called when the catalog of a domain should be changed
+  virtual bool setCatalog(const DNSName& domain, const DNSName& catalog)
   {
     return false;
   }

@@ -250,7 +250,7 @@ paths:
 
     put:
       summary: Modifies basic zone data.
-      description: 'The only fields in the zone structure which can be modified are: kind, masters, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored.'
+      description: 'The only fields in the zone structure which can be modified are: kind, masters, catalog, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored.'
       operationId: putZone
       tags:
         - zones
@@ -988,7 +988,9 @@ definitions:
           - 'Native'
           - 'Master'
           - 'Slave'
-        description: 'Zone kind, one of “Native”, “Master”, “Slave”'
+          - 'Producer'
+          - 'Consumer'
+        description: 'Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”'
       rrsets:
         type: array
         items:
@@ -1028,10 +1030,13 @@ definitions:
         description: 'The SOA-EDIT-API metadata item'
       api_rectify:
         type: boolean
-        description: ' Whether or not the zone will be rectified on data changes via the API'
+        description: 'Whether or not the zone will be rectified on data changes via the API'
       zone:
         type: string
         description: 'MAY contain a BIND-style zone file when creating a zone'
+      catalog:
+        type: string
+        description: 'The catalog this zone is a member of'
       account:
         type: string
         description: 'MAY be set. Its value is defined by local policy'

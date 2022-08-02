@@ -24,7 +24,7 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
-void LdapBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void LdapBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   string filter;
   PowerLDAP::SearchResult::Ptr search;
@@ -45,7 +45,7 @@ void LdapBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if (reconnect())
-      this->getUpdatedMasters(domains);
+      this->getUpdatedMasters(domains, catalogs, catalogHashes);
     else
       throw PDNSException("Failed to reconnect to LDAP server");
   }
@@ -66,7 +66,7 @@ void LdapBackend::getUpdatedMasters(vector<DomainInfo>* domains)
       continue;
 
     if (di.notified_serial < di.serial)
-      domains->push_back(di);
+      domains.push_back(di);
   }
 }
 

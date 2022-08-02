@@ -1132,9 +1132,9 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_metadata) {
 
     {
       // update the values
-      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.com."), "test-data-a", { "value3" }));
-      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.org."), "test-data-a", { "value4" }));
-      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.org."), "test-data-b", { "value5" }));
+      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.com."), "test-data-a", std::vector<std::string>({"value3"})));
+      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.org."), "test-data-a", std::vector<std::string>({"value4"})));
+      BOOST_CHECK(ub.setDomainMetadata(DNSName("powerdns.org."), "test-data-b", std::vector<std::string>({"value5"})));
     }
 
     // check the updated values

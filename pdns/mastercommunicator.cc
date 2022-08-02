@@ -136,30 +136,73 @@ void NotificationQueue::dump()
   }
 }
 
+void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+{
+  std::string metaHash;
+  std::string mapHash;
+  for (auto& ch : catalogHashes) {
+    if (!catalogs.count(ch.first)) {
+      g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl;
+      continue;
+    }
+
+    if (!B->getDomainMetadata(ch.first, "CATALOG-HASH", metaHash)) {
+      metaHash.clear();
+    }
+
+    mapHash = Base64Encode(ch.second.digest());
+    if (mapHash != metaHash) {
+      DomainInfo di;
+      if (B->getDomainInfo(ch.first, di)) {
+        if (di.kind != DomainInfo::Producer) {
+          g_log << Logger::Warning << "zone '" << di.zone << "' is no producer zone" << endl;
+          continue;
+        }
+
+        B->setDomainMetadata(di.zone, "CATALOG-HASH", mapHash);
+
+        g_log << Logger::Warning << "new CATALOG-HASH '" << mapHash << "' for zone '" << di.zone << "'" << endl;
+
+        SOAData sd;
+        if (!B->getSOAUncached(di.zone, sd)) {
+          g_log << Logger::Warning << "SOA lookup failed for producer zone '" << di.zone << "'" << endl;
+          continue;
+        }
+
+        DNSResourceRecord rr;
+        makeIncreasedSOARecord(sd, "EPOCH", "", rr);
+        di.backend->startTransaction(sd.qname, -1);
+        if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+          di.backend->abortTransaction();
+          throw PDNSException("backend hosting producer zone '" + sd.qname.toLogString() + "' does not support editing records");
+        }
+        di.backend->commitTransaction();
+
+        domains.emplace_back(di);
+      }
+    }
+  }
+}
+
 void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 {
   if(!::arg().mustDo("primary"))
-    return; 
+    return;
 
   UeberBackend *B=P->getBackend();
   vector<DomainInfo> cmdomains;
-  B->getUpdatedMasters(&cmdomains);
-  
+  std::unordered_set<DNSName> catalogs;
+  CatalogHashMap catalogHashes;
+  B->getUpdatedMasters(cmdomains, catalogs, catalogHashes);
+  getUpdatedProducers(B, cmdomains, catalogs, catalogHashes);
+
   if(cmdomains.empty()) {
-    if(d_masterschanged)
-      g_log<<Logger::Info<<"No master domains need notifications"<<endl;
-    d_masterschanged=false;
+    g_log << Logger::Info << "no primary or producer domains need notifications" << endl;
   }
   else {
-    d_masterschanged=true;
-    g_log<<Logger::Notice<<cmdomains.size()<<" domain"<<(cmdomains.size()>1 ? "s" : "")<<" for which we are master need"<<
-      (cmdomains.size()>1 ? "" : "s")<<
-      " notifications"<<endl;
+    g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or consumer need" << addS(cmdomains.size()) << " notifications" << endl;
   }
 
-  // figure out A records of everybody needing notification
-  // do this via the FindNS class, d_fns
-  
   for(auto& di : cmdomains) {
     purgeAuthCachesExact(di.zone);
     queueNotifyDomain(di, B);

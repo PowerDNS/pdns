@@ -885,7 +885,7 @@ void RemoteBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
   ips->insert(meta.begin(), meta.end());
 }
 
-void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void RemoteBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   Json query = Json::object{
     {"method", "getUpdatedMasters"},
@@ -902,7 +902,7 @@ void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   for (const auto& row : answer["result"].array_items()) {
     DomainInfo di;
     this->parseDomainInfo(row, di);
-    domains->push_back(di);
+    domains.push_back(di);
   }
 }
 

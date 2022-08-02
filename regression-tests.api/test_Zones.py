@@ -145,6 +145,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertGreater(soa_serial, payload['serial'])
         self.assertEqual(soa_serial, data['serial'])
 
+    def test_create_zone_with_catalog(self):
+        # soa_edit_api wins over serial
+        name, payload, data = self.create_zone(catalog='catalog.invalid.', serial=10)
+        print(data)
+        for k in ('catalog', ):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEqual(data[k], payload[k])
+
     def test_create_zone_with_account(self):
         # soa_edit_api wins over serial
         name, payload, data = self.create_zone(account='anaccount', serial=10)
@@ -1053,6 +1062,7 @@ $ORIGIN %NAME%
         payload = {
             'kind': 'Master',
             'masters': ['192.0.2.1', '192.0.2.2'],
+            'catalog': 'catalog.invalid.',
             'soa_edit_api': 'EPOCH',
             'soa_edit': 'EPOCH'
         }
@@ -1068,6 +1078,7 @@ $ORIGIN %NAME%
         # update, back to Native and empty(off)
         payload = {
             'kind': 'Native',
+            'catalog': '',
             'soa_edit_api': '',
             'soa_edit': ''
         }

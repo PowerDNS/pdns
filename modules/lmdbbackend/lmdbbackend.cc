@@ -49,10 +49,11 @@
 
 #include "lmdbbackend.hh"
 
-#define SCHEMAVERSION 3
+#define SCHEMAVERSION 4
 
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
+BOOST_CLASS_VERSION(DomainInfo, 1)
 
 static bool s_first = true;
 static int s_shards = 0;
@@ -156,12 +157,12 @@ namespace serialization
   template <class Archive>
   void save(Archive& ar, const DNSName& g, const unsigned int version)
   {
-    if (!g.empty()) {
-      std::string tmp = g.toDNSStringLC(); // g++ 4.8 woes
-      ar& tmp;
+    if (g.empty()) {
+      ar& std::string();
     }
-    else
-      ar & "";
+    else {
+      ar& g.toDNSStringLC();
+    }
   }
 
   template <class Archive>
@@ -169,17 +170,18 @@ namespace serialization
   {
     string tmp;
     ar& tmp;
-    if (tmp.empty())
+    if (tmp.empty()) {
       g = DNSName();
-    else
+    }
+    else {
       g = DNSName(tmp.c_str(), tmp.size(), 0, false);
+    }
   }
 
   template <class Archive>
   void save(Archive& ar, const QType& g, const unsigned int version)
   {
-    uint16_t tmp = g.getCode(); // g++ 4.8 woes
-    ar& tmp;
+    ar& g.getCode();
   }
 
   template <class Archive>
@@ -191,7 +193,7 @@ namespace serialization
   }
 
   template <class Archive>
-  void serialize(Archive& ar, DomainInfo& g, const unsigned int version)
+  void save(Archive& ar, const DomainInfo& g, const unsigned int version)
   {
     ar& g.zone;
     ar& g.last_check;
@@ -200,6 +202,28 @@ namespace serialization
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
+    ar& g.options;
+    ar& g.catalog;
+  }
+
+  template <class Archive>
+  void load(Archive& ar, DomainInfo& g, const unsigned int version)
+  {
+    ar& g.zone;
+    ar& g.last_check;
+    ar& g.account;
+    ar& g.masters;
+    ar& g.id;
+    ar& g.notified_serial;
+    ar& g.kind;
+    if (version >= 1) {
+      ar& g.options;
+      ar& g.catalog;
+    }
+    else {
+      g.options.clear();
+      g.catalog.clear();
+    }
   }
 
   template <class Archive>
@@ -240,6 +264,7 @@ namespace serialization
 BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(QType);
 BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
+BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template <>
@@ -646,6 +671,15 @@ bool LMDBBackend::upgradeToSchemav3()
 
 bool LMDBBackend::deleteDomain(const DNSName& domain)
 {
+  if (!d_rwtxn) {
+    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
+  }
+
+  int transactionDomainId = d_transactiondomainid;
+  DNSName transactionDomain = d_transactiondomain;
+
+  abortTransaction();
+
   uint32_t id;
 
   { // get domain id
@@ -655,9 +689,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     id = txn.get<0>(domain, di);
   }
 
-  if (!d_rwtxn || d_transactiondomainid != id) {
-    throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a proper transaction");
-  }
+  startTransaction(domain, id);
 
   { // Remove metadata
     auto txn = d_tmeta->getRWTransaction();
@@ -681,13 +713,14 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     txn.commit();
   }
 
+  // Remove records
+  commitTransaction();
+  startTransaction(transactionDomain, transactionDomainId);
+
   // Remove zone
   auto txn = d_tdomains->getRWTransaction();
   txn.del(id);
   txn.commit();
-
-  // Remove records
-  deleteDomainRecords(*d_rwtxn, id);
 
   return true;
 }
@@ -960,27 +993,6 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
-void LMDBBackend::setStale(uint32_t domain_id)
-{
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = 0;
-  });
-}
-
-void LMDBBackend::setFresh(uint32_t domain_id)
-{
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = time(0);
-  });
-}
-
-void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
-{
-  genChangeDomain(domain_id, [serial](DomainInfo& di) {
-    di.serial = serial;
-  });
-}
-
 bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& masters)
 {
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
@@ -1029,44 +1041,128 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
-  //  cout<<"Start of getUnfreshSlaveInfos"<<endl;
-  domains->clear();
-  auto txn = d_tdomains->getROTransaction();
-
+  uint32_t serial;
   time_t now = time(0);
+  LMDBResourceRecord lrr;
+  soatimes st;
+
+  auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (iter->kind != DomainInfo::Slave)
+    if (!iter->isSecondaryType()) {
       continue;
+    }
 
     auto txn2 = getRecordsROTransaction(iter.getID());
     compoundOrdername co;
     MDBOutVal val;
-    uint32_t serial = 0;
     if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
-      LMDBResourceRecord lrr;
       serFromString(val.get<string_view>(), lrr);
-      struct soatimes st;
-
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
-
-      if ((time_t)(iter->last_check + ntohl(st.refresh)) >= now) { // still fresh
-        continue; // try next domain
+      if ((time_t)(iter->last_check + ntohl(st.refresh)) > now) { // still fresh
+        continue;
       }
-      //      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
       serial = ntohl(st.serial);
     }
     else {
-      //      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
       serial = 0;
     }
-    DomainInfo di = *iter;
+
+    DomainInfo di(*iter);
     di.id = iter.getID();
     di.serial = serial;
     di.backend = this;
 
-    domains->push_back(di);
+    domains->emplace_back(di);
   }
-  //  cout<<"END of getUnfreshSlaveInfos"<<endl;
+}
+
+void LMDBBackend::setStale(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = 0;
+  });
+}
+
+void LMDBBackend::setFresh(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = time(nullptr);
+  });
+}
+
+void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+{
+  DomainInfo di;
+  CatalogInfo ci;
+
+  auto txn = d_tdomains->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    if (!iter->isPrimaryType()) {
+      continue;
+    }
+
+    if (iter->kind == DomainInfo::Producer) {
+      catalogs.insert(iter->zone);
+      catalogHashes[iter->zone].process("\0");
+      continue; // Producer fresness check is performed elsewhere
+    }
+
+    if (!iter->catalog.empty()) {
+      ci.fromJson(iter->options, CatalogInfo::CatalogType::Producer);
+      ci.updateHash(catalogHashes, *iter);
+    }
+
+    di = *iter;
+    if (getSerial(di) && di.serial != di.notified_serial) {
+      updatedDomains.emplace_back(di);
+    }
+  }
+}
+
+void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
+{
+  genChangeDomain(domain_id, [serial](DomainInfo& di) {
+    di.serial = serial;
+  });
+}
+
+bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+{
+  auto txn = d_tdomains->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != DomainInfo::Slave) || iter->catalog != catalog) {
+      continue;
+    }
+
+    CatalogInfo ci;
+    ci.d_id = iter->id;
+    ci.d_zone = iter->zone;
+    ci.d_primaries = iter->masters;
+    try {
+      ci.fromJson(iter->options, type);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << iter->options << "' for zone '" << iter->zone << "' is no valid JSON: " << e.what() << endl;
+      members.clear();
+      return false;
+    }
+    members.emplace_back(ci);
+  }
+  return true;
+}
+
+bool LMDBBackend::setOptions(const DNSName& domain, const std::string& options)
+{
+  return genChangeDomain(domain, [options](DomainInfo& di) {
+    di.options = options;
+  });
+}
+
+bool LMDBBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+{
+  return genChangeDomain(domain, [catalog](DomainInfo& di) {
+    di.catalog = catalog;
+  });
 }
 
 bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)

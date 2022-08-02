@@ -106,7 +106,7 @@ public:
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-  void getUpdatedMasters(vector<DomainInfo>* domains);
+  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true);
   bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account);
   
@@ -115,7 +115,9 @@ public:
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta);
 
   bool removeDomainKey(const DNSName& name, unsigned int id);
   bool activateDomainKey(const DNSName& name, unsigned int id);

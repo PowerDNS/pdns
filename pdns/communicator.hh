@@ -153,7 +153,7 @@ public:
   CommunicatorClass() 
   {
     d_tickinterval=60;
-    d_masterschanged=d_slaveschanged=true;
+    d_slaveschanged = true;
     d_nsock4 = -1;
     d_nsock6 = -1;
     d_preventSelfNotification = false;
@@ -187,6 +187,7 @@ private:
 
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
+  void getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
 
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
@@ -196,7 +197,7 @@ private:
   NotificationQueue d_nq;
 
   time_t d_tickinterval;
-  bool d_masterschanged, d_slaveschanged;
+  bool d_slaveschanged;
   bool d_preventSelfNotification;
 
   struct Data

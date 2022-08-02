@@ -101,6 +101,7 @@ endif
 pdns_recursor_SOURCES = \
 	aggressive_nsec.cc aggressive_nsec.hh \
 	arguments.cc \
+	auth-catalogzone.hh \
 	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \

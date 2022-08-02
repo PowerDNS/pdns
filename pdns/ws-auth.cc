@@ -319,18 +319,18 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
     masters.push_back(m.toStringWithPortExcept(53));
   }
 
-  auto obj = Json::object {
+  auto obj = Json::object{
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-    { "id", zoneId },
-    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
-    { "name", di.zone.toString() },
-    { "kind", di.getKindString() },
-    { "account", di.account },
-    { "masters", std::move(masters) },
-    { "serial", (double)di.serial },
-    { "notified_serial", (double)di.notified_serial },
-    { "last_check", (double)di.last_check }
-  };
+    {"id", zoneId},
+    {"url", "/api/v1/servers/localhost/zones/" + zoneId},
+    {"name", di.zone.toString()},
+    {"kind", di.getKindString()},
+    {"catalog", (!di.catalog.empty() ? di.catalog.toString() : "")},
+    {"account", di.account},
+    {"masters", std::move(masters)},
+    {"serial", (double)di.serial},
+    {"notified_serial", (double)di.notified_serial},
+    {"last_check", (double)di.last_check}};
   if (dk) {
     obj["dnssec"] = dk->isSecuredZone(di.zone);
     string soa_edit;
@@ -612,8 +612,8 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
+{
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
@@ -636,6 +636,14 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
     masters = boost::none;
   }
 
+  if (document["catalog"].is_string()) {
+    string catstring = document["catalog"].string_value();
+    catalog = (!catstring.empty() ? DNSName(catstring) : DNSName());
+  }
+  else {
+    catalog = boost::none;
+  }
+
   if (document["account"].is_string()) {
     account = document["account"].string_value();
   } else {
@@ -646,15 +654,19 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
+  boost::optional<DNSName> catalog;
   boost::optional<string> account;
 
-  extractDomainInfoFromDocument(document, kind, masters, account);
+  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
   if (kind) {
     di.backend->setKind(zonename, *kind);
   }
   if (masters) {
     di.backend->setMasters(zonename, *masters);
+  }
+  if (catalog) {
+    di.backend->setCatalog(zonename, *catalog);
   }
   if (account) {
     di.backend->setAccount(zonename, *account);
@@ -1795,8 +1807,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     boost::optional<DomainInfo::DomainKind> kind;
     boost::optional<vector<ComboAddress>> masters;
+    boost::optional<DNSName> catalog;
     boost::optional<string> account;
-    extractDomainInfoFromDocument(document, kind, masters, account);
+    extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
     // no going back after this
     if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))

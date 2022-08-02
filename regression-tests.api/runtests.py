@@ -289,7 +289,7 @@ test_env.update({
 
 try:
     print("")
-    run_check_call(["nosetests", "--with-xunit", "-v"] + tests, env=test_env)
+    run_check_call(["pytest", "--junitxml=pytest.xml", "-v"] + tests, env=test_env)
 except subprocess.CalledProcessError as ex:
     returncode = ex.returncode
 finally:
