@@ -10,6 +10,8 @@ from authtests import AuthTest
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+webserver = None
+
 class FakeHTTPServer(BaseHTTPRequestHandler):
     def _set_headers(self, response_code=200):
         self.send_response(response_code)
@@ -40,6 +42,8 @@ geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
 launch=bind geoip
 any-to-tcp=no
+enable-lua-records
+lua-health-checks-interval=1
 """
 
     _zones = {
@@ -142,6 +146,8 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
 
 newcafromraw     IN    LUA    A    "newCAFromRaw('ABCD'):toString()"
 newcafromraw     IN    LUA    AAAA "newCAFromRaw('ABCD020340506070'):toString()"
+
+counter          IN    LUA    TXT  ";counter = counter or 0 counter=counter+1 return tostring(counter)"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -155,6 +161,9 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
 
     @classmethod
     def startResponders(cls):
+        global webserver
+        if webserver: return  # it is already running
+
         webserver = threading.Thread(name='HTTP Listener',
                                      target=cls.HTTPResponder,
                                      args=[8080]
@@ -928,6 +937,54 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
                 self.assertEqual(res.answer, response.answer)
 
+    def _getCounter(self, tcp=False):
+        """
+        Helper function for shared/non-shared testing
+        """
+        name = 'counter.example.org.'
+
+        query = dns.message.make_query(name, 'TXT')
+        responses = []
+
+        sender = self.sendTCPQuery if tcp else self.sendUDPQuery
+
+        for i in range(50):
+            res = sender(query)
+            responses.append(res.answer[0][0])
+
+        return(responses)
+
+    def testCounter(self):
+        """
+        Test non-shared behaviour
+        """
+
+        resUDP = set(self._getCounter(tcp=False))
+        resTCP = set(self._getCounter(tcp=True))
+
+        self.assertEqual(len(resUDP), 1)
+        self.assertEqual(len(resTCP), 1)
+
+class TestLuaRecordsShared(TestLuaRecords):
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+enable-lua-records=shared
+lua-health-checks-interval=1
+"""
+
+    def testCounter(self):
+        """
+        Test shared behaviour
+        """
+
+        resUDP = set(self._getCounter(tcp=False))
+        resTCP = set(self._getCounter(tcp=True))
+
+        self.assertEqual(len(resUDP), 50)
+        self.assertEqual(len(resTCP), 50)
 
 if __name__ == '__main__':
     unittest.main()

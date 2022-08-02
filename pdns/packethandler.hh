@@ -117,7 +117,7 @@ private:
   SOAData d_sd;
   std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
-
+  std::unique_ptr<AuthLua4> s_LUA;
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };

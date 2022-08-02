@@ -180,8 +180,6 @@ options {
         authcmd.append('--local-address=%s' % ipaddress)
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
-        authcmd.append('--enable-lua-records')
-        authcmd.append('--lua-health-checks-interval=1')
         authcmd.append('--zone-cache-refresh-interval=0')
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
