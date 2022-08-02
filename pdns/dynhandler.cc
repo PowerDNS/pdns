@@ -38,7 +38,7 @@
 #include "nameserver.hh"
 #include "responsestats.hh"
 #include "ueberbackend.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 
 extern ResponseStats g_rs;
 

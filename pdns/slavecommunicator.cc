@@ -43,7 +43,7 @@
 #include "base64.hh"
 #include "inflighter.cc"
 #include "namespaces.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "query-local-address.hh"
 
 #include "ixfr.hh"

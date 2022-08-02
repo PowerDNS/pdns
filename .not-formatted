@@ -29,8 +29,6 @@
 ./pdns/cdb.hh
 ./pdns/comfun.cc
 ./pdns/comment.hh
-./pdns/common_startup.cc
-./pdns/common_startup.hh
 ./pdns/communicator.cc
 ./pdns/communicator.hh
 ./pdns/dbdnsseckeeper.cc
@@ -237,7 +235,6 @@
 ./pdns/query-local-address.hh
 ./pdns/rcpgenerator.cc
 ./pdns/rcpgenerator.hh
-./pdns/receiver.cc
 ./pdns/remote_logger.cc
 ./pdns/remote_logger.hh
 ./pdns/resolve-context.hh

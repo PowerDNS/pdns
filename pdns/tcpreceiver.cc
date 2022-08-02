@@ -51,7 +51,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "communicator.hh"

@@ -4,7 +4,7 @@ AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
 AM_SILENT_RULES([yes])
-AC_CONFIG_SRCDIR([pdns/receiver.cc])
+AC_CONFIG_SRCDIR([pdns/auth-main.cc])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_USE_SYSTEM_EXTENSIONS

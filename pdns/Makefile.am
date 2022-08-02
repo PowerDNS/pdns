@@ -189,6 +189,7 @@ pdns_server_SOURCES = \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
 	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -204,7 +205,6 @@ pdns_server_SOURCES = \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	comment.hh \
-	common_startup.cc common_startup.hh \
 	communicator.cc communicator.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
@@ -252,7 +252,6 @@ pdns_server_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
-	receiver.cc \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \

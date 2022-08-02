@@ -28,7 +28,7 @@
 #include "iputils.hh"
 #include "sstuff.hh"
 #include "arguments.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 
 #include "namespaces.hh"
 
