@@ -95,7 +95,7 @@ function startup() {
         var num = 0;
         var total = 0, rest = 0;
         var rows = [];
-        $.each(data["entries"], function (a, b) {
+        data["entries"].forEach((b) => {
             total += b[0];
             if (num++ > 10) {
                 rest += b[0];
@@ -174,8 +174,8 @@ function startup() {
                 connectionOK(true);
 
                 var data = {};
-                $.each(adata, function (key, val) {
-                    data[val.name] = val.value;
+                adata.forEach((statItem) => {
+                    data[statItem.name] = statItem.value;
                 });
 
                 if (!gdata["sys-msec"])
