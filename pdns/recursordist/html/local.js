@@ -227,8 +227,7 @@ function startup() {
         updateRingBuffers();
     }
 
-    $("#filter1").click(updateRingBuffers);
-    $("#filter2").click(updateRingBuffers);
+    document.querySelector("#filter1").addEventListener('click', updateRingBuffers);
 
     update();
     setInterval(update, 1000);
