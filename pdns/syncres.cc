@@ -123,13 +123,13 @@ private:
     void submit(int arg, const struct timeval& last, const struct timeval& now)
     {
       d_last = arg;
-      float val = static_cast<float>(arg);
+      auto val = static_cast<float>(arg);
       if (d_val == 0) {
         d_val = val;
       }
       else {
-        float diff = makeFloat(last - now);
-        float factor = expf(diff) / 2.0f; // might be '0.5', or 0.0001
+        auto diff = makeFloat(last - now);
+        auto factor = expf(diff) / 2.0f; // might be '0.5', or 0.0001
         d_val = (1.0f - factor) * val + factor * d_val;
       }
     }
