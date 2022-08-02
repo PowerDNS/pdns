@@ -3,9 +3,27 @@
 // var moment= require('moment');
 var gdata = {};
 
-$(document).ready(function () {
-    $.ajaxSetup({cache: false});
+function get_json(url, params) {
+    const realURL = new URL(url + '?' + (new URLSearchParams(params)).toString(), window.location);
+    return new Promise((resolve, reject) => {
+        fetch(realURL, {
+            method: 'GET',
+            mode: 'same-origin',
+            cache: 'no-cache',
+            headers: {'Accept': 'application/json'},
+        }).then((response) => {
+            if (response.ok) {
+                response.json().then((json) => resolve(json));
+            } else {
+                reject({status: response.status, statusText: response.statusText});
+            }
+        }).catch((reason) => {
+            reject(reason);
+        })
+    });
+}
 
+$(document).ready(function () {
     var getTemplate = function (name) {
         var template = $('#' + name + '-template').html();
         return Handlebars.compile(template);
@@ -95,42 +113,42 @@ $(document).ready(function () {
     };
 
     function updateRingBuffers() {
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'queries', $("#filter1").is(':checked')),
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'queries', $("#filter1").is(':checked'))).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('queryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', $("#filter1").is(':checked')),
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', $("#filter1").is(':checked'))).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailqueryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', $("#filter1").is(':checked')),
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', $("#filter1").is(':checked'))).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('bogusqueryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('remotering', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'servfail-remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'servfail-remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailremotering', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'bogus-remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'bogus-remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('bogusremotering', {rows: rows});
             });
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('timeouts', {rows: rows});
@@ -151,11 +169,7 @@ $(document).ready(function () {
     var version = null;
 
     function update() {
-        $.ajax({
-            url: 'api/v1/servers/localhost/statistics',
-            type: 'GET',
-            dataType: 'json',
-            success: function (adata, x, y) {
+        get_json('api/v1/servers/localhost/statistics').then((adata) => {
                 connectionOK(true);
 
                 var data = {};
@@ -197,22 +211,13 @@ $(document).ready(function () {
                 cpugraph.render();
 
                 gdata = data;
-            },
-            error: function (o) {
-                connectionOK(false, o);
-            },
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key', 'changeme');
-                return true;
-            }
+        }).catch((reason) => {
+            connectionOK(false, reason);
         });
 
         if (!version) {
-            $.ajax({
-                url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json',
-                success: function (data) {
-                    version = "PowerDNS " + data["daemon_type"] + " " + data["version"];
-                }
+            get_json('api/v1/servers/localhost').then((data) => {
+                version = "PowerDNS " + data["daemon_type"] + " " + data["version"]
             });
         }
 
