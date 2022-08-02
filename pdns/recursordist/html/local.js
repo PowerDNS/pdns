@@ -23,7 +23,7 @@ function get_json(url, params) {
     });
 }
 
-$(document).ready(function () {
+function startup() {
     var getTemplate = function (name) {
         var template = $('#' + name + '-template').html();
         return Handlebars.compile(template);
@@ -231,4 +231,7 @@ $(document).ready(function () {
 
     update();
     setInterval(update, 1000);
-});
+}
+
+// rely on "defer" on <script> tag for document to be ready before running.
+startup();
