@@ -157,12 +157,12 @@ function startup() {
 
     var connectionOK = function (ok, o) {
         if (ok) {
-            $("#connection-status").hide();
-            $("#connection-error").html("");
-            $("#content-hidden-on-load").show();
+            document.querySelector("#connection-status").style.display = "none";
+            document.querySelector("#connection-error").innerHTML = "";
+            document.querySelector("#content-hidden-on-load").style.display = "inherit";
         } else {
-            $("#connection-status").show();
-            $("#connection-error").html(o.status + " " + o.statusText);
+            document.querySelector("#connection-status").style.display = "inherit";
+            document.querySelector("#connection-error").innerHTML = o.status + " " + o.statusText;
         }
     };
 
