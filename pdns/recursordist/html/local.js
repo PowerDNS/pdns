@@ -15,10 +15,10 @@ function get_json(url, params) {
             if (response.ok) {
                 response.json().then((json) => resolve(json));
             } else {
-                reject({status: response.status, statusText: response.statusText});
+                reject(`HTTP Status ${response.status} ${response.statusText}`);
             }
-        }).catch((reason) => {
-            reject(reason);
+        }).catch((error) => {
+            reject(error.message);
         })
     });
 }
@@ -156,14 +156,14 @@ function startup() {
             });
     }
 
-    var connectionOK = function (ok, o) {
+    var connectionOK = function (ok, reason) {
         if (ok) {
             document.querySelector("#connection-status").style.display = "none";
             document.querySelector("#connection-error").innerHTML = "";
             document.querySelector("#content-hidden-on-load").style.display = "inherit";
         } else {
             document.querySelector("#connection-status").style.display = "inherit";
-            document.querySelector("#connection-error").innerHTML = o.status + " " + o.statusText;
+            document.querySelector("#connection-error").innerHTML = reason;
         }
     };
 
