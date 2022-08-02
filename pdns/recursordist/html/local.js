@@ -113,19 +113,20 @@ function startup() {
     };
 
     function updateRingBuffers() {
-        get_json('jsonstat', jsonstatParams('get-query-ring', 'queries', $("#filter1").is(':checked'))).then(
+        const filterChecked = document.querySelector("#filter1").checked;
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('queryring', {rows: rows});
             });
 
-        get_json('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', $("#filter1").is(':checked'))).then(
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailqueryring', {rows: rows});
             });
 
-        get_json('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', $("#filter1").is(':checked'))).then(
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('bogusqueryring', {rows: rows});
