@@ -1095,17 +1095,17 @@ static void setupLuaRecords(LuaContext& lua)
     });
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& s_LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
-  if(!s_LUA ||                  // we don't have a Lua state yet
+  if(!LUA ||                  // we don't have a Lua state yet
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
-    s_LUA = make_unique<AuthLua4>();
-    setupLuaRecords(*s_LUA->getLua());
+    LUA = make_unique<AuthLua4>();
+    setupLuaRecords(*LUA->getLua());
   }
 
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
-  LuaContext& lua = *s_LUA->getLua();
+  LuaContext& lua = *LUA->getLua();
 
   s_lua_record_ctx = std::make_unique<lua_record_ctx_t>();
   s_lua_record_ctx->qname = query;
