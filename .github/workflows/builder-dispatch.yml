@@ -9,8 +9,6 @@ on:
         type: choice
         options:
         - authoritative
-        - recursor
-        - dnsdist
       os:
         description: OS to build for
         type: string
