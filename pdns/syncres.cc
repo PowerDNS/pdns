@@ -120,15 +120,17 @@ private:
   struct DecayingEwma
   {
   public:
-    void submit(int val, const struct timeval& last, const struct timeval& now)
+    void submit(int arg, const struct timeval& last, const struct timeval& now)
     {
+      d_last = arg;
+      auto val = static_cast<float>(arg);
       if (d_val == 0) {
-        d_val = static_cast<float>(val);
+        d_val = val;
       }
       else {
-        float diff = makeFloat(last - now);
-        float factor = expf(diff) / 2.0f; // might be '0.5', or 0.0001
-        d_val = (1.0f - factor) * static_cast<float>(val) + factor * d_val;
+        auto diff = makeFloat(last - now);
+        auto factor = expf(diff) / 2.0f; // might be '0.5', or 0.0001
+        d_val = (1.0f - factor) * val + factor * d_val;
       }
     }
 
@@ -142,7 +144,13 @@ private:
       return d_val;
     }
 
+    int last(void) const
+    {
+      return d_last;
+    }
+
     float d_val{0};
+    int d_last{0};
   };
 
 public:
@@ -1179,7 +1187,7 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
     return 0;
   }
 
-  fprintf(fp.get(), "; nsspeed dump follows\n;\n");
+  fprintf(fp.get(), "; nsspeed dump follows\n; nsname\ttimestamp\t[ip/decaying-ms/last-ms...]\n");
   uint64_t count = 0;
 
   // Create a copy to avoid holding the lock while doing I/O
@@ -1189,9 +1197,10 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
     // an <empty> can appear hear in case of authoritative (hosted) zones
     char tmp[26];
     fprintf(fp.get(), "%s\t%s\t", i.d_name.toLogString().c_str(), timestamp(i.d_lastget, tmp, sizeof(tmp)));
+    bool first = true;
     for (const auto& j : i.d_collection) {
-      // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
-      fprintf(fp.get(), "%s/%f\t", j.first.toStringWithPortExcept(53).c_str(), j.second.peek());
+      fprintf(fp.get(), "%s%s/%.3f/%.3f", first ? "" : "\t", j.first.toStringWithPortExcept(53).c_str(), j.second.peek() / 1000.0f, j.second.last() / 1000.0f);
+      first = false;
     }
     fprintf(fp.get(), "\n");
   }
