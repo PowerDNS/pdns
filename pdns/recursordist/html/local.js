@@ -35,8 +35,8 @@ function startup() {
             t = getTemplate(name);
             cachedTemplates[name] = t;
         }
-        var h = t(ctx);
-        $('#' + name).html(h);
+        const html = t(ctx);
+        document.querySelector('#' + name).innerHTML = html;
     };
 
     var qpsgraph = new Rickshaw.Graph({
