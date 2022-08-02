@@ -496,7 +496,7 @@ bool RemoteBackend::doesDNSSEC()
   return d_dnssec;
 }
 
-bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content)
+bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
 {
   // no point doing dnssec if it's not supported
   if (d_dnssec == false)
@@ -510,8 +510,8 @@ bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::str
   if (this->send(query) == false || this->recv(answer) == false)
     return false;
 
-  (*algorithm) = DNSName(stringFromJson(answer["result"], "algorithm"));
-  (*content) = stringFromJson(answer["result"], "content");
+  algorithm = DNSName(stringFromJson(answer["result"], "algorithm"));
+  content = stringFromJson(answer["result"], "content");
 
   return true;
 }

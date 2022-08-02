@@ -668,12 +668,13 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     TSIGTriplet tt;
     if(dk.getTSIGForAccess(domain, remote, &tt.name)) {
       string tsigsecret64;
-      if(B.getTSIGKey(tt.name, &tt.algo, &tsigsecret64)) {
+      if (B.getTSIGKey(tt.name, tt.algo, tsigsecret64)) {
         if(B64Decode(tsigsecret64, tt.secret)) {
           g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tt.name<<"' or zone not found"<<endl;
           return;
         }
-      } else {
+      }
+      else {
         g_log<<Logger::Warning<<logPrefix<<"TSIG key '"<<tt.name<<"' for zone not found"<<endl;
         return;
       }
@@ -1185,7 +1186,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
-        if(!B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64)) {
+        if (!B->getTSIGKey(dni.tsigkeyname, dni.tsigalgname, secret64)) {
           g_log<<Logger::Warning<<"TSIG key '"<<dni.tsigkeyname<<"' for domain '"<<di.zone<<"' not found, can not AXFR."<<endl;
           continue;
         }

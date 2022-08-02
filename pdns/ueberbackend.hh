@@ -125,20 +125,22 @@ public:
   bool publishDomainKey(const DNSName& name, unsigned int id);
   bool unpublishDomainKey(const DNSName& name, unsigned int id);
 
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
-  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
-  bool deleteTSIGKey(const DNSName& name);
-  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
-
   void alsoNotifies(const DNSName &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
+
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content);
+  bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
+  bool deleteTSIGKey(const DNSName& name);
+
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 
   void updateZoneCache();
 
   bool inTransaction();
+
 private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;

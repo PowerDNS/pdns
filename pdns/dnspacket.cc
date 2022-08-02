@@ -733,8 +733,8 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
     tt.algo = DNSName("hmac-md5");
 
   string secret64;
-  if(!B->getTSIGKey(*keyname, &tt.algo, &secret64)) {
-    g_log<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
+  if (!B->getTSIGKey(*keyname, tt.algo, secret64)) {
+    g_log << Logger::Error << "Packet for domain '" << this->qdomain << "' denied: can't find TSIG key with name '" << *keyname << "' and algorithm '" << tt.algo << "'" << endl;
     return false;
   }
   B64Decode(secret64, *secret);

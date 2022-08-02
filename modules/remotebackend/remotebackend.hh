@@ -171,7 +171,7 @@ public:
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override;
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content) override;
+  bool getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content) override;
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char>>& meta) override;
   bool removeDomainKey(const DNSName& name, unsigned int id) override;

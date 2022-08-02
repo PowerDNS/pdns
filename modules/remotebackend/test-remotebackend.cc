@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKey)
   DNSName algorithm;
   std::string content;
   BOOST_TEST_MESSAGE("Testing getTSIGKey method");
-  be->getTSIGKey(DNSName("unit.test."), &algorithm, &content);
+  be->getTSIGKey(DNSName("unit.test."), algorithm, content);
   BOOST_CHECK_EQUAL(algorithm.toString(), "hmac-md5.");
   BOOST_CHECK_EQUAL(content, "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=");
 }

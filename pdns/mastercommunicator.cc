@@ -297,8 +297,8 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   pw.getHeader()->aa = true; 
 
   if (tsigkeyname.empty() == false) {
-    if (!B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
-      g_log<<Logger::Warning<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
+    if (!B->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
+      g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl;
       return;
     }
     TSIGRecordContent trc;
