@@ -504,6 +504,7 @@ public:
   boost::optional<string> d_routingTag;
   ComboAddress d_fromAuthIP;
   RecEventTrace d_eventTrace;
+  std::shared_ptr<Logr::Logger> d_slog = g_slog->withName("syncres");
 
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;

@@ -555,6 +555,12 @@ std::string DNSFilterEngine::Policy::getLogString() const {
   return ": RPZ Hit; PolicyName=" + getName() + "; Trigger=" + d_trigger.toLogString() + "; Hit=" + d_hit + "; Type=" + getTypeToString(d_type) + "; Kind=" + getKindToString(d_kind);
 }
 
+void DNSFilterEngine::Policy::info(Logr::Priority prio, const std::shared_ptr<Logr::Logger>& log) const {
+  log->info(prio, "RPZ Hit", "policyName", Logging::Loggable(getName()), "trigger", Logging::Loggable(d_trigger),
+            "hit", Logging::Loggable(d_hit), "type",  Logging::Loggable(getTypeToString(d_type)),
+            "kind", Logging::Loggable(getKindToString(d_kind)));
+}
+
 DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const
 {
   DNSRecord dr;

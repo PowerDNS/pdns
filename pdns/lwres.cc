@@ -56,6 +56,7 @@
 #include "rec-tcpout.hh"
 
 thread_local TCPOutConnectionManager t_tcp_manager;
+std::shared_ptr<Logr::Logger> g_slogout;
 
 #ifdef HAVE_FSTRM
 #include "dnstap.hh"
@@ -273,7 +274,8 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
     // tlsParams.d_caStore
     tlsCtx = getTLSContext(tlsParams);
     if (tlsCtx == nullptr) {
-      g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
+      SLOG(g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl,
+           g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(ip)));
       dnsOverTLS = false;
     }
   }
@@ -512,7 +514,11 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
     if(domain != mdp.d_qname) { 
       if(!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) {// embedded nulls are too noisy, plus empty domains are too
-        g_log<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
+        SLOG(g_log<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl,
+             g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
+                             "server", Logging::Loggable(ip),
+                             "qname", Logging::Loggable(domain),
+                             "onwire", Logging::Loggable(mdp.d_qname)));
       }
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
@@ -556,7 +562,9 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
   }
   catch (const std::exception &mde) {
     if (::arg().mustDo("log-common-errors")) {
-      g_log<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
+      SLOG(g_log<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl,
+           g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(ip),
+                            "exception", Logging::Loggable("std::exception")));
     }
 
     lwr->d_rcode = RCode::FormErr;
@@ -570,11 +578,12 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     return LWResult::Result::Success; // success - oddly enough
   }
   catch (...) {
-    g_log<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
+    SLOG(g_log<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl,
+         g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(ip)));
   }
-  
-  g_stats.serverParseError++; 
-  
+
+  g_stats.serverParseError++;
+
  out:
   if (!lwr->d_rcode) {
     lwr->d_rcode=RCode::ServFail;

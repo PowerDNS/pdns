@@ -44,6 +44,10 @@
 #include "resolve-context.hh"
 #include "noinitvector.hh"
 
+#include "logging.hh"
+
+extern std::shared_ptr<Logr::Logger> g_slogout;
+
 class LWResException : public PDNSException
 {
 public:

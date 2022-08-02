@@ -80,6 +80,16 @@ struct is_toLogString_available<T, std::void_t<decltype(std::declval<T>().toLogS
 {
 };
 
+template <typename T, typename = void>
+struct is_toString_available : std::false_type
+{
+};
+
+template <typename T>
+struct is_toString_available<T, std::void_t<decltype(std::declval<T>().toString())>> : std::true_type
+{
+};
+
 template <typename T>
 struct Loggable : public Logr::Loggable
 {
@@ -93,11 +103,14 @@ struct Loggable : public Logr::Loggable
     if constexpr (std::is_same_v<T, std::string>) {
       return _t;
     }
-    else if constexpr (is_to_string_available<T>::value) {
-      return std::to_string(_t);
-    }
     else if constexpr (is_toLogString_available<T>::value) {
       return _t.toLogString();
+    }
+    else if constexpr (is_toString_available<T>::value) {
+      return _t.toString();
+    }
+    else if constexpr (is_to_string_available<T>::value) {
+      return std::to_string(_t);
     }
     else {
       std::ostringstream oss;

@@ -47,6 +47,9 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
+extern std::shared_ptr<Logr::Logger> g_slogtcpin;
+extern std::shared_ptr<Logr::Logger> g_slogudpin;
+
 //! used to send information to a newborn mthread
 struct DNSComboWriter
 {
