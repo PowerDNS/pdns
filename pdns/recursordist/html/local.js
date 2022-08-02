@@ -25,7 +25,7 @@ function get_json(url, params) {
 
 function startup() {
     var getTemplate = function (name) {
-        var template = $('#' + name + '-template').html();
+        const template = document.querySelector(`#${name}-template`).innerHTML;
         return Handlebars.compile(template);
     };
     var cachedTemplates = {};
