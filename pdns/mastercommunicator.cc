@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "auth-caches.hh"
+#include "auth-zonecache.hh"
 #include "utility.hh"
 #include <errno.h>
 #include "communicator.hh"
@@ -162,6 +163,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   for(auto& di : cmdomains) {
     purgeAuthCachesExact(di.zone);
+    g_zoneCache.add(di.zone, di.id);
     queueNotifyDomain(di, B);
     di.backend->setNotified(di.id, di.serial);
   }
