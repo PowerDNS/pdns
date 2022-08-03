@@ -1686,7 +1686,14 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
         di.kind = DomainInfo::Slave;
       } else if (pdns_iequals(row[3], "NATIVE")) {
         di.kind = DomainInfo::Native;
-      } else {
+      }
+      else if (pdns_iequals(row[3], "PRODUCER")) {
+        di.kind = DomainInfo::Producer;
+      }
+      else if (pdns_iequals(row[3], "CONSUMER")) {
+        di.kind = DomainInfo::Consumer;
+      }
+      else {
         g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
         di.kind = DomainInfo::Native;
       }
