@@ -1177,29 +1177,25 @@ void startDoResolve(void* p)
       }
 
       if (dc->d_luaContext) {
+        PolicyResult policyResult = PolicyResult::NoAction;
         if (res == RCode::NoError) {
           if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (dc->d_luaContext && dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
+            if (dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
               shouldNotValidate = true;
-              auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-              if (policyResult == PolicyResult::HaveAnswer) {
-                goto haveAnswer;
-              }
-              else if (policyResult == PolicyResult::Drop) {
-                return;
-              }
+              policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
             }
           }
         }
         else if (res == RCode::NXDomain && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-          if (policyResult == PolicyResult::HaveAnswer) {
-            goto haveAnswer;
-          }
-          else if (policyResult == PolicyResult::Drop) {
-            return;
-          }
+          policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
+        }
+
+        if (policyResult == PolicyResult::HaveAnswer) {
+          goto haveAnswer;
+        }
+        else if (policyResult == PolicyResult::Drop) {
+          return;
         }
 
         if (dc->d_luaContext->d_postresolve_ffi) {
@@ -1209,24 +1205,20 @@ void startDoResolve(void* p)
           sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, pr, false);
           if (pr) {
             shouldNotValidate = true;
-            auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-            // haveAnswer case redundant
-            if (policyResult == PolicyResult::Drop) {
-              return;
-            }
+            policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           }
         }
         else if (dc->d_luaContext->postresolve(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-          if (policyResult == PolicyResult::HaveAnswer) {
-            goto haveAnswer;
-          }
-          else if (policyResult == PolicyResult::Drop) {
-            return;
-          }
+          policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
         }
-      }
+        if (policyResult == PolicyResult::HaveAnswer) {
+          goto haveAnswer;
+        }
+        else if (policyResult == PolicyResult::Drop) {
+          return;
+        }
+      } // dc->d_luaContext
 
       if (g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && !vStateIsBogus(dq.validationState) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
         res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
