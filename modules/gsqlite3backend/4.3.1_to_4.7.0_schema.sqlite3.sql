@@ -13,7 +13,7 @@ BEGIN TRANSACTION;
     account               VARCHAR(40) DEFAULT NULL
   );
 
-  INSERT INTO domains_temp SELECT id,name,master,last_check,type,motified_serial,NULL,NULL,account FROM domains;
+  INSERT INTO domains_temp SELECT id,name,master,last_check,type,notified_serial,NULL,NULL,account FROM domains;
   DROP TABLE domains;
   ALTER TABLE domains_temp RENAME TO domains;
 
