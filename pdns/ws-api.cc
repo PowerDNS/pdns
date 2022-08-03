@@ -44,8 +44,6 @@
 
 using json11::Json;
 
-extern string s_programname;
-extern ResponseStats g_rs;
 #ifndef RECURSOR
 extern StatBag S;
 #endif

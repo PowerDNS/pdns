@@ -94,5 +94,3 @@ private:
 };
 
 bool AddressIsUs(const ComboAddress& remote);
-
-extern ResponseStats g_rs;
