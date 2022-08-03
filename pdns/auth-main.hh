@@ -35,6 +35,7 @@
 #include "tcpreceiver.hh"
 #include "dnsseckeeper.hh"
 
+extern time_t s_starttime;
 extern ArgvMap theArg;
 extern StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads

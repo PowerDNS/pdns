@@ -253,8 +253,6 @@ inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
 #define FLAGS_CD_OFFSET (12)
 #endif
 
-extern time_t s_starttime;
-
 uint32_t hashQuestion(const uint8_t* packet, uint16_t len, uint32_t init, bool& ok);
 
 struct TSIGTriplet
