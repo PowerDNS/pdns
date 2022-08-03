@@ -120,7 +120,7 @@ AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
-std::unique_ptr<DynListener> dl{nullptr};
+static std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
 shared_ptr<UDPNameserver> N;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
