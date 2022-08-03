@@ -17,12 +17,13 @@
 BaseLua4::BaseLua4() {
 }
 
-int BaseLua4::loadFile(const std::string &fname) {
+int BaseLua4::loadFile(const std::string& fname)
+{
   int ret = 0;
   std::ifstream ifs(fname);
   if (!ifs) {
     ret = errno;
-    SLOG(g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror(ret)<<endl,
+    SLOG(g_log << Logger::Error << "Unable to read configuration file from '" << fname << "': " << stringerror(ret) << endl,
          g_slog->withName("lua")->error(Logr::Error, ret, "Unable to read configuration file", "file", Logging::Loggable(fname)));
     return ret;
   }
@@ -45,7 +46,7 @@ void BaseLua4::prepareContext() {
   Features features;
   getFeatures(features);
   d_lw->writeVariable("pdns_features", features);
-  
+
   // dnsheader
   d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return ntohs(dh.id); });
   d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
