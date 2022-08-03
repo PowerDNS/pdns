@@ -2957,9 +2957,11 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
     }
     else {
       t_pdl = std::make_shared<RecursorLua4>();
-      int err = t_pdl->loadFile(fname);
-      if (err != 0) {
-        string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
+      try {
+        t_pdl->loadFile(fname);
+      }
+      catch (std::runtime_error& ex) {
+        string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
         g_log << Logger::Error << msg << endl;
         return new RecursorControlChannel::Answer{1, msg + "\n"};
       }
