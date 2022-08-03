@@ -130,12 +130,15 @@ static vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
 
+// Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
+void carbonDumpThread();
+
 ArgvMap& arg()
 {
   return theArg;
 }
 
-void declareArguments()
+static void declareArguments()
 {
   ::arg().set("config-dir", "Location of configuration directory (pdns.conf)") = SYSCONFDIR;
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
@@ -400,7 +403,7 @@ static uint64_t getSendLatency(const std::string& str)
   return round(send_latency);
 }
 
-void declareStats()
+static void declareStats()
 {
   S.declare("udp-queries", "Number of UDP queries received");
   S.declare("udp-do-queries", "Number of UDP queries received with DO bit");
@@ -499,7 +502,7 @@ void declareStats()
   S.declareComboRing("remotes-corrupt", "Remote hosts sending corrupt packets");
 }
 
-int isGuarded(char** argv)
+static int isGuarded(char** argv)
 {
   char* p = strstr(argv[0], "-instance");
 
@@ -682,7 +685,7 @@ static void triggerLoadOfLibraries()
   dummy.join();
 }
 
-void mainthread()
+static void mainthread()
 {
   Utility::srandom();
 
