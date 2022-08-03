@@ -120,7 +120,7 @@ AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
-static std::unique_ptr<DynListener> dl{nullptr};
+static std::unique_ptr<DynListener> g_DynListener{nullptr};
 CommunicatorClass Communicator;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
@@ -845,7 +845,7 @@ static void mainthread()
   }
 
   // NOW SAFE TO CREATE THREADS!
-  dl->go();
+  g_DynListener->go();
 
   if (::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
@@ -1393,15 +1393,15 @@ int main(int argc, char** argv)
 
     if (isGuarded(argv)) {
       g_log << Logger::Warning << "This is a guarded instance of pdns" << endl;
-      dl = make_unique<DynListener>(); // listens on stdin
+      g_DynListener = std::make_unique<DynListener>(); // listens on stdin
     }
     else {
       g_log << Logger::Warning << "This is a standalone pdns" << endl;
 
       if (::arg().mustDo("control-console"))
-        dl = make_unique<DynListener>();
+        g_DynListener = std::make_unique<DynListener>();
       else
-        dl = std::make_unique<DynListener>(s_programname);
+        g_DynListener = std::make_unique<DynListener>(s_programname);
 
       writePid();
     }
