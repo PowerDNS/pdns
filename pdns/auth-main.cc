@@ -123,7 +123,7 @@ std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
-unique_ptr<TCPNameserver> TN;
+static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> g_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
 static vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
@@ -356,7 +356,7 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
 
 static uint64_t getTCPConnectionCount(const std::string& str)
 {
-  return TN->numTCPConnections();
+  return s_tcpNameserver->numTCPConnections();
 }
 
 static uint64_t getQCount(const std::string& str)
@@ -853,7 +853,7 @@ static void mainthread()
   if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty())
     Communicator.go();
 
-  TN->go(); // tcp nameserver launch
+  s_tcpNameserver->go(); // tcp nameserver launch
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
   g_distributors.resize(max_rthreads);
@@ -1464,7 +1464,7 @@ int main(int argc, char** argv)
       }
     }
 
-    TN = make_unique<TCPNameserver>();
+    s_tcpNameserver = make_unique<TCPNameserver>();
   }
   catch (const ArgException& A) {
     g_log << Logger::Error << "Fatal error: " << A.reason << endl;
