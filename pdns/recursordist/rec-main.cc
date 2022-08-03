@@ -2321,7 +2321,10 @@ static void recursorThread()
       try {
         if (!::arg()["lua-dns-script"].empty()) {
           t_pdl = std::make_shared<RecursorLua4>();
-          t_pdl->loadFile(::arg()["lua-dns-script"]);
+          auto err = t_pdl->loadFile(::arg()["lua-dns-script"]);
+          if (err != 0) {
+            throw std::runtime_error(stringerror(err));
+          }
           SLOG(g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl,
                log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
         }
