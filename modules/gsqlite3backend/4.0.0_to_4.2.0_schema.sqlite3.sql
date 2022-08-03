@@ -1,3 +1,5 @@
+.bail on
+
 BEGIN TRANSACTION;
     CREATE TEMPORARY TABLE records_backup (
       id                    INTEGER PRIMARY KEY,

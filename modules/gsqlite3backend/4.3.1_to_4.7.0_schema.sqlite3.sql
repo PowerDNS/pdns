@@ -1,3 +1,5 @@
+.bail on
+
 PRAGMA foreign_keys = 0;
 
 BEGIN TRANSACTION;

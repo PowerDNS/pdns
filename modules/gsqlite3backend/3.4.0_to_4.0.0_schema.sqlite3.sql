@@ -1,3 +1,5 @@
+.bail on
+
 -- Disable foreign keys, if any
 PRAGMA foreign_keys = 0;
 
