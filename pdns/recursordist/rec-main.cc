@@ -2955,16 +2955,15 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
       g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl;
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
-    else {
-      t_pdl = std::make_shared<RecursorLua4>();
-      try {
-        t_pdl->loadFile(fname);
-      }
-      catch (std::runtime_error& ex) {
-        string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
-        g_log << Logger::Error << msg << endl;
-        return new RecursorControlChannel::Answer{1, msg + "\n"};
-      }
+
+    t_pdl = std::make_shared<RecursorLua4>();
+    try {
+      t_pdl->loadFile(fname);
+    }
+    catch (std::runtime_error& ex) {
+      string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
+      g_log << Logger::Error << msg << endl;
+      return new RecursorControlChannel::Answer{1, msg + "\n"};
     }
   }
   catch (std::exception& e) {
