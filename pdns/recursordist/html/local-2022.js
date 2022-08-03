@@ -1,16 +1,29 @@
 "use strict";
 
-// var moment= require('moment');
+const fetchConfig = {
+    baseURL: window.location,
+    mode: 'same-origin',
+    headers: {'Accept': 'application/json'},
+};
+/*
+// Useful for development of the embedded webserver files.
+const fetchConfig = {
+    baseURL: 'http://127.0.0.1:8083/',
+    mode: 'cors',
+    headers: {'Accept': 'application/json', 'X-API-Key': 'changeme'},
+};
+*/
+
 var gdata = {};
 
 function get_json(url, params) {
-    const realURL = new URL(url + '?' + (new URLSearchParams(params)).toString(), window.location);
+    const realURL = new URL(url + '?' + (new URLSearchParams(params)).toString(), fetchConfig.baseURL);
     return new Promise((resolve, reject) => {
         fetch(realURL, {
             method: 'GET',
-            mode: 'same-origin',
+            mode: fetchConfig.mode,
             cache: 'no-cache',
-            headers: {'Accept': 'application/json'},
+            headers: fetchConfig.headers,
         }).then((response) => {
             if (response.ok) {
                 response.json().then((json) => resolve(json));
