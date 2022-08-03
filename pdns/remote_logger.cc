@@ -135,7 +135,13 @@ bool RemoteLogger::reconnect()
 void RemoteLogger::queueData(const std::string& data)
 {
   if (data.size() > std::numeric_limits<uint16_t>::max()) {
-    throw std::runtime_error("Got a request to write an object of size " + std::to_string(data.size()));
+    const auto msg = "Not sending too large protobuf message";
+#ifdef WE_ARE_RECURSOR
+    g_log<<Logger::Info<<msg<<endl;
+#else
+    warnlog(msg);
+#endif
+    return;
   }
 
   std::lock_guard<std::mutex> lock(d_mutex);

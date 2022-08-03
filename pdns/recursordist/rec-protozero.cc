@@ -40,6 +40,12 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
   pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), record.d_class);
   pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), record.d_ttl);
 
+  auto add = [&](const std::string& str) {
+    if (size() + str.length() < std::numeric_limits<uint16_t>::max() / 2) {
+      pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), str);
+    }
+  };
+
   switch (record.d_type) {
   case QType::A: {
     const auto& content = dynamic_cast<const ARecordContent&>(*(record.d_content));
@@ -55,37 +61,37 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
   }
   case QType::CNAME: {
     const auto& content = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getTarget().toString());
+    add(content.getTarget().toString());
     break;
   }
   case QType::TXT: {
     const auto& content = dynamic_cast<const TXTRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_text);
+    add(content.d_text);
     break;
   }
   case QType::NS: {
     const auto& content = dynamic_cast<const NSRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getNS().toString());
+    add(content.getNS().toString());
     break;
   }
   case QType::PTR: {
     const auto& content = dynamic_cast<const PTRRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getContent().toString());
+    add(content.getContent().toString());
     break;
   }
   case QType::MX: {
     const auto& content = dynamic_cast<const MXRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_mxname.toString());
+    add(content.d_mxname.toString());
     break;
   }
   case QType::SPF: {
     const auto& content = dynamic_cast<const SPFRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getText());
+    add(content.getText());
     break;
   }
   case QType::SRV: {
     const auto& content = dynamic_cast<const SRVRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_target.toString());
+    add(content.d_target.toString());
     break;
   }
   default:
