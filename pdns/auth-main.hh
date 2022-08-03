@@ -41,7 +41,6 @@ extern StatBag S; //!< Statistics are gathered across PDNS via the StatBag class
 extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 extern AuthQueryCache QC;
 extern std::unique_ptr<DNSProxy> DP;
-extern std::unique_ptr<DynListener> dl;
 extern CommunicatorClass Communicator;
 extern std::shared_ptr<UDPNameserver> N;
 extern vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
