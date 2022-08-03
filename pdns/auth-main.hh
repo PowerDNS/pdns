@@ -43,7 +43,6 @@ extern AuthQueryCache QC;
 extern std::unique_ptr<DNSProxy> DP;
 extern CommunicatorClass Communicator;
 extern std::shared_ptr<UDPNameserver> N;
-extern vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
 extern std::unique_ptr<TCPNameserver> TN;
 extern void declareArguments();
 extern void declareStats();
