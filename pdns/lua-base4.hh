@@ -13,16 +13,16 @@ protected:
 
 public:
   BaseLua4();
-  void loadFile(const std::string &fname);
-  void loadString(const std::string &script);
-  void loadStream(std::istream &is);
+  void loadFile(const std::string& fname);
+  void loadString(const std::string& script);
+  void loadStream(std::istream& is);
   virtual ~BaseLua4(); // this is so unique_ptr works with an incomplete type
 protected:
   void prepareContext();
   virtual void postPrepareContext() = 0;
   virtual void postLoad() = 0;
-  typedef vector<pair<string, int> > in_t;
-  vector<pair<string, boost::variant<int, in_t, struct timeval* > > > d_pd;
-  typedef vector<pair<string, boost::variant<string,bool,int,double> > > Features;
+  typedef vector<pair<string, int>> in_t;
+  vector<pair<string, boost::variant<int, in_t, struct timeval*>>> d_pd;
+  typedef vector<pair<string, boost::variant<string, bool, int, double>>> Features;
   virtual void getFeatures(Features&);
 };
