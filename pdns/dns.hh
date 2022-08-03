@@ -27,27 +27,7 @@
 
 #undef BADSIG  // signal.h SIG_ERR
 
-class DNSBackend;
 struct DNSRecord;
-
-struct SOAData
-{
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), minimum(0), db(0), domain_id(-1) {};
-
-  DNSName qname;
-  DNSName nameserver;
-  DNSName hostmaster;
-  uint32_t ttl;
-  uint32_t serial;
-  uint32_t refresh;
-  uint32_t retry;
-  uint32_t expire;
-  uint32_t minimum;
-  DNSBackend *db;
-  int domain_id;
-
-  uint32_t getNegativeTTL() const { return min(ttl, minimum); }
-};
 
 class RCode
 {
