@@ -42,7 +42,6 @@ extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all 
 extern AuthQueryCache QC;
 extern std::unique_ptr<DNSProxy> DP;
 extern CommunicatorClass Communicator;
-extern std::unique_ptr<TCPNameserver> TN;
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
 extern NetmaskGroup g_proxyProtocolACL;
