@@ -122,10 +122,10 @@ AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
-shared_ptr<UDPNameserver> N;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 unique_ptr<TCPNameserver> TN;
 static vector<DNSDistributor*> g_distributors;
+static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
 static vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
@@ -519,7 +519,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
     start = diff;
 
-    N->send(*a);
+    s_udpNameserver->send(*a);
 
     diff = a->d_dt.udiff();
     send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
@@ -558,14 +558,14 @@ try {
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if (N->canReusePort()) {
+  if (s_udpNameserver->canReusePort()) {
     NS = g_udpReceivers[num];
     if (NS == nullptr) {
-      NS = N;
+      NS = s_udpNameserver;
     }
   }
   else {
-    NS = N;
+    NS = s_udpNameserver;
   }
 
   for (;;) {
@@ -1446,11 +1446,11 @@ int main(int argc, char** argv)
       }
     }
 
-    N = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
-    g_udpReceivers.push_back(N);
+    s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
+    g_udpReceivers.push_back(s_udpNameserver);
 
     size_t rthreads = ::arg().asNum("receiver-threads", 1);
-    if (rthreads > 1 && N->canReusePort()) {
+    if (rthreads > 1 && s_udpNameserver->canReusePort()) {
       g_udpReceivers.resize(rthreads);
 
       for (size_t idx = 1; idx < rthreads; idx++) {
