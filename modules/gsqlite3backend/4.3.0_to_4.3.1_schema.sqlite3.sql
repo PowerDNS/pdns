@@ -1,3 +1,5 @@
+.bail on
+
 CREATE INDEX records_lookup_idx ON records(name, type);
 CREATE INDEX records_lookup_id_idx ON records(domain_id, name, type);
 CREATE INDEX records_order_idx ON records(domain_id, ordername);
