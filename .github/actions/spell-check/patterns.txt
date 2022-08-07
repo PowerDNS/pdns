@@ -2,7 +2,8 @@
 
 # GitHub SHAs
 \bapi.github\.com/repos/[^/]+/[^/]+/[^/]+/[0-9a-f]+\b
-(?:\[[0-9a-f]+\]\(https:/|)/github\.com/[^/]+/[^/]+/[^/]+/[0-9a-f]+(?:[-0-9a-zA-Z/#.]*|)\b
+\b[0-9a-f]+ <https://github\.com/[^/]+/[^/]+/[^/]+/[0-9a-f]+(?:[-0-9a-zA-Z/#.]*|)\b>\`
+(?:\[[0-9a-f]+\]\(?:https:/|)/github\.com/[^/]+/[^/]+/[^/]+/[0-9a-f]+(?:[-0-9a-zA-Z/#.]*|)\b
 \bgithub\.com/[^/]+/[^/]+[@#][0-9a-f]+\b
 # githubusercontent
 /[-a-z0-9]+\.githubusercontent\.com/[-a-zA-Z0-9?&=_\/.]*
@@ -43,6 +44,10 @@ nsec3param\s*=\s*'[^']*'
 g_rootDS\s*=\s*"[^"]*"
 DSRecordContent\("[^"]*"\)
 ^[0-9a-z.]*example\.\s+\d+\s+IN\s+(?:DS\s+\d+|OPT)\s+\d+\s+\d+\s+[0-9a-f]+$
+
+# PowerDNS version strings
+Server: PowerDNS/(?:\d+\.)+\w+\.ge[0-9a-f]+
+
 # regression-tests/backends/geoip-master
 ^2\s+\.\s+IN\s+(?:DS|OPT)\s+\d+\s+[a-zA-Z0-9]+$
 SimpleMatch\("[^"]*"\).match\(std::string\("[^"]*"\)
