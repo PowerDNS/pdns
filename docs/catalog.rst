@@ -54,7 +54,7 @@ Setting up catalog zones
 ------------------------
 
 .. note::
-  Catalog zone specification and operation is described in `DNS Catalog Zones <https://datatracker.ietf.org/doc/draft-ietf-dnsop-dns-catalog-zones)>`__.
+  Catalog zone specification and operation is described in `DNS Catalog Zones <https://datatracker.ietf.org/doc/draft-ietf-dnsop-dns-catalog-zones/>`__.
 
 Setting up a producer zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

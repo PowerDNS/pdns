@@ -108,12 +108,12 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       bool create{false};
       bool remove{false};
 
-      if ((xfr != fromXFR.end() && db == fromDB.end()) || *xfr < *db) { // create
+      if (xfr != fromXFR.end() && (db == fromDB.end() || *xfr < *db)) { // create
         ciCreate = *xfr;
         create = true;
         ++xfr;
       }
-      else if ((db != fromDB.end() && xfr == fromXFR.end()) || *db < *xfr) { // remove
+      else if (db != fromDB.end() && (xfr == fromXFR.end() || *db < *xfr)) { // remove
         ciRemove = *db;
         remove = true;
         ++db;

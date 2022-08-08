@@ -1394,7 +1394,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("SET", &DLSettingsHandler, "set config variables", "<var> <value>");
     DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG", &DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
-    DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native]");
+    DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native|consumer|producer]");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
