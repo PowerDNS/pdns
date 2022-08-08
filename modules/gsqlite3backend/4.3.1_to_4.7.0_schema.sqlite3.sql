@@ -10,9 +10,9 @@ BEGIN TRANSACTION;
     last_check            INTEGER DEFAULT NULL,
     type                  VARCHAR(8) NOT NULL,
     notified_serial       INTEGER DEFAULT NULL,
+    account               VARCHAR(40) DEFAULT NULL,
     options               VARCHAR(65535) DEFAULT NULL,
-    catalog               VARCHAR(255) DEFAULT NULL,
-    account               VARCHAR(40) DEFAULT NULL
+    catalog               VARCHAR(255) DEFAULT NULL
   );
 
   INSERT INTO domains_temp SELECT id,name,master,last_check,type,notified_serial,NULL,NULL,account FROM domains;

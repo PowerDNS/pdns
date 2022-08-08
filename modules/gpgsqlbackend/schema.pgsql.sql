@@ -5,9 +5,9 @@ CREATE TABLE domains (
   last_check            INT DEFAULT NULL,
   type                  VARCHAR(8) NOT NULL,
   notified_serial       BIGINT DEFAULT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
   options               VARCHAR(65535) DEFAULT NULL,
   catalog               VARCHAR(255) DEFAULT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
   CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
 );
 
