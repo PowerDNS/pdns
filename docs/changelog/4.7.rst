@@ -2,6 +2,212 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.0-beta2
+  :released: 13th of September 2022
+
+  This is the first published beta for Authoritative Server 4.7.0.
+  (beta1 was never released because of bugs found during the release process).
+
+  4.7.0 brings support for :doc:`Catalog Zones <../catalog>`, developed by Kees Monshouwer.
+  As part of that development, the freshness checks in the Primary code were reworked, reducing them from doing potentially thousands of SQL queries (if you have thousands of domains) to only a few.
+  Installations with lots of domains will benefit greatly from this, even without using catalog zones.
+
+  4.7.0 also brings back GSS-TSIG support, previously removed for quality reasons, now reworked with many stability improvements.
+
+  Other things of note:
+
+  * LUA records, when queried over TCP, can now re-use a Lua state, giving a serious performance boost.
+  * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
+  * lmdbbackend databases now optionally use random IDs for objects
+  * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
+  * autoprimary management in ``pdnsutil`` and the HTTP API
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  Besides that, various other smaller features and improvements have landed - please browse the list below.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11918
+
+    some small NSEC3PARAM-related fixes to the REST API (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11842
+
+    use getInnerRemote() for the remotes ring (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11760, 11929, 11933
+
+    LUA records: make shared mode work for TCP queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11815
+
+    make sure a notified zone is in the zone cache (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11759, 11755
+
+    getTSIGKey(s) cleanup (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11772, 11822, 11825, 11836
+
+    Implement catalog zones in the authoritative server (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11764
+
+    fix deleteDomain() in lmdb backend (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11738
+
+    2136: match autosplit TXT more usefully
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11588
+
+    Extend LUA records (rage4)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11727
+
+    Also allow generic record format in zone parsing for pdnsutil zonemd-verify-file
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11340
+
+    pdnsutil flush prompt (norve)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11350
+
+    no ALIAS and LUA record expansion in presigned zones (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11655
+
+    Change dns_tolower() and dns_toupper() to use a table
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11639
+
+    auth packaging: add DoT support to sdig
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11599
+
+    Tweak for Coverity 1488422
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11590, 11493, 11432, 11414, 11426
+
+    RSA, ECDSA PEM import/export
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11562
+
+    Try harder to find libdecaf headers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11466
+
+    ixfr: Fix a case where an incomplete read caused by network error might result in a truncated zone
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11389
+
+    auth API: fetch individual rrsets
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11314
+
+    fix proxy protocol query statistics (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11354
+
+    lmdb random-ids: stop generating negative numbers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11328
+
+    lmdb: make map size configurable
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11143
+
+    reintroduce GSS-TSIG support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11882
+
+    Log "NULL" for nullptr-bound properties instead of dereferencing
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11813
+
+    web: stop sending Server: header
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11862
+
+    libssl: Properly load ciphers and digests with OpenSSL 3.0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11908
+
+    initialize zone cache after dropping privileges
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11860
+
+    Fix libcrypto handling in automake files
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11508
+
+    New setting compare-signatures-on-zone-freshness-check to disable DO flag for SOA checks
+
+.. changelog::
+  :version: 4.7.0-beta1
+  :released: never
+
+  Bugs were found after beta1 was tagged.
+  Authoritative server 4.7.0-beta1 was never released.
+
+.. changelog::
   :version: 4.7.0-alpha1
   :released: 17th of February 2022
 
@@ -76,4 +282,3 @@ Changelogs for 4.7.x
     :pullreq: 11101
 
     save errno value as close(2) might clobber it
-
