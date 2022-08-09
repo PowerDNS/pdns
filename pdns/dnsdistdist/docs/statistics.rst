@@ -6,7 +6,7 @@ dnsdist keeps statistics on the queries is receives and send out. They can be ac
 - via the console (see :ref:`Console`), using :func:`dumpStats` for the general ones,
   :func:`showServers()` for the ones related to the backends, :func:`showBinds()` for the frontends,
   `getPool("pool name"):getCache():printStats()` for the ones related to a specific cache and so on
-- via the internal webserver (see :doc:`../guides/webserver`)
+- via the internal webserver (see :doc:`../guides/webserver`) which includes a Prometheus endpoint
 - via Carbon / Graphite / Metronome export (see :doc:`../guides/carbon`)
 - via SNMP (see :doc:`../advanced/snmp`)
 
