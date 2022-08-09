@@ -184,6 +184,9 @@ class TestCDBReload(CDBTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
         # write a new CDB which has no entry for 127.0.0.1
+        # first ensure that the mtime will change after writing
+        # the new version
+        time.sleep(1)
         writeCDB(self._cdbFileName, 2)
         # wait long enough for the CDB database to be reloaded
         time.sleep(self._cdbRefreshDelay + 1)
