@@ -438,7 +438,7 @@ JSON Objects
   :property integer http2-queries: Number of DoH queries received over HTTP/2
   :property integer http2-x00-responses: Number of DoH responses sent, over HTTP/2, per response code (200, 400, 403, 500, 502)
   :property integer http1-other-responses: Number of DoH responses sent, over HTTP/2, with another response code
-  :property integer post-queries: Number of DoH queries receieve via the POST HTTP method
+  :property integer post-queries: Number of DoH queries received via the POST HTTP method
   :property integer redirect-responses: Number of HTTP redirect responses sent
   :property integer valid-responses: Number of valid DoH (2xx) responses sent
 
