@@ -362,15 +362,18 @@ string reloadZoneConfiguration()
       }
     }
 
-    for (const auto& i : oldAndNewDomains) {
-      wipeCaches(i, true, 0xffff);
-    }
-
     // these explicitly-named captures should not be necessary, as lambda
     // capture of tuple-like structured bindings is permitted, but some
     // compilers still don't allow it
     broadcastFunction([dm = newDomainMap] { return pleaseUseNewSDomainsMap(dm); });
     broadcastFunction([ns = newNotifySet] { return pleaseSupplantAllowNotifyFor(ns); });
+
+    // Wipe the caches *after* the new auth domain info has been set
+    // up, as a query during setting up might fill the caches
+    // again. Old code did the clear before, exposing a race.
+    for (const auto& i : oldAndNewDomains) {
+      wipeCaches(i, true, 0xffff);
+    }
     return "ok\n";
   }
   catch (std::exception& e) {
