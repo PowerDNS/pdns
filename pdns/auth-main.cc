@@ -88,9 +88,9 @@
 #include "minicurl.hh"
 #endif /* HAVE_LUA_RECORDS */
 
-time_t s_starttime;
+time_t g_starttime;
 
-string s_programname = "pdns"; // used in packethandler.cc
+string g_programname = "pdns"; // used in packethandler.cc
 
 const char* funnytext = "*****************************************************************************\n"
                         "Ok, you just ran pdns_server through 'strings' hoping to find funny messages.\n"
@@ -953,7 +953,7 @@ static void writePid()
     fname = ::arg()["chroot"] + ::arg()["socket-dir"];
   }
 
-  fname += +"/" + s_programname + ".pid";
+  fname += +"/" + g_programname + ".pid";
   ofstream of(fname.c_str());
   if (of)
     of << getpid() << endl;
@@ -1011,7 +1011,7 @@ static int guardian(int argc, char** argv)
 
   int infd = 0, outfd = 1;
 
-  DynListener dlg(s_programname);
+  DynListener dlg(g_programname);
   dlg.registerFunc("QUIT", &DLQuitHandler, "quit daemon");
   dlg.registerFunc("CYCLE", &DLCycleHandler, "restart instance");
   dlg.registerFunc("PING", &DLPingHandler, "ping guardian");
@@ -1188,8 +1188,8 @@ int main(int argc, char** argv)
   versionSetProduct(ProductAuthoritative);
   reportAllTypes(); // init MOADNSParser
 
-  s_programname = "pdns";
-  s_starttime = time(nullptr);
+  g_programname = "pdns";
+  g_starttime = time(nullptr);
 
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
   signal(SIGSEGV, tbhandler);
@@ -1213,11 +1213,11 @@ int main(int argc, char** argv)
     }
 
     if (::arg()["config-name"] != "")
-      s_programname += "-" + ::arg()["config-name"];
+      g_programname += "-" + ::arg()["config-name"];
 
-    g_log.setName(s_programname);
+    g_log.setName(g_programname);
 
-    string configname = ::arg()["config-dir"] + "/" + s_programname + ".conf";
+    string configname = ::arg()["config-dir"] + "/" + g_programname + ".conf";
     cleanSlashes(configname);
 
     if (::arg()["config"] != "default" && !::arg().mustDo("no-config")) // "config" == print a configuration file
@@ -1401,7 +1401,7 @@ int main(int argc, char** argv)
       if (::arg().mustDo("control-console"))
         g_DynListener = std::make_unique<DynListener>();
       else
-        g_DynListener = std::make_unique<DynListener>(s_programname);
+        g_DynListener = std::make_unique<DynListener>(g_programname);
 
       writePid();
     }

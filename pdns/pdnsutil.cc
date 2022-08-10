@@ -51,7 +51,7 @@ uint16_t g_maxNSEC3Iterations{0};
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-string s_programname="pdns";
+string g_programname="pdns";
 
 namespace {
   bool g_verbose;
@@ -90,9 +90,9 @@ static void loadMainConfig(const std::string& configdir)
   }
 
   if(::arg()["config-name"]!="")
-    s_programname+="-"+::arg()["config-name"];
+    g_programname+="-"+::arg()["config-name"];
 
-  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
+  string configname=::arg()["config-dir"]+"/"+g_programname+".conf";
   cleanSlashes(configname);
 
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";

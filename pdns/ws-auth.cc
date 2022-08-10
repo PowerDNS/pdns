@@ -240,7 +240,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<div class=\"header columns\"></div></div>";
   ret<<R"(<div class="row"><div class="all columns">)";
 
-  time_t passed=time(nullptr)-s_starttime;
+  time_t passed=time(nullptr)-g_starttime;
 
   ret<<"<p>Uptime: "<<
     humanDuration(passed)<<
@@ -516,7 +516,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(nullptr) - s_starttime);
+  out["uptime"] = std::to_string(time(nullptr) - g_starttime);
 }
 
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
