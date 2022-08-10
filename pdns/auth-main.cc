@@ -126,7 +126,7 @@ static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backen
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> g_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
-static vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
+static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
 
@@ -559,7 +559,7 @@ try {
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
   if (s_udpNameserver->canReusePort()) {
-    NS = g_udpReceivers[num];
+    NS = s_udpReceivers[num];
     if (NS == nullptr) {
       NS = s_udpNameserver;
     }
@@ -1447,15 +1447,15 @@ int main(int argc, char** argv)
     }
 
     s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
-    g_udpReceivers.push_back(s_udpNameserver);
+    s_udpReceivers.push_back(s_udpNameserver);
 
     size_t rthreads = ::arg().asNum("receiver-threads", 1);
     if (rthreads > 1 && s_udpNameserver->canReusePort()) {
-      g_udpReceivers.resize(rthreads);
+      s_udpReceivers.resize(rthreads);
 
       for (size_t idx = 1; idx < rthreads; idx++) {
         try {
-          g_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
+          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
         }
         catch (const PDNSException& e) {
           g_log << Logger::Error << "Unable to reuse port, falling back to original bind" << endl;
