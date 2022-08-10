@@ -88,6 +88,11 @@ void setLuaNoSideEffect()
 {
 }
 
+DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+{
+  return DNSAction::Action::None;
+}
+
 bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>&)
 {
   return true;

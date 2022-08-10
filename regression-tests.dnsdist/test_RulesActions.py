@@ -1591,7 +1591,7 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedQuery.id = expectedQuery.id
             self.assertEqual(expectedQuery, receivedQuery)
-            self.checkResponseNoEDNS(response, receivedResponse)
+            self.checkResponseEDNSWithoutECS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
 
 class TestAdvancedLuaGetContent(DNSDistTest):

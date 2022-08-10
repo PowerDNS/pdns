@@ -181,9 +181,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t code, const std::string&)>("setEDNSOption", [](DNSQuestion& dq, uint16_t code, const std::string& data) {
-    std::string result;
-    SetEDNSOptionAction seoa(code, data);
-    seoa(&dq, &result);
+    setEDNSOption(dq, code, data);
   });
 
   /* LuaWrapper doesn't support inheritance */
