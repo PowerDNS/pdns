@@ -1070,3 +1070,40 @@ bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
   memcpy(&edns0, &packet.at(optStart + 5), sizeof edns0);
   return true;
 }
+
+bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& ednsData)
+{
+  std::string optRData;
+  generateEDNSOption(ednsCode, ednsData, optRData);
+
+  if (dq.getHeader()->arcount) {
+    bool ednsAdded = false;
+    bool optionAdded = false;
+    PacketBuffer newContent;
+    newContent.reserve(dq.getData().size());
+
+    if (!slowRewriteEDNSOptionInQueryWithRecords(dq.getData(), newContent, ednsAdded, ednsCode, optionAdded, true, optRData)) {
+      return false;
+    }
+
+    if (newContent.size() > dq.getMaximumSize()) {
+      return false;
+    }
+
+    dq.getMutableData() = std::move(newContent);
+    if (!dq.ednsAdded && ednsAdded) {
+      dq.ednsAdded = true;
+    }
+
+    return true;
+  }
+
+  auto& data = dq.getMutableData();
+  if (generateOptRR(optRData, data, dq.getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+    dq.getHeader()->arcount = htons(1);
+    // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+    dq.ednsAdded = true;
+  }
+
+  return true;
+}

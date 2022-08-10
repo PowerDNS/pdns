@@ -961,43 +961,29 @@ private:
   uint16_t d_code{3};
 };
 
-
-DNSAction::Action SetEDNSOptionAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+class SetEDNSOptionAction : public DNSAction
 {
-  std::string optRData;
-  generateEDNSOption(d_code, d_data, optRData);
+public:
+  // this action does not stop the processing
+  SetEDNSOptionAction(uint16_t code, const std::string& data) : d_code(code), d_data(data)
+  {
+  }
 
-  if (dq->getHeader()->arcount) {
-    bool ednsAdded = false;
-    bool optionAdded = false;
-    PacketBuffer newContent;
-    newContent.reserve(dq->getData().size());
-
-    if (!slowRewriteEDNSOptionInQueryWithRecords(dq->getData(), newContent, ednsAdded, d_code, optionAdded, true, optRData)) {
-      return Action::None;
-    }
-
-    if (newContent.size() > dq->getMaximumSize()) {
-      return Action::None;
-    }
-
-    dq->getMutableData() = std::move(newContent);
-    if (!dq->ednsAdded && ednsAdded) {
-      dq->ednsAdded = true;
-    }
-
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    setEDNSOption(*dq, d_code, d_data);
     return Action::None;
   }
 
-  auto& data = dq->getMutableData();
-  if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
-    dq->getHeader()->arcount = htons(1);
-    // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
-    dq->ednsAdded = true;
+  std::string toString() const override
+  {
+    return "add EDNS Option (code=" + std::to_string(d_code) + ")";
   }
 
-  return Action::None;
-}
+private:
+  uint16_t d_code;
+  std::string d_data;
+};
 
 class SetNoRecurseAction : public DNSAction
 {

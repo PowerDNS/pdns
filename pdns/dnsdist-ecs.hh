@@ -55,3 +55,5 @@ bool parseEDNSOptions(const DNSQuestion& dq);
 int getEDNSZ(const DNSQuestion& dq);
 bool queryHasEDNS(const DNSQuestion& dq);
 bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0);
+
+bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& data);
