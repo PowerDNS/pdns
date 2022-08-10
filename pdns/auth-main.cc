@@ -124,7 +124,7 @@ static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
-static vector<DNSDistributor*> g_distributors;
+static vector<DNSDistributor*> s_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
 static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
@@ -362,7 +362,7 @@ static uint64_t getTCPConnectionCount(const std::string& str)
 static uint64_t getQCount(const std::string& str)
 try {
   int totcount = 0;
-  for (const auto& d : g_distributors) {
+  for (const auto& d : s_distributors) {
     if (!d)
       continue;
     totcount += d->getQueueSize(); // this does locking and other things, so don't get smart
@@ -536,8 +536,8 @@ static void qthread(unsigned int num)
 try {
   setThreadName("pdns/receiver");
 
-  g_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
-  DNSDistributor* distributor = g_distributors[num]; // the big dispatcher!
+  s_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
+  DNSDistributor* distributor = s_distributors[num]; // the big dispatcher!
   DNSPacket question(true);
   DNSPacket cached(false);
 
@@ -856,7 +856,7 @@ static void mainthread()
   s_tcpNameserver->go(); // tcp nameserver launch
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
-  g_distributors.resize(max_rthreads);
+  s_distributors.resize(max_rthreads);
   for (unsigned int n = 0; n < max_rthreads; ++n) {
     std::thread t(qthread, n);
     t.detach();
