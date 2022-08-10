@@ -124,7 +124,7 @@ string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream os;
-  os<<humanDuration(time(nullptr)-s_starttime);
+  os<<humanDuration(time(nullptr)-g_starttime);
   return os.str();
 }
 
