@@ -1774,21 +1774,28 @@ static void udpClientThread(std::vector<ClientState*> states)
       ComboAddress dest;
 
       auto handleOnePacket = [&packet, &iov, &holders, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
-        packet.resize(initialBufferSize);
-        iov.iov_base = &packet.at(0);
-        iov.iov_len = packet.size();
+        try {
+          packet.resize(initialBufferSize);
+          iov.iov_base = &packet.at(0);
+          iov.iov_len = packet.size();
 
-        ssize_t got = recvmsg(param.socket, &msgh, 0);
+          ssize_t got = recvmsg(param.socket, &msgh, 0);
 
-        if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-          ++g_stats.nonCompliantQueries;
-          ++param.cs->nonCompliantQueries;
-          return;
+          if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+            ++g_stats.nonCompliantQueries;
+            ++param.cs->nonCompliantQueries;
+            return;
+          }
+
+          packet.resize(static_cast<size_t>(got));
+
+          processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
         }
-
-        packet.resize(static_cast<size_t>(got));
-
-        processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+        catch (const std::exception& e) {
+          /* most exceptions are handled by processUDPQuery(), but we might be out of memory (std::bad_alloc)
+             in which case we want to try to recover */
+          warnlog("Exception while processing an incoming UDP packet: %s", e.what());
+        }
       };
 
       std::vector<UDPStateParam> params;
@@ -1810,12 +1817,19 @@ static void udpClientThread(std::vector<ClientState*> states)
       else {
         auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
           auto param = boost::any_cast<const UDPStateParam*>(funcparam);
-          remote.sin4.sin_family = param->cs->local.sin4.sin_family;
-          packet.resize(initialBufferSize);
-          /* used by HarvestDestinationAddress */
-          cmsgbuf_aligned cbuf;
-          fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
-          handleOnePacket(*param);
+          try {
+            remote.sin4.sin_family = param->cs->local.sin4.sin_family;
+            packet.resize(initialBufferSize);
+            /* used by HarvestDestinationAddress */
+            cmsgbuf_aligned cbuf;
+            fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
+            handleOnePacket(*param);
+          }
+          catch (const std::exception& e) {
+            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
+               in which case we want to try to recover */
+            warnlog("Exception while processing an incoming UDP packet: %s", e.what());
+          }
         };
         auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
         for (size_t idx = 0; idx < params.size(); idx++) {
