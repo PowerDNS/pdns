@@ -483,14 +483,18 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
     output << prometheusMetricName << " ";
 
-    if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e)))
+    if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e))) {
       output << (*val)->load();
-    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&std::get<1>(e)))
+    }
+    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&std::get<1>(e))) {
       output << (*adval)->load();
-    else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
+    }
+    else if (const auto& dval = boost::get<double*>(&std::get<1>(e))) {
       output << **dval;
-    else
-      output << (*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
+    }
+    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e))) {
+      output << (*func)(std::get<0>(e));
+    }
 
     output << "\n";
   }
@@ -874,8 +878,8 @@ static void addStatsToJSONObject(Json::object& obj)
       obj.insert({e.first, (*adval)->load()});
     } else if (const auto& dval = boost::get<double*>(&e.second)) {
       obj.insert({e.first, (**dval)});
-    } else {
-      obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+    } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
+      obj.insert({e.first, (double)(*func)(e.first)});
     }
   }
 }
@@ -1307,11 +1311,11 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
           { "value", (**dval) }
         });
     }
-    else {
+    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&item.second)) {
       doc.push_back(Json::object {
           { "type", "StatisticItem" },
           { "name", item.first },
-          { "value", (double)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+          { "value", (double)(*func)(item.first) }
         });
     }
   }

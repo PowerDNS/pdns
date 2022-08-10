@@ -73,14 +73,18 @@ void carbonDumpThread()
           time_t now=time(0);
           for(const auto& e : g_stats.entries) {
             str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
-            if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
+            if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
               str<<(*val)->load();
-            else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second))
+            }
+            else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
               str<<(*adval)->load();
-            else if (const auto& dval = boost::get<double*>(&e.second))
+            }
+            else if (const auto& dval = boost::get<double*>(&e.second)) {
               str<<**dval;
-            else
-              str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
+            }
+            else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
+              str<<(*func)(e.first);
+            }
             str<<' '<<now<<"\r\n";
           }
           auto states = g_dstates.getLocal();
