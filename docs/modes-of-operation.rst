@@ -95,25 +95,24 @@ Secondary operation
 On launch, PowerDNS requests from all backends a list of domains that
 have not been checked recently for changes. This should happen every
 '**refresh**' seconds, as specified in the SOA record. All domains that
-are unfresh are then checked for changes over at their master. If the
+are unfresh are then checked for changes over at their primary server. If the
 :ref:`types-SOA` serial number there is higher, the domain is
 retrieved and inserted into the database. In any case, after the check,
 the domain is declared 'fresh', and will only be checked again after
 '**refresh**' seconds have passed.
 
-If the serial on the Primary is equal to the serial on the Secondary,
-but the zone is presigned, the Secondary will also compare the RRSIG
-of the SOA and queue a zone transfer if the signatures are different.
-This is useful if the Primary is also PowerDNS as the serial may not be
-increased although signatures are updated. To compare also the RRSIGs,
-PowerDNS sets the DO flag when querying the SOA on the Primary. Setting
-the DO flag may trigger truncated responses and the SOA check should
-fall back to TCP. As this fallback is not currently supported in
-PowerDNS, freshness checks may fail. If it is known that the Primary
-always increases the serial on signature changes, signature comparison
-can be turned off by disabling
-:ref:`setting-compare-signatures-on-zone-freshness-check`. This will disable
-the DO flag and should work around the issue with truncate.
+If the serial is equal, PowerDNS as a secondary with a presigned zone
+will also compare the SOA RRSIG (signature). If the signatures are
+different, the zone is also queued for a zone transfer.
+This is useful when the primary server updates DNSSEC signatures without
+changing the zone serial. In some configurations, a PowerDNS primary can
+exhibit this behaviour.
+To allow for this check, the DO flag is set on the SOA query towards
+the primary server. In some conditions, some primary servers answer with
+a truncated SOA response (indicating TCP is required), and the freshness
+check will fail. As a workaround, the signature check and DO flag can be
+turned off by disabling
+:ref:`setting-compare-signatures-on-zone-freshness-check`.
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after

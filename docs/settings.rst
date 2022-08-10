@@ -283,10 +283,13 @@ documentation on how to modify unit-files).
 -  Boolean
 -  Default: yes
 
-Turning this off will disable the DO flag for SOA queries during zone freshness checks of secondary zones
-to work around truncated SOA responses. It will also disable signature comparison which is used to detect
-signature changes even when the serial was not increased. Hence, disable this setting only if the Primary
-name server always increases the serial on signature changes.
+Enabled by default, freshness checks for secondary zones will set the DO flag on SOA queries. PowerDNS
+uses the DNSSEC signatures in the SOA response to detect (signature) changes on the primary server, when
+the serial number was not increased.
+
+In some scenarios, primary servers send truncated SOA responses. As a workaround, this setting can be
+turned off, and the DO flag as well as the signature checking will be disabled. To avoid additional
+drift, primary servers then must always increase the zone serial on signature changes.
 
 .. _setting-config-dir:
 
