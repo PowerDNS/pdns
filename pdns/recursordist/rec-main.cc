@@ -714,6 +714,7 @@ static void checkSocketDir(Logr::log_t log)
   else {
     return;
   }
+  dir = ::arg()["chroot"] + dir;
   SLOG(g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl,
        log->error(Logr::Error, msg, "Problem with socket directory, see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0", "dir", Logging::Loggable(dir)));
   _exit(1);
