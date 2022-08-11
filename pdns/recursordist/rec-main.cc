@@ -590,12 +590,20 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
   return result;
 }
 
+static void asyncFrameStreamLoggersCleanup(std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>&& servers)
+{
+  auto thread = std::thread([&] {
+    servers.reset();
+  });
+  thread.detach();
+}
+
 bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->frameStreamExportConfig.enabled) {
     if (t_frameStreamServersInfo.servers) {
       // dt's take care of cleanup
-      t_frameStreamServersInfo.servers.reset();
+      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
       t_frameStreamServersInfo.config = luaconfsLocal->frameStreamExportConfig;
     }
 
@@ -608,7 +616,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
   if (t_frameStreamServersInfo.generation < luaconfsLocal->generation && t_frameStreamServersInfo.config != luaconfsLocal->frameStreamExportConfig) {
     if (t_frameStreamServersInfo.servers) {
       // dt's take care of cleanup
-      t_frameStreamServersInfo.servers.reset();
+      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
     }
 
     t_frameStreamServersInfo.servers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig);
