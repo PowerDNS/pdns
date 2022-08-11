@@ -274,6 +274,8 @@ void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)
 struct DOHConnection
 {
   std::shared_ptr<DOHAcceptContext> d_acceptCtx{nullptr};
+  ComboAddress d_remote;
+  ComboAddress d_local;
   struct timeval d_connectionStartTime{0, 0};
   size_t d_nbQueries{0};
   int d_desc{-1};
@@ -950,44 +952,44 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     if (!req->conn->ctx->storage.size) {
       return 0; // although we might was well crash on this
     }
+    DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
-    ComboAddress remote;
-    ComboAddress local;
 
-    if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
-      /* getpeername failed, likely because the connection has already been closed,
-         but anyway that means we can't get the remote address, which could allow an ACL bypass */
-      h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
+    const int descriptor = h2o_socket_get_fd(sock);
+    if (descriptor == -1) {
       return 0;
     }
 
-    h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
-    DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
+    auto& conn = t_conns.at(descriptor);
+    ++conn.d_nbQueries;
+    if (conn.d_nbQueries == 1) {
+      if (h2o_socket_get_ssl_session_reused(sock) == 0) {
+        ++dsc->cs->tlsNewSessions;
+      }
+      else {
+        ++dsc->cs->tlsResumptions;
+      }
+
+      if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&conn.d_remote)) == 0) {
+        /* getpeername failed, likely because the connection has already been closed,
+           but anyway that means we can't get the remote address, which could allow an ACL bypass */
+        h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
+        return 0;
+      }
+
+      h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&conn.d_local));
+    }
 
     if (dsc->df->d_trustForwardedForHeader) {
-      processForwardedForHeader(req, remote);
+      processForwardedForHeader(req, conn.d_remote);
     }
 
     auto& holders = dsc->holders;
-    if (!holders.acl->match(remote)) {
+    if (!holders.acl->match(conn.d_remote)) {
       ++g_stats.aclDrops;
-      vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
+      vinfolog("Query from %s (DoH) dropped because of ACL", conn.d_remote.toStringWithPort());
       h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
       return 0;
-    }
-
-    const int descriptor = h2o_socket_get_fd(sock);
-    if (descriptor != -1) {
-      auto& conn = t_conns.at(descriptor);
-      ++conn.d_nbQueries;
-      if (conn.d_nbQueries == 1) {
-        if (h2o_socket_get_ssl_session_reused(sock) == 0) {
-          ++dsc->cs->tlsNewSessions;
-        }
-        else {
-          ++dsc->cs->tlsResumptions;
-        }
-      }
     }
 
     if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
@@ -1044,7 +1046,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       query.reserve(req->entity.len + maxAdditionalSizeForEDNS);
       query.resize(req->entity.len);
       memcpy(query.data(), req->entity.base, req->entity.len);
-      doh_dispatch_query(dsc, self, req, std::move(query), local, remote, std::move(path));
+      doh_dispatch_query(dsc, self, req, std::move(query), conn.d_local, conn.d_remote, std::move(path));
     }
     else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
       auto pos = path.find("?dns=");
@@ -1083,7 +1085,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
           else
             ++dsc->df->d_http1Stats.d_nbQueries;
 
-          doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote, std::move(path));
+          doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, conn.d_remote, std::move(path));
         }
       }
       else
