@@ -1791,10 +1791,11 @@ static void udpClientThread(std::vector<ClientState*> states)
 
           processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
         }
-        catch (const std::exception& e) {
+        catch (const std::bad_alloc& e) {
           /* most exceptions are handled by processUDPQuery(), but we might be out of memory (std::bad_alloc)
-             in which case we want to try to recover */
-          warnlog("Exception while processing an incoming UDP packet: %s", e.what());
+             in which case we DO NOT want to log (as it would trigger another memory allocation attempt
+             that might throw as well) but wait a bit (one millisecond) and then try to recover */
+          usleep(1000);
         }
       };
 
@@ -1825,10 +1826,11 @@ static void udpClientThread(std::vector<ClientState*> states)
             fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
             handleOnePacket(*param);
           }
-          catch (const std::exception& e) {
+          catch (const std::bad_alloc& e) {
             /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
-               in which case we want to try to recover */
-            warnlog("Exception while processing an incoming UDP packet: %s", e.what());
+               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
+               that might throw as well) but wait a bit (one millisecond) and then try to recover */
+            usleep(1000);
           }
         };
         auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
