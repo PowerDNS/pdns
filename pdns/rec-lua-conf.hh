@@ -27,6 +27,8 @@
 #include "filterpo.hh"
 #include "validate.hh"
 #include "rec-zonetocache.hh"
+#include "logging.hh"
+#include "fstrm_logger.hh"
 
 struct ProtobufExportConfig
 {
@@ -55,6 +57,16 @@ struct FrameStreamExportConfig
   unsigned outputQueueSize{0};
   unsigned queueNotifyThreshold{0};
   unsigned reopenInterval{0};
+};
+
+bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB);
+bool operator!=(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB);
+
+struct FrameStreamServersInfo
+{
+  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> servers;
+  uint64_t generation;
+  FrameStreamExportConfig config;
 };
 
 struct TrustAnchorFileInfo

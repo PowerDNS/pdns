@@ -43,6 +43,27 @@ LuaConfigItems::LuaConfigItems()
 
 /* DID YOU READ THE STORY ABOVE? */
 
+bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB)
+{
+  // clang-format off
+  return configA.enabled              == configB.enabled              &&
+         configA.logQueries           == configB.logQueries           &&
+         configA.logResponses         == configB.logResponses         &&
+         configA.bufferHint           == configB.bufferHint           &&
+         configA.flushTimeout         == configB.flushTimeout         &&
+         configA.inputQueueSize       == configB.inputQueueSize       &&
+         configA.outputQueueSize      == configB.outputQueueSize      &&
+         configA.queueNotifyThreshold == configB.queueNotifyThreshold &&
+         configA.reopenInterval       == configB.reopenInterval       &&
+         configA.servers              == configB.servers;
+  // clang-format on
+}
+
+bool operator!=(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB)
+{
+  return !(configA == configB);
+}
+
 template <typename C>
 typename C::value_type::second_type constGet(const C& c, const std::string& name)
 {

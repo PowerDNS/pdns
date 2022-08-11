@@ -924,7 +924,7 @@ void startDoResolve(void* p)
     sr.setInitialRequestId(dc->d_uuid);
     sr.setOutgoingProtobufServers(t_outgoingProtobufServers);
 #ifdef HAVE_FSTRM
-    sr.setFrameStreamServers(t_frameStreamServers);
+    sr.setFrameStreamServers(t_frameStreamServersInfo.servers);
 #endif
 
     bool useMapped = true;
