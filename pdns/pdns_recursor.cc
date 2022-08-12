@@ -1178,26 +1178,31 @@ void startDoResolve(void* p)
 
       if (dc->d_luaContext) {
         PolicyResult policyResult = PolicyResult::NoAction;
-        if (res == RCode::NoError) {
-          if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
-            if (dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
-              shouldNotValidate = true;
-              policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
-            }
+        if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
+          if (dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
+            shouldNotValidate = true;
+            policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           }
         }
         else if (res == RCode::NXDomain && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
           shouldNotValidate = true;
           policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
         }
-
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }
         else if (policyResult == PolicyResult::Drop) {
           return;
         }
+      } // dc->d_luaContext
 
+      if (g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && !vStateIsBogus(dq.validationState) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
+        res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
+        shouldNotValidate = true;
+      }
+
+      if (dc->d_luaContext) {
+        PolicyResult policyResult = PolicyResult::NoAction;
         if (dc->d_luaContext->d_postresolve_ffi) {
           RecursorLua4::PostResolveFFIHandle handle(dq);
           sr.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
@@ -1219,11 +1224,6 @@ void startDoResolve(void* p)
           return;
         }
       } // dc->d_luaContext
-
-      if (g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && !vStateIsBogus(dq.validationState) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
-        res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
-        shouldNotValidate = true;
-      }
     }
     else if (dc->d_luaContext) {
       // preresolve returned true
