@@ -249,6 +249,13 @@ extern thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 #endif
 
 #ifdef HAVE_FSTRM
+struct FrameStreamServersInfo
+{
+  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> servers;
+  uint64_t generation;
+  FrameStreamExportConfig config;
+};
+
 extern thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
