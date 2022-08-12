@@ -475,21 +475,32 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
 
 size_t ServerPool::countServers(bool upOnly)
 {
+  std::shared_ptr<ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t count = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     if (!upOnly || std::get<1>(server)->isUp() ) {
       count++;
     }
   }
+
   return count;
 }
 
 size_t ServerPool::poolLoad()
 {
+  std::shared_ptr<ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t load = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     size_t serverOutstanding = std::get<1>(server)->outstanding.load();
     load += serverOutstanding;
   }
