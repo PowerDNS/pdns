@@ -62,13 +62,6 @@ struct FrameStreamExportConfig
 bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB);
 bool operator!=(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB);
 
-struct FrameStreamServersInfo
-{
-  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> servers;
-  uint64_t generation;
-  FrameStreamExportConfig config;
-};
-
 struct TrustAnchorFileInfo
 {
   uint32_t interval{24};
