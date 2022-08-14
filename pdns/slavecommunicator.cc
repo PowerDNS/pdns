@@ -1154,6 +1154,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
   sdomains.reserve(rdomains.size());
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
+  bool checkSignatures = ::arg().mustDo("secondary-check-signature-freshness") && dk.doesDNSSEC();
   {
     auto data = d_data.lock();
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(data->d_suckdomains);
@@ -1181,12 +1182,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
 
       DomainNotificationInfo dni;
-      dni.di=di;
-      if (::arg().mustDo("secondary-check-signature-freshness")) {
-        dni.dnssecOk = dk.doesDNSSEC();
-      } else {
-        dni.dnssecOk = false;
-      }
+      dni.di = di;
+      dni.dnssecOk = checkSignatures;
 
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
@@ -1331,7 +1328,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
-      if(dk.isPresigned(di.zone) && ::arg().mustDo("secondary-check-signature-freshness")) {
+      if(checkSignatures && dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while(B->get(zr)) {

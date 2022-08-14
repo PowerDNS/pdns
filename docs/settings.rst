@@ -289,7 +289,7 @@ signatures in the SOA response.
 
 In some problematic scenarios, primary servers send truncated SOA responses. As a workaround, this setting
 can be turned off, and the DO flag as well as the signature checking will be disabled. To avoid additional
-drift, primary servers then must always increase the zone serial on signature changes.
+drift, primary servers must then always increase the zone serial when it updates signatures.
 
 It is strongly recommended to keep this setting enabled (`yes`).
 
