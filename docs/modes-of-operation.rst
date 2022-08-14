@@ -112,7 +112,7 @@ the primary server. In some conditions, some primary servers answer with
 a truncated SOA response (indicating TCP is required), and the freshness
 check will fail. As a workaround, the signature check and DO flag can be
 turned off by disabling
-:ref:`setting-compare-signatures-on-zone-freshness-check`.
+:ref:`setting-secondary-check-signature-freshness`.
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after

@@ -273,10 +273,10 @@ Either don't ``chroot`` on these systems or set the 'Type' of the
 service to 'simple' instead of 'notify' (refer to the systemd
 documentation on how to modify unit-files).
 
-.. _setting-compare-signatures-on-zone-freshness-check:
+.. _setting-secondary-check-signature-freshness:
 
-``compare-signatures-on-zone-freshness-check``
-----------------------------------------------
+``secondary-check-signature-freshness``
+---------------------------------------
 
 .. versionadded:: 4.7.0
 
@@ -284,12 +284,14 @@ documentation on how to modify unit-files).
 -  Default: yes
 
 Enabled by default, freshness checks for secondary zones will set the DO flag on SOA queries. PowerDNS
-uses the DNSSEC signatures in the SOA response to detect (signature) changes on the primary server, when
-the serial number was not increased.
+can detect (signature) changes on the primary server without serial number bumps using the DNSSEC
+signatures in the SOA response.
 
-In some scenarios, primary servers send truncated SOA responses. As a workaround, this setting can be
-turned off, and the DO flag as well as the signature checking will be disabled. To avoid additional
+In some problematic scenarios, primary servers send truncated SOA responses. As a workaround, this setting
+can be turned off, and the DO flag as well as the signature checking will be disabled. To avoid additional
 drift, primary servers then must always increase the zone serial on signature changes.
+
+It is strongly recommended to keep this setting enabled (`yes`).
 
 .. _setting-config-dir:
 
