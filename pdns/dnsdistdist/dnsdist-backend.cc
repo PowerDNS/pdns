@@ -475,30 +475,41 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
 
 size_t ServerPool::countServers(bool upOnly)
 {
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t count = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     if (!upOnly || std::get<1>(server)->isUp() ) {
       count++;
     }
   }
+
   return count;
 }
 
 size_t ServerPool::poolLoad()
 {
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t load = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     size_t serverOutstanding = std::get<1>(server)->outstanding.load();
     load += serverOutstanding;
   }
   return load;
 }
 
-const std::shared_ptr<ServerPolicy::NumberedServerVector> ServerPool::getServers()
+const std::shared_ptr<const ServerPolicy::NumberedServerVector> ServerPool::getServers()
 {
-  std::shared_ptr<ServerPolicy::NumberedServerVector> result;
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> result;
   {
     result = *(d_servers.read_lock());
   }
@@ -511,18 +522,18 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
   /* we can't update the content of the shared pointer directly even when holding the lock,
      as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
   unsigned int count = static_cast<unsigned int>((*servers)->size());
-  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
-  newServers->emplace_back(++count, server);
+  auto newServers = ServerPolicy::NumberedServerVector(*(*servers));
+  newServers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(newServers->begin(), newServers->end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+  std::stable_sort(newServers.begin(), newServers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
       return a.second->d_config.order < b.second->d_config.order;
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
-  for (auto& serv : *newServers) {
+  for (auto& serv : newServers) {
     serv.first = idx++;
   }
-  *servers = std::move(newServers);
+  *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
