@@ -71,7 +71,7 @@ private:
 
   static void worker();
 
-  static LockGuarded<std::vector<UpgradeableBackend>> s_upgradeableBackends;
+  static LockGuarded<std::vector<std::shared_ptr<UpgradeableBackend>>> s_upgradeableBackends;
   static std::thread s_thread;
 };
 

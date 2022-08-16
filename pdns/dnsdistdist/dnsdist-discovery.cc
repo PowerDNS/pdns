@@ -37,7 +37,7 @@ const uint16_t ServiceDiscovery::s_defaultDoHSVCKey{7};
 
 bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade)
 {
-  s_upgradeableBackends.lock()->push_back(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade});
+  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade}));
   return true;
 }
 
@@ -338,10 +338,10 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     return handleSVCResult(packet, addr, upgradeableBackend.d_dohKey, config);
   }
   catch (const std::exception& e) {
-    errlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what());
+    warnlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what());
   }
   catch (...) {
-    errlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort());
+    warnlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort());
   }
 
   return false;
@@ -506,14 +506,14 @@ void ServiceDiscovery::worker()
     for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end();) {
       auto& backend = *backendIt;
       try {
-        if (backend.d_nextCheck > now) {
+        if (backend->d_nextCheck > now) {
           ++backendIt;
           continue;
         }
 
-        auto upgraded = tryToUpgradeBackend(backend);
+        auto upgraded = tryToUpgradeBackend(*backend);
         if (upgraded) {
-          upgradedBackends.insert(backend.d_ds);
+          upgradedBackends.insert(backend->d_ds);
           backendIt = upgradeables.erase(backendIt);
           continue;
         }
@@ -525,14 +525,14 @@ void ServiceDiscovery::worker()
         vinfolog("Exception in the Service Discovery thread");
       }
 
-      backend.d_nextCheck = now + backend.d_interval;
+      backend->d_nextCheck = now + backend->d_interval;
       ++backendIt;
     }
 
     {
       auto backends = s_upgradeableBackends.lock();
       for (auto it = backends->begin(); it != backends->end();) {
-        if (upgradedBackends.count(it->d_ds) != 0) {
+        if (upgradedBackends.count((*it)->d_ds) != 0) {
           it = backends->erase(it);
         }
         else {
@@ -556,6 +556,6 @@ bool ServiceDiscovery::run()
   return true;
 }
 
-LockGuarded<std::vector<ServiceDiscovery::UpgradeableBackend>> ServiceDiscovery::s_upgradeableBackends;
+LockGuarded<std::vector<std::shared_ptr<ServiceDiscovery::UpgradeableBackend>>> ServiceDiscovery::s_upgradeableBackends;
 std::thread ServiceDiscovery::s_thread;
 }
