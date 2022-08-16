@@ -58,8 +58,7 @@ static thread_local uint64_t t_protobufServersGeneration;
 static thread_local uint64_t t_outgoingProtobufServersGeneration;
 
 #ifdef HAVE_FSTRM
-thread_local std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> t_frameStreamServers{nullptr};
-thread_local uint64_t t_frameStreamServersGeneration;
+thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
 string g_programname = "pdns_recursor";
@@ -626,29 +625,39 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
   return result;
 }
 
+static void asyncFrameStreamLoggersCleanup(std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>&& servers)
+{
+  auto thread = std::thread([&] {
+    servers.reset();
+  });
+  thread.detach();
+}
+
 bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->frameStreamExportConfig.enabled) {
-    if (t_frameStreamServers) {
+    if (t_frameStreamServersInfo.servers) {
       // dt's take care of cleanup
-      t_frameStreamServers.reset();
+      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
+      t_frameStreamServersInfo.config = luaconfsLocal->frameStreamExportConfig;
     }
 
     return false;
   }
 
-  /* if the server was not running, or if it was running according to a
-     previous configuration */
-  if (!t_frameStreamServers || t_frameStreamServersGeneration < luaconfsLocal->generation) {
-
-    if (t_frameStreamServers) {
+  /* if the server was not running, or if it was running according to a previous
+   * configuration
+   */
+  if (t_frameStreamServersInfo.generation < luaconfsLocal->generation && t_frameStreamServersInfo.config != luaconfsLocal->frameStreamExportConfig) {
+    if (t_frameStreamServersInfo.servers) {
       // dt's take care of cleanup
-      t_frameStreamServers.reset();
+      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
     }
 
-    auto log = g_slog->withName("dnstap");
-    t_frameStreamServers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig, log);
-    t_frameStreamServersGeneration = luaconfsLocal->generation;
+    auto dnsTapLog = g_slog->withName("dnstap");
+    t_frameStreamServersInfo.servers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig, dnsTapLog);
+    t_frameStreamServersInfo.config = luaconfsLocal->frameStreamExportConfig;
+    t_frameStreamServersInfo.generation = luaconfsLocal->generation;
   }
 
   return true;
