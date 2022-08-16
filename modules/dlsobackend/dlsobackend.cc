@@ -27,6 +27,15 @@
 
 static const char* kBackendId = "[DlsoBackend]";
 
+void fill_cb(const void* ptr, const struct resource_record* record);
+void fill_key_cb(const void* ptr, const struct dnskey* dnskey);
+void fill_tsig_key(const void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
+void fill_meta_cb(const void* ptr, uint8_t value_len, const struct dns_value* values);
+void fill_metas_cb(const void* ptr, uint8_t meta_len, const struct dns_meta* c_metas);
+void fill_before_after(const void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_);
+void fill_domain_info(const void* di_, struct domain_info* domain_info);
+void fill_unfresh_slave(const void* unfresh_, struct domain_info* domain_info);
+
 /**
  * Standard ctor and dtor
  */
