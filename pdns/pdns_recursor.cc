@@ -1176,15 +1176,18 @@ void startDoResolve(void* p)
         }
       }
 
+      bool luaHookHandled = false;
       if (dc->d_luaContext) {
         PolicyResult policyResult = PolicyResult::NoAction;
         if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
           if (dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
+            luaHookHandled = true;
             shouldNotValidate = true;
             policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
           }
         }
         else if (res == RCode::NXDomain && dc->d_luaContext->nxdomain(dq, res, sr.d_eventTrace)) {
+          luaHookHandled = true;
           shouldNotValidate = true;
           policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, tcpGuard);
         }
@@ -1196,7 +1199,7 @@ void startDoResolve(void* p)
         }
       } // dc->d_luaContext
 
-      if (g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && !vStateIsBogus(dq.validationState) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
+      if (!luaHookHandled && g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && (!shouldNotValidate || !sr.isDNSSECValidationRequested() || !vStateIsBogus(dq.validationState)) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
         res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
         shouldNotValidate = true;
       }
