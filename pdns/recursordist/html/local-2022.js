@@ -17,7 +17,12 @@ const fetchConfig = {
 var gdata = {};
 
 function get_json(url, params) {
-    const realURL = new URL(url + '?' + (new URLSearchParams(params)).toString(), fetchConfig.baseURL);
+    const realURL = new URL(url, fetchConfig.baseURL);
+    if (params) {
+        for (const [k, v] of Object.entries(params)) {
+            realURL.searchParams.append(k, v);
+        }
+    }
     return new Promise((resolve, reject) => {
         fetch(realURL, {
             method: 'GET',
