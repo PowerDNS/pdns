@@ -2017,6 +2017,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_rings.setNumberOfLockRetries(retries);
   });
 
+  luaCtx.writeFunction("setRingBuffersOptions", [](const LuaAssociativeTable<boost::variant<bool, uint64_t>>& options) {
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      errlog("setRingBuffersOptions() cannot be used at runtime!");
+      g_outputBuffer = "setRingBuffersOptions() cannot be used at runtime!\n";
+      return;
+    }
+    if (options.count("lockRetries") > 0) {
+      auto retries = boost::get<uint64_t>(options.at("lockRetries"));
+      g_rings.setNumberOfLockRetries(retries);
+    }
+    if (options.count("recordQueries") > 0) {
+      auto record = boost::get<bool>(options.at("recordQueries"));
+      g_rings.setRecordQueries(record);
+    }
+    if (options.count("recordResponses") > 0) {
+      auto record = boost::get<bool>(options.at("recordResponses"));
+      g_rings.setRecordResponses(record);
+    }
+  });
+
   luaCtx.writeFunction("setWHashedPertubation", [](uint64_t perturb) {
     setLuaSideEffect();
     checkParameterBound("setWHashedPertubation", perturb, std::numeric_limits<uint32_t>::max());

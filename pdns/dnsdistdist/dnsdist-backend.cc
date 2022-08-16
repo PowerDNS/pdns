@@ -339,14 +339,16 @@ void DownstreamState::handleTimeout(IDState& ids)
            d_config.remote.toStringWithPort(), getName(),
            ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
 
-  struct timespec ts;
-  gettime(&ts);
+  if (g_rings.shouldRecordResponses()) {
+    struct timespec ts;
+    gettime(&ts);
 
-  struct dnsheader fake;
-  memset(&fake, 0, sizeof(fake));
-  fake.id = ids.origID;
+    struct dnsheader fake;
+    memset(&fake, 0, sizeof(fake));
+    fake.id = ids.origID;
 
-  g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+    g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+  }
 }
 
 void DownstreamState::handleTimeouts()

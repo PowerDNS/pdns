@@ -606,9 +606,11 @@ void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& cl
 
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol)
 {
-  struct timespec ts;
-  gettime(&ts);
-  g_rings.insertResponse(ts, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, outgoingProtocol);
+  if (g_rings.shouldRecordResponses()) {
+    struct timespec ts;
+    gettime(&ts);
+    g_rings.insertResponse(ts, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, outgoingProtocol);
+  }
 
   switch (cleartextDH.rcode) {
   case RCode::NXDomain:
@@ -914,7 +916,9 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
 
 static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const struct timespec& now)
 {
-  g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.getData().size(), *dq.getHeader(), dq.getProtocol());
+  if (g_rings.shouldRecordQueries()) {
+    g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.getData().size(), *dq.getHeader(), dq.getProtocol());
+  }
 
   if (g_qcount.enabled) {
     string qname = (*dq.qname).toLogString();

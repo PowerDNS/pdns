@@ -507,6 +507,20 @@ Ringbuffers
 
   :param int num: The maximum number of attempts. Defaults to 5 if there is more than one shard, 0 otherwise.
 
+.. function:: setRingBuffersOptions(options)
+
+  .. versionadded:: 1.8.0
+
+  Set the rings buffers configuration
+
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``lockRetries``: int - Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise
+  * ``recordQueries``: boolean - Whether to record queries in the ring buffers. Default is true. Note that :func:`grepq`, several top* commands (:func:`topClients`, :func:`topQueries`, ...) and the :doc:`Dynamic Blocks <../guides/dynblocks>` require this to be enabled.
+  * ``recordResponses``: boolean - Whether to record responses in the ring buffers. Default is true. Note that :func:`grepq`, several top* commands (:func:`topResponses`, :func:`topSlow`, ...) and the :doc:`Dynamic Blocks <../guides/dynblocks>` require this to be enabled.
+
 .. function:: setRingBuffersSize(num [, numberOfShards])
 
   .. versionchanged:: 1.6.0
