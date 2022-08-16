@@ -1011,7 +1011,7 @@ public:
 
 struct ServerPool
 {
-  ServerPool(): d_servers(std::make_shared<ServerPolicy::NumberedServerVector>())
+  ServerPool(): d_servers(std::make_shared<const ServerPolicy::NumberedServerVector>())
   {
   }
 
@@ -1036,12 +1036,12 @@ struct ServerPool
 
   size_t poolLoad();
   size_t countServers(bool upOnly);
-  const std::shared_ptr<ServerPolicy::NumberedServerVector> getServers();
+  const std::shared_ptr<const ServerPolicy::NumberedServerVector> getServers();
   void addServer(shared_ptr<DownstreamState>& server);
   void removeServer(shared_ptr<DownstreamState>& server);
 
 private:
-  SharedLockGuarded<std::shared_ptr<ServerPolicy::NumberedServerVector>> d_servers;
+  SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
   bool d_useECS{false};
 };
 
