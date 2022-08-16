@@ -1,5 +1,6 @@
 AM_CPPFLAGS += $(LUA_CFLAGS) \
-	-I$(top_srcdir)/ext/luawrapper/include
+	-I$(top_srcdir)/ext/luawrapper/include \
+	$(LIBCRYPTO_INCLUDES)
 
 EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
