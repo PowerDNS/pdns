@@ -575,7 +575,7 @@ bool DlsoBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   struct resource_record* records = (struct resource_record*)calloc(rrset.size(), sizeof(struct resource_record));
   uint32_t i = 0;
 
-  for (const auto rr : rrset) {
+  for (const auto& rr : rrset) {
     qnames.push_back(rr.qname.toString());
 
     const string qname_ = qnames.back();
