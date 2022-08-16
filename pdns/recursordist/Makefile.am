@@ -235,8 +235,6 @@ pdns_recursor_LDADD = \
 	$(PROBDS_LIBS) \
 	$(LIBCAP_LIBS)
 
-rec_control_LDADD = $(LIBCRYPTO_LIBS)
-
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_SYSTEM_LDFLAGS)
@@ -248,6 +246,11 @@ pdns_recursor_LDADD += \
 pdns_recursor_LDFLAGS += \
 	$(BOOST_FILESYSTEM_LDFLAGS)
 endif
+
+rec_control_LDADD = $(LIBCRYPTO_LIBS)
+
+rec_control_LDFLAGS = $(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
 
 testrunner_SOURCES = \
 	aggressive_nsec.cc aggressive_nsec.hh \
