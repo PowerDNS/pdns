@@ -701,14 +701,14 @@ void setupLuaInspection(LuaContext& luaCtx)
         if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
           second = std::to_string((*val)->load());
         }
-        else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
           second = (flt % (*adval)->load()).str();
         }
         else if (const auto& dval = boost::get<double*>(&e.second)) {
           second = (flt % (**dval)).str();
         }
-        else {
-          second = std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
+          second = std::to_string((*func)(e.first));
         }
 
         if (leftcolumn.size() < g_stats.entries.size()/2) {
