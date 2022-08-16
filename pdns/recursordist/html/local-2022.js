@@ -1,13 +1,49 @@
 "use strict";
 
-// var moment= require('moment');
+const fetchConfig = {
+    baseURL: window.location,
+    mode: 'same-origin',
+    headers: {'Accept': 'application/json'},
+};
+/*
+// Useful for development of the embedded webserver files.
+const fetchConfig = {
+    baseURL: 'http://127.0.0.1:8083/',
+    mode: 'cors',
+    headers: {'Accept': 'application/json', 'X-API-Key': 'changeme'},
+};
+*/
+
 var gdata = {};
 
-$(document).ready(function () {
-    $.ajaxSetup({cache: false});
+function get_json(url, params) {
+    const realURL = new URL(url, fetchConfig.baseURL);
+    if (params) {
+        for (const [k, v] of Object.entries(params)) {
+            realURL.searchParams.append(k, v);
+        }
+    }
+    return new Promise((resolve, reject) => {
+        fetch(realURL, {
+            method: 'GET',
+            mode: fetchConfig.mode,
+            cache: 'no-cache',
+            headers: fetchConfig.headers,
+        }).then((response) => {
+            if (response.ok) {
+                response.json().then((json) => resolve(json));
+            } else {
+                reject(`HTTP Status ${response.status} ${response.statusText}`);
+            }
+        }).catch((error) => {
+            reject(error.message);
+        })
+    });
+}
 
+function startup() {
     var getTemplate = function (name) {
-        var template = $('#' + name + '-template').html();
+        const template = document.querySelector(`#${name}-template`).innerHTML;
         return Handlebars.compile(template);
     };
     var cachedTemplates = {};
@@ -17,8 +53,8 @@ $(document).ready(function () {
             t = getTemplate(name);
             cachedTemplates[name] = t;
         }
-        var h = t(ctx);
-        $('#' + name).html(h);
+        const html = t(ctx);
+        document.querySelector('#' + name).innerHTML = html;
     };
 
     var qpsgraph = new Rickshaw.Graph({
@@ -77,7 +113,7 @@ $(document).ready(function () {
         var num = 0;
         var total = 0, rest = 0;
         var rows = [];
-        $.each(data["entries"], function (a, b) {
+        data["entries"].forEach((b) => {
             total += b[0];
             if (num++ > 10) {
                 rest += b[0];
@@ -95,72 +131,69 @@ $(document).ready(function () {
     };
 
     function updateRingBuffers() {
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'queries', $("#filter1").is(':checked')),
+        const filterChecked = document.querySelector("#filter1").checked;
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('queryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', $("#filter1").is(':checked')),
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailqueryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', $("#filter1").is(':checked')),
+        get_json('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', filterChecked)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('bogusqueryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('remotering', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'servfail-remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'servfail-remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailremotering', {rows: rows});
             });
 
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'bogus-remotes', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'bogus-remotes', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('bogusremotering', {rows: rows});
             });
-        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false),
+        get_json('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false)).then(
             function (data) {
                 var rows = makeRingRows(data);
                 render('timeouts', {rows: rows});
             });
     }
 
-    var connectionOK = function (ok, o) {
+    var connectionOK = function (ok, reason) {
         if (ok) {
-            $("#connection-status").hide();
-            $("#connection-error").html("");
-            $("#content-hidden-on-load").show();
+            document.querySelector("#connection-status").style.display = "none";
+            document.querySelector("#connection-error").innerHTML = "";
+            document.querySelector("#content-hidden-on-load").style.display = "inherit";
         } else {
-            $("#connection-status").show();
-            $("#connection-error").html(o.status + " " + o.statusText);
+            document.querySelector("#connection-status").style.display = "inherit";
+            document.querySelector("#connection-error").innerHTML = reason;
         }
     };
 
     var version = null;
 
     function update() {
-        $.ajax({
-            url: 'api/v1/servers/localhost/statistics',
-            type: 'GET',
-            dataType: 'json',
-            success: function (adata, x, y) {
+        get_json('api/v1/servers/localhost/statistics').then((adata) => {
                 connectionOK(true);
 
                 var data = {};
-                $.each(adata, function (key, val) {
-                    data[val.name] = val.value;
+                adata.forEach((statItem) => {
+                    data[statItem.name] = statItem.value;
                 });
 
                 if (!gdata["sys-msec"])
@@ -197,22 +230,13 @@ $(document).ready(function () {
                 cpugraph.render();
 
                 gdata = data;
-            },
-            error: function (o) {
-                connectionOK(false, o);
-            },
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('X-API-Key', 'changeme');
-                return true;
-            }
+        }).catch((reason) => {
+            connectionOK(false, reason);
         });
 
         if (!version) {
-            $.ajax({
-                url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json',
-                success: function (data) {
-                    version = "PowerDNS " + data["daemon_type"] + " " + data["version"];
-                }
+            get_json('api/v1/servers/localhost').then((data) => {
+                version = "PowerDNS " + data["daemon_type"] + " " + data["version"]
             });
         }
 
@@ -221,9 +245,11 @@ $(document).ready(function () {
         updateRingBuffers();
     }
 
-    $("#filter1").click(updateRingBuffers);
-    $("#filter2").click(updateRingBuffers);
+    document.querySelector("#filter1").addEventListener('click', updateRingBuffers);
 
     update();
     setInterval(update, 1000);
-});
+}
+
+// rely on "defer" on <script> tag for document to be ready before running.
+startup();
