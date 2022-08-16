@@ -1242,19 +1242,6 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
     ++g_stats.cacheHits;
   }
 
-  switch (dr.getHeader()->rcode) {
-  case RCode::NXDomain:
-    ++g_stats.frontendNXDomain;
-    break;
-  case RCode::ServFail:
-    ++g_stats.frontendServFail;
-    break;
-  case RCode::NoError:
-    ++g_stats.frontendNoError;
-    break;
-  }
-
-  doLatencyStats(cs.getProtocol(), 0);  // we're not going to measure this
   return true;
 }
 
