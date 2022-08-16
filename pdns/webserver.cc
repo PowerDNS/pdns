@@ -262,15 +262,16 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
   // set default headers
   resp.headers["Content-Type"] = "text/html; charset=utf-8";
 
+#ifdef RECURSOR
+    auto log = req.d_slog->withValues("urlpath", Logging::Loggable(req.url.path));
+#endif
+
   try {
     if (!req.complete) {
       SLOG(g_log<<Logger::Debug<<req.logprefix<<"Incomplete request" << endl,
            d_slog->info(Logr::Debug, "Incomplete request"));
       throw HttpBadRequestException();
     }
-#ifdef RECURSOR
-    auto log = req.d_slog->withValues("urlpath", Logging::Loggable(req.url.path));
-#endif
     SLOG(g_log<<Logger::Debug<<req.logprefix<<"Handling request \"" << req.url.path << "\"" << endl,
          log->info(Logr::Debug, "Handling request"));
 
@@ -323,6 +324,12 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
   }
   catch(HttpException &e) {
     resp = e.response();
+#ifdef RECURSOR
+    // An HttpException does not initialize d_slog
+    if (!resp.d_slog) {
+      resp.setSLog(log);
+    }
+#endif
     // TODO rm this logline?
     SLOG(g_log<<Logger::Debug<<req.logprefix<<"Error result for \"" << req.url.path << "\": " << resp.status << endl,
          d_slog->error(Logr::Debug, resp.status, "Error result", "urlpath", Logging::Loggable(req.url.path)));
