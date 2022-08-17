@@ -1199,7 +1199,7 @@ void startDoResolve(void* p)
         }
       } // dc->d_luaContext
 
-      if (!luaHookHandled && g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && (!shouldNotValidate || !sr.isDNSSECValidationRequested() || !vStateIsBogus(dq.validationState)) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
+      if (!luaHookHandled && g_dns64Prefix && dc->d_mdp.d_qtype == QType::AAAA && (shouldNotValidate || !sr.isDNSSECValidationRequested() || !vStateIsBogus(dq.validationState)) && dns64Candidate(dc->d_mdp.d_qtype, res, ret)) {
         res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
         shouldNotValidate = true;
       }
