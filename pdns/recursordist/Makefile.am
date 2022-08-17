@@ -41,7 +41,7 @@ BUILT_SOURCES=htmlfiles.h \
 CLEANFILES = htmlfiles.h \
 	recursor.conf-dist
 
-htmlfiles.h: html/*
+htmlfiles.h: incfiles html/* html/js/*
 	./incfiles > $@
 
 SUBDIRS=ext
