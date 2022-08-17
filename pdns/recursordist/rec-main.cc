@@ -111,8 +111,8 @@ deferredAdd_t g_deferredAdds;
    and finally the workers */
 std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
 
-std::shared_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
-thread_local std::shared_ptr<ProxyMapping> t_proxyMapping;
+std::unique_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
+thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 unsigned int RecThreadInfo::s_numDistributorThreads;
@@ -1279,6 +1279,15 @@ static vector<pair<DNSName, uint16_t>>& operator+=(vector<pair<DNSName, uint16_t
   return a;
 }
 
+static ProxyMappingStats_t& operator+=(ProxyMappingStats_t& a, const ProxyMappingStats_t& b)
+{
+  for (const auto& [key, entry] : b) {
+    a[key].netmaskMatches += entry.netmaskMatches;
+    a[key].suffixMatches += entry.suffixMatches;
+  }
+  return a;
+}
+
 // This function should only be called by the handler to gather
 // metrics, wipe the cache, reload the Lua script (not the Lua config)
 // or change the current trace regex, and by the SNMP thread to gather
@@ -1330,6 +1339,7 @@ template uint64_t broadcastAccFunction(const std::function<uint64_t*()>& fun); /
 template vector<ComboAddress> broadcastAccFunction(const std::function<vector<ComboAddress>*()>& fun); // explicit instantiation
 template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
 template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
+template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
 
 static int serviceMain(int argc, char* argv[], Logr::log_t log)
 {
@@ -1422,7 +1432,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
     ProxyMapping proxyMapping;
     loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
     // Initial proxy mapping
-    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_shared<ProxyMapping>(proxyMapping);
+    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
   }
   catch (PDNSException& e) {
     SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
@@ -2301,7 +2311,12 @@ static void recursorThread()
       t_allowNotifyFor = g_initialAllowNotifyFor;
       t_udpclientsocks = std::make_unique<UDPClientSocks>();
       t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
-      t_proxyMapping = g_proxyMapping;
+      if (g_proxyMapping) {
+        t_proxyMapping = make_unique<ProxyMapping>(*g_proxyMapping);
+      }
+      else {
+        t_proxyMapping = nullptr;
+      }
 
       if (threadInfo.isHandler()) {
         if (!primeHints()) {
@@ -2728,7 +2743,7 @@ int main(int argc, char** argv)
     for (size_t idx = 0; idx < 128; idx++) {
       defaultAPIDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-clientanswers, cumul-authanswers, policy-hits";
+    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total";
 
     ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)") = defaultAPIDisabledStats;
     ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)") = defaultDisabledStats;

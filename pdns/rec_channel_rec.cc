@@ -928,6 +928,27 @@ static uint64_t doGetThreadCPUMsec(int n)
   return tt.times.at(n);
 }
 
+static ProxyMappingStats_t* pleaseGetProxyMappingStats()
+{
+  auto ret = new ProxyMappingStats_t;
+  if (t_proxyMapping) {
+    for (const auto& [key, entry] : *t_proxyMapping) {
+      ret->emplace(std::make_pair(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches}));
+    }
+  }
+  return ret;
+}
+
+static string doGetProxyMappingStats()
+{
+  ostringstream ret;
+  auto m = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
+  for (const auto& [key, entry] : m) {
+    ret << key.toString() << '\t' << entry.netmaskMatches << '\t' << entry.suffixMatches << endl;
+  }
+  return ret.str();
+}
+
 static uint64_t calculateUptime()
 {
   return time(nullptr) - g_stats.startupTime;
@@ -1135,6 +1156,26 @@ static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map
     total += count;
   }
   entries.emplace(name, StatsMapEntry{pbasename, std::to_string(total)});
+  return entries;
+}
+
+static StatsMap toProxyMappingStatsMap(const string& name)
+{
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+
+  auto m = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
+  size_t count = 0;
+  for (const auto& [key, entry] : m) {
+    auto keyname = pbasename + "{netmask=\"" + key.toString() + "\",count=\"";
+    auto sname1 = name + "-n-" + std::to_string(count);
+    auto pname1 = keyname + "netmaskmatches\"}";
+    entries.emplace(sname1, StatsMapEntry{pname1, std::to_string(entry.netmaskMatches)});
+    auto sname2 = name + "-s-" + std::to_string(count);
+    auto pname2 = keyname + "suffixmatches\"}";
+    entries.emplace(sname2, StatsMapEntry{pname2, std::to_string(entry.suffixMatches)});
+    count++;
+  }
   return entries;
 }
 
@@ -1405,6 +1446,9 @@ static void registerAllStats1()
   });
   addGetStat("policy-hits", []() {
     return toRPZStatsMap("policy-hits", g_stats.policyHits);
+  });
+  addGetStat("proxy-mapping-total", []() {
+    return toProxyMappingStatsMap("proxy-mapping-total");
   });
 }
 
@@ -1864,9 +1908,25 @@ static string setEventTracing(T begin, T end)
   }
 }
 
-static void* pleaseSupplantProxyMapping(std::shared_ptr<ProxyMapping> pm)
+static void* pleaseSupplantProxyMapping(const ProxyMapping& pm)
 {
-  t_proxyMapping = pm;
+  if (pm.empty()) {
+    t_proxyMapping = nullptr;
+  }
+  else {
+    // Copy the existing stats values, for the new config items also present in the old
+    auto newmapping = make_unique<ProxyMapping>();
+    for (const auto& [nm, entry] : pm) {
+      auto& newentry = newmapping->insert(nm);
+      newentry.second = entry;
+      if (t_proxyMapping) {
+        if (auto existing = t_proxyMapping->lookup(nm); existing != nullptr) {
+          newentry.second.stats = existing->second.stats;
+        }
+      }
+    }
+    t_proxyMapping = std::move(newmapping);
+  }
   return nullptr;
 }
 
@@ -1913,6 +1973,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
             "get-ntas                         get all configured Negative Trust Anchors\n"
             "get-tas                          get all configured Trust Anchors\n"
             "get-parameter [key1] [key2] ..   get configuration parameters\n"
+            "get-proxymapping-stats           get proxy mapping statistics\n"
             "get-qtypelist                    get QType statistics\n"
             "                                 notice: queries from cache aren't being counted yet\n"
             "hash-password [work-factor]      ask for a password then return the hashed version\n"
@@ -2021,8 +2082,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
       ProxyMapping proxyMapping;
       loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
       startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
-      std::shared_ptr<ProxyMapping> ptr = proxyMapping.empty() ? nullptr : std::make_shared<ProxyMapping>(proxyMapping);
-      broadcastFunction([=] { return pleaseSupplantProxyMapping(ptr); });
+      broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
       g_log << Logger::Warning << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl;
       return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }
@@ -2165,6 +2225,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "set-event-trace-enabled") {
     return {0, setEventTracing(begin, end)};
+  }
+  if (cmd == "get-proxymapping-stats") {
+    return {0, doGetProxyMappingStats()};
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};

@@ -963,6 +963,9 @@ void startDoResolve(void* p)
             // No match in domains, use original source
             useMapped = false;
           }
+          else {
+            ++it->second.stats.suffixMatches;
+          }
         }
         // No suffix match node defined, use mapped address
       }
@@ -1812,7 +1815,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                       const struct timeval& now,
                       string& response, uint32_t& qhash,
-                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source)
+                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource)
 {
   if (!t_packetCache) {
     return false;
@@ -1835,6 +1838,17 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
       }
       if (t_bogusqueryring) {
         t_bogusqueryring->push_back({qname, qtype});
+      }
+    }
+
+    // This is only to get the proxyMapping suffixMatch stats right i the case of a PC hit
+    if (t_proxyMapping && source != mappedSource) {
+      if (auto it = t_proxyMapping->lookup(source)) {
+        if (it->second.suffixMatchNode) {
+          if (it->second.suffixMatchNode->check(qname)) {
+            ++it->second.stats.suffixMatches;
+          }
+        }
       }
     }
 
@@ -2028,7 +2042,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
       eventTrace.add(RecEventTrace::PCacheCheck);
-      bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
+      bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source, mappedSource);
       eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
       if (cacheHit) {
         if (!g_quiet) {
@@ -2265,6 +2279,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (t_proxyMapping) {
         if (auto it = t_proxyMapping->lookup(source)) {
           mappedSource = it->second.address;
+          ++it->second.stats.netmaskMatches;
         }
       }
       if (t_remotes) {
