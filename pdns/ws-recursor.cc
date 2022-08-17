@@ -185,13 +185,14 @@ static void doCreateZone(const Json document)
     throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
-  apiCheckNameAllowedCharacters(zonename.toString());
+  const DNSName zone = apiNameToDNSName(stringFromJson(document, "name"));
+  const string zonename = zone.toString();
+  apiCheckNameAllowedCharacters(zonename);
 
   string singleIPTarget = document["single_target_ip"].string_value();
   string kind = toUpper(stringFromJson(document, "kind"));
   bool rd = boolFromJson(document, "recursion_desired");
-  string confbasename = "zone-" + apiZoneNameToId(zonename);
+  string confbasename = "zone-" + apiZoneNameToId(zone);
 
   if (kind == "NATIVE") {
     if (rd)
@@ -220,7 +221,7 @@ static void doCreateZone(const Json document)
     }
     ofzone.close();
 
-    apiWriteConfigFile(confbasename, "auth-zones+=" + zonename.toString() + "=" + zonefilename);
+    apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
   }
   else if (kind == "FORWARDED") {
     string serverlist;
@@ -244,10 +245,10 @@ static void doCreateZone(const Json document)
       throw ApiException("Need at least one upstream server when forwarding");
 
     if (rd) {
-      apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename.toString() + "=" + serverlist);
+      apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename + "=" + serverlist);
     }
     else {
-      apiWriteConfigFile(confbasename, "forward-zones+=" + zonename.toString() + "=" + serverlist);
+      apiWriteConfigFile(confbasename, "forward-zones+=" + zonename + "=" + serverlist);
     }
   }
   else {
