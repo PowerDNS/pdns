@@ -83,6 +83,7 @@
 #undef IP_PKTINFO
 #endif
 
+using MACAddr = uint8_t[6];
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
@@ -122,6 +123,24 @@ union ComboAddress {
   {
     return rhs.operator<(*this);
   }
+
+  struct addressPortOnlyHash
+  {
+    uint32_t operator()(const ComboAddress& ca) const
+    {
+      const unsigned char* start = nullptr;
+      if (ca.sin4.sin_family == AF_INET) {
+        start = reinterpret_cast<const unsigned char*>(&ca.sin4.sin_addr.s_addr);
+        auto tmp = burtle(start, 4, 0);
+        return burtle(reinterpret_cast<const uint8_t*>(&ca.sin4.sin_port), 2, tmp);
+      }
+      {
+        start = reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_addr.s6_addr);
+        auto tmp = burtle(start, 16, 0);
+        return burtle(reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_port), 2, tmp);
+      }
+    }
+  };
 
   struct addressOnlyHash
   {
@@ -347,11 +366,14 @@ union ComboAddress {
 
   void truncate(unsigned int bits) noexcept;
 
-  uint16_t getPort() const
+  uint16_t getNetworkOrderPort() const noexcept
   {
-    return ntohs(sin4.sin_port);
+    return sin4.sin_port;
   }
-
+  uint16_t getPort() const noexcept
+  {
+    return ntohs(getNetworkOrderPort());
+  }
   void setPort(uint16_t port)
   {
     sin4.sin_port = htons(port);

@@ -33,6 +33,20 @@
 
 #include "misc.hh"
 
+int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
+                   int max_entries, int map_flags);
+int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags);
+int bpf_lookup_elem(int fd, void *key, void *value);
+int bpf_delete_elem(int fd, void *key);
+int bpf_get_next_key(int fd, void *key, void *next_key);
+
+int bpf_prog_load(enum bpf_prog_type prog_type,
+		  const struct bpf_insn *insns, int insn_len,
+		  const char *license, int kern_version);
+
+int bpf_obj_pin(int fd, const char *pathname);
+int bpf_obj_get(const char *pathname);
+
 static __u64 ptr_to_u64(void *ptr)
 {
   return (__u64) (unsigned long) ptr;

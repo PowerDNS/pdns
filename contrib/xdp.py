@@ -27,7 +27,15 @@ blocked_cidr6 = [("2001:db8::1/128", TC_ACTION)]
 blocked_qnames = [("localhost", "A", DROP_ACTION), ("test.com", "*", TC_ACTION)]
 
 # Main
-xdp = BPF(src_file="xdp-filter.ebpf.src")
+useXsk = True
+Ports = [53]
+cflag = []
+if useXsk:
+  cflag.append("-DUseXsk")
+IN_DNS_PORT_SET = "||".join("COMPARE_PORT((x),"+str(i)+")" for i in Ports)
+cflag.append(r"-DIN_DNS_PORT_SET(x)=(" + IN_DNS_PORT_SET + r")")
+
+xdp = BPF(src_file="xdp-filter.ebpf.src", cflags=cflag)
 
 fn = xdp.load_func("xdp_dns_filter", BPF.XDP)
 xdp.attach_xdp(DEV, fn, 0)

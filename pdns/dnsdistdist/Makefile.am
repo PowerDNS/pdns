@@ -254,7 +254,8 @@ dnsdist_SOURCES = \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh
+	xpf.cc xpf.hh \
+	xsk.cc xsk.hh
 
 testrunner_SOURCES = \
 	base64.hh \
@@ -361,7 +362,8 @@ testrunner_SOURCES = \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh
+	xpf.cc xpf.hh \
+	xsk.cc xsk.hh
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -409,6 +411,13 @@ endif
 
 if HAVE_LIBSSL
 dnsdist_LDADD += $(LIBSSL_LIBS)
+endif
+
+if HAVE_XSK
+dnsdist_LDADD += -lbpf
+dnsdist_LDADD += -lxdp
+testrunner_LDADD += -lbpf
+testrunner_LDADD += -lxdp
 endif
 
 if HAVE_LIBCRYPTO

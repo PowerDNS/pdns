@@ -714,9 +714,11 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     setUpStatus(newResult);
     if (newResult == false) {
       currentCheckFailures++;
-      auto stats = d_lazyHealthCheckStats.lock();
-      stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
-      updateNextLazyHealthCheck(*stats, false);
+      if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+        updateNextLazyHealthCheck(*stats, false);
+      }
     }
     return;
   }

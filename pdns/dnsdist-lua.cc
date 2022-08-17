@@ -21,6 +21,7 @@
  */
 
 #include <cstdint>
+#include <cstdio>
 #include <dirent.h>
 #include <fstream>
 #include <cinttypes>
@@ -45,6 +46,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "xsk.hh"
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
@@ -110,7 +112,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>>>;
+using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
 
 static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol)
 {
@@ -131,6 +133,16 @@ static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePo
     }
   }
 }
+#ifdef HAVE_XSK
+static void parseXskVars(boost::optional<localbind_t>& vars, std::shared_ptr<XskSocket>& socket)
+{
+  if (!vars) {
+    return;
+  }
+
+  getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", socket);
+}
+#endif /* HAVE_XSK */
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_QUIC)
 static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles)
@@ -298,7 +310,7 @@ static bool checkConfigurationTime(const std::string& name)
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, DownstreamState::checkfunc_t>> newserver_t;
+  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, std::shared_ptr<XskSocket>, DownstreamState::checkfunc_t>> newserver_t;
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !g_configurationDone;
   });
@@ -621,7 +633,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (!(client || configCheck)) {
                            infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
-
+#ifdef HAVE_XSK
+                         std::shared_ptr<XskSocket> xskSocket;
+                         if (getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", xskSocket) > 0) {
+                           ret->registerXsk(xskSocket);
+                           std::string mac;
+                           if (getOptionalValue<std::string>(vars, "MACAddr", mac) != 1) {
+                             throw runtime_error("field MACAddr is required!");
+                           }
+                           auto* addr = &ret->d_config.destMACAddr[0];
+                           sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", addr, addr + 1, addr + 2, addr + 3, addr + 4, addr + 5);
+                         }
+#endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
                            dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);
                          }
@@ -744,7 +767,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol));
+      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
@@ -756,6 +779,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
 
+#ifdef HAVE_XSK
+      std::shared_ptr<XskSocket> socket;
+      parseXskVars(vars, socket);
+      if (socket) {
+        udpCS->xskInfo = XskWorker::create();
+        udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
+        socket->addWorker(udpCS->xskInfo, loc, false);
+        // tcpCS->xskInfo=XskWorker::create();
+        // TODO: socket->addWorker(tcpCS->xskInfo, loc, true);
+      }
+#endif /* HAVE_XSK */
+      g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
     }
     catch (const std::exception& e) {
@@ -786,7 +821,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     try {
       ComboAddress loc(addr, 53);
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol));
+      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
@@ -797,6 +832,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConnections > 0) {
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
+#ifdef HAVE_XSK
+      std::shared_ptr<XskSocket> socket;
+      parseXskVars(vars, socket);
+      if (socket) {
+        udpCS->xskInfo = XskWorker::create();
+        udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
+        socket->addWorker(udpCS->xskInfo, loc, false);
+        // TODO tcpCS->xskInfo=XskWorker::create();
+        // TODO socket->addWorker(tcpCS->xskInfo, loc, true);
+      }
+#endif /* HAVE_XSK */
+      g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
     }
     catch (std::exception& e) {

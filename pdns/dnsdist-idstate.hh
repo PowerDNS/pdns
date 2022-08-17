@@ -134,6 +134,7 @@ struct InternalQueryState
   std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
   std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
+  std::unique_ptr<PacketBuffer> xskPacketHeader; // 8
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8
