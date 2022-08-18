@@ -55,10 +55,10 @@ void DNSName::throwSafeRangeError(const std::string& msg, const char* buf, size_
 
 DNSName::DNSName(const char* p, size_t length)
 {
-  if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
+  if(length == 0 || p[0]==0 || (p[0]=='.' && p[1]==0)) {
     d_storage.assign(1, (char)0);
   } else {
-    if(!strchr(p, '\\')) {
+    if(!std::memchr(p, '\\', length)) {
       unsigned char lenpos=0;
       unsigned char labellen=0;
       size_t plen=length;
