@@ -1066,7 +1066,7 @@ nonResolvingNameserverEntries OBJECT-TYPE
     ::= { stats 126 }
 
 maintenanceUSec OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
+    SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
@@ -1074,7 +1074,7 @@ maintenanceUSec OBJECT-TYPE
     ::= { stats 127 }
 
 maintenanceCount OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
+    SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
