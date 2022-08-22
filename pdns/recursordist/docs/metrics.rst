@@ -512,6 +512,14 @@ ipv6-questions
 ^^^^^^^^^^^^^^
 counts all end-user initiated queries with the RD   bit set, received over IPv6 UDP
 
+maintenance-usec
+^^^^^^^^^^^^^^^^
+time spent doing internal maintenance, including Lua maintenance
+
+maintenance-calls
+^^^^^^^^^^^^^^^^^
+number of times internal maintenance has been called, including Lua maintenance
+
 malloc-bytes
 ^^^^^^^^^^^^
 returns the number of bytes allocated by the process (broken, always returns 0)

@@ -794,6 +794,8 @@ struct RecursorStats
   pdns::stat_t proxyProtocolInvalidCount{0};
   pdns::stat_t nodLookupsDroppedOversize{0};
   pdns::stat_t dns64prefixanswers{0};
+  pdns::stat_t maintenanceUsec{0};
+  pdns::stat_t maintenanceCalls{0};
 
   RecursorStats() :
     answers("answers", { 1000, 10000, 100000, 1000000 }),

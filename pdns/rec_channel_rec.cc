@@ -1383,6 +1383,9 @@ static void registerAllStats1()
 
   addGetStat("idle-tcpout-connections", getCurrentIdleTCPConnections);
 
+  addGetStat("maintenance-usec", &g_stats.maintenanceUsec);
+  addGetStat("maintenance-calls", &g_stats.maintenanceCalls);
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
