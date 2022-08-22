@@ -64,9 +64,9 @@ DNSName::DNSName(const std::string_view sw)
     if(!std::memchr(p, '\\', length)) {
       unsigned char lenpos=0;
       unsigned char labellen=0;
-      size_t plen=length;
-      const char* const pbegin=p, *pend=p+plen;
-      d_storage.reserve(plen+1);
+      const char* const pbegin=p, *pend=p+length;
+
+      d_storage.reserve(length+1);
       for(auto iter = pbegin; iter != pend; ) {
         lenpos = d_storage.size();
         if(*iter=='.')
