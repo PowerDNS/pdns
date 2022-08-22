@@ -8,7 +8,10 @@ then
 	DIR=$1/
 fi
 
-for a in $(find ${DIR}html -type f | grep -v \~ | sort)
+files=$(find ${DIR}html -type f \( -name '*.css' -or -name '*.html' -or -name '*.png' -or -name 'local-2022.js' -or -name '*min.js' \) | sort)
+
+echo // $files
+for a in $files
 do
 	c=$(echo $a | sed s:${DIR}html/:: | tr "/.-" "___")
         echo "static const unsigned char g${c}Data[] = {"
@@ -17,7 +20,7 @@ do
 done
 
 echo "static const map<string,string> g_urlmap={"
-for a in $(find ${DIR}html -type f | grep -v \~ | sort)
+for a in $files
 do
 	b=$(echo $a | sed s:${DIR}html/::g)
 	c=$(echo $b | tr "/.-" "___")
