@@ -49,42 +49,42 @@ public:
 
   // static DNSBackend *maker();
 
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = 0) override;
-  bool get(DNSResourceRecord& rr);
-  bool list(const DNSName& target, int domain_id, bool include_disabled = false);
+  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
+  bool get(DNSResourceRecord& rr) override;
+  bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
 
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta);
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
-  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
-  bool removeDomainKey(const DNSName& name, unsigned int id);
-  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-  bool activateDomainKey(const DNSName& name, unsigned int id);
-  bool deactivateDomainKey(const DNSName& name, unsigned int id);
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
-  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
-  bool deleteTSIGKey(const DNSName& name);
-  bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
-  bool doesDNSSEC();
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
+  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) override;
+  bool removeDomainKey(const DNSName& name, unsigned int id) override;
+  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
+  bool activateDomainKey(const DNSName& name, unsigned int id) override;
+  bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
+  bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
+  bool deleteTSIGKey(const DNSName& name) override;
+  bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
+  bool doesDNSSEC() override;
 
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY);
-  bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di);
+  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
+  bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
 
-  bool startTransaction(const DNSName& domain, int domain_id = -1);
-  bool commitTransaction();
-  bool abortTransaction();
+  bool startTransaction(const DNSName& domain, int domain_id = -1) override;
+  bool commitTransaction() override;
+  bool abortTransaction() override;
 
-  void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains);
-  void setNotified(uint32_t domain_id, uint32_t serial);
-  void setFresh(uint32_t domain_id);
+  void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains) override;
+  void setNotified(uint32_t domain_id, uint32_t serial) override;
+  void setFresh(uint32_t domain_id) override;
 
-  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
-  bool feedRecord(const DNSResourceRecord& rr, string* ordername = 0);
-  bool feedEnts(int domain_id, map<DNSName, bool>& nonterm);
-  bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
+  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
+  bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
+  bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
 
 private:
   int build();

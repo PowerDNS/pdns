@@ -317,12 +317,12 @@ void fill_tsig_key(const void* ptr, uint8_t alg_len, const char* alg, uint8_t ke
     data->algorithm->operator=(DNSName(string(alg, alg_len)));
 }
 
-bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content)
+bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
 {
   if (api->get_tsig_key == NULL)
     return false;
 
-  struct fill_tsig data = {.algorithm = algorithm, .content = content};
+  struct fill_tsig data = {.algorithm = std::addressof(algorithm), .content = std::addressof(content)};
 
   string qname;
   if (!name.empty())
@@ -502,7 +502,7 @@ void fill_domain_info(const void* di_, struct domain_info* domain_info)
   }
 }
 
-bool DlsoBackend::getDomainInfo(const DNSName& domain, DomainInfo& di)
+bool DlsoBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
 {
   if (api->get_domain_info == NULL)
     return false;
@@ -615,7 +615,7 @@ bool DlsoBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   }
 }
 
-bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, string* ordername_)
+bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool _ordernameIsNSEC3)
 {
   if (api->add_record == NULL)
     return false;
@@ -633,8 +633,9 @@ bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, string* ordername_)
   record.scope_mask = rr.scopeMask;
   record.domain_id = rr.domain_id;
 
-  if (ordername_ != NULL) {
-    return api->add_record(api->handle, &record, ordername_->size(), ordername_->c_str());
+  if (!ordername.empty()) {
+    auto ordername_str = ordername.toString();
+    return api->add_record(api->handle, &record, ordername_str.size(), ordername_str.c_str());
   }
   else {
     return api->add_record(api->handle, &record, 0, NULL);
