@@ -387,6 +387,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("almost-expired-exceptions", almostExpiredExceptions, OID_LENGTH(almostExpiredExceptions));
   registerCounter64Stat("non-resolving-nameserver-entries", nonResolvingNameserverEntriesOID, OID_LENGTH(nonResolvingNameserverEntriesOID));
   registerCounter64Stat("maintenance-usec", maintenanceUSecOID, OID_LENGTH(maintenanceUSecOID));
-  registerCounter64Stat("maintenance-calls", maintenanceCountOID, OID_LENGTH(maintenanceCallsOID));
+  registerCounter64Stat("maintenance-calls", maintenanceCallsOID, OID_LENGTH(maintenanceCallsOID));
 #endif /* HAVE_NET_SNMP */
 }

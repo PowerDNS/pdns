@@ -1065,6 +1065,22 @@ nonResolvingNameserverEntries OBJECT-TYPE
         "Number of entries in the non-resolving NS name cache"
     ::= { stats 126 }
 
+maintenanceUSec OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Time spent doing internal maintenance, including Lua maintenance"
+    ::= { stats 127 }
+
+maintenanceCount OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of times internal maintenance has been called, including Lua maintenance"
+    ::= { stats 128 }
+
 ---
 --- Traps / Notifications
 ---
