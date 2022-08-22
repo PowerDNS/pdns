@@ -299,7 +299,9 @@ node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
 delay1.example.                       3600 IN SOA  {soa}
 delay1.example.                       3600 IN NS n1.delay1.example.
 ns1.delay1.example.                   3600 IN A    {prefix}.16
+8.delay1.example.                     3600 IN A    192.0.2.100
 *.delay1.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
+*.delay1.example.                     0    LUA AAAA ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return '1::2'"
         """,
         
         'delay2.example': """
