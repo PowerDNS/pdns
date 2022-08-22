@@ -1,6 +1,16 @@
 Changelogs for 4.7.X
 ====================
 .. changelog::
+  :version: 4.7.2
+  :released: 23th of August 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+
+    PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
+
+.. changelog::
   :version: 4.7.1
   :released: 8th of July 2022
 

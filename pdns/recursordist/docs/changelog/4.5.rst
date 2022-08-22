@@ -2,6 +2,22 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.10
+  :released: 23th of August 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+
+    PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11634,11609
+
+    Fix API issue when asking config values for allow-from or allow-notify-from.
+
+.. changelog::
   :version: 4.5.9
   :released: 4th of April 2022
 
