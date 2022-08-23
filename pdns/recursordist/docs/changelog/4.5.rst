@@ -3,7 +3,7 @@ Changelogs for 4.5.X
 
 .. changelog::
   :version: 4.5.10
-  :released: 23th of August 2022
+  :released: 23rd of August 2022
 
   .. change::
     :tags: Bug Fixes
