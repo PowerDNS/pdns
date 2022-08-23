@@ -465,11 +465,20 @@ JSON Objects
   :property integer tls11Queries: Number of queries received by dnsdist over TLS 1.1
   :property integer tls12Queries: Number of queries received by dnsdist over TLS 1.2
   :property integer tls13Queries: Number of queries received by dnsdist over TLS 1.3
+  :property integer tlsHandshakeFailuresDHKeyTooSmall: Amount of TLS connections where the client has negotiated a not strong enough diffie-hellman key during the TLS handshake
+  :property integer tlsHandshakeFailuresInappropriateFallBack: Amount of TLS connections where the client tried to negotiate an invalid, too old, TLS version
+  :property integer tlsHandshakeFailuresNoSharedCipher: Amount of TLS connections were no cipher shared by both the client and the server could been found during the TLS handshake
+  :property integer tlsHandshakeFailuresUnknownCipher: Amount of TLS connections where the client has tried to negotiate an unknown TLS cipher
+  :property integer tlsHandshakeFailuresUnknownKeyExchangeType: Amount of TLS connections where the client has tried to negotiate an unknown TLS key-exchange mechanism
+  :property integer tlsHandshakeFailuresUnknownProtocol: Amount of TLS connections where the client has tried to negotiate an unknown TLS version
+  :property integer tlsHandshakeFailuresUnsupportedEC: Amount of TLS connections where the client has tried to negotiate an unsupported elliptic curve
+  :property integer tlsHandshakeFailuresUnsupportedProtocol: Amount of TLS connections where the client has tried to negotiate a unsupported TLS version
   :property integer tlsInactiveTicketKey: Amount of TLS sessions resumed from an inactive key
   :property integer tlsNewSessions: Amount of new TLS sessions negotiated
   :property integer tlsResumptions: Amount of TLS sessions resumed
   :property integer tlsUnknownQueries: Number of queries received by dnsdist over an unknown TLS version
   :property integer tlsUnknownTicketKey: Amount of attempts to resume TLS session from an unknown key (possibly expired)
+
   :property string type: UDP, TCP, DoT or DoH
   :property boolean udp: true if this is a UDP bind
 
