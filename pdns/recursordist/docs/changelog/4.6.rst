@@ -7,7 +7,7 @@ Changelogs for 4.6.X
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: TBD
+    :pullreq: 11876,11874
 
     PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
 
