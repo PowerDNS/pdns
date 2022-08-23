@@ -13,10 +13,9 @@ PowerDNS Security Advisory 2022-02: incomplete exception handling related to pro
 
 This issue only affects recursors which have protobuf logging enabled using the
 
-  protobufServer function with logResponses=true or
-  
-  outgoingProtobufServer function with logResponses=true
+- ``protobufServer`` function with ``logResponses=true`` or
+- ``outgoingProtobufServer`` function with ``logResponses=true``
 
-If either of these functions is used without specifying logResponses, its value is true.
+If either of these functions is used without specifying ``logResponses``, its value is ``true``.
 An attacker needs to have access to the recursor, i.e. the remote IP must be in the access control list.
 If an attacker queries a name that leads to an answer with specific properties, a protobuf message might be generated that causes an exception. The code does not handle this exception correctly, causing a denial of service.
