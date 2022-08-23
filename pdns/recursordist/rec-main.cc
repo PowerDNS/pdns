@@ -2452,7 +2452,15 @@ static void recursorThread()
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
       if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
+        struct timeval start;
+        Utility::gettimeofday(&start);
         MT->makeThread(houseKeeping, nullptr);
+        if (!threadInfo.isTaskThread()) {
+          struct timeval stop;
+          Utility::gettimeofday(&stop);
+          g_stats.maintenanceUsec += uSec(stop - start);
+          ++g_stats.maintenanceCalls;
+        }
       }
 
       if (!(s_counter % 55)) {
@@ -2489,8 +2497,14 @@ static void recursorThread()
         if (threadInfo.isWorker() || threadInfo.isListener()) {
           // Only on threads processing queries
           if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
+            struct timeval start;
+            Utility::gettimeofday(&start);
             t_pdl->maintenance();
             last_lua_maintenance = g_now.tv_sec;
+            struct timeval stop;
+            Utility::gettimeofday(&stop);
+            g_stats.maintenanceUsec += uSec(stop - start);
+            ++g_stats.maintenanceCalls;
           }
         }
       }

@@ -1142,6 +1142,13 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
    MetricDefinition(PrometheusMetricType::gauge,
                     "Number of connections in the TCP idle outgoing connections pool")},
 
+  {"maintenance-usec",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Time spent doing internal maintenance, including Lua maintenance")},
+
+  {"maintenance-calls",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of times internal maintenance has been called, including Lua maintenance")},
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
