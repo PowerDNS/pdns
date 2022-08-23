@@ -233,6 +233,10 @@ class UDPHooksResponder(DatagramProtocol):
             answer = dns.rrset.from_text('postresolve.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
             response.answer.append(answer)
 
+        elif request.question[0].name == dns.name.from_text('preresolve.luahooks.example.'):
+            answer = dns.rrset.from_text('preresolve.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.2')
+            response.answer.append(answer)
+
         self.transport.write(response.to_wire(), address)
 
 class LuaHooksRecursorTest(RecursorTest):
@@ -253,6 +257,29 @@ quiet=no
         return false
       end
 
+      return true
+    end
+
+    function preresolve(dq)
+      -- test both preresolve hooking and udpQueryResponse
+      if dq.qtype == pdns.A and dq.qname == newDN("preresolve.luahooks.example.") then
+        dq.followupFunction = "udpQueryResponse"
+        dq.udpCallback = "gotUdpResponse"
+        dq.udpQueryDest = newCA("%s.23:53")
+        -- synthesize query, responder should answer with regular answer
+        dq.udpQuery = "\\254\\255\\001\\000\\000\\001\\000\\000\\000\\000\\000\\000\\npreresolve\\008luahooks\\007example\\000\\000\\001\\000\\001"
+        return true
+      end
+      return false
+    end
+
+    function gotUdpResponse(dq)
+      dq.followupFunction = ""
+      if string.len(dq.udpAnswer) == 61 then
+        dq:addAnswer(pdns.A, "192.0.2.2")
+        return true;
+      end
+      dq:addAnswer(pdns.A, "0.0.0.0")
       return true
     end
 
@@ -300,7 +327,7 @@ quiet=no
       return false
     end
 
-    """ % (os.environ['PREFIX'], os.environ['PREFIX'])
+    """ % (os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'])
 
     @classmethod
     def startResponders(cls):
@@ -376,6 +403,15 @@ quiet=no
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
             self.assertEqual(res.answer[0].ttl, 1)
+
+    def testPreResolve(self):
+        expected = dns.rrset.from_text('preresolve.luahooks.example.', 1, dns.rdataclass.IN, 'A', '192.0.2.2')
+        query = dns.message.make_query('preresolve.luahooks.example.', 'A', 'IN')
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
 
     def testIPFilterHeader(self):
         query = dns.message.make_query('ipfilter.luahooks.example.', 'A', 'IN')
