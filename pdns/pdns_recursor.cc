@@ -1981,7 +1981,12 @@ static void startDoResolve(void *p)
 #endif /* NOD ENABLED */
 
         if (t_protobufServers) {
-          pbMessage.addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
+          // Max size is 64k, but we're conservative here, as other fields are added after the answers have been added
+          // If a single answer causes a too big protobuf message, it wil be dropped by queueData()
+          // But note addRR has code to prevent that
+          if (pbMessage.size() < std::numeric_limits<uint16_t>::max() / 2) {
+            pbMessage.addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
+          }
         }
       }
       if(needCommit)

@@ -91,6 +91,10 @@ namespace ProtoZero
       return d_rspbuf;
     }
 
+    [[nodiscard]] size_t size() const
+    {
+      return d_msgbuf.size() + d_rspbuf.size();
+    }
     std::string&& finishAndMoveBuf()
     {
       if (!d_rspbuf.empty()) {
