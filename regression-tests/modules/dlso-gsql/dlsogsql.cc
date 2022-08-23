@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <mutex>
+#include <vector>
 
 struct dlso_gsql
 {
@@ -59,7 +60,7 @@ bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, co
   struct QType type = QType(qtype);
   struct DNSName qname_ = DNSName(string(qname, qlen));
   try {
-    handle->module->lookup(type, qname_, NULL, domain_id);
+    handle->module->lookup(type, qname_, domain_id);
   }
   catch (const PDNSException& e) {
     handle->in_error = true;
@@ -131,7 +132,7 @@ bool get_tsig_key(
   DNSName alg;
   string content;
 
-  if (handle->module->getTSIGKey(qname, &alg, &content)) {
+  if (handle->module->getTSIGKey(qname, alg, content)) {
     if (!alg.empty()) {
       string alg_ = alg.toString();
       cb(data, alg_.size(), alg_.c_str(), content.size(), content.c_str());
@@ -257,9 +258,15 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
       return false;
     }
 
+    std::vector<string> ips;
+    ips.reserve(info.master_len);
     for (int i = 0; i < info.master_len; i++) {
-      masters[i].value_len = my_di.masters[i].size();
-      masters[i].value = my_di.masters[i].c_str();
+      auto ip = my_di.masters[i].toString();
+
+      masters[i].value_len = ip.length();
+      masters[i].value = ip.c_str();
+
+      ips.push_back(ip);
     }
     info.masters = masters;
 
@@ -339,21 +346,21 @@ bool get_before_after(
   if (handle->module->getBeforeAndAfterNamesAbsolute(domain_id, qname, unhashed, before, after)) {
     // cout << "get_before_after before:" << before.wirelength() << endl;
     // cout << "get_before_after after:" << after.wirelength() << endl;
-    string unhashed_;
-    string before_;
-    string after_;
+    string unhashed_str;
+    string before_str;
+    string after_str;
 
     if (!unhashed.empty()) {
-      unhashed_ = unhashed.toString();
+      unhashed_str = unhashed.toString();
     }
     if (!before.empty()) {
-      before_ = before.toString();
+      before_str = before.toString();
     }
     if (!after.empty()) {
-      after_ = after.toString();
+      after_str = after.toString();
     }
 
-    cb(beforeAfter, unhashed_.size(), unhashed_.c_str(), before_.size(), before_.c_str(), after_.size(), after_.c_str());
+    cb(beforeAfter, unhashed_str.size(), unhashed_str.c_str(), before_str.size(), before_str.c_str(), after_str.size(), after_str.c_str());
     return true;
   }
   else {
@@ -414,7 +421,7 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 
   handle->module->getUnfreshSlaveInfos(&unfresh);
 
-  for (auto my_di : unfresh) {
+  for (auto& my_di : unfresh) {
     info.id = my_di.id;
     info.notified_serial = my_di.notified_serial;
     info.serial = my_di.serial;
@@ -435,9 +442,14 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
       return false;
     }
 
+    std::vector<string> ips;
+    ips.reserve(info.master_len);
     for (int i = 0; i < info.master_len; i++) {
-      masters[i].value_len = my_di.masters[i].size();
-      masters[i].value = my_di.masters[i].c_str();
+      auto ip = my_di.masters[i].toString();
+
+      masters[i].value_len = ip.length();
+      masters[i].value = ip.c_str();
+      ips.push_back(ip);
     }
     info.masters = masters;
 
