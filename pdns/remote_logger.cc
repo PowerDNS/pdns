@@ -131,17 +131,10 @@ bool RemoteLogger::reconnect()
   return true;
 }
 
-void RemoteLogger::queueData(const std::string& data)
+RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
 {
   if (data.size() > std::numeric_limits<uint16_t>::max()) {
-    const auto msg = "Not sending too large protobuf message";
-#ifdef WE_ARE_RECURSOR
-    SLOG(g_log<<Logger::Info<<msg<<endl,
-         g_slog->withName("protobuf")->info(Logr::Info, msg));
-#else
-    warnlog(msg);
-#endif
-    return;
+    return Result::TooLarge;
   }
 
   auto runtime = d_runtime.lock();
@@ -150,33 +143,34 @@ void RemoteLogger::queueData(const std::string& data)
     /* not connected, queue is full, just drop */
     if (!runtime->d_socket) {
       ++d_drops;
-      return;
+      return Result::PipeFull;
     }
     try {
       /* we try to flush some data */
       if (!runtime->d_writer.flush(runtime->d_socket->getHandle())) {
         /* but failed, let's just drop */
         ++d_drops;
-        return;
+        return Result::PipeFull;
       }
 
       /* see if we freed enough data */
       if (!runtime->d_writer.hasRoomFor(data)) {
         /* we didn't */
         ++d_drops;
-        return;
+        return Result::PipeFull;
       }
     }
     catch(const std::exception& e) {
       //      cout << "Got exception writing: "<<e.what()<<endl;
       ++d_drops;
       runtime->d_socket.reset();
-      return;
+      return Result::PipeFull;
     }
   }
 
   runtime->d_writer.write(data);
   ++d_processed;
+  return Result::Queued;
 }
 
 void RemoteLogger::maintenanceThread() 

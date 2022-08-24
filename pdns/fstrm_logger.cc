@@ -158,20 +158,14 @@ FrameStreamLogger::~FrameStreamLogger()
   this->cleanup();
 }
 
-void FrameStreamLogger::queueData(const std::string& data)
+RemoteLoggerInterface::Result FrameStreamLogger::queueData(const std::string& data)
 {
   if (!d_ioqueue || !d_iothr) {
-    return;
+    return Result::OtherError;
   }
   uint8_t *frame = (uint8_t*)malloc(data.length());
   if (!frame) {
-#ifdef RECURSOR
-    SLOG(g_log<<Logger::Warning<<"FrameStreamLogger: cannot allocate memory for stream."<<std::endl,
-         g_slog->withName("dnstap")->info(Logr::Warning, "cannot allocate memory for stream"));
-#else
-    warnlog("FrameStreamLogger: cannot allocate memory for stream.");
-#endif
-    return;
+    return Result::TooLarge;
   }
   memcpy(frame, data.c_str(), data.length());
 
@@ -181,25 +175,16 @@ void FrameStreamLogger::queueData(const std::string& data)
   if (res == fstrm_res_success) {
     // Frame successfully queued.
     ++d_framesSent;
+    return Result::Queued;
   } else if (res == fstrm_res_again) {
     free(frame);
-#ifdef RECURSOR
-    SLOG(g_log<<Logger::Debug<<"FrameStreamLogger: queue full, dropping."<<std::endl,
-         g_slog->withName("dnstap")->info(Logr::Debug, "queue full, dropping"));
-#else
-    vinfolog("FrameStreamLogger: queue full, dropping.");
-#endif
     ++d_queueFullDrops;
+    return Result::PipeFull;
  } else {
     // Permanent failure.
     free(frame);
-#ifdef RECURSOR
-    SLOG(g_log<<Logger::Warning<<"FrameStreamLogger: submitting to queue failed."<<std::endl,
-         g_slog->withName("dnstap")->info(Logr::Warning, "submitting to queue failed"));
-#else
-    warnlog("FrameStreamLogger: submitting to queue failed.");
-#endif
     ++d_permanentFailures;
+    return Result::OtherError;
   }
 }
 

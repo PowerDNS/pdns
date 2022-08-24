@@ -64,6 +64,37 @@ std::shared_ptr<Logr::Logger> g_slogout;
 
 bool g_syslog;
 
+void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
+{
+  auto ret = r.queueData(data);
+
+  switch (ret) {
+  case RemoteLoggerInterface::Result::Queued:
+    break;
+  case RemoteLoggerInterface::Result::PipeFull: {
+    const auto name = r.name();
+    const auto msg = "queue full, dropping";
+    SLOG(g_log << Logger::Debug << name << ": " << msg <<std::endl,
+         g_slog->withName(name)->info(Logr::Debug, msg));
+    break;
+  }
+  case RemoteLoggerInterface::Result::TooLarge: {
+    const auto name = r.name();
+    const auto msg = "Not sending too large protobuf message";
+    SLOG(g_log << Logger::Notice << name << ": " << msg <<endl,
+         g_slog->withName(name)->info(Logr::Debug, msg));
+    break;
+  }
+  case RemoteLoggerInterface::Result::OtherError: {
+    const auto name = r.name();
+    const auto msg = "submitting to queue failed";
+    SLOG(g_log << Logger::Warning << name << ": " << msg << std::endl,
+         g_slog->withName(name)->info(Logr::Warning, msg));
+    break;
+  }
+  }
+}
+
 static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
 {
   if (fstreamLoggers == nullptr) {
@@ -88,7 +119,7 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
   DnstapMessage message(str, DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
 
   for (auto& logger : *fstreamLoggers) {
-    logger->queueData(str);
+    remoteLoggerQueueData(*logger, str);
   }
 }
 
@@ -117,7 +148,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
 
   for (auto& logger : *fstreamLoggers) {
-    logger->queueData(str);
+    remoteLoggerQueueData(*logger, str);
   }
 }
 
@@ -175,7 +206,7 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
 
   for (auto& logger : *outgoingLoggers) {
     if (logger->logQueries()) {
-      logger->queueData(buffer);
+      remoteLoggerQueueData(*logger, buffer);
     }
   }
 }
@@ -245,7 +276,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
 
   for (auto& logger : *outgoingLoggers) {
     if (logger->logResponses()) {
-      logger->queueData(buffer);
+      remoteLoggerQueueData(*logger, buffer);
     }
   }
 }
