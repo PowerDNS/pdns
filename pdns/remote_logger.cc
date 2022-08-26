@@ -95,6 +95,19 @@ bool CircularWriteBuffer::flush(int fd)
   return true;
 }
 
+const std::string& RemoteLoggerInterface::toErrorString(Result r)
+{
+  static const std::array<std::string,5> str = {
+    "Queued",
+    "Queue full, dropping",
+    "Not sending too large protobuf message",
+    "Submiting to queue failed",
+    "?"
+  };
+  auto i = static_cast<unsigned int>(r);
+  return str[std::min(i, 4U)];
+}
+
 RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect): d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes), nullptr})
 {
   if (!d_asyncConnect) {
@@ -240,3 +253,4 @@ RemoteLogger::~RemoteLogger()
 
   d_thread.join();
 }
+

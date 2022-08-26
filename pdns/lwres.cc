@@ -72,22 +72,22 @@ void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
   case RemoteLoggerInterface::Result::Queued:
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
+    const auto msg = RemoteLoggerInterface::toErrorString(ret);
     const auto name = r.name();
-    const auto msg = "queue full, dropping";
     SLOG(g_log << Logger::Debug << name << ": " << msg <<std::endl,
          g_slog->withName(name)->info(Logr::Debug, msg));
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
+    const auto msg = RemoteLoggerInterface::toErrorString(ret);
     const auto name = r.name();
-    const auto msg = "Not sending too large protobuf message";
     SLOG(g_log << Logger::Notice << name << ": " << msg <<endl,
          g_slog->withName(name)->info(Logr::Debug, msg));
     break;
   }
   case RemoteLoggerInterface::Result::OtherError: {
+    const auto msg = RemoteLoggerInterface::toErrorString(ret);
     const auto name = r.name();
-    const auto msg = "submitting to queue failed";
     SLOG(g_log << Logger::Warning << name << ": " << msg << std::endl,
          g_slog->withName(name)->info(Logr::Warning, msg));
     break;

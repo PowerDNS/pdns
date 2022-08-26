@@ -61,11 +61,12 @@ class RemoteLoggerInterface
 {
 public:
   enum class Result : uint8_t { Queued, PipeFull, TooLarge, OtherError };
+  static const std::string& toErrorString(Result r);
 
   virtual ~RemoteLoggerInterface() {};
   virtual Result queueData(const std::string& data) = 0;
   virtual std::string toString() const = 0;
-  virtual std::string name() const = 0;
+  virtual const std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
@@ -91,7 +92,7 @@ public:
   ~RemoteLogger();
 
   [[nodiscard]] Result queueData(const std::string& data) override;
-  std::string name() const override
+  const std::string name() const override
   {
     return "protobuf";
   }
@@ -126,5 +127,3 @@ private:
   std::thread d_thread;
 };
 
-// Helper to be defined by main program: queue data and log based on return value of queueData()
-void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);

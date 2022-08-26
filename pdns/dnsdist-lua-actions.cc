@@ -1433,7 +1433,7 @@ static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
   throw std::runtime_error("Unhandled protocol for dnstap: " + protocol.toPrettyString());
 }
 
-void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
+static void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 {
   auto ret = r.queueData(data);
 
@@ -1441,15 +1441,15 @@ void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
   case RemoteLoggerInterface::Result::Queued:
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
-    vinfolog("%s: queue full, dropping.", r.name().c_str());
+    vinfolog("%s: %s", r.name(), RemoteLoggerInterface::toErrorString(ret));
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
-    warnlog("%s: Not sending too large protobuf message", r.name().c_str());
+    warnlog("%s: %s", r.name(), RemoteLoggerInterface::toErrorString(ret));
     break;
   }
   case RemoteLoggerInterface::Result::OtherError:
-    warnlog("%s: submitting to queue failed", r.name().c_str());
+    warnlog("%s: %s", r.name(), RemoteLoggerInterface::toErrorString(ret));
   }
 }
 

@@ -39,7 +39,7 @@ public:
   FrameStreamLogger(int family, const std::string& address, bool connect, const std::unordered_map<string,unsigned>& options = std::unordered_map<string,unsigned>());
   ~FrameStreamLogger();
   [[nodiscard]] RemoteLoggerInterface::Result queueData(const std::string& data) override;
-  std::string name() const override
+  const std::string name() const override
   {
     return "framestream";
   }
