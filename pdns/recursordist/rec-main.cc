@@ -506,7 +506,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
 
   std::string msg(m.finishAndMoveBuf());
   for (auto& server : *t_protobufServers) {
-    server->queueData(msg);
+    remoteLoggerQueueData(*server, msg);
   }
 }
 
@@ -518,7 +518,7 @@ void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
 
   std::string msg(message.finishAndMoveBuf());
   for (auto& server : *t_protobufServers) {
-    server->queueData(msg);
+    remoteLoggerQueueData(*server, msg);
   }
 }
 

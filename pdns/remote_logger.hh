@@ -60,10 +60,13 @@ private:
 class RemoteLoggerInterface
 {
 public:
-  virtual ~RemoteLoggerInterface() {};
-  virtual void queueData(const std::string& data) = 0;
-  virtual std::string toString() const = 0;
+  enum class Result : uint8_t { Queued, PipeFull, TooLarge, OtherError };
+  static const std::string& toErrorString(Result r);
 
+  virtual ~RemoteLoggerInterface() {};
+  virtual Result queueData(const std::string& data) = 0;
+  virtual std::string toString() const = 0;
+  virtual const std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
@@ -87,7 +90,12 @@ public:
                uint8_t reconnectWaitTime=1,
                bool asyncConnect=false);
   ~RemoteLogger();
-  void queueData(const std::string& data) override;
+
+  [[nodiscard]] Result queueData(const std::string& data) override;
+  const std::string name() const override
+  {
+    return "protobuf";
+  }
   std::string toString() const override
   {
     return d_remote.toStringWithPort() + " (" + std::to_string(d_processed) + " processed, " + std::to_string(d_drops) + " dropped)";
@@ -118,3 +126,4 @@ private:
   LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
 };
+
