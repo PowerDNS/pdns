@@ -1654,7 +1654,11 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
       DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
-      DP->completePacket(r, haveAlias, target, aliasScopeMask);
+
+      // Pass along SOA that may be needed in case of NODATA
+      auto soa=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
+      DP->completePacket(r, haveAlias, target, aliasScopeMask, soa);
+
       return nullptr;
     }
 
