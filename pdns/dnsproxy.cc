@@ -114,7 +114,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     } else {
 
       // Check if NODATA
-      if (ips.size() == 0) {
+      if (ips.size() == 0 && r->getAnswerRecords().size() == 0) {
         r->clearRecords();
         r->addRecord(DNSZoneRecord(soa));
       } else {
@@ -262,7 +262,7 @@ void DNSProxy::mainloop()
         if (mdp.d_header.rcode == RCode::NoError) {
           for(const auto & answer : mdp.d_answers) {        
             //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-            if (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA) {
+            if (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA && i->second.complete->getAnswerRecords().size() == 0) {
               i->second.complete->clearRecords();
               i->second.complete->addRecord(std::move(i->second.soa));
               break;
