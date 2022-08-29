@@ -66,6 +66,7 @@ public:
 
   virtual ~RemoteLoggerInterface() {};
   virtual Result queueData(const std::string& data) = 0;
+  virtual std::string address() const = 0;
   virtual std::string toString() const = 0;
   virtual const std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
@@ -79,6 +80,15 @@ public:
     uint64_t d_pipeFull{};
     uint64_t d_tooLarge{};
     uint64_t d_otherError{};
+
+    Stats& operator += (const Stats& rhs)
+    {
+      d_queued += rhs.d_queued;
+      d_pipeFull += rhs.d_pipeFull;
+      d_tooLarge += rhs.d_tooLarge;
+      d_otherError += rhs.d_otherError;
+      return *this;
+    }
   };
 
   virtual Stats getStats() const = 0;
@@ -101,6 +111,11 @@ public:
                uint8_t reconnectWaitTime=1,
                bool asyncConnect=false);
   ~RemoteLogger();
+
+  std::string address() const override
+  {
+    return d_remote.toStringWithPort();
+  }
 
   [[nodiscard]] Result queueData(const std::string& data) override;
   const std::string name() const override

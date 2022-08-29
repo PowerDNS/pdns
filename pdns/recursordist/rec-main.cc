@@ -1294,6 +1294,14 @@ static ProxyMappingStats_t& operator+=(ProxyMappingStats_t& a, const ProxyMappin
   return a;
 }
 
+static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t &a, const RemoteLoggerStats_t& b)
+{
+  for (const auto& [key, entry] : b) {
+    a[key] += entry;
+  }
+  return a;
+}
+
 // This function should only be called by the handler to gather
 // metrics, wipe the cache, reload the Lua script (not the Lua config)
 // or change the current trace regex, and by the SNMP thread to gather
@@ -1346,6 +1354,7 @@ template vector<ComboAddress> broadcastAccFunction(const std::function<vector<Co
 template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
 template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
 template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
+template RemoteLoggerStats_t broadcastAccFunction(const std::function<RemoteLoggerStats_t*()>& fun);
 
 static int serviceMain(int argc, char* argv[], Logr::log_t log)
 {

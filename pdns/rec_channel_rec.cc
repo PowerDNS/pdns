@@ -939,6 +939,18 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
   return ret;
 }
 
+static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
+{
+  auto ret = new RemoteLoggerStats_t;
+
+  if (t_protobufServers) {
+    for (const auto& s : *t_protobufServers) {
+      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    }
+  }
+  return ret;
+}
+
 static string doGetProxyMappingStats()
 {
   ostringstream ret;
@@ -948,6 +960,54 @@ static string doGetProxyMappingStats()
     ret << key.toString() << '\t' << entry.netmaskMatches << '\t' << entry.suffixMatches << endl;
   }
   return ret.str();
+}
+
+static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
+{
+  auto ret = new RemoteLoggerStats_t;
+
+  if (t_outgoingProtobufServers) {
+    for (const auto& s : *t_outgoingProtobufServers) {
+      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    }
+  }
+  return ret;
+}
+
+static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
+{
+  auto ret = new RemoteLoggerStats_t;
+
+  if (t_frameStreamServersInfo.servers) {
+    for (const auto& s : *t_frameStreamServersInfo.servers) {
+      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    }
+  }
+  return ret;
+}
+
+static void remoteLoggerStats(const string& name, const RemoteLoggerStats_t& stats, ostringstream& os)
+{
+  if (stats.size() > 0) {
+    std::string filler(name.size(), ' ');
+    os << name << "\tQueued\tPipe-\tToo-\tOther-\tAddress" << endl;
+    os << filler << "\t\tFull\tLarge\terror" << endl;
+    for (const auto& [key, entry]: stats) {
+      os << filler<< '\t' << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << endl;
+    }
+  }
+}
+
+static string getRemoteLoggerStats()
+{
+  ostringstream os;
+  auto stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetRemoteLoggerStats);
+  remoteLoggerStats("Protobuf   ", stats, os);
+  stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
+  remoteLoggerStats("OutProtobuf", stats, os);
+  stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
+  remoteLoggerStats("Framestream", stats, os);
+  return os.str();
 }
 
 static uint64_t calculateUptime()
@@ -1994,6 +2054,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
             "get-parameter [key1] [key2] ..   get configuration parameters\n"
             "get-proxymapping-stats           get proxy mapping statistics\n"
             "get-qtypelist                    get QType statistics\n"
+            "get-remotelogger-stats           get remote logger statistics\n"
             "                                 notice: queries from cache aren't being counted yet\n"
             "hash-password [work-factor]      ask for a password then return the hashed version\n"
             "help                             get this list\n"
@@ -2247,6 +2308,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "get-proxymapping-stats") {
     return {0, doGetProxyMappingStats()};
+  }
+  if (cmd == "get-remotelogger-stats") {
+    return {0, getRemoteLoggerStats() };
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};
