@@ -974,6 +974,7 @@ static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
   return ret;
 }
 
+#ifdef HAVE_FSTRM
 static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
 {
   auto ret = new RemoteLoggerStats_t;
@@ -985,6 +986,7 @@ static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
   }
   return ret;
 }
+#endif
 
 static void remoteLoggerStats(const string& name, const RemoteLoggerStats_t& stats, ostringstream& os)
 {
@@ -1005,8 +1007,10 @@ static string getRemoteLoggerStats()
   remoteLoggerStats("Protobuf   ", stats, os);
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
   remoteLoggerStats("OutProtobuf", stats, os);
+#ifdef HAVE_FSTRM
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
   remoteLoggerStats("Framestream", stats, os);
+#endif
   return os.str();
 }
 
