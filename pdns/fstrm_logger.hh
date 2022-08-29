@@ -41,11 +41,20 @@ public:
   [[nodiscard]] RemoteLoggerInterface::Result queueData(const std::string& data) override;
   const std::string name() const override
   {
-    return "framestream";
+    return "dnstap";
   }
   std::string toString() const override
   {
     return "FrameStreamLogger to " + d_address + " (" + std::to_string(d_framesSent) + " frames sent, " + std::to_string(d_queueFullDrops) + " dropped, " + std::to_string(d_permanentFailures) + " permanent failures)";
+  }
+
+  RemoteLoggerInterface::Stats getStats() const override
+  {
+    return Stats{.d_queued = d_framesSent,
+                 .d_pipeFull = d_queueFullDrops,
+                 .d_otherError = d_permanentFailures,
+                 .d_tooLarge = 0
+    };
   }
 
 private:

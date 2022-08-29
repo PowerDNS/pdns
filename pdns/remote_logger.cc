@@ -146,43 +146,44 @@ bool RemoteLogger::reconnect()
 
 RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
 {
+  auto runtime = d_runtime.lock();
+
   if (data.size() > std::numeric_limits<uint16_t>::max()) {
+    ++runtime->d_stats.d_tooLarge;
     return Result::TooLarge;
   }
-
-  auto runtime = d_runtime.lock();
 
   if (!runtime->d_writer.hasRoomFor(data)) {
     /* not connected, queue is full, just drop */
     if (!runtime->d_socket) {
-      ++d_drops;
+      ++runtime->d_stats.d_pipeFull;
       return Result::PipeFull;
     }
     try {
       /* we try to flush some data */
       if (!runtime->d_writer.flush(runtime->d_socket->getHandle())) {
         /* but failed, let's just drop */
-        ++d_drops;
+        ++runtime->d_stats.d_pipeFull;
         return Result::PipeFull;
       }
 
       /* see if we freed enough data */
       if (!runtime->d_writer.hasRoomFor(data)) {
         /* we didn't */
-        ++d_drops;
+        ++runtime->d_stats.d_pipeFull;
         return Result::PipeFull;
       }
     }
     catch(const std::exception& e) {
       //      cout << "Got exception writing: "<<e.what()<<endl;
-      ++d_drops;
       runtime->d_socket.reset();
-      return Result::PipeFull;
+      ++runtime->d_stats.d_otherError;
+      return Result::OtherError;
     }
   }
 
   runtime->d_writer.write(data);
-  ++d_processed;
+  ++runtime->d_stats.d_queued;
   return Result::Queued;
 }
 
