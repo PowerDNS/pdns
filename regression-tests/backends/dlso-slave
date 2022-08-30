@@ -7,11 +7,13 @@ module-dir=./modules
 launch=dlso
 dlso-path=modules/dlso-gsql/.libs/dlsogsql.so
 dlso-args=
+zone-cache-refresh-interval=0
 __EOF__
 
 	cat > pdns-dlso2-sqlite3.conf << __EOF__
 gsqlite3-database=pdns.sqlite32
 gsqlite3-pragma-synchronous=0
+zone-cache-refresh-interval=0
 __EOF__
 
 	if [[ $context != *nodnssec* ]]
