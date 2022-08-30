@@ -301,7 +301,7 @@ bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t 
   std::vector<DNSBackend::KeyData> keys;
 
   if (handle->module->getDomainKeys(qname, keys)) {
-    for (DNSBackend::KeyData key : keys) {
+    for (const DNSBackend::KeyData &key : keys) {
       struct dnskey dnskey;
 
       dnskey.id = key.id;
@@ -382,7 +382,7 @@ bool update_dnssec_order_name_and_auth(
 
   DNSName qname = DNSName(string(qname_, qname_len));
   DNSName ordername;
-  if (ordername_len) {
+  if (ordername_len != 0U) {
     ordername = DNSName(string(ordername_, ordername_len));
   }
 
@@ -611,7 +611,7 @@ extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr
   // Then, loads configuration from file (gsqlite3 arguments are
   // only parsed after being declared)
   string s_programname = "pdns";
-  if (arg()["config-name"] != "")
+  if (!arg()["config-name"].empty())
     s_programname += "-" + arg()["config-name"];
   string configname = arg()["config-dir"] + "/" + s_programname + "-sqlite3.conf";
   arg().laxFile(configname.c_str());
