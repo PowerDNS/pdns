@@ -56,7 +56,7 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
   }
 
   dlso_register_t register_api = (dlso_register_t)dlsym(this->dlhandle, "pdns_dlso_register");
-  if (register_api == NULL) {
+  if (register_api == nullptr) {
     dlclose(this->dlhandle);
     throw PDNSException("Failed to initialize dlso, no pdns_dlso_register symbol exposed");
   }
@@ -68,14 +68,14 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
   }
 
   // Check pointer safety
-  if (this->api == NULL) {
+  if (this->api == nullptr) {
     dlclose(this->dlhandle);
     throw PDNSException("Failed to initialize dlso, library did not reply with its pointer");
   }
 
   // Check version
   if (this->api->abi_version != PDNS_DLSO_ABI_VERSION) {
-    if (this->api->release != NULL)
+    if (this->api->release != nullptr)
       this->api->release(this->api);
 
     dlclose(this->dlhandle);
@@ -83,15 +83,15 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
   }
 
   // Sanity checks
-  if (this->api->get == NULL) {
-    if (this->api->release != NULL)
+  if (this->api->get == nullptr) {
+    if (this->api->release != nullptr)
       this->api->release(this->api);
 
     dlclose(this->dlhandle);
     throw PDNSException("Failed to initialize dlso, lib did not register a mandatory get function");
   }
-  if (this->api->lookup == NULL) {
-    if (this->api->release != NULL)
+  if (this->api->lookup == nullptr) {
+    if (this->api->release != nullptr)
       this->api->release(this->api);
 
     dlclose(this->dlhandle);
@@ -101,7 +101,7 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
 
 DlsoBackend::~DlsoBackend()
 {
-  if (this->api->release != NULL)
+  if (this->api->release != nullptr)
     this->api->release(this->api);
   dlclose(this->dlhandle);
 }
@@ -118,12 +118,12 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t dom
   string qname = qdomain.toString();
   bool success;
 
-  if (pkt_p != NULL) {
+  if (pkt_p != nullptr) {
     ComboAddress edns_or_resolver_ip = pkt_p->getRealRemote().getNetwork();
     success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), (sockaddr*)&edns_or_resolver_ip.sin4, domain_id);
   }
   else {
-    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), NULL, domain_id);
+    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), nullptr, domain_id);
   }
 
   if (!success)
@@ -132,7 +132,7 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t dom
 
 bool DlsoBackend::list(const DNSName& target, int domain_id, bool include_disabled)
 {
-  if (api->list == NULL)
+  if (api->list == nullptr)
     return false;
 
   string qname = target.toString();
@@ -199,7 +199,7 @@ bool DlsoBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 {
   if (d_dnssec == false)
     return false;
-  if (api->get_metas == NULL)
+  if (api->get_metas == nullptr)
     return false;
 
   metas.clear();
@@ -210,7 +210,7 @@ bool DlsoBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 
 bool DlsoBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  if (api->get_meta == NULL)
+  if (api->get_meta == nullptr)
     return false;
 
   meta.clear();
@@ -221,11 +221,11 @@ bool DlsoBackend::getDomainMetadata(const DNSName& name, const std::string& kind
 
 bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  if (api->set_meta == NULL)
+  if (api->set_meta == nullptr)
     return false;
 
   struct dns_value* values = (struct dns_value*)calloc(meta.size(), sizeof(struct dns_value));
-  if (values == NULL)
+  if (values == nullptr)
     return false;
   for (uint i = 0; i < meta.size(); i++) {
     values[i].value_len = meta[i].size();
@@ -254,7 +254,7 @@ bool DlsoBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Key
   // no point doing dnssec if it's not supported
   if (d_dnssec == false)
     return false;
-  if (api->get_domain_keys == NULL)
+  if (api->get_domain_keys == nullptr)
     return false;
 
   keys.clear();
@@ -273,7 +273,7 @@ bool DlsoBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
   // no point doing dnssec if it's not supported
   if (d_dnssec == false)
     return false;
-  if (api->add_domain_key == NULL)
+  if (api->add_domain_key == nullptr)
     return false;
 
   string qname = name.toString();
@@ -319,7 +319,7 @@ void fill_tsig_key(const void* ptr, uint8_t alg_len, const char* alg, uint8_t ke
 
 bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
 {
-  if (api->get_tsig_key == NULL)
+  if (api->get_tsig_key == nullptr)
     return false;
 
   struct fill_tsig data = {.algorithm = std::addressof(algorithm), .content = std::addressof(content)};
@@ -333,7 +333,7 @@ bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::strin
 
 bool DlsoBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const std::string& content)
 {
-  if (api->set_tsig_key == NULL)
+  if (api->set_tsig_key == nullptr)
     return false;
 
   string qname = name.toString();
@@ -388,7 +388,7 @@ bool DlsoBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 {
   if (d_dnssec == false)
     return false;
-  if (api->get_before_after == NULL)
+  if (api->get_before_after == nullptr)
     return false;
 
   string qname_ = qname.toString();
@@ -421,7 +421,7 @@ bool DlsoBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
 bool DlsoBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname_, const DNSName& ordername_, bool auth, const uint16_t qtype)
 {
-  if (api->update_dnssec_order_name_and_auth == NULL)
+  if (api->update_dnssec_order_name_and_auth == nullptr)
     return false;
 
   string qname;
@@ -438,9 +438,9 @@ bool DlsoBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 
 bool DlsoBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
-  if (api->update_empty_non_terminals == NULL)
+  if (api->update_empty_non_terminals == nullptr)
     return false;
-  if (api->remove_empty_non_terminals == NULL)
+  if (api->remove_empty_non_terminals == nullptr)
     return false;
 
   if (remove) {
@@ -504,7 +504,7 @@ void fill_domain_info(const void* di_, struct domain_info* domain_info)
 
 bool DlsoBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
 {
-  if (api->get_domain_info == NULL)
+  if (api->get_domain_info == nullptr)
     return false;
 
   string qname = domain.toString();
@@ -515,7 +515,7 @@ bool DlsoBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getS
 
 bool DlsoBackend::startTransaction(const DNSName& domain, int domain_id)
 {
-  if (api->start_transaction == NULL)
+  if (api->start_transaction == nullptr)
     return false;
 
   string domain_ = domain.toString();
@@ -525,14 +525,14 @@ bool DlsoBackend::startTransaction(const DNSName& domain, int domain_id)
 
 bool DlsoBackend::abortTransaction()
 {
-  if (api->abort_transaction == NULL)
+  if (api->abort_transaction == nullptr)
     return false;
   return api->abort_transaction(api->handle);
 }
 
 bool DlsoBackend::commitTransaction()
 {
-  if (api->commit_transaction == NULL)
+  if (api->commit_transaction == nullptr)
     return false;
   return api->commit_transaction(api->handle);
 }
@@ -549,7 +549,7 @@ void fill_unfresh_slave(const void* unfresh_, struct domain_info* domain_info)
 
 void DlsoBackend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
 {
-  if (api->get_unfresh_slave == NULL)
+  if (api->get_unfresh_slave == nullptr)
     return;
 
   bool status = api->get_unfresh_slave(api->handle, fill_unfresh_slave, unfreshDomains);
@@ -561,7 +561,7 @@ void DlsoBackend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
 
 void DlsoBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
-  if (api->set_notified == NULL)
+  if (api->set_notified == nullptr)
     return;
 
   api->set_notified(api->handle, domain_id, serial);
@@ -569,7 +569,7 @@ void DlsoBackend::setNotified(uint32_t domain_id, uint32_t serial)
 
 void DlsoBackend::setFresh(uint32_t domain_id)
 {
-  if (api->set_fresh == NULL)
+  if (api->set_fresh == nullptr)
     return;
 
   api->set_fresh(api->handle, domain_id);
@@ -577,7 +577,7 @@ void DlsoBackend::setFresh(uint32_t domain_id)
 
 bool DlsoBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  if (api->replace_record == NULL)
+  if (api->replace_record == nullptr)
     return false;
 
   vector<string> qnames;
@@ -617,7 +617,7 @@ bool DlsoBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
 bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool _ordernameIsNSEC3)
 {
-  if (api->add_record == NULL)
+  if (api->add_record == nullptr)
     return false;
 
   string qname = rr.qname.toString();
@@ -638,13 +638,13 @@ bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& orderna
     return api->add_record(api->handle, &record, ordername_str.size(), ordername_str.c_str());
   }
   else {
-    return api->add_record(api->handle, &record, 0, NULL);
+    return api->add_record(api->handle, &record, 0, nullptr);
   }
 }
 
 bool DlsoBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
 {
-  if (api->add_record_ent == NULL)
+  if (api->add_record_ent == nullptr)
     return false;
 
   for (const auto& nt : nonterm) {
@@ -661,7 +661,7 @@ bool DlsoBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
 
 bool DlsoBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
-  if (api->add_record_ent_nsec3 == NULL)
+  if (api->add_record_ent_nsec3 == nullptr)
     return false;
 
   struct nsec3_param ns3;
