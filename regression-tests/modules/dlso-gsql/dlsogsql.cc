@@ -37,7 +37,7 @@ struct dlso_gsql
 void release(struct lib_so_api* api)
 {
   if (api != nullptr) {
-    struct dlso_gsql* handle = (struct dlso_gsql*)api->handle;
+    auto* handle = static_cast<struct dlso_gsql*>(api->handle);
 
     if (handle != nullptr) {
       delete handle->module;
@@ -51,7 +51,7 @@ void release(struct lib_so_api* api)
 
 bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, const struct sockaddr* client_ip, int32_t domain_id)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   if (handle == nullptr) {
     return false;
   }
@@ -71,7 +71,7 @@ bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, co
 
 bool list(void* ptr, uint8_t qlen, const char* qname, int32_t domain_id)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   if (handle == nullptr) {
     return false;
   }
@@ -90,7 +90,7 @@ bool list(void* ptr, uint8_t qlen, const char* qname, int32_t domain_id)
 
 bool get(void* ptr, fill_cb_t cb, void* rr)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   if (handle->in_error) {
     return false;
   }
@@ -125,7 +125,7 @@ bool get_tsig_key(
   fill_tsig_key_cb_t cb,
   const void* data)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   DNSName alg;
   string content;
@@ -152,7 +152,7 @@ bool set_tsig_key(
   uint8_t content_len,
   const char* content_)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   auto alg = DNSName(string(alg_, alg_len));
   string content = string(content_, content_len);
@@ -169,7 +169,7 @@ bool get_meta(
   fill_meta_cb_t cb,
   const void* meta)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   auto kind = string(kind_, kind_len);
   std::vector<std::string>* meta_ = (std::vector<std::string>*)meta;
@@ -180,7 +180,7 @@ bool get_meta(
 
 bool set_meta(void* ptr, uint8_t qlen, const char* qname_, uint8_t kind_len, const char* kind_, uint8_t value_len, struct dns_value* values)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   auto kind = string(kind_, kind_len);
 
@@ -196,7 +196,7 @@ bool set_meta(void* ptr, uint8_t qlen, const char* qname_, uint8_t kind_len, con
 
 bool remove_empty_non_terminals(void* ptr, uint32_t domain_id)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   set<DNSName> insert;
   set<DNSName> erase;
 
@@ -205,7 +205,7 @@ bool remove_empty_non_terminals(void* ptr, uint32_t domain_id)
 
 bool update_empty_non_terminals(void* ptr, uint32_t domain_id, uint8_t qlen, const char* qname, bool add)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   set<DNSName> empty;
   set<DNSName> values_set;
@@ -225,7 +225,7 @@ bool update_empty_non_terminals(void* ptr, uint32_t domain_id, uint8_t qlen, con
 
 bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_info_cb_t cb, void* di)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   DomainInfo my_di;
 
@@ -274,7 +274,7 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
 
 bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* dnskey, int64_t* id)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   DNSBackend::KeyData key;
 
@@ -288,7 +288,7 @@ bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* 
 
 bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t cb, const void* keys_)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
 
   std::vector<DNSBackend::KeyData> keys;
@@ -320,7 +320,7 @@ bool get_before_after(
   uint8_t after_len, const char* after_,
   fill_before_after_cb_t cb, void* beforeAfter)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qname_len));
   DNSName unhashed;
   if (unhashed_len > 0) {
@@ -368,7 +368,7 @@ bool update_dnssec_order_name_and_auth(
   const char* ordername_,
   bool auth, uint16_t qtype)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   auto qname = DNSName(string(qname_, qname_len));
   DNSName ordername;
@@ -385,26 +385,26 @@ bool start_transaction(
   uint8_t qname_len,
   const char* qname_)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qname_len));
   return handle->module->startTransaction(qname, domain_id);
 }
 
 bool abort_transaction(void* ptr)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   return handle->module->abortTransaction();
 }
 
 bool commit_transaction(void* ptr)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
   return handle->module->commitTransaction();
 }
 
 bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   vector<DomainInfo> unfresh;
   struct domain_info info = {};
@@ -452,21 +452,21 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 
 void set_fresh(void* ptr, uint32_t domain_id)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   handle->module->setFresh(domain_id);
 }
 
 void set_notified(void* ptr, uint32_t domain_id, uint32_t serial)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   handle->module->setNotified(domain_id, serial);
 }
 
 bool add_record(void* ptr, const struct resource_record* record, uint8_t ordername_len, const char* ordername_)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   DNSResourceRecord rr;
   rr.qtype = record->qtype;
@@ -496,7 +496,7 @@ bool replace_record(
   uint16_t record_size,
   const struct resource_record* records)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   vector<DNSResourceRecord> rrset;
 
@@ -525,7 +525,7 @@ bool replace_record(
 
 bool add_record_ent(void* ptr, uint32_t domain_id, bool auth, uint8_t qlen, const char* qname_)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   auto qname = DNSName(string(qname_, qlen));
   map<DNSName, bool> nonterm;
@@ -536,7 +536,7 @@ bool add_record_ent(void* ptr, uint32_t domain_id, bool auth, uint8_t qlen, cons
 
 bool add_record_ent_nsec3(void* ptr, uint32_t domain_id, uint8_t domain_len, const char* domain_, bool narrow, bool auth, uint8_t qlen, const char* qname_, const struct nsec3_param* ns3)
 {
-  struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
+  auto* handle = static_cast<struct dlso_gsql*>(ptr);
 
   auto qname = DNSName(string(qname_, qlen));
   map<DNSName, bool> nonterm;
@@ -560,11 +560,11 @@ std::mutex g_configuration_mutex;
 
 extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr, bool dnssec, const char* args)
 {
-  struct dlso_gsql* gsql = (struct dlso_gsql*)malloc(sizeof(struct dlso_gsql));
+  auto* gsql = static_cast<struct dlso_gsql*>(malloc(sizeof(struct dlso_gsql)));
   if (gsql == nullptr) {
     return false;
   }
-  struct lib_so_api* api = (struct lib_so_api*)malloc(sizeof(struct lib_so_api));
+  auto* api = static_cast<struct lib_so_api*>(malloc(sizeof(struct lib_so_api)));
   if (api == nullptr) {
     free(gsql);
     return false;
