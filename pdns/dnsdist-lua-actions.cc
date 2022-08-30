@@ -127,7 +127,7 @@ class TeeAction : public DNSAction
 {
 public:
   // this action does not stop the processing
-  TeeAction(const ComboAddress& ca, bool addECS=false);
+  TeeAction(const ComboAddress& rca, const ComboAddress& lca, bool setLocalBindAddress=false, bool addECS=false);
   ~TeeAction() override;
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override;
   std::string toString() const override;
@@ -135,6 +135,7 @@ public:
 
 private:
   ComboAddress d_remote;
+  ComboAddress d_local;
   std::thread d_worker;
   void worker();
 
@@ -152,13 +153,18 @@ private:
   mutable stat_t d_tcpdrops{0};
   stat_t d_otherrcode{0};
   std::atomic<bool> d_pleaseQuit{false};
+  bool d_setLocalBindAddress{false};
   bool d_addECS{false};
 };
 
-TeeAction::TeeAction(const ComboAddress& ca, bool addECS) : d_remote(ca), d_addECS(addECS)
+TeeAction::TeeAction(const ComboAddress& rca, const ComboAddress& lca, bool setLocalBindAddress, bool addECS) 
+  : d_remote(rca), d_local(lca), d_setLocalBindAddress(setLocalBindAddress), d_addECS(addECS)
 {
   d_fd=SSocket(d_remote.sin4.sin_family, SOCK_DGRAM, 0);
   try {
+    if (d_setLocalBindAddress) {
+      SBind(d_fd, d_local);
+    }
     SConnect(d_fd, d_remote);
     setNonBlocking(d_fd);
     d_worker=std::thread([this](){worker();});
@@ -2416,8 +2422,8 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 #endif /* DISABLE_PROTOBUF */
 
-  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
-      return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), addECS ? *addECS : false));
+  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS, boost::optional<std::string> local) {
+      return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), ComboAddress(local ? *local : "0.0.0.0", 0), local ? true : false, addECS ? *addECS : false));
     });
 
   luaCtx.writeFunction("SetECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
