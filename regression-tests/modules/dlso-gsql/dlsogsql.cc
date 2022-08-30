@@ -97,19 +97,19 @@ bool get(void* ptr, fill_cb_t cb, void* rr)
   struct DNSResourceRecord record;
 
   if (handle->module->get(record)) {
-    struct resource_record resource_record;
     string qname = record.qname.toString();
     string content = record.content;
-
-    resource_record.qtype = record.qtype.getCode();
-    resource_record.qname = qname.c_str();
-    resource_record.qname_len = qname.size();
-    resource_record.content = content.c_str();
-    resource_record.content_len = content.size();
-    resource_record.ttl = record.ttl;
-    resource_record.auth = record.auth;
-    resource_record.scope_mask = record.scopeMask;
-    resource_record.domain_id = record.domain_id;
+    struct resource_record resource_record = {
+      .qtype = record.qtype.getCode(),
+      .qname_len = static_cast<uint8_t>(qname.size()),
+      .scope_mask = record.scopeMask,
+      .content_len = static_cast<uint8_t>(content.size()),
+      .qname = qname.c_str(),
+      .content = content.c_str(),
+      .ttl = record.ttl,
+      .domain_id = record.domain_id,
+      .auth = record.auth,
+    };
 
     cb(rr, &resource_record);
 
@@ -193,7 +193,7 @@ bool set_meta(void* ptr, uint8_t qlen, const char* qname_, uint8_t kind_len, con
   DNSName qname = DNSName(string(qname_, qlen));
   string kind = string(kind_, kind_len);
 
-  for (int i = 0; i < value_len; i++) {
+  for (size_t i = 0; i < value_len; i++) {
     string value = string(values[i].value, values[i].value_len);
     if (!handle->module->setDomainMetadataOne(qname, kind, value)) {
       return false;
@@ -235,32 +235,19 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
   DNSName qname = DNSName(string(qname_, qlen));
   DomainInfo my_di;
-  struct domain_info info;
 
   if (handle->module->getDomainInfo(qname, my_di)) {
-    info.id = my_di.id;
-    info.notified_serial = my_di.notified_serial;
-    info.serial = my_di.serial;
-    info.last_check = my_di.last_check;
-    info.kind = my_di.kind;
-
     string zone = my_di.zone.toString();
-    info.zone_len = zone.size();
-    info.zone = zone.c_str();
 
-    info.account_len = my_di.account.size();
-    info.account = my_di.account.c_str();
-
-    info.master_len = my_di.masters.size();
-
-    struct dns_value* masters = (struct dns_value*)calloc(info.master_len, sizeof(struct dns_value));
+    auto master_len = my_di.masters.size();
+    struct dns_value* masters = (struct dns_value*)calloc(master_len, sizeof(struct dns_value));
     if (masters == nullptr) {
       return false;
     }
 
     std::vector<string> ips;
-    ips.reserve(info.master_len);
-    for (int i = 0; i < info.master_len; i++) {
+    ips.reserve(master_len);
+    for (size_t i = 0; i < master_len; i++) {
       auto ip = my_di.masters[i].toString();
 
       masters[i].value_len = ip.length();
@@ -268,6 +255,21 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
 
       ips.push_back(ip);
     }
+
+    struct domain_info info
+    {
+      .id = my_di.id,
+      .serial = my_di.serial,
+      .notified_serial = my_di.notified_serial,
+      .kind = my_di.kind,
+      .zone_len = static_cast<uint8_t>(zone.size()),
+      .master_len = static_cast<uint8_t>(master_len),
+      .account_len = static_cast<uint8_t>(my_di.account.size()),
+      .zone = zone.c_str(),
+      .account = my_di.account.c_str(),
+      .last_check = my_di.last_check,
+    };
+
     info.masters = masters;
 
     cb(di, &info);
@@ -301,14 +303,15 @@ bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t 
   std::vector<DNSBackend::KeyData> keys;
 
   if (handle->module->getDomainKeys(qname, keys)) {
-    for (const DNSBackend::KeyData &key : keys) {
-      struct dnskey dnskey;
-
-      dnskey.id = key.id;
-      dnskey.flags = key.flags;
-      dnskey.active = key.active;
-      dnskey.data = key.content.c_str();
-      dnskey.data_len = key.content.size();
+    for (const DNSBackend::KeyData& key : keys) {
+      struct dnskey dnskey
+      {
+        .id = key.id,
+        .flags = static_cast<uint16_t>(key.flags),
+        .data_len = static_cast<uint16_t>(key.content.size()),
+        .data = key.content.c_str(),
+        .active = key.active,
+      };
 
       cb(keys_, &dnskey);
     }
@@ -417,7 +420,7 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
 
   vector<DomainInfo> unfresh;
-  struct domain_info info;
+  struct domain_info info = {};
 
   handle->module->getUnfreshSlaveInfos(&unfresh);
 
@@ -444,7 +447,7 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 
     std::vector<string> ips;
     ips.reserve(info.master_len);
-    for (int i = 0; i < info.master_len; i++) {
+    for (size_t i = 0; i < info.master_len; i++) {
       auto ip = my_di.masters[i].toString();
 
       masters[i].value_len = ip.length();
