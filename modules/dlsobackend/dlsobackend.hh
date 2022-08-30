@@ -23,7 +23,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <stdint.h>
+#include <cstdint>
 
 #include <string>
 #include "pdns/arguments.hh"
@@ -45,7 +45,7 @@ class DlsoBackend : public DNSBackend
 {
 public:
   DlsoBackend(const std::string& suffix = "");
-  ~DlsoBackend();
+  ~DlsoBackend() override;
 
   // static DNSBackend *maker();
 
@@ -69,7 +69,7 @@ public:
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
+  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, uint16_t qtype = QType::ANY) override;
   bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
 
