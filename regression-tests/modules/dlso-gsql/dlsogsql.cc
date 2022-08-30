@@ -57,8 +57,8 @@ bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, co
   }
   handle->in_error = false;
 
-  struct QType type = QType(qtype);
-  struct DNSName qname_ = DNSName(string(qname, qlen));
+  auto type = QType(qtype);
+  auto qname_ = DNSName(string(qname, qlen));
   try {
     handle->module->lookup(type, qname_, domain_id);
   }
@@ -77,7 +77,7 @@ bool list(void* ptr, uint8_t qlen, const char* qname, int32_t domain_id)
   }
   handle->in_error = false;
 
-  struct DNSName qname_ = DNSName(string(qname, qlen));
+  auto qname_ = DNSName(string(qname, qlen));
   try {
     handle->module->list(qname_, domain_id, false);
   }
@@ -94,7 +94,7 @@ bool get(void* ptr, fill_cb_t cb, void* rr)
   if (handle->in_error) {
     return false;
   }
-  struct DNSResourceRecord record;
+  DNSResourceRecord record;
 
   if (handle->module->get(record)) {
     string qname = record.qname.toString();
@@ -128,7 +128,7 @@ bool get_tsig_key(
   const void* data)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
   DNSName alg;
   string content;
 
@@ -157,8 +157,8 @@ bool set_tsig_key(
   const char* content_)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
-  DNSName alg = DNSName(string(alg_, alg_len));
+  auto qname = DNSName(string(qname_, qlen));
+  auto alg = DNSName(string(alg_, alg_len));
   string content = string(content_, content_len);
 
   return handle->module->setTSIGKey(qname, alg, content);
@@ -174,8 +174,8 @@ bool get_meta(
   const void* meta)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
-  string kind = string(kind_, kind_len);
+  auto qname = DNSName(string(qname_, qlen));
+  auto kind = string(kind_, kind_len);
   std::vector<std::string>* meta_ = (std::vector<std::string>*)meta;
   // TODO meta should be reparsed
 
@@ -190,11 +190,11 @@ bool get_meta(
 bool set_meta(void* ptr, uint8_t qlen, const char* qname_, uint8_t kind_len, const char* kind_, uint8_t value_len, struct dns_value* values)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
-  string kind = string(kind_, kind_len);
+  auto qname = DNSName(string(qname_, qlen));
+  auto kind = string(kind_, kind_len);
 
   for (size_t i = 0; i < value_len; i++) {
-    string value = string(values[i].value, values[i].value_len);
+    auto value = string(values[i].value, values[i].value_len);
     if (!handle->module->setDomainMetadataOne(qname, kind, value)) {
       return false;
     }
@@ -219,7 +219,7 @@ bool update_empty_non_terminals(void* ptr, uint32_t domain_id, uint8_t qlen, con
   set<DNSName> empty;
   set<DNSName> values_set;
 
-  DNSName value = DNSName(string(qname, qlen));
+  auto value = DNSName(string(qname, qlen));
   values_set.insert(value);
 
   if (add) {
@@ -233,7 +233,7 @@ bool update_empty_non_terminals(void* ptr, uint32_t domain_id, uint8_t qlen, con
 bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_info_cb_t cb, void* di)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
   DomainInfo my_di;
 
   if (handle->module->getDomainInfo(qname, my_di)) {
@@ -284,7 +284,7 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
 bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* dnskey, int64_t* id)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
   DNSBackend::KeyData key;
 
   key.id = dnskey->id;
@@ -298,7 +298,7 @@ bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* 
 bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t cb, const void* keys_)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
 
   std::vector<DNSBackend::KeyData> keys;
 
@@ -332,7 +332,7 @@ bool get_before_after(
   fill_before_after_cb_t cb, void* beforeAfter)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qname_len));
+  auto qname = DNSName(string(qname_, qname_len));
   DNSName unhashed;
   if (unhashed_len > 0) {
     unhashed = DNSName(string(unhashed_, unhashed_len));
@@ -383,7 +383,7 @@ bool update_dnssec_order_name_and_auth(
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
 
-  DNSName qname = DNSName(string(qname_, qname_len));
+  auto qname = DNSName(string(qname_, qname_len));
   DNSName ordername;
   if (ordername_len != 0U) {
     ordername = DNSName(string(ordername_, ordername_len));
@@ -399,7 +399,7 @@ bool start_transaction(
   const char* qname_)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  DNSName qname = DNSName(string(qname_, qname_len));
+  auto qname = DNSName(string(qname_, qname_len));
   return handle->module->startTransaction(qname, domain_id);
 }
 
@@ -483,7 +483,7 @@ bool add_record(void* ptr, const struct resource_record* record, uint8_t orderna
 
   DNSResourceRecord rr;
   rr.qtype = record->qtype;
-  string qname = string(record->qname, record->qname_len);
+  auto qname = string(record->qname, record->qname_len);
   rr.qname = DNSName(qname);
   rr.qclass = QClass::IN;
   rr.content = string(record->content, record->content_len);
@@ -492,9 +492,9 @@ bool add_record(void* ptr, const struct resource_record* record, uint8_t orderna
   rr.scopeMask = record->scope_mask;
   rr.domain_id = record->domain_id;
 
-  DNSName dnsordername = DNSName();
+  auto dnsordername = DNSName();
   if (ordername_ != nullptr) {
-    string ordername = string(ordername_, ordername_len);
+    auto ordername = string(ordername_, ordername_len);
     dnsordername = DNSName(ordername);
   }
   return handle->module->feedRecord(rr, dnsordername);
@@ -530,8 +530,8 @@ bool replace_record(
     rrset.push_back(rr);
   }
 
-  QType qtype_ = QType(qtype);
-  DNSName qname_ = DNSName(string(qname, qlen));
+  auto qtype_ = QType(qtype);
+  auto qname_ = DNSName(string(qname, qlen));
 
   return handle->module->replaceRRSet(domain_id, qname_, qtype_, rrset);
 }
@@ -540,7 +540,7 @@ bool add_record_ent(void* ptr, uint32_t domain_id, bool auth, uint8_t qlen, cons
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
 
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
   map<DNSName, bool> nonterm;
   nonterm.insert({qname, auth});
 
@@ -551,7 +551,7 @@ bool add_record_ent_nsec3(void* ptr, uint32_t domain_id, uint8_t domain_len, con
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
 
-  DNSName qname = DNSName(string(qname_, qlen));
+  auto qname = DNSName(string(qname_, qlen));
   map<DNSName, bool> nonterm;
   nonterm.insert({qname, auth});
 
