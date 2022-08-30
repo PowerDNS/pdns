@@ -24,7 +24,7 @@
 #include "../../../modules/dlsobackend/dlsobackend_api.h"
 #include "../../../modules/gsqlite3backend/gsqlite3backend.hh"
 #include <sys/types.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <mutex>
 #include <vector>
 
@@ -36,13 +36,13 @@ struct dlso_gsql
 
 void release(struct lib_so_api* api)
 {
-  if (api) {
+  if (api != nullptr) {
     struct dlso_gsql* handle = (struct dlso_gsql*)api->handle;
 
-    if (handle) {
+    if (handle != nullptr) {
       delete handle->module;
       free(handle);
-      api->handle = NULL;
+      api->handle = nullptr;
     }
 
     free(api);
@@ -52,7 +52,7 @@ void release(struct lib_so_api* api)
 bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, const struct sockaddr* client_ip, int32_t domain_id)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  if (!handle) {
+  if (handle == nullptr) {
     return false;
   }
   handle->in_error = false;
@@ -72,7 +72,7 @@ bool lookup(void* ptr, const uint16_t qtype, uint8_t qlen, const char* qname, co
 bool list(void* ptr, uint8_t qlen, const char* qname, int32_t domain_id)
 {
   struct dlso_gsql* handle = (struct dlso_gsql*)ptr;
-  if (!handle) {
+  if (handle == nullptr) {
     return false;
   }
   handle->in_error = false;
@@ -138,7 +138,7 @@ bool get_tsig_key(
       cb(data, alg_.size(), alg_.c_str(), content.size(), content.c_str());
     }
     else {
-      cb(data, 0, NULL, content.size(), content.c_str());
+      cb(data, 0, nullptr, content.size(), content.c_str());
     }
     return true;
   }
@@ -254,7 +254,7 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
     info.master_len = my_di.masters.size();
 
     struct dns_value* masters = (struct dns_value*)calloc(info.master_len, sizeof(struct dns_value));
-    if (masters == NULL) {
+    if (masters == nullptr) {
       return false;
     }
 
@@ -438,7 +438,7 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
     info.master_len = my_di.masters.size();
 
     struct dns_value* masters = (struct dns_value*)calloc(info.master_len, sizeof(struct dns_value));
-    if (masters == NULL) {
+    if (masters == nullptr) {
       return false;
     }
 
@@ -490,7 +490,7 @@ bool add_record(void* ptr, const struct resource_record* record, uint8_t orderna
   rr.domain_id = record->domain_id;
 
   DNSName dnsordername = DNSName();
-  if (ordername_ != NULL) {
+  if (ordername_ != nullptr) {
     string ordername = string(ordername_, ordername_len);
     dnsordername = DNSName(ordername);
   }
@@ -571,11 +571,11 @@ std::mutex g_configuration_mutex;
 extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr, bool dnssec, const char* args)
 {
   struct dlso_gsql* gsql = (struct dlso_gsql*)malloc(sizeof(struct dlso_gsql));
-  if (gsql == NULL) {
+  if (gsql == nullptr) {
     return false;
   }
   struct lib_so_api* api = (struct lib_so_api*)malloc(sizeof(struct lib_so_api));
-  if (api == NULL) {
+  if (api == nullptr) {
     free(gsql);
     return false;
   }
@@ -597,7 +597,7 @@ extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr
   std::lock_guard<std::mutex> guard(g_configuration_mutex);
 
   // First load the sqlite3 backend, and declare arguments
-  gSQLite3Factory* factory;
+  gSQLite3Factory* factory = nullptr;
   try {
     factory = new gSQLite3Factory("gsqlite3");
     factory->declareArguments();
@@ -625,7 +625,7 @@ extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr
     free(api);
     return false;
   }
-  if (gsql->module == NULL) {
+  if (gsql->module == nullptr) {
     free(gsql);
     free(api);
     return false;

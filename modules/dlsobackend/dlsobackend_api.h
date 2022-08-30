@@ -20,9 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdbool>
+#include <cstdint>
+
 #include <sys/types.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <sys/socket.h>
 
 #define PDNS_DLSO_ABI_VERSION 1
