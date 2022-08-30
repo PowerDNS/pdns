@@ -115,9 +115,7 @@ bool get(void* ptr, fill_cb_t cb, void* rr)
 
     return true;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 bool get_tsig_key(
@@ -142,9 +140,7 @@ bool get_tsig_key(
     }
     return true;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 bool set_tsig_key(
@@ -179,12 +175,7 @@ bool get_meta(
   std::vector<std::string>* meta_ = (std::vector<std::string>*)meta;
   // TODO meta should be reparsed
 
-  if (handle->module->getDomainMetadata(qname, kind, *meta_)) {
-    return true;
-  }
-  else {
-    return false;
-  }
+  return handle->module->getDomainMetadata(qname, kind, *meta_);
 }
 
 bool set_meta(void* ptr, uint8_t qlen, const char* qname_, uint8_t kind_len, const char* kind_, uint8_t value_len, struct dns_value* values)
@@ -222,12 +213,14 @@ bool update_empty_non_terminals(void* ptr, uint32_t domain_id, uint8_t qlen, con
   auto value = DNSName(string(qname, qlen));
   values_set.insert(value);
 
+  auto result = false;
   if (add) {
-    return handle->module->updateEmptyNonTerminals(domain_id, values_set, empty, false);
+    result = handle->module->updateEmptyNonTerminals(domain_id, values_set, empty, false);
   }
   else {
-    return handle->module->updateEmptyNonTerminals(domain_id, empty, values_set, false);
+    result = handle->module->updateEmptyNonTerminals(domain_id, empty, values_set, false);
   }
+  return result;
 }
 
 bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_info_cb_t cb, void* di)
@@ -276,9 +269,7 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
     free(masters);
     return true;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* dnskey, int64_t* id)
@@ -317,9 +308,7 @@ bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t 
     }
     return true;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 bool get_before_after(
@@ -366,10 +355,8 @@ bool get_before_after(
     cb(beforeAfter, unhashed_str.size(), unhashed_str.c_str(), before_str.size(), before_str.c_str(), after_str.size(), after_str.c_str());
     return true;
   }
-  else {
-    // cout << "nope getBeforeAndAfterNamesAbsolute" << endl;
-    return false;
-  }
+  // cout << "nope getBeforeAndAfterNamesAbsolute" << endl;
+  return false;
 }
 
 bool update_dnssec_order_name_and_auth(
@@ -614,8 +601,10 @@ extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr
   // Then, loads configuration from file (gsqlite3 arguments are
   // only parsed after being declared)
   string s_programname = "pdns";
-  if (!arg()["config-name"].empty())
+  if (!arg()["config-name"].empty()) {
     s_programname += "-" + arg()["config-name"];
+  }
+
   string configname = arg()["config-dir"] + "/" + s_programname + "-sqlite3.conf";
   arg().laxFile(configname.c_str());
 
