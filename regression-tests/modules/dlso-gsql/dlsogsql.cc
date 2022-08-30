@@ -233,20 +233,18 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
     string zone = my_di.zone.toString();
 
     auto master_len = my_di.masters.size();
-    struct dns_value* masters = (struct dns_value*)calloc(master_len, sizeof(struct dns_value));
-    if (masters == nullptr) {
-      return false;
-    }
+    vector<dns_value> masters;
+    masters.reserve(master_len);
 
-    std::vector<string> ips;
-    ips.reserve(master_len);
-    for (size_t i = 0; i < master_len; i++) {
-      auto ip = my_di.masters[i].toString();
+    std::vector<string> ip_addresses;
+    ip_addresses.reserve(master_len);
+    for (const auto& ip_address : my_di.masters) {
+      auto ip_address_str = ip_address.toString();
 
-      masters[i].value_len = ip.length();
-      masters[i].value = ip.c_str();
-
-      ips.push_back(ip);
+      masters.push_back(dns_value{
+        .value = ip_address_str.c_str(),
+        .value_len = static_cast<uint8_t>(ip_address_str.length())});
+      ip_addresses.push_back(ip_address_str);
     }
 
     struct domain_info info
@@ -263,10 +261,9 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
       .last_check = my_di.last_check,
     };
 
-    info.masters = masters;
+    info.masters = masters.data();
 
     cb(di, &info);
-    free(masters);
     return true;
   }
   return false;
@@ -427,24 +424,22 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 
     info.master_len = my_di.masters.size();
 
-    struct dns_value* masters = (struct dns_value*)calloc(info.master_len, sizeof(struct dns_value));
-    if (masters == nullptr) {
-      return false;
-    }
+    vector<dns_value> masters;
+    masters.reserve(info.master_len);
 
-    std::vector<string> ips;
-    ips.reserve(info.master_len);
-    for (size_t i = 0; i < info.master_len; i++) {
-      auto ip = my_di.masters[i].toString();
+    std::vector<string> ip_addresses;
+    ip_addresses.reserve(info.master_len);
+    for (const auto& ip_address : my_di.masters) {
+      auto ip_address_str = ip_address.toString();
 
-      masters[i].value_len = ip.length();
-      masters[i].value = ip.c_str();
-      ips.push_back(ip);
+      masters.push_back(dns_value{
+        .value = ip_address_str.c_str(),
+        .value_len = static_cast<uint8_t>(ip_address_str.length())});
+      ip_addresses.push_back(ip_address_str);
     }
-    info.masters = masters;
+    info.masters = masters.data();
 
     cb(data, &info);
-    free(masters);
   }
 
   return true;
