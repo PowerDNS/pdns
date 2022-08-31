@@ -135,7 +135,6 @@ public:
 
 private:
   ComboAddress d_remote;
-  boost::optional<ComboAddress> d_local;
   std::thread d_worker;
   void worker();
 
@@ -157,12 +156,12 @@ private:
 };
 
 TeeAction::TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS) 
-  : d_remote(rca), d_local(lca), d_addECS(addECS)
+  : d_remote(rca), d_addECS(addECS)
 {
   d_fd=SSocket(d_remote.sin4.sin_family, SOCK_DGRAM, 0);
   try {
-    if (d_local) {
-      SBind(d_fd, *d_local);
+    if (lca) {
+      SBind(d_fd, *lca);
     }
     SConnect(d_fd, d_remote);
     setNonBlocking(d_fd);
