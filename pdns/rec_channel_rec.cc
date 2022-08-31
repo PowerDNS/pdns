@@ -941,14 +941,14 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
 
 static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
 {
-  auto ret = new RemoteLoggerStats_t;
+  auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_protobufServers) {
     for (const auto& s : *t_protobufServers) {
       ret->emplace(std::make_pair(s->address(), s->getStats()));
     }
   }
-  return ret;
+  return ret.release();
 }
 
 static string doGetProxyMappingStats()
@@ -964,52 +964,52 @@ static string doGetProxyMappingStats()
 
 static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
 {
-  auto ret = new RemoteLoggerStats_t;
+  auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_outgoingProtobufServers) {
     for (const auto& s : *t_outgoingProtobufServers) {
       ret->emplace(std::make_pair(s->address(), s->getStats()));
     }
   }
-  return ret;
+  return ret.release();
 }
 
 #ifdef HAVE_FSTRM
 static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
 {
-  auto ret = new RemoteLoggerStats_t;
+  auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_frameStreamServersInfo.servers) {
     for (const auto& s : *t_frameStreamServersInfo.servers) {
       ret->emplace(std::make_pair(s->address(), s->getStats()));
     }
   }
-  return ret;
+  return ret.release();
 }
 #endif
 
-static void remoteLoggerStats(const string& name, const RemoteLoggerStats_t& stats, ostringstream& os)
+static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& stats, ostringstream& os)
 {
-  if (stats.size() > 0) {
-    std::string filler(name.size(), ' ');
-    os << name << "\tQueued\tPipe-\tToo-\tOther-\tAddress" << endl;
-    os << filler << "\t\tFull\tLarge\terror" << endl;
-    for (const auto& [key, entry]: stats) {
-      os << filler<< '\t' << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << endl;
-    }
+  if (stats.empty()) {
+    return;
+  }
+  for (const auto& [key, entry]: stats) {
+    os << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << '\t' << type << endl;
   }
 }
 
 static string getRemoteLoggerStats()
 {
   ostringstream os;
+  os << "Queued\tPipe-\tToo-\tOther-\tAddress\tType" << endl;
+  os << "\tFull\tLarge\terror" << endl;
   auto stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetRemoteLoggerStats);
-  remoteLoggerStats("Protobuf   ", stats, os);
+  remoteLoggerStats("protobuf", stats, os);
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
-  remoteLoggerStats("OutProtobuf", stats, os);
+  remoteLoggerStats("outgoingProtobuf", stats, os);
 #ifdef HAVE_FSTRM
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
-  remoteLoggerStats("Framestream", stats, os);
+  remoteLoggerStats("dnstapFrameStream", stats, os);
 #endif
   return os.str();
 }
@@ -1255,6 +1255,36 @@ static StatsMap toProxyMappingStatsMap(const string& name)
     auto pname2 = keyname + "suffixmatches\"}";
     entries.emplace(sname2, StatsMapEntry{pname2, std::to_string(entry.suffixMatches)});
     count++;
+  }
+  return entries;
+}
+
+static StatsMap toRemoteLoggerStatsMap(const string& name)
+{
+  const auto pbasename = getPrometheusName(name);
+  StatsMap entries;
+
+  auto stats1 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetRemoteLoggerStats);
+  auto stats2 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
+  auto stats3 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
+  uint64_t count = 0;
+  for (const auto& [stats, type] : { make_pair(stats1, "protobuf") , make_pair(stats2, "outgoingProtobuf"), make_pair(stats3, "dnstapFrameStream") } ) {
+    for (const auto& [key, entry] : stats) {
+      auto keyname = pbasename + "{address=\"" + key + "\",type=\"" + type + "\",count=\"";
+      auto sname1 = name + "-q-" + std::to_string(count);
+      auto pname1 = keyname + "queued\"}";
+      entries.emplace(sname1, StatsMapEntry{pname1, std::to_string(entry.d_queued)});
+      auto sname2 = name + "-p-" + std::to_string(count);
+      auto pname2 = keyname + "pipeFull\"}";
+      entries.emplace(sname2, StatsMapEntry{pname2, std::to_string(entry.d_pipeFull)});
+      auto sname3 = name + "-t-" + std::to_string(count);
+      auto pname3 = keyname + "tooLarge\"}";
+      entries.emplace(sname3, StatsMapEntry{pname3, std::to_string(entry.d_tooLarge)});
+      auto sname4 = name + "-o-" + std::to_string(count);
+      auto pname4 = keyname + "otherError\"}";
+      entries.emplace(sname4, StatsMapEntry{pname4, std::to_string(entry.d_otherError)});
+      ++count;
+    }
   }
   return entries;
 }
@@ -1532,6 +1562,9 @@ static void registerAllStats1()
   });
   addGetStat("auth-rcode-answers", []() {
     return toAuthRCodeStatsMap("auth-rcode-answers", g_stats.authRCode);
+  });
+  addGetStat("remote-logger", []() {
+    return toRemoteLoggerStatsMap("remote-logger");
   });
 }
 

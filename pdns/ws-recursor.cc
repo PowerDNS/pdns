@@ -1159,6 +1159,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"auth-formerr-answers",
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Count of RCodes returned by authoritative servers")},
+
+  // For multicounters, state the first
+  {"remote-logger-o-0",
+   MetricDefinition(PrometheusMetricType::multicounter,
+                    "Number of remote logging events")},
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
