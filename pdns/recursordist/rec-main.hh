@@ -193,13 +193,11 @@ using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterfac
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;
-extern thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers;
 extern thread_local std::shared_ptr<RecursorLua4> t_pdl;
 extern bool g_gettagNeedsEDNSOptions;
 extern NetmaskGroup g_paddingFrom;
 extern unsigned int g_paddingTag;
 extern PaddingMode g_paddingMode;
-extern thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers;
 extern unsigned int g_maxMThreads;
 extern bool g_reusePort;
 extern bool g_anyToTcp;
@@ -248,6 +246,15 @@ extern std::string g_udr_pbtag;
 extern thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
 extern thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 #endif
+
+struct ProtobufServersInfo
+{
+  std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> servers;
+  uint64_t generation;
+  ProtobufExportConfig config;
+};
+extern thread_local ProtobufServersInfo t_protobufServers;
+extern thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
 #ifdef HAVE_FSTRM
 struct FrameStreamServersInfo
