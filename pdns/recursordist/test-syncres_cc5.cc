@@ -2179,12 +2179,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_ds)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_dnskey)
+static void dnssec_secure_servfail_dnskey(DNSSECMode mode, vState expectedValidationResult)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  setDNSSECValidation(sr, mode);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -2287,6 +2287,123 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_dnskey)
   catch (const ImmediateServFailException& e) {
     BOOST_CHECK(e.reason.find("Server Failure while retrieving DNSKEY records for powerdns.com") != string::npos);
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_dnskey)
+{
+  dnssec_secure_servfail_dnskey(DNSSECMode::ValidateAll, vState::Indeterminate);
+  dnssec_secure_servfail_dnskey(DNSSECMode::Off, vState::Indeterminate);
+}
+
+// Same test as above but powerdns.com is now Insecure according to parent, so failure to retrieve DNSSKEYs
+// should be mostly harmless.
+static void dnssec_secure_servfail_dnskey_insecure(DNSSECMode mode, vState expectedValidationResult)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, mode);
+
+  primeHints();
+  const DNSName target("powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.42");
+
+  // We use two sets of keys, as powerdns.com is Insecure according to parent but returns signed results,
+  // triggering a (failing) DNSKEY retrieval.
+  testkeysset_t keys;
+  testkeysset_t pdnskeys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, pdnskeys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  /* make sure that the signature inception and validity times are computed
+     based on the SyncRes time, not the current one, in case the function
+     takes too long. */
+
+  const time_t fixedNow = sr->getNow().tv_sec;
+
+  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys, pdnskeys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    DNSName auth = domain;
+    if (domain == target) {
+      auth = DNSName("powerdns.com.");
+    }
+
+    if (type == QType::DNSKEY && domain == DNSName("powerdns.com.")) {
+      /* time out */
+      return LWResult::Result::Timeout;
+    }
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      // This one does not know about pdnskeys, so it will declare powerdns.com as Insecure
+      return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, true, fixedNow);
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+      addDS(DNSName("com."), 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("."), 300, false, boost::none, boost::none, fixedNow);
+      addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    if (ip == ComboAddress("192.0.2.1:53")) {
+      if (domain == DNSName("com.")) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
+        addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        addRRSIG(keys, res->d_records, domain, 300);
+      }
+      else {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, auth, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(auth, 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+      }
+      return LWResult::Result::Success;
+    }
+
+    if (ip == ComboAddress("192.0.2.2:53")) {
+      if (type == QType::NS) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
+        addRRSIG(pdnskeys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        addRRSIG(pdnskeys, res->d_records, auth, 300);
+      }
+      else {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+        addRRSIG(pdnskeys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
+      }
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  auto res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), expectedValidationResult);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_dnskey_insecure)
+{
+  dnssec_secure_servfail_dnskey_insecure(DNSSECMode::ValidateAll, vState::Insecure);
+  dnssec_secure_servfail_dnskey_insecure(DNSSECMode::Off, vState::Insecure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
