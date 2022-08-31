@@ -45,6 +45,9 @@ struct ProtobufExportConfig
   bool logMappedFrom{false};
 };
 
+bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB);
+bool operator!=(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB);
+
 struct FrameStreamExportConfig
 {
   std::vector<string> servers;

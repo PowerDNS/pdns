@@ -43,8 +43,8 @@
 
 thread_local std::shared_ptr<RecursorLua4> t_pdl;
 thread_local std::shared_ptr<Regex> t_traceRegex;
-thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers{nullptr};
-thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
+thread_local ProtobufServersInfo t_protobufServers;
+thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> g_recCache;
@@ -917,7 +917,7 @@ void startDoResolve(void* p)
 
       // RRSets added below
     }
-
+    checkOutgoingProtobufExport(luaconfsLocal); // to pick up changed configs
 #ifdef HAVE_FSTRM
     checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
     checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
@@ -977,7 +977,7 @@ void startDoResolve(void* p)
     sr.setDNSSECValidationRequested(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode == DNSSECMode::Process));
 
     sr.setInitialRequestId(dc->d_uuid);
-    sr.setOutgoingProtobufServers(t_outgoingProtobufServers);
+    sr.setOutgoingProtobufServers(t_outgoingProtobufServers.servers);
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServersInfo.servers);
 #endif
@@ -1391,7 +1391,7 @@ void startDoResolve(void* p)
         }
 #endif /* NOD ENABLED */
 
-        if (t_protobufServers) {
+        if (t_protobufServers.servers) {
           // Max size is 64k, but we're conservative here, as other fields are added after the answers have been added
           // If a single answer causes a too big protobuf message, it wil be dropped by queueData()
           // But note addRR has code to prevent that
@@ -1587,7 +1587,7 @@ void startDoResolve(void* p)
       g_stats.variableResponses++;
     }
 
-    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
+    if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Start constructing embedded DNSResponse object
       pbMessage.setResponseCode(pw.getHeader()->rcode);
       if (!appliedPolicy.getName().empty()) {
@@ -1652,7 +1652,7 @@ void startDoResolve(void* p)
     sr.d_eventTrace.add(RecEventTrace::AnswerSent);
 
     // Now do the per query changing part ot the protobuf message
-    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
+    if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
         pbMessage.setQueryTime(dc->d_kernelTimestamp.tv_sec, dc->d_kernelTimestamp.tv_usec);
@@ -2003,15 +2003,16 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool logResponse = false;
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
-  if (checkProtobufExport(luaconfsLocal)) {
+  const auto pbExport = checkProtobufExport(luaconfsLocal);
+  const auto outgoingbExport = checkOutgoingProtobufExport(luaconfsLocal);
+  if (pbExport || outgoingbExport) {
+    if (pbExport) {
+      needECS = true;
+    }
     uniqueId = getUniqueID();
-    needECS = true;
   }
-  else if (checkOutgoingProtobufExport(luaconfsLocal)) {
-    uniqueId = getUniqueID();
-  }
-  logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
-  logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
+  logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
+  logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 #ifdef HAVE_FSTRM
   checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
 #endif
@@ -2088,7 +2089,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     RecursorPacketCache::OptPBData pbData{boost::none};
-    if (t_protobufServers) {
+    if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta);
       }
@@ -2124,7 +2125,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         int sendErr = sendOnNBSocket(fd, &msgh);
         eventTrace.add(RecEventTrace::AnswerSent);
 
-        if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+        if (t_protobufServers.servers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
           protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
         }
 
@@ -2229,7 +2230,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_followCNAMERecords = followCNAMEs;
   dc->d_rcode = rcode;
   dc->d_logResponse = logResponse;
-  if (t_protobufServers || t_outgoingProtobufServers) {
+  if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
     dc->d_uuid = std::move(uniqueId);
   }
   dc->d_requestorId = requestorId;
