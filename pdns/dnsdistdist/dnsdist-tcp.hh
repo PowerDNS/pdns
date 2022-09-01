@@ -175,7 +175,7 @@ struct CrossProtocolQuery
 class TCPClientCollection
 {
 public:
-  TCPClientCollection(size_t maxThreads);
+  TCPClientCollection(size_t maxThreads, std::vector<ClientState*> tcpStates);
 
   int getThread()
   {
@@ -249,7 +249,7 @@ public:
   }
 
 private:
-  void addTCPClientThread();
+  void addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates);
 
   struct TCPWorkerThread
   {

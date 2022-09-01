@@ -2734,7 +2734,9 @@ int main(int argc, char** argv)
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing
        the first TCP query */
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads);
+#ifndef USE_SINGLE_ACCEPTOR_THREAD
+    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
+#endif
 
     initDoHWorkers();
 
@@ -2821,8 +2823,7 @@ int main(int argc, char** argv)
       udp.detach();
     }
     if (!tcpStates.empty()) {
-      thread tcp(tcpAcceptorThread, tcpStates);
-      tcp.detach();
+      g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
     }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
     dnsdist::ServiceDiscovery::run();
