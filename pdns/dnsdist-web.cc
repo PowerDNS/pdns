@@ -421,17 +421,17 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   Json::array responseRules;
   int num=0;
   auto localResponseRules = someResponseRules->getLocal();
-  for(const auto& a : *localResponseRules) {
-    Json::object rule{
-      {"id", num++},
-      {"creationOrder", (double)a.d_creationOrder},
-      {"uuid", boost::uuids::to_string(a.d_id)},
-      {"name", a.d_name},
-      {"matches", (double)a.d_rule->d_matches},
-      {"rule", a.d_rule->toString()},
-      {"action", a.d_action->toString()},
-    };
-    responseRules.push_back(rule);
+  responseRules.reserve(localResponseRules->size());
+  for (const auto& a : *localResponseRules) {
+    responseRules.push_back(Json::object{
+        {"id", num++},
+        {"creationOrder", (double)a.d_creationOrder},
+        {"uuid", boost::uuids::to_string(a.d_id)},
+        {"name", a.d_name},
+        {"matches", (double)a.d_rule->d_matches},
+        {"rule", a.d_rule->toString()},
+        {"action", a.d_action->toString()},
+      });
   }
   return responseRules;
 }
@@ -453,14 +453,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   std::ostringstream output;
-  static const std::set<std::string> metricBlacklist = { "latency-count", "latency-sum" };
+  static const std::set<std::string> metricBlacklist = { "special-memory-usage", "latency-count", "latency-sum" };
   for (const auto& e : g_stats.entries) {
-    if (e.first == "special-memory-usage")
-      continue; // Too expensive for get-all
-    std::string metricName = std::get<0>(e);
+    const auto& metricName = std::get<0>(e);
 
-    // Prometheus suggest using '_' instead of '-'
-    std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
     if (metricBlacklist.count(metricName) != 0) {
       continue;
     }
@@ -471,12 +467,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       continue;
     }
 
+    // Prometheus suggest using '_' instead of '-'
     std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
 
     if (prometheusTypeName == "") {
       vinfolog("Unknown Prometheus type for %s", metricName);
       continue;
     }
+    std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
 
     // for these we have the help and types encoded in the sources:
     output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
@@ -663,7 +661,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     const string proto = front->getType();
     const string fullName = frontName + "_" + proto;
     uint64_t threadNumber = 0;
-    auto dupPair = frontendDuplicates.insert({fullName, 1});
+    auto dupPair = frontendDuplicates.emplace(fullName, 1);
     if (!dupPair.second) {
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
@@ -741,7 +739,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   for(const auto& doh : g_dohlocals) {
     const string frontName = doh->d_local.toStringWithPort();
     uint64_t threadNumber = 0;
-    auto dupPair = frontendDuplicates.insert({frontName, 1});
+    auto dupPair = frontendDuplicates.emplace(frontName, 1);
     if (!dupPair.second) {
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
@@ -873,13 +871,13 @@ static void addStatsToJSONObject(Json::object& obj)
       continue; // Too expensive for get-all
     }
     if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
-      obj.insert({e.first, (double)(*val)->load()});
+      obj.emplace(e.first, (double)(*val)->load());
     } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
-      obj.insert({e.first, (*adval)->load()});
+      obj.emplace(e.first, (*adval)->load());
     } else if (const auto& dval = boost::get<double*>(&e.second)) {
-      obj.insert({e.first, (**dval)});
+      obj.emplace(e.first, (**dval));
     } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
-      obj.insert({e.first, (double)(*func)(e.first)});
+      obj.emplace(e.first, (double)(*func)(e.first));
     }
   }
 }
@@ -926,7 +924,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"action", DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) },
           {"warning", e.second.warning }
         };
-        obj.insert({e.first.toString(), thing});
+        obj.emplace(e.first.toString(), thing);
       }
     }
 
@@ -942,7 +940,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"blocks", (double)node.d_value.blocks},
           {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
         };
-        obj.insert({dom, thing});
+        obj.emplace(dom, thing);
       }
     });
 
@@ -963,7 +961,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
             {"seconds", (double)(std::get<2>(entry).tv_sec - now.tv_sec)},
             {"blocks", (double)(std::get<1>(entry))}
           };
-        obj.insert({std::get<0>(entry).toString(), thing });
+        obj.emplace(std::get<0>(entry).toString(), thing );
       }
     }
 #endif /* HAVE_EBPF */
@@ -991,6 +989,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
   }
 
   Json::array pools;
+  pools.reserve(a->d_config.pools.size());
   for (const auto& p: a->d_config.pools) {
     pools.push_back(p);
   }
@@ -1045,19 +1044,24 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   handleCORS(req, resp);
   resp.status = 200;
 
-  Json::array servers;
-  auto localServers = g_dstates.getLocal();
   int num = 0;
-  for (const auto& a : *localServers) {
-    addServerToJSON(servers, num++, a);
+
+  Json::array servers;
+  {
+    auto localServers = g_dstates.getLocal();
+    servers.reserve(localServers->size());
+    for (const auto& a : *localServers) {
+      addServerToJSON(servers, num++, a);
+    }
   }
 
   Json::array frontends;
   num = 0;
-  for(const auto& front : g_frontends) {
+  frontends.reserve(g_frontends.size());
+  for (const auto& front : g_frontends) {
     if (front->udpFD == -1 && front->tcpFD == -1)
       continue;
-    Json::object frontend{
+    Json::object frontend {
       { "id", num++ },
       { "address", front->local.toStringWithPort() },
       { "udp", front->udpFD >= 0 },
@@ -1102,15 +1106,16 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       frontend["tlsHandshakeFailuresUnsupportedEC"] = (double)errorCounters->d_unsupportedEC;
       frontend["tlsHandshakeFailuresUnsupportedProtocol"] = (double)errorCounters->d_unsupportedProtocol;
     }
-    frontends.push_back(frontend);
+    frontends.push_back(std::move(frontend));
   }
 
   Json::array dohs;
 #ifdef HAVE_DNS_OVER_HTTPS
   {
+    dohs.reserve(g_dohlocals.size());
     num = 0;
-    for(const auto& doh : g_dohlocals) {
-      Json::object obj{
+    for (const auto& doh : g_dohlocals) {
+      dohs.emplace_back(Json::object{
         { "id", num++ },
         { "address", doh->d_local.toStringWithPort() },
         { "http-connects", (double) doh->d_httpconnects },
@@ -1134,98 +1139,109 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         { "error-responses", (double) doh->d_errorresponses },
         { "redirect-responses", (double) doh->d_redirectresponses },
         { "valid-responses", (double) doh->d_validresponses }
-      };
-      dohs.push_back(obj);
+      });
     }
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
   Json::array pools;
-  auto localPools = g_pools.getLocal();
-  num = 0;
-  for(const auto& pool : *localPools) {
-    const auto& cache = pool.second->packetCache;
-    Json::object entry {
-      { "id", num++ },
-      { "name", pool.first },
-      { "serversCount", (double) pool.second->countServers(false) },
-      { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
-      { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
-      { "cacheHits", (double) (cache ? cache->getHits() : 0) },
-      { "cacheMisses", (double) (cache ? cache->getMisses() : 0) },
-      { "cacheDeferredInserts", (double) (cache ? cache->getDeferredInserts() : 0) },
-      { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
-      { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
-      { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
-      { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) },
-      { "cacheCleanupCount", (double) (cache ? cache->getCleanupCount() : 0) }
-    };
-    pools.push_back(entry);
+  {
+    auto localPools = g_pools.getLocal();
+    num = 0;
+    pools.reserve(localPools->size());
+    for (const auto& pool : *localPools) {
+      const auto& cache = pool.second->packetCache;
+      Json::object entry {
+        { "id", num++ },
+        { "name", pool.first },
+        { "serversCount", (double) pool.second->countServers(false) },
+        { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
+        { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
+        { "cacheHits", (double) (cache ? cache->getHits() : 0) },
+        { "cacheMisses", (double) (cache ? cache->getMisses() : 0) },
+        { "cacheDeferredInserts", (double) (cache ? cache->getDeferredInserts() : 0) },
+        { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
+        { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
+        { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
+        { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) },
+        { "cacheCleanupCount", (double) (cache ? cache->getCleanupCount() : 0) }
+      };
+      pools.push_back(std::move(entry));
+    }
   }
 
   Json::array rules;
   /* unfortunately DNSActions have getStats(),
      and DNSResponseActions do not. */
-  auto localRules = g_ruleactions.getLocal();
-  num = 0;
-  for (const auto& a : *localRules) {
-    Json::object rule{
-      {"id", num++},
-      {"creationOrder", (double)a.d_creationOrder},
-      {"uuid", boost::uuids::to_string(a.d_id)},
-      {"matches", (double)a.d_rule->d_matches},
-      {"rule", a.d_rule->toString()},
-      {"action", a.d_action->toString()},
-      {"action-stats", a.d_action->getStats()}
-    };
-    rules.push_back(rule);
+  {
+    auto localRules = g_ruleactions.getLocal();
+    num = 0;
+    rules.reserve(localRules->size());
+    for (const auto& a : *localRules) {
+      Json::object rule{
+        {"id", num++},
+        {"creationOrder", (double)a.d_creationOrder},
+        {"uuid", boost::uuids::to_string(a.d_id)},
+        {"matches", (double)a.d_rule->d_matches},
+        {"rule", a.d_rule->toString()},
+        {"action", a.d_action->toString()},
+        {"action-stats", a.d_action->getStats()}
+      };
+      rules.push_back(std::move(rule));
+    }
   }
-
   auto responseRules = someResponseRulesToJson(&g_respruleactions);
   auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitrespruleactions);
   auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredrespruleactions);
 
   string acl;
+  {
+    vector<string> vec;
+    g_ACL.getLocal()->toStringVector(&vec);
 
-  vector<string> vec;
-  g_ACL.getLocal()->toStringVector(&vec);
-
-  for(const auto& s : vec) {
-    if(!acl.empty()) acl += ", ";
-    acl+=s;
-  }
-  string localaddressesStr;
-  std::set<std::string> localaddresses;
-  for(const auto& front : g_frontends) {
-    localaddresses.insert(front->local.toStringWithPort());
-  }
-  for (const auto& addr : localaddresses) {
-    if (!localaddressesStr.empty()) {
-      localaddressesStr += ", ";
+    for (const auto& s : vec) {
+      if (!acl.empty()) {
+        acl += ", ";
+      }
+      acl += s;
     }
-    localaddressesStr += addr;
+  }
+
+  string localaddressesStr;
+  {
+    std::set<std::string> localaddresses;
+    for (const auto& front : g_frontends) {
+      localaddresses.insert(front->local.toStringWithPort());
+    }
+    for (const auto& addr : localaddresses) {
+      if (!localaddressesStr.empty()) {
+        localaddressesStr += ", ";
+      }
+      localaddressesStr += addr;
+    }
   }
 
   Json::object stats;
   addStatsToJSONObject(stats);
 
-  Json my_json = Json::object {
+  Json responseObject(std::move(Json::object({
     { "daemon_type", "dnsdist" },
-    { "version", VERSION},
-    { "servers", servers},
-    { "frontends", frontends },
-    { "pools", pools },
-    { "rules", rules},
-    { "response-rules", responseRules},
-    { "cache-hit-response-rules", cacheHitResponseRules},
-    { "self-answered-response-rules", selfAnsweredResponseRules},
-    { "acl", acl},
-    { "local", localaddressesStr},
-    { "dohFrontends", dohs },
-    { "statistics", stats }
-  };
+    { "version", VERSION },
+    { "servers", std::move(servers) },
+    { "frontends", std::move(frontends) },
+    { "pools", std::move(pools) },
+    { "rules", std::move(rules) },
+    { "response-rules", std::move(responseRules) },
+    { "cache-hit-response-rules", std::move(cacheHitResponseRules) },
+    { "self-answered-response-rules", std::move(selfAnsweredResponseRules) },
+    { "acl", std::move(acl) },
+    { "local", std::move(localaddressesStr) },
+    { "dohFrontends", std::move(dohs) },
+    { "statistics", std::move(stats) }
+        })));
+
   resp.headers["Content-Type"] = "application/json";
-  resp.body = my_json.dump();
+  resp.body = responseObject.dump();
 }
 
 static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
