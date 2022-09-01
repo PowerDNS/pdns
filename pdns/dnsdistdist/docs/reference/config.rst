@@ -503,6 +503,9 @@ Ringbuffers
 
 .. function:: setRingBuffersLockRetries(num)
 
+  .. deprecated:: 1.8.0
+    Deprecated in 1.8.0 in favor of :func:`setRingBuffersOptions` which provides more options.
+
   Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available
 
   :param int num: The maximum number of attempts. Defaults to 5 if there is more than one shard, 0 otherwise.
