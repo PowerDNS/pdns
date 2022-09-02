@@ -185,7 +185,7 @@ void fill_meta_cb(const void* ptr, uint8_t value_len, const struct dns_value* va
     const struct dns_value* value = &values[i];
     string value_s = string(value->value, value->value_len);
 
-    (*meta).push_back(value_s);
+    (*meta).emplace_back(value_s);
   }
 }
 
