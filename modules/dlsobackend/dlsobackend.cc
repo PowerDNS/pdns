@@ -481,7 +481,7 @@ void fill_domain_info(const void* di_, struct domain_info* domain_info)
 
   di->masters.clear();
   for (int i = 0; i < domain_info->master_len; i++) {
-    di->masters.push_back(ComboAddress(string(domain_info->masters[i].value, domain_info->masters[i].value_len), 53));
+    di->masters.emplace_back(ComboAddress(string(domain_info->masters[i].value, domain_info->masters[i].value_len), 53));
   }
 
   DNSName zone;
