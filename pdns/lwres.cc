@@ -58,12 +58,6 @@
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
 
-#ifdef HAVE_FSTRM
-#include "dnstap.hh"
-#include "fstrm_logger.hh"
-
-bool g_syslog;
-
 void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 {
   auto ret = r.queueData(data);
@@ -94,6 +88,12 @@ void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
   }
   }
 }
+
+#ifdef HAVE_FSTRM
+#include "dnstap.hh"
+#include "fstrm_logger.hh"
+
+bool g_syslog;
 
 static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
 {
