@@ -417,7 +417,7 @@ bool DlsoBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     ba.unhashed = &unhashed,
     ba.before = &before,
     ba.after = &after,
-  }
+  };
 
   return api->get_before_after(
     api->handle, id,
