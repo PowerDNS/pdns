@@ -1,13 +1,5 @@
-BEGIN;
-  ALTER TABLE domains ADD COLUMN options VARCHAR(65535) DEFAULT NULL;
-  ALTER TABLE domains ADD COLUMN catalog VARCHAR(255) DEFAULT NULL;
+ALTER TABLE domains ALTER COLUMN type TYPE text;
+ALTER TABLE domains ADD COLUMN options TEXT DEFAULT NULL,
+  ADD COLUMN catalog TEXT DEFAULT NULL;
 
-  ALTER TABLE domains ADD COLUMN account_new VARCHAR(40) DEFAULT NULL;
-  UPDATE domains SET account_new = account;
-  ALTER TABLE domains DROP COLUMN account;
-  ALTER TABLE domains RENAME COLUMN account_new TO account;
-
-  ALTER TABLE domains ALTER type VARCHAR(8) NOT NULL;
-
-  CREATE INDEX catalog_idx ON domains(catalog);
-COMMIT;
+CREATE INDEX catalog_idx ON domains(catalog);
