@@ -705,14 +705,14 @@ public:
   DlsoBackendFactory() :
     BackendFactory("dlso") {}
 
-  void declareArguments(const std::string& suffix = "")
+  void declareArguments(const std::string& suffix = "") override
   {
     declare(suffix, "dnssec", "Enable dnssec support", "no");
     declare(suffix, "path", "Path", "");
     declare(suffix, "args", "args", "");
   }
 
-  DNSBackend* make(const std::string& suffix = "")
+  DNSBackend* make(const std::string& suffix = "") override
   {
     return new DlsoBackend(suffix);
   }
