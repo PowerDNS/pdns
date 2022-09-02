@@ -411,7 +411,9 @@ void TCPNameserver::doConnection(int fd)
 
       sendPacket(reply, fd);
 #ifdef ENABLE_GSS_TSIG
-      packet->cleanupGSS(reply->d.rcode);
+      if (g_doGssTSIG) {
+        packet->cleanupGSS(reply->d.rcode);
+      }
 #endif
     }
   }
@@ -459,15 +461,18 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
       return false;
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+#ifdef ENABLE_GSS_TSIG
       if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
         GssContext gssctx(keyname);
         if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
           g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
         }
       }
+#endif
     }
 
     DNSSECKeeper dk(packetHandler->getBackend());
+#ifdef ENABLE_GSS_TSIG
     if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
       vector<string> princs;
       packetHandler->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
@@ -480,6 +485,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
       g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
       return false;
     }
+#endif
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
       g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
       return false;

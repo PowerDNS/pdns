@@ -32,6 +32,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
   if (tkey_in.d_mode == 3) { // establish context
+#ifdef ENABLE_GSS_TSIG
     if (g_doGssTSIG) {
       if (tkey_in.d_algo == DNSName("gss-tsig.")) {
         std::vector<std::string> meta;
@@ -59,7 +60,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       } else {
         tkey_out->d_error = 21; // BADALGO
       }
-    } else {
+    } else
+#endif
+      {
       tkey_out->d_error = 21; // BADALGO
 #ifdef ENABLE_GSS_TSIG
       g_log<<Logger::Error<<"GSS-TSIG request but feature not enabled by enable-gss-tsigs setting"<<endl;
