@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define PDNS_DLSO_ABI_VERSION 1
+static const uint32_t PDNS_DLSO_ABI_VERSION = 1;
 
 struct resource_record
 {
@@ -73,9 +73,11 @@ struct dns_meta
   uint8_t value_len;
 };
 
-#define DOMAIN_INFO_KIND_MASTER 0
-#define DOMAIN_INFO_KIND_SLAVE 1
-#define DOMAIN_INFO_KIND_NATIVE 2
+typedef enum domain_info_kind_e {
+  DOMAIN_INFO_KIND_MASTER = 0,
+  DOMAIN_INFO_KIND_SLAVE = 1,
+  DOMAIN_INFO_KIND_NATIVE = 2,
+} domain_info_kind_t;
 
 struct domain_info
 {
