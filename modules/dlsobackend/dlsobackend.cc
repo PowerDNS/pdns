@@ -231,17 +231,18 @@ bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind
     return false;
   }
 
-  struct dns_value* values = (struct dns_value*)calloc(meta.size(), sizeof(struct dns_value));
-  if (values == nullptr)
-    return false;
-  for (uint i = 0; i < meta.size(); i++) {
-    values[i].value_len = meta[i].size();
-    values[i].value = meta[i].c_str();
+  vector<dns_value> values;
+  values.resize(meta.size());
+  for (const auto& iter: meta) {
+    values.push_back(
+      dns_value {
+        .value = iter.c_str(),
+        .value_len = static_cast<uint8_t>(iter.size()),
+      });
   }
 
   string qname = name.toString();
-  bool status = api->set_meta(api->handle, qname.size(), qname.c_str(), kind.size(), kind.c_str(), meta.size(), values);
-  free(values);
+  bool status = api->set_meta(api->handle, qname.size(), qname.c_str(), kind.size(), kind.c_str(), values.size(), values.data());
   return status;
 }
 
@@ -595,36 +596,33 @@ bool DlsoBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   }
 
   vector<string> qnames;
-  struct resource_record* records = (struct resource_record*)calloc(rrset.size(), sizeof(struct resource_record));
-  uint32_t i = 0;
+  vector<resource_record> records;
+  records.resize(rrset.size());
 
   for (const auto& rr : rrset) {
     qnames.push_back(rr.qname.toString());
 
     const string qname_ = qnames.back();
-
-    records[i].qtype = rr.qtype.getCode();
-    records[i].qname = qname_.c_str();
-    records[i].qname_len = qname_.size();
-    records[i].content = rr.content.c_str();
-    records[i].content_len = rr.content.size();
-    records[i].ttl = rr.ttl;
-    records[i].auth = rr.auth;
-    records[i].scope_mask = rr.scopeMask;
-    records[i].domain_id = rr.domain_id;
-
-    i++;
+    records.push_back(resource_record{
+      .qtype = rr.qtype.getCode(),
+      .qname_len = static_cast<uint8_t>(qname_.size()),
+      .scope_mask = rr.scopeMask,
+      .content_len = static_cast<uint8_t>(rr.content.size()),
+      .qname = qname_.c_str(),
+      .content = rr.content.c_str(),
+      .ttl = rr.ttl,
+      .domain_id = rr.domain_id,
+      .auth = rr.auth,
+    });
   }
 
   string qname_ = qname.toString();
 
   try {
-    bool status = api->replace_record(api->handle, domain_id, qname_.size(), qname_.c_str(), qt.getCode(), rrset.size(), records);
-    free(records);
+    bool status = api->replace_record(api->handle, domain_id, qname_.size(), qname_.c_str(), qt.getCode(), records.size(), records.data());
     return status;
   }
   catch (PDNSException& e) {
-    free(records);
     throw e;
   }
 }
