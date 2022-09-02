@@ -82,6 +82,8 @@ struct Rings {
   void init();
 
   void setNumberOfLockRetries(size_t retries);
+  void setRecordQueries(bool);
+  void setRecordResponses(bool);
 
   size_t getNumberOfShards() const
   {
@@ -186,6 +188,16 @@ struct Rings {
      only useful for debugging purposes */
   size_t loadFromFile(const std::string& filepath, const struct timespec& now);
 
+  bool shouldRecordQueries() const
+  {
+    return d_recordQueries;
+  }
+
+  bool shouldRecordResponses() const
+  {
+    return d_recordResponses;
+  }
+
   std::vector<std::unique_ptr<Shard> > d_shards;
   pdns::stat_t d_blockingQueryInserts;
   pdns::stat_t d_blockingResponseInserts;
@@ -240,6 +252,8 @@ private:
   size_t d_numberOfShards;
   size_t d_nbLockTries = 5;
   bool d_keepLockingStats{false};
+  bool d_recordQueries{true};
+  bool d_recordResponses{true};
 };
 
 extern Rings g_rings;
