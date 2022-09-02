@@ -234,10 +234,10 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
 
     auto master_len = my_di.masters.size();
     vector<dns_value> masters;
-    masters.reserve(master_len);
+    masters.resize(master_len);
 
     std::vector<string> ip_addresses;
-    ip_addresses.reserve(master_len);
+    ip_addresses.resize(master_len);
     for (const auto& ip_address : my_di.masters) {
       auto ip_address_str = ip_address.toString();
 
@@ -425,10 +425,10 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
     info.master_len = my_di.masters.size();
 
     vector<dns_value> masters;
-    masters.reserve(info.master_len);
+    masters.resize(info.master_len);
 
     std::vector<string> ip_addresses;
-    ip_addresses.reserve(info.master_len);
+    ip_addresses.resize(info.master_len);
     for (const auto& ip_address : my_di.masters) {
       auto ip_address_str = ip_address.toString();
 
