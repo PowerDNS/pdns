@@ -32,6 +32,7 @@
 #ifdef ENABLE_GSS_TSIG
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
+extern bool g_doGssTSIG;
 #endif
 
 //! Generic errors

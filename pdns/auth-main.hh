@@ -60,5 +60,4 @@ extern bool g_doLuaRecord;
 extern bool g_LuaRecordSharedState;
 extern time_t g_luaHealthChecksInterval;
 extern time_t g_luaHealthChecksExpireDelay;
-extern bool g_doGssTSIG;
 #endif // HAVE_LUA_RECORDS

@@ -8,7 +8,9 @@
 #include <boost/test/unit_test.hpp>
 #include "distributor.hh"
 #include "dnspacket.hh"
-#include "namespaces.hh" 
+#include "namespaces.hh"
+
+bool g_doGssTSIG = false;
 
 BOOST_AUTO_TEST_SUITE(test_distributor_hh)
 

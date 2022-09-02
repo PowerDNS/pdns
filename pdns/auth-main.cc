@@ -109,7 +109,9 @@ int g_luaRecordExecLimit;
 time_t g_luaHealthChecksInterval{5};
 time_t g_luaHealthChecksExpireDelay{3600};
 #endif
+#ifdef ENABLE_GSS_TSIG
 bool g_doGssTSIG;
+#endif
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -326,7 +328,9 @@ void declareArguments()
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
+#ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
+#endif
   ::arg().setDefaults();
 }
 
@@ -699,7 +703,9 @@ void mainthread()
   g_luaHealthChecksInterval = ::arg().asNum("lua-health-checks-interval");
   g_luaHealthChecksExpireDelay = ::arg().asNum("lua-health-checks-expire-delay");
 #endif
+#ifdef ENABLE_GSS_TSIG
   g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
+#endif
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");

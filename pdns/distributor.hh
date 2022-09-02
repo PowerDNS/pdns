@@ -38,6 +38,7 @@
 #include "arguments.hh"
 #include <atomic>
 #include "statbag.hh"
+#include "gss_context.hh"
 
 extern StatBag S;
 
@@ -249,7 +250,7 @@ retry:
 
       QD->callback(a, QD->start);
 #ifdef ENABLE_GSS_TSIG
-      if (a != nullptr) {
+      if (g_doGssTSIG && a != nullptr) {
         QD->Q.cleanupGSS(a->d.rcode);
       }
 #endif
@@ -315,7 +316,7 @@ retry:
   }
   callback(a, start);
 #ifdef ENABLE_GSS_TSIG
-  if (a != nullptr) {
+  if (g_doGssTSIG && a != nullptr) {
     q.cleanupGSS(a->d.rcode);
   }
 #endif
