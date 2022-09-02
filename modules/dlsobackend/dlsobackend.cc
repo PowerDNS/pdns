@@ -121,7 +121,7 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t dom
   }
 
   string qname = qdomain.toString();
-  bool success;
+  bool success = false;
 
   if (pkt_p != nullptr) {
     ComboAddress edns_or_resolver_ip = pkt_p->getRealRemote().getNetwork();
@@ -143,9 +143,7 @@ bool DlsoBackend::list(const DNSName& target, int domain_id, bool include_disabl
   }
 
   string qname = target.toString();
-  bool success;
-
-  success = api->list(api->handle, qname.size(), qname.c_str(), domain_id);
+  bool success = api->list(api->handle, qname.size(), qname.c_str(), domain_id);
 
   if (!success) {
     throw PDNSException("Backend failed");
@@ -640,16 +638,17 @@ bool DlsoBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& orderna
 
   string qname = rr.qname.toString();
 
-  struct resource_record record;
-  record.qtype = rr.qtype.getCode();
-  record.qname = qname.c_str();
-  record.qname_len = (uint8_t)qname.size();
-  record.content = rr.content.c_str();
-  record.content_len = (uint32_t)rr.content.size();
-  record.ttl = rr.ttl;
-  record.auth = rr.auth;
-  record.scope_mask = rr.scopeMask;
-  record.domain_id = rr.domain_id;
+  struct resource_record record = {
+    .qtype = rr.qtype.getCode(),
+    .qname_len = static_cast<uint8_t>(qname.size()),
+    .scope_mask = rr.scopeMask,
+    .content_len = static_cast<uint8_t>(rr.content.size()),
+    .qname = qname.c_str(),
+    .content = rr.content.c_str(),
+    .ttl = rr.ttl,
+    .domain_id = rr.domain_id,
+    .auth = rr.auth,
+  };
 
   if (!ordername.empty()) {
     auto ordername_str = ordername.toString();
@@ -682,12 +681,13 @@ bool DlsoBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, b
     return false;
   }
 
-  struct nsec3_param ns3;
-  ns3.alg = ns3prc.d_algorithm;
-  ns3.flags = ns3prc.d_flags;
-  ns3.iterations = ns3prc.d_iterations;
-  ns3.salt_len = ns3prc.d_salt.size();
-  ns3.salt = ns3prc.d_salt.c_str();
+  struct nsec3_param ns3 = {
+    .salt = ns3prc.d_salt.c_str(),
+    .salt_len = static_cast<uint8_t>(ns3prc.d_salt.size()),
+    .alg = ns3prc.d_algorithm,
+    .iterations = ns3prc.d_iterations,
+    .flags = ns3prc.d_flags,
+  };
 
   string domain_ = domain.toString();
 
