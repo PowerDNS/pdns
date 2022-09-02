@@ -429,8 +429,9 @@ bool DlsoBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
 bool DlsoBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname_, const DNSName& ordername_, bool auth, const uint16_t qtype)
 {
-  if (api->update_dnssec_order_name_and_auth == nullptr)
+  if (api->update_dnssec_order_name_and_auth == nullptr) {
     return false;
+  }
 
   string qname;
   if (!qname_.empty()) {
@@ -446,15 +447,12 @@ bool DlsoBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 
 bool DlsoBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
-  if (api->update_empty_non_terminals == nullptr)
+  if (api->update_empty_non_terminals == nullptr || api->remove_empty_non_terminals == nullptr) {
     return false;
-  if (api->remove_empty_non_terminals == nullptr)
-    return false;
+  }
 
-  if (remove) {
-    if (!api->remove_empty_non_terminals(api->handle, domain_id)) {
-      return false;
-    }
+  if (remove && !api->remove_empty_non_terminals(api->handle, domain_id)) {
+    return false;
   }
 
   for (const auto& it : insert) {
