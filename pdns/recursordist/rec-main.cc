@@ -2330,10 +2330,7 @@ static void recursorThread()
       try {
         if (!::arg()["lua-dns-script"].empty()) {
           t_pdl = std::make_shared<RecursorLua4>();
-          auto err = t_pdl->loadFile(::arg()["lua-dns-script"]);
-          if (err != 0) {
-            throw std::runtime_error(stringerror(err));
-          }
+          t_pdl->loadFile(::arg()["lua-dns-script"]);
           SLOG(g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl,
                log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
         }
@@ -2981,14 +2978,15 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
       g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl;
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
-    else {
-      t_pdl = std::make_shared<RecursorLua4>();
-      int err = t_pdl->loadFile(fname);
-      if (err != 0) {
-        string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
-        g_log << Logger::Error << msg << endl;
-        return new RecursorControlChannel::Answer{1, msg + "\n"};
-      }
+
+    t_pdl = std::make_shared<RecursorLua4>();
+    try {
+      t_pdl->loadFile(fname);
+    }
+    catch (std::runtime_error& ex) {
+      string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
+      g_log << Logger::Error << msg << endl;
+      return new RecursorControlChannel::Answer{1, msg + "\n"};
     }
   }
   catch (std::exception& e) {
