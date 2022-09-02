@@ -282,13 +282,13 @@ bool DlsoBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
   }
 
   string qname = name.toString();
-  struct dnskey dnskey;
-
-  dnskey.id = key.id;
-  dnskey.flags = key.flags;
-  dnskey.active = key.active;
-  dnskey.data = key.content.c_str();
-  dnskey.data_len = key.content.size();
+  struct dnskey dnskey {
+    .id = key.id,
+    .flags = static_cast<uint16_t>(key.flags),
+    .data_len = static_cast<uint16_t>(key.content.size()),
+    .data = key.content.c_str(),
+    .active = key.active,
+  };
 
   return api->add_domain_key(api->handle, qname.size(), qname.c_str(), &dnskey, &id);
 }
