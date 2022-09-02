@@ -78,7 +78,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   else
   {
     d_pdl = std::make_unique<AuthLua4>();
-    d_pdl->loadFile(fname);
+    d_pdl->loadFile(fname); // XXX exception handling?
   }
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
@@ -88,7 +88,10 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   else
   {
     d_update_policy_lua = std::make_unique<AuthLua4>();
-    if (d_update_policy_lua->loadFile(fname) != 0) {
+    try {
+      d_update_policy_lua->loadFile(fname);
+    }
+    catch (const std::runtime_error&) {
       d_update_policy_lua = nullptr;
     }
   }
