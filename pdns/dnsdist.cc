@@ -1327,18 +1327,14 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
         return ProcessQueryResult::SendAnswer;
       }
       else if (dq.protocol == dnsdist::Protocol::DoH) {
-        /* do a second-lookup for UDP responses */
-        /* we need to do a copy to be able to restore the query on a TC=1 cached answer */
+        /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
         PacketBuffer initialQuery(dq.getData());
-        if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKeyUDP, dq.subnet, dq.dnssecOK, true, allowExpired)) {
-          if (dq.getHeader()->tc == 0) {
-            if (!prepareOutgoingResponse(holders, cs, dq, true)) {
-              return ProcessQueryResult::Drop;
-            }
-
-            return ProcessQueryResult::SendAnswer;
+        if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKeyUDP, dq.subnet, dq.dnssecOK, true, allowExpired, false)) {
+          if (!prepareOutgoingResponse(holders, cs, dq, true)) {
+            return ProcessQueryResult::Drop;
           }
-          dq.getMutableData() = std::move(initialQuery);
+
+          return ProcessQueryResult::SendAnswer;
         }
       }
 
