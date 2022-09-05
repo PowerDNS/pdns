@@ -1658,10 +1658,14 @@ The following actions exist.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
   prevent the TC bit from being set over TCP transports.
 
-.. function:: TeeAction(remote[, addECS])
+.. function:: TeeAction(remote[, addECS[, local]])
+
+  .. versionchanged:: 1.8.0
+    Added the optional parameter ``local``.
 
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
+  If ``local`` has provided a value like "192.0.2.53", dnsdist will try binding that address as local address when sending the queries.
   Subsequent rules are processed after this action.
 
   :param string remote: An IP:PORT combination to send the copied queries to
