@@ -57,6 +57,7 @@
 
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
+bool g_paddingOutgoing;
 
 void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 {
@@ -423,7 +424,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       weWantEDNSSubnet=true;
     }
 
-    if (dnsOverTLS /* and other conditions? */) {
+    if (dnsOverTLS && g_paddingOutgoing) {
       addPadding(pw, bufsize, opts);
     }
 

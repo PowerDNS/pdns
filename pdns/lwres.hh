@@ -50,6 +50,7 @@
 void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
 
 extern std::shared_ptr<Logr::Logger> g_slogout;
+extern bool g_paddingOutgoing;
 
 class LWResException : public PDNSException
 {
