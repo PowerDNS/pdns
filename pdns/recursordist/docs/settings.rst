@@ -1202,6 +1202,19 @@ it by the number of NS records found above the
 `max-ns-address-qperq`_ value. The limit wil not be reduced to a
 number lower than 5.
 
+.. _setting-max-ns-per-resolve:
+
+``max-ns-per-resolve``
+----------------------
+.. versionadded:: 4.8.0
+
+-  Integer
+-  Default: 13
+
+The maximum number of NS records that will be considered to select a nameserver to contact to resolve a name.
+If a zone has more than `max-ns-per-resolve`_ NS records, a random sample of this size will be used.
+If `max-ns-per-resolve`_ is zero, no limit applies.
+
 .. _setting-max-negative-ttl:
 
 ``max-negative-ttl``
