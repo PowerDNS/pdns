@@ -574,7 +574,7 @@ bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret, RecEventTrace& et) con
   return ok;
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et) const
+bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et, const struct timeval& tv) const
 {
   if (!d_preoutquery) {
     return false;
@@ -583,7 +583,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   bool wantsRPZ = false;
   bool logQuery = false;
   bool addPaddingToResponse = false;
-  RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse);
+  RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, tv);
   dq.currentRecords = &res;
   et.add(RecEventTrace::LuaPreOutQuery);
   bool ok = genhook(d_preoutquery, dq, ret);

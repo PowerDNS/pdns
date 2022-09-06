@@ -5093,7 +5093,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   int preOutQueryRet = RCode::NoError;
-  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet, d_eventTrace)) {
+  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet, d_eventTrace, timeval{0, 0})) {
     LOG(prefix<<qname<<": query handled by Lua"<<endl);
   }
   else {

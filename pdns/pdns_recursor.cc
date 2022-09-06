@@ -979,7 +979,7 @@ void startDoResolve(void* p)
     int res = RCode::NoError;
 
     DNSFilterEngine::Policy appliedPolicy;
-    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse, addPaddingToResponse);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse, addPaddingToResponse, (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec != 0) ? dc->d_kernelTimestamp : dc->d_now);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
@@ -997,12 +997,6 @@ void startDoResolve(void* p)
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
     dq.meta = std::move(dc->d_meta);
     dq.fromAuthIP = &sr.d_fromAuthIP;
-    if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec != 0) {
-      dq.queryTime = dc->d_kernelTimestamp;
-    }
-    else {
-      dq.queryTime = dc->d_now;
-    }
 
     sr.d_slog = sr.d_slog->withValues("qname", Logging::Loggable(dc->d_mdp.d_qname),
                                       "qtype", Logging::Loggable(QType(dc->d_mdp.d_qtype)),

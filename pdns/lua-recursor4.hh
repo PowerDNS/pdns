@@ -82,8 +82,8 @@ public:
   };
   struct DNSQuestion
   {
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_) :
-      qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_)
+    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
+      qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_)
     {
     }
     const DNSName& qname;
@@ -205,7 +205,7 @@ public:
   bool nodata(DNSQuestion& dq, int& ret, RecEventTrace&) const;
   bool postresolve(DNSQuestion& dq, int& ret, RecEventTrace&) const;
 
-  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et) const;
+  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et, const struct timeval& tv) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&, RecEventTrace&) const;
 
   bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;

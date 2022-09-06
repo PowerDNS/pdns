@@ -223,6 +223,20 @@ The DNSQuestion object contains at least the following fields:
 
       The packet-cache tag set via :func:`gettag`, or 0 if it has not been set.
 
+  .. attribute:: DNSQuestion.queryTime
+
+     .. versionadded:: 4.8.0
+
+     The time the query was received
+
+     .. attribute:: DNSQuestion.queryTime.tv_sec
+
+        The number of seconds since the Unix epoch.
+
+     .. attribute:: DNSQuestion.queryTime.tv_usec
+
+        The number of microseconds.
+
   It also supports the following methods:
 
   .. method:: DNSQuestion:addAnswer(type, content, [ttl, name])
