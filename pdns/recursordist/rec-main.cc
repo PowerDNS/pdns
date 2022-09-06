@@ -1157,37 +1157,43 @@ void parseACLs()
   static bool l_initialized;
 
   if (l_initialized) { // only reload configuration file on second call
-    string configname = ::arg()["config-dir"] + "/recursor.conf";
-    if (::arg()["config-name"] != "") {
-      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+    string configName = ::arg()["config-dir"] + "/recursor.conf";
+    if (!::arg()["config-name"].empty()) {
+      configName = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
     }
-    cleanSlashes(configname);
+    cleanSlashes(configName);
 
-    if (!::arg().preParseFile(configname.c_str(), "allow-from-file"))
-      throw runtime_error("Unable to re-parse configuration file '" + configname + "'");
-    ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
+    if (!::arg().preParseFile(configName.c_str(), "allow-from-file")) {
+      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+    }
+    ::arg().preParseFile(configName.c_str(), "allow-from", LOCAL_NETS);
 
-    if (!::arg().preParseFile(configname.c_str(), "allow-notify-from-file"))
-      throw runtime_error("Unable to re-parse configuration file '" + configname + "'");
-    ::arg().preParseFile(configname.c_str(), "allow-notify-from");
+    if (!::arg().preParseFile(configName.c_str(), "allow-notify-from-file")) {
+      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+    }
+    ::arg().preParseFile(configName.c_str(), "allow-notify-from");
 
-    ::arg().preParseFile(configname.c_str(), "include-dir");
+    ::arg().preParseFile(configName.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
     // then process includes
     std::vector<std::string> extraConfigs;
     ::arg().gatherIncludes(extraConfigs);
 
-    for (const std::string& fn : extraConfigs) {
-      if (!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
-      if (!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
+    for (const std::string& fileName : extraConfigs) {
+      if (!::arg().preParseFile(fileName.c_str(), "allow-from-file", ::arg()["allow-from-file"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
+      if (!::arg().preParseFile(fileName.c_str(), "allow-from", ::arg()["allow-from"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
 
-      if (!::arg().preParseFile(fn.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
-      if (!::arg().preParseFile(fn.c_str(), "allow-notify-from", ::arg()["allow-notify-from"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
+      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
+      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from", ::arg()["allow-notify-from"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
     }
 
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
@@ -1199,7 +1205,7 @@ void parseACLs()
 
   auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
-  if (allowFrom->size() == 0) {
+  if (allowFrom->empty()) {
     if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53) {
       SLOG(g_log << Logger::Warning << "WARNING: Allowing queries from all IP addresses - this can be a security risk!" << endl,
            log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!"));
