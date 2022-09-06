@@ -112,6 +112,7 @@ public:
     bool& addPaddingToResponse;
     unsigned int tag{0};
     std::map<std::string, MetaValue> meta;
+    struct timeval queryTime;
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
