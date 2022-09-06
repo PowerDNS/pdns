@@ -524,9 +524,9 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
   return parseFile(fname, arg, false);
 }
 
-bool ArgvMap::file(const char *fname, bool lax)
+bool ArgvMap::file(const char* fname, bool lax)
 {
-   return file(fname,lax,false);
+  return file(fname, lax, false);
 }
 
 bool ArgvMap::file(const char* fname, bool lax, bool included)
