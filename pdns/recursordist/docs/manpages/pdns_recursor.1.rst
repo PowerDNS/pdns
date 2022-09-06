@@ -46,6 +46,11 @@ at `<https://doc.powerdns.com/>`
     chroot the process to *directory*.
 --client-tcp-timeout=<num>
     Timeout in seconds when talking to TCP clients.
+--config
+    Show the current configuration. There are three optional values:
+    ``--config=default`` to show the default configuration.
+    ``--config=diff``    show modified options in the current configuration.
+    ``--config=check``   to check the current configuration for errors.
 --config-dir=<directory>
     Location of configuration directory (recursor.conf), the default
     depends on the SYSCONFDIR option at build-time, which is usually

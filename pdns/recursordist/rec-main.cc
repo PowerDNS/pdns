@@ -2814,7 +2814,7 @@ int main(int argc, char** argv)
 
     ::arg().setCmd("help", "Provide a helpful message");
     ::arg().setCmd("version", "Print version string");
-    ::arg().setCmd("config", "Output blank configuration");
+    ::arg().setCmd("config", "Output blank configuration. You can use --config=check to test the config file and command line arguments.");
     ::arg().setDefaults();
     g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc, argv); // do a lax parse
@@ -2871,11 +2871,6 @@ int main(int argc, char** argv)
       exit(99);
     }
 
-    if (::arg().mustDo("config")) {
-      cout << ::arg().configstring(false, true);
-      exit(0);
-    }
-
     if (s_structured_logger_backend == "systemd-journal") {
 #ifdef HAVE_SYSTEMD
       if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
@@ -2899,6 +2894,49 @@ int main(int argc, char** argv)
     g_slogout = g_slog->withName("out");
 
     ::arg().setSLog(startupLog);
+
+    if (::arg().mustDo("config")) {
+      string config = ::arg()["config"];
+      if (config == "check") {
+        try {
+          if (!::arg().file(configname.c_str())) {
+            SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+                 startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+            exit(1);
+          }
+          ::arg().parse(argc, argv);
+          exit(0);
+        }
+        catch (const ArgException& argException) {
+          SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "': " << argException.reason << endl,
+               startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason)));
+          exit(1);
+        }
+      }
+      else if (config == "default") {
+        cout << ::arg().configstring(false, true);
+      }
+      else if (config == "diff") {
+        if (!::arg().laxFile(configname.c_str())) {
+          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          exit(1);
+        }
+        ::arg().laxParse(argc, argv);
+        cout << ::arg().configstring(true, false);
+      }
+      else {
+        if (!::arg().laxFile(configname.c_str())) {
+          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          exit(1);
+        }
+        ::arg().laxParse(argc, argv);
+        cout << ::arg().configstring(true, true);
+      }
+      exit(0);
+    }
+
     if (!::arg().file(configname.c_str())) {
       SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
            startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
