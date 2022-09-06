@@ -54,6 +54,7 @@ unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
 unsigned int SyncRes::s_maxcachettl;
 unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxnsperresolve;
 unsigned int SyncRes::s_maxnsaddressqperq;
 unsigned int SyncRes::s_maxtotusec;
 unsigned int SyncRes::s_maxdepth;
@@ -1203,6 +1204,12 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     *flawedNSSet = false;
 
     if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, false, d_routingTag) > 0) {
+      if (s_maxnsperresolve > 0 && ns.size() > s_maxnsperresolve) {
+        vector<DNSRecord> selected;
+        selected.reserve(s_maxnsperresolve);
+        std::sample(ns.cbegin(), ns.cend(), std::back_inserter(selected), s_maxnsperresolve, pdns::dns_random_engine());
+        ns = selected;
+      }
       bestns.reserve(ns.size());
 
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
