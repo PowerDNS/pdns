@@ -58,8 +58,8 @@ public:
   {
     return Stats{.d_queued = d_framesSent,
                  .d_pipeFull = d_queueFullDrops,
-                 .d_otherError = d_permanentFailures,
-                 .d_tooLarge = 0
+                 .d_tooLarge = 0,
+                 .d_otherError = d_permanentFailures
     };
   }
 

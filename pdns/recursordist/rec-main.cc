@@ -1294,7 +1294,7 @@ static ProxyMappingStats_t& operator+=(ProxyMappingStats_t& a, const ProxyMappin
   return a;
 }
 
-static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t &a, const RemoteLoggerStats_t& b)
+static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t& a, const RemoteLoggerStats_t& b)
 {
   for (const auto& [key, entry] : b) {
     a[key] += entry;

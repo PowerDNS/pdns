@@ -993,7 +993,7 @@ static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& sta
   if (stats.empty()) {
     return;
   }
-  for (const auto& [key, entry]: stats) {
+  for (const auto& [key, entry] : stats) {
     os << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << '\t' << type << endl;
   }
 }
@@ -1268,7 +1268,7 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
   auto stats2 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
   auto stats3 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
   uint64_t count = 0;
-  for (const auto& [stats, type] : { make_pair(stats1, "protobuf") , make_pair(stats2, "outgoingProtobuf"), make_pair(stats3, "dnstapFrameStream") } ) {
+  for (const auto& [stats, type] : {make_pair(stats1, "protobuf"), make_pair(stats2, "outgoingProtobuf"), make_pair(stats3, "dnstapFrameStream")}) {
     for (const auto& [key, entry] : stats) {
       auto keyname = pbasename + "{address=\"" + key + "\",type=\"" + type + "\",count=\"";
       auto sname1 = name + "-q-" + std::to_string(count);
@@ -2347,7 +2347,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, doGetProxyMappingStats()};
   }
   if (cmd == "get-remotelogger-stats") {
-    return {0, getRemoteLoggerStats() };
+    return {0, getRemoteLoggerStats()};
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};
