@@ -89,10 +89,10 @@ public:
 private:
   int build();
   void* dlhandle;
-  struct lib_so_api* api;
+  struct lib_so_api* api = nullptr;
   bool d_dnssec;
 
-  bool in_query;
+  bool in_query = false;
 };
 
 #endif

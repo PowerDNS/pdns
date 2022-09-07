@@ -47,7 +47,6 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
   std::string args = getArg("args");
 
   this->d_dnssec = mustDo("dnssec");
-  this->in_query = false;
 
   this->dlhandle = dlopen(libpath.c_str(), RTLD_LAZY);
 
