@@ -121,7 +121,10 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t zon
 
   if (pkt_p != nullptr) {
     ComboAddress edns_or_resolver_ip = pkt_p->getRealRemote().getNetwork();
-    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), (sockaddr*)&edns_or_resolver_ip.sin4, zoneId);
+    // TODO expose the whole union to 3rd party lib.
+    // clang-tidy: This reinterpret_cast is needed as we expose a generic `sockaddr`.
+    auto* sockaddr = reinterpret_cast<struct sockaddr*>(std::addressof(edns_or_resolver_ip.sin4));
+    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), sockaddr, zoneId);
   }
   else {
     success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), nullptr, zoneId);
