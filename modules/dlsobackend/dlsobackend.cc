@@ -110,10 +110,6 @@ DlsoBackend::~DlsoBackend()
   dlclose(this->dlhandle);
 }
 
-/**
- * The functions here are just remote json stubs that send and receive the method call
- * data is mainly left alone, some defaults are assumed.
- */
 void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t domain_id, DNSPacket* pkt_p)
 {
   if (in_query) {
