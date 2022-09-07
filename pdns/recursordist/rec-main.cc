@@ -2847,7 +2847,7 @@ int main(int argc, char** argv)
     g_log.toConsole(s_logUrgency);
 
     string configname = ::arg()["config-dir"] + "/recursor.conf";
-    if (::arg()["config-name"] != "") {
+    if (!::arg()["config-name"].empty()) {
       configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
       g_programname += "-" + ::arg()["config-name"];
     }
