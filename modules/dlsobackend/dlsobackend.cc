@@ -110,7 +110,7 @@ DlsoBackend::~DlsoBackend()
   dlclose(this->dlhandle);
 }
 
-void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t domain_id, DNSPacket* pkt_p)
+void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t zoneId, DNSPacket* pkt_p)
 {
   if (in_query) {
     throw PDNSException("Attempt to lookup while one running");
@@ -121,10 +121,10 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t dom
 
   if (pkt_p != nullptr) {
     ComboAddress edns_or_resolver_ip = pkt_p->getRealRemote().getNetwork();
-    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), (sockaddr*)&edns_or_resolver_ip.sin4, domain_id);
+    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), (sockaddr*)&edns_or_resolver_ip.sin4, zoneId);
   }
   else {
-    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), nullptr, domain_id);
+    success = api->lookup(api->handle, qtype.getCode(), qname.size(), qname.c_str(), nullptr, zoneId);
   }
 
   if (!success) {
