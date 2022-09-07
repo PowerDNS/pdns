@@ -54,7 +54,7 @@ DlsoBackend::DlsoBackend(const std::string& suffix)
     throw PDNSException("Unable to load library: " + libpath + ":\n" + dlerror());
   }
 
-  dlso_register_t register_api = (dlso_register_t)dlsym(this->dlhandle, "pdns_dlso_register");
+  auto register_api = reinterpret_cast<dlso_register_t>(dlsym(this->dlhandle, "pdns_dlso_register"));
   if (register_api == nullptr) {
     dlclose(this->dlhandle);
     throw PDNSException("Failed to initialize dlso, no pdns_dlso_register symbol exposed");
