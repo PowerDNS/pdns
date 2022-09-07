@@ -231,9 +231,9 @@ bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 
   vector<dns_value> values;
   values.resize(meta.size());
-  for (const auto& iter: meta) {
+  for (const auto& iter : meta) {
     values.push_back(
-      dns_value {
+      dns_value{
         .value = iter.c_str(),
         .value_len = static_cast<uint8_t>(iter.size()),
       });
@@ -280,7 +280,8 @@ bool DlsoBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
   }
 
   string qname = name.toString();
-  struct dnskey dnskey {
+  struct dnskey dnskey
+  {
     .id = key.id,
     .flags = static_cast<uint16_t>(key.flags),
     .data_len = static_cast<uint16_t>(key.content.size()),
