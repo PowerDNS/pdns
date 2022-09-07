@@ -26,7 +26,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-static const uint32_t PDNS_DLSO_ABI_VERSION = 1;
+/** ABI version changelog
+  *
+  * - 2: Changed signature of callback ptr to void* instead of const void *.
+  * - 1: Initial version.
+  */
+static const uint32_t PDNS_DLSO_ABI_VERSION = 2;
 
 struct resource_record
 {
@@ -94,13 +99,13 @@ struct domain_info
   time_t last_check;
 };
 
-typedef void (*fill_cb_t)(const void*, const struct resource_record*);
-typedef void (*fill_key_cb_t)(const void*, const struct dnskey*);
-typedef void (*fill_tsig_key_cb_t)(const void*, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
-typedef void (*fill_meta_cb_t)(const void*, uint8_t value_len, const struct dns_value*);
-typedef void (*fill_metas_cb_t)(const void*, uint8_t meta_len, const struct dns_meta*);
-typedef void (*fill_before_after_cb_t)(const void*, uint8_t unhashed_len, const char* unhashed, uint8_t before_len, const char* before, uint8_t after_len, const char* after);
-typedef void (*fill_domain_info_cb_t)(const void*, struct domain_info* di);
+typedef void (*fill_cb_t)(void*, const struct resource_record*);
+typedef void (*fill_key_cb_t)(void*, const struct dnskey*);
+typedef void (*fill_tsig_key_cb_t)(void*, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
+typedef void (*fill_meta_cb_t)(void*, uint8_t value_len, const struct dns_value*);
+typedef void (*fill_metas_cb_t)(void*, uint8_t meta_len, const struct dns_meta*);
+typedef void (*fill_before_after_cb_t)(void*, uint8_t unhashed_len, const char* unhashed, uint8_t before_len, const char* before, uint8_t after_len, const char* after);
+typedef void (*fill_domain_info_cb_t)(void*, struct domain_info* di);
 
 struct lib_so_api
 {
