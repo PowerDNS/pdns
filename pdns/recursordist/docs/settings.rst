@@ -703,6 +703,17 @@ List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP 
 Whether to add EDNS padding to all responses (``always``) or only to responses for queries containing the EDNS padding option (``padded-queries-only``, the default).
 In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources.
 
+.. _setting-edns-padding-out:
+
+``edns-padding-out``
+--------------------
+.. versionadded:: 4.8.0
+
+- Boolean
+- Default: yes
+
+Whether to add EDNS padding to outgoing DoT queries.
+
 .. _setting-edns-padding-tag:
 
 ``edns-padding-tag``

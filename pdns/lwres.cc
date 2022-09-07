@@ -50,13 +50,14 @@
 #include "query-local-address.hh"
 #include "tcpiohandler.hh"
 #include "ednsoptions.hh"
-
+#include "ednspadding.hh"
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"
 #include "rec-tcpout.hh"
 
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
+bool g_paddingOutgoing;
 
 void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 {
@@ -359,6 +360,25 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   return LWResult::Result::Success;
 }
 
+static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWriter::optvect_t& opts)
+{
+  const size_t currentSize = pw.getSizeWithOpts(opts);
+  if (currentSize < (bufsize - 4)) {
+    const size_t remaining = bufsize - (currentSize + 4);
+    /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
+       Clients SHOULD pad queries to the closest multiple of 128 octets.
+       Note we are in the client role here.
+    */
+    const size_t blockSize = 128;
+    const size_t modulo = (currentSize + 4) % blockSize;
+    size_t padSize = 0;
+    if (modulo > 0) {
+      padSize = std::min(blockSize - modulo, remaining);
+    }
+    opts.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
+  }
+}
+
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
@@ -372,6 +392,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
   //  string mapped0x20=dns0x20(domain);
   uint16_t qid = dns_random_uint16();
   DNSPacketWriter pw(vpacket, domain, type);
+  bool dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
   pw.getHeader()->rd=sendRDQuery;
   pw.getHeader()->id=qid;
@@ -403,7 +424,11 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       weWantEDNSSubnet=true;
     }
 
-    pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
+    if (dnsOverTLS && g_paddingOutgoing) {
+      addPadding(pw, bufsize, opts);
+    }
+
+    pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts);
     pw.commit();
   }
   lwr->d_rcode = 0;
@@ -416,7 +441,6 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
   boost::uuids::uuid uuid;
   const struct timeval queryTime = *now;
-  bool dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
   if (outgoingLoggers) {
     uuid = getUniqueID();
