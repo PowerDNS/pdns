@@ -194,8 +194,8 @@ try
       namesseen.insert(DNSName(i->first.d_content->getZoneRepresentation()));
     }
 
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+    cout << i->first.d_place - 1 << "\t" << i->first.d_name.toString() << "\t" << i->first.d_ttl << "\tIN\t" << DNSRecordContent::NumberToType(i->first.d_type);
+    cout << "\t" << i->first.d_content->getZoneRepresentation() << "\n";
   }
 
 #if 0

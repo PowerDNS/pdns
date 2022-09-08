@@ -1,8 +1,8 @@
-0	ip.geo.example.com.	IN	A	30	127.0.0.2
-2	.	IN	OPT	0	AAgACAABICB/AAAC
+0	ip.geo.example.com.	30	IN	A	127.0.0.2
+2	.	0	IN	OPT	AAgACAABICB/AAAC
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ip.geo.example.com.', qtype=ANY
-0	ip.geo.example.com.	IN	AAAA	30	::2
-2	.	IN	OPT	0	AAgAFAACgIAAAAAAAAAAAAAAAAAAAAAC
+0	ip.geo.example.com.	30	IN	AAAA	::2
+2	.	0	IN	OPT	AAgAFAACgIAAAAAAAAAAAAAAAAAAAAAC
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ip.geo.example.com.', qtype=ANY
