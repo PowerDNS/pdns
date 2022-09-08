@@ -637,6 +637,8 @@ dumresp_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+dumresp_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
 kvresp_SOURCES = \
 	dnslabeltext.cc dnsname.cc dnsname.hh \
 	kvresp.cc \

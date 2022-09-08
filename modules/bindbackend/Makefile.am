@@ -1,5 +1,5 @@
 pkglib_LTLIBRARIES = libbindbackend.la
-AM_CPPFLAGS += -I../../pdns
+AM_CPPFLAGS += -I../../pdns $(LIBCRYPTO_INCLUDES)
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
