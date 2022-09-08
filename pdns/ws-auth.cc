@@ -700,7 +700,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   try {
     nsec3paramDocVal = stringFromJson(document, "nsec3param");
-    nsec3paramInJSON = true;
+    nsec3paramInJSON = nsec3paramDocVal.length() > 0;
   }
   catch (const JsonException&) {}
 
