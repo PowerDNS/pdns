@@ -816,6 +816,23 @@ void mainthread()
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
 
+  UeberBackend::go();
+
+  // Setup the zone cache
+  g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
+  try {
+    UeberBackend B;
+    B.updateZoneCache();
+  }
+  catch (PDNSException& e) {
+    g_log << Logger::Error << "PDNSException while filling the zone cache: " << e.reason << endl;
+    exit(1);
+  }
+  catch (std::exception& e) {
+    g_log << Logger::Error << "STL Exception while filling the zone cache: " << e.what() << endl;
+    exit(1);
+  }
+
   // NOW SAFE TO CREATE THREADS!
   dl->go();
 
@@ -1416,14 +1433,6 @@ int main(int argc, char** argv)
       else {
         g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty: " << stringerror() << endl;
       }
-    }
-
-    UeberBackend::go();
-
-    g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
-    {
-      UeberBackend B;
-      B.updateZoneCache();
     }
 
     N = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
