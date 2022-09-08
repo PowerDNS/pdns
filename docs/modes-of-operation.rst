@@ -95,11 +95,24 @@ Secondary operation
 On launch, PowerDNS requests from all backends a list of domains that
 have not been checked recently for changes. This should happen every
 '**refresh**' seconds, as specified in the SOA record. All domains that
-are unfresh are then checked for changes over at their master. If the
+are unfresh are then checked for changes over at their primary server. If the
 :ref:`types-SOA` serial number there is higher, the domain is
 retrieved and inserted into the database. In any case, after the check,
 the domain is declared 'fresh', and will only be checked again after
 '**refresh**' seconds have passed.
+
+If the serial is equal, PowerDNS as a secondary with a presigned zone
+will also compare the SOA RRSIG (signature). If the signatures are
+different, the zone is also queued for a zone transfer.
+This is useful when the primary server updates DNSSEC signatures without
+changing the zone serial. In some configurations, a PowerDNS primary can
+exhibit this behaviour.
+To allow for this check, the DO flag is set on the SOA query towards
+the primary server. In some conditions, some primary servers answer with
+a truncated SOA response (indicating TCP is required), and the freshness
+check will fail. As a workaround, the signature check and DO flag can be
+turned off by disabling
+:ref:`setting-secondary-check-signature-freshness`.
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after
