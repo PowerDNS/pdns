@@ -1,4 +1,4 @@
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='dhcpd-host.test.dyndns.', qtype=ANY
 Answer:
@@ -7,8 +7,8 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	dhcpd-host.test.dyndns.	IN	A	60	127.0.0.1
-0	dhcpd-host.test.dyndns.	IN	TXT	60	"318188eb1a97d43928ccf8494d4a910c8a"
+0	dhcpd-host.test.dyndns.	60	IN	A	127.0.0.1
+0	dhcpd-host.test.dyndns.	60	IN	TXT	"318188eb1a97d43928ccf8494d4a910c8a"
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='dhcpd-host.test.dyndns.', qtype=ANY
 Answer:
@@ -17,7 +17,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	dhcpd-host.test.dyndns.	IN	TXT	60	"318188eb1a97d43928ccf8494d4a910c8a"
+0	dhcpd-host.test.dyndns.	60	IN	TXT	"318188eb1a97d43928ccf8494d4a910c8a"
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='dhcpd-host.test.dyndns.', qtype=ANY
 Answer:
@@ -26,6 +26,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='dhcpd-host.test.dyndns.', qtype=ANY

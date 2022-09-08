@@ -1,7 +1,7 @@
-0	geo.example.com.	IN	A	30	127.0.0.1
-0	geo.example.com.	IN	MX	30	10 mx.example.com.
-0	geo.example.com.	IN	NS	30	ns1.example.com.
-0	geo.example.com.	IN	NS	30	ns2.example.com.
-0	geo.example.com.	IN	SOA	30	ns1.example.com. hostmaster.example.com. 2014090125 7200 3600 1209600 3600
+0	geo.example.com.	30	IN	A	127.0.0.1
+0	geo.example.com.	30	IN	MX	10 mx.example.com.
+0	geo.example.com.	30	IN	NS	ns1.example.com.
+0	geo.example.com.	30	IN	NS	ns2.example.com.
+0	geo.example.com.	30	IN	SOA	ns1.example.com. hostmaster.example.com. 2014090125 7200 3600 1209600 3600
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='geo.example.com.', qtype=ANY

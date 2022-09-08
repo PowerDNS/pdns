@@ -11,7 +11,7 @@ Answer:
 
 
 == Verify PTR presence
-0	ptr1.test.dyndns.	IN	PTR	3600	host-2.test.dyndns.
+0	ptr1.test.dyndns.	3600	IN	PTR	host-2.test.dyndns.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ptr1.test.dyndns.', qtype=PTR
 
@@ -24,7 +24,7 @@ Answer:
 
 
 == Verify that we have one PTR
-0	ptr1.test.dyndns.	IN	PTR	3600	host-2.test.dyndns.
+0	ptr1.test.dyndns.	3600	IN	PTR	host-2.test.dyndns.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ptr1.test.dyndns.', qtype=PTR
 
