@@ -48,7 +48,7 @@ extern double avg_latency;
 extern std::unique_ptr<TCPNameserver> TN;
 extern void declareArguments();
 extern void declareStats();
-extern void mainthread();
+void mainthread();
 extern int isGuarded(char**);
 void carbonDumpThread();
 extern bool g_anyToTcp;
