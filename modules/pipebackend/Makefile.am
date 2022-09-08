@@ -1,5 +1,7 @@
 pkglib_LTLIBRARIES = libpipebackend.la
 
+AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
+
 EXTRA_DIST = \
 	OBJECTFILES \
 	OBJECTLIBS \
