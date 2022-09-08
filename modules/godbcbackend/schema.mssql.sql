@@ -5,9 +5,9 @@ CREATE TABLE domains (
   last_check            INT DEFAULT NULL,
   type                  VARCHAR(8) NOT NULL,
   notified_serial       INT DEFAULT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
   options               VARCHAR(MAX) DEFAULT NULL,
   catalog               VARCHAR(255) DEFAULT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
   PRIMARY KEY (id)
 );
 
