@@ -18,6 +18,8 @@
 #include "backends/gsql/ssql.hh"
 #include "communicator.hh"
 #include "query-local-address.hh"
+#include "gss_context.hh"
+#include "auth-main.hh"
 
 extern StatBag S;
 extern CommunicatorClass Communicator;
@@ -693,11 +695,24 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         g_log<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
         return RCode::Refused;
       }
-
-      for(const auto& key: tsigKeys) {
-        if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
-          validKey=true;
-          break;
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
+        GssName inputname(p.d_peer_principal); // match against principal since GSS requires that
+        for(const auto& key: tsigKeys) {
+          if (inputname.match(key)) {
+            validKey = true;
+            break;
+          }
+        }
+      }
+      else
+#endif
+        {
+        for(const auto& key: tsigKeys) {
+          if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the name of the key matches with the domain given it is valid.
+            validKey=true;
+            break;
+          }
         }
       }
 

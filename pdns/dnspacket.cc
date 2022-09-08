@@ -49,6 +49,7 @@
 #include "dnssecinfra.hh"
 #include "base64.hh"
 #include "ednssubnet.hh"
+#include "gss_context.hh"
 #include "dns_random.hh"
 #include "shuffle.hh"
 
@@ -732,13 +733,15 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
   if (tt.algo == DNSName("hmac-md5.sig-alg.reg.int"))
     tt.algo = DNSName("hmac-md5");
 
-  string secret64;
-  if (!B->getTSIGKey(*keyname, tt.algo, secret64)) {
-    g_log << Logger::Error << "Packet for domain '" << this->qdomain << "' denied: can't find TSIG key with name '" << *keyname << "' and algorithm '" << tt.algo << "'" << endl;
-    return false;
+  if (tt.algo != DNSName("gss-tsig")) {
+    string secret64;
+    if(!B->getTSIGKey(*keyname, tt.algo, secret64)) {
+      g_log << Logger::Error << "Packet for domain '" << this->qdomain << "' denied: can't find TSIG key with name '" << *keyname << "' and algorithm '" << tt.algo << "'" << endl;
+      return false;
+    }
+    B64Decode(secret64, *secret);
+    tt.secret = *secret;
   }
-  B64Decode(secret64, *secret);
-  tt.secret = *secret;
 
   bool result;
 
@@ -756,3 +759,16 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
 const DNSName& DNSPacket::getTSIGKeyname() const {
   return d_tsigkeyname;
 }
+
+#ifdef ENABLE_GSS_TSIG
+void DNSPacket::cleanupGSS(int rcode)
+{
+  // We cannot check g_doGssTSIG here, as this code is also included in other executables
+  // than pdns_server.
+  if (rcode != RCode::NoError && d_tsig_algo == TSIG_GSS && !getTSIGKeyname().empty()) {
+    GssContext ctx(getTSIGKeyname());
+    ctx.destroy();
+  }
+}
+#endif
+

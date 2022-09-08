@@ -144,6 +144,9 @@ void showBuildConfiguration()
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
     "scrypt " <<
 #endif
+#ifdef ENABLE_GSS_TSIG
+    "gss-tsig " <<
+#endif
 #ifdef VERBOSELOG
     "verboselog" <<
 #endif

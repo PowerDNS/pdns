@@ -20,6 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <deque>
 #include <queue>
@@ -35,6 +38,7 @@
 #include "arguments.hh"
 #include <atomic>
 #include "statbag.hh"
+#include "gss_context.hh"
 
 extern StatBag S;
 
@@ -245,6 +249,11 @@ retry:
       }
 
       QD->callback(a, QD->start);
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG && a != nullptr) {
+        QD->Q.cleanupGSS(a->d.rcode);
+      }
+#endif
       QD.reset();
     }
 
@@ -306,6 +315,11 @@ retry:
     }
   }
   callback(a, start);
+#ifdef ENABLE_GSS_TSIG
+  if (g_doGssTSIG && a != nullptr) {
+    q.cleanupGSS(a->d.rcode);
+  }
+#endif
   return 0;
 }
 

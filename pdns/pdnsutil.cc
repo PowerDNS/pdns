@@ -3828,7 +3828,7 @@ try
     DNSName zone(cmds.at(1));
     string kind = cmds.at(2);
     static vector<string> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
-      "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE",
+      "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE", "GSS-ALLOW-AXFR-PRINCIPAL",
       "PUBLISH-CDS"};
     bool clobber = true;
     if (cmds.at(0) == "add-meta") {

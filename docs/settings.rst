@@ -653,6 +653,17 @@ This setting MUST be 32 hexadecimal characters, as the siphash algorithm's key u
 
 Enables EDNS subnet processing, for backends that support it.
 
+.. _setting-enable-gss-tsig:
+
+``enable-gss-tsig``
+-------------------
+
+-  Boolean
+-  Default: no
+
+Enable accepting GSS-TSIG signed messages.
+In addition to this setting, see :doc:`tsig`.
+
 .. _setting-enable-lua-records:
 
 ``enable-lua-records``
