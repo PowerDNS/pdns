@@ -119,8 +119,6 @@ the master, not just those about AXFR requests.
 
 GSS-TSIG support
 ----------------
-  .. versionchanged:: 4.4.0
-    GSS support was removed
 
 GSS-TSIG allows authentication and authorization of DNS updates or AXFR
 using Kerberos with TSIG signatures.
@@ -131,24 +129,22 @@ using Kerberos with TSIG signatures.
 Prerequisites
 ~~~~~~~~~~~~~
 
--  Working Kerberos environment. Please refer to your Kerberos vendor
-   documentation on how to setup it.
--  Principal (such as ``DNS/<your.dns.server.name>@REALM``) in either
-   per-user keytab or system keytab.
+-  Working Kerberos environment. Please refer to your Kerberos vendor documentation on how to set it up.
+-  Service Principal(s) (of the form ``DNS/your.dns.server.name@REALM``) in either per-user keytab or system keytab, where ``your.dns.server.name`` must match the nameserver name in the SOA record of the zone.
+   If a user keytab is used, specify it using the ``KRB5_KTNAME`` environment variable when starting up PDNS server, which must be able to read the keytab file.
 
-In particular, if something does not work, read logs and ensure that
-your kerberos environment is ok before filing an issue. Most common
-problems are time synchronization or changes done to the principal.
+
+In particular, if something does not work, read logs and ensure that your kerberos environment is ok before filing an issue.
+Most common problems are time synchronization or changes done to the principal.
 
 Setting up
 ~~~~~~~~~~
 
-To allow AXFR / DNS update to work, you need to configure
-``GSS-ACCEPTOR-PRINCIPAL`` in
-:doc:`domainmetadata`. This will define the
-principal that is used to accept any GSS context requests. This *must*
-match to your keytab. Next you need to define one or more
-``GSS-ALLOW-AXFR-PRINCIPAL`` entries for AXFR, or
-``TSIG-ALLOW-DNSUPDATE`` entries for DNS update. These must be set to
-the exact initiator principal names you intend to use. No wildcards
-accepted.
+To allow AXFR / DNS update to work, you need to set :ref:`setting-enable-gss-tsig` and configure ``GSS-ACCEPTOR-PRINCIPAL`` in :doc:`domainmetadata`.
+This will define the principal that is used to accept any GSS context requests for names in the specified domain.
+This *must* match to a principal in the keytab used by PDNS Server.
+Next you need to define one or more ``GSS-ALLOW-AXFR-PRINCIPAL`` entries for AXFR, or ``TSIG-ALLOW-DNSUPDATE`` entries for DNS update.
+These must be set to the exact initiator (client) principal names you intend to allow either AXFR or DNS update.
+No wildcards accepted.
+If a Lua update policy is defined (see :doc:`dnsupdate`) no ``TSIG-ALLOW-DNSUPDATE`` entries are needed, as the Lua policy defines which principals can update which records.
+

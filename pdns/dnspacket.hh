@@ -173,6 +173,10 @@ public:
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
 
+#ifdef ENABLE_GSS_TSIG
+  void cleanupGSS(int rcode);
+#endif
+
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 

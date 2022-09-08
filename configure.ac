@@ -164,6 +164,7 @@ AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_ENABLE_PKCS11
+PDNS_ENABLE_GSS_TSIG
 
 AC_SUBST([socketdir])
 socketdir="/var/run"
@@ -414,6 +415,9 @@ AS_IF([test "x$LUAPC" != "x"],
 ])
 AS_IF([test "x$enable_experimental_pkcs11" = "xyes"],
   [AC_MSG_NOTICE([PKCS-11: yes])]
+)
+AS_IF([test "x$enable_experimental_gss_tsig" = "xyes"],
+  [AC_MSG_NOTICE([GSS-TSIG: yes])]
 )
 AS_IF([test "x$enable_lua_records" = "xyes"],
   [AC_MSG_NOTICE([LUA records: yes])]

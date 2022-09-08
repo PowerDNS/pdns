@@ -46,6 +46,7 @@
 #include "version.hh"
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
+#include "gss_context.hh"
 
 #if 0
 #undef DLOG
@@ -77,7 +78,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   else
   {
     d_pdl = std::make_unique<AuthLua4>();
-    d_pdl->loadFile(fname);
+    d_pdl->loadFile(fname); // XXX exception handling?
   }
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
@@ -87,7 +88,12 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   else
   {
     d_update_policy_lua = std::make_unique<AuthLua4>();
-    d_update_policy_lua->loadFile(fname);
+    try {
+      d_update_policy_lua->loadFile(fname);
+    }
+    catch (const std::runtime_error&) {
+      d_update_policy_lua = nullptr;
+    }
   }
 }
 
@@ -1376,6 +1382,14 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       return r;
     } else {
       getTSIGHashEnum(trc.d_algoName, p.d_tsig_algo);
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(p.d_peer_principal)) {
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
+#endif
     }
     p.setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
