@@ -363,16 +363,21 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   string soa_edit;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
   doc["soa_edit"] = soa_edit;
+
   string nsec3param;
-  di.backend->getDomainMetadataOne(zonename, "NSEC3PARAM", nsec3param);
-  doc["nsec3param"] = nsec3param;
-  string nsec3narrow;
   bool nsec3narrowbool = false;
-  di.backend->getDomainMetadataOne(zonename, "NSEC3NARROW", nsec3narrow);
-  if (nsec3narrow == "1")
-    nsec3narrowbool = true;
+  bool is_secured = dk.isSecuredZone(zonename);
+  if (is_secured) { // ignore NSEC3PARAM and NSEC3NARROW metadata present in the db for unsigned zones
+    di.backend->getDomainMetadataOne(zonename, "NSEC3PARAM", nsec3param);
+    string nsec3narrow;
+    di.backend->getDomainMetadataOne(zonename, "NSEC3NARROW", nsec3narrow);
+    if (nsec3narrow == "1") {
+      nsec3narrowbool = true;
+    }
+  }
+  doc["nsec3param"] = nsec3param;
   doc["nsec3narrow"] = nsec3narrowbool;
-  doc["dnssec"] = dk.isSecuredZone(zonename);
+  doc["dnssec"] = is_secured;
 
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
@@ -690,6 +695,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   bool dnssecInJSON = false;
   bool dnssecDocVal = false;
   bool nsec3paramInJSON = false;
+  bool updateNsec3Param = false;
   string nsec3paramDocVal;
 
   try {
@@ -739,6 +745,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
           throwUnableToSecure(zonename);
         }
         shouldRectify = true;
+        updateNsec3Param = true;
       }
     } else {
       // "dnssec": false in json
@@ -752,24 +759,24 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }
         shouldRectify = true;
+        updateNsec3Param = true;
       }
     }
   }
 
-  if (nsec3paramInJSON) {
+  if (nsec3paramInJSON || updateNsec3Param) {
     shouldRectify = true;
-    if (!isDNSSECZone) {
-      throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"', but zone is not DNSSEC secured.");
+    if (!isDNSSECZone && !nsec3paramDocVal.empty()) {
+      throw ApiException("NSEC3PARAM value provided for zone '" + zonename.toString() + "', but zone is not DNSSEC secured.");
     }
 
-    if (nsec3paramDocVal.length() == 0) {
+    if (nsec3paramDocVal.empty()) {
       // Switch to NSEC
       if (!dk.unsetNSEC3PARAM(zonename)) {
         throw ApiException("Unable to remove NSEC3PARAMs from zone '" + zonename.toString());
       }
     }
-
-    if (nsec3paramDocVal.length() > 0) {
+    else {
       // Set the NSEC3PARAMs
       NSEC3PARAMRecordContent ns3pr(nsec3paramDocVal);
       string error_msg = "";
