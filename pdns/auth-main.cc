@@ -130,8 +130,6 @@ vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
 
-void mainthread();
-
 ArgvMap& arg()
 {
   return theArg;
