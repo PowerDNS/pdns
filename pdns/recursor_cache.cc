@@ -25,7 +25,7 @@
  * Each record in the cache has a field d_servedStale. If this value is zero, no special handling is
  * done. If it is positive, the record is being served stale. The value determines how many times
  * the serve-stale status was extended. Each time an extension happens, the value is incremented and
- * a task to see is the record resolves will be pushed. When the served-stale status is extended,
+ * a task to see if the record resolves will be pushed. When the served-stale status is extended,
  * the TTD of a record is also changed so the record will be considered not-expired by the get()
  * function. The TTD will be s_serveStaleExtensionPeriod in the future, unless the original TTL was
  * smaller than that. If d_servedStale reaches s_maxServedStaleExtensions the serve-stale status
@@ -39,7 +39,7 @@
  *
  * If serve-stale is enabled, the resolving process first will try to resolve a record in the
  * ordinary way, with the difference that a timeout will not lead to an ImmediateServFailException
- * being passed to the caller, but the resolving wil be tried again with a flag to allow marking
+ * being passed to the caller, but the resolving will be tried again with a flag to allow marking
  * records as served-stale. If the second time around a timeout happens, an
  * ImmediateServFailException *will* be passed to the caller.
  *
@@ -48,7 +48,7 @@
  * chance of records being available for marking stale if a name server has an issue.
  *
  * The tasks to see if nameservers are reachable again do a resolve in refresh mode, considering
- * served-stale records as expired. When a record resolves again, the d_servedStale field wil be
+ * served-stale records as expired. When a record resolves again, the d_servedStale field will be
  * reset.
  */
 
