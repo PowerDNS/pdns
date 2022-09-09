@@ -87,11 +87,11 @@ static void zonemdTest(const std::string& lines, pdns::ZoneMD::Config mode, pdns
     std::vector<DNSRecord> retrieved;
     time_t now = time(nullptr);
     ComboAddress who;
-    BOOST_CHECK_GT(g_recCache->get(now, DNSName("."), QType::SOA, true, &retrieved, who), 0);
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("."), QType::SOA, MemRecursorCache::RequireAuth, &retrieved, who), 0);
     // not auth
-    BOOST_CHECK_LT(g_recCache->get(now, DNSName("aaa."), QType::NS, true, &retrieved, who), 0);
+    BOOST_CHECK_LT(g_recCache->get(now, DNSName("aaa."), QType::NS, MemRecursorCache::RequireAuth, &retrieved, who), 0);
     // auth
-    BOOST_CHECK_GT(g_recCache->get(now, DNSName("aaa."), QType::NS, false, &retrieved, who), 0);
+    BOOST_CHECK_GT(g_recCache->get(now, DNSName("aaa."), QType::NS, MemRecursorCache::None, &retrieved, who), 0);
   }
 }
 

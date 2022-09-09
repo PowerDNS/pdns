@@ -479,7 +479,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   std::vector<DNSRecord> wcSet;
   std::vector<std::shared_ptr<RRSIGRecordContent>> wcSignatures;
 
-  if (g_recCache->get(now, wildcardName, type, true, &wcSet, ComboAddress("127.0.0.1"), false, boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     LOG("Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
@@ -501,7 +501,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   std::vector<DNSRecord> wcSet;
   std::vector<std::shared_ptr<RRSIGRecordContent>> wcSignatures;
 
-  if (g_recCache->get(now, wildcardName, type, true, &wcSet, ComboAddress("127.0.0.1"), false, boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     LOG("Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
@@ -773,7 +773,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   std::vector<DNSRecord> soaSet;
   std::vector<std::shared_ptr<RRSIGRecordContent>> soaSignatures;
   /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
-  if (g_recCache->get(now, zone, QType::SOA, true, &soaSet, who, false, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+  if (g_recCache->get(now, zone, QType::SOA, MemRecursorCache::RequireAuth, &soaSet, who, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     LOG("No valid SOA found for " << zone << ", which is the best match for " << name << endl);
     return false;
   }

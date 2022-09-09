@@ -1511,6 +1511,16 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
   SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
   SyncRes::s_max_busy_dot_probes = ::arg().asNum("max-busy-dot-probes");
+  {
+    uint64_t sse = ::arg().asNum("serve-stale-extensions");
+    if (sse > std::numeric_limits<uint16_t>::max()) {
+      SLOG(g_log << Logger::Error << "Illegal serve-stale-extensions value: " << sse << "; range = 0..65536" << endl,
+           log->info(Logr::Error, "Illegal serve-stale-extensions value; range = 0..65536", "value", Logging::Loggable(sse)));
+      exit(1);
+    }
+    MemRecursorCache::s_maxServedStaleExtensions = sse;
+    NegCache::s_maxServedStaleExtensions = sse;
+  }
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true, log);
@@ -2810,6 +2820,7 @@ int main(int argc, char** argv)
     ::arg().set("structured-logging-backend", "Structured logging backend") = "default";
     ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
     ::arg().set("max-busy-dot-probes", "Maximum number of concurrent DoT probes") = "0";
+    ::arg().set("serve-stale-extensions", "Number of times a record's ttl is extended by 30s to be served stale") = "0";
 
     ::arg().setCmd("help", "Provide a helpful message");
     ::arg().setCmd("version", "Print version string");

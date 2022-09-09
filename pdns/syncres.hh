@@ -391,7 +391,14 @@ public:
     return d_now;
   }
 
+  // For debugging purposes
+  void setNow(const struct timeval& tv)
+  {
+    d_now = tv;
+  }
+
   void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
+  void setQuerySource(const Netmask& netmask);
 
   void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
   {
@@ -646,7 +653,8 @@ private:
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
   bool d_refresh{false};
-
+  bool d_serveStale{false};
+  
   LogMode d_lm;
 };
 

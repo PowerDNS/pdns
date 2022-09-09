@@ -26,7 +26,7 @@
 #include "dnsname.hh"
 #include "lock.hh"
 
-// this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
+// this function can clean any cache that has an isStale() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // and optionally, on a miss, move it to the beginning
 template <typename S, typename C, typename T>
@@ -49,7 +49,7 @@ void pruneCollection(C& container, T& collection, size_t maxCached, size_t scanF
   size_t tried = 0, erased = 0;
 
   for (auto iter = sidx.begin(); iter != sidx.end() && tried < lookAt; ++tried) {
-    if (iter->getTTD() < now) {
+    if (iter->isStale(now)) {
       iter = sidx.erase(iter);
       erased++;
     }
@@ -157,7 +157,7 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
     auto& sidx = boost::multi_index::get<S>(mc->d_map);
     uint64_t erased = 0, lookedAt = 0;
     for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
-      if (i->getTTD() < now) {
+      if (i->isStale(now)) {
         container.preRemoval(*mc, *i);
         i = sidx.erase(i);
         erased++;

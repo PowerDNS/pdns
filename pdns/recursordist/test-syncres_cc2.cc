@@ -1199,7 +1199,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed)
   /* should have been cached */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
@@ -1238,7 +1238,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed)
   /* should have been cached because /24 is more specific than /16 but TTL limit is nof effective */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
@@ -1277,7 +1277,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed)
   /* should have been cached */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
@@ -1317,7 +1317,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed)
   /* should have been cached */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
@@ -1357,7 +1357,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed)
   /* should have NOT been cached because TTL of 60 is too small and /24 is more specific than /16 */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_LT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_LT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 0U);
 }
 
@@ -1644,13 +1644,13 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl)
 
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
 
   cached.clear();
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), false, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), MemRecursorCache::None, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
@@ -1708,19 +1708,19 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ecs_ttl)
 
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumECSTTL);
 
   cached.clear();
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), false, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), MemRecursorCache::None, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
 
   cached.clear();
-  BOOST_REQUIRE_GT(g_recCache->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), MemRecursorCache::None, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
@@ -1840,7 +1840,7 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
 
   // Also check if NS record was updated
   ret.clear();
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), false, &ret, ComboAddress()), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), MemRecursorCache::None, &ret, ComboAddress()), 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_REQUIRE(ret[0].d_type == QType::NS);
   BOOST_CHECK_EQUAL(getRR<NSRecordContent>(ret[0])->getNS(), DNSName("pdns-public-ns1.powerdns.com."));

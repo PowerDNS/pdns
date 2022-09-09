@@ -1789,6 +1789,21 @@ Setting this to an empty string disables secpoll.
 This makes the server authoritatively aware of: ``10.in-addr.arpa``, ``168.192.in-addr.arpa``, ``16-31.172.in-addr.arpa``, which saves load on the AS112 servers.
 Individual parts of these zones can still be loaded or forwarded.
 
+.. _setting-serve-stale-extensions:
+
+``serve-stale-extensions``
+--------------------------
+.. versionadded:: 4.8.0
+
+- Integer
+- Default: 0
+
+Maximum number of times an expired record's TTL is extended by 30s when serving stale.
+Extension only occurs if a record cannot be refreshed.
+A value of 0 means the ``Serve Stale`` mechanism is not used.
+To allow records becoming stale to be served for an hour, use a value of 200.
+See :ref:`serve-stale` for a description of the Serve Stale mechanism.
+
 .. _setting-server-down-max-fails:
 
 ``server-down-max-fails``

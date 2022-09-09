@@ -144,6 +144,8 @@ void initSR(bool debug)
     g_log.toConsole(Logger::Error);
   }
 
+  MemRecursorCache::s_maxServedStaleExtensions = 0;
+  NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();
   g_negCache = std::make_unique<NegCache>();
 

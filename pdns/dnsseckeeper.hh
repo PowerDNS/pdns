@@ -251,9 +251,9 @@ private:
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;
   
-    uint32_t getTTD() const
+    uint32_t isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     }
   
     DNSName d_domain;
@@ -263,9 +263,9 @@ private:
   
   struct METACacheEntry
   {
-    time_t getTTD() const
+    time_t isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     }
 
     DNSName d_domain;

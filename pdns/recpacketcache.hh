@@ -118,9 +118,9 @@ private:
     bool d_tcp; // whether this entry was created from a TCP query
     inline bool operator<(const struct Entry& rhs) const;
 
-    time_t getTTD() const
+    bool isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     }
 
     uint32_t getOrigTTL() const

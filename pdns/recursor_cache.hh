@@ -49,6 +49,11 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache(size_t mapsCount = 1024);
 
+  // The number of times a stale cache entry is extended
+  static uint16_t s_maxServedStaleExtensions;
+  // The time a stale cache entry is extended
+  static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
+
   size_t size() const;
   size_t bytes();
   pair<uint64_t, uint64_t> stats();
@@ -56,7 +61,13 @@ public:
 
   typedef boost::optional<std::string> OptTag;
 
-  time_t get(time_t, const DNSName& qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh = false, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
+  typedef uint8_t Flags;
+  static constexpr Flags None = 0;
+  static constexpr Flags RequireAuth = 1 << 0;
+  static constexpr Flags Refresh = 1 << 1;
+  static constexpr Flags ServeStale = 1 << 2;
+
+  time_t get(time_t, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
 
   void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none);
 
@@ -73,14 +84,27 @@ private:
   struct CacheEntry
   {
     CacheEntry(const std::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
-      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_state(vState::Indeterminate), d_ttd(0), d_orig_ttl{0}, d_qtype(std::get<1>(key)), d_auth(auth), d_submitted(false)
+      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_state(vState::Indeterminate), d_ttd(0), d_orig_ttl{0}, d_servedStale(0), d_qtype(std::get<1>(key)), d_auth(auth), d_submitted(false)
     {
     }
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
-    time_t getTTD() const
+
+    bool isStale(time_t now) const
     {
-      return d_ttd;
+      // We like to keep things in cache when we (potentially) should serve stale
+      if (s_maxServedStaleExtensions > 0) {
+        return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
+      }
+      else {
+        return d_ttd < now;
+      }
+    }
+
+    bool isEntryUsable(time_t now, bool serveStale) const
+    {
+      // When serving stale, we consider expired records
+      return d_ttd <= now && !serveStale && d_servedStale == 0;
     }
 
     records_t d_records;
@@ -94,6 +118,7 @@ private:
     mutable vState d_state;
     mutable time_t d_ttd;
     uint32_t d_orig_ttl;
+    mutable uint16_t d_servedStale;
     QType d_qtype;
     bool d_auth;
     mutable bool d_submitted; // whether this entry has been queued for refetch
@@ -249,9 +274,11 @@ private:
 
   bool entryMatches(OrderedTagIterator_t& entry, QType qt, bool requireAuth, const ComboAddress& who);
   Entries getEntries(MapCombo::LockedContent& content, const DNSName& qname, const QType qt, const OptTag& rtag);
-  cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who);
+  cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
   time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
+  void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
+  void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 
 public:
   void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)

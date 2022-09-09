@@ -15,6 +15,45 @@
 #include "cachecleaner.hh"
 #include "rec-taskqueue.hh"
 
+/*
+ * SERVE-STALE: the general approach
+ *
+ * The general switch to enable serve-stale is s_maxServedStaleExtensions. If this value is zero, no
+ * serve-stale is done. If it is positive, it determines how many times the serve-stale status of a
+ * record can be extended.
+ *
+ * Each record in the cache has a field d_servedStale. If this value is zero, no special handling is
+ * done. If it is positive, the record is being served stale. The value determines how many times
+ * the serve-stale status was extended. Each time an extension happens, the value is incremented and
+ * a task to see if the record resolves will be pushed. When the served-stale status is extended,
+ * the TTD of a record is also changed so the record will be considered not-expired by the get()
+ * function. The TTD will be s_serveStaleExtensionPeriod in the future, unless the original TTL was
+ * smaller than that. If d_servedStale reaches s_maxServedStaleExtensions the serve-stale status
+ * will no longer be extended and the record will be considered really expired.
+ *
+ * With s_serveStaleExtensionPeriod of 30 seconds, setting s_maxServedStaleExtensions to 1440 will
+ * cause a record to be served stale a maximum of 30s * 1440 = 12 hours. If the original TTL is
+ * smaller than 30, this period will be shorter. If there was a long time between serve-stale
+ * extensions, the value of d_servedStale will be incremented by more than one to account for the
+ * longer period.
+ *
+ * If serve-stale is enabled, the resolving process first will try to resolve a record in the
+ * ordinary way, with the difference that a timeout will not lead to an ImmediateServFailException
+ * being passed to the caller, but the resolving will be tried again with a flag to allow marking
+ * records as served-stale. If the second time around a timeout happens, an
+ * ImmediateServFailException *will* be passed to the caller.
+ *
+ * When serving stale, records are only wiped from the cache if they are older than
+ * s_maxServedStaleExtensions * s_serveStaleExtensionPeriod. See isStale(). This is to have a good
+ * chance of records being available for marking stale if a name server has an issue.
+ *
+ * The tasks to see if nameservers are reachable again do a resolve in refresh mode, considering
+ * served-stale records as expired. When a record resolves again, the d_servedStale field will be
+ * reset.
+ */
+
+uint16_t MemRecursorCache::s_maxServedStaleExtensions;
+
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
   d_maps(mapsCount)
 {
@@ -152,7 +191,41 @@ time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursor
   return ttd;
 }
 
-MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, const QType qtype, bool requireAuth, const ComboAddress& who)
+static void pushRefreshTask(const DNSName& qname, QType qtype, time_t deadline, const Netmask& netmask)
+{
+  if (qtype == QType::ADDR) {
+    pushAlmostExpiredTask(qname, QType::A, deadline, netmask);
+    pushAlmostExpiredTask(qname, QType::AAAA, deadline, netmask);
+  }
+  else {
+    pushAlmostExpiredTask(qname, qtype, deadline, netmask);
+  }
+}
+
+void MemRecursorCache::updateStaleEntry(time_t now, MemRecursorCache::OrderedTagIterator_t& entry)
+{
+  // We need to take care a infrequently access stale item cannot be extended past
+  // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
+  // We look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
+  const time_t howlong = std::max(static_cast<time_t>(1), now - entry->d_ttd);
+  const uint32_t extension = std::max(1U, std::min(entry->d_orig_ttl, s_serveStaleExtensionPeriod));
+  entry->d_servedStale = std::min(entry->d_servedStale + 1 + howlong / extension, static_cast<time_t>(s_maxServedStaleExtensions));
+  entry->d_ttd = now + extension;
+
+  pushRefreshTask(entry->d_qname, entry->d_qtype, entry->d_ttd, entry->d_netmask);
+}
+
+// If we are serving this record stale (or *should*) and the ttd has
+// passed increase ttd to the future and remember that we did. Also
+// push a refresh task.
+void MemRecursorCache::handleServeStaleBookkeeping(time_t now, bool serveStale, MemRecursorCache::OrderedTagIterator_t& entry)
+{
+  if ((serveStale || entry->d_servedStale > 0) && entry->d_ttd <= now && entry->d_servedStale < s_maxServedStaleExtensions) {
+    updateStaleEntry(now, entry);
+  }
+}
+
+MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, const QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   auto ecsIndexKey = std::tie(qname, qtype);
@@ -176,6 +249,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         }
         continue;
       }
+      handleServeStaleBookkeeping(now, serveStale, entry);
 
       if (entry->d_ttd > now) {
         if (!requireAuth || entry->d_auth) {
@@ -187,6 +261,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
       else {
         /* this netmask-specific entry has expired */
         moveCacheItemToFront<SequencedTag>(map.d_map, entry);
+        // XXX when serving stale, it should be kept, but we don't want a match wth lookupBestMatch()...
         ecsIndex->removeNetmask(best);
         if (ecsIndex->isEmpty()) {
           map.d_ecsIndex.erase(ecsIndex);
@@ -200,6 +275,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   auto key = std::make_tuple(qname, qtype, boost::none, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
+    handleServeStaleBookkeeping(now, serveStale, entry);
     if (entry->d_ttd > now) {
       if (!requireAuth || entry->d_auth) {
         return entry;
@@ -243,6 +319,12 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
 time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh)
 {
   time_t ttl = ret - now;
+  // If we are checking an entry being served stale in refresh mode,
+  // we always consider it stale so a real refresh attempt will be
+  // kicked by SyncRes
+  if (refresh && entry->d_servedStale > 0) {
+    return -1;
+  }
   if (ttl > 0 && SyncRes::s_refresh_ttlperc > 0) {
     const uint32_t deadline = origTTL * SyncRes::s_refresh_ttlperc / 100;
     const bool almostExpired = static_cast<uint32_t>(ttl) <= deadline;
@@ -252,13 +334,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
       }
       else {
         if (!entry->d_submitted) {
-          if (qtype == QType::ADDR) {
-            pushAlmostExpiredTask(qname, QType::A, entry->d_ttd);
-            pushAlmostExpiredTask(qname, QType::AAAA, entry->d_ttd);
-          }
-          else {
-            pushAlmostExpiredTask(qname, qtype, entry->d_ttd);
-          }
+          pushRefreshTask(qname, qtype, entry->d_ttd, entry->d_netmask);
           entry->d_submitted = true;
         }
       }
@@ -267,8 +343,12 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
   return ttl;
 }
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
+  bool requireAuth = flags & RequireAuth;
+  bool refresh = flags & Refresh;
+  bool serveStale = flags & ServeStale;
+
   boost::optional<vState> cachedState{boost::none};
   uint32_t origTTL;
 
@@ -291,11 +371,11 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
     if (qtype == QType::ADDR) {
       time_t ret = -1;
 
-      auto entryA = getEntryUsingECSIndex(*map, now, qname, QType::A, requireAuth, who);
+      auto entryA = getEntryUsingECSIndex(*map, now, qname, QType::A, requireAuth, who, serveStale);
       if (entryA != map->d_map.end()) {
         ret = handleHit(*map, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
       }
-      auto entryAAAA = getEntryUsingECSIndex(*map, now, qname, QType::AAAA, requireAuth, who);
+      auto entryAAAA = getEntryUsingECSIndex(*map, now, qname, QType::AAAA, requireAuth, who, serveStale);
       if (entryAAAA != map->d_map.end()) {
         time_t ttdAAAA = handleHit(*map, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
         if (ret > 0) {
@@ -313,7 +393,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
       return ret > 0 ? (ret - now) : ret;
     }
     else {
-      auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who);
+      auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who, serveStale);
       if (entry != map->d_map.end()) {
         time_t ret = handleHit(*map, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
         if (state && cachedState) {
@@ -335,7 +415,8 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
       for (auto i = entries.first; i != entries.second; ++i) {
         firstIndexIterator = map->d_map.project<OrderedTag>(i);
 
-        if (i->d_ttd <= now) {
+        // When serving stale, we consider expired records
+        if (i->isEntryUsable(now, serveStale)) {
           moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
           continue;
         }
@@ -344,6 +425,9 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
           continue;
         }
         found = true;
+
+        handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
+
         ttd = handleHit(*map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
         if (qt != QType::ANY && qt != QType::ADDR) { // normally if we have a hit, we are done
@@ -372,7 +456,8 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
     for (auto i = entries.first; i != entries.second; ++i) {
       firstIndexIterator = map->d_map.project<OrderedTag>(i);
 
-      if (i->d_ttd <= now) {
+      // When serving stale, we consider expired records
+      if (i->isEntryUsable(now, serveStale)) {
         moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
         continue;
       }
@@ -380,8 +465,10 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, b
       if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
         continue;
       }
-
       found = true;
+
+      handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
+
       ttd = handleHit(*map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
       if (qt != QType::ANY && qt != QType::ADDR) { // normally if we have a hit, we are done
@@ -464,7 +551,6 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   // the parent
   // BUT make sure that we CAN refresh the root
   if (ce.d_auth && auth && qt == QType::NS && !isNew && !qname.isRoot()) {
-    //    cerr<<"\tLimiting TTL of auth->auth NS set replace to "<<ce.d_ttd<<endl;
     maxTTD = ce.d_ttd;
   }
 
@@ -496,6 +582,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
     moveCacheItemToBack<SequencedTag>(map->d_map, stored);
   }
   ce.d_submitted = false;
+  ce.d_servedStale = 0;
   map->d_map.replace(stored, ce);
 }
 
@@ -609,7 +696,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName& qname, 
 
   bool updated = false;
   if (!map->d_ecsIndex.empty() && !routingTag) {
-    auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who);
+    auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who, false); // XXX serveStale?
     if (entry == map->d_map.end()) {
       return false;
     }
@@ -666,7 +753,7 @@ uint64_t MemRecursorCache::doDump(int fd)
       for (const auto& j : i.d_records) {
         count++;
         try {
-          fprintf(fp.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s %s %s\n", i.d_qname.toString().c_str(), i.d_orig_ttl, static_cast<int64_t>(i.d_ttd - now), i.d_qtype.toString().c_str(), j->getZoneRepresentation().c_str(), vStateToString(i.d_state).c_str(), i.d_auth, i.d_authZone.toLogString().c_str(), i.d_from.toString().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str(), !i.d_rtag ? "" : i.d_rtag.get().c_str());
+          fprintf(fp.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd\n", i.d_qname.toString().c_str(), i.d_orig_ttl, static_cast<int64_t>(i.d_ttd - now), i.d_qtype.toString().c_str(), j->getZoneRepresentation().c_str(), vStateToString(i.d_state).c_str(), i.d_auth, i.d_authZone.toLogString().c_str(), i.d_from.toString().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str(), !i.d_rtag ? "" : i.d_rtag.get().c_str(), i.d_servedStale);
         }
         catch (...) {
           fprintf(fp.get(), "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
@@ -688,7 +775,6 @@ uint64_t MemRecursorCache::doDump(int fd)
 
 void MemRecursorCache::doPrune(size_t keep)
 {
-  //size_t maxCached = d_maxEntries;
   size_t cacheSize = size();
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
 }
