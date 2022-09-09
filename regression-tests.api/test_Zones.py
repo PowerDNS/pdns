@@ -569,6 +569,26 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(data['nsec3param'], '')
 
+    def test_create_zone_without_dnssec_unset_nsec3parm(self):
+        """
+        Create a non dnssec zone and set an empty "nsec3param"
+        """
+        name, payload, data = self.create_zone(dnssec=False)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                             data=json.dumps({'nsec3param': ''}))
+
+        self.assertEqual(r.status_code, 204)
+
+    def test_create_zone_without_dnssec_set_nsec3parm(self):
+        """
+        Create a non dnssec zone and set "nsec3param"
+        """
+        name, payload, data = self.create_zone(dnssec=False)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                             data=json.dumps({'nsec3param': '1 0 1 ab'}))
+
+        self.assertEqual(r.status_code, 422)
+
     def test_create_zone_dnssec_serial(self):
         """
         Create a zone set/unset "dnssec" and see if the serial was increased
