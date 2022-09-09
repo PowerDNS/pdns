@@ -3842,7 +3842,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   return state;
 }
 
-vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth)
+vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFailOccurred, unsigned int depth)
 {
   std::vector<DNSRecord> records;
   std::set<GetBestNSAnswer> beenthere;
@@ -3854,7 +3854,8 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::ServFail) {
-    throw ImmediateServFailException("Server Failure while retrieving DNSKEY records for " + signer.toLogString());
+    servFailOccurred = true;
+    return vState::BogusUnableToGetDNSKEYs;
   }
 
   if (rcode == RCode::NoError) {
@@ -3948,9 +3949,10 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
         }
       }
     }
+    bool servFailOccurred = false;
     if (state == vState::Secure) {
       LOG(d_prefix<<"retrieving the DNSKEYs for "<<signer<<endl);
-      state = getDNSKeys(signer, keys, depth);
+      state = getDNSKeys(signer, keys, servFailOccurred, depth);
     }
 
     if (state != vState::Secure) {
@@ -3961,6 +3963,9 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
       LOG(d_prefix<<"checking whether we missed a zone cut for "<<signer<<" before returning a Bogus state for "<<name<<"|"<<type.toString()<<endl);
       auto zState = getValidationStatus(signer, false, dsFailed, depth);
       if (zState == vState::Secure) {
+        if (state == vState::BogusUnableToGetDNSKEYs && servFailOccurred) {
+          throw ImmediateServFailException("Server Failure while retrieving DNSKEY records for " + signer.toLogString());
+        }
         /* too bad */
         LOG(d_prefix<<"we are still in a Secure zone, returning "<<vStateToString(state)<<endl);
         return state;
