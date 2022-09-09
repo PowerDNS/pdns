@@ -16,7 +16,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   DNSName name;
+#ifdef ENABLE_GSS_TSIG
   bool sign = false;
+#endif
 
   if (!p.getTKEYRecord(&tkey_in, &name)) {
     g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
@@ -109,6 +111,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(std::move(zrr));
 
+#ifdef ENABLE_GSS_TSIG
   if (sign)
   {
     TSIGRecordContent trc;
@@ -122,6 +125,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     // this should cause it to lookup name context
     r->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
   }
+#endif
 
   r->commitD();
 }
