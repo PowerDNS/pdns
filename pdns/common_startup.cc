@@ -537,7 +537,7 @@ try
         continue;
 
       S.ringAccount("queries", question.qdomain, question.qtype);
-      S.ringAccount("remotes", question.d_remote);
+      S.ringAccount("remotes", question.getInnerRemote());
       if(logDNSQueries) {
         g_log << Logger::Notice<<"Remote "<< question.getRemoteString() <<" wants '" << question.qdomain<<"|"<<question.qtype <<
           "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
