@@ -2343,6 +2343,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   return result;
 }
 
+void SyncRes::checkMaxQperQ(const DNSName& qname) const
+{
+  if (d_outqueries + d_throttledqueries > s_maxqperq) {
+    throw ImmediateServFailException("more than " + std::to_string(s_maxqperq) + " (max-qperq) queries sent or throttled while resolving " + qname.toLogString());
+  }
+}
+
 bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType qtype, bool pierceDontQuery)
 {
   if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0))) {
@@ -3908,10 +3915,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   LWResult::Result resolveret = LWResult::Result::Success;
   s_outqueries++;
   d_outqueries++;
-
-  if(d_outqueries + d_throttledqueries > s_maxqperq) {
-    throw ImmediateServFailException("more than "+std::to_string(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname.toLogString());
-  }
+  checkMaxQperQ(qname);
 
   if(s_maxtotusec && d_totUsec > s_maxtotusec) {
     throw ImmediateServFailException("Too much time waiting for "+qname.toLogString()+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
@@ -4405,6 +4409,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
+            // As d_throttledqueries might be increased, check the max-qperq condition
+            checkMaxQperQ(qname);
             continue;
           }
 
