@@ -459,6 +459,7 @@ public:
   static unsigned int s_minimumTTL;
   static unsigned int s_minimumECSTTL;
   static unsigned int s_maxqperq;
+  static unsigned int s_maxnsperresolve;
   static unsigned int s_maxnsaddressqperq;
   static unsigned int s_maxtotusec;
   static unsigned int s_maxdepth;
