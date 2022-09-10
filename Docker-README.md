@@ -21,7 +21,7 @@ For the dnsdist console, make sure that your API key is in a format suitable for
 
 The default configs shipped in the image (see dockerdata above) parse all files in `/etc/powerdns/pdns.d` / `/etc/powerdns/recursor.d` / `/etc/dnsdist/conf.d`.
 The image also ships a symlink to the API config file inside those `.d` dirs.
-For Auth and Recursor, extra configuration can be passed or the command line, or via a volume mount into `/etc/powerdns` or the `.d` dir.
+For Auth and Recursor, extra configuration can be passed on the command line, or via a volume mount into `/etc/powerdns` or the `.d` dir.
 For dnsdist, only the volume mount is applicable.
 
 If you want to volume mount a config, but also take the keys from the environment, please take care to include the same `X-api.conf` symlink in your `.d` directory.
