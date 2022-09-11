@@ -54,7 +54,7 @@ StatBag S;
 
 int main(int argc, char **argv)
 {
-  string s_programname="pdns";
+  string programname="pdns";
 
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns when unset and not chrooted" )="";
@@ -83,9 +83,9 @@ int main(int argc, char **argv)
   }
 
   if(::arg()["config-name"]!="")
-    s_programname+="-"+::arg()["config-name"];
+    programname+="-"+::arg()["config-name"];
 
-  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
+  string configname=::arg()["config-dir"]+"/"+programname+".conf";
   cleanSlashes(configname);
 
   if(!::arg().mustDo("no-config")) {
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     socketname = ::arg()["chroot"] + ::arg()["socket-dir"];
   }
 
-  socketname += "/" + s_programname + ".controlsocket";
+  socketname += "/" + programname + ".controlsocket";
   cleanSlashes(socketname);
 
   try {

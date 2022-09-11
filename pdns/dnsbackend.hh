@@ -45,7 +45,9 @@ class DNSPacket;
 #include "sha.hh"
 #include "auth-catalogzone.hh"
 
-class DNSBackend;  
+class DNSBackend;
+struct SOAData;
+
 struct DomainInfo
 {
   DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
@@ -512,6 +514,26 @@ class DBException : public PDNSException
 {
 public:
   DBException(const string &reason_) : PDNSException(reason_){}
+};
+
+
+struct SOAData
+{
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), minimum(0), db(0), domain_id(-1) {};
+
+  DNSName qname;
+  DNSName nameserver;
+  DNSName hostmaster;
+  uint32_t ttl;
+  uint32_t serial;
+  uint32_t refresh;
+  uint32_t retry;
+  uint32_t expire;
+  uint32_t minimum;
+  DNSBackend *db;
+  int domain_id;
+
+  uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
