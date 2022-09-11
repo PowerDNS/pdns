@@ -35,22 +35,13 @@
 #include "tcpreceiver.hh"
 #include "dnsseckeeper.hh"
 
+extern time_t g_starttime;
 extern ArgvMap theArg;
 extern StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 extern AuthQueryCache QC;
 extern std::unique_ptr<DNSProxy> DP;
-extern std::unique_ptr<DynListener> dl;
 extern CommunicatorClass Communicator;
-extern std::shared_ptr<UDPNameserver> N;
-extern vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
-extern double avg_latency;
-extern std::unique_ptr<TCPNameserver> TN;
-extern void declareArguments();
-extern void declareStats();
-void mainthread();
-extern int isGuarded(char**);
-void carbonDumpThread();
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
 extern NetmaskGroup g_proxyProtocolACL;

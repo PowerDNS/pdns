@@ -88,9 +88,9 @@
 #include "minicurl.hh"
 #endif /* HAVE_LUA_RECORDS */
 
-time_t s_starttime;
+time_t g_starttime;
 
-string s_programname = "pdns"; // used in packethandler.cc
+string g_programname = "pdns"; // used in packethandler.cc
 
 const char* funnytext = "*****************************************************************************\n"
                         "Ok, you just ran pdns_server through 'strings' hoping to find funny messages.\n"
@@ -120,22 +120,25 @@ AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
-std::unique_ptr<DynListener> dl{nullptr};
+static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-shared_ptr<UDPNameserver> N;
-double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
-unique_ptr<TCPNameserver> TN;
-static vector<DNSDistributor*> g_distributors;
-vector<std::shared_ptr<UDPNameserver>> g_udpReceivers;
+static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
+static vector<DNSDistributor*> s_distributors;
+static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
+static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
+
+// Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
+void carbonDumpThread();
 
 ArgvMap& arg()
 {
   return theArg;
 }
 
-void declareArguments()
+static void declareArguments()
 {
   ::arg().set("config-dir", "Location of configuration directory (pdns.conf)") = SYSCONFDIR;
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
@@ -353,13 +356,13 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
 
 static uint64_t getTCPConnectionCount(const std::string& str)
 {
-  return TN->numTCPConnections();
+  return s_tcpNameserver->numTCPConnections();
 }
 
 static uint64_t getQCount(const std::string& str)
 try {
   int totcount = 0;
-  for (const auto& d : g_distributors) {
+  for (const auto& d : s_distributors) {
     if (!d)
       continue;
     totcount += d->getQueueSize(); // this does locking and other things, so don't get smart
@@ -400,7 +403,7 @@ static uint64_t getSendLatency(const std::string& str)
   return round(send_latency);
 }
 
-void declareStats()
+static void declareStats()
 {
   S.declare("udp-queries", "Number of UDP queries received");
   S.declare("udp-do-queries", "Number of UDP queries received with DO bit");
@@ -499,7 +502,7 @@ void declareStats()
   S.declareComboRing("remotes-corrupt", "Remote hosts sending corrupt packets");
 }
 
-int isGuarded(char** argv)
+static int isGuarded(char** argv)
 {
   char* p = strstr(argv[0], "-instance");
 
@@ -516,7 +519,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
     start = diff;
 
-    N->send(*a);
+    s_udpNameserver->send(*a);
 
     diff = a->d_dt.udiff();
     send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
@@ -533,8 +536,8 @@ static void qthread(unsigned int num)
 try {
   setThreadName("pdns/receiver");
 
-  g_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
-  DNSDistributor* distributor = g_distributors[num]; // the big dispatcher!
+  s_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
+  DNSDistributor* distributor = s_distributors[num]; // the big dispatcher!
   DNSPacket question(true);
   DNSPacket cached(false);
 
@@ -555,14 +558,14 @@ try {
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if (N->canReusePort()) {
-    NS = g_udpReceivers[num];
+  if (s_udpNameserver->canReusePort()) {
+    NS = s_udpReceivers[num];
     if (NS == nullptr) {
-      NS = N;
+      NS = s_udpNameserver;
     }
   }
   else {
-    NS = N;
+    NS = s_udpNameserver;
   }
 
   for (;;) {
@@ -682,7 +685,7 @@ static void triggerLoadOfLibraries()
   dummy.join();
 }
 
-void mainthread()
+static void mainthread()
 {
   Utility::srandom();
 
@@ -842,7 +845,7 @@ void mainthread()
   }
 
   // NOW SAFE TO CREATE THREADS!
-  dl->go();
+  s_dynListener->go();
 
   if (::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
@@ -850,10 +853,10 @@ void mainthread()
   if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty())
     Communicator.go();
 
-  TN->go(); // tcp nameserver launch
+  s_tcpNameserver->go(); // tcp nameserver launch
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
-  g_distributors.resize(max_rthreads);
+  s_distributors.resize(max_rthreads);
   for (unsigned int n = 0; n < max_rthreads; ++n) {
     std::thread t(qthread, n);
     t.detach();
@@ -950,7 +953,7 @@ static void writePid()
     fname = ::arg()["chroot"] + ::arg()["socket-dir"];
   }
 
-  fname += +"/" + s_programname + ".pid";
+  fname += +"/" + g_programname + ".pid";
   ofstream of(fname.c_str());
   if (of)
     of << getpid() << endl;
@@ -1008,7 +1011,7 @@ static int guardian(int argc, char** argv)
 
   int infd = 0, outfd = 1;
 
-  DynListener dlg(s_programname);
+  DynListener dlg(g_programname);
   dlg.registerFunc("QUIT", &DLQuitHandler, "quit daemon");
   dlg.registerFunc("CYCLE", &DLCycleHandler, "restart instance");
   dlg.registerFunc("PING", &DLPingHandler, "ping guardian");
@@ -1185,8 +1188,8 @@ int main(int argc, char** argv)
   versionSetProduct(ProductAuthoritative);
   reportAllTypes(); // init MOADNSParser
 
-  s_programname = "pdns";
-  s_starttime = time(nullptr);
+  g_programname = "pdns";
+  g_starttime = time(nullptr);
 
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
   signal(SIGSEGV, tbhandler);
@@ -1210,11 +1213,11 @@ int main(int argc, char** argv)
     }
 
     if (::arg()["config-name"] != "")
-      s_programname += "-" + ::arg()["config-name"];
+      g_programname += "-" + ::arg()["config-name"];
 
-    g_log.setName(s_programname);
+    g_log.setName(g_programname);
 
-    string configname = ::arg()["config-dir"] + "/" + s_programname + ".conf";
+    string configname = ::arg()["config-dir"] + "/" + g_programname + ".conf";
     cleanSlashes(configname);
 
     if (::arg()["config"] != "default" && !::arg().mustDo("no-config")) // "config" == print a configuration file
@@ -1390,15 +1393,15 @@ int main(int argc, char** argv)
 
     if (isGuarded(argv)) {
       g_log << Logger::Warning << "This is a guarded instance of pdns" << endl;
-      dl = make_unique<DynListener>(); // listens on stdin
+      s_dynListener = std::make_unique<DynListener>(); // listens on stdin
     }
     else {
       g_log << Logger::Warning << "This is a standalone pdns" << endl;
 
       if (::arg().mustDo("control-console"))
-        dl = make_unique<DynListener>();
+        s_dynListener = std::make_unique<DynListener>();
       else
-        dl = std::make_unique<DynListener>(s_programname);
+        s_dynListener = std::make_unique<DynListener>(g_programname);
 
       writePid();
     }
@@ -1443,16 +1446,16 @@ int main(int argc, char** argv)
       }
     }
 
-    N = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
-    g_udpReceivers.push_back(N);
+    s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
+    s_udpReceivers.push_back(s_udpNameserver);
 
     size_t rthreads = ::arg().asNum("receiver-threads", 1);
-    if (rthreads > 1 && N->canReusePort()) {
-      g_udpReceivers.resize(rthreads);
+    if (rthreads > 1 && s_udpNameserver->canReusePort()) {
+      s_udpReceivers.resize(rthreads);
 
       for (size_t idx = 1; idx < rthreads; idx++) {
         try {
-          g_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
+          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
         }
         catch (const PDNSException& e) {
           g_log << Logger::Error << "Unable to reuse port, falling back to original bind" << endl;
@@ -1461,7 +1464,7 @@ int main(int argc, char** argv)
       }
     }
 
-    TN = make_unique<TCPNameserver>();
+    s_tcpNameserver = make_unique<TCPNameserver>();
   }
   catch (const ArgException& A) {
     g_log << Logger::Error << "Fatal error: " << A.reason << endl;
