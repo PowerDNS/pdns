@@ -130,9 +130,6 @@ static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
 
-// Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
-void carbonDumpThread();
-
 ArgvMap& arg()
 {
   return theArg;
