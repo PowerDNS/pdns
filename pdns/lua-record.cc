@@ -76,8 +76,9 @@ private:
   };
 
 public:
-  IsUpOracle(): d_checkerThreadStarted(ATOMIC_FLAG_INIT)
+  IsUpOracle()
   {
+    d_checkerThreadStarted.clear();
   }
   ~IsUpOracle()
   {
