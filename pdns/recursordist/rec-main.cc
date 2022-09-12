@@ -1158,37 +1158,43 @@ void parseACLs()
   static bool l_initialized;
 
   if (l_initialized) { // only reload configuration file on second call
-    string configname = ::arg()["config-dir"] + "/recursor.conf";
-    if (::arg()["config-name"] != "") {
-      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+    string configName = ::arg()["config-dir"] + "/recursor.conf";
+    if (!::arg()["config-name"].empty()) {
+      configName = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
     }
-    cleanSlashes(configname);
+    cleanSlashes(configName);
 
-    if (!::arg().preParseFile(configname.c_str(), "allow-from-file"))
-      throw runtime_error("Unable to re-parse configuration file '" + configname + "'");
-    ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
+    if (!::arg().preParseFile(configName.c_str(), "allow-from-file")) {
+      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+    }
+    ::arg().preParseFile(configName.c_str(), "allow-from", LOCAL_NETS);
 
-    if (!::arg().preParseFile(configname.c_str(), "allow-notify-from-file"))
-      throw runtime_error("Unable to re-parse configuration file '" + configname + "'");
-    ::arg().preParseFile(configname.c_str(), "allow-notify-from");
+    if (!::arg().preParseFile(configName.c_str(), "allow-notify-from-file")) {
+      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+    }
+    ::arg().preParseFile(configName.c_str(), "allow-notify-from");
 
-    ::arg().preParseFile(configname.c_str(), "include-dir");
+    ::arg().preParseFile(configName.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
     // then process includes
     std::vector<std::string> extraConfigs;
     ::arg().gatherIncludes(extraConfigs);
 
-    for (const std::string& fn : extraConfigs) {
-      if (!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
-      if (!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
+    for (const std::string& fileName : extraConfigs) {
+      if (!::arg().preParseFile(fileName.c_str(), "allow-from-file", ::arg()["allow-from-file"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
+      if (!::arg().preParseFile(fileName.c_str(), "allow-from", ::arg()["allow-from"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
 
-      if (!::arg().preParseFile(fn.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
-      if (!::arg().preParseFile(fn.c_str(), "allow-notify-from", ::arg()["allow-notify-from"]))
-        throw runtime_error("Unable to re-parse configuration file include '" + fn + "'");
+      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
+      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from", ::arg()["allow-notify-from"])) {
+        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      }
     }
 
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
@@ -1200,7 +1206,7 @@ void parseACLs()
 
   auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
-  if (allowFrom->size() == 0) {
+  if (allowFrom->empty()) {
     if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53) {
       SLOG(g_log << Logger::Warning << "WARNING: Allowing queries from all IP addresses - this can be a security risk!" << endl,
            log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!"));
@@ -2824,7 +2830,7 @@ int main(int argc, char** argv)
 
     ::arg().setCmd("help", "Provide a helpful message");
     ::arg().setCmd("version", "Print version string");
-    ::arg().setCmd("config", "Output blank configuration");
+    ::arg().setCmd("config", "Output blank configuration. You can use --config=check to test the config file and command line arguments.");
     ::arg().setDefaults();
     g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc, argv); // do a lax parse
@@ -2857,7 +2863,7 @@ int main(int argc, char** argv)
     g_log.toConsole(s_logUrgency);
 
     string configname = ::arg()["config-dir"] + "/recursor.conf";
-    if (::arg()["config-name"] != "") {
+    if (!::arg()["config-name"].empty()) {
       configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
       g_programname += "-" + ::arg()["config-name"];
     }
@@ -2879,11 +2885,6 @@ int main(int argc, char** argv)
       }
       cerr << ") on the command line, perhaps a '--setting=123' statement missed the '='?" << endl;
       exit(99);
-    }
-
-    if (::arg().mustDo("config")) {
-      cout << ::arg().configstring(false, true);
-      exit(0);
     }
 
     if (s_structured_logger_backend == "systemd-journal") {
@@ -2909,9 +2910,52 @@ int main(int argc, char** argv)
     g_slogout = g_slog->withName("out");
 
     ::arg().setSLog(startupLog);
+
+    if (::arg().mustDo("config")) {
+      string config = ::arg()["config"];
+      if (config == "check") {
+        try {
+          if (!::arg().file(configname.c_str())) {
+            SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+                 startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+            exit(1);
+          }
+          ::arg().parse(argc, argv);
+          exit(0);
+        }
+        catch (const ArgException& argException) {
+          SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "': " << argException.reason << endl,
+               startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason)));
+          exit(1);
+        }
+      }
+      else if (config == "default") {
+        cout << ::arg().configstring(false, true);
+      }
+      else if (config == "diff") {
+        if (!::arg().laxFile(configname.c_str())) {
+          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          exit(1);
+        }
+        ::arg().laxParse(argc, argv);
+        cout << ::arg().configstring(true, false);
+      }
+      else {
+        if (!::arg().laxFile(configname.c_str())) {
+          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          exit(1);
+        }
+        ::arg().laxParse(argc, argv);
+        cout << ::arg().configstring(true, true);
+      }
+      exit(0);
+    }
+
     if (!::arg().file(configname.c_str())) {
-      SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "'" << endl,
-           startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname)));
+      SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+           startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
     }
 
     // Reparse, now with config file as well

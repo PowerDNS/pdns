@@ -55,15 +55,15 @@ typedef PDNSException ArgException;
     \code
 
     ArgvMap R;
-  
+
     R.set("port")="25";  // use this to specify default parameters
     R.file("./default.conf"); // parse configuration file
-    
+
     R.parse(argc, argv); // read the arguments from main()
-    
+
     cout<<"Will we be a daemon?: "<<R.isset("daemon")<<endl;
     cout<<"Our port will be "<<R["port"]<<endl;
-    
+
     map<string,string>::const_iterator i;
     cout<<"via iterator"<<endl;
     for(i=R.begin();i!=R.end();i++)
@@ -85,9 +85,9 @@ public:
   void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
-  bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
-  bool file(const char *fname, bool lax, bool included); 
-  bool laxFile(const char *fname) 
+  bool file(const char* fname, bool lax = false); //!< Parses a file with parameters
+  bool file(const char* fname, bool lax, bool included);
+  bool laxFile(const char *fname)
   {
     return file(fname,true);
   }
