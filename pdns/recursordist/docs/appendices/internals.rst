@@ -463,7 +463,7 @@ This is a mechanism that allows records in the record cache that are expired
 but that cannot be refreshed (due to network or authoritative server issues) to be served anyway.
 
 The :ref:`setting-serve-stale-extensions` determines how many times the records lifetime can be extended.
-Each extension of the lifetimeof a record lasts 30s.
+Each extension of the lifetime of a record lasts 30s.
 A value of 1440 means the maximum extra life time is 30 * 1440 seconds which is 12 hours.
 If the original TTL of a record was less than 30s, the original TTLs will be used as extension period.
 
