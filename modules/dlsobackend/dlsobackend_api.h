@@ -33,13 +33,28 @@
   */
 static const uint32_t PDNS_DLSO_ABI_VERSION = 2;
 
+/** FFI C-ABI compatible with pdns : `DNSResourceRecord` */
 struct resource_record
 {
   uint16_t qtype;
+  /** `qname` length in bytes. */
   uint8_t qname_len;
   uint8_t scope_mask;
+  /** `content` length in bytes. */
   uint32_t content_len;
+  /** Qname buffer size must be given in `qname_len`.
+    * NULL termination not expected.
+    *
+    * Memory ownership: the backend will copy the `qname`, ownership retain
+    * 3rd-party lib obligation.
+    */
   const char* qname;
+  /** Resource record content buffer, size is given in `content_len`
+    * NULL termination not expected.
+    *
+    * Memory ownership: the backend will copy the content, ownership retain
+    * 3rd-party lib obligation.
+    */
   const char* content;
   uint32_t ttl;
   int32_t domain_id;
