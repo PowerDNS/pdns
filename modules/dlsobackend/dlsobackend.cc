@@ -501,6 +501,15 @@ void fill_domain_info(void* ptr, struct domain_info* domain_info)
   case DOMAIN_INFO_KIND_NATIVE:
     di->kind = DomainInfo::Native;
     break;
+  case DOMAIN_INFO_KIND_PRODUCER:
+    di->kind = DomainInfo::Producer;
+    break;
+  case DOMAIN_INFO_KIND_CONSUMER:
+    di->kind = DomainInfo::Consumer;
+    break;
+  case DOMAIN_INFO_KIND_ALL:
+    di->kind = DomainInfo::All;
+    break;
   default:
   case DOMAIN_INFO_KIND_MASTER:
     di->kind = DomainInfo::Master;

@@ -78,10 +78,15 @@ struct dns_meta
   uint8_t value_len;
 };
 
+
+/** FFI C-abi compatible version of `DNSBackend::DomainInfo::DomainKind`. */
 typedef enum domain_info_kind_e {
   DOMAIN_INFO_KIND_MASTER = 0,
   DOMAIN_INFO_KIND_SLAVE = 1,
   DOMAIN_INFO_KIND_NATIVE = 2,
+  DOMAIN_INFO_KIND_PRODUCER = 3,
+  DOMAIN_INFO_KIND_CONSUMER = 4,
+  DOMAIN_INFO_KIND_ALL = 5,
 } domain_info_kind_t;
 
 struct domain_info
