@@ -34,7 +34,7 @@ jobs:
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
       - name: Add logs to exported artifacts
-        run: rm -f builder/tmp/build_latest.log && cp builder/tmp/*.log built_pkgs/
+        run: find . && rm -f builder/tmp/build_latest.log && cp builder/tmp/*.log built_pkgs/
       - name: Upload packages & logs
         uses: actions/upload-artifact@v2
         with:
