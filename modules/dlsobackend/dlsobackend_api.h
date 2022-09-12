@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+extern "C" {
 /** ABI version changelog
   *
   * - 2: Changed signature of callback ptr to void* instead of const void *.
@@ -211,3 +212,5 @@ struct lib_so_api
 };
 
 typedef bool (*dlso_register_t)(uint32_t abi_version, struct lib_so_api** api, bool dnssec, const char* args);
+
+}

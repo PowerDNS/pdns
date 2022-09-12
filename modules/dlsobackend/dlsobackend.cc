@@ -27,15 +27,16 @@
 
 static const char* kBackendId = "[DlsoBackend]";
 
-void fill_cb(void* ptr, const struct resource_record* record);
-void fill_key_cb(void* ptr, const struct dnskey* dnskey);
-void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
-void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values);
-void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta* c_metas);
-void fill_before_after(void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_);
-void fill_domain_info(void* ptr, struct domain_info* domain_info);
-void fill_unfresh_slave(void* ptr, struct domain_info* domain_info);
-
+extern "C" {
+  void fill_cb(void* ptr, const struct resource_record* record);
+  void fill_key_cb(void* ptr, const struct dnskey* dnskey);
+  void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
+  void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values);
+  void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta* c_metas);
+  void fill_before_after(void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_);
+  void fill_domain_info(void* ptr, struct domain_info* domain_info);
+  void fill_unfresh_slave(void* ptr, struct domain_info* domain_info);
+}
 /**
  * Standard ctor and dtor
  */
@@ -150,7 +151,7 @@ bool DlsoBackend::list(const DNSName& target, int domain_id, bool include_disabl
   return success;
 }
 
-void fill_cb(void* ptr, const struct resource_record* record)
+extern "C" void fill_cb(void* ptr, const struct resource_record* record)
 {
   auto* rr = reinterpret_cast<DNSResourceRecord*>(ptr);
   rr->qtype = record->qtype;
@@ -176,7 +177,7 @@ bool DlsoBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values)
+extern "C" void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values)
 {
   auto* meta = reinterpret_cast<std::vector<std::string>*>(ptr);
   for (uint8_t i = 0; i < value_len; i++) {
@@ -187,7 +188,7 @@ void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values)
   }
 }
 
-void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta* c_metas)
+extern "C" void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta* c_metas)
 {
   auto* metas = reinterpret_cast<std::map<std::string, std::vector<std::string>>*>(ptr);
   for (uint8_t i = 0; i < meta_len; i++) {
@@ -244,7 +245,7 @@ bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return status;
 }
 
-void fill_key_cb(void* ptr, const struct dnskey* dnskey)
+extern "C" void fill_key_cb(void* ptr, const struct dnskey* dnskey)
 {
   auto* keys = reinterpret_cast<std::vector<DNSBackend::KeyData>*>(ptr);
   DNSBackend::KeyData key;
@@ -313,7 +314,7 @@ struct fill_tsig
   std::string* content;
 };
 
-void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key)
+extern "C" void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key)
 {
   auto* data = reinterpret_cast<struct fill_tsig*>(ptr);
   data->content->operator=(string(key, key_len));
@@ -367,7 +368,7 @@ struct before_after_t
   DNSName* after;
 };
 
-void fill_before_after(void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_)
+extern "C" void fill_before_after(void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_)
 {
   auto* ba = reinterpret_cast<struct before_after_t*>(ptr);
 
@@ -474,7 +475,7 @@ bool DlsoBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   return true;
 }
 
-void fill_domain_info(void* ptr, struct domain_info* domain_info)
+extern "C" void fill_domain_info(void* ptr, struct domain_info* domain_info)
 {
   auto* di = reinterpret_cast<DomainInfo*>(ptr);
 
@@ -494,6 +495,7 @@ void fill_domain_info(void* ptr, struct domain_info* domain_info)
   di->id = domain_info->id;
   di->notified_serial = domain_info->notified_serial;
   di->serial = domain_info->serial;
+
   switch (domain_info->kind) {
   case DOMAIN_INFO_KIND_SLAVE:
     di->kind = DomainInfo::Slave;
