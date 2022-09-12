@@ -4,6 +4,7 @@ name: 'Test package building for specific distributions'
 on:
   schedule:
     - cron: '0 1 * * *'
+  push:
 
 jobs:
   build:
@@ -32,7 +33,9 @@ jobs:
       - name: Get version number
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
-      - name: Upload packages
+      - name: Add logs to exported artifacts
+        run: rm -f builder/tmp/build_latest.log && cp builder/tmp/*.log built_pkgs/
+      - name: Upload packages & logs
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
