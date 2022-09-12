@@ -119,10 +119,40 @@ struct domain_info
   time_t last_check;
 };
 
+/** Callback for filling up a pdns `DNSResourceRecord` from the
+ * `resource_record` FFI C-ABI compatiblity struct.
+
+ * Passed from: `DNSBackend::get`
+ */
 typedef void (*fill_cb_t)(void*, const struct resource_record*);
+/** Callback for filling up a pdns `KeyData` from the
+ * `dnskey` FFI C-ABI compatiblity struct.
+ * push back the key into the `std::vector<DNSBackend::KeyData>&`.
+ *
+ * Passed from: `DNSBackend::getDomainKeys`
+ */
 typedef void (*fill_key_cb_t)(void*, const struct dnskey*);
+/** Callback for filling up a Domain Tsig key represented by: `DNSName& algorithm` `std::string& content`
+ * from `fill_tsig` FFI C-ABI compatibility struct.
+ *
+ * Passed from `DNSBackend::getTSIGKey`
+ */
 typedef void (*fill_tsig_key_cb_t)(void*, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
+/** Callback for filling up a Domain Metadata `std::vector<std::string>`
+ * push back the key metadata for a domain will be pushed at the end of the `vector`.
+ *
+ * FFI C-ABI struct used: `dns_value`.
+ *
+ * Passed from `DNSBackend::getDomainMetadata`
+ */
 typedef void (*fill_meta_cb_t)(void*, uint8_t value_len, const struct dns_value*);
+/** Callback for filling up a all Domain Metadata represented by a
+ * Map `std::map<std::string, std::vector<std::string>>`.
+ *
+ * FFI C-ABI struct used: `dns_meta`.
+ *
+ * Passed from `DNSBackend::getAllDomainMetadata`
+ */
 typedef void (*fill_metas_cb_t)(void*, uint8_t meta_len, const struct dns_meta*);
 typedef void (*fill_before_after_cb_t)(void*, uint8_t unhashed_len, const char* unhashed, uint8_t before_len, const char* before, uint8_t after_len, const char* after);
 typedef void (*fill_domain_info_cb_t)(void*, struct domain_info* di);
