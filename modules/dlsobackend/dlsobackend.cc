@@ -180,6 +180,8 @@ bool DlsoBackend::get(DNSResourceRecord& rr)
 extern "C" void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values)
 {
   auto* meta = reinterpret_cast<std::vector<std::string>*>(ptr);
+  meta->resize(meta->size() + value_len);
+
   for (uint8_t i = 0; i < value_len; i++) {
     const struct dns_value* value = &values[i];
     string value_s = string(value->value, value->value_len);
