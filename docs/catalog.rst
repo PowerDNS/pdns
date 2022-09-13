@@ -112,7 +112,7 @@ PowerDNS currently supports the following properties:
 
 .. code-block:: shell
 
-  pdnsutil set-option example.com producer coo other-catalog.example  # migrate member zone from one catalog to another
+  pdnsutil set-option example.com producer coo other-catalog.example
   pdnsutil set-option example.com producer group pdns-group-x pdns-group-y
 
 There is also an option to set a specific <unique-N> value for a zone. This is done by setting a the ``unique`` value.
