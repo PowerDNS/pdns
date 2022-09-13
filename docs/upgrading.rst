@@ -8,8 +8,19 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
-4.5.x to 4.6.0 or master
+4.6.0 to 4.7.0 or master
 ------------------------
+
+Schema changes
+^^^^^^^^^^^^^^
+
+The new Catalog Zones feature comes with a mandatory schema change for the gsql database backends.
+See files named ``4.3.0_to_4.7.0_schema.pgsql.sql`` for your database backend in our Git repo, tarball, or distro-specific documentation path.
+For the LMDB backend, please review :ref:`setting-lmdb-schema-version`.
+The new LMDB schema version is 4.
+
+4.5.x to 4.6.0
+--------------
 
 Automatic conversion of ``@`` signs in SOA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
