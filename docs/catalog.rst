@@ -68,26 +68,27 @@ An initial producer zone may look like this:
 ::
 
   $TTL 3600
-  $ORIGIN catalog.invalid.
-  @               IN      SOA     ns1.zone.invalid. hostmaster.zone.invalid. (  1
-                          1H ; refresh
-                          10M ; retry
-                          1W ; expire
-                          1800 ; default_ttl
+  $ORIGIN catalog.example.
+  @               IN      SOA     invalid. hostmaster.invalid. (
+                          1     ; serial
+                          1H    ; refresh
+                          10M   ; retry
+                          1W    ; expire
+                          1800  ; negTTL
                           )
 
-  @               IN      NS      ns1.zone.invalid.
+  @               IN      NS      invalid.
 
-An interesting detail is the serial.
-Since the serial of a producer zone is automatically updated, it is important for the initial serial to be equal or lower than epoch.
+An interesting detail is the SOA serial:
+since the serial of a producer zone is automatically updated, it is important for the initial serial to be equal or lower than epoch.
 This serial is increased to EPOCH after each relevant member update.
 
 Create a producer zone:
 
 .. code-block:: shell
 
-  pdnsutil load-zone catalog.invalid zones/catalog.invalid ZONEFILE
-  pdnsutil set-kind catalog.invalid producer
+  pdnsutil load-zone catalog.example zones/catalog.example ZONEFILE
+  pdnsutil set-kind catalog.example producer
 
 Creating producer zones is supported in the :doc:`API <http-api/zone>`.
 
@@ -95,23 +96,23 @@ Assigning members to a producer zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the producer zone is created it is necessary to assign member zones to it.
-In the example below ``example.com`` is the member and ``catalog.invalid`` is the catalog.
+In the example below ``example.com`` is the member and ``catalog.example`` is the catalog.
 
 .. code-block:: shell
 
-  pdnsutil set-catalog example.com catalog.invalid
+  pdnsutil set-catalog example.com catalog.example
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`.
 
-Each member zone may have one or more additional properties.
-PowerDNS supports the flowing properties:
+Each member zone may have one or more additional properties as defined in the draft.
+PowerDNS currently supports the following properties:
 
 - coo - A single DNSName
 - group - Multiple string values for group are allowed
 
 .. code-block:: shell
 
-  pdnsutil set-option example.com producer coo other-catalog.invalid
+  pdnsutil set-option example.com producer coo other-catalog.example  # migrate member zone from one catalog to another
   pdnsutil set-option example.com producer group pdns-group-x pdns-group-y
 
 There is also an option to set a specific <unique-N> value for a zone. This is done by setting a the ``unique`` value.
@@ -132,8 +133,8 @@ The only difference is the type, which is now set to CONSUMER.
 
 .. code-block:: shell
 
-  pdnsutil create-secondary-zone catalog.invalid 127.0.0.1
-  pdnsutil set-kind catalog.invalid consumer
+  pdnsutil create-secondary-zone catalog.example 127.0.0.1
+  pdnsutil set-kind catalog.example consumer
 
 Creating producer zones is supported in the :doc:`API <http-api/zone>`.
 
