@@ -1684,6 +1684,29 @@ Disabled by default, which also disables outgoing IPv6 support.
 
 Don't log queries.
 
+.. _setting-record-cache-locked-ttl-perc:
+
+``record-cache-locked-ttl-perc``
+--------------------------------
+.. versionadded:: 4.8.0
+
+- Integer
+- Default: 0
+
+Replace record sets in the record cache only after this percentage of the original TTL has passed.
+The PowerDNS Recursor already has several mechanisms to protect against spoofing attempts.
+This adds an extra layer of protection---as it limits the window of time cache updates are accepted---at the cost of a less efficient record cache.
+
+The default value of 0 means no extra locking occurs.
+When non-zero, record sets received (e.g. in the Additional Section) will not replace existing record sets in the record cache until the given percentage of the original TTL has expired.
+A value of 100 means only expired record sets will be replaced.
+
+There are a few cases where records will be replaced anyway:
+
+- Record sets that are expired will always be replaced.
+- If the new record set passed DNSSEC validation it will replace an existing entry.
+- Record sets produced by :ref:`setting-refresh-on-ttl-perc` tasks will also replace existing record sets.
+
 .. _setting-record-cache-shards:
 
 ``record-cache-shards``
