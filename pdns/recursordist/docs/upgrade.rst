@@ -7,13 +7,26 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.7.0 to master
 ---------------
 
-:program:`rec_control` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The ``dump-throttle`` subcommand no longer produces a table per thread, as the corresponding table now is shared by all threads.
+Structured logging
+^^^^^^^^^^^^^^^^^^
+All logging (execpt query tracing) has been converted to stuctured logging.
+Switch to old style logging by setting the :ref:`setting-structured-logging` setting to ``no``.
+When using ``systemd``, structured logging information will be sent to ``journald`` using formatted text strings that list the key-value pairs and are human readable.
+Switch to native key-value pair logging (more suitable for automated log processing) by setting :ref:`setting-structured-logging-backend` to ``systemd-journal``.
 
 New settings
 ^^^^^^^^^^^^
 - The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-serve-stale-extensions` setting to control the new ``Serve Stale`` feature has been introduced.
+- The :ref:`setting record-cache-locked-ttl-perc` settinsg to control locking of records sets in the record cache has been introduced.
+- The :ref:`setting-edns-padding-out` settings to control EDNS padding for outgoing DoT has been introduced.
+- The :ref:`setting-structured-logging-backend` setting to control the type of structiured logging to ``journald`` has been introduced.
+
+:program:`rec_control` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``dump-throttle`` and ``dump-edns`` subcommands no longer produces a table per thread, as the corresponding tables are now shared by all threads.
+Additionally, the ``dump-edns`` command  now only lists IPs that have a not OK status.
+The ``dump-nsspeeds`` command has changed format to make it more readbale and lists the last round trip time recorded for each address.
 
 4.7.2 to 4.7.3
 --------------
