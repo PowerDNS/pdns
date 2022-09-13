@@ -167,7 +167,6 @@ static const oid rcode13AnswersOID[] = {RECURSOR_STATS_OID, 129, 13};
 static const oid rcode14AnswersOID[] = {RECURSOR_STATS_OID, 129, 14};
 static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 129, 15};
 
-
 static std::unordered_map<oid, std::string> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
@@ -407,7 +406,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("maintenance-usec", maintenanceUSecOID, OID_LENGTH(maintenanceUSecOID));
   registerCounter64Stat("maintenance-calls", maintenanceCallsOID, OID_LENGTH(maintenanceCallsOID));
 
-#define RCODE(num) registerCounter64Stat("auth-" + RCode::to_short_s(num) + "-answers", rcode ##num ## AnswersOID, OID_LENGTH(rcode ##num ## AnswersOID))
+#define RCODE(num) registerCounter64Stat("auth-" + RCode::to_short_s(num) + "-answers", rcode##num##AnswersOID, OID_LENGTH(rcode##num##AnswersOID))
   RCODE(0);
   RCODE(1);
   RCODE(2);

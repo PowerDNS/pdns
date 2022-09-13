@@ -1842,6 +1842,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
               d_totUsec += lwr.d_usec;
               accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
+              ++g_stats.authRCode[lwr.d_rcode];
               if (fromCache)
                 *fromCache = true;
 
