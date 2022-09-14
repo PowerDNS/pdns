@@ -90,7 +90,7 @@ Interception Functions
        If a routing tag is set and a record would be stored with an ENDS subnetmask in the record cache, it will be
        stored with the tag instead. New request using the same tag will be served by the record in the records cache,
        avoiding querying authoritative servers.
- 
+
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
     In the latter case, repeated queries will pass through the entire Lua script.
@@ -223,8 +223,9 @@ Interception Functions
 
 Callback Semantics
 ^^^^^^^^^^^^^^^^^^
-The :func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing.
-When a function returns ``false``, the nameserver will process the query normally until a new function is called.
+The functions which modify or influence the query flow, should all return ``true`` when they have performed an action which alters the query or the result. When a function returns ``false``, the nameserver will process the query normally until a new function is called.
+
+:func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing. The :func:`postresolve` function should return ``true`` if it has modified the result.
 
 If a function has taken over a request, it should set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
 An interesting rcode is `NXDOMAIN` (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
@@ -342,7 +343,7 @@ This script requires PowerDNS Recursor 4.x or later.
         if(lethalgroup:match(dq.remoteaddr))
         then
             print("We matched the group "..lethalgroup:tostring().."! killing query dead from requestor "..dq.localaddr:toString())
-            dq.rcode = -3 -- "kill" 
+            dq.rcode = -3 -- "kill"
             return true
         end
         return false
