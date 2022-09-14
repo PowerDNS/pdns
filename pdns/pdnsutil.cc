@@ -89,7 +89,7 @@ static void loadMainConfig(const std::string& configdir)
     exit(0);
   }
 
-  if(::arg()["config-name"]!="")
+  if(!::arg()["config-name"].empty())
     g_programname+="-"+::arg()["config-name"];
 
   string configname=::arg()["config-dir"]+"/"+g_programname+".conf";
@@ -1272,7 +1272,7 @@ static int editZone(const DNSName &zone) {
   for(const auto& c : changed) {
     cout<<c.second;
   }
-  if (changed.size() > 0) {
+  if (!changed.empty()) {
     if (changed.find({zone, QType::SOA}) == changed.end()) {
      reAsk3:;
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
@@ -1708,7 +1708,7 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
 static int listAllZones(const string &type="") {
 
   int kindFilter = -1;
-  if (type.size()) {
+  if (!type.empty()) {
     if (toUpper(type) == "PRIMARY" || toUpper(type) == "MASTER")
       kindFilter = 0;
     else if (toUpper(type) == "SECONDARY" || toUpper(type) == "SLAVE")
@@ -1769,7 +1769,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
 
   UeberBackend db("key-only");
 
-  if ( ! db.backends.size() )
+  if ( db.backends.empty() )
   {
     throw runtime_error("No backends available for DNSSEC key storage");
   }
@@ -2033,12 +2033,12 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
   if (!exportDS) {
     std::vector<std::string> meta;
 
-    if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+    if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && !meta.empty()) {
       cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
     }
 
     meta.clear();
-    if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
+    if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && !meta.empty()) {
       cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
     }
 
@@ -2203,7 +2203,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
      throw runtime_error("KSK key size must be equal to or greater than 0");
   }
 
-  if (k_algo == "" && z_algo == "") {
+  if (k_algo.empty() && z_algo.empty()) {
      throw runtime_error("Zero algorithms given for KSK+ZSK in total");
   }
 
@@ -2229,13 +2229,13 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
 
-  if (k_algo != "") { // Add a KSK
+  if (!k_algo.empty()) { // Add a KSK
     if (k_size)
       cout << "Securing zone with key size " << k_size << endl;
     else
       cout << "Securing zone with default key size" << endl;
 
-    cout << "Adding "<<(z_algo == "" ? "CSK (257)" : "KSK")<<" with algorithm " << k_algo << endl;
+    cout << "Adding " << (z_algo.empty() ? "CSK (257)" : "KSK") << " with algorithm " << k_algo << endl;
 
     int k_real_algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
@@ -2248,8 +2248,8 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     }
   }
 
-  if (z_algo != "") {
-    cout << "Adding "<<(k_algo == "" ? "CSK (256)" : "ZSK")<<" with algorithm " << z_algo << endl;
+  if (!z_algo.empty()) {
+    cout << "Adding " << (k_algo.empty() ? "CSK (256)" : "ZSK") << " with algorithm " << z_algo << endl;
 
     int z_real_algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
@@ -4016,7 +4016,7 @@ try
     vector<DomainInfo> domains;
 
     tgt->getAllDomains(&domains, false, true);
-    if (domains.size()>0)
+    if (!domains.empty())
       throw PDNSException("Target backend has zone(s), please clean it first");
 
     src->getAllDomains(&domains, false, true);
