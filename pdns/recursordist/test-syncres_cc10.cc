@@ -1331,4 +1331,183 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg)
   BOOST_CHECK_EQUAL(lookupCount, 2U);
 }
 
+BOOST_AUTO_TEST_CASE(test_glued_referral_additional_update)
+{
+  // Test that additional records update the cache
+  // We use two zones that share NS and their addresses
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+  primeHints();
+
+  const DNSName target1("powerdns.com.");
+  const DNSName target2("pdns.com.");
+
+  sr->setAsyncCallback([=](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    /* this will cause issue with qname minimization if we ever implement it */
+    if (domain != target1 && domain != target2) {
+      return LWResult::Result::Timeout;
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
+      if (domain == target1) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+        return LWResult::Result::Success;
+      }
+      if (domain == target2) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "pdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+        return LWResult::Result::Success;
+      }
+      return LWResult::Result::Timeout;
+    }
+    else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
+      setLWResult(res, 0, true, false, true);
+      if (domain == target1) {
+        addRecordToLW(res, target1, QType::A, "192.0.2.4");
+      }
+      else if (domain == target2) {
+        addRecordToLW(res, target2, QType::A, "192.0.2.5");
+      }
+      return LWResult::Result::Success;
+    }
+    else {
+      return LWResult::Result::Timeout;
+    }
+  });
+
+  // Lookup first name. We should see the address of an nameserver in the cache
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target1);
+
+  auto firstTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
+
+  // Move the time
+  sr->setNow({sr->getNow().tv_sec + 2, sr->getNow().tv_usec});
+
+  // Lookup second name. We should see the address rec of a nameserver in the cache being updated
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target2);
+
+  auto secondTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
+  // TTL shoud be back to original value
+  BOOST_CHECK_EQUAL(firstTTL, secondTTL);
+}
+
+BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
+{
+  // Test that additional records do not update the cache
+  // We use two zones that share NS and their addresses
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+  // Set the lock
+  SyncRes::s_locked_ttlperc = 50;
+
+  primeHints();
+
+  const DNSName target1("powerdns.com.");
+  const DNSName target2("pdns.com.");
+
+  sr->setAsyncCallback([=](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    /* this will cause issue with qname minimization if we ever implement it */
+    if (domain != target1 && domain != target2) {
+      return LWResult::Result::Timeout;
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
+      if (domain == target1) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+        return LWResult::Result::Success;
+      }
+      if (domain == target2) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "pdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+        addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+        return LWResult::Result::Success;
+      }
+      return LWResult::Result::Timeout;
+    }
+    else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
+      setLWResult(res, 0, true, false, true);
+      if (domain == target1) {
+        addRecordToLW(res, target1, QType::A, "192.0.2.4");
+      }
+      else if (domain == target2) {
+        addRecordToLW(res, target2, QType::A, "192.0.2.5");
+      }
+      return LWResult::Result::Success;
+    }
+    else {
+      return LWResult::Result::Timeout;
+    }
+  });
+
+  // Lookup first name. We should see the address of an nameserver in the cache
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target1);
+
+  auto firstTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
+
+  // Move the time
+  sr->setNow({sr->getNow().tv_sec + 2, sr->getNow().tv_usec});
+
+  // Lookup second name. We should see the address of an nameserver in the cache *not* being updated
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target2);
+
+  auto secondTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
+  // Time has passed, so ttl1 != ttl2
+  BOOST_CHECK_NE(firstTTL, secondTTL);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

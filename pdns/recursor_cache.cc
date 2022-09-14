@@ -503,7 +503,7 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
   }
 
   if (SyncRes::s_locked_ttlperc > 0) {
-    // Override locking whem existing data is stale or new data is Secure or refreshing
+    // Override locking if existing data is stale or new data is Secure or refreshing
     if (d_ttd <= now || state == vState::Secure || refresh) {
       return true;
     }
