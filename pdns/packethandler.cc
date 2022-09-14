@@ -789,7 +789,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
 void PacketHandler::addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode)
 {
   NSEC3PARAMRecordContent ns3rc;
-  bool narrow;
+  bool narrow = false;
   if(d_dk.getNSEC3PARAM(d_sd.qname, &ns3rc, &narrow))  {
     if (mode != 5) // no direct NSEC3 queries, rfc5155 7.2.8
       addNSEC3(p, r, target, wildcard, ns3rc, narrow, mode);

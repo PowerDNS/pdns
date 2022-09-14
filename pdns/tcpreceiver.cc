@@ -1211,7 +1211,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
     DNSSECKeeper dk((*packetHandler)->getBackend());
     DNSSECKeeper::clearCaches(q->qdomain);
-    bool narrow;
+    bool narrow = false;
     securedZone = dk.isSecuredZone(q->qdomain);
     if(dk.getNSEC3PARAM(q->qdomain, nullptr, &narrow)) {
       if(narrow) {

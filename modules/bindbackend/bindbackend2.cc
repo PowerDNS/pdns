@@ -491,7 +491,7 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string>* ips)
 void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
 {
   NSEC3PARAMRecordContent ns3pr;
-  bool nsec3zone;
+  bool nsec3zone = false;
   if (d_hybrid) {
     DNSSECKeeper dk;
     nsec3zone = dk.getNSEC3PARAM(bbd->d_name, &ns3pr);
