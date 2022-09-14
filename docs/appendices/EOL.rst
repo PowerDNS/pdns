@@ -33,7 +33,7 @@ such a user, these EOL statements do not apply to you.
    * - 4.5
      - July 13 2021
      - 25th of January 2022
-     - ~ April 2023
+     - ~ March 2023
    * - 4.4
      - December 18 2020
      - 25th of January 2022
