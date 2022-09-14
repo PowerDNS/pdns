@@ -61,6 +61,7 @@
 #include "proxy-protocol.hh"
 #include "noinitvector.hh"
 #include "gss_context.hh"
+#include "pdnsexception.hh"
 extern AuthPacketCache PC;
 extern StatBag S;
 
@@ -172,9 +173,11 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
 
 void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last)
 {
+  uint16_t len=htons(p->getString(true).length());
+
+  // this also calls p->getString; call it after our explicit call so throwsOnTruncation=true is honoured
   g_rs.submitResponse(*p, false, last);
 
-  uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
   buffer.append(p->getString());
   writenWithTimeout(outsock, buffer.c_str(), buffer.length(), d_idleTimeout);
@@ -1121,7 +1124,12 @@ send:
     if(!outpacket->getRRS().empty()) {
       if(haveTSIGDetails && !tsigkeyname.empty())
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
-      sendPacket(outpacket, outsock, false);
+      try {
+        sendPacket(outpacket, outsock, false);
+      }
+      catch (PDNSException& pe) {
+        throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
+      }
       trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
