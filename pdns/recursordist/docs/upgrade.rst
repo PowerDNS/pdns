@@ -13,14 +13,14 @@ The ``dump-throttle`` subcommand no longer produces a table per thread, as the c
 
 New settings
 ^^^^^^^^^^^^
-- The :ref:`setting-max-ns-per-resolve` setting to limit to number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.7.2 to 4.7.3
 --------------
 
 New settings
 ^^^^^^^^^^^^
-- The :ref:`setting-max-ns-per-resolve` setting to limit to number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.6.2 to 4.7.0
 ---------------
@@ -61,7 +61,7 @@ They also use a better readable and sortable timestamp format.
 
 New settings
 ^^^^^^^^^^^^
-- The :ref:`setting-max-ns-per-resolve` setting to limit to number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.6.1 to 4.6.2
 --------------
@@ -108,7 +108,7 @@ For more information, see the section `"Privileged ports" in Docker-README <http
 
 New settings
 ^^^^^^^^^^^^
-- The :ref:`setting-max-ns-per-resolve` setting to limit to number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.5.1 to 4.5.2
 --------------

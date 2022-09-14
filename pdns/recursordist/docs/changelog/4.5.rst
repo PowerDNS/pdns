@@ -2,6 +2,31 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.11
+  :released: 20th of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11939
+    :tickets: 11904
+
+    For zones having many NS records, we are not interested in all so take a sample.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11942
+    :tickets: 11890
+
+    Failure to retrieve DNSKEYs of an Insecure zone should not be fatal.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11899
+    :tickets: 11848
+
+    Also check qperq limit if throttling happened, as it increases counters.
+
+.. changelog::
   :version: 4.5.10
   :released: 23rd of August 2022
 

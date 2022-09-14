@@ -1240,6 +1240,9 @@ number lower than 5.
 ``max-ns-per-resolve``
 ----------------------
 .. versionadded:: 4.8.0
+.. versionadded:: 4.7.3
+.. versionadded:: 4.6.4
+.. versionadded:: 4.5.11
 
 -  Integer
 -  Default: 13
