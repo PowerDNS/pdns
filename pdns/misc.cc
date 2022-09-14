@@ -510,17 +510,46 @@ string urlEncode(const string &text)
   return ret;
 }
 
-string getHostname()
+static size_t getMaxHostNameSize()
 {
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN 255
+#if defined(HOST_NAME_MAX)
+  return HOST_NAME_MAX;
 #endif
 
-  char tmp[MAXHOSTNAMELEN];
-  if(gethostname(tmp, MAXHOSTNAMELEN))
-    return "UNKNOWN";
+#if defined(_SC_HOST_NAME_MAX)
+  auto tmp = sysconf(_SC_HOST_NAME_MAX);
+  if (tmp != -1) {
+    return tmp;
+  }
+#endif
 
-  return string(tmp);
+  const size_t maxHostNameSize = 255;
+  return maxHostNameSize;
+}
+
+std::optional<string> getHostname()
+{
+  const size_t maxHostNameBufSize = getMaxHostNameSize() + 1;
+  std::string hostname;
+  hostname.resize(maxHostNameBufSize, 0);
+
+  if (gethostname(hostname.data(), maxHostNameBufSize) == -1) {
+    return std::nullopt;
+  }
+
+  hostname.resize(strlen(hostname.c_str()));
+  return std::make_optional(hostname);
+}
+
+std::string getCarbonHostName()
+{
+  auto hostname = getHostname();
+  if (!hostname.has_value()) {
+    throw std::runtime_error(stringerror());
+  }
+
+  boost::replace_all(*hostname, ".", "_");
+  return *hostname;
 }
 
 string itoa(int i)
@@ -1648,38 +1677,6 @@ DNSName reverseNameFromIP(const ComboAddress& ip)
   }
 
   throw std::runtime_error("Calling reverseNameFromIP() for an address which is neither an IPv4 nor an IPv6");
-}
-
-static size_t getMaxHostNameSize()
-{
-#if defined(HOST_NAME_MAX)
-  return HOST_NAME_MAX;
-#endif
-
-#if defined(_SC_HOST_NAME_MAX)
-  auto tmp = sysconf(_SC_HOST_NAME_MAX);
-  if (tmp != -1) {
-    return tmp;
-  }
-#endif
-
-  /* _POSIX_HOST_NAME_MAX */
-  return 255;
-}
-
-std::string getCarbonHostName()
-{
-  std::string hostname;
-  hostname.resize(getMaxHostNameSize() + 1, 0);
-
-  if (gethostname(const_cast<char*>(hostname.c_str()), hostname.size()) != 0) {
-    throw std::runtime_error(stringerror());
-  }
-
-  boost::replace_all(hostname, ".", "_");
-  hostname.resize(strlen(hostname.c_str()));
-
-  return hostname;
 }
 
 std::string makeLuaString(const std::string& in)
