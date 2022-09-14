@@ -63,10 +63,10 @@ DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
   memset(&d, 0, sizeof(d));
 }
 
-const string& DNSPacket::getString()
+const string& DNSPacket::getString(bool throwsOnTruncation)
 {
   if(!d_wrapped)
-    wrapup();
+    wrapup(throwsOnTruncation);
 
   return d_rawpacket;
 }
@@ -263,7 +263,7 @@ bool DNSPacket::isEmpty()
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
-void DNSPacket::wrapup()
+void DNSPacket::wrapup(bool throwsOnTruncation)
 {
   if(d_wrapped) {
     return;
@@ -356,6 +356,9 @@ void DNSPacket::wrapup()
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
         pos->dr.d_content->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
+          if (throwsOnTruncation) {
+            throw PDNSException("attempt to write an oversized chunk");
+          }
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
