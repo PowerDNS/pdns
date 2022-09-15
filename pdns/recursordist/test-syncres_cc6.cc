@@ -1879,4 +1879,94 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_broken_cname_ds)
   BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_cname_for_ds)
+{
+  /* Test an Secure domain that responds with a CNAME on a DS query goes Bogus */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("www.powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (type == QType::DS && domain == DNSName("powerdns.com")) {
+        // Return a signed CNAME on a DS query for powerdns.com
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::CNAME, "some.name", DNSResourceRecord::ANSWER, 300);
+        addRRSIG(keys, res->d_records, domain, 300);
+        return LWResult::Result::Success;
+      }
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain == DNSName("com.")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, DNSName("com."), QType::NS, "a.gtld-servers.com.");
+          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        }
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.2:53")) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, DNSName("www.powerdns.com."), QType::A, "192.168.1.1", DNSResourceRecord::ANSWER, 3600);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+
+        return LWResult::Result::Success;
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusUnableToGetDSs);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusUnableToGetDSs);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
