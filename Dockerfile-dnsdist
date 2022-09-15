@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:10-slim AS builder
+FROM debian:11-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -63,7 +63,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
 
 # Runtime
 
-FROM debian:10-slim
+FROM debian:11-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
