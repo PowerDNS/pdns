@@ -28,16 +28,16 @@ such a user, these EOL statements do not apply to you.
      - End of Life
    * - 4.6
      - 25th of January 2022
-     - ~ July 2022
-     - ~ July 2023
+     - ~ September 2022
+     - ~ September 2023
    * - 4.5
      - July 13 2021
      - 25th of January 2022
-     - ~ January 2023
+     - ~ March 2023
    * - 4.4
      - December 18 2020
      - 25th of January 2022
-     - ~ June 2022
+     - ~ September 2022
    * - 4.3
      - April 7 2020
      - ~ April 2021
