@@ -41,6 +41,9 @@ jobs:
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
     steps:
+      # instead of jo, we could use jq here, which avoids running apt, and thus would be faster.
+      # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
+      # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-oslist
         run: echo "::set-output name=oslist::"$(jo -a ${{ github.event.inputs.os }})
