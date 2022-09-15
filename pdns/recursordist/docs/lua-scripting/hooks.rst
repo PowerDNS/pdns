@@ -26,9 +26,10 @@ All of these functions are optional.
 If ``ipfilter`` returns ``true``, the query is dropped.
 If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send the result as constructed in the function to the client.
 If it returns ``false``, the Recursor will continue processing.
-For the other functions, the return value will indicate that an alteration has been made. In that case DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
+For the other functions, the return value will indicate that an alteration to the result has been made.
+In that case the potentially changed rcode, records and policy will be processed and DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
 At specific points the Recursor will check if policy handling should take place.
-These points are immediately after ``preresolve``, after resolving and after ``postresolve``.
+These points are immediately after ``preresolve``, after resolving and after ``nxdomain``, ``nodata`` and ``postresolve``.
 
 Interception Functions
 ----------------------
@@ -36,7 +37,7 @@ Interception Functions
 .. function:: ipfilter(remoteip, localip, dh) -> bool
 
     This hook gets queried immediately after consulting the packet cache, but before parsing the DNS packet.
-    If this hook returns something else than false, the packet is dropped.
+    If this hook returns something else than ``false``, the packet is dropped.
     However, because this check is after the packet cache, the IP address might still receive answers that require no packet parsing.
 
     With this hook, undesired traffic can be dropped rapidly before using precious CPU cycles for parsing.
@@ -122,6 +123,7 @@ Interception Functions
 
   This hook is called before any filtering policy have been applied,  making it possible to completely disable filtering by setting  :attr:`dq.wantsRPZ <DNSQuestion.wantsRPZ>` to false.
   Using the :meth:`dq:discardPolicy() <DNSQuestion:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones, based on the content of the ``dq`` object.
+  Currently, the return value of thsi function is ignored.
 
   As an example, to disable the "malware" policy for example.com queries:
 
@@ -223,12 +225,13 @@ Interception Functions
 
 Callback Semantics
 ^^^^^^^^^^^^^^^^^^
-The functions which modify or influence the query flow, should all return ``true`` when they have performed an action which alters the query or the result. When a function returns ``false``, the nameserver will process the query normally until a new function is called.
+The functions which modify or influence the query flow should all return ``true`` when they have performed an action which alters the rcode, result or applied policy. When a function returns ``false``, the nameserver will process the query normally until a new function is called.
 
-:func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing. The :func:`postresolve` function should return ``true`` if it has modified the result.
+:func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing.
 
-If a function has taken over a request, it should set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
+If a function has taken over a request, it can set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
 An interesting rcode is `NXDOMAIN` (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
+Instead of setting an rcode and records, it can also set fields in the applied policy to influence further processing.
 
 The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
 
