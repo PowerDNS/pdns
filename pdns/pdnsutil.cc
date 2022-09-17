@@ -2188,16 +2188,14 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 
 static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 {
-  // parse attribute
-  int k_size;
-  int z_size;
   // temp var for addKey
   int64_t id;
 
+  // parse attribute
   string k_algo = ::arg()["default-ksk-algorithm"];
-  k_size = ::arg().asNum("default-ksk-size");
+  int k_size = ::arg().asNum("default-ksk-size");
   string z_algo = ::arg()["default-zsk-algorithm"];
-  z_size = ::arg().asNum("default-zsk-size");
+  int z_size = ::arg().asNum("default-zsk-size");
 
   if (k_size < 0) {
      throw runtime_error("KSK key size must be equal to or greater than 0");
