@@ -1305,6 +1305,7 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
 
     for (size_t idx = 0; idx < acceptParams.size(); idx++) {
       const auto& param = acceptParams.at(idx);
+      setNonBlocking(param.socket);
       data.mplexer->addReadFD(param.socket, acceptCallback, &param);
     }
 
