@@ -5,7 +5,7 @@
 #   dig a www.example.com @0 -p 1053
 
 # Builder
-FROM debian:10-slim AS builder
+FROM debian:11-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -66,7 +66,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:10-slim
+FROM debian:11-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
