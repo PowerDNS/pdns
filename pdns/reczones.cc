@@ -189,7 +189,6 @@ void primeRootNSZones(DNSSECMode mode, unsigned int depth)
 
   sr.setDoDNSSEC(mode != DNSSECMode::Off);
   sr.setDNSSECValidationRequested(mode != DNSSECMode::Off && mode != DNSSECMode::ProcessNoValidate);
-
   // beginResolve() can yield to another mthread that could trigger t_rootNSZones updates,
   // so make a local copy
   set<DNSName> copy(t_rootNSZones);

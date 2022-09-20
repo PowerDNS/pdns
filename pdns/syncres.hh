@@ -496,6 +496,7 @@ public:
   static bool s_qnameminimization;
   static HardenNXD s_hardenNXD;
   static unsigned int s_refresh_ttlperc;
+  static unsigned int s_locked_ttlperc;
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
   static bool s_dot_to_port_853;

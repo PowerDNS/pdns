@@ -485,7 +485,42 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
   return -1;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from)
+bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState state, bool refresh)
+{
+  if (!auth && d_auth) { // unauth data came in, we have some auth data, but is it fresh?
+    if (d_ttd > now) { // we still have valid data, ignore unauth data
+      return false;
+    }
+    d_auth = false; // new data won't be auth
+  }
+
+  if (auth) {
+    /* we don't want to keep a non-auth entry while we have an auth one */
+    if (vStateIsBogus(state) && (!vStateIsBogus(d_state) && d_state != vState::Indeterminate) && d_ttd > now) {
+      /* the new entry is Bogus, the existing one is not and is still valid, let's keep the existing one */
+      return false;
+    }
+  }
+
+  if (SyncRes::s_locked_ttlperc > 0) {
+    // Override locking if existing data is stale or new data is Secure or refreshing
+    if (d_ttd <= now || state == vState::Secure || refresh) {
+      return true;
+    }
+    const uint32_t percentage = 100 - SyncRes::s_locked_ttlperc;
+    const time_t ttl = d_ttd - now;
+    const uint32_t lockline = d_orig_ttl * percentage / 100;
+    // We know ttl is > 0 as d_ttd > now
+    const bool locked = static_cast<uint32_t>(ttl) > lockline;
+    if (locked) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh)
 {
   auto& mc = getMap(qname);
   auto map = mc.lock();
@@ -527,21 +562,8 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   CacheEntry ce = *stored; // this is a COPY
   ce.d_qtype = qt.getCode();
 
-  if (!auth && ce.d_auth) { // unauth data came in, we have some auth data, but is it fresh?
-    if (ce.d_ttd > now) { // we still have valid data, ignore unauth data
-      return;
-    }
-    else {
-      ce.d_auth = false; // new data won't be auth
-    }
-  }
-
-  if (auth) {
-    /* we don't want to keep a non-auth entry while we have an auth one */
-    if (vStateIsBogus(state) && (!vStateIsBogus(ce.d_state) && ce.d_state != vState::Indeterminate) && ce.d_ttd > now) {
-      /* the new entry is Bogus, the existing one is not and is still valid, let's keep the existing one */
-      return;
-    }
+  if (!isNew && !ce.shouldReplace(now, auth, state, refresh)) {
+    return;
   }
 
   ce.d_state = state;

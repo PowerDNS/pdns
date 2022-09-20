@@ -184,6 +184,8 @@ void initSR(bool debug)
   SyncRes::s_nonresolvingnsthrottletime = 0;
   SyncRes::s_refresh_ttlperc = 0;
   SyncRes::s_save_parent_ns_set = true;
+  SyncRes::s_maxnsperresolve = 13;
+  SyncRes::s_locked_ttlperc = 0;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);

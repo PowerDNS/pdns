@@ -1509,6 +1509,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::s_maxdepth = ::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo("root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
+  SyncRes::s_locked_ttlperc = ::arg().asNum("record-cache-locked-ttl-perc");
   RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
   SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
@@ -2786,6 +2787,7 @@ int main(int argc, char** argv)
     ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file") = "20";
     ::arg().set("record-cache-shards", "Number of shards in the record cache") = "1024";
     ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
+    ::arg().set("record-cache-locked-ttl-perc", "Replace records in record cache only after this % of original TTL has passed") = "0";
 
     ::arg().set("x-dnssec-names", "Collect DNSSEC statistics for names or suffixes in this list in separate x-dnssec counters") = "";
 
