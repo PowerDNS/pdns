@@ -123,7 +123,7 @@ Interception Functions
 
   This hook is called before any filtering policy have been applied,  making it possible to completely disable filtering by setting  :attr:`dq.wantsRPZ <DNSQuestion.wantsRPZ>` to false.
   Using the :meth:`dq:discardPolicy() <DNSQuestion:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones, based on the content of the ``dq`` object.
-  Currently, the return value of thsi function is ignored.
+  Currently, the return value of this function is ignored.
 
   As an example, to disable the "malware" policy for example.com queries:
 
