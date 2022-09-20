@@ -60,7 +60,7 @@ rec_bulk_deps = [
     'libcap2',
     'libfstrm0',
     'libluajit-5.1-2',
-    'libsnmp35',
+    'libsnmp40',
     'libsodium23',
     'libssl1.1',
     'libsystemd0',
