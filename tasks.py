@@ -6,6 +6,7 @@ import sys
 import time
 
 all_build_deps = [
+    'build-essential',
     'ccache',
     'libboost-all-dev',
     'libluajit-5.1-dev',
@@ -29,6 +30,7 @@ git_build_deps = [
     'ragel'
 ]
 auth_build_deps = [    # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file
+    'cmake',    # for building libdecaf
     'default-libmysqlclient-dev',
     'libcdb-dev',
     'libcurl4-openssl-dev',
