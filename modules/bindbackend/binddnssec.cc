@@ -209,7 +209,7 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   if (!safeGetBBDomainInfo(name, &bbd))
     return false;
 
-  if (ns3p) {
+  if (ns3p != nullptr) {
     *ns3p = bbd.d_nsec3param;
   }
 

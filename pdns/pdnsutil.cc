@@ -934,7 +934,7 @@ static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 
   if (sd.db->doesDNSSEC()) {
     NSEC3PARAMRecordContent ns3pr;
-    bool narrow;
+    bool narrow = false;
     bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
 
     DNSName ordername;
@@ -2027,7 +2027,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
   }
 
   NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
+  bool narrow = false;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
 
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
@@ -3383,7 +3383,7 @@ try
     DNSName zone(cmds.at(1));
     DNSName record(cmds.at(2));
     NSEC3PARAMRecordContent ns3pr;
-    bool narrow;
+    bool narrow = false;
     if(!dk.getNSEC3PARAM(zone, &ns3pr, &narrow)) {
       cerr<<"The '"<<zone<<"' zone does not use NSEC3"<<endl;
       return 0;
