@@ -10,7 +10,7 @@ on:
 jobs:
   build-auth:
     name: build auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -49,7 +49,7 @@ jobs:
 
   build-recursor:
     name: build recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -95,7 +95,7 @@ jobs:
 
   build-dnsdist:
     name: build dnsdist
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -145,7 +145,7 @@ jobs:
 
   test-auth-api:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -194,7 +194,7 @@ jobs:
 
   test-auth-backend:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -257,7 +257,7 @@ jobs:
 
   test-ixfrdist:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -278,7 +278,7 @@ jobs:
 
   test-recursor-api:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -304,7 +304,7 @@ jobs:
 
   test-recursor-regression:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -331,7 +331,7 @@ jobs:
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan]
@@ -359,7 +359,7 @@ jobs:
 
   test-dnsdist-regression:
     needs: build-dnsdist
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -385,7 +385,7 @@ jobs:
       - run: inv test-dnsdist
 
   swagger-syntax-check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3.1.0
         with:
@@ -408,7 +408,7 @@ jobs:
       - test-recursor-api
       - test-recursor-regression
       - test-recursor-bulk
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3.1.0
         with:
