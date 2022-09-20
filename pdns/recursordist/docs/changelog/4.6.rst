@@ -2,6 +2,38 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.4
+  :released: 20th of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11937
+    :tickets: 11904
+
+    For zones having many NS records, we are not interested in all so take a sample.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11941
+    :tickets: 11890
+
+    Failure to retrieve DNSKEYs of an Insecure zone should not be fatal.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11898
+    :tickets: 11848
+
+    Also check qperq limit if throttling happened, as it increases counters.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11775
+    :tickets: 11773
+
+    Resize answer length to actual received length in udpQueryResponse.
+
+.. changelog::
   :version: 4.6.3
   :released: 23th of August 2022
 

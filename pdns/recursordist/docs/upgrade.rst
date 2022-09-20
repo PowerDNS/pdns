@@ -11,6 +11,17 @@ When upgrading several versions, please read **all** notes applying to the upgra
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-throttle`` subcommand no longer produces a table per thread, as the corresponding table now is shared by all threads.
 
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
+
+4.7.2 to 4.7.3
+--------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
+
 4.6.2 to 4.7.0
 ---------------
 
@@ -44,6 +55,13 @@ New settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-nsspeeds``, ``dump-failedservers`` and ``dump-non-resolving`` subcommands no longer produce a table per thread, as the corresponding tables are now shared by all threads.
 They also use a better readable and sortable timestamp format.
+
+4.6.3 to 4.6.4
+--------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.6.1 to 4.6.2
 --------------
@@ -84,6 +102,13 @@ Privileged port binding in Docker
 
 In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
 For more information, see the section `"Privileged ports" in Docker-README <https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports>`__.
+
+4.5.10 to 4.5.11
+----------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.5.1 to 4.5.2
 --------------
