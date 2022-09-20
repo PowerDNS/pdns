@@ -23,6 +23,8 @@
 #include "pdns/backends/gsql/gsqlbackend.hh"
 #include "../../../modules/dlsobackend/dlsobackend_api.h"
 #include "../../../modules/gsqlite3backend/gsqlite3backend.hh"
+#include "pdns/logger.hh"
+#include "pdns/logging.hh"
 #include <sys/types.h>
 #include <cstdlib>
 #include <mutex>
@@ -273,12 +275,17 @@ bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* 
 {
   auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
-  DNSBackend::KeyData key;
+  DNSBackend::KeyData key = {
+    .content = string(dnskey->data, dnskey->data_len),
+    .id = dnskey->id,
+    .flags = dnskey->flags,
+    .active = dnskey->active,
+    .published = dnskey->published,
+  };
 
-  key.id = dnskey->id;
-  key.flags = dnskey->flags;
-  key.active = dnskey->active;
-  key.content = string(dnskey->data, dnskey->data_len);
+  g_log <<
+  Logger::Debug << "id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false")
+  << endl;
 
   return handle->module->addDomainKey(qname, key, *id);
 }
@@ -299,6 +306,7 @@ bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t 
         .data_len = static_cast<uint16_t>(key.content.size()),
         .data = key.content.c_str(),
         .active = key.active,
+        .published = key.published,
       };
 
       cb(keys_, &dnskey);

@@ -250,11 +250,13 @@ bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 extern "C" void fill_key_cb(void* ptr, const struct dnskey* dnskey)
 {
   auto* keys = reinterpret_cast<std::vector<DNSBackend::KeyData>*>(ptr);
-  DNSBackend::KeyData key;
-  key.id = dnskey->id;
-  key.flags = dnskey->flags;
-  key.active = dnskey->active;
-  key.content = string(dnskey->data, dnskey->data_len);
+  DNSBackend::KeyData key = {
+    .content = string(dnskey->data, dnskey->data_len),
+    .id = dnskey->id,
+    .flags = dnskey->flags,
+    .active = dnskey->active,
+    .published = dnskey->published,
+  };
   keys->push_back(key);
 }
 
@@ -290,6 +292,7 @@ bool DlsoBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     .data_len = static_cast<uint16_t>(key.content.size()),
     .data = key.content.c_str(),
     .active = key.active,
+    .published = key.published,
   };
 
   return api->add_domain_key(api->handle, qname.size(), qname.c_str(), &dnskey, &id);
