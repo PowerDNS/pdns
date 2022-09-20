@@ -2403,21 +2403,9 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     throw PDNSException("No local address specified");
   }
 
+  const uint16_t defaultLocalPort = ::arg().asNum("local-port");
   for (const auto& localAddress : localAddresses) {
-    ServiceTuple st;
-    st.port = ::arg().asNum("local-port");
-    parseService(localAddress, st);
-
-    ComboAddress address;
-
-    address.reset();
-    address.sin4.sin_family = AF_INET;
-    if (!IpToU32(st.host.c_str(), (uint32_t*)&address.sin4.sin_addr.s_addr)) {
-      address.sin6.sin6_family = AF_INET6;
-      if (makeIPv6sockaddr(st.host, &address.sin6) < 0)
-        throw PDNSException("Unable to resolve local address for UDP server on '" + st.host + "'");
-    }
-
+    ComboAddress address{localAddress, defaultLocalPort};
     const int socketFd = socket(address.sin4.sin_family, SOCK_DGRAM, 0);
     if (socketFd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: " + stringerror());
@@ -2458,7 +2446,6 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
       SLOG(g_log << Logger::Error << e.what() << endl,
            log->error(Logr::Error, e.what(), "Exception while setting socker buffer size"));
     }
-    address.sin4.sin_port = htons(st.port);
 
     if (g_reusePort) {
 #if defined(SO_REUSEPORT_LB)
@@ -2488,7 +2475,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 
     socklen_t socklen = address.getSocklen();
     if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
-      throw PDNSException("Resolver binding to server socket on port " + std::to_string(st.port) + " for " + st.host + ": " + stringerror());
+      throw PDNSException("Resolver binding to server socket on " + address.toStringWithPort() + ": " + stringerror());
     }
 
     setNonBlocking(socketFd);

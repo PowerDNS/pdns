@@ -1039,21 +1039,9 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
   }
 
   auto first = true;
+  const uint16_t defaultLocalPort = ::arg().asNum("local-port");
   for (const auto& localAddress : localAddresses) {
-    ServiceTuple st;
-    st.port = ::arg().asNum("local-port");
-    parseService(localAddress, st);
-
-    ComboAddress address;
-
-    address.reset();
-    address.sin4.sin_family = AF_INET;
-    if (!IpToU32(st.host, (uint32_t*)&address.sin4.sin_addr.s_addr)) {
-      address.sin6.sin6_family = AF_INET6;
-      if (makeIPv6sockaddr(st.host, &address.sin6) < 0)
-        throw PDNSException("Unable to resolve local address for TCP server on '" + st.host + "'");
-    }
-
+    ComboAddress address{localAddress, defaultLocalPort};
     const int socketFd = socket(address.sin6.sin6_family, SOCK_STREAM, 0);
     if (socketFd < 0) {
       throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
@@ -1119,10 +1107,9 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 #endif
     }
 
-    address.sin4.sin_port = htons(st.port);
     socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
     if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
-      throw PDNSException("Binding TCP server socket for " + st.host + ": " + stringerror());
+      throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
     }
 
     setNonBlocking(socketFd);
