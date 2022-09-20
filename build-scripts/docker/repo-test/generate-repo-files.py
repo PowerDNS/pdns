@@ -172,7 +172,8 @@ def write_release_files (release):
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
-    if release in ['auth-47', 'auth-master']:
+    if release in ['auth-47', 'auth-master',
+                   'rec-47', 'rec-master']:
         write_dockerfile('el', '9', release)
 
 # Test Release Functions
