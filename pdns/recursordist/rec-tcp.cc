@@ -1031,58 +1031,61 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
 
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
 {
-  int fd;
-  vector<string> locals;
-  stringtok(locals, ::arg()["local-address"], " ,");
+  vector<string> localAddresses;
+  stringtok(localAddresses, ::arg()["local-address"], " ,");
 
-  if (locals.empty())
+  if (localAddresses.empty()) {
     throw PDNSException("No local address specified");
+  }
 
-  for (vector<string>::const_iterator i = locals.begin(); i != locals.end(); ++i) {
+  auto first = true;
+  for (const auto& localAddress : localAddresses) {
     ServiceTuple st;
     st.port = ::arg().asNum("local-port");
-    parseService(*i, st);
+    parseService(localAddress, st);
 
-    ComboAddress sin;
+    ComboAddress address;
 
-    sin.reset();
-    sin.sin4.sin_family = AF_INET;
-    if (!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
-      sin.sin6.sin6_family = AF_INET6;
-      if (makeIPv6sockaddr(st.host, &sin.sin6) < 0)
+    address.reset();
+    address.sin4.sin_family = AF_INET;
+    if (!IpToU32(st.host, (uint32_t*)&address.sin4.sin_addr.s_addr)) {
+      address.sin6.sin6_family = AF_INET6;
+      if (makeIPv6sockaddr(st.host, &address.sin6) < 0)
         throw PDNSException("Unable to resolve local address for TCP server on '" + st.host + "'");
     }
 
-    fd = socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
-    if (fd < 0)
+    const int socketFd = socket(address.sin6.sin6_family, SOCK_STREAM, 0);
+    if (socketFd < 0) {
       throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
+    }
 
-    setCloseOnExec(fd);
+    setCloseOnExec(socketFd);
 
     int tmp = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
+    if (setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl,
            log->error(Logr::Critical, err, "Setsockopt failed for TCP listening socket"));
       exit(1);
     }
-    if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
+    if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
            log->error(Logr::Error, err, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
     }
 
 #ifdef TCP_DEFER_ACCEPT
-    if (setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
-      if (i == locals.begin()) {
+    if (setsockopt(socketFd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
+      if (first) {
         SLOG(g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl,
              log->info(Logr::Info, "Enabled TCP data-ready filter for (slight) DoS protection"));
       }
     }
 #endif
 
-    if (::arg().mustDo("non-local-bind"))
-      Utility::setBindAny(AF_INET, fd);
+    if (::arg().mustDo("non-local-bind")) {
+      Utility::setBindAny(AF_INET, socketFd);
+    }
 
     if (g_reusePort) {
 #if defined(SO_REUSEPORT_LB)
@@ -1094,7 +1097,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
       }
 #elif defined(SO_REUSEPORT)
       try {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+        SSetsockopt(socketFd, SOL_SOCKET, SO_REUSEPORT, 1);
       }
       catch (const std::exception& e) {
         throw PDNSException(std::string("SO_REUSEPORT: ") + e.what());
@@ -1105,7 +1108,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     if (SyncRes::s_tcp_fast_open > 0) {
       checkFastOpenSysctl(false, log);
 #ifdef TCP_FASTOPEN
-      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
+      if (setsockopt(socketFd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
         SLOG(g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl,
              log->error(Logr::Error, err, "Failed to enable TCP Fast Open for listening socket"));
@@ -1116,27 +1119,30 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 #endif
     }
 
-    sin.sin4.sin_port = htons(st.port);
-    socklen_t socklen = sin.sin4.sin_family == AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
-    if (::bind(fd, (struct sockaddr*)&sin, socklen) < 0)
+    address.sin4.sin_port = htons(st.port);
+    socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
+    if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
       throw PDNSException("Binding TCP server socket for " + st.host + ": " + stringerror());
+    }
 
-    setNonBlocking(fd);
+    setNonBlocking(socketFd);
     try {
-      setSocketSendBuffer(fd, 65000);
+      setSocketSendBuffer(socketFd, 65000);
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << e.what() << endl,
            log->error(Logr::Error, e.what(), "Exception while setting socket send buffer"));
     }
 
-    listen(fd, 128);
-    deferredAdds.emplace_back(fd, handleNewTCPQuestion);
-    tcpSockets.insert(fd);
+    listen(socketFd, 128);
+    deferredAdds.emplace_back(socketFd, handleNewTCPQuestion);
+    tcpSockets.insert(socketFd);
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
-    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << sin.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(sin)));
+    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << address.toStringWithPort() << endl,
+         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(address)));
+
+    first = false;
   }
 }
