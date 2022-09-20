@@ -125,7 +125,7 @@ bool get_tsig_key(
   uint8_t qlen,
   const char* qname_,
   fill_tsig_key_cb_t cb,
-  const void* data)
+  void* data)
 {
   auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
@@ -169,12 +169,12 @@ bool get_meta(
   uint8_t kind_len,
   const char* kind_,
   fill_meta_cb_t cb,
-  const void* meta)
+  void* meta)
 {
   auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));
   auto kind = string(kind_, kind_len);
-  std::vector<std::string>* meta_ = (std::vector<std::string>*)meta;
+  auto* meta_ = static_cast<std::vector<std::string>*>(meta);
   // TODO meta should be reparsed
 
   return handle->module->getDomainMetadata(qname, kind, *meta_);
@@ -290,7 +290,7 @@ bool add_domain_key(void* ptr, uint8_t qlen, const char* qname_, struct dnskey* 
   return handle->module->addDomainKey(qname, key, *id);
 }
 
-bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t cb, const void* keys_)
+bool get_domain_keys(void* ptr, uint8_t qlen, const char* qname_, fill_key_cb_t cb, void* keys_)
 {
   auto* handle = static_cast<struct dlso_gsql*>(ptr);
   auto qname = DNSName(string(qname_, qlen));

@@ -27,7 +27,8 @@
 
 static const char* kBackendId = "[DlsoBackend]";
 
-extern "C" {
+extern "C"
+{
   void fill_cb(void* ptr, const struct resource_record* record);
   void fill_key_cb(void* ptr, const struct dnskey* dnskey);
   void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);

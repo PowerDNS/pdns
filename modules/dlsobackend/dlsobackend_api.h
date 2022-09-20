@@ -20,13 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <cstdbool>
-#include <cstdint>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 
-extern "C" {
 /** ABI version changelog
   *
   * - 2: Changed signature of callback ptr to void* instead of const void *
@@ -45,18 +44,18 @@ struct resource_record
   /** `content` length in bytes. */
   uint32_t content_len;
   /** Qname buffer size must be given in `qname_len`.
-    * NULL termination not expected.
-    *
-    * Memory ownership: the backend will copy the `qname`, ownership retain
-    * 3rd-party lib obligation.
-    */
+   * NULL termination not expected.
+   *
+   * Memory ownership: the backend will copy the `qname`, ownership retain
+   * 3rd-party lib obligation.
+   */
   const char* qname;
   /** Resource record content buffer, size is given in `content_len`
-    * NULL termination not expected.
-    *
-    * Memory ownership: the backend will copy the content, ownership retain
-    * 3rd-party lib obligation.
-    */
+   * NULL termination not expected.
+   *
+   * Memory ownership: the backend will copy the content, ownership retain
+   * 3rd-party lib obligation.
+   */
   const char* content;
   uint32_t ttl;
   int32_t domain_id;
@@ -97,9 +96,9 @@ struct dns_meta
   uint8_t value_len;
 };
 
-
 /** FFI C-abi compatible version of `DNSBackend::DomainInfo::DomainKind`. */
-typedef enum domain_info_kind_e {
+typedef enum domain_info_kind_e
+{
   DOMAIN_INFO_KIND_MASTER = 0,
   DOMAIN_INFO_KIND_SLAVE = 1,
   DOMAIN_INFO_KIND_NATIVE = 2,
@@ -129,6 +128,7 @@ struct domain_info
  * Passed from: `DNSBackend::get`
  */
 typedef void (*fill_cb_t)(void*, const struct resource_record*);
+
 /** Callback for filling up a pdns `KeyData` from the
  * `dnskey` FFI C-ABI compatiblity struct.
  * push back the key into the `std::vector<DNSBackend::KeyData>&`.
@@ -136,12 +136,14 @@ typedef void (*fill_cb_t)(void*, const struct resource_record*);
  * Passed from: `DNSBackend::getDomainKeys`
  */
 typedef void (*fill_key_cb_t)(void*, const struct dnskey*);
+
 /** Callback for filling up a Domain Tsig key represented by: `DNSName& algorithm` `std::string& content`
  * from `fill_tsig` FFI C-ABI compatibility struct.
  *
  * Passed from `DNSBackend::getTSIGKey`
  */
 typedef void (*fill_tsig_key_cb_t)(void*, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key);
+
 /** Callback for filling up a Domain Metadata `std::vector<std::string>`
  * push back the key metadata for a domain will be pushed at the end of the `vector`.
  *
@@ -150,6 +152,7 @@ typedef void (*fill_tsig_key_cb_t)(void*, uint8_t alg_len, const char* alg, uint
  * Passed from `DNSBackend::getDomainMetadata`
  */
 typedef void (*fill_meta_cb_t)(void*, uint8_t value_len, const struct dns_value*);
+
 /** Callback for filling up a all Domain Metadata represented by a
  * Map `std::map<std::string, std::vector<std::string>>`.
  *
@@ -171,29 +174,33 @@ struct lib_so_api
   bool (*list)(void* handle, uint8_t qlen, const char* qname, int32_t domain_id);
   bool (*get)(void* handle, fill_cb_t cb, void* rr);
 
-  bool (*get_domain_keys)(void* handle, uint8_t qlen, const char* qname, fill_key_cb_t cb, const void* keys);
+  bool (*get_domain_keys)(void* handle, uint8_t qlen, const char* qname, fill_key_cb_t cb, void* keys);
   bool (*add_domain_key)(void* handle, uint8_t qlen, const char* qname, struct dnskey* key, int64_t* id);
 
-  bool (*get_metas)(void* handle, uint8_t qlen, const char* qname, fill_metas_cb_t cb, const void* metas);
-  bool (*get_meta)(void* handle, uint8_t qlen, const char* qname, uint8_t kind_len, const char* kind, fill_meta_cb_t cb, const void* meta);
+  bool (*get_metas)(void* handle, uint8_t qlen, const char* qname, fill_metas_cb_t cb, void* metas);
+  bool (*get_meta)(void* handle, uint8_t qlen, const char* qname, uint8_t kind_len, const char* kind, fill_meta_cb_t cb, void* meta);
   bool (*set_meta)(void* handle, uint8_t qlen, const char* qname, uint8_t kind_len, const char* kind, uint8_t value_len, struct dns_value* values);
 
-  bool (*get_before_after)(void* handle, uint32_t domain_id,
+  bool (*get_before_after)(
+    void* handle, uint32_t domain_id,
     uint8_t qlen, const char* qname,
     uint8_t unhashed_len, const char* unhashed_name,
     uint8_t before_len, const char* before_name,
     uint8_t after_len, const char* after_name,
     fill_before_after_cb_t cb, void* beforeAfter);
 
-  bool (*get_tsig_key)(void* handle, uint8_t qlen, const char* qname, fill_tsig_key_cb_t cb, const void* data);
+  bool (*get_tsig_key)(void* handle, uint8_t qlen, const char* qname, fill_tsig_key_cb_t cb, void* data);
   bool (*set_tsig_key)(void* handle, uint8_t qlen, const char* qname, uint8_t alg_len, const char* alg, uint8_t content_len, const char* content);
 
-  bool (*update_dnssec_order_name_and_auth)(void* handle, uint32_t domain_id,
+  bool (*update_dnssec_order_name_and_auth)(
+    void* handle,
+    uint32_t domain_id,
     uint8_t qlen, const char* qname,
     uint8_t ordername_len, const char* ordername,
     bool auth, uint16_t qtype);
 
-  bool (*update_empty_non_terminals)(void* handle, uint32_t domain_id,
+  bool (*update_empty_non_terminals)(
+    void* handle, uint32_t domain_id,
     uint8_t qlen, const char* qname,
     bool add);
   bool (*remove_empty_non_terminals)(void* handle, uint32_t domain_id);
@@ -215,5 +222,3 @@ struct lib_so_api
 };
 
 typedef bool (*dlso_register_t)(uint32_t abi_version, struct lib_so_api** api, bool dnssec, const char* args);
-
-}
