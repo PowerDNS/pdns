@@ -2396,63 +2396,69 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 {
   int one = 1;
-  vector<string> locals;
-  stringtok(locals, ::arg()["local-address"], " ,");
+  vector<string> localAddresses;
+  stringtok(localAddresses, ::arg()["local-address"], " ,");
 
-  if (locals.empty())
+  if (localAddresses.empty()) {
     throw PDNSException("No local address specified");
+  }
 
-  for (vector<string>::const_iterator i = locals.begin(); i != locals.end(); ++i) {
+  for (const auto& localAddress : localAddresses) {
     ServiceTuple st;
     st.port = ::arg().asNum("local-port");
-    parseService(*i, st);
+    parseService(localAddress, st);
 
-    ComboAddress sin;
+    ComboAddress address;
 
-    sin.reset();
-    sin.sin4.sin_family = AF_INET;
-    if (!IpToU32(st.host.c_str(), (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
-      sin.sin6.sin6_family = AF_INET6;
-      if (makeIPv6sockaddr(st.host, &sin.sin6) < 0)
+    address.reset();
+    address.sin4.sin_family = AF_INET;
+    if (!IpToU32(st.host.c_str(), (uint32_t*)&address.sin4.sin_addr.s_addr)) {
+      address.sin6.sin6_family = AF_INET6;
+      if (makeIPv6sockaddr(st.host, &address.sin6) < 0)
         throw PDNSException("Unable to resolve local address for UDP server on '" + st.host + "'");
     }
 
-    int fd = socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
-    if (fd < 0) {
+    const int socketFd = socket(address.sin4.sin_family, SOCK_DGRAM, 0);
+    if (socketFd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: " + stringerror());
     }
-    if (!setSocketTimestamps(fd)) {
+    if (!setSocketTimestamps(socketFd)) {
       SLOG(g_log << Logger::Warning << "Unable to enable timestamp reporting for socket" << endl,
            log->info(Logr::Warning, "Unable to enable timestamp reporting for socket"));
     }
-    if (IsAnyAddress(sin)) {
-      if (sin.sin4.sin_family == AF_INET)
-        if (!setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one))) // linux supports this, so why not - might fail on other systems
-          g_fromtosockets.insert(fd);
+    if (IsAnyAddress(address)) {
+      if (address.sin4.sin_family == AF_INET) {
+        if (!setsockopt(socketFd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one))) { // linux supports this, so why not - might fail on other systems
+          g_fromtosockets.insert(socketFd);
+        }
+      }
 #ifdef IPV6_RECVPKTINFO
-      if (sin.sin4.sin_family == AF_INET6)
-        if (!setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)))
-          g_fromtosockets.insert(fd);
+      if (address.sin4.sin_family == AF_INET6) {
+        if (!setsockopt(socketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one))) {
+          g_fromtosockets.insert(socketFd);
+        }
+      }
 #endif
-      if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
+      if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
         int err = errno;
         SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
              log->error(Logr::Error, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
       }
     }
-    if (::arg().mustDo("non-local-bind"))
-      Utility::setBindAny(AF_INET6, fd);
+    if (::arg().mustDo("non-local-bind")) {
+      Utility::setBindAny(AF_INET6, socketFd);
+    }
 
-    setCloseOnExec(fd);
+    setCloseOnExec(socketFd);
 
     try {
-      setSocketReceiveBuffer(fd, 250000);
+      setSocketReceiveBuffer(socketFd, 250000);
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << e.what() << endl,
            log->error(Logr::Error, e.what(), "Exception while setting socker buffer size"));
     }
-    sin.sin4.sin_port = htons(st.port);
+    address.sin4.sin_port = htons(st.port);
 
     if (g_reusePort) {
 #if defined(SO_REUSEPORT_LB)
@@ -2464,7 +2470,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
       }
 #elif defined(SO_REUSEPORT)
       try {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+        SSetsockopt(socketFd, SOL_SOCKET, SO_REUSEPORT, 1);
       }
       catch (const std::exception& e) {
         throw PDNSException(std::string("SO_REUSEPORT: ") + e.what());
@@ -2473,23 +2479,24 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     }
 
     try {
-      setSocketIgnorePMTU(fd, sin.sin4.sin_family);
+      setSocketIgnorePMTU(socketFd, address.sin4.sin_family);
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Warning << "Failed to set IP_MTU_DISCOVER on UDP server socket: " << e.what() << endl,
            log->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on UDP server socket"));
     }
 
-    socklen_t socklen = sin.getSocklen();
-    if (::bind(fd, (struct sockaddr*)&sin, socklen) < 0)
+    socklen_t socklen = address.getSocklen();
+    if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
       throw PDNSException("Resolver binding to server socket on port " + std::to_string(st.port) + " for " + st.host + ": " + stringerror());
+    }
 
-    setNonBlocking(fd);
+    setNonBlocking(socketFd);
 
-    deferredAdds.emplace_back(fd, handleNewUDPQuestion);
-    g_listenSocketsAddresses[fd] = sin; // this is written to only from the startup thread, not from the workers
-    SLOG(g_log << Logger::Info << "Listening for UDP queries on " << sin.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(sin)));
+    deferredAdds.emplace_back(socketFd, handleNewUDPQuestion);
+    g_listenSocketsAddresses[socketFd] = address; // this is written to only from the startup thread, not from the workers
+    SLOG(g_log << Logger::Info << "Listening for UDP queries on " << address.toStringWithPort() << endl,
+         log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(address)));
   }
 }
 
