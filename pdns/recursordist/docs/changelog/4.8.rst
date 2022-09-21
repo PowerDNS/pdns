@@ -3,7 +3,7 @@ Changelogs for 4.8.X
 
 .. changelog::
   :version: 4.8.0-alpha1
-  :released: xxth of September 2022
+  :released: 23rd of September 2022
 
   .. change::
     :tags: Improvements
