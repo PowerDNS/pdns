@@ -1006,7 +1006,7 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"reuseds", (double)a->reuseds},
     {"weight", (double)a->d_config.d_weight},
     {"order", (double)a->d_config.order},
-    {"pools", pools},
+    {"pools", std::move(pools)},
     {"latency", (double)(a->latencyUsec/1000.0)},
     {"queries", (double)a->queries},
     {"responses", (double)a->responses},
@@ -1224,7 +1224,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::object stats;
   addStatsToJSONObject(stats);
 
-  Json responseObject(std::move(Json::object({
+  Json responseObject(Json::object({
     { "daemon_type", "dnsdist" },
     { "version", VERSION },
     { "servers", std::move(servers) },
@@ -1238,7 +1238,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     { "local", std::move(localaddressesStr) },
     { "dohFrontends", std::move(dohs) },
     { "statistics", std::move(stats) }
-        })));
+        }));
 
   resp.headers["Content-Type"] = "application/json";
   resp.body = responseObject.dump();
