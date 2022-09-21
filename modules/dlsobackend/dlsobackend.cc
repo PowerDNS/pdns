@@ -154,7 +154,7 @@ bool DlsoBackend::list(const DNSName& target, int domain_id, bool include_disabl
 
 extern "C" void fill_cb(void* ptr, const struct resource_record* record)
 {
-  auto* rr = reinterpret_cast<DNSResourceRecord*>(ptr);
+  auto* rr = static_cast<DNSResourceRecord*>(ptr);
   rr->qtype = record->qtype;
   string qname = string(record->qname, record->qname_len);
   rr->qname = DNSName(qname);
@@ -180,7 +180,7 @@ bool DlsoBackend::get(DNSResourceRecord& rr)
 
 extern "C" void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_value* values)
 {
-  auto* meta = reinterpret_cast<std::vector<std::string>*>(ptr);
+  auto* meta = static_cast<std::vector<std::string>*>(ptr);
   meta->resize(meta->size() + value_len);
 
   for (uint8_t i = 0; i < value_len; i++) {
@@ -193,7 +193,7 @@ extern "C" void fill_meta_cb(void* ptr, uint8_t value_len, const struct dns_valu
 
 extern "C" void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta* c_metas)
 {
-  auto* metas = reinterpret_cast<std::map<std::string, std::vector<std::string>>*>(ptr);
+  auto* metas = static_cast<std::map<std::string, std::vector<std::string>>*>(ptr);
   for (uint8_t i = 0; i < meta_len; i++) {
     const struct dns_meta* meta = &c_metas[i];
     string property = string(meta->property, meta->property_len);
@@ -250,7 +250,7 @@ bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 
 extern "C" void fill_key_cb(void* ptr, const struct dnskey* dnskey)
 {
-  auto* keys = reinterpret_cast<std::vector<DNSBackend::KeyData>*>(ptr);
+  auto* keys = static_cast<std::vector<DNSBackend::KeyData>*>(ptr);
   DNSBackend::KeyData key = {
     .content = string(dnskey->data, dnskey->data_len),
     .id = dnskey->id,
@@ -322,7 +322,7 @@ struct fill_tsig
 
 extern "C" void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8_t key_len, const char* key)
 {
-  auto* data = reinterpret_cast<struct fill_tsig*>(ptr);
+  auto* data = static_cast<struct fill_tsig*>(ptr);
   data->content->operator=(string(key, key_len));
   if (alg_len > 0) {
     data->algorithm->operator=(DNSName(string(alg, alg_len)));
@@ -376,7 +376,7 @@ struct before_after_t
 
 extern "C" void fill_before_after(void* ptr, uint8_t unhashed_len, const char* unhashed_, uint8_t before_len, const char* before_, uint8_t after_len, const char* after_)
 {
-  auto* ba = reinterpret_cast<struct before_after_t*>(ptr);
+  auto* ba = static_cast<struct before_after_t*>(ptr);
 
   DNSName unhashed;
   if (unhashed_len > 0) {
@@ -483,7 +483,7 @@ bool DlsoBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 
 extern "C" void fill_domain_info(void* ptr, struct domain_info* domain_info)
 {
-  auto* di = reinterpret_cast<DomainInfo*>(ptr);
+  auto* di = static_cast<DomainInfo*>(ptr);
 
   di->masters.clear();
   for (int i = 0; i < domain_info->master_len; i++) {
@@ -566,7 +566,7 @@ bool DlsoBackend::commitTransaction()
 
 void fill_unfresh_slave(void* ptr, struct domain_info* domain_info)
 {
-  auto* unfresh = reinterpret_cast<vector<DomainInfo>*>(ptr);
+  auto* unfresh = static_cast<vector<DomainInfo>*>(ptr);
 
   DomainInfo di;
   fill_domain_info(&di, domain_info);
