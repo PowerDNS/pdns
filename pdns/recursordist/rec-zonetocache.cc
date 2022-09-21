@@ -430,7 +430,7 @@ void RecZoneToCache::maintainStates(const map<DNSName, Config>& configs, map<DNS
     }
   }
   // Reset states for which the config generation changed and create new states for new configs
-  for (auto config : configs) {
+  for (const auto& config : configs) {
     auto state = states.find(config.first);
     if (state != states.end()) {
       if (state->second.d_generation != mygeneration) {

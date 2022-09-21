@@ -500,7 +500,7 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
   }
 
   int count = 0, pcount = 0, countNeg = 0;
-  for (auto wipe : toWipe) {
+  for (const auto& wipe : toWipe) {
     try {
       auto res = wipeCaches(wipe.first, wipe.second, qtype);
       count += res.record_count;
@@ -697,7 +697,7 @@ static string getNTAs()
 
   string ret("Configured Negative Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
-  for (auto negAnchor : luaconf->negAnchors)
+  for (const auto& negAnchor : luaconf->negAnchors)
     ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
   return ret;
 }
@@ -803,9 +803,9 @@ static string getTAs()
 
   string ret("Configured Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
-  for (auto anchor : luaconf->dsAnchors) {
+  for (const auto& anchor : luaconf->dsAnchors) {
     ret += anchor.first.toLogString() + "\n";
-    for (auto e : anchor.second) {
+    for (const auto& e : anchor.second) {
       ret += "\t\t" + e.getZoneRepresentation() + "\n";
     }
   }
