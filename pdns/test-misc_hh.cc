@@ -127,21 +127,12 @@ BOOST_AUTO_TEST_CASE(test_endianness) {
   uint32_t i = 1;
 #if BYTE_ORDER == BIG_ENDIAN
   BOOST_CHECK_EQUAL(i, htonl(i));
-#elif BYTE_ORDER == LITTLE_ENDIAN 
+#elif BYTE_ORDER == LITTLE_ENDIAN
   uint32_t j=0x01000000;
   BOOST_CHECK_EQUAL(i, ntohl(j));
 #else
   BOOST_FAIL("Did not detect endianness at all");
 #endif
-}
-
-BOOST_AUTO_TEST_CASE(test_parseService) {
-    ServiceTuple tp;
-    parseService("smtp.powerdns.com:25", tp);
-    BOOST_CHECK_EQUAL(tp.host, "smtp.powerdns.com");
-    BOOST_CHECK_EQUAL(tp.port, 25);
-    parseService("smtp.powerdns.com", tp);    
-    BOOST_CHECK_EQUAL(tp.port, 25);
 }
 
 BOOST_AUTO_TEST_CASE(test_ternary) {

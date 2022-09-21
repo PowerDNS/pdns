@@ -84,13 +84,6 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
 
-struct ServiceTuple
-{
-  string host;
-  uint16_t port;
-};
-void parseService(const string &descr, ServiceTuple &st);
-
 template<typename Container>
 void
 stringtok (Container &container, string const &in,

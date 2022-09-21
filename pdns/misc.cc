@@ -310,51 +310,6 @@ bool stripDomainSuffix(string *qname, const string &domain)
   return true;
 }
 
-static void parseService4(const string& descr, ServiceTuple& st)
-{
-  vector<string> parts;
-  stringtok(parts, descr, ":");
-  if (parts.empty()) {
-    throw PDNSException("Unable to parse '" + descr + "' as a service");
-  }
-  st.host = parts[0];
-  if (parts.size() > 1) {
-    pdns::checked_stoi_into(st.port, parts[1]);
-  }
-}
-
-static void parseService6(const string& descr, ServiceTuple& st)
-{
-  string::size_type pos = descr.find(']');
-  if (pos == string::npos) {
-    throw PDNSException("Unable to parse '" + descr + "' as an IPv6 service");
-  }
-
-  st.host = descr.substr(1, pos - 1);
-  if (pos + 2 < descr.length()) {
-    pdns::checked_stoi_into(st.port, descr.substr(pos + 2));
-  }
-}
-
-void parseService(const string &descr, ServiceTuple &st)
-{
-  if(descr.empty())
-    throw PDNSException("Unable to parse '"+descr+"' as a service");
-
-  vector<string> parts;
-  stringtok(parts, descr, ":");
-
-  if(descr[0]=='[') {
-    parseService6(descr, st);
-  }
-  else if(descr[0]==':' || parts.size() > 2 || descr.find("::") != string::npos) {
-    st.host=descr;
-  }
-  else {
-    parseService4(descr, st);
-  }
-}
-
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForData(int fd, int seconds, int useconds)
 {
