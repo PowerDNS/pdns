@@ -90,7 +90,7 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
     }
 
     NetmaskGroup nmg;
-    for (auto value : jlist.array_items()) {
+    for (const auto& value : jlist.array_items()) {
       try {
         nmg.addMask(value.string_value());
       }
@@ -225,7 +225,7 @@ static void doCreateZone(const Json document)
   }
   else if (kind == "FORWARDED") {
     string serverlist;
-    for (auto value : document["servers"].array_items()) {
+    for (const auto& value : document["servers"].array_items()) {
       string server = value.string_value();
       if (server == "") {
         throw ApiException("Forwarded-to server must not be an empty string");

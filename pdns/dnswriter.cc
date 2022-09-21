@@ -432,7 +432,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
       break;
     case SvcParam::ipv4hint:
       xfr16BitInt(param.getIPHints().size() * 4); // size
-      for (auto a: param.getIPHints()) {
+      for (const auto& a: param.getIPHints()) {
         xfrCAWithoutPort(param.getKey(), a);
       }
       break;
