@@ -487,7 +487,12 @@ extern "C" void fill_domain_info(void* ptr, struct domain_info* domain_info)
 
   di->masters.clear();
   for (int i = 0; i < domain_info->master_len; i++) {
-    di->masters.emplace_back(ComboAddress(string(domain_info->masters[i].value, domain_info->masters[i].value_len), 53));
+    auto addr = di->masters[i];
+    auto salen = addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4) : sizeof(addr.sin6);
+    const auto * master_addr = std::addressof(di->masters[i]);
+    auto * sockaddr = reinterpret_cast<const struct sockaddr *>(master_addr);
+    auto ca = ComboAddress(sockaddr, salen);
+    di->masters.push_back(ca);
   }
 
   DNSName zone;

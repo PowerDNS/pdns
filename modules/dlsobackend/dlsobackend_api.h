@@ -88,6 +88,11 @@ struct dns_value
   uint8_t value_len;
 };
 
+/** FFI for a `ComboAdress`. */
+typedef union combo_address {
+  struct sockaddr_in sin4;
+  struct sockaddr_in6 sin6;
+} combo_address_t;
 struct dns_meta
 {
   char* property;
@@ -117,7 +122,7 @@ struct domain_info
   uint8_t master_len;
   uint8_t account_len;
   const char* zone;
-  const struct dns_value* masters;
+  const combo_address_t* masters;
   const char* account;
   time_t last_check;
 };

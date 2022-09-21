@@ -25,6 +25,7 @@
 #include "../../../modules/gsqlite3backend/gsqlite3backend.hh"
 #include "pdns/logger.hh"
 #include "pdns/logging.hh"
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <cstdlib>
 #include <mutex>
@@ -235,18 +236,13 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
     string zone = my_di.zone.toString();
 
     auto master_len = my_di.masters.size();
-    vector<dns_value> masters;
+
+    vector<combo_address_t> masters;
     masters.resize(master_len);
-
-    std::vector<string> ip_addresses;
-    ip_addresses.resize(master_len);
     for (const auto& ip_address : my_di.masters) {
-      auto ip_address_str = ip_address.toString();
-
-      masters.push_back(dns_value{
-        .value = ip_address_str.c_str(),
-        .value_len = static_cast<uint8_t>(ip_address_str.length())});
-      ip_addresses.push_back(ip_address_str);
+      auto salen = ip_address.sin4.sin_family == AF_INET ? sizeof(ip_address.sin4) : sizeof(ip_address.sin6);
+      combo_address_t addr{};
+      memcpy(&addr, &ip_address, salen);
     }
 
     struct domain_info info
@@ -259,11 +255,10 @@ bool get_domain_info(void* ptr, uint8_t qlen, const char* qname_, fill_domain_in
       .master_len = static_cast<uint8_t>(master_len),
       .account_len = static_cast<uint8_t>(my_di.account.size()),
       .zone = zone.c_str(),
+      .masters = masters.data(),
       .account = my_di.account.c_str(),
       .last_check = my_di.last_check,
     };
-
-    info.masters = masters.data();
 
     cb(di, &info);
     return true;
@@ -432,18 +427,13 @@ bool get_unfresh_slave(void* ptr, fill_domain_info_cb_t cb, void* data)
 
     info.master_len = my_di.masters.size();
 
-    vector<dns_value> masters;
+    vector<combo_address_t> masters;
     masters.resize(info.master_len);
-
-    std::vector<string> ip_addresses;
-    ip_addresses.resize(info.master_len);
     for (const auto& ip_address : my_di.masters) {
-      auto ip_address_str = ip_address.toString();
-
-      masters.push_back(dns_value{
-        .value = ip_address_str.c_str(),
-        .value_len = static_cast<uint8_t>(ip_address_str.length())});
-      ip_addresses.push_back(ip_address_str);
+      auto salen = ip_address.sin4.sin_family == AF_INET ? sizeof(ip_address.sin4) : sizeof(ip_address.sin6);
+      combo_address_t addr{};
+      memcpy(&addr, &ip_address, salen);
+      masters.push_back(addr);
     }
     info.masters = masters.data();
 
