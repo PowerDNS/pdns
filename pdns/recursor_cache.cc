@@ -158,7 +158,8 @@ time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursor
       dr.d_type = entry->d_qtype;
       dr.d_class = QClass::IN;
       dr.d_content = k;
-      dr.d_ttl = static_cast<uint32_t>(entry->d_ttd); // XXX truncation
+      // coverity[store_truncated_time_t]
+      dr.d_ttl = static_cast<uint32_t>(entry->d_ttd);
       dr.d_place = DNSResourceRecord::ANSWER;
       res->push_back(std::move(dr));
     }
@@ -327,6 +328,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
   }
   if (ttl > 0 && SyncRes::s_refresh_ttlperc > 0) {
     const uint32_t deadline = origTTL * SyncRes::s_refresh_ttlperc / 100;
+    // coverity[store_truncated_time_t]
     const bool almostExpired = static_cast<uint32_t>(ttl) <= deadline;
     if (almostExpired && qname != g_rootdnsname) {
       if (refresh) {
@@ -511,6 +513,7 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
     const time_t ttl = d_ttd - now;
     const uint32_t lockline = d_orig_ttl * percentage / 100;
     // We know ttl is > 0 as d_ttd > now
+    // coverity[store_truncated_time_t]
     const bool locked = static_cast<uint32_t>(ttl) > lockline;
     if (locked) {
       return false;

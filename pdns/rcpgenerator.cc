@@ -123,6 +123,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
+  // coverity[store_truncated_time_t]
   val=(uint32_t)Utility::timegm(&tm);
 }
 
