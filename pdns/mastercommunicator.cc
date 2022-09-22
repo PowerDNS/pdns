@@ -240,7 +240,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
       g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl;
     }
 
-    if (d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain)) {
+    if (d_nq.removeIf(from, p.d.id, p.qdomain)) {
       g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl;
     }
     else {
@@ -261,7 +261,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
         ComboAddress remote(ip, 53); // default to 53
         if ((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) || (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
           g_log << Logger::Warning << "Unable to notify " << remote.toStringWithPort() << " for domain '" << domain << "', address family is disabled. Is an IPv" << (remote.sin4.sin_family == AF_INET ? "4" : "6") << " address set in query-local-address?" << endl;
-          d_nq.removeIf(remote.toStringWithPort(), id, domain); // Remove, we'll never be able to notify
+          d_nq.removeIf(remote, id, domain); // Remove, we'll never be able to notify
           continue; // don't try to notify what we can't!
         }
         if (d_preventSelfNotification && AddressIsUs(remote)) {

@@ -84,12 +84,9 @@ public:
 
   bool removeIf(const ComboAddress& remote, uint16_t id, const DNSName& domain)
   {
-    ServiceTuple stRemote, stQueued;
-    parseService(remote, stRemote);
-
     for (auto i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
-      parseService(i->ip, stQueued);
-      if (i->id == id && stQueued.host == stRemote.host && i->domain == domain) {
+      ComboAddress stQueued{i->ip};
+      if (i->id == id && stQueued == remote && i->domain == domain) {
         d_nqueue.erase(i);
         return true;
       }
