@@ -82,14 +82,14 @@ public:
     d_nqueue.push_back(nr);
   }
 
-  bool removeIf(const string &remote, uint16_t id, const DNSName &domain)
+  bool removeIf(const string& remote, uint16_t id, const DNSName& domain)
   {
     ServiceTuple stRemote, stQueued;
     parseService(remote, stRemote);
 
-    for(d_nqueue_t::iterator i=d_nqueue.begin(); i!=d_nqueue.end(); ++i) {
+    for (d_nqueue_t::iterator i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
       parseService(i->ip, stQueued);
-      if(i->id==id && stQueued.host == stRemote.host && i->domain==domain) {
+      if (i->id == id && stQueued.host == stRemote.host && i->domain == domain) {
         d_nqueue.erase(i);
         return true;
       }
@@ -99,7 +99,7 @@ public:
 
   bool getOne(DNSName &domain, string &ip, uint16_t *id, bool &purged)
   {
-    for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
+    for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i)
       if(i->next <= time(0)) {
         i->attempts++;
         purged=false;
@@ -119,8 +119,8 @@ public:
 
   time_t earliest()
   {
-    time_t early=std::numeric_limits<time_t>::max() - 1; 
-    for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
+    time_t early=std::numeric_limits<time_t>::max() - 1;
+    for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i)
       early=min(early,i->next);
     return early-time(0);
   }
@@ -150,7 +150,7 @@ struct ZoneStatus;
 class CommunicatorClass
 {
 public:
-  CommunicatorClass() 
+  CommunicatorClass()
   {
     d_tickinterval=60;
     d_slaveschanged = true;
@@ -160,8 +160,8 @@ public:
   }
   time_t doNotifications(PacketHandler *P);
   void go();
-  
-  
+
+
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
   void addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority, bool force=false);
@@ -227,7 +227,7 @@ private:
   {
     explicit RemoveSentinel(const DNSName& dn, CommunicatorClass* cc) : d_dn(dn), d_cc(cc)
     {}
-    
+
     ~RemoveSentinel()
     {
       try {
@@ -251,7 +251,7 @@ public:
     vector<string> addresses;
 
     this->resolve_name(&addresses, name);
-    
+
     if(b) {
         b->lookup(QType(QType::ANY),name,-1);
         DNSZoneRecord rr;
