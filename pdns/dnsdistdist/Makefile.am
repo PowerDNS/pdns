@@ -154,6 +154,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings-packetcache.cc \
 	dnsdist-lua-bindings-protobuf.cc \
+	dnsdist-lua-bindings-rings.cc \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \

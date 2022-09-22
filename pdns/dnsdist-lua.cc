@@ -3021,6 +3021,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaBindingsKVS(luaCtx, client);
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
+  setupLuaBindingsRings(luaCtx, client);
   setupLuaInspection(luaCtx);
   setupLuaRules(luaCtx);
   setupLuaVars(luaCtx);
