@@ -82,12 +82,12 @@ public:
     d_nqueue.push_back(nr);
   }
 
-  bool removeIf(const string& remote, uint16_t id, const DNSName& domain)
+  bool removeIf(const ComboAddress& remote, uint16_t id, const DNSName& domain)
   {
     ServiceTuple stRemote, stQueued;
     parseService(remote, stRemote);
 
-    for (d_nqueue_t::iterator i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
+    for (auto i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
       parseService(i->ip, stQueued);
       if (i->id == id && stQueued.host == stRemote.host && i->domain == domain) {
         d_nqueue.erase(i);
