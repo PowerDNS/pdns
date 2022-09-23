@@ -46,7 +46,7 @@ def init_argparser():
                                  'auth-44', 'auth-45', 'auth-46', 'auth-47',
                                  'auth-master',
                                  # Recursor
-                                 'rec-45', 'rec-46', 'rec-47',
+                                 'rec-45', 'rec-46', 'rec-47', 'rec-48',
                                  'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
@@ -142,7 +142,7 @@ def write_release_files (release):
 
     if release in ['auth-44', 'auth-45', 'auth-46', 'auth-47',
                    'auth-master',
-                   'rec-45', 'rec-46', 'rec-47',
+                   'rec-45', 'rec-46', 'rec-47', 'rec-48',
                    'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
                    'dnsdist-master']:
@@ -161,19 +161,19 @@ def write_release_files (release):
         write_list_file('raspbian', 'buster', release)
 
     if release in ['auth-46', 'auth-47', 'auth-master',
-                   'rec-45', 'rec-46', 'rec-47', 'rec-master',
+                   'rec-45', 'rec-46', 'rec-47', 'rec-48', 'rec-master',
                    'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
     if release in ['auth-46', 'auth-47', 'auth-master',
-                   'rec-46', 'rec-47', 'rec-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-master',
                    'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
     if release in ['auth-47', 'auth-master',
-                   'rec-47', 'rec-master']:
+                   'rec-47', 'rec-48', 'rec-master']:
         write_dockerfile('el', '9', release)
 
 # Test Release Functions
