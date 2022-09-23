@@ -1,0 +1,201 @@
+Changelogs for 4.8.X
+====================
+
+.. changelog::
+  :version: 4.8.0-alpha1
+  :released: 23rd of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11958
+
+    Lock record cache entries if enabled by :ref:`record-cache-locked-ttl-perc`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11957
+
+    Use ``nullptr`` in ``getNSEC3PARAM`` + init ``bool`` at callsite (Axel Viala).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11953
+    :tickets: 11804
+
+    Axfr-retriever: abort on chunk with TC set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11955
+
+    Clarify return codes for the Lua hooks in the Recursor (Frank Louwers).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11907
+
+    Recursor: Add ``--config[=check|=diff|=default]``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11776
+
+    Implement optional Serve stale functionality, enabled by :ref:`serve-stale-extensions`..
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11906
+
+    Implement padding of (DoT) messages to authoritative servers, if set by :ref:`edns-padding-out` (default ``yes``).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11800
+
+    Log socket directory path if there is a problem.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11862
+    :tickets: 11853
+
+    Libssl: Properly load ciphers and digests with OpenSSL 3.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11823
+
+    Handle Lua script loading errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11813
+    :tickets: 4979
+
+    Stop sending Server: header (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11867
+    :tickets: 11864
+
+    rec_control: test for ``--version`` before requiring an argument.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11869
+    :tickets: 6981
+
+    Keep time and count metrics when maintenance is called.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11849
+
+    Consider dns64 processing in more cases than ``Rcode == NoError``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11672
+
+    Make rec zone files with trailing dot (phonedph1).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11857
+    :tickets: 11855
+
+    Set ``rec_control_LDFLAGS``, needed for MacOS or any platforms where libcrypto is not in default lib path.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11812
+
+    Replace/remove jQuery (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11820
+    :tickets: 11818, 10079
+
+    Handle file related errors initially loading Lua script.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11811
+
+    Remove unused ``jsrender.js`` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11780
+    :tickets: 11736
+
+    Save the last nameserver speed recorded plus output it in ``rec_control dump-nsspeeds``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11754
+    :tickets: 11734
+
+    Set ``TCP_NODELAY`` on in and outgoing TCP.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11744
+
+    Remove > 5 check on TTL of glue from the cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11854,11714,11710,11693,11681,11662,11654,11642,11631
+
+    Stuctured logging for various subsystems.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11704,11779
+
+    Make edns table a sparse table.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11601
+
+    Shared ednsmap.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11682
+    :tickets: 2248
+
+    Load IPv6 entries from etc-hosts file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11660,11709
+    :tickets: 11705, 11706
+
+    Use ``systemd-journal`` for structured logging if it is available and set by :ref:`settings-structured-logging-backend`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11680,11671
+    :tickets: 11671,11654
+
+    Fix typos in stats log messages (Matt Nordhoff).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11598
+
+    Shared throttle map.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11381
+
+    Adaptive root refresh interval, normally at 80% of :ref:`setting-max-cache-ttl`.
+
+
+
