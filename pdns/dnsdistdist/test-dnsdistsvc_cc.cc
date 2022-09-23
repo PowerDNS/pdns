@@ -104,26 +104,26 @@ BOOST_AUTO_TEST_CASE(test_Parsing)
 {
   svcParamsLua_t params;
   params["mandatory"] = std::vector<std::pair<int, std::string>>({
-      { 1, "port" },
-    });
+    {1, "port"},
+  });
   params["alpn"] = std::vector<std::pair<int, std::string>>({
-      { 1, "h2" },
-    });
+    {1, "h2"},
+  });
   params["noDefaultAlpn"] = static_cast<bool>(true);
   params["port"] = static_cast<uint16_t>(443);
   params["ipv4hint"] = std::vector<std::pair<int, std::string>>({
-      { 1, "192.0.2.1" },
-    });
+    {1, "192.0.2.1"},
+  });
   params["ipv6hint"] = std::vector<std::pair<int, std::string>>({
-      { 1, "2001:db8::1" },
-    });
+    {1, "2001:db8::1"},
+  });
   params["ech"] = std::string("test");
 
   auto parsed = parseSVCParameters(params);
-  BOOST_CHECK(parsed.mandatoryParams == std::set<uint16_t>{ SvcParam::SvcParamKey::port });
-  BOOST_CHECK(parsed.alpns == std::vector<std::string>{ "h2" });
-  BOOST_CHECK(parsed.ipv4hints == std::vector<ComboAddress>{ ComboAddress("192.0.2.1") });
-  BOOST_CHECK(parsed.ipv6hints == std::vector<ComboAddress>{ ComboAddress("2001:db8::1") });
+  BOOST_CHECK(parsed.mandatoryParams == std::set<uint16_t>{SvcParam::SvcParamKey::port});
+  BOOST_CHECK(parsed.alpns == std::vector<std::string>{"h2"});
+  BOOST_CHECK(parsed.ipv4hints == std::vector<ComboAddress>{ComboAddress("192.0.2.1")});
+  BOOST_CHECK(parsed.ipv6hints == std::vector<ComboAddress>{ComboAddress("2001:db8::1")});
   BOOST_CHECK_EQUAL(parsed.ech, "test");
   BOOST_CHECK_EQUAL(*parsed.port, 443);
   BOOST_CHECK_EQUAL(parsed.noDefaultAlpn, true);
