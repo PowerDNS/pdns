@@ -519,7 +519,7 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
 
 uint32_t getStartOfWeek()
 {
-  // coverity[store_truncated_time_t]
+  // coverity[store_truncates_time_t]
   uint32_t now = time(nullptr);
   now -= (now % (7*86400));
   return now;
