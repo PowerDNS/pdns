@@ -214,8 +214,6 @@ string DynListener::getLine()
   vector<char> mesg;
   mesg.resize(1024000);
 
-  ssize_t len = 0;
-
   ComboAddress remote;
   socklen_t remlen=remote.getSocklen();
 
@@ -273,7 +271,9 @@ string DynListener::getLine()
     if(isatty(0) != 0)
       if(write(1, "% ", 2) !=2)
         throw PDNSException("Writing to console: "+stringerror());
-    if((len=read(0, mesg.data(), mesg.size())) < 0)
+
+    ssize_t len = read(0, mesg.data(), mesg.size());
+    if (len < 0)
       throw PDNSException("Reading from the control pipe: "+stringerror());
     else if(len==0)
       throw PDNSException("Guardian exited - going down as well");
