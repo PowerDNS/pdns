@@ -77,6 +77,8 @@ inline unsigned char dns_tolower(unsigned char c)
 class DNSName
 {
 public:
+  static const size_t s_maxDNSNameLength = 255;
+
   DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
   // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
   DNSName& operator=(const DNSName& rhs)
@@ -148,8 +150,8 @@ public:
   }
   DNSName& operator+=(const DNSName& rhs)
   {
-    if(d_storage.size() + rhs.d_storage.size() > 256) // one extra byte for the second root label
-      throw std::range_error("name too long");
+    if(d_storage.size() + rhs.d_storage.size() > s_maxDNSNameLength + 1) // one extra byte for the second root label
+      throwSafeRangeError("resulting name too long", rhs.d_storage.data(), rhs.d_storage.size());
     if(rhs.empty())
       return *this;
 
@@ -217,6 +219,7 @@ private:
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
+  static void throwSafeRangeError(const std::string& msg, const char* buf, size_t length);
 };
 
 size_t hash_value(DNSName const& d);

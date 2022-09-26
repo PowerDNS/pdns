@@ -41,6 +41,18 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
   return os <<d.toLogString();
 }
 
+void DNSName::throwSafeRangeError(const std::string& msg, const char* buf, size_t length)
+{
+  std::string dots;
+  if (length > s_maxDNSNameLength) {
+    length = s_maxDNSNameLength;
+    dots = "...";
+  }
+  std::string label;
+  DNSName::appendEscapedLabel(label, buf, length);
+  throw std::range_error(msg + label + dots);
+}
+
 DNSName::DNSName(const char* p, size_t length)
 {
   if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
@@ -55,7 +67,7 @@ DNSName::DNSName(const char* p, size_t length)
       for(auto iter = pbegin; iter != pend; ) {
         lenpos = d_storage.size();
         if(*iter=='.')
-          throw std::runtime_error("Found . in wrong position in DNSName "+string(p));
+          throwSafeRangeError("Found . in wrong position in DNSName: ", p, length);
         d_storage.append(1, (char)0);
         labellen=0;
         auto begiter=iter;
@@ -66,10 +78,10 @@ DNSName::DNSName(const char* p, size_t length)
         if(iter != pend)
           ++iter;
         if(labellen > 63)
-          throw std::range_error("label too long to append");
+          throwSafeRangeError("label too long to append: ", p, length);
 
-        if(iter-pbegin > 254) // reserve two bytes, one for length and one for the root label
-          throw std::range_error("name too long to append");
+        if(iter-pbegin > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1)) // reserve two bytes, one for length and one for the root label
+          throwSafeRangeError("name too long to append: ", p, length);
 
         d_storage[lenpos]=labellen;
       }
@@ -77,8 +89,8 @@ DNSName::DNSName(const char* p, size_t length)
     }
     else {
       d_storage=segmentDNSNameRaw(p, length);
-      if(d_storage.size() > 255) {
-        throw std::range_error("name too long");
+      if(d_storage.size() > s_maxDNSNameLength) {
+        throwSafeRangeError("name too long: ", p, length);
       }
     }
   }
@@ -328,7 +340,7 @@ void DNSName::appendRawLabel(const char* start, unsigned int length)
     throw std::range_error("no such thing as an empty label to append");
   if(length > 63)
     throw std::range_error("label too long to append");
-  if(d_storage.size() + length > 254) // reserve one byte for the label length
+  if(d_storage.size() + length > s_maxDNSNameLength - 1) // reserve one byte for the label length
     throw std::range_error("name too long to append");
 
   if(d_storage.empty()) {
@@ -347,7 +359,7 @@ void DNSName::prependRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
     throw std::range_error("label too long to prepend");
-  if(d_storage.size() + label.size() > 254) // reserve one byte for the label length
+  if(d_storage.size() + label.size() > s_maxDNSNameLength - 1) // reserve one byte for the label length
     throw std::range_error("name too long to prepend");
 
   if(d_storage.empty())
