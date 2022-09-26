@@ -7,7 +7,7 @@ We need very recent versions of:
 
  * validns (http://www.validns.net/)
  * ldns-verify-zone (part of ldns)
- * jdnssec-verifyzone (http://www.verisignlabs.com/dnssec-tools/)
+ * jdnssec-verifyzone (https://github.com/dblacka/jdnssec-tools)
  * named-checkzone (part of BIND9)
  * unbound-host (part of unbound)
  * drill (part of ldns)
