@@ -44,7 +44,6 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
 void DNSName::throwSafeRangeError(const std::string& msg, const char* buf, size_t length)
 {
   std::string dots;
-  const size_t maxDNSNameLength = 255; // Maybe this should be a symbol in DNSName itself
   if (length > maxDNSNameLength) {
     length = maxDNSNameLength;
     dots = "...";
@@ -81,7 +80,7 @@ DNSName::DNSName(const char* p, size_t length)
         if(labellen > 63)
           throwSafeRangeError("label too long to append: ", p, length);
 
-        if(iter-pbegin > 254) // reserve two bytes, one for length and one for the root label
+        if(iter-pbegin > static_cast<ptrdiff_t>(maxDNSNameLength - 1)) // reserve two bytes, one for length and one for the root label
           throwSafeRangeError("name too long to append: ", p, length);
 
         d_storage[lenpos]=labellen;
@@ -90,7 +89,7 @@ DNSName::DNSName(const char* p, size_t length)
     }
     else {
       d_storage=segmentDNSNameRaw(p, length);
-      if(d_storage.size() > 255) {
+      if(d_storage.size() > maxDNSNameLength) {
         throwSafeRangeError("name too long: ", p, length);
       }
     }
@@ -341,7 +340,7 @@ void DNSName::appendRawLabel(const char* start, unsigned int length)
     throw std::range_error("no such thing as an empty label to append");
   if(length > 63)
     throw std::range_error("label too long to append");
-  if(d_storage.size() + length > 254) // reserve one byte for the label length
+  if(d_storage.size() + length > maxDNSNameLength - 1) // reserve one byte for the label length
     throw std::range_error("name too long to append");
 
   if(d_storage.empty()) {
@@ -360,7 +359,7 @@ void DNSName::prependRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
     throw std::range_error("label too long to prepend");
-  if(d_storage.size() + label.size() > 254) // reserve one byte for the label length
+  if(d_storage.size() + label.size() > maxDNSNameLength - 1) // reserve one byte for the label length
     throw std::range_error("name too long to prepend");
 
   if(d_storage.empty())
