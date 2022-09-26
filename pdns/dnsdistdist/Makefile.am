@@ -151,6 +151,7 @@ dnsdist_SOURCES = \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings-dnscrypt.cc \
+	dnsdist-lua-bindings-dnsparser.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings-network.cc \

@@ -1,4 +1,4 @@
-aaaarecord
+aaarecord
 aae
 aaldering
 ababd
@@ -404,6 +404,7 @@ dnsname
 dnsnameset
 dnsop
 dnspacket
+dnsparser
 dnspcap
 dnsquestion
 DNSR

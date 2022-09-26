@@ -3050,6 +3050,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaConfig(luaCtx, client, configCheck);
   setupLuaBindings(luaCtx, client);
   setupLuaBindingsDNSCrypt(luaCtx, client);
+  setupLuaBindingsDNSParser(luaCtx);
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, client);
   setupLuaBindingsNetwork(luaCtx, client);
