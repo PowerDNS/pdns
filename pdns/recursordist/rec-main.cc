@@ -1481,11 +1481,10 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
     g_quiet = false;
     g_dnssecLOG = true;
   }
-  string myHostname = getHostname();
-  if (myHostname == "UNKNOWN") {
+  auto myHostname = getHostname();
+  if (!myHostname.has_value()) {
     SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
          log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
-    myHostname = "";
   }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
@@ -1535,7 +1534,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   }
 
   if (SyncRes::s_serverID.empty()) {
-    SyncRes::s_serverID = myHostname;
+    SyncRes::s_serverID = myHostname.has_value() ? *myHostname : "";
   }
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
@@ -1865,7 +1864,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   dns_random_init();
 
   if (::arg()["server-id"].empty()) {
-    ::arg().set("server-id") = myHostname;
+    ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
   }
 
   int newgid = 0;

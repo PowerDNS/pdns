@@ -68,7 +68,8 @@ const string unquotify(const string &item);
 string humanDuration(time_t passed);
 bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
-string getHostname();
+std::optional<string> getHostname();
+std::string getCarbonHostName();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
@@ -82,13 +83,6 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
-
-struct ServiceTuple
-{
-  string host;
-  uint16_t port;
-};
-void parseService(const string &descr, ServiceTuple &st);
 
 template<typename Container>
 void
@@ -756,7 +750,6 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
 
 DNSName reverseNameFromIP(const ComboAddress& ip);
 
-std::string getCarbonHostName();
 size_t parseRFC1035CharString(const std::string &in, std::string &val); // from ragel
 size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, vector<std::string> &val); // from ragel
 size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);

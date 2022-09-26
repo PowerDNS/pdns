@@ -126,7 +126,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain, UeberBackend* B)
   if (di.serial != di.notified_serial)
     di.backend->setNotified(di.id, di.serial);
 
-  return true; 
+  return true;
 }
 
 void NotificationQueue::dump()
@@ -212,70 +212,72 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   }
 }
 
-time_t CommunicatorClass::doNotifications(PacketHandler *P)
+time_t CommunicatorClass::doNotifications(PacketHandler* P)
 {
-  UeberBackend *B=P->getBackend();
+  UeberBackend* B = P->getBackend();
   ComboAddress from;
-  Utility::socklen_t fromlen;
   char buffer[1500];
   int sock;
-  ssize_t size;
   set<int> fds = {d_nsock4, d_nsock6};
 
   // receive incoming notifications on the nonblocking socket and take them off the list
-  while(waitForMultiData(fds, 0, 0, &sock) > 0) {
-    fromlen=sizeof(from);
-    size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
-    if(size < 0)
+  while (waitForMultiData(fds, 0, 0, &sock) > 0) {
+    Utility::socklen_t fromlen = sizeof(from);
+    const auto size = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&from, &fromlen);
+    if (size < 0) {
       break;
+    }
     DNSPacket p(true);
 
     p.setRemote(&from);
 
-    if(p.parse(buffer,(size_t)size)<0) {
-      g_log<<Logger::Warning<<"Unable to parse SOA notification answer from "<<p.getRemote()<<endl;
+    if (p.parse(buffer, (size_t)size) < 0) {
+      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getRemote() << endl;
       continue;
     }
 
-    if(p.d.rcode)
-      g_log<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", error: "<<RCode::to_s(p.d.rcode)<<endl;      
+    if (p.d.rcode) {
+      g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl;
+    }
 
-    if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
-      g_log<<Logger::Notice<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<<" "<< (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)")<<endl;
+    if (d_nq.removeIf(from, p.d.id, p.qdomain)) {
+      g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl;
+    }
     else {
-      g_log<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;
-      //d_nq.dump();
+      g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl;
+      // d_nq.dump();
     }
   }
 
   // send out possible new notifications
   DNSName domain;
   string ip;
-  uint16_t id=0;
+  uint16_t id = 0;
 
   bool purged;
-  while(d_nq.getOne(domain, ip, &id, purged)) {
-    if(!purged) {
+  while (d_nq.getOne(domain, ip, &id, purged)) {
+    if (!purged) {
       try {
         ComboAddress remote(ip, 53); // default to 53
-        if((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) ||
-           (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
-             g_log<<Logger::Warning<<"Unable to notify "<<remote.toStringWithPort()<<" for domain '"<<domain<<"', address family is disabled. Is an IPv"<<(remote.sin4.sin_family == AF_INET ? "4" : "6")<<" address set in query-local-address?"<<endl;
-             d_nq.removeIf(remote.toStringWithPort(), id, domain); // Remove, we'll never be able to notify
-             continue; // don't try to notify what we can't!
+        if ((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) || (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
+          g_log << Logger::Warning << "Unable to notify " << remote.toStringWithPort() << " for domain '" << domain << "', address family is disabled. Is an IPv" << (remote.sin4.sin_family == AF_INET ? "4" : "6") << " address set in query-local-address?" << endl;
+          d_nq.removeIf(remote, id, domain); // Remove, we'll never be able to notify
+          continue; // don't try to notify what we can't!
         }
-        if(d_preventSelfNotification && AddressIsUs(remote))
+        if (d_preventSelfNotification && AddressIsUs(remote)) {
           continue;
+        }
 
         sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id, B);
         drillHole(domain, ip);
       }
-      catch(ResolverException &re) {
-        g_log<<Logger::Warning<<"Error trying to resolve '"<<ip<<"' for notifying '"<<domain<<"' to server: "<<re.reason<<endl;
+      catch (ResolverException& re) {
+        g_log << Logger::Warning << "Error trying to resolve '" << ip << "' for notifying '" << domain << "' to server: " << re.reason << endl;
       }
     }
-    else
-      g_log<<Logger::Warning<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
+    else {
+      g_log << Logger::Warning << "Notification for " << domain << " to " << ip << " failed after retries" << endl;
+    }
   }
 
   return d_nq.earliest();
@@ -296,7 +298,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = id;
-  pw.getHeader()->aa = true; 
+  pw.getHeader()->aa = true;
 
   if (tsigkeyname.empty() == false) {
     if (!B->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
@@ -343,7 +345,7 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
     return true;
   }
 
-  // do we want to purge this? XXX FIXME 
+  // do we want to purge this? XXX FIXME
   return false;
 }
 
