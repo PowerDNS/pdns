@@ -149,7 +149,7 @@ public:
   DNSName& operator+=(const DNSName& rhs)
   {
     if(d_storage.size() + rhs.d_storage.size() > 256) // one extra byte for the second root label
-      throw std::range_error("name too long");
+      throwSafeRangeError("name too long", rhs.d_storage.data(), rhs.d_storage.size());
     if(rhs.empty())
       return *this;
 
@@ -217,6 +217,7 @@ private:
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
+  static void throwSafeRangeError(const std::string& msg, const char* buf, size_t length);
 };
 
 size_t hash_value(DNSName const& d);
