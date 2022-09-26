@@ -37,15 +37,15 @@ for details.
    * - 4.7
      - May 30 2022
      - ~ December 2022
-     - EOL ~ December 2023
+     - ~ December 2023
    * - 4.6
      - December 17 2021
      - May 30 2022
-     - EOL ~ May 2023
+     - ~ May 2023
    * - 4.5
      - May 11 2021
      - December 17 2021
-     - EOL ~ December 2022
+     - ~ December 2022
    * - 4.4
      - October 19 2020
      - May 11 2021

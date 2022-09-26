@@ -18,7 +18,7 @@ New settings
 ^^^^^^^^^^^^
 - The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 - The :ref:`setting-serve-stale-extensions` setting to control the new ``Serve Stale`` feature has been introduced.
-- The :ref:`setting record-cache-locked-ttl-perc` setting to control locking of record sets in the record cache has been introduced.
+- The :ref:`setting-record-cache-locked-ttl-perc` setting to control locking of record sets in the record cache has been introduced.
 - The :ref:`setting-edns-padding-out` setting to control EDNS padding for outgoing DoT has been introduced.
 - The :ref:`setting-structured-logging-backend` setting to control the type of structiured logging to ``journald`` has been introduced.
 
