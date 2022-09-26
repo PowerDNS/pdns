@@ -2091,6 +2091,7 @@ Prefer structured logging when both an old style and a structured log messages i
 - Default: "default"
 
 The backend used for structured logging output.
+This setting must be set on the command line (``--structured-logging-backend=...``) to be effective.
 Available backends are:
 
 - ``default``: use the traditional logging system to output structured logging information.
