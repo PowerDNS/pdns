@@ -1035,7 +1035,9 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     throw PDNSException("No local address specified");
   }
 
+#ifdef TCP_DEFER_ACCEPT
   auto first = true;
+#endif
   const uint16_t defaultLocalPort = ::arg().asNum("local-port");
   for (const auto& localAddress : localAddresses) {
     ComboAddress address{localAddress, defaultLocalPort};
@@ -1127,6 +1129,8 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     SLOG(g_log << Logger::Info << "Listening for TCP queries on " << address.toStringWithPort() << endl,
          log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(address)));
 
+#ifdef TCP_DEFER_ACCEPT
     first = false;
+#endif
   }
 }
