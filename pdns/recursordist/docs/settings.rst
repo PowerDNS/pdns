@@ -2476,6 +2476,7 @@ If a PID file should be written to `socket-dir`_
 ``xpf-allow-from``
 ------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
 
 -  IP addresses or netmasks, separated by commas
 -  Default: empty
@@ -2495,6 +2496,7 @@ should be done on the proxy.
 ``xpf-rr-code``
 ---------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
 
 -  Integer
 -  Default: 0
