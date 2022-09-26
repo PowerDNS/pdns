@@ -1944,12 +1944,18 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   disableStats(StatComponent::SNMP, ::arg()["stats-snmp-disabled-list"]);
 
   if (::arg().mustDo("snmp-agent")) {
+#ifdef HAVE_NET_SNMP
     string setting = ::arg()["snmp-daemon-socket"];
     if (setting.empty()) {
       setting = ::arg()["snmp-master-socket"];
     }
     g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", setting);
     g_snmpAgent->run();
+#else
+    const std::string msg = "snmp-agent set but SNMP support not compiled in";
+    SLOG(g_log << Logger::Error << msg << endl,
+         log->info(Logr::Error, msg));
+#endif // HAVE_NET_SNMP
   }
 
   int port = ::arg().asNum("udp-source-port-min");
