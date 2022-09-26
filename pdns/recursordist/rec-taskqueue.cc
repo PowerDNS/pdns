@@ -173,10 +173,10 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
   sr.setRefreshAlmostExpired(false);
   bool ex = true;
   try {
-    log->info(Logr::Warning, "trying DoT");
+    log->info(Logr::Debug, "trying DoT");
     bool ok = sr.tryDoT(task.d_qname, QType(task.d_qtype), task.d_nsname, task.d_ip, now.tv_sec);
     ex = false;
-    log->info(Logr::Warning, "done", "ok", Logging::Loggable(ok));
+    log->info(Logr::Debug, "done", "ok", Logging::Loggable(ok));
   }
   catch (const std::exception& e) {
     log->error(Logr::Error, msg, e.what());
