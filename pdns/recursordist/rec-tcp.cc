@@ -387,7 +387,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       uint16_t qtype = 0;
       uint16_t qclass = 0;
       bool needECS = false;
-      bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
       string deviceName;
@@ -407,16 +406,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       checkFrameStreamExport(luaconfsLocal);
 #endif
 
-      if (needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
+      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
 
         try {
           EDNSOptionViewMap ednsOptions;
-          bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
           getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
-                            xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
+                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
           qnameParsed = true;
 
           if (t_pdl) {
