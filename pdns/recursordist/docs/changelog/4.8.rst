@@ -9,7 +9,7 @@ Changelogs for 4.8.X
     :tags: Improvements
     :pullreq: 11958
 
-    Lock record cache entries if enabled by :ref:`record-cache-locked-ttl-perc`.
+    Lock record cache entries if enabled by :ref:`setting-record-cache-locked-ttl-perc`.
 
   .. change::
     :tags: Improvements
@@ -40,13 +40,13 @@ Changelogs for 4.8.X
     :tags: Improvements
     :pullreq: 11776
 
-    Implement optional Serve stale functionality, enabled by :ref:`serve-stale-extensions`..
+    Implement optional Serve stale functionality, enabled by :ref:`setting-serve-stale-extensions`..
 
   .. change::
     :tags: Improvements
     :pullreq: 11906
 
-    Implement padding of (DoT) messages to authoritative servers, if set by :ref:`edns-padding-out` (default ``yes``).
+    Implement padding of (DoT) messages to authoritative servers, if set by :ref:`setting-edns-padding-out` (default ``yes``).
 
   .. change::
     :tags: Improvements
@@ -176,7 +176,7 @@ Changelogs for 4.8.X
     :pullreq: 11660,11709
     :tickets: 11705, 11706
 
-    Use ``systemd-journal`` for structured logging if it is available and set by :ref:`settings-structured-logging-backend`.
+    Use ``systemd-journal`` for structured logging if it is available and set by :ref:`setting-structured-logging-backend`.
 
   .. change::
     :tags: Improvements
