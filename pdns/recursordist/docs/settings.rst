@@ -1101,7 +1101,7 @@ If the result of a probe is not yet available, the Recursor will contact the aut
 In that case no probe will be scheduled.
 
 
-Note::
+.. note::
   DoT probing is an experimental feature.
   Please test thoroughly to determine if it is suitable in your specific production environment before enabling.
 

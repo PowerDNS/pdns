@@ -1,7 +1,7 @@
-Compiling the PowerDNS Recursor
-===============================
+Compiling :program:`PowerDNS Recursor`
+======================================
 
-As the PowerDNS Recursor is distributed with a configure script, compiling it is a matter of::
+As :program:`PowerDNS Recursor` is distributed with a configure script, compiling it is a matter of::
 
   tar xf pdns-recursor-$VERSION.tar.bz2
   cd pdns-recursor-$VERSION
@@ -26,11 +26,11 @@ These releases are PGP-signed with one of these key-ids:
 Dependencies
 ------------
 
-To build the PowerDNS Recursor, a C++ compiler with support for C++ 2011 is required.
-This means gcc 4.9 and newer and clang 3.5 and newer.
-Furthermore, the Makefiles require GNU make, not BSD make.
+To build :program:`PowerDNS Recursor`, a C++ compiler with support for C++ 2017 is required.
+This means ``gcc 5`` and newer and ``clang 5`` and newer.
+Furthermore, the Makefiles require GNU ``make``, not BSD ``make``.
 
-By default, the PowerDNS recursor requires the following libraries and headers:
+By default, the :program:`Recursor` requires the following libraries and headers:
 
 * `Boost <http://boost.org/>`_ 1.35 or newer
 * `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
@@ -45,7 +45,7 @@ These will require additional dependencies
 ed25519 support with libsodium
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The PowerDNS Recursor can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
+The :program:`Recursor` can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
 To detect libsodium, use the ``--with-libsodium`` configure option.
 
 .. versionchanged:: 4.2.0
@@ -54,7 +54,7 @@ To detect libsodium, use the ``--with-libsodium`` configure option.
 ed25519 and ed448 support with libdecaf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows the PowerDNS Recursor to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
+`libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows :program:`Recursor` to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
 To detect libdecaf, use the ``--with-libdecaf`` configure option.
 
 .. versionchanged:: 4.2.0
@@ -63,13 +63,13 @@ To detect libdecaf, use the ``--with-libdecaf`` configure option.
 Protobuf to emit DNS logs
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The PowerDNS Recursor can log DNS query information over :doc:`Protocol Buffers <../lua-config/protobuf>`.
+The :program:`Recursor` can log DNS query information over :doc:`Protocol Buffers <../lua-config/protobuf>`.
 
 This functionality from 4.5.0 and upwards, without needing any external library. Before 4.5.0, installing the  `protobuf <https://developers.google.com/protocol-buffers/>`_ library and compiler is required to enable this functionality. The configure script will automatically detect this and bump the Boost version dependency to 1.42. To disable building this functionality before 4.5.0, use ``--without-protobuf``.
 
-systemd notify support
-^^^^^^^^^^^^^^^^^^^^^^
+``systemd`` notify support
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 During configure, ``configure`` will attempt to detect the availability of `systemd or systemd-daemon <https://freedesktop.org/wiki/Software/systemd/>`_ headers.
-To force the use of systemd (and failing configure if the headers do not exist), use ``--enable-systemd``.
+To force the use of ``systemd`` (and failing configure if the headers do not exist), use ``--enable-systemd``.
 To set the directory where the unit files should be installed, use ``--with-systemd=/path/to/unit/dir``.
