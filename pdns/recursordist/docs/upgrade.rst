@@ -9,10 +9,10 @@ When upgrading several versions, please read **all** notes applying to the upgra
 
 Structured logging
 ^^^^^^^^^^^^^^^^^^
-All logging (execpt query tracing) has been converted to stuctured logging.
+All logging (except query tracing) has been converted to stuctured logging.
 Switch to old style logging by setting the :ref:`setting-structured-logging` setting to ``no``.
 When using ``systemd``, structured logging information will be sent to ``journald`` using formatted text strings that list the key-value pairs and are human readable.
-Switch to native key-value pair logging (more suitable for automated log processing) by setting :ref:`setting-structured-logging-backend` to ``systemd-journal``.
+Switch to native key-value pair logging (more suitable for automated log processing) by setting :ref:`setting-structured-logging-backend` on the command line to ``systemd-journal``.
 
 New settings
 ^^^^^^^^^^^^
@@ -20,7 +20,7 @@ New settings
 - The :ref:`setting-serve-stale-extensions` setting to control the new ``Serve Stale`` feature has been introduced.
 - The :ref:`setting-record-cache-locked-ttl-perc` setting to control locking of record sets in the record cache has been introduced.
 - The :ref:`setting-edns-padding-out` setting to control EDNS padding for outgoing DoT has been introduced.
-- The :ref:`setting-structured-logging-backend` setting to control the type of structiured logging to ``journald`` has been introduced.
+- The :ref:`setting-structured-logging-backend` setting to control the type of structured logging to ``journald`` has been introduced.
 
 :program:`rec_control` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
