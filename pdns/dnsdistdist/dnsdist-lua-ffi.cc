@@ -64,7 +64,7 @@ size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dq,
     return 0;
   }
 
-  auto ret = dnsdist::MacAddressesCache::get(*dq->dq->remote, reinterpret_cast<char*>(buffer), bufferSize);
+  auto ret = dnsdist::MacAddressesCache::get(*dq->dq->remote, reinterpret_cast<unsigned char*>(buffer), bufferSize);
   if (ret != 0) {
     return 0;
   }

@@ -27,7 +27,7 @@ namespace dnsdist
 {
 LockGuarded<boost::circular_buffer<MacAddressesCache::Entry>> MacAddressesCache::s_cache;
 
-int MacAddressesCache::get(const ComboAddress& ca, char* dest, size_t destLen)
+int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t destLen)
 {
   if (dest == nullptr || destLen < sizeof(Entry::mac)) {
     return EINVAL;
@@ -44,13 +44,13 @@ int MacAddressesCache::get(const ComboAddress& ca, char* dest, size_t destLen)
           // negative entry
           return ENOENT;
         }
-        memcpy(dest, entry.mac, sizeof(entry.mac));
+        memcpy(dest, entry.mac.data(), entry.mac.size());
         return 0;
       }
     }
   }
 
-  auto res = getMACAddress(ca, dest, destLen);
+  auto res = getMACAddress(ca, reinterpret_cast<char*>(dest), destLen);
   {
     auto cache = s_cache.lock();
     if (cache->capacity() == 0) {
@@ -59,11 +59,11 @@ int MacAddressesCache::get(const ComboAddress& ca, char* dest, size_t destLen)
     Entry entry;
     entry.ca = ca;
     if (res == 0) {
-      memcpy(entry.mac, dest, sizeof(entry.mac));
+      memcpy(entry.mac.data(), dest, entry.mac.size());
       entry.found = true;
     }
     else {
-      memset(entry.mac, 0, sizeof(entry.mac));
+      memset(entry.mac.data(), 0, entry.mac.size());
       entry.found = false;
     }
     entry.ttd = now + MacAddressesCache::s_cacheValiditySeconds;

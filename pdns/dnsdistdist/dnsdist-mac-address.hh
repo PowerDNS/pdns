@@ -27,16 +27,18 @@
 
 namespace dnsdist
 {
+using MacAddress = std::array<uint8_t, 6>;
+
 class MacAddressesCache
 {
 public:
-  static int get(const ComboAddress& ca, char* dest, size_t len);
+  static int get(const ComboAddress& ca, unsigned char* dest, size_t len);
 
 private:
   struct Entry
   {
     ComboAddress ca;
-    char mac[6];
+    MacAddress mac;
     time_t ttd;
     bool found;
   };

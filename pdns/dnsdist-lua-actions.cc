@@ -933,14 +933,14 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    char mac[6];
-    int res = dnsdist::MacAddressesCache::get(*dq->remote, mac, sizeof(mac));
+    dnsdist::MacAddress mac;
+    int res = dnsdist::MacAddressesCache::get(*dq->remote, mac.data(), mac.size());
     if (res != 0) {
       return Action::None;
     }
 
     std::string optRData;
-    generateEDNSOption(d_code, mac, optRData);
+    generateEDNSOption(d_code, reinterpret_cast<const char*>(mac.data()), optRData);
 
     if (dq->getHeader()->arcount) {
       bool ednsAdded = false;
