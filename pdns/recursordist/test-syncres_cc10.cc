@@ -1510,4 +1510,78 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
   BOOST_CHECK_NE(firstTTL, secondTTL);
 }
 
+BOOST_AUTO_TEST_CASE(test_locked_nonauth_update_to_auth)
+{
+  // Test that a non-bogus authoritative record replaces a non-authoritative one
+  // even if the cache is locked
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+  // Set the lock
+  SyncRes::s_locked_ttlperc = 50;
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+
+  sr->setAsyncCallback([=](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    /* this will cause issue with qname minimization if we ever implement it */
+    if (domain != target) {
+      return LWResult::Result::Timeout;
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, target, QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, target, QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+      addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+      return LWResult::Result::Success;
+    }
+    else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
+      if (type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, target, QType::A, "192.0.2.4");
+        return LWResult::Result::Success;
+      }
+      else if (type == QType::NS) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, target, QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::ANSWER, 172800);
+        addRecordToLW(res, target, QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::ANSWER, 172800);
+        return LWResult::Result::Success;
+      }
+    }
+    return LWResult::Result::Timeout;
+  });
+
+  // Lookup first name. We should see the (unauth) nameserver in the cache
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+
+  auto firstTTL = g_recCache->get(sr->getNow().tv_sec, target, QType::NS, MemRecursorCache::None, nullptr, ComboAddress());
+  BOOST_CHECK_GT(firstTTL, 0);
+
+  // Lookup NS records. We should see the nameserver in the cache being updated to auth
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::NS);
+
+  auto secondTTL = g_recCache->get(sr->getNow().tv_sec, target, QType::NS, MemRecursorCache::RequireAuth, nullptr, ComboAddress());
+  BOOST_CHECK_GT(secondTTL, 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

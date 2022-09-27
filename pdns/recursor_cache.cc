@@ -502,6 +502,10 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
       /* the new entry is Bogus, the existing one is not and is still valid, let's keep the existing one */
       return false;
     }
+    // Always allow upgrade unauth data to auth
+    if (!d_auth) {
+      return true;
+    }
   }
 
   if (SyncRes::s_locked_ttlperc > 0) {

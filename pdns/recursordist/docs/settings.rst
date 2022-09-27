@@ -1707,6 +1707,7 @@ A value of 100 means only expired record sets will be replaced.
 There are a few cases where records will be replaced anyway:
 
 - Record sets that are expired will always be replaced.
+- Authoritative record sets will replace unauthoritative record sets unless DNSSEC validation of the new record set failed.
 - If the new record set belongs to a DNSSEC-secure zone and successfully passed validation it will replace an existing entry.
 - Record sets produced by :ref:`setting-refresh-on-ttl-perc` tasks will also replace existing record sets.
 
