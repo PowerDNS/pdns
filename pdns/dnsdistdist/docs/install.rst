@@ -116,7 +116,9 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_BUILTIN_HTML`` removes the built-in web pages
 * ``DISABLE_CARBON`` for carbon support
 * ``DISABLE_COMPLETION`` for completion support in the console
+* ``DISABLE_DELAY_PIPE`` removes the ability to delay UDP responses
 * ``DISABLE_DEPRECATED_DYNBLOCK`` for legacy dynamic blocks not using the new ``DynBlockRulesGroup`` interface
+* ``DISABLE_DYNBLOCKS`` disables the new dynamic block interface
 * ``DISABLE_ECS_ACTIONS`` to disable actions altering EDNS Client Subnet
 * ``DISABLE_FALSE_SHARING_PADDING`` to disable the padding of atomic counters, which is inserted to prevent false sharing but increases the memory use significantly
 * ``DISABLE_HASHED_CREDENTIALS`` to disable password-hashing support

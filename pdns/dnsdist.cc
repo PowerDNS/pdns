@@ -207,6 +207,7 @@ static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qn
   }
 }
 
+#ifndef DISABLE_DELAY_PIPE
 struct DelayedPacket
 {
   int fd;
@@ -223,7 +224,8 @@ struct DelayedPacket
   }
 };
 
-DelayPipe<DelayedPacket>* g_delay = nullptr;
+static DelayPipe<DelayedPacket>* g_delay = nullptr;
+#endif /* DISABLE_DELAY_PIPE */
 
 std::string DNSQuestion::getTrailingData() const
 {
@@ -584,16 +586,17 @@ static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 
 static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
-  if(delayMsec && g_delay) {
+#ifndef DISABLE_DELAY_PIPE
+  if (delayMsec && g_delay) {
     DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
+    return true;
   }
-  else {
-    ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
-    if (res == -1) {
-      int err = errno;
-      vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
-    }
+#endif /* DISABLE_DELAY_PIPE */
+  ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
+  if (res == -1) {
+    int err = errno;
+    vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
   }
 
   return true;
@@ -937,6 +940,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     }
   }
 
+#ifndef DISABLE_DYNBLOCKS
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
   if (auto got = holders.dynNMGBlock->lookup(AddressAndPortRange(*dq.remote, dq.remote->isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
@@ -1055,6 +1059,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       }
     }
   }
+#endif /* DISABLE_DYNBLOCKS */
 
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
@@ -1874,12 +1879,14 @@ static void maintThread()
   }
 }
 
+#ifndef DISABLE_DYNBLOCKS
 static void dynBlockMaintenanceThread()
 {
   setThreadName("dnsdist/dynBloc");
 
   DynBlockMaintenance::run();
 }
+#endif
 
 #ifndef DISABLE_SECPOLL
 static void secPollThread()
@@ -2656,7 +2663,9 @@ int main(int argc, char** argv)
     }
 
     /* this need to be done _after_ dropping privileges */
+#ifndef DISABLE_DELAY_PIPE
     g_delay = new DelayPipe<DelayedPacket>();
+#endif /* DISABLE_DELAY_PIPE */
 
     if (g_snmpAgent) {
       g_snmpAgent->run();
@@ -2757,8 +2766,10 @@ int main(int argc, char** argv)
 
     thread healththread(healthChecksThread);
 
+#ifndef DISABLE_DYNBLOCKS
     thread dynBlockMaintThread(dynBlockMaintenanceThread);
     dynBlockMaintThread.detach();
+#endif /* DISABLE_DYNBLOCKS */
 
 #ifndef DISABLE_SECPOLL
     if (!g_secPollSuffix.empty()) {
