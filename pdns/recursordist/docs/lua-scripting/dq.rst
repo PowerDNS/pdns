@@ -235,7 +235,7 @@ The DNSQuestion object contains at least the following fields:
 
      .. attribute:: DNSQuestion.queryTime.tv_usec
 
-        The number of microseconds.
+        The number of microseconds, to be added to the number of seconds in :attr:`DNSQuestion.queryTime.tv_sec` to get a high accuracy timestamp.
 
   It also supports the following methods:
 
