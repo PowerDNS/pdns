@@ -1843,10 +1843,10 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
 
     // This is only to get the proxyMapping suffixMatch stats right i the case of a PC hit
     if (t_proxyMapping && source != mappedSource) {
-      if (auto it = t_proxyMapping->lookup(source)) {
-        if (it->second.suffixMatchNode) {
-          if (it->second.suffixMatchNode->check(qname)) {
-            ++it->second.stats.suffixMatches;
+      if (const auto* found = t_proxyMapping->lookup(source)) {
+        if (found->second.suffixMatchNode) {
+          if (found->second.suffixMatchNode->check(qname)) {
+            ++found->second.stats.suffixMatches;
           }
         }
       }

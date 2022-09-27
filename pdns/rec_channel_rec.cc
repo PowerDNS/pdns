@@ -942,8 +942,9 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
 static string doGetProxyMappingStats()
 {
   ostringstream ret;
-  auto m = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
-  for (const auto& [key, entry] : m) {
+  ret << "subnet\t\t\tmatches\tsuffixmatches" << endl;
+  auto proxyMappingStats = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
+  for (const auto& [key, entry] : proxyMappingStats) {
     ret << key.toString() << '\t' << entry.netmaskMatches << '\t' << entry.suffixMatches << endl;
   }
   return ret.str();
@@ -1164,9 +1165,9 @@ static StatsMap toProxyMappingStatsMap(const string& name)
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
 
-  auto m = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
+  auto proxyMappingStats = broadcastAccFunction<ProxyMappingStats_t>(pleaseGetProxyMappingStats);
   size_t count = 0;
-  for (const auto& [key, entry] : m) {
+  for (const auto& [key, entry] : proxyMappingStats) {
     auto keyname = pbasename + "{netmask=\"" + key.toString() + "\",count=\"";
     auto sname1 = name + "-n-" + std::to_string(count);
     auto pname1 = keyname + "netmaskmatches\"}";
@@ -1920,7 +1921,7 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& pm)
       auto& newentry = newmapping->insert(nm);
       newentry.second = entry;
       if (t_proxyMapping) {
-        if (auto existing = t_proxyMapping->lookup(nm); existing != nullptr) {
+        if (const auto* existing = t_proxyMapping->lookup(nm); existing != nullptr) {
           newentry.second.stats = existing->second.stats;
         }
       }
