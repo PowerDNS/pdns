@@ -1512,8 +1512,8 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
 
 BOOST_AUTO_TEST_CASE(test_locked_nonauth_update_to_auth)
 {
-  // Test that additional records do not update the cache
-  // We use two zones that share NS and their addresses
+  // Test that a non-bogus authoritative record replaces a non-authoritative one
+  // even if the cache is locked
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
   // Set the lock
