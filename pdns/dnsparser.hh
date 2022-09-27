@@ -365,11 +365,20 @@ struct DNSRecord
 
     string lzrp, rzrp;
     if(a.d_content)
-      lzrp=toLower(a.d_content->getZoneRepresentation());
+      lzrp = a.d_content->getZoneRepresentation();
     if(b.d_content)
-      rzrp=toLower(b.d_content->getZoneRepresentation());
+      rzrp = b.d_content->getZoneRepresentation();
 
-    return lzrp < rzrp;
+    switch (a.d_type) {
+    case QType::TXT:
+    case QType::SPF:
+#if !defined(RECURSOR)
+    case QType::LUA:
+#endif
+      return lzrp < rzrp;
+    default:
+      return toLower(lzrp) < toLower(rzrp);
+    }
   }
 
   bool operator==(const DNSRecord& rhs) const
