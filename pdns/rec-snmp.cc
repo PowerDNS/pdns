@@ -150,6 +150,23 @@ static const oid nonResolvingNameserverEntriesOID[] = {RECURSOR_STATS_OID, 126};
 static const oid maintenanceUSecOID[] = {RECURSOR_STATS_OID, 127};
 static const oid maintenanceCallsOID[] = {RECURSOR_STATS_OID, 128};
 
+static const oid rcode0AnswersOID[] = {RECURSOR_STATS_OID, 129, 0};
+static const oid rcode1AnswersOID[] = {RECURSOR_STATS_OID, 129, 1};
+static const oid rcode2AnswersOID[] = {RECURSOR_STATS_OID, 129, 2};
+static const oid rcode3AnswersOID[] = {RECURSOR_STATS_OID, 129, 3};
+static const oid rcode4AnswersOID[] = {RECURSOR_STATS_OID, 129, 4};
+static const oid rcode5AnswersOID[] = {RECURSOR_STATS_OID, 129, 5};
+static const oid rcode6AnswersOID[] = {RECURSOR_STATS_OID, 129, 6};
+static const oid rcode7AnswersOID[] = {RECURSOR_STATS_OID, 129, 7};
+static const oid rcode8AnswersOID[] = {RECURSOR_STATS_OID, 129, 8};
+static const oid rcode9AnswersOID[] = {RECURSOR_STATS_OID, 129, 9};
+static const oid rcode10AnswersOID[] = {RECURSOR_STATS_OID, 129, 10};
+static const oid rcode11AnswersOID[] = {RECURSOR_STATS_OID, 129, 11};
+static const oid rcode12AnswersOID[] = {RECURSOR_STATS_OID, 129, 12};
+static const oid rcode13AnswersOID[] = {RECURSOR_STATS_OID, 129, 13};
+static const oid rcode14AnswersOID[] = {RECURSOR_STATS_OID, 129, 14};
+static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 129, 15};
+
 static std::unordered_map<oid, std::string> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
@@ -388,5 +405,24 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("non-resolving-nameserver-entries", nonResolvingNameserverEntriesOID, OID_LENGTH(nonResolvingNameserverEntriesOID));
   registerCounter64Stat("maintenance-usec", maintenanceUSecOID, OID_LENGTH(maintenanceUSecOID));
   registerCounter64Stat("maintenance-calls", maintenanceCallsOID, OID_LENGTH(maintenanceCallsOID));
+
+#define RCODE(num) registerCounter64Stat("auth-" + RCode::to_short_s(num) + "-answers", rcode##num##AnswersOID, OID_LENGTH(rcode##num##AnswersOID))
+  RCODE(0);
+  RCODE(1);
+  RCODE(2);
+  RCODE(3);
+  RCODE(4);
+  RCODE(5);
+  RCODE(6);
+  RCODE(7);
+  RCODE(8);
+  RCODE(9);
+  RCODE(10);
+  RCODE(11);
+  RCODE(12);
+  RCODE(13);
+  RCODE(14);
+  RCODE(15);
+
 #endif /* HAVE_NET_SNMP */
 }

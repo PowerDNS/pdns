@@ -1121,6 +1121,21 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
   return entries;
 }
 
+static StatsMap toAuthRCodeStatsMap(const string& name, const std::array<pdns::stat_t, 16>& v)
+{
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+
+  uint8_t n = 0;
+  for (const auto& entry : v) {
+    const auto key = RCode::to_short_s(n);
+    std::string pname = pbasename + "{rcode=\"" + key + "\"}";
+    entries.emplace("auth-" + key + "-answers", StatsMapEntry{pname, std::to_string(entry)});
+    n++;
+  }
+  return entries;
+}
+
 static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
@@ -1450,6 +1465,9 @@ static void registerAllStats1()
   });
   addGetStat("proxy-mapping-total", []() {
     return toProxyMappingStatsMap("proxy-mapping-total");
+  });
+  addGetStat("auth-rcode-answers", []() {
+    return toAuthRCodeStatsMap("auth-rcode-answers", g_stats.authRCode);
   });
 }
 

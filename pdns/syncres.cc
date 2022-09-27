@@ -1842,6 +1842,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
               d_totUsec += lwr.d_usec;
               accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
+              ++g_stats.authRCode.at(lwr.d_rcode);
               if (fromCache)
                 *fromCache = true;
 
@@ -5194,6 +5195,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   d_totUsec += lwr.d_usec;
   accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
+  ++g_stats.authRCode.at(lwr.d_rcode);
 
   if (!dontThrottle) {
     auto dontThrottleNames = g_dontThrottleNames.getLocal();

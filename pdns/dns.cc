@@ -57,10 +57,30 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
   ("Bad/missing Server Cookie")
 ;
 
+static const std::array<std::string, 10> rcodes_short_s =  {
+  "noerror",
+  "formerr",
+  "servfail",
+  "nxdomain",
+  "notimp",
+  "refused",
+  "yxdomain",
+  "yxrrset",
+  "nxrrset",
+  "notauth",
+};
+
 std::string RCode::to_s(uint8_t rcode) {
   if (rcode > 0xF)
     return std::string("ErrOutOfRange");
   return ERCode::to_s(rcode);
+}
+
+std::string RCode::to_short_s(uint8_t rcode) {
+  if (rcode >= rcodes_short_s.size()) {
+    return "rcode" + std::to_string(rcode);
+  }
+  return rcodes_short_s.at(rcode);
 }
 
 std::string ERCode::to_s(uint8_t rcode) {

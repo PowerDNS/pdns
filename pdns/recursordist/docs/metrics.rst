@@ -232,6 +232,12 @@ auth6-answers100-1000
 ^^^^^^^^^^^^^^^^^^^^^
 counts the number of queries answered by auth6s within 1 second (4.0)
 
+auth-xxx-answers
+^^^^^^^^^^^^^^^^
+where ``xxx`` is an rcode name (``noerror``, ``formerr``, ``servfail``, ``nxdomain``, ``notimp``, ``refused``, ``yxdomain``, ``yxrrset``, ``nxrrset``, ``notauth``, ``rcode10``, ``rcode11``, ``rcode2``, ``rcode13``, ``rcode14``, ``rcode15``).
+Counts the rcodes returned by authoritative servers.
+
+
 auth-zone-queries
 ^^^^^^^^^^^^^^^^^
 counts the number of queries to locally hosted authoritative zones (:ref:`setting-auth-zones`) since starting

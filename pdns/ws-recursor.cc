@@ -1154,6 +1154,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"proxy-mapping-total-n-0",
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Number of queries matching proxyMappings")},
+
+  // For multicounters, state the first
+  {"auth-formerr-answers",
+   MetricDefinition(PrometheusMetricType::multicounter,
+                    "Count of RCodes returned by authoritative servers")},
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
