@@ -76,6 +76,7 @@ private:
 public:
   IsUpOracle()
   {
+    d_checkerThreadStarted.clear();
   }
   ~IsUpOracle()
   {
@@ -201,6 +202,7 @@ private:
   SharedLockGuarded<statuses_t> d_statuses;
 
   std::unique_ptr<std::thread> d_checkerThread;
+  std::atomic_flag d_checkerThreadStarted;
 
   void setStatus(const CheckDesc& cd, bool status)
   {
@@ -238,7 +240,7 @@ private:
 
 bool IsUpOracle::isUp(const CheckDesc& cd)
 {
-  if (!d_checkerThread) {
+  if (!d_checkerThreadStarted.test_and_set()) {
     d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
   }
   time_t now = time(nullptr);
