@@ -81,20 +81,27 @@ void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
 #ifdef HAVE_OPENSSL_INIT_CRYPTO
+#ifndef DISABLE_OPENSSL_ERROR_STRINGS
+    uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG;
+    const uint64_t sslOpts = 0;
+#else /* DISABLE_OPENSSL_ERROR_STRINGS */
+    uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG|OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS;
+    const uint64_t sslOpts = OPENSSL_INIT_NO_LOAD_SSL_STRINGS;
+#endif /* DISABLE_OPENSSL_ERROR_STRINGS */
     /* load the default configuration file (or one specified via OPENSSL_CONF),
        which can then be used to load engines.
     */
 #if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
     /* Since 661595ca0933fe631faeadd14a189acd5d4185e0 we can no longer rely on the ciphers and digests
        required for TLS to be loaded by OPENSSL_init_ssl(), so let's give up and load everything */
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, nullptr);
 #else /* OPENSSL_VERSION_MAJOR >= 3 */
     /* Do not load all ciphers and digests, we only need a few of them and these
        will be loaded by OPENSSL_init_ssl(). */
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG|OPENSSL_INIT_NO_ADD_ALL_CIPHERS|OPENSSL_INIT_NO_ADD_ALL_DIGESTS, nullptr);
+    cryptoOpts |= OPENSSL_INIT_NO_ADD_ALL_CIPHERS|OPENSSL_INIT_NO_ADD_ALL_DIGESTS;
 #endif /* OPENSSL_VERSION_MAJOR >= 3 */
 
-    OPENSSL_init_ssl(0, nullptr);
+    OPENSSL_init_crypto(cryptoOpts, nullptr);
+    OPENSSL_init_ssl(sslOpts, nullptr);
 #endif /* HAVE_OPENSSL_INIT_CRYPTO */
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))

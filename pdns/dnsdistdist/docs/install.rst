@@ -122,6 +122,7 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_HASHED_CREDENTIALS`` to disable password-hashing support
 * ``DISABLE_LUA_WEB_HANDLERS`` for custom Lua web handlers support
 * ``DISABLE_OCSP_STAPLING`` for OCSP stapling
+* ``DISABLE_OPENSSL_ERROR_STRINGS`` to disable the loading of OpenSSL's error strings, reducing the memory use at the cost of human-readable error messages
 * ``DISABLE_NPN`` for Next Protocol Negotiation, superseded by ALPN
 * ``DISABLE_PROMETHEUS`` for prometheus
 * ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap
