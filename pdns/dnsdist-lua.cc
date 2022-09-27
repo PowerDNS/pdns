@@ -57,6 +57,7 @@
 #include "base64.hh"
 #include "dolog.hh"
 #include "sodcrypto.hh"
+#include "threadname.hh"
 
 #ifdef HAVE_LIBSSL
 #include "libssl.hh"
@@ -269,6 +270,7 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
 
 static void LuaThread(const std::string code)
 {
+  setThreadName("dnsdist/lua-bg");
   LuaContext l;
 
   // mask SIGTERM on threads so the signal always comes to dnsdist itself
