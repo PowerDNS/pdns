@@ -1212,6 +1212,7 @@ jobs:
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
             ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            PDNSCONTROL="/opt/pdns-auth/bin/pdns_control" \
             ./runtests
 
   build-recursor:
