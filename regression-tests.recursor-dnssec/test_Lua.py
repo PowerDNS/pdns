@@ -99,6 +99,13 @@ class GettagRecursorTest(RecursorTest):
         return true
       end
 
+      local tm = os.time()
+      if dq.queryTime.tv_sec < tm - 1 or dq.queryTime.tv_sec > tm + 1 then
+        pdnslog("queryTime is wrong")
+        dq.rcode = pdns.REFUSED
+        return true
+      end
+
       if dq.qtype == pdns.A then
         dq:addAnswer(pdns.A, '192.0.2.1')
       elseif dq.qtype == pdns.AAAA then
