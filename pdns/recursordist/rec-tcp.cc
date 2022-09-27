@@ -269,6 +269,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (t_proxyMapping) {
         if (auto it = t_proxyMapping->lookup(conn->d_source)) {
           conn->d_mappedSource = it->second.address;
+          ++it->second.stats.netmaskMatches;
         }
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
@@ -550,7 +551,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
              but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
              as cacheable we would cache it with a wrong tag, so better safe than sorry. */
           dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
-          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
+          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source, dc->d_mappedSource);
           dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
           if (cacheHit) {
@@ -649,6 +650,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (auto it = t_proxyMapping->lookup(addr)) {
         mappedSource = it->second.address;
+        ++it->second.stats.netmaskMatches;
       }
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {

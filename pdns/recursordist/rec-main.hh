@@ -231,7 +231,8 @@ extern string g_programname;
 extern string g_pidfname;
 extern RecursorControlChannel g_rcc; // only active in the handler thread
 
-extern thread_local std::shared_ptr<ProxyMapping> t_proxyMapping;
+extern thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
+using ProxyMappingStats_t = std::unordered_map<Netmask, ProxyMappingCounts>;
 
 #ifdef NOD_ENABLED
 extern bool g_nodEnabled;
@@ -516,7 +517,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                       const struct timeval& now,
                       string& response, uint32_t& qhash,
-                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source);
+                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
 void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,

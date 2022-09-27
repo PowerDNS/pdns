@@ -161,6 +161,9 @@ get-tas
 get-parameter *KEY* [*KEY*]...
     Retrieves the specified configuration parameter(s).
 
+get-proxymapping-stats
+    Get the list of proxy-mapped subnets and associated counters.
+
 get-qtypelist
     Retrieves QType statistics. Queries from cache aren't being counted yet.
 

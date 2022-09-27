@@ -1149,6 +1149,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"maintenance-calls",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of times internal maintenance has been called, including Lua maintenance")},
+
+  // For multicounters, state the first
+  {"proxy-mapping-total-n-0",
+   MetricDefinition(PrometheusMetricType::multicounter,
+                    "Number of queries matching proxyMappings")},
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
@@ -1171,7 +1176,7 @@ static void validatePrometheusMetrics()
 
     if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
       SLOG(g_log << Logger::Debug << "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")}," << endl,
-           g_slog->info(Logr::Debug, "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
+           g_slog->info(Logr::Debug, "{ \"" + metricName + "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
     }
   }
 }

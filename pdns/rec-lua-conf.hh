@@ -77,10 +77,17 @@ enum class AdditionalMode : uint8_t
   ResolveDeferred
 };
 
+struct ProxyMappingCounts
+{
+  uint64_t netmaskMatches{};
+  uint64_t suffixMatches{};
+};
+
 struct ProxyByTableValue
 {
   ComboAddress address;
   boost::optional<SuffixMatchNode> suffixMatchNode;
+  mutable ProxyMappingCounts stats{};
 };
 
 using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;

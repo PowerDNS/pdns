@@ -693,11 +693,27 @@ public:
     return d_network.getBit(bit);
   }
 
+  struct Hash {
+    size_t operator()(const Netmask& nm) const
+    {
+      return burtle(&nm.d_bits, 1, ComboAddress::addressOnlyHash()(nm.d_network));
+    }
+  };
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;
   uint8_t d_bits;
 };
+
+namespace std {
+  template<>
+  struct hash<Netmask> {
+    auto operator()(const Netmask& nm) const {
+      return Netmask::Hash{}(nm);
+    }
+  };
+}
 
 /** Binary tree map implementation with <Netmask,T> pair.
  *
