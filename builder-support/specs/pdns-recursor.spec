@@ -44,7 +44,7 @@ package if you need a dns cache for your network.
 
 
 %prep
-%autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION} 
+%autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
 %build
 %if 0%{?rhel} < 8
@@ -75,11 +75,13 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 make install DESTDIR=%{buildroot}
 
 %{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+%{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
-# change user and group to pdns-recursor
+# change user and group to pdns-recursor and add default include-dir
 sed -i \
     -e 's/# setuid=/setuid=pdns-recursor/' \
     -e 's/# setgid=/setgid=pdns-recursor/' \
+    -e 's!# include-dir=.*!&\ninclude-dir=%{_sysconfdir}/%{name}/recursor.d!' \
     %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 
 # The EL7 and 8 systemd actually supports %t, but its version number is older than that, so we do use seperate runtime dirs, but don't rely on RUNTIME_DIRECTORY
@@ -115,5 +117,6 @@ systemctl daemon-reload ||:
 %{_unitdir}/pdns-recursor.service
 %{_unitdir}/pdns-recursor@.service
 %dir %{_sysconfdir}/%{name}
+%dir %{_sysconfdir}/%{name}/recursor.d
 %config(noreplace) %{_sysconfdir}/%{name}/recursor.conf
 %doc README
