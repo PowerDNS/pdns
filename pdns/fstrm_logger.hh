@@ -49,12 +49,12 @@ public:
   {
     return "dnstap";
   }
-  std::string toString() const override
+  std::string toString() override
   {
     return "FrameStreamLogger to " + d_address + " (" + std::to_string(d_framesSent) + " frames sent, " + std::to_string(d_queueFullDrops) + " dropped, " + std::to_string(d_permanentFailures) + " permanent failures)";
   }
 
-  RemoteLoggerInterface::Stats getStats() const override
+  RemoteLoggerInterface::Stats getStats() override
   {
     return Stats{.d_queued = d_framesSent,
                  .d_pipeFull = d_queueFullDrops,

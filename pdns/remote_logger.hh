@@ -67,7 +67,7 @@ public:
   virtual ~RemoteLoggerInterface() {};
   virtual Result queueData(const std::string& data) = 0;
   virtual std::string address() const = 0;
-  virtual std::string toString() const = 0;
+  virtual std::string toString() = 0;
   virtual const std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
@@ -91,7 +91,7 @@ public:
     }
   };
 
-  virtual Stats getStats() const = 0;
+  virtual Stats getStats() = 0;
 
 private:
   bool d_logQueries{true};
@@ -122,13 +122,13 @@ public:
   {
     return "protobuf";
   }
-  std::string toString() const override
+  std::string toString() override
   {
     auto runtime = d_runtime.lock();
     return d_remote.toStringWithPort() + " (" + std::to_string(runtime->d_stats.d_queued) + " processed, " + std::to_string(runtime->d_stats.d_pipeFull + runtime->d_stats.d_tooLarge + runtime->d_stats.d_otherError) + " dropped)";
   }
 
-  virtual RemoteLoggerInterface::Stats getStats() const override
+  virtual RemoteLoggerInterface::Stats getStats() override
   {
     return d_runtime.lock()->d_stats;
   }
@@ -155,7 +155,7 @@ private:
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
 
-  mutable LockGuarded<RuntimeData> d_runtime;
+  LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
 };
 
