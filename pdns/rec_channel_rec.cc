@@ -944,8 +944,8 @@ static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
   auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_protobufServers) {
-    for (const auto& s : *t_protobufServers) {
-      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    for (const auto& server : *t_protobufServers) {
+      ret->emplace(std::make_pair(server->address(), server->getStats()));
     }
   }
   return ret.release();
@@ -967,8 +967,8 @@ static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
   auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_outgoingProtobufServers) {
-    for (const auto& s : *t_outgoingProtobufServers) {
-      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    for (const auto& server : *t_outgoingProtobufServers) {
+      ret->emplace(std::make_pair(server->address(), server->getStats()));
     }
   }
   return ret.release();
@@ -980,38 +980,38 @@ static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
   auto ret = make_unique<RemoteLoggerStats_t>();
 
   if (t_frameStreamServersInfo.servers) {
-    for (const auto& s : *t_frameStreamServersInfo.servers) {
-      ret->emplace(std::make_pair(s->address(), s->getStats()));
+    for (const auto& server : *t_frameStreamServersInfo.servers) {
+      ret->emplace(std::make_pair(server->address(), server->getStats()));
     }
   }
   return ret.release();
 }
 #endif
 
-static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& stats, ostringstream& os)
+static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& stats, ostringstream& outpustStream)
 {
   if (stats.empty()) {
     return;
   }
   for (const auto& [key, entry] : stats) {
-    os << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << '\t' << type << endl;
+    outpustStream << entry.d_queued << '\t' << entry.d_pipeFull << '\t' << entry.d_tooLarge << '\t' << entry.d_otherError << '\t' << key << '\t' << type << endl;
   }
 }
 
 static string getRemoteLoggerStats()
 {
-  ostringstream os;
-  os << "Queued\tPipe-\tToo-\tOther-\tAddress\tType" << endl;
-  os << "\tFull\tLarge\terror" << endl;
+  ostringstream outputStream;
+  outputStream << "Queued\tPipe-\tToo-\tOther-\tAddress\tType" << endl;
+  outputStream << "\tFull\tLarge\terror" << endl;
   auto stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetRemoteLoggerStats);
-  remoteLoggerStats("protobuf", stats, os);
+  remoteLoggerStats("protobuf", stats, outputStream);
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
-  remoteLoggerStats("outgoingProtobuf", stats, os);
+  remoteLoggerStats("outgoingProtobuf", stats, outputStream);
 #ifdef HAVE_FSTRM
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
-  remoteLoggerStats("dnstapFrameStream", stats, os);
+  remoteLoggerStats("dnstapFrameStream", stats, outputStream);
 #endif
-  return os.str();
+  return outputStream.str();
 }
 
 static uint64_t calculateUptime()

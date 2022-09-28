@@ -66,9 +66,9 @@ public:
 
   virtual ~RemoteLoggerInterface() {};
   virtual Result queueData(const std::string& data) = 0;
-  virtual std::string address() const = 0;
-  virtual std::string toString() = 0;
-  virtual const std::string name() const = 0;
+  [[nodiscard]] virtual std::string address() const = 0;
+  [[nodiscard]] virtual std::string toString() = 0;
+  [[nodiscard]] virtual std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
@@ -91,7 +91,7 @@ public:
     }
   };
 
-  virtual Stats getStats() = 0;
+  [[nodiscard]] virtual Stats getStats() = 0;
 
 private:
   bool d_logQueries{true};
@@ -118,17 +118,17 @@ public:
   }
 
   [[nodiscard]] Result queueData(const std::string& data) override;
-  const std::string name() const override
+  [[nodiscard]] std::string name() const override
   {
     return "protobuf";
   }
-  std::string toString() override
+  [[nodiscard]] std::string toString() override
   {
     auto runtime = d_runtime.lock();
     return d_remote.toStringWithPort() + " (" + std::to_string(runtime->d_stats.d_queued) + " processed, " + std::to_string(runtime->d_stats.d_pipeFull + runtime->d_stats.d_tooLarge + runtime->d_stats.d_otherError) + " dropped)";
   }
 
-  virtual RemoteLoggerInterface::Stats getStats() override
+  [[nodiscard]] RemoteLoggerInterface::Stats getStats() override
   {
     return d_runtime.lock()->d_stats;
   }
