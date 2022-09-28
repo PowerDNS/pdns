@@ -319,19 +319,22 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
     totalCount += option.second.values.size();
   }
 
-  dq->ednsOptionsVect.clear();
-  dq->ednsOptionsVect.resize(totalCount);
+  if (!dq->ednsOptionsVect) {
+    dq->ednsOptionsVect = std::make_unique<std::vector<dnsdist_ffi_ednsoption_t>>();
+  }
+  dq->ednsOptionsVect->clear();
+  dq->ednsOptionsVect->resize(totalCount);
   size_t pos = 0;
   for (const auto& option : *dq->dq->ednsOptions) {
     for (const auto& entry : option.second.values) {
-      fill_edns_option(entry, dq->ednsOptionsVect.at(pos));
-      dq->ednsOptionsVect.at(pos).optionCode = option.first;
+      fill_edns_option(entry, dq->ednsOptionsVect->at(pos));
+      dq->ednsOptionsVect->at(pos).optionCode = option.first;
       pos++;
     }
   }
 
   if (totalCount > 0) {
-    *out = dq->ednsOptionsVect.data();
+    *out = dq->ednsOptionsVect->data();
   }
 
   return totalCount;
@@ -344,21 +347,28 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
   }
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  dq->httpHeaders = dq->dq->du->getHTTPHeaders();
-  dq->httpHeadersVect.clear();
-  dq->httpHeadersVect.resize(dq->httpHeaders.size());
+  auto headers = dq->dq->du->getHTTPHeaders();
+  if (headers.size() == 0) {
+    return 0;
+  }
+  dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(std::move(headers));
+  if (!dq->httpHeadersVect) {
+    dq->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
+  }
+  dq->httpHeadersVect->clear();
+  dq->httpHeadersVect->resize(dq->httpHeaders->size());
   size_t pos = 0;
-  for (const auto& header : dq->httpHeaders) {
-    dq->httpHeadersVect.at(pos).name = header.first.c_str();
-    dq->httpHeadersVect.at(pos).value = header.second.c_str();
+  for (const auto& header : *dq->httpHeaders) {
+    dq->httpHeadersVect->at(pos).name = header.first.c_str();
+    dq->httpHeadersVect->at(pos).value = header.second.c_str();
     ++pos;
   }
 
-  if (!dq->httpHeadersVect.empty()) {
-    *out = dq->httpHeadersVect.data();
+  if (!dq->httpHeadersVect->empty()) {
+    *out = dq->httpHeadersVect->data();
   }
 
-  return dq->httpHeadersVect.size();
+  return dq->httpHeadersVect->size();
 #else
   return 0;
 #endif
@@ -370,23 +380,26 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, cons
     return 0;
   }
 
-  dq->tagsVect.clear();
-  dq->tagsVect.resize(dq->dq->qTag->size());
+  if (!dq->tagsVect) {
+    dq->tagsVect = std::make_unique<std::vector<dnsdist_ffi_tag_t>>();
+  }
+  dq->tagsVect->clear();
+  dq->tagsVect->resize(dq->dq->qTag->size());
   size_t pos = 0;
 
   for (const auto& tag : *dq->dq->qTag) {
-    auto& entry = dq->tagsVect.at(pos);
+    auto& entry = dq->tagsVect->at(pos);
     entry.name = tag.first.c_str();
     entry.value = tag.second.c_str();
     ++pos;
   }
 
 
-  if (!dq->tagsVect.empty()) {
-    *out = dq->tagsVect.data();
+  if (!dq->tagsVect->empty()) {
+    *out = dq->tagsVect->data();
   }
 
-  return dq->tagsVect.size();
+  return dq->tagsVect->size();
 }
 
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize)

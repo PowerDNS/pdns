@@ -213,7 +213,7 @@ struct DOHServerConfig
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
 
   LocalHolders holders;
-  std::set<std::string> paths;
+  std::set<std::string, std::less<>> paths;
   h2o_globalconf_t h2o_config;
   h2o_context_t h2o_ctx;
   std::shared_ptr<DOHAcceptContext> accept_ctx{nullptr};
@@ -829,28 +829,30 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 {
   try {
     /* we only parse it there as a sanity check, we will parse it again later */
-    uint16_t qtype;
-    DNSName qname(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &qtype);
+    DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
+    mangler.skipDomainName();
+    mangler.skipBytes(4);
 
-    auto du = std::make_unique<DOHUnit>();
+    /* we are doing quite some copies here, sorry about that,
+       but we can't keep accessing the req object once we are in a different thread
+       because the request might get killed by h2o at pretty much any time */
+    auto du = std::make_unique<DOHUnit>(std::move(query), std::move(path), std::string(req->authority.base, req->authority.len));
     du->dsc = dsc;
     du->req = req;
     du->ids.origDest = local;
     du->ids.origRemote = remote;
     du->rsock = dsc->dohresponsepair[0];
-    du->query = std::move(query);
-    du->path = std::move(path);
-    /* we are doing quite some copies here, sorry about that,
-       but we can't keep accessing the req object once we are in a different thread
-       because the request might get killed by h2o at pretty much any time */
     if (req->scheme != nullptr) {
       du->scheme = std::string(req->scheme->name.base, req->scheme->name.len);
     }
-    du->host = std::string(req->authority.base, req->authority.len);
     du->query_at = req->query_at;
-    du->headers.reserve(req->headers.size);
-    for (size_t i = 0; i < req->headers.size; ++i) {
-      du->headers[std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len)] = std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+
+    if (dsc->df->d_keepIncomingHeaders) {
+      du->headers = std::make_unique<std::unordered_map<std::string, std::string>>();
+      du->headers->reserve(req->headers.size);
+      for (size_t i = 0; i < req->headers.size; ++i) {
+        (*du->headers)[std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len)] = std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+      }
     }
 
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
@@ -886,7 +888,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       }
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
     h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
   }
@@ -1006,10 +1008,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
 
     if (dsc->df->d_exactPathMatching) {
-      // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
-      // (having string in the set and compare them to string_view, for example. Note that comparing
-      // two boost::string_view uses the pointer, not the content).
-      const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
+      const std::string_view pathOnly(req->path_normalized.base, req->path_normalized.len);
       if (dsc->paths.count(pathOnly) == 0) {
         h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
         return 0;
@@ -1116,11 +1115,11 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
-  if (!dq->du) {
+  if (!dq->du || !dq->du->headers) {
     return false;
   }
 
-  for (const auto& header : dq->du->headers) {
+  for (const auto& header : *dq->du->headers) {
     if (header.first == d_header) {
       return d_regex.match(header.second);
     }
@@ -1179,10 +1178,12 @@ string HTTPPathRegexRule::toString() const
 std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
 {
   std::unordered_map<std::string, std::string> results;
-  results.reserve(headers.size());
+  if (headers) {
+    results.reserve(headers->size());
 
-  for (const auto& header : headers) {
-    results.insert(header);
+    for (const auto& header : *headers) {
+      results.insert(header);
+    }
   }
 
   return results;

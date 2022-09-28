@@ -2457,6 +2457,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         frontend->d_sendCacheControlHeaders = boost::get<bool>((*vars)["sendCacheControlHeaders"]);
       }
 
+      if (vars->count("keepIncomingHeaders")) {
+        frontend->d_keepIncomingHeaders = boost::get<bool>((*vars)["keepIncomingHeaders"]);
+      }
+
       if (vars->count("trustForwardedForHeader")) {
         frontend->d_trustForwardedForHeader = boost::get<bool>((*vars)["trustForwardedForHeader"]);
       }
