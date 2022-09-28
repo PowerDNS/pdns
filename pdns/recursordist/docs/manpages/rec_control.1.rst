@@ -167,6 +167,9 @@ get-proxymapping-stats
 get-qtypelist
     Retrieves QType statistics. Queries from cache aren't being counted yet.
 
+get-remotelogger-stats
+    Retrieves the remote logger statistics, per type and address.
+
 hash-password [*WORK-FACTOR*]
     Asks for a password then returns the hashed and salted version,
     to use as a webserver password or API key. This command does

@@ -161,10 +161,12 @@ FrameStreamLogger::~FrameStreamLogger()
 RemoteLoggerInterface::Result FrameStreamLogger::queueData(const std::string& data)
 {
   if (!d_ioqueue || !d_iothr) {
+    ++d_permanentFailures;
     return Result::OtherError;
   }
   uint8_t *frame = (uint8_t*)malloc(data.length());
   if (!frame) {
+    ++d_queueFullDrops; // XXX separate count?
     return Result::TooLarge;
   }
   memcpy(frame, data.c_str(), data.length());

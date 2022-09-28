@@ -1294,6 +1294,14 @@ static ProxyMappingStats_t& operator+=(ProxyMappingStats_t& a, const ProxyMappin
   return a;
 }
 
+static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t& a, const RemoteLoggerStats_t& b)
+{
+  for (const auto& [key, entry] : b) {
+    a[key] += entry;
+  }
+  return a;
+}
+
 // This function should only be called by the handler to gather
 // metrics, wipe the cache, reload the Lua script (not the Lua config)
 // or change the current trace regex, and by the SNMP thread to gather
@@ -1346,6 +1354,7 @@ template vector<ComboAddress> broadcastAccFunction(const std::function<vector<Co
 template vector<pair<DNSName, uint16_t>> broadcastAccFunction(const std::function<vector<pair<DNSName, uint16_t>>*()>& fun); // explicit instantiation
 template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& fun);
 template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
+template RemoteLoggerStats_t broadcastAccFunction(const std::function<RemoteLoggerStats_t*()>& fun);
 
 static int serviceMain(int argc, char* argv[], Logr::log_t log)
 {
@@ -2762,7 +2771,7 @@ int main(int argc, char** argv)
     for (size_t idx = 0; idx < 128; idx++) {
       defaultAPIDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total";
+    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total, remote-logger-count";
 
     ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)") = defaultAPIDisabledStats;
     ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)") = defaultDisabledStats;

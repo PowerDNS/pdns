@@ -188,6 +188,8 @@ typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
 extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 
+using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterface::Stats>;
+
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;

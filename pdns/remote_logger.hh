@@ -63,14 +63,35 @@ public:
   enum class Result : uint8_t { Queued, PipeFull, TooLarge, OtherError };
   static const std::string& toErrorString(Result r);
 
+
   virtual ~RemoteLoggerInterface() {};
   virtual Result queueData(const std::string& data) = 0;
-  virtual std::string toString() const = 0;
-  virtual const std::string name() const = 0;
+  [[nodiscard]] virtual std::string address() const = 0;
+  [[nodiscard]] virtual std::string toString() = 0;
+  [[nodiscard]] virtual std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
   void setLogResponses(bool flag) { d_logResponses = flag; }
+
+  struct Stats
+  {
+    uint64_t d_queued{};
+    uint64_t d_pipeFull{};
+    uint64_t d_tooLarge{};
+    uint64_t d_otherError{};
+
+    Stats& operator += (const Stats& rhs)
+    {
+      d_queued += rhs.d_queued;
+      d_pipeFull += rhs.d_pipeFull;
+      d_tooLarge += rhs.d_tooLarge;
+      d_otherError += rhs.d_otherError;
+      return *this;
+    }
+  };
+
+  [[nodiscard]] virtual Stats getStats() = 0;
 
 private:
   bool d_logQueries{true};
@@ -91,15 +112,27 @@ public:
                bool asyncConnect=false);
   ~RemoteLogger();
 
+  std::string address() const override
+  {
+    return d_remote.toStringWithPort();
+  }
+
   [[nodiscard]] Result queueData(const std::string& data) override;
-  const std::string name() const override
+  [[nodiscard]] std::string name() const override
   {
     return "protobuf";
   }
-  std::string toString() const override
+  [[nodiscard]] std::string toString() override
   {
-    return d_remote.toStringWithPort() + " (" + std::to_string(d_processed) + " processed, " + std::to_string(d_drops) + " dropped)";
+    auto runtime = d_runtime.lock();
+    return d_remote.toStringWithPort() + " (" + std::to_string(runtime->d_stats.d_queued) + " processed, " + std::to_string(runtime->d_stats.d_pipeFull + runtime->d_stats.d_tooLarge + runtime->d_stats.d_otherError) + " dropped)";
   }
+
+  [[nodiscard]] RemoteLoggerInterface::Stats getStats() override
+  {
+    return d_runtime.lock()->d_stats;
+  }
+
   void stop()
   {
     d_exiting = true;
@@ -113,11 +146,10 @@ private:
   {
     CircularWriteBuffer d_writer;
     std::unique_ptr<Socket> d_socket{nullptr};
+    RemoteLoggerInterface::Stats d_stats{};
   };
 
   ComboAddress d_remote;
-  std::atomic<uint64_t> d_drops{0};
-  std::atomic<uint64_t> d_processed{0};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
