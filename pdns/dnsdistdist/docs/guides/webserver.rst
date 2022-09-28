@@ -424,27 +424,76 @@ JSON Objects
   :property string type: "ConfigSetting"
   :property string value: The value for this setting
 
+.. json:object:: DoHFrontend
+
+  A description of a DoH bind dnsdist is listening on.
+
+  :property integer bad-requests: Number of requests that could not be converted to a DNS query
+  :property integer error-responses: Number of HTTP responses sent with a non-200 code
+  :property integer get-queries: Number of DoH queries received via the GET HTTP method
+  :property integer http-connects: Number of DoH TCP connections established to this frontend
+  :property integer http1-queries: Number of DoH queries received over HTTP/1
+  :property integer http1-x00-responses: Number of DoH responses sent, over HTTP/1, per response code (200, 400, 403, 500, 502)
+  :property integer http1-other-responses: Number of DoH responses sent, over HTTP/1, with another response code
+  :property integer http2-queries: Number of DoH queries received over HTTP/2
+  :property integer http2-x00-responses: Number of DoH responses sent, over HTTP/2, per response code (200, 400, 403, 500, 502)
+  :property integer http1-other-responses: Number of DoH responses sent, over HTTP/2, with another response code
+  :property integer post-queries: Number of DoH queries received via the POST HTTP method
+  :property integer redirect-responses: Number of HTTP redirect responses sent
+  :property integer valid-responses: Number of valid DoH (2xx) responses sent
+
 .. json:object:: Frontend
 
   A description of a bind dnsdist is listening on.
 
   :property string address: IP and port that is listened on
   :property integer id: Internal identifier
+  :property integer nonCompliantQueries: Amount of non-compliant queries received by this frontend
   :property integer queries: The number of received queries on this bind
-  :property boolean udp: true if this is a UDP bind
+  :property integer responses: Amount of responses sent by this frontend
   :property boolean tcp: true if this is a TCP bind
+  :property integer tcpAvgConnectionDuration: The average duration of a TCP connection (ms)
+  :property integer tcpAvgQueriesPerConnection: The average number of queries per TCP connection
+  :property integer tcpClientTimeouts: Amount of TCP connections terminated by a timeout while reading from the client
+  :property integer tcpCurrentConnections: Amount of current incoming TCP connections from clients
+  :property integer tcpDiedReadingQuery: Amount of TCP connections terminated while reading the query from the client
+  :property integer tcpDiedSendingResponse: Amount of TCP connections terminated while sending a response to the client
+  :property integer tcpDownstreamTimeouts: Amount of TCP connections terminated by a timeout while reading from the backend
+  :property integer tcpGaveUp: Amount of TCP connections terminated after too many attempts to get a connection to the backend
+  :property integer tcpMaxConcurrentConnections: Maximum number of concurrent incoming TCP connections from clients
+  :property integer tls10Queries: Number of queries received by dnsdist over TLS 1.0
+  :property integer tls11Queries: Number of queries received by dnsdist over TLS 1.1
+  :property integer tls12Queries: Number of queries received by dnsdist over TLS 1.2
+  :property integer tls13Queries: Number of queries received by dnsdist over TLS 1.3
+  :property integer tlsHandshakeFailuresDHKeyTooSmall: Amount of TLS connections where the client has negotiated a not strong enough diffie-hellman key during the TLS handshake
+  :property integer tlsHandshakeFailuresInappropriateFallBack: Amount of TLS connections where the client tried to negotiate an invalid, too old, TLS version
+  :property integer tlsHandshakeFailuresNoSharedCipher: Amount of TLS connections were no cipher shared by both the client and the server could been found during the TLS handshake
+  :property integer tlsHandshakeFailuresUnknownCipher: Amount of TLS connections where the client has tried to negotiate an unknown TLS cipher
+  :property integer tlsHandshakeFailuresUnknownKeyExchangeType: Amount of TLS connections where the client has tried to negotiate an unknown TLS key-exchange mechanism
+  :property integer tlsHandshakeFailuresUnknownProtocol: Amount of TLS connections where the client has tried to negotiate an unknown TLS version
+  :property integer tlsHandshakeFailuresUnsupportedEC: Amount of TLS connections where the client has tried to negotiate an unsupported elliptic curve
+  :property integer tlsHandshakeFailuresUnsupportedProtocol: Amount of TLS connections where the client has tried to negotiate a unsupported TLS version
+  :property integer tlsInactiveTicketKey: Amount of TLS sessions resumed from an inactive key
+  :property integer tlsNewSessions: Amount of new TLS sessions negotiated
+  :property integer tlsResumptions: Amount of TLS sessions resumed
+  :property integer tlsUnknownQueries: Number of queries received by dnsdist over an unknown TLS version
+  :property integer tlsUnknownTicketKey: Amount of attempts to resume TLS session from an unknown key (possibly expired)
+
+  :property string type: UDP, TCP, DoT or DoH
+  :property boolean udp: true if this is a UDP bind
 
 .. json:object:: Pool
 
   A description of a pool of backend servers.
 
   :property integer id: Internal identifier
+  :property integer cacheCleanupCount: Number of times that cache was scanned for expired entries, or just to remove entries because it is full
   :property integer cacheDeferredInserts: The number of times an entry could not be inserted in the associated cache, if any, because of a lock
   :property integer cacheDeferredLookups: The number of times an entry could not be looked up from the associated cache, if any, because of a lock
   :property integer cacheEntries: The current number of entries in the associated cache, if any
   :property integer cacheHits: The number of cache hits for the associated cache, if any
-  :property integer cacheLookupCollisions: The number of times an entry retrieved from the cache based on the query hash did not match the actual query
   :property integer cacheInsertCollisions: The number of times an entry could not be inserted into the cache because a different entry with the same hash already existed
+  :property integer cacheLookupCollisions: The number of times an entry retrieved from the cache based on the query hash did not match the actual query
   :property integer cacheMisses: The number of cache misses for the associated cache, if any
   :property integer cacheSize: The maximum number of entries in the associated cache, if any
   :property integer cacheTTLTooShorts: The number of times an entry could not be inserted into the cache because its TTL was set below the minimum threshold
@@ -457,8 +506,10 @@ JSON Objects
 
   :property string action: The action taken when the rule matches (e.g. "to pool abuse")
   :property dict action-stats: A list of statistics whose content varies depending on the kind of rule
+  :property integer creationOrder: The order in which a rule has been created, mostly used for automated tools
   :property integer id: The position of this rule
   :property integer matches: How many times this rule was hit
+  :property string name: The name assigned to this rule by the administrator, if any
   :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
   :property string uuid: The UUID of this rule
 
@@ -477,19 +528,37 @@ JSON Objects
 
   :property string address: The remote IP and port
   :property integer id: Internal identifier
-  :property integer latency: The current latency of this backend server
+  :property integer latency: The current latency of this backend server for UDP queries, in milliseconds
   :property string name: The name of this server
+  :property integer: nonCompliantResponses: Amount of non-compliant responses
   :property integer order: Order number
   :property integer outstanding: Number of currently outstanding queries
   :property [string] pools: The pools this server belongs to
+  :property string protocol: The protocol used by this server (Do53, DoT, DoH)
   :property integer qps: The current number of queries per second to this server
   :property integer qpsLimit: The configured maximum number of queries per second
   :property integer queries: Total number of queries sent to this backend
+  :property integer responses: Amount of responses received from this server
   :property integer reuseds: Number of queries for which a response was not received in time
   :property integer sendErrors: Number of network errors while sending a query to this server
   :property string state: The state of the server (e.g. "DOWN" or "up")
+  :property integer tcpAvgConnectionDuration: The average duration of a TCP connection (ms)
+  :property integer tcpAvgQueriesPerConnection: The average number of queries per TCP connection
+  :property integer tcpConnectTimeouts: The number of TCP connect timeouts
+  :property integer tcpCurrentConnections: The number of current TCP connections
+  :property integer tcpDiedReadingResponse: The number of TCP I/O errors while reading the response
+  :property integer tcpDiedSendingQuery: The number of TCP I/O errors while sending the query
+  :property integer tcpGaveUp: The number of TCP connections failing after too many attempts
+  :property integer tcpLatency: Server's latency when answering TCP questions in milliseconds
+  :property integer tcpMaxConcurrentConnections: The maximum number of concurrent TCP connections
+  :property integer tcpNewConnections: The number of established TCP connections in total
+  :property integer tcpReadTimeouts: The number of TCP read timeouts
+  :property integer tcpReusedConnections: The number of times a TCP connection has been reused
+  :property integer tcpTooManyConcurrentConnections: Number of times we had to enforce the maximum number of concurrent TCP connections
+  :property integer tcpWriteTimeouts: The number of TCP write timeouts
+  :property integer tlsResumptions: The number of times a TLS session has been resumed
   :property integer weight: The weight assigned to this server
-  :property float dropRate: The amount of packets dropped per second by this server
+  :property float dropRate: The amount of packets dropped (timing out) per second by this server
 
 .. json:object:: StatisticItem
 
