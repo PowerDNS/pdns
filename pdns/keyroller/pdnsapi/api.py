@@ -11,6 +11,7 @@ from pdnsapi.metadata import ZoneMetadata
 logger = logging.getLogger(__name__)
 
 
+# FIXME: clients should not be doing this escaping. We need to switch this to the appropriate zone ID lookup API.
 def _sanitize_dnsname(name):
     """
     Appends a dot to `name` if needed
