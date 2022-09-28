@@ -1865,7 +1865,7 @@ static void maintThread()
       }
 
       const time_t now = time(nullptr);
-      for (auto pair : caches) {
+      for (const auto& pair : caches) {
         /* shall we keep expired entries ? */
         if (pair.second == true) {
           continue;

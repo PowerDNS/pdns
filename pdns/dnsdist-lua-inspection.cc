@@ -298,7 +298,8 @@ void setupLuaInspection(LuaContext& luaCtx)
 	unsigned int lab = *labels;
         for (const auto& shard : g_rings.d_shards) {
           auto rl = shard->queryRing.lock();
-          for(auto a : *rl) {
+          // coverity[auto_causes_copy]
+          for (auto a : *rl) {
             a.name.trimToLabels(lab);
             counts[a.name]++;
             total++;

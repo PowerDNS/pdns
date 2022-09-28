@@ -56,7 +56,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
 
       if (ctx != nullptr) {
         size_t idx = 1;
-        for (auto pair : ctx->getCertificates()) {
+        for (const auto& pair : ctx->getCertificates()) {
           result.push_back({idx++, pair});
         }
       }
@@ -101,7 +101,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-7d %|20t|%4$-21.21s %|41t|%5$-21.21s");
         ret << (fmt % "#" % "Serial" % "Version" % "From" % "To" ) << endl;
 
-        for (auto pair : ctx->getCertificates()) {
+        for (const auto& pair : ctx->getCertificates()) {
           const auto cert = pair->cert;
           const DNSCryptExchangeVersion version = DNSCryptContext::getExchangeVersion(cert);
 

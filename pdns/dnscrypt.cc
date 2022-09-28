@@ -289,7 +289,7 @@ void DNSCryptContext::addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>
 {
   auto certs = d_certs.write_lock();
 
-  for (auto pair : *certs) {
+  for (const auto& pair : *certs) {
     if (pair->cert.getSerial() == newCert->cert.getSerial()) {
       if (reload) {
         /* on reload we just assume that this is the same certificate */
@@ -356,7 +356,7 @@ std::vector<std::shared_ptr<DNSCryptCertificatePair>> DNSCryptContext::getCertif
 
 void DNSCryptContext::markActive(uint32_t serial)
 {
-  for (auto pair : *d_certs.write_lock()) {
+  for (const auto& pair : *d_certs.write_lock()) {
     if (pair->active == false && pair->cert.getSerial() == serial) {
       pair->active = true;
       return;
@@ -367,7 +367,7 @@ void DNSCryptContext::markActive(uint32_t serial)
 
 void DNSCryptContext::markInactive(uint32_t serial)
 {
-  for (auto pair : *d_certs.write_lock()) {
+  for (const auto& pair : *d_certs.write_lock()) {
     if (pair->active == true && pair->cert.getSerial() == serial) {
       pair->active = false;
       return;
