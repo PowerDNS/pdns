@@ -271,6 +271,7 @@ public:
     else {
       auto res = d_ip6s.write_lock()->insert({{ca}, ttd});
       if (!res.second && (time_t)res.first->second < ttd) {
+        // coverity[store_truncates_time_t]
         res.first->second = (uint32_t)ttd;
       }
     }

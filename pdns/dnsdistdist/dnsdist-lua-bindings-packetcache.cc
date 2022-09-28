@@ -95,7 +95,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
           }
         }
         if (vars->count("skipOptions")) {
-          for (auto option: boost::get<LuaArray<uint16_t>>(vars->at("skipOptions"))) {
+          for (const auto& option: boost::get<LuaArray<uint16_t>>(vars->at("skipOptions"))) {
             optionsToSkip.insert(option.second);
           }
         }

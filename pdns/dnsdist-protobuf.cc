@@ -160,6 +160,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   m.startResponse();
   if (d_queryTime) {
+    // coverity[store_truncates_time_t]
     m.setQueryTime(d_queryTime->first, d_queryTime->second);
   }
   else {

@@ -1412,7 +1412,7 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
       auto aclList = doc["value"];
       if (aclList.is_array()) {
 
-        for (auto value : aclList.array_items()) {
+        for (const auto& value : aclList.array_items()) {
           try {
             nmg.addMask(value.string_value());
           } catch (NetmaskException &e) {
