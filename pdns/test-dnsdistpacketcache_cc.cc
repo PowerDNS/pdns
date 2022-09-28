@@ -124,7 +124,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   }
 }
 
-
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
   const size_t maxEntries = 150000;
   const size_t numberOfShards = 10;
@@ -720,6 +719,249 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     BOOST_CHECK_EQUAL(found, true);
   }
 
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheInspection) {
+  const size_t maxEntries = 100;
+  DNSDistPacketCache PC(maxEntries, 86400, 1);
+  BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  bool dnssecOK = false;
+
+  uint32_t key = 0;
+
+  /* insert powerdns.com A 192.0.2.1, 192.0.2.2 */
+  {
+    DNSName qname("powerdns.com");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    {
+      ComboAddress addr("192.0.2.1");
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, addr);
+      pwR.commit();
+    }
+    {
+      ComboAddress addr("192.0.2.2");
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, addr);
+      pwR.commit();
+    }
+
+    PC.insert(key++, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+    BOOST_CHECK_EQUAL(PC.getSize(), key);
+  }
+
+  /* insert powerdns1.com A 192.0.2.3, 192.0.2.4, AAAA 2001:db8::3, 2001:db8::4 */
+  {
+    DNSName qname("powerdns1.com");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    {
+      ComboAddress addr("192.0.2.3");
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, addr);
+      pwR.commit();
+    }
+    {
+      ComboAddress addr("192.0.2.4");
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, addr);
+      pwR.commit();
+    }
+    {
+      ComboAddress addr("2001:db8::3");
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrCAWithoutPort(6, addr);
+      pwR.commit();
+    }
+    {
+      ComboAddress addr("2001:db8::4");
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrCAWithoutPort(6, addr);
+      pwR.commit();
+    }
+
+    PC.insert(key++, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+    BOOST_CHECK_EQUAL(PC.getSize(), key);
+  }
+
+  /* insert powerdns2.com NODATA */
+  {
+    DNSName qname("powerdns2.com");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.commit();
+    pwR.startRecord(qname, QType::SOA, 86400, QClass::IN, DNSResourceRecord::AUTHORITY);
+    pwR.commit();
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    PC.insert(key++, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+    BOOST_CHECK_EQUAL(PC.getSize(), key);
+  }
+
+  /* insert powerdns3.com AAAA 2001:db8::4, 2001:db8::5 */
+  {
+    DNSName qname("powerdns3.com");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    {
+      ComboAddress addr("2001:db8::4");
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrCAWithoutPort(6, addr);
+      pwR.commit();
+    }
+    {
+      ComboAddress addr("2001:db8::5");
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrCAWithoutPort(6, addr);
+      pwR.commit();
+    }
+
+    PC.insert(key++, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+    BOOST_CHECK_EQUAL(PC.getSize(), key);
+  }
+
+  /* insert powerdns4.com A 192.0.2.1 */
+  {
+    DNSName qname("powerdns4.com");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    {
+      ComboAddress addr("192.0.2.1");
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      pwR.xfrCAWithoutPort(4, addr);
+      pwR.commit();
+    }
+
+    PC.insert(key++, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+    BOOST_CHECK_EQUAL(PC.getSize(), key);
+  }
+
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("192.0.2.1"));
+    BOOST_CHECK_EQUAL(domains.size(), 2U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns.com")), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns4.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("192.0.2.2"));
+    BOOST_CHECK_EQUAL(domains.size(), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("192.0.2.3"));
+    BOOST_CHECK_EQUAL(domains.size(), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns1.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("192.0.2.4"));
+    BOOST_CHECK_EQUAL(domains.size(), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns1.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("192.0.2.5"));
+    BOOST_CHECK_EQUAL(domains.size(), 0U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("2001:db8::3"));
+    BOOST_CHECK_EQUAL(domains.size(), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns1.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("2001:db8::4"));
+    BOOST_CHECK_EQUAL(domains.size(), 2U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns1.com")), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns3.com")), 1U);
+  }
+  {
+    auto domains = PC.getDomainsContainingRecords(ComboAddress("2001:db8::5"));
+    BOOST_CHECK_EQUAL(domains.size(), 1U);
+    BOOST_CHECK_EQUAL(domains.count(DNSName("powerdns3.com")), 1U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns.com"));
+    BOOST_CHECK_EQUAL(records.size(), 2U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("192.0.2.1")), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("192.0.2.2")), 1U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns1.com"));
+    BOOST_CHECK_EQUAL(records.size(), 4U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("192.0.2.3")), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("192.0.2.4")), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("2001:db8::3")), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("2001:db8::4")), 1U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns2.com"));
+    BOOST_CHECK_EQUAL(records.size(), 0U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns3.com"));
+    BOOST_CHECK_EQUAL(records.size(), 2U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("2001:db8::4")), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("2001:db8::4")), 1U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns4.com"));
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    BOOST_CHECK_EQUAL(records.count(ComboAddress("192.0.2.1")), 1U);
+  }
+
+  {
+    auto records = PC.getRecordsForDomain(DNSName("powerdns5.com"));
+    BOOST_CHECK_EQUAL(records.size(), 0U);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -889,6 +889,22 @@ See :doc:`../guides/cache` for a how to.
     :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove all entries under ``name``
 
+  .. method:: PacketCache:getAddressListByDomain(domain)
+
+    .. versionadded:: 1.8.0
+
+    This method looks up the answers present in the cache for the supplied domain, and returns the list of addresses present in the answer section of these answers (in A records for IPv4 addresses, and AAAA records for IPv6 ones). The addresses are returned as a list of :class:`ComboAddress` objects.
+
+    :param DNSName domain: The domain to look for
+
+  .. method:: PacketCache:getDomainListByAddress(addr)
+
+    .. versionadded:: 1.8.0
+
+    Return a list of domains, as :class:`DNSName` objects, for which an answer is present in the cache and has a corresponding A record (for IPv4 addresses) or AAAA record (for IPv6 addresses) in the answer section.
+
+    :param ComboAddress addr: The address to look for
+
   .. method:: PacketCache:getStats()
 
     .. versionadded:: 1.4.0

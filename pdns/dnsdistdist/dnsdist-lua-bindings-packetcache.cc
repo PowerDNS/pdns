@@ -198,6 +198,39 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       }
       return stats;
     });
+
+  luaCtx.registerFunction<LuaArray<DNSName>(std::shared_ptr<DNSDistPacketCache>::*)(const ComboAddress& addr)const>("getDomainListByAddress", [](const std::shared_ptr<DNSDistPacketCache>& cache, const ComboAddress& addr) {
+      LuaArray<DNSName> results;
+      if (!cache) {
+        return results;
+      }
+
+      int counter = 1;
+      auto domains = cache->getDomainsContainingRecords(addr);
+      results.reserve(domains.size());
+      for (auto& domain : domains) {
+        results.emplace_back(counter, std::move(domain));
+        counter++;
+      }
+      return results;
+    });
+
+  luaCtx.registerFunction<LuaArray<ComboAddress>(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& domain)const>("getAddressListByDomain", [](const std::shared_ptr<DNSDistPacketCache>& cache, const DNSName& domain) {
+      LuaArray<ComboAddress> results;
+      if (!cache) {
+        return results;
+      }
+
+      int counter = 1;
+      auto addresses = cache->getRecordsForDomain(domain);
+      results.reserve(addresses.size());
+      for (auto& address : addresses) {
+        results.emplace_back(counter, std::move(address));
+        counter++;
+      }
+      return results;
+    });
+
   luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname) {
       if (cache) {
 

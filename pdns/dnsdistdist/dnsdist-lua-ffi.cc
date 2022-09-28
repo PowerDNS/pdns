@@ -23,6 +23,7 @@
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
 #include "dolog.hh"
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
@@ -727,4 +728,138 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
   memcpy(out, payload.c_str(), payload.size());
 
   return payload.size();
+}
+
+struct dnsdist_ffi_domain_list_t
+{
+  std::vector<std::string> d_domains;
+};
+struct dnsdist_ffi_address_list_t {
+  std::vector<std::string> d_addresses;
+};
+
+const char* dnsdist_ffi_domain_list_get(const dnsdist_ffi_domain_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_domains.size()) {
+    return nullptr;
+  }
+
+  return list->d_domains.at(idx).c_str();
+}
+
+void dnsdist_ffi_domain_list_free(dnsdist_ffi_domain_list_t* list)
+{
+  delete list;
+}
+
+const char* dnsdist_ffi_address_list_get(const dnsdist_ffi_address_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_addresses.size()) {
+    return nullptr;
+  }
+
+  return list->d_addresses.at(idx).c_str();
+}
+
+void dnsdist_ffi_address_list_free(dnsdist_ffi_address_list_t* list)
+{
+  delete list;
+}
+
+size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, const char* addr, dnsdist_ffi_domain_list_t** out)
+{
+  if (poolName == nullptr || addr == nullptr || out == nullptr) {
+    return 0;
+  }
+
+  ComboAddress ca;
+  try {
+    ca = ComboAddress(addr);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+    return 0;
+  }
+
+  const auto localPools = g_pools.getCopy();
+  auto it = localPools.find(poolName);
+  if (it == localPools.end()) {
+    return 0;
+  }
+
+  auto pool = it->second;
+  if (!pool->packetCache) {
+    return 0;
+  }
+
+  auto domains = pool->packetCache->getDomainsContainingRecords(ca);
+  if (domains.size() == 0) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_domain_list_t>();
+  list->d_domains.reserve(domains.size());
+  for (const auto& domain : domains) {
+    try {
+      list->d_domains.push_back(domain.toString());
+    }
+    catch (const std::exception& e) {
+      vinfolog("Error converting domain to string in dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+    }
+  }
+
+  size_t count = list->d_domains.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
+}
+
+size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, const char* domain, dnsdist_ffi_address_list_t** out)
+{
+  if (poolName == nullptr || domain == nullptr || out == nullptr) {
+    return 0;
+  }
+
+  DNSName name;
+  try {
+    name = DNSName(domain);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error parsing domain passed to dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+    return 0;
+  }
+
+  const auto localPools = g_pools.getCopy();
+  auto it = localPools.find(poolName);
+  if (it == localPools.end()) {
+    return 0;
+  }
+
+  auto pool = it->second;
+  if (!pool->packetCache) {
+    return 0;
+  }
+
+  auto addresses = pool->packetCache->getRecordsForDomain(name);
+  if (addresses.size() == 0) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_address_list_t>();
+  list->d_addresses.reserve(addresses.size());
+  for (const auto& addr : addresses) {
+    try {
+      list->d_addresses.push_back(addr.toString());
+    }
+    catch (const std::exception& e) {
+      vinfolog("Error converting address to string in dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+    }
+  }
+
+  size_t count = list->d_addresses.size();
+  if (count > 0) {
+    *out = list.release();
+  }
+  return count;
 }
