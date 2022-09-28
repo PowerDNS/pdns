@@ -1563,8 +1563,8 @@ static void registerAllStats1()
   addGetStat("auth-rcode-answers", []() {
     return toAuthRCodeStatsMap("auth-rcode-answers", g_stats.authRCode);
   });
-  addGetStat("remote-logger", []() {
-    return toRemoteLoggerStatsMap("remote-logger");
+  addGetStat("remote-logger-count", []() {
+    return toRemoteLoggerStatsMap("remote-logger-count");
   });
 }
 

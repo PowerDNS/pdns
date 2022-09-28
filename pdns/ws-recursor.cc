@@ -1161,7 +1161,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
                     "Count of RCodes returned by authoritative servers")},
 
   // For multicounters, state the first
-  {"remote-logger-o-0",
+  {"remote-logger-count-o-0",
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Number of remote logging events")},
 };
