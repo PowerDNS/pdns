@@ -163,6 +163,8 @@ secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
 secure.example.          3600 IN MX   10 mx1.secure.example.
 secure.example.          3600 IN MX   20 mx2.secure.example.
+sub.secure.example.      3600 IN MX   10 mx1.secure.example.
+sub.secure.example.      3600 IN MX   20 mx2.secure.example.
 
 naptr.secure.example.    60   IN NAPTR   10 10 "a" "X" "A" s1.secure.example.
 naptr.secure.example.    60   IN NAPTR   10 10 "s" "Y" "B" service1.secure.example.
