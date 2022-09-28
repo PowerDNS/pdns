@@ -1899,6 +1899,7 @@ static void secPollThread()
     }
     catch(...) {
     }
+    // coverity[store_truncates_time_t]
     sleep(g_secPollInterval);
   }
 }

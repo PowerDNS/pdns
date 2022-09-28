@@ -121,6 +121,7 @@ bool EDNSCookiesOpt::shouldRefresh() const
   uint32_t ts;
   memcpy(&ts, &server[4], sizeof(ts));
   ts = ntohl(ts);
+  // coverity[store_truncates_time_t]
   uint32_t now = static_cast<uint32_t>(time(nullptr));
   // RFC 9018 section 4.3:
   //    The DNS server
@@ -154,6 +155,7 @@ bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& 
   server.reserve(16);
   server = "\x01"; // Version
   server.resize(4, '\0'); // 3 reserved bytes
+  // coverity[store_truncates_time_t]
   uint32_t now = htonl(static_cast<uint32_t>(time(nullptr)));
   server += string(reinterpret_cast<const char*>(&now), sizeof(now));
   server.resize(8);

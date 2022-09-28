@@ -709,6 +709,7 @@ void DynBlockMaintenance::run()
     sleepDelay = std::min(sleepDelay, (nextMetricsCollect - now));
     sleepDelay = std::min(sleepDelay, (nextMetricsGeneration - now));
 
+    // coverity[store_truncates_time_t]
     sleep(sleepDelay);
 
     try {

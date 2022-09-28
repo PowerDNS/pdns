@@ -275,6 +275,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
   if (!d_dontAge && !skipAging) {
     if (!stale) {
+      // coverity[store_truncates_time_t]
       ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age);
     }
     else {

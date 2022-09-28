@@ -119,6 +119,7 @@ public:
   }
   bool isValid(time_t now) const
   {
+    // coverity[store_truncates_time_t]
     return ntohl(getTSStart()) <= static_cast<uint32_t>(now) && static_cast<uint32_t>(now) <= ntohl(getTSEnd());
   }
   unsigned char magic[DNSCRYPT_CERT_MAGIC_SIZE];
