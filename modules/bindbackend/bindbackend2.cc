@@ -23,7 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <errno.h>
+#include <cerrno>
 #include <string>
 #include <set>
 #include <sys/types.h>
