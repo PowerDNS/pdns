@@ -101,6 +101,18 @@ BOOST_AUTO_TEST_CASE(test_tlv_values_content_len_signedness) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_payload_too_large) {
+  const bool tcp = false;
+  const ComboAddress src("[2001:db8::1]:0");
+  const ComboAddress dest("[::1]:65535");
+  std::string largeValue;
+  /* this value is larger than the maximum size for a TLV */
+  largeValue.resize(65536, 'A');
+  const std::vector<ProxyProtocolValue> values = {{ largeValue, 255 }};
+
+  BOOST_CHECK_THROW(makeProxyHeader(tcp, src, dest, values), std::runtime_error);
+}
+
 BOOST_AUTO_TEST_CASE(test_tlv_values_length_signedness) {
   std::string largeValue;
   /* this value will make the TLV length parsing fail in case of signedness mistake */

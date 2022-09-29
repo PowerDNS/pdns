@@ -32,7 +32,7 @@ static const string proxymagic(PROXYMAGIC, PROXYMAGICLEN);
 static void makeSimpleHeader(uint8_t command, uint8_t protocol, uint16_t contentLen, size_t additionalSize, std::string& out)
 {
   const uint8_t versioncommand = (0x20 | command);
-  const size_t totalSize = proxymagic.size() + sizeof(versioncommand) + sizeof(protocol) + sizeof(contentLen) + contentLen + additionalSize;
+  const size_t totalSize = proxymagic.size() + sizeof(versioncommand) + sizeof(protocol) + sizeof(contentLen) + additionalSize;
   if (out.capacity() < totalSize) {
     out.reserve(totalSize);
   }
@@ -75,14 +75,15 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
     }
   }
 
-  size_t total = (addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize;
-  if (total > std::numeric_limits<uint16_t>::max()) {
-    throw std::runtime_error("The size of a proxy protocol header is limited to " + std::to_string(std::numeric_limits<uint16_t>::max()) + ", trying to send one of size " + std::to_string(total));
+  /* size of the data that will come _after_ the minimal proxy protocol header */
+  size_t additionalDataSize = (addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize;
+  if (additionalDataSize > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The size of a proxy protocol header is limited to " + std::to_string(std::numeric_limits<uint16_t>::max()) + ", trying to send one of size " + std::to_string(additionalDataSize));
   }
 
-  const uint16_t contentlen = htons(static_cast<uint16_t>(total));
+  const uint16_t contentlen = htons(static_cast<uint16_t>(additionalDataSize));
   std::string ret;
-  makeSimpleHeader(command, protocol, contentlen, total, ret);
+  makeSimpleHeader(command, protocol, contentlen, additionalDataSize, ret);
 
   // We already established source and destination sin_family equivalence
   if (source.isIPv4()) {
