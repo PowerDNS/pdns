@@ -12,27 +12,65 @@ on:
         - recursor
         - dnsdist
       os:
-        description: OS to build for
+        description: OSes to build for, space separated
         type: string
+        default: >
+          el-7
+          el-8
+          el-9
+          debian-buster
+          debian-bullseye
+          ubuntu-bionic
+          ubuntu-focal
+          ubuntu-jammy
+      ref:
+        description: git ref to checkout
+        type: string
+        default: master
+      is_release:
+        description: is this a release build?
+        type: choice
+        options:
+        - 'NO'
+        - 'YES'
 
 jobs:
+  prepare:
+    name: generate OS list
+    runs-on: ubuntu-20.04
+    outputs:
+      oslist: ${{ steps.get-oslist.outputs.oslist }}
+    steps:
+      # instead of jo, we could use jq here, which avoids running apt, and thus would be faster.
+      # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
+      # so that the command remains readable, because jo is simpler to use.
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-oslist
+        run: echo "::set-output name=oslist::"$(jo -a ${{ github.event.inputs.os }})
+
   build:
-    name: build ${{ github.event.inputs.product }} for ${{ github.event.inputs.os }}
+    needs: prepare
+    name: build ${{ github.event.inputs.product }} (${{ github.event.inputs.ref }}) for ${{ matrix.os }}
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.prepare.outputs.oslist)}}
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2.3.4
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
+          ref: ${{ github.event.inputs.ref }}
       # this builds packages and runs our unit tests (make check)
-      - run: builder/build.sh -v -m ${{ github.event.inputs.product }} ${{ github.event.inputs.os }}
+      - run: IS_RELEASE=${{ github.event.inputs.is_release}} builder/build.sh -v -m ${{ github.event.inputs.product }} ${{ matrix.os }}
       - name: Get version number
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
       - name: Upload packages
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.inputs.product }}-${{ github.event.inputs.os }}-${{ steps.getversion.outputs.version }}
+          name: ${{ github.event.inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
           retention-days: 7
