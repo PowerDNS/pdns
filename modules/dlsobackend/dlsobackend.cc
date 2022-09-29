@@ -19,11 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include "dlsobackend.hh"
 #include <dlfcn.h>
+#include "pdns/namespaces.hh"
+#include "pdns/logger.hh"
 
 static const char* kBackendId = "[DlsoBackend]";
 
@@ -113,6 +116,9 @@ DlsoBackend::~DlsoBackend()
 
 void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t zoneId, DNSPacket* pkt_p)
 {
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " qtype: " << qtype.toString() << " qdomain: " << qdomain << " zoneId: " << zoneId << " pkt_p: " << pkt_p << endl;
+  );
   if (in_query) {
     throw PDNSException("Attempt to lookup while one running");
   }
@@ -138,6 +144,9 @@ void DlsoBackend::lookup(const QType& qtype, const DNSName& qdomain, int32_t zon
 
 bool DlsoBackend::list(const DNSName& target, int domain_id, bool include_disabled)
 {
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " target: " << target << " domain_id " << domain_id << endl;
+  );
   if (api->list == nullptr) {
     return false;
   }
@@ -164,10 +173,22 @@ extern "C" void fill_cb(void* ptr, const struct resource_record* record)
   rr->auth = record->auth;
   rr->scopeMask = record->scope_mask;
   rr->domain_id = record->domain_id;
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__
+      << " DNSResourceRecord qtype: " << rr->qtype
+      << " qname: " << rr->qname
+      << " content: " << rr->content
+      << " ttl: " << rr->ttl
+      << " domain_id: " << rr->domain_id
+      << " auth: " << rr->auth << endl;
+  );
 }
 
 bool DlsoBackend::get(DNSResourceRecord& rr)
 {
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << endl;
+  );
   bool success = api->get(api->handle, fill_cb, &rr);
 
   if (!success) {
@@ -205,6 +226,7 @@ extern "C" void fill_metas_cb(void* ptr, uint8_t meta_len, const struct dns_meta
 
 bool DlsoBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& metas)
 {
+  DLOG(g_log << Logger::Debug << __PRETTY_FUNCTION__ << " name: " << name << endl);
   if (!d_dnssec || api->get_metas == nullptr) {
     return false;
   }
@@ -217,6 +239,9 @@ bool DlsoBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 
 bool DlsoBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " qname: " << name << " kind:" << kind << endl;
+  );
   if (api->get_meta == nullptr) {
     return false;
   }
@@ -224,7 +249,16 @@ bool DlsoBackend::getDomainMetadata(const DNSName& name, const std::string& kind
   meta.clear();
 
   string qname = name.toString();
-  return api->get_meta(api->handle, qname.size(), qname.c_str(), kind.size(), kind.c_str(), fill_meta_cb, &meta);
+  auto ret = api->get_meta(api->handle, qname.size(), qname.c_str(), kind.size(), kind.c_str(), fill_meta_cb, &meta);
+
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " metadata: [";
+    for (const auto& iter_m : meta) {
+      g_log << Logger::Debug << " <" << iter_m << ">,";
+    }
+    g_log << Logger::Debug << "]" << endl;
+  );
+  return ret;
 }
 
 bool DlsoBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
@@ -259,10 +293,21 @@ extern "C" void fill_key_cb(void* ptr, const struct dnskey* dnskey)
     .published = dnskey->published,
   };
   keys->push_back(key);
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__
+      << " KeyData content: " << key.content
+      << " id: " << key.id
+      << " flags: " << key.flags
+      << " active: " << key.active
+      << " published: " << key.published << endl;
+  );
 }
 
 bool DlsoBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " name: " << endl;
+  );
   // no point doing dnssec if it's not supported
   if (!d_dnssec || api->get_domain_keys == nullptr) {
     return false;
@@ -327,10 +372,22 @@ extern "C" void fill_tsig_key(void* ptr, uint8_t alg_len, const char* alg, uint8
   if (alg_len > 0) {
     data->algorithm->operator=(DNSName(string(alg, alg_len)));
   }
+  DLOG(
+    g_log << Logger::Debug << __PRETTY_FUNCTION__ << " algorithm " << *data->algorithm
+          << " content: <" << *data->content << ">"
+          << endl;
+  );
 }
 
 bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
 {
+  DLOG(
+    g_log << Logger::Debug
+        << __PRETTY_FUNCTION__ << " name: <" << name
+        << "> algorithm: <" << algorithm
+        << "> content: <" << content << ">"
+        << endl;
+  );
   if (api->get_tsig_key == nullptr) {
     return false;
   }
@@ -342,6 +399,12 @@ bool DlsoBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::strin
     qname = name.toString();
   }
 
+  g_log << Logger::Info
+        << __PRETTY_FUNCTION__ << " name: <" << qname
+        << "> size: <" << qname.size()
+        << "> algorithm: <" << algorithm
+        << "> content: <" << content << ">"
+        << std::endl;
   return api->get_tsig_key(api->handle, qname.size(), qname.c_str(), fill_tsig_key, &data);
 }
 
