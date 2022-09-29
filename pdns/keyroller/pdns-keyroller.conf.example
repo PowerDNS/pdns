@@ -1,0 +1,28 @@
+keyroller:
+  loglevel: 'info'
+
+# for more informations on the PowerDNS Authoritative Server HTTP API
+# @see https://doc.powerdns.com/authoritative/http-api/index.html
+API:
+  baseurl: 'http://localhost:8081'
+  apikey: 'secret'
+  server: 'localhost'
+  timeout: 2
+
+# Default configuration for zone automatic keyroll defines the frequency of both ZSK and KSK rolls
+#
+# Supported algos are listed here:
+# https://doc.powerdns.com/authoritative/manpages/pdnsutil.1.html#dnssec-related-commands
+#
+# For now only pre-publish keyroll for splitted keys is supported
+# see https://datatracker.ietf.org/doc/html/rfc6781.html
+#
+# time expressions are parsed like described https://pypi.org/project/pytimeparse/
+
+domain_defaults:
+  ksk_frequency: never
+  ksk_algo: ecdsap256
+  ksk_method: prepublish
+  zsk_frequency: 6w
+  zsk_algo: ecdsap256
+  zsk_method: prepublish
