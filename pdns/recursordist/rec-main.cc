@@ -59,6 +59,7 @@ static thread_local uint64_t t_outgoingProtobufServersGeneration;
 
 #ifdef HAVE_FSTRM
 thread_local FrameStreamServersInfo t_frameStreamServersInfo;
+thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
 string g_programname = "pdns_recursor";
@@ -609,6 +610,8 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
       }
       fsl->setLogQueries(config.logQueries);
       fsl->setLogResponses(config.logResponses);
+      fsl->setLogNODs(config.logNODs);
+      fsl->setLogUDRs(config.logUDRs);
       result->emplace_back(fsl);
     }
     catch (const std::exception& e) {
@@ -632,13 +635,13 @@ static void asyncFrameStreamLoggersCleanup(std::shared_ptr<std::vector<std::uniq
   thread.detach();
 }
 
-bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
+bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const FrameStreamExportConfig& config, FrameStreamServersInfo& serverInfos)
 {
-  if (!luaconfsLocal->frameStreamExportConfig.enabled) {
-    if (t_frameStreamServersInfo.servers) {
+  if (!config.enabled) {
+    if (serverInfos.servers) {
       // dt's take care of cleanup
-      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
-      t_frameStreamServersInfo.config = luaconfsLocal->frameStreamExportConfig;
+      asyncFrameStreamLoggersCleanup(std::move(serverInfos.servers));
+      serverInfos.config = config;
     }
 
     return false;
@@ -647,20 +650,21 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
   /* if the server was not running, or if it was running according to a previous
    * configuration
    */
-  if (t_frameStreamServersInfo.generation < luaconfsLocal->generation && t_frameStreamServersInfo.config != luaconfsLocal->frameStreamExportConfig) {
-    if (t_frameStreamServersInfo.servers) {
+  if (serverInfos.generation < luaconfsLocal->generation && serverInfos.config != config) {
+    if (serverInfos.servers) {
       // dt's take care of cleanup
-      asyncFrameStreamLoggersCleanup(std::move(t_frameStreamServersInfo.servers));
+      asyncFrameStreamLoggersCleanup(std::move(serverInfos.servers));
     }
 
     auto dnsTapLog = g_slog->withName("dnstap");
-    t_frameStreamServersInfo.servers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig, dnsTapLog);
-    t_frameStreamServersInfo.config = luaconfsLocal->frameStreamExportConfig;
-    t_frameStreamServersInfo.generation = luaconfsLocal->generation;
+    serverInfos.servers = startFrameStreamServers(config, dnsTapLog);
+    serverInfos.config = config;
+    serverInfos.generation = luaconfsLocal->generation;
   }
 
   return true;
 }
+
 #endif /* HAVE_FSTRM */
 
 static void makeControlChannelSocket(int processNum = -1)
@@ -2418,7 +2422,8 @@ static void recursorThread()
     checkProtobufExport(luaconfsLocal);
     checkOutgoingProtobufExport(luaconfsLocal);
 #ifdef HAVE_FSTRM
-    checkFrameStreamExport(luaconfsLocal);
+    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
+    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
