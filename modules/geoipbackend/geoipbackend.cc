@@ -81,7 +81,7 @@ GeoIPBackend::GeoIPBackend(const string& suffix)
   setArgPrefix("geoip" + suffix);
   if (getArg("dnssec-keydir").empty() == false) {
     DIR* d = opendir(getArg("dnssec-keydir").c_str());
-    if (d == NULL) {
+    if (d == nullptr) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
     d_dnssec = true;
@@ -454,7 +454,7 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
   }
 
   Netmask addr{"0.0.0.0/0"};
-  if (pkt_p != NULL)
+  if (pkt_p != nullptr)
     addr = Netmask(pkt_p->getRealRemote());
 
   gl.netmask = 0;
@@ -466,7 +466,7 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
     return; // no hit
 
   const NetmaskTree<vector<string>>::node_type* node = target->second.masks.lookup(addr);
-  if (node == NULL)
+  if (node == nullptr)
     return; // no hit, again.
 
   DNSName sformat;
@@ -649,7 +649,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
   string::size_type cur, last;
   boost::optional<int> alt, prec;
   double lat, lon;
-  time_t t = time((time_t*)NULL);
+  time_t t = time(nullptr);
   GeoIPNetmask tmp_gl; // largest wins
   struct tm gtm;
   gmtime_r(&t, &gtm);
@@ -919,7 +919,7 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
       ostringstream pathname;
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
       glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             DNSBackend::KeyData kd;
@@ -965,7 +965,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
       ostringstream pathname;
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
       glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
@@ -1001,7 +1001,7 @@ bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
       ostringstream pathname;
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
       glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
@@ -1037,7 +1037,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
       ostringstream pathname;
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
       glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
@@ -1072,7 +1072,7 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
       ostringstream pathname;
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
       glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
@@ -1109,7 +1109,7 @@ bool GeoIPBackend::hasDNSSECkey(const DNSName& name)
   ostringstream pathname;
   pathname << getArg("dnssec-keydir") << "/" << name.toStringNoDot() << "*.key";
   glob_t glob_result;
-  if (glob(pathname.str().c_str(), GLOB_ERR, NULL, &glob_result) == 0) {
+  if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
     globfree(&glob_result);
     return true;
   }
