@@ -62,8 +62,8 @@ struct GeoIPDomain
 static vector<GeoIPDomain> s_domains;
 static int s_rc = 0; // refcount - always accessed under lock
 
-static string GeoIP_WEEKDAYS[] = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
-static string GeoIP_MONTHS[] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
+const static std::array<string, 7> GeoIP_WEEKDAYS = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
+const static std::array<string, 12> GeoIP_MONTHS = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
 
 /* So how does it work - we have static records and services. Static records "win".
    We also insert empty non terminals for records and services.
@@ -757,12 +757,12 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
     }
     else if (!sformat.compare(cur, 4, "%wds")) {
       nrep = 4;
-      rep = GeoIP_WEEKDAYS[gtm.tm_wday];
+      rep = GeoIP_WEEKDAYS.at(gtm.tm_wday);
       tmp_gl.netmask = (addr.isIPv6() ? 128 : 32);
     }
     else if (!sformat.compare(cur, 4, "%mos")) {
       nrep = 4;
-      rep = GeoIP_MONTHS[gtm.tm_mon];
+      rep = GeoIP_MONTHS.at(gtm.tm_mon);
       tmp_gl.netmask = (addr.isIPv6() ? 128 : 32);
     }
     else if (!sformat.compare(cur, 3, "%wd")) {
