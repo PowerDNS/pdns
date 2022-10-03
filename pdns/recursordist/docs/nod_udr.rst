@@ -32,6 +32,7 @@ DNS Lookup
 ++++++++++
 
 The setting ``new-domain-lookup=<base domain>`` will cause the recursor to issue a DNS A record lookup to ``<newly observed domain>.<base domain>``. This can be a suitable method to send NOD data to an offsite or remote partner, however care should be taken to ensure that data is not leaked inadvertently.
+To log NOD information to a dnstap stream, refer to :func:`dnstapFrameStreamServer`.
 
 Protobuf Logging
 ++++++++++++++++
@@ -64,6 +65,7 @@ Logging
 +++++++
 
 The setting ``unique-response-log`` is enabled by default once the NOD feature is enabled, and will log the newly observed domain to the recursor logfile.
+To log UDR information to a dnstap stream, refer to :func:`dnstapFrameStreamServer`.
 
 Protobuf Logging
 ++++++++++++++++
