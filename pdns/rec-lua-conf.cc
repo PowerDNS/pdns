@@ -49,6 +49,8 @@ bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportC
   return configA.enabled              == configB.enabled              &&
          configA.logQueries           == configB.logQueries           &&
          configA.logResponses         == configB.logResponses         &&
+         configA.logNODs              == configB.logNODs              &&
+         configA.logUDRs              == configB.logUDRs              &&
          configA.bufferHint           == configB.bufferHint           &&
          configA.flushTimeout         == configB.flushTimeout         &&
          configA.inputQueueSize       == configB.inputQueueSize       &&
