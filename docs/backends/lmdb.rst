@@ -81,7 +81,8 @@ PowerDNS Version  LMDB Schema version
 ================  ===================
 4.2.x             1
 4.3.x             2
-4.4.x and up      3
+4.4.x to 4.6.x    3
+4.7.x and up      4
 ================  ===================
 
 .. _settings-lmdb-random-ids:
