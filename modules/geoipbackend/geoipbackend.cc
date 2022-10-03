@@ -655,7 +655,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
   gmtime_r(&t, &gtm);
   last = 0;
 
-  while ((cur = sformat.find("%", last)) != string::npos) {
+  while ((cur = sformat.find('%', last)) != string::npos) {
     string rep;
     int nrep = 3;
     tmp_gl.netmask = 0;
