@@ -53,7 +53,7 @@ class testLockedCache(RecursorTest):
         self.assertRRsetInAnswer(res, expected2)
         self.assertMatchingRRSIGInAnswer(res, expected2)
         ttl2 = self.getCacheTTL()
-        self.assertNotEqual(ttl1, ttl2)
+        self.assertGreater(ttl1, ttl2)
 
 class testNotLockedCache(RecursorTest):
     """
@@ -102,4 +102,4 @@ class testNotLockedCache(RecursorTest):
         self.assertRRsetInAnswer(res, expected2)
         self.assertMatchingRRSIGInAnswer(res, expected2)
         ttl2 = self.getCacheTTL()
-        self.assertEqual(ttl1, ttl2)
+        self.assertAlmostEqual(ttl1, ttl2, 1)
