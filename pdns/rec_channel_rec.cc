@@ -1264,11 +1264,17 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
   const auto pbasename = getPrometheusName(name);
   StatsMap entries;
 
+  std::vector<std::pair<RemoteLoggerStats_t, std::string>> list;
   auto stats1 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetRemoteLoggerStats);
+  list.emplace_back(stats1, "protobuf");
   auto stats2 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
+  list.emplace_back(stats2, "outgoingProtobuf");
+#ifdef HAVE_FSTREAM
   auto stats3 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
+  list.emplace_back(stats3, "dnstapFrameStream");
+#endif
   uint64_t count = 0;
-  for (const auto& [stats, type] : {make_pair(stats1, "protobuf"), make_pair(stats2, "outgoingProtobuf"), make_pair(stats3, "dnstapFrameStream")}) {
+  for (const auto& [stats, type] : list) {
     for (const auto& [key, entry] : stats) {
       auto keyname = pbasename + "{address=\"" + key + "\",type=\"" + type + "\",count=\"";
       auto sname1 = name + "-q-" + std::to_string(count);
