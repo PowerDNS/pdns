@@ -22,11 +22,17 @@ New settings
 - The :ref:`setting-edns-padding-out` setting to control EDNS padding for outgoing DoT has been introduced.
 - The :ref:`setting-structured-logging-backend` setting to control the type of structured logging to ``journald`` has been introduced.
 
+:program:`pdns_recursor` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+THe ``--config`` comand line option now implements the ``check``, ``default`` and ``diff`` keywords.
+
 :program:`rec_control` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-throttle`` and ``dump-edns`` subcommands no longer produces a table per thread, as the corresponding tables are now shared by all threads.
 Additionally, the ``dump-edns`` command  now only lists IPs that have a not OK status.
 The ``dump-nsspeeds`` command has changed format to make it more readable and lists the last round trip time recorded for each address.
+The ``get-proxymapping-stats`` and ``get-remotelogger-stats`` subcommands have been added.
+
 
 4.7.2 to 4.7.3
 --------------
