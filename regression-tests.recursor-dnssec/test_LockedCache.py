@@ -76,7 +76,7 @@ class testNotLockedCache(RecursorTest):
                 pieces = i.split(' ')
                 print(pieces)
                 if pieces[0] == 'mx1.secure.example.' and pieces[4] == 'A':
-                    return pieces[2]
+                    return int(pieces[2])
             return -1
 
         except subprocess.CalledProcessError as e:
