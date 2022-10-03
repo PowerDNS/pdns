@@ -819,6 +819,7 @@ keyname
 keypair
 keypairgen
 keyroll
+keyroller
 keysearch
 keysize
 keytab
