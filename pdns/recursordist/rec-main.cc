@@ -2953,7 +2953,7 @@ int main(int argc, char** argv)
           exit(1);
         }
       }
-      else if (config == "default") {
+      else if (config == "default" || config.empty()) {
         cout << ::arg().configstring(false, true);
       }
       else if (config == "diff") {
