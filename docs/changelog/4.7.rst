@@ -2,6 +2,67 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.0-rc1
+  :released: 3rd of October 2022
+
+  This is the first release candidate for Authoritative Server 4.7.0.
+
+  4.7.0 brings support for :doc:`Catalog Zones <../catalog>`, developed by Kees Monshouwer.
+  As part of that development, the freshness checks in the Primary code were reworked, reducing them from doing potentially thousands of SQL queries (if you have thousands of domains) to only a few.
+  Installations with lots of domains will benefit greatly from this, even without using catalog zones.
+
+  4.7.0 also brings back GSS-TSIG support, previously removed for quality reasons, now reworked with many stability improvements.
+
+  Other things of note:
+
+  * LUA records, when queried over TCP, can now re-use a Lua state, giving a serious performance boost.
+  * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
+  * lmdbbackend databases now optionally use random IDs for objects
+  * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
+  * autoprimary management in ``pdnsutil`` and the HTTP API
+  * in beta, a key roller daemon, currently not packaged
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  Besides that, various other smaller features and improvements have landed - please browse the list below.
+
+  .. change::
+    :tags: 
+    :pullreq: 12043
+
+    AXFR server: abort on chunk with TC set
+
+  .. change::
+    :tags: 
+    :pullreq: 12042
+
+    add keyroller
+
+  .. change::
+    :tags: 
+    :pullreq: 12040
+
+    pdnsutil edit-zone, detect capitalization changes in LUA, TXT and SPF records (Kees Monshouwer)
+
+  .. change::
+    :tags: 
+    :pullreq: 12030
+
+    axfr-retriever: abort on chunk with TC set
+
+  .. change::
+    :tags: 
+    :pullreq: 12029
+
+    clang14 has reached MacOS
+
+  .. change::
+    :tags: 
+    :pullreq: 11972
+
+    docker: upgrade to bullseye
+
+.. changelog::
   :version: 4.7.0-beta2
   :released: 13th of September 2022
 
