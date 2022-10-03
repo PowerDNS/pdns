@@ -799,7 +799,7 @@ bool isAllowNotifyForZone(DNSName qname)
   return false;
 }
 
-#ifdef HAVE_FSTRM
+#if defined(HAVE_FSTRM) && defined(NOD_ENABLED)
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
 
