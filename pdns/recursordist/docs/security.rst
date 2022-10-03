@@ -38,6 +38,3 @@ There are three levels of throttling.
 
 .. include:: common/secpoll.rst
 
-.. _nod_udr:
-
-.. include:: nod_udr.rst

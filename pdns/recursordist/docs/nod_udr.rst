@@ -1,3 +1,5 @@
+.. _Newly Observed Domain:
+
 Newly Observed Domain Tracking
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -30,11 +32,14 @@ DNS Lookup
 ++++++++++
 
 The setting ``new-domain-lookup=<base domain>`` will cause the recursor to issue a DNS A record lookup to ``<newly observed domain>.<base domain>``. This can be a suitable method to send NOD data to an offsite or remote partner, however care should be taken to ensure that data is not leaked inadvertently.
+To log NOD information to a dnstap stream, refer to :func:`dnstapNODFrameStreamServer`.
 
 Protobuf Logging
 ++++++++++++++++
 
 If both NOD and protobuf logging are enabled, then the ``newlyObservedDomain`` field of the protobuf message emitted by the recursor will be set to true. Additionally newly observed domains will be tagged in the protobuf stream using the tag ``pdns-nod`` by default. The setting ``new-domain-pb-tag=<tag>`` can be used to alter the tag.
+
+.. _Unique Domain Response:
 
 Unique Domain Response
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -60,6 +65,7 @@ Logging
 +++++++
 
 The setting ``unique-response-log`` is enabled by default once the NOD feature is enabled, and will log the newly observed domain to the recursor logfile.
+To log UDR information to a dnstap stream, refer to :func:`dnstapNODFrameStreamServer`.
 
 Protobuf Logging
 ++++++++++++++++

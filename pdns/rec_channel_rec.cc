@@ -986,6 +986,18 @@ static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
   }
   return ret.release();
 }
+
+static RemoteLoggerStats_t* pleaseGetNODFramestreamLoggerStats()
+{
+  auto ret = make_unique<RemoteLoggerStats_t>();
+
+  if (t_nodFrameStreamServersInfo.servers) {
+    for (const auto& server : *t_nodFrameStreamServersInfo.servers) {
+      ret->emplace(std::make_pair(server->address(), server->getStats()));
+    }
+  }
+  return ret.release();
+}
 #endif
 
 static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& stats, ostringstream& outpustStream)
@@ -1010,6 +1022,8 @@ static string getRemoteLoggerStats()
 #ifdef HAVE_FSTRM
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
   remoteLoggerStats("dnstapFrameStream", stats, outputStream);
+  stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetNODFramestreamLoggerStats);
+  remoteLoggerStats("dnstapNODFrameStream", stats, outputStream);
 #endif
   return outputStream.str();
 }
@@ -1269,9 +1283,11 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
   list.emplace_back(stats1, "protobuf");
   auto stats2 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetOutgoingRemoteLoggerStats);
   list.emplace_back(stats2, "outgoingProtobuf");
-#ifdef HAVE_FSTREAM
+#ifdef HAVE_FSTRM
   auto stats3 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetFramestreamLoggerStats);
   list.emplace_back(stats3, "dnstapFrameStream");
+  auto stats4 = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetNODFramestreamLoggerStats);
+  list.emplace_back(stats4, "dnstapNODFrameStream");
 #endif
   uint64_t count = 0;
   for (const auto& [stats, type] : list) {

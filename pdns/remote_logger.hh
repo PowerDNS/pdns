@@ -71,8 +71,12 @@ public:
   [[nodiscard]] virtual std::string name() const = 0;
   bool logQueries(void) const { return d_logQueries; }
   bool logResponses(void) const { return d_logResponses; }
+  bool logNODs(void) const { return d_logNODs; }
+  bool logUDRs(void) const { return d_logUDRs; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
   void setLogResponses(bool flag) { d_logResponses = flag; }
+  void setLogNODs(bool flag) { d_logNODs = flag; }
+  void setLogUDRs(bool flag) { d_logUDRs = flag; }
 
   struct Stats
   {
@@ -96,6 +100,8 @@ public:
 private:
   bool d_logQueries{true};
   bool d_logResponses{true};
+  bool d_logNODs{true};
+  bool d_logUDRs{false};
 };
 
 /* Thread safe. Will connect asynchronously on request.

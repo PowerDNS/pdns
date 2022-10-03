@@ -21,5 +21,6 @@ PowerDNS Recursor
     security-advisories/index
     upgrade
     changelog/index
+    nod_udr
     appendices/*
     common/license

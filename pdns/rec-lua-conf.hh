@@ -51,6 +51,8 @@ struct FrameStreamExportConfig
   bool enabled{false};
   bool logQueries{true};
   bool logResponses{true};
+  bool logNODs{true};
+  bool logUDRs{false};
   unsigned bufferHint{0};
   unsigned flushTimeout{0};
   unsigned inputQueueSize{0};
@@ -106,6 +108,7 @@ public:
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
+  FrameStreamExportConfig nodFrameStreamExportConfig;
   std::shared_ptr<Logr::Logger> d_slog;
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf

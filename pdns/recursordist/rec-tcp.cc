@@ -404,7 +404,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 
 #ifdef HAVE_FSTRM
-      checkFrameStreamExport(luaconfsLocal);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
 #endif
 
       if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {

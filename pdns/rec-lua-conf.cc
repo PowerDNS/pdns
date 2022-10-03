@@ -49,6 +49,8 @@ bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportC
   return configA.enabled              == configB.enabled              &&
          configA.logQueries           == configB.logQueries           &&
          configA.logResponses         == configB.logResponses         &&
+         configA.logNODs              == configB.logNODs              &&
+         configA.logUDRs              == configB.logUDRs              &&
          configA.bufferHint           == configB.bufferHint           &&
          configA.flushTimeout         == configB.flushTimeout         &&
          configA.inputQueueSize       == configB.inputQueueSize       &&
@@ -207,6 +209,12 @@ static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, 
   }
   if (vars->count("logResponses")) {
     config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  }
+  if (vars->count("logNODs")) {
+    config.logNODs = boost::get<bool>((*vars)["logNODs"]);
+  }
+  if (vars->count("logUDRs")) {
+    config.logUDRs = boost::get<bool>((*vars)["logUDRs"]);
   }
 
   if (vars->count("bufferHint")) {
@@ -738,6 +746,41 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     else {
       SLOG(g_log << Logger::Error << "Only one dnstapFrameStreamServer() directive can be configured, we already have " << lci.frameStreamExportConfig.servers.at(0) << endl,
            lci.d_slog->info(Logr::Error,  "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0))));
+    }
+  });
+  Lua->writeFunction("dnstapNODFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+    if (!lci.nodFrameStreamExportConfig.enabled) {
+      lci.nodFrameStreamExportConfig.enabled = true;
+
+      try {
+        if (servers.type() == typeid(std::string)) {
+          auto server = boost::get<const std::string>(servers);
+          if (!boost::starts_with(server, "/")) {
+            ComboAddress parsecheck(server);
+          }
+          lci.nodFrameStreamExportConfig.servers.emplace_back(server);
+        }
+        else {
+          auto serversMap = boost::get<const std::unordered_map<int, std::string>>(servers);
+          for (const auto& serverPair : serversMap) {
+            lci.nodFrameStreamExportConfig.servers.emplace_back(serverPair.second);
+          }
+        }
+
+        parseFrameStreamOptions(vars, lci.nodFrameStreamExportConfig);
+      }
+      catch (std::exception& e) {
+        SLOG(g_log << Logger::Error << "Error reading config for dnstap NOD framestream logger: " << e.what() << endl,
+              lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("std::exception")));
+      }
+      catch (PDNSException& e) {
+        SLOG(g_log << Logger::Error << "Error reading config for dnstap NOD framestream logger: " << e.reason << endl,
+             lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("PDNSException")));
+      }
+    }
+    else {
+      SLOG(g_log << Logger::Error << "Only one dnstapNODFrameStreamServer() directive can be configured, we already have " << lci.nodFrameStreamExportConfig.servers.at(0) << endl,
+           lci.d_slog->info(Logr::Error,  "Only one dnstapNODFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.nodFrameStreamExportConfig.servers.at(0))));
     }
   });
 #endif /* HAVE_FSTRM */

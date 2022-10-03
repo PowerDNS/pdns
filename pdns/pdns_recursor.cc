@@ -799,6 +799,36 @@ bool isAllowNotifyForZone(DNSName qname)
   return false;
 }
 
+#if defined(HAVE_FSTRM) && defined(NOD_ENABLED)
+#include "dnstap.hh"
+#include "fstrm_logger.hh"
+
+static bool isEnabledForNODs(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logNODs()) {
+      return true;
+    }
+  }
+  return false;
+}
+static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logUDRs()) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif // HAVE_FSTRM
+
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -889,7 +919,8 @@ void startDoResolve(void* p)
     }
 
 #ifdef HAVE_FSTRM
-    checkFrameStreamExport(luaconfsLocal);
+    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
+    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
 
     DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.opcode);
@@ -1354,8 +1385,9 @@ void startDoResolve(void* p)
 #ifdef NOD_ENABLED
         if (g_udrEnabled) {
           udr = udrCheckUniqueDNSRecord(nodlogger, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
-          if (!hasUDR && udr)
+          if (!hasUDR && udr) {
             hasUDR = true;
+          }
         }
 #endif /* NOD ENABLED */
 
@@ -1368,8 +1400,32 @@ void startDoResolve(void* p)
           }
         }
       }
-      if (needCommit)
+      if (needCommit) {
         pw.commit();
+      }
+#ifdef NOD_ENABLED
+#ifdef HAVE_FSTRM
+      if (hasUDR) {
+        if (isEnabledForUDRs(t_nodFrameStreamServersInfo.servers)) {
+          struct timespec ts;
+          std::string str;
+          if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
+            TIMEVAL_TO_TIMESPEC(&(dc->d_kernelTimestamp), &ts);
+          }
+          else {
+            TIMEVAL_TO_TIMESPEC(&(dc->d_now), &ts);
+          }
+          DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &dc->d_source, &dc->d_destination, dc->d_tcp ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoUDP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, dc->d_mdp.d_qname);
+
+          for (auto& logger : *(t_nodFrameStreamServersInfo.servers)) {
+            if (logger->logUDRs()) {
+              remoteLoggerQueueData(*logger, str);
+            }
+          }
+        }
+      }
+#endif // HAVE_FSTRM
+#endif // NOD_ENABLED
     }
   sendit:;
 
@@ -1504,6 +1560,25 @@ void startDoResolve(void* p)
     if (g_nodEnabled) {
       if (nodCheckNewDomain(nodlogger, dc->d_mdp.d_qname)) {
         nod = true;
+#ifdef HAVE_FSTRM
+        if (isEnabledForNODs(t_nodFrameStreamServersInfo.servers)) {
+          struct timespec ts;
+          std::string str;
+          if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
+            TIMEVAL_TO_TIMESPEC(&(dc->d_kernelTimestamp), &ts);
+          }
+          else {
+            TIMEVAL_TO_TIMESPEC(&(dc->d_now), &ts);
+          }
+          DnstapMessage message(str, DnstapMessage::MessageType::client_query, SyncRes::s_serverID, &dc->d_source, &dc->d_destination, dc->d_tcp ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoUDP, nullptr, 0, &ts, nullptr, dc->d_mdp.d_qname);
+
+          for (auto& logger : *(t_nodFrameStreamServersInfo.servers)) {
+            if (logger->logNODs()) {
+              remoteLoggerQueueData(*logger, str);
+            }
+          }
+        }
+#endif // HAVE_FSTRM
       }
     }
 #endif /* NOD_ENABLED */
@@ -1938,7 +2013,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
   logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #ifdef HAVE_FSTRM
-  checkFrameStreamExport(luaconfsLocal);
+  checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
 #endif
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
