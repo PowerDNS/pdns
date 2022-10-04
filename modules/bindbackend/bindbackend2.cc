@@ -157,7 +157,7 @@ bool Bind2Backend::safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd)
 bool Bind2Backend::safeRemoveBBDomainInfo(const DNSName& name)
 {
   auto state = s_state.write_lock();
-  typedef state_t::index<NameTag>::type nameindex_t;
+  using nameindex_t = state_t::index<NameTag>::type;
   nameindex_t& nameindex = boost::multi_index::get<NameTag>(*state);
 
   nameindex_t::iterator iter = nameindex.find(name);
