@@ -832,7 +832,7 @@ void Bind2Backend::fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, 
 
 void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr)
 {
-  bool auth;
+  bool auth = false;
   DNSName shorter;
   std::unordered_set<DNSName> qnames;
   std::unordered_map<DNSName, bool> nonterm;
@@ -1151,7 +1151,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
   static bool mustlog = ::arg().mustDo("query-logging");
 
-  bool found;
+  bool found = false;
   DNSName domain;
   BB2DomainInfo bbd;
 
