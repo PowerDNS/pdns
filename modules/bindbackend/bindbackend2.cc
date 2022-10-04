@@ -553,7 +553,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   bdr.content = content;
   bdr.nsec3hash = hashed;
 
-  if (auth) // Set auth on empty non-terminals
+  if (auth != nullptr) // Set auth on empty non-terminals
     bdr.auth = *auth;
   else
     bdr.auth = true;
@@ -978,7 +978,7 @@ void Bind2Backend::loadConfig(string* status)
           ostringstream msg;
           msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.reason;
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
 
@@ -992,7 +992,7 @@ void Bind2Backend::loadConfig(string* status)
           else
             msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
           g_log << Logger::Warning << d_logprefix << msg.str() << endl;
@@ -1002,7 +1002,7 @@ void Bind2Backend::loadConfig(string* status)
           ostringstream msg;
           msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
 
@@ -1031,7 +1031,7 @@ void Bind2Backend::loadConfig(string* status)
 
     ostringstream msg;
     msg << " Done parsing domains, " << rejected << " rejected, " << newdomains << " new, " << remdomains << " removed";
-    if (status)
+    if (status != nullptr)
       *status = msg.str();
 
     g_log << Logger::Error << d_logprefix << msg.str() << endl;
