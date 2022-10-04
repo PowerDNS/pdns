@@ -758,7 +758,7 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
   std::lock_guard<std::mutex> l(s_startup_lock);
 
   setupDNSSEC();
-  if (!s_first) {
+  if (s_first == 0) {
     return;
   }
 
@@ -811,16 +811,16 @@ void Bind2Backend::fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, 
 
     if (!iter->qname.isRoot() && shorter.chopOff() && !iter->qname.isRoot()) {
       do {
-        if (nssets.count(shorter)) {
+        if (nssets.count(shorter) != 0u) {
           skip = true;
           break;
         }
       } while (shorter.chopOff() && !iter->qname.isRoot());
     }
 
-    iter->auth = (!skip && (iter->qtype == QType::DS || iter->qtype == QType::RRSIG || !nssets.count(iter->qname)));
+    iter->auth = (!skip && (iter->qtype == QType::DS || iter->qtype == QType::RRSIG || (nssets.count(iter->qname) == 0u)));
 
-    if (!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && !ns3pr.d_flags) || dssets.count(iter->qname))) {
+    if (!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && (ns3pr.d_flags == 0u)) || (dssets.count(iter->qname) != 0u))) {
       Bind2DNSRecord bdr = *iter;
       bdr.nsec3hash = toBase32Hex(hashQNameWithSalt(ns3pr, bdr.qname + zoneName));
       records->replace(iter, bdr);
@@ -845,19 +845,19 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   for (const auto& bdr : *records) {
 
     if (!bdr.auth && bdr.qtype == QType::NS)
-      auth = (!nsec3zone || !ns3pr.d_flags);
+      auth = (!nsec3zone || (ns3pr.d_flags == 0u));
     else
       auth = bdr.auth;
 
     shorter = bdr.qname;
     while (shorter.chopOff()) {
-      if (!qnames.count(shorter)) {
+      if (qnames.count(shorter) == 0u) {
         if (!(maxent)) {
           g_log << Logger::Error << "Zone '" << zoneName << "' has too many empty non terminals." << endl;
           return;
         }
 
-        if (!nonterm.count(shorter)) {
+        if (nonterm.count(shorter) == 0u) {
           nonterm.emplace(shorter, auth);
           --maxent;
         }
@@ -931,9 +931,10 @@ void Bind2Backend::loadConfig(string* status)
         continue;
       }
 
-      if (domain.type == "")
+      if (domain.type.empty()) {
         g_log << Logger::Notice << d_logprefix << " Zone '" << domain.name << "' has no type specified, assuming 'native'" << endl;
-      if (domain.type != "master" && domain.type != "slave" && domain.type != "native" && domain.type != "") {
+      }
+      if (domain.type != "master" && domain.type != "slave" && domain.type != "native" && !domain.type.empty()) {
         g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because type '" << domain.type << "' is invalid" << endl;
         rejected++;
         continue;
@@ -1340,7 +1341,7 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   while (getline(c_if, line)) {
     std::istringstream ii(line);
     ii >> sip;
-    if (sip.size() != 0) {
+    if (!sip.empty()) {
       ii >> saccount;
       primaries.emplace_back(sip, "", saccount);
     }
@@ -1520,7 +1521,7 @@ public:
 private:
   void assertEmptySuffix(const string& suffix)
   {
-    if (suffix.length())
+    if (!suffix.empty())
       throw PDNSException("launch= suffixes are not supported on the bindbackend");
   }
 };
