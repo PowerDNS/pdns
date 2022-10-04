@@ -145,7 +145,7 @@ bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
 bool Bind2Backend::safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd)
 {
   auto state = s_state.read_lock();
-  auto& nameindex = boost::multi_index::get<NameTag>(*state);
+  const auto& nameindex = boost::multi_index::get<NameTag>(*state);
   auto iter = nameindex.find(name);
   if (iter == nameindex.end()) {
     return false;
@@ -566,7 +566,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
 {
   ostringstream ret;
 
-  for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+  for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
     BB2DomainInfo bbd;
     DNSName zone(*i);
     if (safeGetBBDomainInfo(zone, &bbd)) {
@@ -592,7 +592,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pi
   ostringstream ret;
 
   if (parts.size() > 1) {
-    for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+    for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         ret << *i << ": " << (bbd.d_loaded ? "" : "[rejected]") << "\t" << bbd.d_status << "\n";
@@ -654,7 +654,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
   ostringstream ret;
 
   if (parts.size() > 1) {
-    for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+    for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         printDomainExtendedStatus(ret, bbd);
@@ -1117,7 +1117,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
     return findBeforeAndAfterUnhashed(records, qname, unhashed, before, after);
   }
   else {
-    auto& hashindex = boost::multi_index::get<NSEC3Tag>(*records);
+    const auto& hashindex = boost::multi_index::get<NSEC3Tag>(*records);
 
     // for(auto iter = first; iter != hashindex.end(); iter++)
     //  cerr<<iter->nsec3hash<<endl;
@@ -1203,7 +1203,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
   d_handle.mustlog = mustlog;
 
-  auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
+  const auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
   auto range = hashedidx.equal_range(d_handle.qname);
 
   d_handle.d_list = false;
