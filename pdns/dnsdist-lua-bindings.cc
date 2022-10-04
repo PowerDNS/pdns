@@ -129,6 +129,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       s.setAuto();
     });
+  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
+      if (newStatus) {
+        s.setUpStatus(*newStatus);
+      }
+      s.setLazyAuto();
+    });
   luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& s) { return s.getName(); });
   luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
   luaCtx.registerMember("upStatus", &DownstreamState::upStatus);

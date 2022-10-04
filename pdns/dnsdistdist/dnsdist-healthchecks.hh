@@ -27,7 +27,6 @@
 
 extern bool g_verboseHealthChecks;
 
-void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool initial, bool newState);
 bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial=false);
 void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial=false);
 

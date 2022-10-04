@@ -726,6 +726,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         double udiff = ids->sentTime.udiff();
         // do that _before_ the processing, otherwise it's not fair to the backend
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
+        dss->reportResponse(dh->rcode);
 
         /* don't call processResponse for DOH */
         if (du) {
@@ -1940,9 +1941,9 @@ static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
-  static const int interval = 1;
+  constexpr int interval = 1;
 
-  for(;;) {
+  for (;;) {
     sleep(interval);
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
@@ -1955,23 +1956,18 @@ static void healthChecksThread()
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
 
-      dss->handleTimeouts();
+      dss->handleUDPTimeouts();
 
-      if (dss->d_nextCheck > 1) {
-        --dss->d_nextCheck;
+      if (!dss->healthCheckRequired()) {
         continue;
       }
 
-      dss->d_nextCheck = dss->d_config.checkInterval;
+      if (!mplexer) {
+        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+      }
 
-      if (dss->d_config.availability == DownstreamState::Availability::Auto) {
-        if (!mplexer) {
-          mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
-        }
-
-        if (!queueHealthCheck(mplexer, dss)) {
-          updateHealthCheckResult(dss, false, false);
-        }
+      if (!queueHealthCheck(mplexer, dss)) {
+        dss->submitHealthCheckResult(false, false);
       }
     }
 

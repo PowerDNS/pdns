@@ -55,61 +55,6 @@ struct HealthCheckData
   bool d_initial{false};
 };
 
-void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool initial, bool newState)
-{
-  if (initial) {
-    warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
-    dss->setUpStatus(newState);
-    return;
-  }
-
-  if (newState) {
-    /* check succeeded */
-    dss->currentCheckFailures = 0;
-
-    if (!dss->upStatus) {
-      /* we were marked as down */
-      dss->consecutiveSuccessfulChecks++;
-      if (dss->consecutiveSuccessfulChecks < dss->d_config.minRiseSuccesses) {
-        /* if we need more than one successful check to rise
-           and we didn't reach the threshold yet,
-           let's stay down */
-        newState = false;
-      }
-    }
-  }
-  else {
-    /* check failed */
-    dss->consecutiveSuccessfulChecks = 0;
-
-    if (dss->upStatus) {
-      /* we are currently up */
-      dss->currentCheckFailures++;
-      if (dss->currentCheckFailures < dss->d_config.maxCheckFailures) {
-        /* we need more than one failure to be marked as down,
-           and we did not reach the threshold yet, let's stay up */
-        newState = true;
-      }
-    }
-  }
-
-  if (newState != dss->upStatus) {
-    warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
-
-    if (newState && !dss->isTCPOnly() && (!dss->connected || dss->d_config.reconnectOnUp)) {
-      newState = dss->reconnect();
-      dss->start();
-    }
-
-    dss->setUpStatus(newState);
-    dss->currentCheckFailures = 0;
-    dss->consecutiveSuccessfulChecks = 0;
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
-      g_snmpAgent->sendBackendStatusChangeTrap(dss);
-    }
-  }
-}
-
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 {
   auto& ds = data->d_ds;
@@ -203,7 +148,7 @@ public:
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
     d_data->d_buffer = std::move(response.d_buffer);
-    updateHealthCheckResult(d_data->d_ds, d_data->d_initial, ::handleResponse(d_data));
+    d_data->d_ds->submitHealthCheckResult(d_data->d_initial, ::handleResponse(d_data));
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -213,7 +158,7 @@ public:
 
   void notifyIOError(IDState&& query, const struct timeval& now) override
   {
-    updateHealthCheckResult(d_data->d_ds, d_data->d_initial, false);
+    d_data->d_ds->submitHealthCheckResult(d_data->d_initial, false);
   }
 
 private:
@@ -234,7 +179,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (g_verboseHealthChecks) {
       infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror());
     }
-    updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    data->d_ds->submitHealthCheckResult(data->d_initial, false);
     return;
   }
 
@@ -243,11 +188,11 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (g_verboseHealthChecks) {
       infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), data->d_ds->d_config.remote.toStringWithPort());
     }
-    updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    data->d_ds->submitHealthCheckResult(data->d_initial, false);
     return;
   }
 
-  updateHealthCheckResult(data->d_ds, data->d_initial, handleResponse(data));
+  data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
 }
 
 static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
@@ -281,7 +226,7 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (data->d_tcpState == HealthCheckData::TCPState::ReadingResponse) {
       ioState = data->d_tcpHandler->tryRead(data->d_buffer, data->d_bufferPos, data->d_buffer.size());
       if (ioState == IOState::Done) {
-        updateHealthCheckResult(data->d_ds, data->d_initial, handleResponse(data));
+        data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
       }
     }
 
@@ -308,13 +253,13 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     ioGuard.release();
   }
   catch (const std::exception& e) {
-    updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    data->d_ds->submitHealthCheckResult(data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
     }
   }
   catch (...) {
-    updateHealthCheckResult(data->d_ds, data->d_initial, false);
+    data->d_ds->submitHealthCheckResult(data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", data->d_ds->getNameWithAddr());
     }
@@ -418,7 +363,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
       auto sender = std::shared_ptr<TCPQuerySender>(new HealthCheckQuerySender(data));
       if (!sendH2Query(ds, mplexer, sender, std::move(query), true)) {
-        updateHealthCheckResult(data->d_ds, data->d_initial, false);
+        data->d_ds->submitHealthCheckResult(data->d_initial, false);
       }
     }
     else {
@@ -503,7 +448,7 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
           infolog("Timeout while waiting for the health check response from backend %s", data->d_ds->getNameWithAddr());
         }
 
-        updateHealthCheckResult(data->d_ds, initial, false);
+        data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {
         if (g_verboseHealthChecks) {
@@ -529,7 +474,7 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
           infolog("Timeout while waiting for the health check response from backend %s", data->d_ds->getNameWithAddr());
         }
 
-        updateHealthCheckResult(data->d_ds, initial, false);
+        data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {
         if (g_verboseHealthChecks) {

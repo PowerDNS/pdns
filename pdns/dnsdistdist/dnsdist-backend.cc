@@ -197,6 +197,11 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
     setWeight(d_config.d_weight);
   }
 
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthChecksSampleSize);
+    setUpStatus(true);
+  }
+
   setName(d_config.name);
 
   if (d_tlsCtx) {
@@ -320,7 +325,7 @@ static bool isIDSExpired(IDState& ids)
   return age > DownstreamState::s_udpTimeout;
 }
 
-void DownstreamState::handleTimeout(IDState& ids)
+void DownstreamState::handleUDPTimeout(IDState& ids)
 {
   /* We mark the state as unused as soon as possible
      to limit the risk of racing with the
@@ -349,16 +354,33 @@ void DownstreamState::handleTimeout(IDState& ids)
 
     g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
   }
+
+  reportTimeoutOrError();
 }
 
-void DownstreamState::handleTimeouts()
+void DownstreamState::reportResponse(uint8_t rcode)
+{
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
+    bool failure = d_config.d_lazyHealthChecksMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
+  }
+}
+
+void DownstreamState::reportTimeoutOrError()
+{
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
+  }
+}
+
+void DownstreamState::handleUDPTimeouts()
 {
   if (s_randomizeIDs) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
       auto& ids = it->second;
       if (isIDSExpired(ids)) {
-        handleTimeout(ids);
+        handleUDPTimeout(ids);
         it = map->erase(it);
         continue;
       }
@@ -376,7 +398,7 @@ void DownstreamState::handleTimeouts()
             continue;
           }
 
-          handleTimeout(ids);
+          handleUDPTimeout(ids);
         }
       }
     }
@@ -473,6 +495,128 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
   }
 
   return ids;
+}
+
+bool DownstreamState::healthCheckRequired()
+{
+  if (d_config.availability == DownstreamState::Availability::Lazy) {
+    auto stats = d_lazyHealthCheckStats.lock();
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      return true;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Failed) {
+      auto now = time(nullptr);
+      if (stats->d_nextCheck <= now) {
+        stats->d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+        return true;
+      }
+      return false;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Healthy) {
+      auto& lastResults = stats->d_lastResults;
+      size_t totalCount = lastResults.size();
+      if (totalCount >= d_config.d_lazyHealthChecksMinSampleCount) {
+        return false;
+      }
+
+      size_t failures = 0;
+      for (const auto& result : lastResults) {
+        if (result) {
+          ++failures;
+        }
+      }
+
+      const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthChecksThreshold);
+      if (((100.0 * failures) / totalCount) >= maxFailureRate) {
+        lastResults.clear();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
+        auto now = time(nullptr);
+        stats->d_nextCheck = now;
+        return true;
+      }
+    }
+
+    return false;
+  }
+  else if (d_config.availability == DownstreamState::Availability::Auto) {
+
+    if (d_nextCheck > 1) {
+      --d_nextCheck;
+      return false;
+    }
+
+    d_nextCheck = d_config.checkInterval;
+    return true;
+  }
+
+  return false;
+}
+
+void DownstreamState::submitHealthCheckResult(bool initial, bool newState)
+{
+  if (initial) {
+    warnlog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
+    setUpStatus(newState);
+    return;
+  }
+
+  if (newState) {
+    /* check succeeded */
+    currentCheckFailures = 0;
+
+    if (!upStatus) {
+      /* we were marked as down */
+      consecutiveSuccessfulChecks++;
+      if (consecutiveSuccessfulChecks < d_config.minRiseSuccesses) {
+        /* if we need more than one successful check to rise
+           and we didn't reach the threshold yet,
+           let's stay down */
+        newState = false;
+      }
+    }
+    if (newState) {
+      if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
+      }
+    }
+  }
+  else {
+    /* check failed */
+    consecutiveSuccessfulChecks = 0;
+
+    if (upStatus) {
+      /* we are currently up */
+      currentCheckFailures++;
+      if (currentCheckFailures < d_config.maxCheckFailures) {
+        /* we need more than one failure to be marked as down,
+           and we did not reach the threshold yet, let's stay up */
+        newState = true;
+      }
+      else if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+        auto now = time(nullptr);
+        stats->d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+      }
+    }
+  }
+
+  if (newState != upStatus) {
+    warnlog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
+
+    if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
+      newState = reconnect();
+      start();
+    }
+
+    setUpStatus(newState);
+    currentCheckFailures = 0;
+    consecutiveSuccessfulChecks = 0;
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendBackendStatusChangeTrap(*this);
+    }
+  }
 }
 
 size_t ServerPool::countServers(bool upOnly)
