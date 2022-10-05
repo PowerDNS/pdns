@@ -2,6 +2,108 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.0-beta1
+  :released: 5th of October 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12047
+
+    Add support for NOD/UDR notifications using dnstap.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12048
+
+    Fix --config (should be equal to --config=default),  followup to #11907.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12046
+    :tickets: 12044
+
+    Fix compilation of the event ports multiplexer.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11903, 12049
+    :tickets: 11841
+
+    Protobuf and dnstap metrics, including rec_control subcommand to show them.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12038
+
+    When an expired NSEC3 entry is seen move it to the front of the expiry queue.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11949
+    :tickets: 7164
+
+    Provide metrics for rcode received from authoritative servers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12027
+    :tickets: 11958
+
+    If new data is auth and existing data is not, replace even if cache locking is active.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11866
+    :tickets: 11648
+
+    Proxymapping metrics, including rec_control subcommand to show them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11909
+
+    Add querytime attribute to Lua DNSQuestion object, to see the time a query was received.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11768
+    :tickets: 11766
+
+    Enable include-dir by default in RPM builds, to be in line with DEB builds (Frank Louwers).
+
+  .. change::
+    :tags: Removals
+    :pullreq: 11856
+
+    Remove XPF support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11989
+
+    Improve error message when invalid values for `local-address` are provided in recursor config file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12011
+    :tickets: 11999
+
+    Enable SNMP support for debian and ubuntu builds.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12009
+    :tickets: 11998
+
+    Warn if snmp-agent is set but SNMP support is not available.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11959
+
+    A few tweaks to structured logging calls.
+
+.. changelog::
   :version: 4.8.0-alpha1
   :released: 23rd of September 2022
 
