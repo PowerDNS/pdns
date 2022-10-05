@@ -336,8 +336,8 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     }
 
     if (total != notified)
-      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added " + itoa(total) + " MASTER/SLAVE/PRODUCER/CONSUMER zones to queue";
+      return std::to_string(notified)+" out of "+std::to_string(total)+" zones added to queue - see log";
+    return "Added " + std::to_string(total) + " MASTER/SLAVE/PRODUCER/CONSUMER zones to queue";
   } else {
     DNSName domain;
     try {

@@ -215,7 +215,7 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
       reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to refresh domain_id "+std::to_string(domain_id)+": "+e.txtReason());
   }
 }
 
@@ -227,7 +227,7 @@ void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
     d_UpdateLastCheckOfZoneQuery_stmt->bind("last_check", lastcheck)->bind("domain_id", domain_id)->execute()->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to update last_check for domain_id " + itoa(domain_id) + ": " + e.txtReason());
+    throw PDNSException("GSQLBackend unable to update last_check for domain_id " + std::to_string(domain_id) + ": " + e.txtReason());
   }
 }
 
@@ -730,7 +730,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + " for domain_id "+itoa(domain_id)+", domain name '" + qname.toLogString() + "': "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + " for domain_id "+std::to_string(domain_id)+", domain name '" + qname.toLogString() + "': "+e.txtReason());
       }
     } else {
       try {
@@ -746,7 +746,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   } else {
@@ -762,7 +762,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     } else {
       try {
@@ -777,7 +777,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   }
@@ -796,7 +796,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to delete empty non-terminal records from domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to delete empty non-terminal records from domain_id "+std::to_string(domain_id)+": "+e.txtReason());
     }
   }
   else
@@ -812,7 +812,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   }
@@ -830,7 +830,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+std::to_string(domain_id)+": "+e.txtReason());
     }
   }
 
@@ -866,7 +866,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     d_afterOrderQuery_stmt->reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() +"': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() +"': "+e.txtReason());
   }
 
   if(after.empty()) {
@@ -884,7 +884,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_firstOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + "': "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + "': "+e.txtReason());
     }
   }
 
@@ -911,7 +911,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_beforeOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
 
     if(! unhashed.empty())
@@ -939,7 +939,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_lastOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
   } else {
     before=qname;
@@ -1755,7 +1755,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
         d_DeleteRRSetQuery_stmt->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
-          bind("qtype", "TYPE"+itoa(qt.getCode()))->
+          bind("qtype", "TYPE"+std::to_string(qt.getCode()))->
           execute()->
           reset();
       }

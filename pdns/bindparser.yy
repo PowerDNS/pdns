@@ -36,7 +36,7 @@ extern int linenumber;
 static void yyerror(const char *str)
 {
   extern char *current_filename;	
-  throw PDNSException("Error in bind configuration '"+string(current_filename)+"' on line "+itoa(linenumber)+": "+str);
+  throw PDNSException("Error in bind configuration '"+string(current_filename)+"' on line "+std::to_string(linenumber)+": "+str);
 }
 
 extern FILE *yyin;

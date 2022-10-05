@@ -216,7 +216,7 @@ bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disable
   catch (PDNSException& ae) {
     g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl;
   }
-  d_qname = DNSName(itoa(inZoneId)); // why do we store a number here??
+  d_qname = DNSName(std::to_string(inZoneId)); // why do we store a number here??
   return true;
 }
 
