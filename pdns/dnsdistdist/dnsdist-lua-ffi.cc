@@ -1133,7 +1133,7 @@ struct dnsdist_ffi_dnspacket_t
 
 bool dnsdist_ffi_dnspacket_parse(const char* packet, size_t packetSize, dnsdist_ffi_dnspacket_t** out)
 {
-  if (out == nullptr || packetSize < sizeof(dnsheader)) {
+  if (packet == nullptr || out == nullptr || packetSize < sizeof(dnsheader)) {
     return false;
   }
 
@@ -1179,7 +1179,7 @@ uint16_t dnsdist_ffi_dnspacket_get_qclass(const dnsdist_ffi_dnspacket_t* packet)
 
 uint16_t dnsdist_ffi_dnspacket_get_records_count_in_section(const dnsdist_ffi_dnspacket_t* packet, uint8_t section)
 {
-  if (packet == nullptr || section > 3) {
+  if (packet == nullptr || section > DNSResourceRecord::ADDITIONAL) {
     return 0;
   }
 

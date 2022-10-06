@@ -16,7 +16,7 @@ and then to create a :class:`DNSPacketOverlay` object:
     print(overlay.qname)
     print(overlay.qtype)
     print(overlay.qclass)
-    local count = overlay:getRecordsCountInSection(1)
+    local count = overlay:getRecordsCountInSection(DNSSection.Answer)
     print(count)
     for idx=0, count-1 do
       local record = overlay:getRecord(idx)
@@ -67,7 +67,7 @@ and then to create a :class:`DNSPacketOverlay` object:
   .. method:: DNSPacketOverlay:getRecordsCountInSection(section) -> int
 
     Returns the number of records in the ANSWER (1), AUTHORITY (2) and
-    ADDITIONAL (3) section of this packet. The number of records in the
+    ADDITIONAL (3) :ref:`DNSSection` of this packet. The number of records in the
     QUESTION (0) is always set to 0, look at the dnsheader if you need
     the actual qdcount.
 

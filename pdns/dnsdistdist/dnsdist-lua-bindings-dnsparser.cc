@@ -37,7 +37,7 @@ void setupLuaBindingsDNSParser(LuaContext& luaCtx)
   luaCtx.registerMember<dnsheader(dnsdist::DNSPacketOverlay::*)>(std::string("dh"), [](const dnsdist::DNSPacketOverlay& overlay) { return overlay.d_header; });
 
   luaCtx.registerFunction<uint16_t (dnsdist::DNSPacketOverlay::*)(uint8_t) const>("getRecordsCountInSection", [](const dnsdist::DNSPacketOverlay& overlay, uint8_t section) -> uint16_t {
-    if (section > 3) {
+    if (section > DNSResourceRecord::ADDITIONAL) {
       return 0;
     }
     uint16_t count = 0;
