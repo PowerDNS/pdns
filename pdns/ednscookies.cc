@@ -87,6 +87,7 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source) c
   uint32_t ts;
   memcpy(&ts, &server[4], sizeof(ts));
   ts = ntohl(ts);
+  // coverity[store_truncates_time_t]
   uint32_t now = static_cast<uint32_t>(time(nullptr));
   // RFC 9018 section 4.3:
   //    The DNS server
