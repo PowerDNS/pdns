@@ -599,13 +599,13 @@ string U32ToIP(uint32_t val)
 
 string makeHexDump(const string& str)
 {
-  char tmp[5];
+  std::array<char, 5> tmp;
   string ret;
-  ret.reserve((int)(str.size()*2.2));
+  ret.reserve(static_cast<size_t>(str.size()*2.2));
 
-  for(char n : str) {
-    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)n);
-    ret+=tmp;
+  for (char n : str) {
+    snprintf(tmp.data(), tmp.size(), "%02x ", static_cast<unsigned char>(n));
+    ret += tmp.data();
   }
   return ret;
 }
