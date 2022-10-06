@@ -1034,6 +1034,7 @@ public:
   void reportTimeoutOrError();
   void reportResponse(uint8_t rcode);
   void submitHealthCheckResult(bool initial, bool newState);
+  time_t getNextLazyHealthCheck();
 
   dnsdist::Protocol getProtocol() const
   {
