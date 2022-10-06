@@ -108,7 +108,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   drh.d_clen=htons(serialized.size());
 
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
-  if (serialized.size() > 0) {
+  if (!serialized.empty()) {
     memcpy(&packet[pos], serialized.c_str(), serialized.size());
     pos += (uint16_t) serialized.size();
     (void) pos;

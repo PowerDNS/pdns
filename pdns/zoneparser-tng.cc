@@ -311,7 +311,7 @@ DNSName ZoneParserTNG::getZoneName()
 
 string ZoneParserTNG::getLineOfFile()
 {
-  if (d_zonedata.size() > 0)
+  if (!d_zonedata.empty())
     return "on line "+std::to_string(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
 
   if (d_filestates.empty())
@@ -658,7 +658,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 
 bool ZoneParserTNG::getLine()
 {
-  if (d_zonedata.size() > 0) {
+  if (!d_zonedata.empty()) {
     if (d_zonedataline != d_zonedata.end()) {
       d_line = *d_zonedataline;
       ++d_zonedataline;

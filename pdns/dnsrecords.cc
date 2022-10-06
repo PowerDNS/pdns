@@ -55,7 +55,7 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
     case QType::SRV:
     case QType::MX:
       stringtok(parts, content);
-      if (!parts.size())
+      if (parts.empty())
         return "";
       last = *parts.rbegin();
       ret << content;
@@ -780,7 +780,7 @@ void SVCBBaseRecordContent::removeParam(const SvcParam::SvcParamKey &key) {
 }
 
 bool SVCBBaseRecordContent::hasParams() const {
-  return d_params.size() > 0;
+  return !d_params.empty();
 }
 
 bool SVCBBaseRecordContent::hasParam(const SvcParam::SvcParamKey &key) const {
