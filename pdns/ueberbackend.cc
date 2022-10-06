@@ -35,7 +35,7 @@
 #include <map>
 #include <sys/types.h>
 #include <sstream>
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <sstream>
 #include <functional>

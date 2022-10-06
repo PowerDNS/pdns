@@ -23,7 +23,7 @@
 #include "config.h"
 #endif
 #include <cstdio>
-#include <signal.h>
+#include <csignal>
 #include <cstring>
 #include <cstdlib>
 #include <sys/types.h>
@@ -37,7 +37,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <errno.h>
+#include <cerrno>
 #include <pthread.h>
 #include <thread>
 #include <unistd.h>

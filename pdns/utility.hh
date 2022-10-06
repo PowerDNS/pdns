@@ -34,11 +34,11 @@ typedef unsigned long long uint64_t;
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/uio.h>
-#include <signal.h>
+#include <csignal>
 #include <pthread.h>
 #include <semaphore.h>
-#include <signal.h>
-#include <errno.h>
+#include <csignal>
+#include <cerrno>
 #include <unistd.h>
 #include <string>
 

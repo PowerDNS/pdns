@@ -22,7 +22,7 @@
 
 #include <cinttypes>
 #include <dirent.h>
-#include <errno.h>
+#include <cerrno>
 #include "ixfrutils.hh"
 #include "sstuff.hh"
 #include "dnssecinfra.hh"

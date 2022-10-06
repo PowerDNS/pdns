@@ -40,8 +40,8 @@
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
 
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #include "base64.hh"
 #include "ueberbackend.hh"
 #include "dnspacket.hh"
