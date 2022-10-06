@@ -583,13 +583,13 @@ string U32ToIP(uint32_t val)
 
 string makeHexDump(const string& str)
 {
-  char tmp[5];
+  std::array<char, 5> tmp;
   string ret;
-  ret.reserve((int)(str.size()*2.2));
+  ret.reserve(static_cast<size_t>(str.size()*2.2));
 
-  for(char n : str) {
-    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)n);
-    ret+=tmp;
+  for (char n : str) {
+    snprintf(tmp.data(), tmp.size(), "%02x ", static_cast<unsigned char>(n));
+    ret += tmp.data();
   }
   return ret;
 }
@@ -599,14 +599,17 @@ string makeBytesFromHex(const string &in) {
     throw std::range_error("odd number of bytes in hex string");
   }
   string ret;
-  ret.reserve(in.size());
-  unsigned int num;
-  for (size_t i = 0; i < in.size(); i+=2) {
-    string numStr = in.substr(i, 2);
-    num = 0;
-    sscanf(numStr.c_str(), "%02x", &num);
-    ret.push_back((uint8_t)num);
+  ret.reserve(in.size() / 2);
+
+  for (size_t i = 0; i < in.size(); i += 2) {
+    const auto numStr = in.substr(i, 2);
+    unsigned int num = 0;
+    if (sscanf(numStr.c_str(), "%02x", &num) != 1) {
+      throw std::range_error("Invalid value while parsing the hex string '" + in + "'");
+    }
+    ret.push_back(static_cast<uint8_t>(num));
   }
+
   return ret;
 }
 
