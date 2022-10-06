@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), true);
 
   /* we need maxCheckFailures failed health-checks to go down */
-  for (size_t idx = 0; idx < config.maxCheckFailures - 1; idx++) {
+  for (size_t idx = 0; idx < static_cast<size_t>(config.maxCheckFailures - 1); idx++) {
     ds.submitHealthCheckResult(false, false);
   }
   BOOST_CHECK_EQUAL(ds.isUp(), true);
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   }
 
   /* we need minRiseSuccesses successful health-checks to go down */
-  for (size_t idx = 0; idx < config.minRiseSuccesses - 1; idx++) {
+  for (size_t idx = 0; idx < static_cast<size_t>(config.minRiseSuccesses - 1); idx++) {
     ds.submitHealthCheckResult(false, true);
   }
   BOOST_CHECK_EQUAL(ds.isUp(), false);

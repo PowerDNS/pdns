@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import base64
+import threading
 import time
+import ssl
 import dns
 from dnsdisttests import DNSDistTest
 
@@ -174,4 +176,184 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
         before = TestHealthCheckCustomFunction._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomFunction._healthCheckCounter, before)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+_do53HealthCheckQueries = 0
+_dotHealthCheckQueries = 0
+_dohHealthCheckQueries = 0
+
+class TestLazyHealthChecks(HealthCheckTest):
+    _do53Port = 10700
+    _dotPort = 10701
+    _dohPort = 10702
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_do53Port', '_dotPort', '_dohPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+
+    newServer{address="127.0.0.1:%s", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool=''}
+
+    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
+    addAction('dot.lazy.test.powerdns.com.', PoolAction('dot'))
+
+    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
+    addAction('doh.lazy.test.powerdns.com.', PoolAction('doh'))
+    """
+    _verboseMode = True
+
+    @staticmethod
+    def HandleDNSQuery(request):
+        response = dns.message.make_response(request)
+        if str(request.question[0].name).startswith('server-failure'):
+            response.set_rcode(dns.rcode.SERVFAIL)
+        return response.to_wire()
+
+    @classmethod
+    def Do53Callback(cls, request):
+        global _do53HealthCheckQueries
+        if str(request.question[0].name).startswith('a.root-servers.net'):
+            _do53HealthCheckQueries = _do53HealthCheckQueries + 1
+            response = dns.message.make_response(request)
+            return response.to_wire()
+        return cls.HandleDNSQuery(request)
+
+    @classmethod
+    def DoTCallback(cls, request):
+        global _dotHealthCheckQueries
+        if str(request.question[0].name).startswith('a.root-servers.net'):
+            _dotHealthCheckQueries = _dotHealthCheckQueries + 1
+            response = dns.message.make_response(request)
+            return response.to_wire()
+        return cls.HandleDNSQuery(request)
+
+    @classmethod
+    def DoHCallback(cls, request, requestHeaders, fromQueue, toQueue):
+        global _dohHealthCheckQueries
+        if str(request.question[0].name).startswith('a.root-servers.net'):
+            _dohHealthCheckQueries = _dohHealthCheckQueries + 1
+            response = dns.message.make_response(request)
+            return 200, response.to_wire()
+        return 200, cls.HandleDNSQuery(request)
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.load_cert_chain('server.chain', 'server.key')
+
+        Do53Responder = threading.Thread(name='Do53 Lazy Responder', target=cls.UDPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, cls.Do53Callback])
+        Do53Responder.setDaemon(True)
+        Do53Responder.start()
+
+        Do53TCPResponder = threading.Thread(name='Do53 TCP Lazy Responder', target=cls.TCPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.Do53Callback])
+        Do53TCPResponder.setDaemon(True)
+        Do53TCPResponder.start()
+
+        DoTResponder = threading.Thread(name='DoT Lazy Responder', target=cls.TCPResponder, args=[cls._dotPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoTCallback, tlsContext])
+        DoTResponder.setDaemon(True)
+        DoTResponder.start()
+
+        DoHResponder = threading.Thread(name='DoH Lazy Responder', target=cls.DOHResponder, args=[cls._dohPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoHCallback, tlsContext])
+        DoHResponder.setDaemon(True)
+        DoHResponder.start()
+
+    def testDo53Lazy(self):
+        """
+        Lazy Healthchecks: Do53
+        """
+        self.assertEqual(_do53HealthCheckQueries, 0)
+        time.sleep(1)
+        self.assertEqual(_do53HealthCheckQueries, 0)
+
+        name = 'do53.lazy.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        failedQuery = dns.message.make_query('server-failure.do53.lazy.test.powerdns.com.', 'A', 'IN')
+        failedResponse = dns.message.make_response(failedQuery)
+        failedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        # send a few valid queries
+        for _ in range(5):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEqual(receivedResponse, response)
+
+        self.assertEqual(_do53HealthCheckQueries, 0)
+
+        # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
+        for _ in range(2):
+            (_, receivedResponse) = self.sendUDPQuery(failedQuery, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, failedResponse)
+
+        time.sleep(1.5)
+        self.assertEqual(_do53HealthCheckQueries, 1)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+    def testDoTLazy(self):
+        """
+        Lazy Healthchecks: DoT
+        """
+        self.assertEqual(_dotHealthCheckQueries, 0)
+        time.sleep(1)
+        self.assertEqual(_dotHealthCheckQueries, 0)
+
+        name = 'dot.lazy.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        failedQuery = dns.message.make_query('server-failure.dot.lazy.test.powerdns.com.', 'A', 'IN')
+        failedResponse = dns.message.make_response(failedQuery)
+        failedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        # send a few valid queries
+        for _ in range(5):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEqual(receivedResponse, response)
+
+        self.assertEqual(_dotHealthCheckQueries, 0)
+
+        # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
+        for _ in range(2):
+            (_, receivedResponse) = self.sendUDPQuery(failedQuery, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, failedResponse)
+
+        time.sleep(1.5)
+        self.assertEqual(_dotHealthCheckQueries, 1)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+    def testDoHLazy(self):
+        """
+        Lazy Healthchecks: DoH
+        """
+        self.assertEqual(_dohHealthCheckQueries, 0)
+        time.sleep(1)
+        self.assertEqual(_dohHealthCheckQueries, 0)
+
+        name = 'doh.lazy.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        failedQuery = dns.message.make_query('server-failure.doh.lazy.test.powerdns.com.', 'A', 'IN')
+        failedResponse = dns.message.make_response(failedQuery)
+        failedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        # send a few valid queries
+        for _ in range(5):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEqual(receivedResponse, response)
+
+        self.assertEqual(_dohHealthCheckQueries, 0)
+
+        # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
+        for _ in range(2):
+            (_, receivedResponse) = self.sendUDPQuery(failedQuery, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, failedResponse)
+
+        time.sleep(1.5)
+        self.assertEqual(_dohHealthCheckQueries, 1)
         self.assertEqual(self.getBackendStatus(), 'up')

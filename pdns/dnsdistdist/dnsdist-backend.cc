@@ -504,12 +504,14 @@ bool DownstreamState::healthCheckRequired()
   if (d_config.availability == DownstreamState::Availability::Lazy) {
     auto stats = d_lazyHealthCheckStats.lock();
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      vinfolog("Sending health-check query for %s which is still in the Potential Failure state", getNameWithAddr());
       return true;
     }
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::Failed) {
       auto now = time(nullptr);
       if (stats->d_nextCheck <= now) {
         stats->d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+        vinfolog("Sending health-check query for %s which is still in the Failed state", getNameWithAddr());
         return true;
       }
       return false;
@@ -529,8 +531,10 @@ bool DownstreamState::healthCheckRequired()
       }
 
       const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthChecksThreshold);
-      if (((100.0 * failures) / totalCount) >= maxFailureRate) {
+      auto current = (100.0 * failures) / totalCount;
+      if (current >= maxFailureRate) {
         lastResults.clear();
+        vinfolog("Backend %s reached the lazy health-check threshold (%f out of %f, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
         stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
         auto now = time(nullptr);
         stats->d_nextCheck = now;

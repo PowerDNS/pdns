@@ -80,6 +80,11 @@ So for example, if we set ``healthCheckMode`` to ``lazy``, ``lazyHealthCheckSamp
 - if at least 30 of these last 100 have failed, the threshold will be reached and active health-check queries will be sent every ``checkInterval`` seconds
 - if the health-check query is successful, the backend will stay ``up`` and no more query will be sent
 - but if instead two consecutive queries fail, the backend will be marked as ``down`` and health-check queries will be sent every ``lazyHealthCheckFailedInterval`` seconds
+- it will take two consecutive, successful health-checks for the backend to go back to ``Healthy`` and be marked `up` again
+
+.. code-block:: lua
+
+    newServer({address="192.0.2.1", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=30, rise=2, maxCheckFailures=3, lazyHealthCheckThreshold=30, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOnly'})
 
 Source address selection
 ------------------------
