@@ -96,8 +96,8 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
 
   memcpy(&packet[0], &dnsheader, sizeof(dnsheader)); pos+=sizeof(dnsheader);
 
-  char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
-  memcpy(&packet[pos], &tmp, 5); pos+=5;
+  constexpr std::array<uint8_t, 5> tmp= {'\x0', '\x0', '\x1', '\x0', '\x1' }; // root question for ns_t_a
+  memcpy(&packet[pos], tmp.data(), tmp.size()); pos += tmp.size();
 
   memcpy(&packet[pos], encoded.c_str(), encoded.size()); pos+=(uint16_t)encoded.size();
 
