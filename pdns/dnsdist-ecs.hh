@@ -21,6 +21,13 @@
  */
 #pragma once
 
+#include <string>
+
+#include "iputils.hh"
+#include "noinitvector.hh"
+
+struct DNSQuestion;
+
 // root label (1), type (2), class (2), ttl (4) + rdlen (2)
 static const size_t optRecordMinimumSize = 11;
 
@@ -48,3 +55,5 @@ bool parseEDNSOptions(const DNSQuestion& dq);
 int getEDNSZ(const DNSQuestion& dq);
 bool queryHasEDNS(const DNSQuestion& dq);
 bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0);
+
+bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& data);

@@ -1657,6 +1657,35 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.checkResponseNoEDNS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
 
+    def testAdvancedSetEDNSOptionWithDOSet(self):
+        """
+        Advanced: Set EDNS Option (DO bit set)
+        """
+        # check that the DO bit is correctly handled, as we messed that up once
+        name = 'setednsoption-do.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True, payload=4096)
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco], want_dnssec=True)
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(response, receivedResponse)
+            self.checkQueryEDNS(expectedQuery, receivedQuery)
+
 class TestAdvancedLuaGetContent(DNSDistTest):
 
     _config_template = """

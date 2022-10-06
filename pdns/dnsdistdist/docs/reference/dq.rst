@@ -209,6 +209,15 @@ This state can be modified from the various hooks.
 
     :param string reason: An optional string describing the reason why this trap was sent
 
+  .. method:: DNSQuestion:setEDNSOption(code, data)
+
+    .. versionadded:: 1.8.0
+
+    Add arbitrary EDNS option and data to the query. Any existing EDNS content with the same option code will be overwritten.
+
+    :param int code: The EDNS option code
+    :param string data: The EDNS option raw data
+
   .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
 
     .. versionadded:: 1.4.0
