@@ -617,10 +617,9 @@ string makeBytesFromHex(const string &in) {
   string ret;
   ret.reserve(in.size() / 2);
 
-  unsigned int num;
   for (size_t i = 0; i < in.size(); i += 2) {
     const auto numStr = in.substr(i, 2);
-    num = 0;
+    unsigned int num = 0;
     if (sscanf(numStr.c_str(), "%02x", &num) != 1) {
       throw std::range_error("Invalid value while parsing the hex string '" + in + "'");
     }
