@@ -114,7 +114,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
     (void) pos;
   }
 
-  MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(false, reinterpret_cast<const char *>(packet.data()), packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   return ret;
 }
