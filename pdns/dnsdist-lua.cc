@@ -527,19 +527,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("lazyHealthCheckSampleSize")) {
-                           config.d_lazyHealthChecksSampleSize = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
+                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
+                           checkParameterBound("lazyHealthCheckSampleSize", value);
+                           config.d_lazyHealthChecksSampleSize = value;
                          }
 
                          if (vars.count("lazyHealthCheckMinSampleCount")) {
-                           config.d_lazyHealthChecksSampleSize = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
+                           checkParameterBound("lazyHealthCheckMinSampleCount", value);
+                           config.d_lazyHealthChecksMinSampleCount = value;
                          }
 
                          if (vars.count("lazyHealthCheckThreshold")) {
-                           config.d_lazyHealthChecksThreshold = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                           checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
+                           config.d_lazyHealthChecksThreshold = value;
                          }
 
                          if (vars.count("lazyHealthCheckFailedInterval")) {
-                           config.d_lazyHealthChecksFailedInterval = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
+                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
+                           checkParameterBound("lazyHealthCheckFailedInterval", value);
+                           config.d_lazyHealthChecksFailedInterval = value;
                          }
 
                          if (vars.count("lazyHealthCheckMode")) {
