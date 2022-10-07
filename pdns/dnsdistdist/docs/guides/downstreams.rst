@@ -86,6 +86,8 @@ So for example, if we set ``healthCheckMode`` to ``lazy``, ``lazyHealthCheckSamp
 
     newServer({address="192.0.2.1", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=30, rise=2, maxCheckFailures=3, lazyHealthCheckThreshold=30, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOnly'})
 
+The 'lazy' mode also supports using an exponential back-off time between health-check queries, once a backend has been moved to the 'down' state. This can be enabled by setting the ``lazyHealthCheckUseExponentialBackOff`` parameter to 'true'. Once the backend has been marked as 'down', the first query will be sent after ``lazyHealthCheckFailedInterval`` seconds, the second one after 2 times ``lazyHealthCheckFailedInterval`` seconds, the third after 4 times ``lazyHealthCheckFailedInterval`` seconds, and so on and so forth, until ``lazyHealthCheckMaxBackOff`` has been reached. Then probes will be sent every ``lazyHealthCheckMaxBackOff`` seconds (default is 3600 so one hour) until the backend comes 'up' again.
+
 Source address selection
 ------------------------
 

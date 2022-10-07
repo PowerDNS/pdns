@@ -810,6 +810,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     uint16_t d_lazyHealthChecksSampleSize{100};
     uint16_t d_lazyHealthChecksMinSampleCount{1};
     uint16_t d_lazyHealthChecksFailedInterval{30};
+    uint16_t d_lazyHealthChecksMaxBackOff{3600};
     uint8_t d_lazyHealthChecksThreshold{20};
     LazyHealthCheckMode d_lazyHealthChecksMode{LazyHealthCheckMode::TimeoutOrServFail};
     uint8_t maxCheckFailures{1};
@@ -827,6 +828,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool d_tcpCheck{false};
     bool d_tcpOnly{false};
     bool d_addXForwardedHeaders{false}; // for DoH backends
+    bool d_lazyHealthChecksUseExponentialBackOff{false};
   };
 
   DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);
@@ -894,7 +896,7 @@ public:
   double latencyUsec{0.0};
   double latencyUsecTCP{0.0};
   unsigned int d_nextCheck{0};
-  uint8_t currentCheckFailures{0};
+  uint16_t currentCheckFailures{0};
   uint8_t consecutiveSuccessfulChecks{0};
   std::atomic<bool> hashesComputed{false};
   std::atomic<bool> connected{false};
@@ -1055,6 +1057,7 @@ public:
   static bool s_randomizeIDs;
 private:
   void handleUDPTimeout(IDState& ids);
+  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats);
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 

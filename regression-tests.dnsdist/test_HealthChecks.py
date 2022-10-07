@@ -263,9 +263,10 @@ class TestLazyHealthChecks(HealthCheckTest):
         """
         Lazy Healthchecks: Do53
         """
-        self.assertEqual(_do53HealthCheckQueries, 0)
+        # there is one initial query on startup
+        self.assertEqual(_do53HealthCheckQueries, 1)
         time.sleep(1)
-        self.assertEqual(_do53HealthCheckQueries, 0)
+        self.assertEqual(_do53HealthCheckQueries, 1)
 
         name = 'do53.lazy.test.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -281,7 +282,7 @@ class TestLazyHealthChecks(HealthCheckTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, response)
 
-        self.assertEqual(_do53HealthCheckQueries, 0)
+        self.assertEqual(_do53HealthCheckQueries, 1)
 
         # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
         for _ in range(2):
@@ -289,16 +290,17 @@ class TestLazyHealthChecks(HealthCheckTest):
             self.assertEqual(receivedResponse, failedResponse)
 
         time.sleep(1.5)
-        self.assertEqual(_do53HealthCheckQueries, 1)
+        self.assertEqual(_do53HealthCheckQueries, 2)
         self.assertEqual(self.getBackendStatus(), 'up')
 
     def testDoTLazy(self):
         """
         Lazy Healthchecks: DoT
         """
-        self.assertEqual(_dotHealthCheckQueries, 0)
+        # there is one initial query on startup
+        self.assertEqual(_dotHealthCheckQueries, 1)
         time.sleep(1)
-        self.assertEqual(_dotHealthCheckQueries, 0)
+        self.assertEqual(_dotHealthCheckQueries, 1)
 
         name = 'dot.lazy.test.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -314,7 +316,7 @@ class TestLazyHealthChecks(HealthCheckTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, response)
 
-        self.assertEqual(_dotHealthCheckQueries, 0)
+        self.assertEqual(_dotHealthCheckQueries, 1)
 
         # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
         for _ in range(2):
@@ -322,16 +324,17 @@ class TestLazyHealthChecks(HealthCheckTest):
             self.assertEqual(receivedResponse, failedResponse)
 
         time.sleep(1.5)
-        self.assertEqual(_dotHealthCheckQueries, 1)
+        self.assertEqual(_dotHealthCheckQueries, 2)
         self.assertEqual(self.getBackendStatus(), 'up')
 
     def testDoHLazy(self):
         """
         Lazy Healthchecks: DoH
         """
-        self.assertEqual(_dohHealthCheckQueries, 0)
+        # there is one initial query on startup
+        self.assertEqual(_dohHealthCheckQueries, 1)
         time.sleep(1)
-        self.assertEqual(_dohHealthCheckQueries, 0)
+        self.assertEqual(_dohHealthCheckQueries, 1)
 
         name = 'doh.lazy.test.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -347,7 +350,7 @@ class TestLazyHealthChecks(HealthCheckTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, response)
 
-        self.assertEqual(_dohHealthCheckQueries, 0)
+        self.assertEqual(_dohHealthCheckQueries, 1)
 
         # we need at least 10 samples, and 10 percent of them failing, so two failing queries should be enough
         for _ in range(2):
@@ -355,5 +358,5 @@ class TestLazyHealthChecks(HealthCheckTest):
             self.assertEqual(receivedResponse, failedResponse)
 
         time.sleep(1.5)
-        self.assertEqual(_dohHealthCheckQueries, 1)
+        self.assertEqual(_dohHealthCheckQueries, 2)
         self.assertEqual(self.getBackendStatus(), 'up')

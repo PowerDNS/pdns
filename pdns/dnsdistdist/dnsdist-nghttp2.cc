@@ -158,7 +158,9 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 void DoHConnectionToBackend::handleResponseError(PendingRequest&& request, const struct timeval& now)
 {
   try {
-    d_ds->reportTimeoutOrError();
+    if (!d_healthCheckQuery) {
+      d_ds->reportTimeoutOrError();
+    }
 
     request.d_sender->notifyIOError(std::move(request.d_query.d_idstate), now);
   }

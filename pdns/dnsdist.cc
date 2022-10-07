@@ -2762,8 +2762,11 @@ int main(int argc, char** argv)
       auto states = g_dstates.getCopy(); // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
-        if (dss->d_config.availability == DownstreamState::Availability::Auto) {
-          dss->d_nextCheck = dss->d_config.checkInterval;
+        if (dss->d_config.availability == DownstreamState::Availability::Auto || dss->d_config.availability == DownstreamState::Availability::Lazy) {
+          if (dss->d_config.availability == DownstreamState::Availability::Auto) {
+            dss->d_nextCheck = dss->d_config.checkInterval;
+          }
+
           if (!queueHealthCheck(mplexer, dss, true)) {
             dss->setUpStatus(false);
             warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());

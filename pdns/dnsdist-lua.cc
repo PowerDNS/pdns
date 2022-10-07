@@ -550,6 +550,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            config.d_lazyHealthChecksFailedInterval = value;
                          }
 
+                         if (vars.count("lazyHealthCheckUseExponentialBackOff")) {
+                           config.d_lazyHealthChecksUseExponentialBackOff = boost::get<bool>(vars.at("lazyHealthCheckUseExponentialBackOff"));
+                         }
+
+                         if (vars.count("lazyHealthCheckMaxBackOff")) {
+                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
+                           checkParameterBound("lazyHealthCheckMaxBackOff", value);
+                           config.d_lazyHealthChecksMaxBackOff = value;
+                         }
+
                          if (vars.count("lazyHealthCheckMode")) {
                            auto mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
                            if (pdns_iequals(mode, "TimeoutOnly")) {
