@@ -1762,6 +1762,12 @@ Other functions
   :param int numberOfDaysOfValidity: Number of days this OCSP response should be valid.
   :param int numberOfMinutesOfValidity: Number of minutes this OCSP response should be valid, in addition to the number of days.
 
+.. function:: getRingEntries()
+
+  .. versionadded:: 1.8.0
+
+  Return a list of all the entries, queries and responses alike, that are present in the in-memory ring buffers, as :class:`LuaRingEntry` objects.
+
 .. function:: loadTLSEngine(engineName [, defaultString])
 
   .. versionadded:: 1.8.0
@@ -1852,6 +1858,76 @@ DOHFrontend
   :param int status: The HTTP code to answer with.
   :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
   :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
+
+LuaRingEntry
+~~~~~~~~~~~~
+
+.. class:: LuaRingEntry
+
+  .. versionadded:: 1.8.0
+
+  This object represents an entry from the in-memory ring buffers, query or response.
+
+  .. attribute:: LuaRingEntry.backend
+
+    If this entry is a response, the backend from which it has been received as a :ref:`ComboAddress`.
+
+.. attribute:: LuaRingEntry.dnsheader
+
+    The :ref:`DNSHeader` of this entry.
+
+  .. attribute:: LuaRingEntry.isResponse
+
+    Whether this entry is a response (true) or a request (false).
+
+  .. attribute:: LuaRingEntry.macAddress
+
+    The MAC address of the client as a string, if available.
+
+  .. attribute:: LuaRingEntry.protocol
+
+    The protocol (Do53 UDP, Do53 TCP, DoT, DoH, ...) over which this entry was received, as a string.
+
+  .. attribute:: LuaRingEntry.qname
+
+    The qname of this entry as a :ref:`DNSName`.
+
+  .. attribute:: LuaRingEntry.qtype
+
+    The qtype of this entry as an integer.
+
+  .. attribute:: LuaRingEntry.requestor
+
+    The requestor (client IP) of this entry as a :ref:`ComboAddress`.
+
+  .. attribute:: LuaRingEntry.size
+
+    The size of the DNS payload of that entry, in bytes.
+
+.. attribute:: LuaRingEntry.usec
+
+    The response time (elapsed time between the request was received and the response sent) in milliseconds.
+
+.. attribute:: LuaRingEntry.when
+
+    The timestamp of this entry, as a :ref:`timespec`.
+
+timespec
+~~~~~~~~
+
+.. class:: timespec
+
+  .. versionadded:: 1.8.0
+
+  This object represents a timestamp in the timespec format.
+
+  .. attribute:: timespec.tv_sec
+
+    Number of seconds elapsed since Unix epoch.
+
+  .. attribute:: timespec.tv_nsec
+
+    Number of remaining nanoseconds elapsed since Unix epoch after subtracting the seconds from the `tv_sec` field.
 
 TLSContext
 ~~~~~~~~~~
