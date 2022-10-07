@@ -1735,6 +1735,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  luaCtx.writeFunction("getPoolNames", []() {
+    setLuaNoSideEffect();
+    LuaArray<std::string> ret;
+        int count = 1;
+    const auto localPools = g_pools.getCopy();
+    for (const auto& entry : localPools) {
+      const string& name = entry.first;
+      ret.push_back(make_pair(count++, name));
+
+    }
+    return ret;
+  });
+
   luaCtx.writeFunction("getPool", [client](const string& poolName) {
     if (client) {
       return std::make_shared<ServerPool>();

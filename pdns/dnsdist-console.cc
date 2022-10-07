@@ -526,6 +526,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getOutgoingTLSSessionCacheSize", true, "", "returns the number of TLS sessions (for outgoing connections) currently cached" },
   { "getPool", true, "name", "return the pool named `name`, or \"\" for the default pool" },
   { "getPoolServers", true, "pool", "return servers part of this pool" },
+  { "getPoolNames", true, "", "returns a table with all the pool names" },
   { "getQueryCounters", true, "[max=10]", "show current buffer of query counters, limited by 'max' if provided" },
   { "getResponseRing", true, "", "return the current content of the response ring" },
   { "getRespRing", true, "", "return the qname/rcode content of the response ring" },
