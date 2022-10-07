@@ -127,16 +127,16 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
   return downstream;
 }
 
-static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int crossProtocolResponsesListenPipeFD, int crossProtocolResponsesWritePipeFD);
+static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int crossProtocolResponsesListenPipeFD, int crossProtocolResponsesWritePipeFD, std::vector<ClientState*> tcpAcceptStates);
 
-TCPClientCollection::TCPClientCollection(size_t maxThreads): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads)
+TCPClientCollection::TCPClientCollection(size_t maxThreads, std::vector<ClientState*> tcpAcceptStates): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads)
 {
   for (size_t idx = 0; idx < maxThreads; idx++) {
-    addTCPClientThread();
+    addTCPClientThread(tcpAcceptStates);
   }
 }
 
-void TCPClientCollection::addTCPClientThread()
+void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates)
 {
   auto preparePipe = [](int fds[2], const std::string& type) -> bool {
     if (pipe(fds) < 0) {
@@ -200,7 +200,7 @@ void TCPClientCollection::addTCPClientThread()
        no need to worry about it */
     TCPWorkerThread worker(pipefds[1], crossProtocolQueriesFDs[1], crossProtocolResponsesFDs[1]);
     try {
-      std::thread t1(tcpClientThread, pipefds[0], crossProtocolQueriesFDs[0], crossProtocolResponsesFDs[0], crossProtocolResponsesFDs[1]);
+      std::thread t1(tcpClientThread, pipefds[0], crossProtocolQueriesFDs[0], crossProtocolResponsesFDs[0], crossProtocolResponsesFDs[1], tcpAcceptStates);
       t1.detach();
     }
     catch (const std::runtime_error& e) {
@@ -1261,7 +1261,17 @@ static void handleCrossProtocolResponse(int pipefd, FDMultiplexer::funcparam_t& 
   }
 }
 
-static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int crossProtocolResponsesListenPipeFD, int crossProtocolResponsesWritePipeFD)
+struct TCPAcceptorParam
+{
+  ClientState& cs;
+  ComboAddress local;
+  LocalStateHolder<NetmaskGroup>& acl;
+  int socket{-1};
+};
+
+static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadData* threadData);
+
+static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int crossProtocolResponsesListenPipeFD, int crossProtocolResponsesWritePipeFD, std::vector<ClientState*> tcpAcceptStates)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
@@ -1275,6 +1285,29 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
     data.mplexer->addReadFD(pipefd, handleIncomingTCPQuery, &data);
     data.mplexer->addReadFD(crossProtocolQueriesPipeFD, handleCrossProtocolQuery, &data);
     data.mplexer->addReadFD(crossProtocolResponsesListenPipeFD, handleCrossProtocolResponse, &data);
+
+    /* only used in single acceptor mode for now */
+    auto acl = g_ACL.getLocal();
+    std::vector<TCPAcceptorParam> acceptParams;
+    acceptParams.reserve(tcpAcceptStates.size());
+
+    for (auto& state : tcpAcceptStates) {
+      acceptParams.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+      for (const auto& [addr, socket] : state->d_additionalAddresses) {
+        acceptParams.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+      }
+    }
+
+    auto acceptCallback = [&data](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      auto acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
+      acceptNewConnection(*acceptorParam, &data);
+    };
+
+    for (size_t idx = 0; idx < acceptParams.size(); idx++) {
+      const auto& param = acceptParams.at(idx);
+      setNonBlocking(param.socket);
+      data.mplexer->addReadFD(param.socket, acceptCallback, &param);
+    }
 
     struct timeval now;
     gettimeofday(&now, nullptr);
@@ -1366,86 +1399,135 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
   }
 }
 
-/* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and
-   they will hand off to worker threads & spawn more of them if required
-*/
-void tcpAcceptorThread(ClientState* cs)
+static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadData* threadData)
 {
-  setThreadName("dnsdist/tcpAcce");
-
+  auto& cs = param.cs;
+  auto& acl = param.acl;
+  int socket = param.socket;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
-  remote.sin4.sin_family = cs->local.sin4.sin_family;
+  remote.sin4.sin_family = param.local.sin4.sin_family;
 
-  auto acl = g_ACL.getLocal();
-  for(;;) {
-    std::unique_ptr<ConnectionInfo> ci;
-    tcpClientCountIncremented = false;
-    try {
-      socklen_t remlen = remote.getSocklen();
-      ci = std::make_unique<ConnectionInfo>(cs);
+  std::unique_ptr<ConnectionInfo> ci;
+  tcpClientCountIncremented = false;
+  try {
+    socklen_t remlen = remote.getSocklen();
+    ci = std::make_unique<ConnectionInfo>(&cs);
 #ifdef HAVE_ACCEPT4
-      ci->fd = accept4(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
+    ci->fd = accept4(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
 #else
-      ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
+    ci->fd = accept(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
-      // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
-      auto concurrentConnections = ++cs->tcpCurrentConnections;
-      if (cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs->d_tcpConcurrentConnectionsLimit) {
-        continue;
-      }
+    if (ci->fd < 0) {
+      throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
+    }
 
-      if (concurrentConnections > cs->tcpMaxConcurrentConnections.load()) {
-        cs->tcpMaxConcurrentConnections.store(concurrentConnections);
-      }
+    if (!acl->match(remote)) {
+      ++g_stats.aclDrops;
+      vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
+      return;
+    }
 
-      if (ci->fd < 0) {
-        throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
-      }
+    // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
+    auto concurrentConnections = ++cs.tcpCurrentConnections;
+    if (cs.d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs.d_tcpConcurrentConnectionsLimit) {
+      return;
+    }
 
-      if (!acl->match(remote)) {
-	++g_stats.aclDrops;
-	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
-	continue;
-      }
+    if (concurrentConnections > cs.tcpMaxConcurrentConnections.load()) {
+      cs.tcpMaxConcurrentConnections.store(concurrentConnections);
+    }
 
 #ifndef HAVE_ACCEPT4
-      if (!setNonBlocking(ci->fd)) {
-        continue;
-      }
+    if (!setNonBlocking(ci->fd)) {
+      return;
+    }
 #endif
-      setTCPNoDelay(ci->fd);  // disable NAGLE
-      if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
-        vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
-        continue;
+
+    setTCPNoDelay(ci->fd);  // disable NAGLE
+
+    if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
+      vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
+      return;
+    }
+
+    if (g_maxTCPConnectionsPerClient) {
+      auto tcpClientsCount = s_tcpClientsCount.lock();
+
+      if ((*tcpClientsCount)[remote] >= g_maxTCPConnectionsPerClient) {
+        vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
+        return;
       }
+      (*tcpClientsCount)[remote]++;
+      tcpClientCountIncremented = true;
+    }
 
-      if (g_maxTCPConnectionsPerClient) {
-        auto tcpClientsCount = s_tcpClientsCount.lock();
+    vinfolog("Got TCP connection from %s", remote.toStringWithPort());
 
-        if ((*tcpClientsCount)[remote] >= g_maxTCPConnectionsPerClient) {
-          vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
-          continue;
-        }
-        (*tcpClientsCount)[remote]++;
-        tcpClientCountIncremented = true;
-      }
-
-      vinfolog("Got TCP connection from %s", remote.toStringWithPort());
-
-      ci->remote = remote;
+    ci->remote = remote;
+    if (threadData == nullptr) {
       if (!g_tcpclientthreads->passConnectionToThread(std::move(ci))) {
         if (tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
       }
     }
-    catch (const std::exception& e) {
-      errlog("While reading a TCP question: %s", e.what());
-      if (tcpClientCountIncremented) {
-        decrementTCPClientCount(remote);
-      }
+    else {
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+      auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*ci), *threadData, now);
+      IncomingTCPConnectionState::handleIO(state, now);
     }
-    catch (...){}
+  }
+  catch (const std::exception& e) {
+    errlog("While reading a TCP question: %s", e.what());
+    if (tcpClientCountIncremented) {
+      decrementTCPClientCount(remote);
+    }
+  }
+  catch (...){}
+}
+
+/* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and
+   they will hand off to worker threads & spawn more of them if required
+*/
+#ifndef USE_SINGLE_ACCEPTOR_THREAD
+void tcpAcceptorThread(std::vector<ClientState*> states)
+{
+  setThreadName("dnsdist/tcpAcce");
+
+  auto acl = g_ACL.getLocal();
+  std::vector<TCPAcceptorParam> params;
+  params.reserve(states.size());
+
+  for (auto& state : states) {
+    params.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+    for (const auto& [addr, socket] : state->d_additionalAddresses) {
+      params.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+    }
+  }
+
+  if (params.size() == 1) {
+    while (true) {
+      acceptNewConnection(params.at(0), nullptr);
+    }
+  }
+  else {
+    auto acceptCallback = [](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      auto acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
+      acceptNewConnection(*acceptorParam, nullptr);
+    };
+
+    auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    for (size_t idx = 0; idx < params.size(); idx++) {
+      const auto& param = params.at(idx);
+      mplexer->addReadFD(param.socket, acceptCallback, &param);
+    }
+
+    struct timeval tv;
+    while (true) {
+      mplexer->run(&tv);
+    }
   }
 }
+#endif

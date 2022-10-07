@@ -1736,7 +1736,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 #endif /* DISABLE_RECVMMSG */
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
-static void udpClientThread(ClientState* cs)
+static void udpClientThread(std::vector<ClientState*> states)
 {
   try {
     setThreadName("dnsdist/udpClie");
@@ -1744,7 +1744,7 @@ static void udpClientThread(ClientState* cs)
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
     if (g_udpVectorSize > 1) {
-      MultipleMessagesUDPClientThread(cs, holders);
+      MultipleMessagesUDPClientThread(states.at(0), holders);
     }
     else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -1755,49 +1755,84 @@ static void udpClientThread(ClientState* cs)
          - we use it for self-generated responses (from rule or cache)
          but we only accept incoming payloads up to that size
       */
+      struct UDPStateParam
+      {
+        ClientState* cs{nullptr};
+        size_t maxIncomingPacketSize{0};
+        int socket{-1};
+      };
       const size_t initialBufferSize = getInitialUDPPacketBufferSize();
-      const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*cs);
       PacketBuffer packet(initialBufferSize);
 
       struct msghdr msgh;
       struct iovec iov;
-      /* used by HarvestDestinationAddress */
-      cmsgbuf_aligned cbuf;
-
       ComboAddress remote;
       ComboAddress dest;
-      remote.sin4.sin_family = cs->local.sin4.sin_family;
-      fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), maxIncomingPacketSize, &remote);
 
-      for(;;) {
+      auto handleOnePacket = [&packet, &iov, &holders, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
         packet.resize(initialBufferSize);
         iov.iov_base = &packet.at(0);
         iov.iov_len = packet.size();
 
-        ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
+        ssize_t got = recvmsg(param.socket, &msgh, 0);
 
         if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
           ++g_stats.nonCompliantQueries;
-          ++cs->nonCompliantQueries;
-          continue;
+          ++param.cs->nonCompliantQueries;
+          return;
         }
 
         packet.resize(static_cast<size_t>(got));
 
-        processUDPQuery(*cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+        processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+      };
+
+      std::vector<UDPStateParam> params;
+      for (auto& state : states) {
+        const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*state);
+        params.emplace_back(UDPStateParam{state, maxIncomingPacketSize, state->udpFD});
+      }
+
+      if (params.size() == 1) {
+        auto param = params.at(0);
+        remote.sin4.sin_family = param.cs->local.sin4.sin_family;
+        /* used by HarvestDestinationAddress */
+        cmsgbuf_aligned cbuf;
+        fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param.maxIncomingPacketSize, &remote);
+        while (true) {
+          handleOnePacket(param);
+        }
+      }
+      else {
+        auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
+          auto param = boost::any_cast<const UDPStateParam*>(funcparam);
+          remote.sin4.sin_family = param->cs->local.sin4.sin_family;
+          packet.resize(initialBufferSize);
+          /* used by HarvestDestinationAddress */
+          cmsgbuf_aligned cbuf;
+          fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
+          handleOnePacket(*param);
+        };
+        auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+        for (size_t idx = 0; idx < params.size(); idx++) {
+          const auto& param = params.at(idx);
+          mplexer->addReadFD(param.socket, callback, &param);
+        }
+
+        struct timeval tv;
+        while (true) {
+          mplexer->run(&tv);
+        }
       }
     }
   }
-  catch(const std::exception &e)
-  {
+  catch (const std::exception &e) {
     errlog("UDP client thread died because of exception: %s", e.what());
   }
-  catch(const PDNSException &e)
-  {
+  catch (const PDNSException &e) {
     errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
   }
-  catch(...)
-  {
+  catch (...) {
     errlog("UDP client thread died because of an exception: %s", "unknown");
   }
 }
@@ -2050,149 +2085,159 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 
 static bool g_warned_ipv6_recvpktinfo = false;
 
-static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
+static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
 {
-  /* skip some warnings if there is an identical UDP context */
-  bool warn = cs->tcp == false || cs->tlsFrontend != nullptr || cs->dohFrontend != nullptr;
-  int& fd = cs->tcp == false ? cs->udpFD : cs->tcpFD;
-  (void) warn;
+  auto setupSocket = [](ClientState& cs, const ComboAddress& addr, int& socket, bool tcp, bool warn) {
+    (void) warn;
+    socket = SSocket(addr.sin4.sin_family, tcp == false ? SOCK_DGRAM : SOCK_STREAM, 0);
 
-  fd = SSocket(cs->local.sin4.sin_family, cs->tcp == false ? SOCK_DGRAM : SOCK_STREAM, 0);
-
-  if (cs->tcp) {
-    SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+    if (tcp) {
+      SSetsockopt(socket, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+      SSetsockopt(socket, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
-    if (cs->fastOpenQueueSize > 0) {
+      if (cs.fastOpenQueueSize > 0) {
 #ifdef TCP_FASTOPEN
-      SSetsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, cs->fastOpenQueueSize);
+        SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, cs.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
-      if (!g_TCPFastOpenKey.empty()) {
-        auto res = setsockopt(fd, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
-        if (res == -1)
-          throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
+        if (!g_TCPFastOpenKey.empty()) {
+          auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
+          if (res == -1) {
+            throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
+          }
+        }
+#endif /* TCP_FASTOPEN_KEY */
+#else /* TCP_FASTOPEN */
+        if (warn) {
+          warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", addr.toStringWithPort());
+        }
+#endif /* TCP_FASTOPEN */
       }
-#endif
-#else
-      if (warn) {
-        warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
-      }
-#endif
     }
-  }
 
-  if(cs->local.sin4.sin_family == AF_INET6) {
-    SSetsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-  }
+    if (addr.sin4.sin_family == AF_INET6) {
+      SSetsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
 
-  bindAny(cs->local.sin4.sin_family, fd);
+    bindAny(addr.sin4.sin_family, socket);
 
-  if(!cs->tcp && IsAnyAddress(cs->local)) {
-    int one=1;
-    (void)setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
+    if (!tcp && IsAnyAddress(addr)) {
+      int one = 1;
+      (void) setsockopt(socket, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-    if (cs->local.isIPv6() && setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
-        !g_warned_ipv6_recvpktinfo) {
+      if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
+          !g_warned_ipv6_recvpktinfo) {
         warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
         g_warned_ipv6_recvpktinfo = true;
-    }
+      }
 #endif
-  }
+    }
 
-  if (cs->reuseport) {
-    if (!setReusePort(fd)) {
-      if (warn) {
-        /* no need to warn again if configured but support is not available, we already did for UDP */
-        warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+    if (cs.reuseport) {
+      if (!setReusePort(socket)) {
+        if (warn) {
+          /* no need to warn again if configured but support is not available, we already did for UDP */
+          warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort());
+        }
       }
     }
-  }
 
-  /* Only set this on IPv4 UDP sockets.
-     Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
-     purposes, so we do receive large, sometimes fragmented datagrams. */
-  if (!cs->tcp && !cs->dnscryptCtx) {
-    try {
-      setSocketIgnorePMTU(cs->udpFD, cs->local.sin4.sin_family);
-    }
-    catch(const std::exception& e) {
-      warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", cs->local.toStringWithPort(), e.what());
-    }
-  }
-
-  if (!cs->tcp) {
-    if (g_socketUDPSendBuffer > 0) {
+    /* Only set this on IPv4 UDP sockets.
+       Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
+       purposes, so we do receive large, sometimes fragmented datagrams. */
+    if (!tcp && !cs.dnscryptCtx) {
       try {
-        setSocketSendBuffer(cs->udpFD, g_socketUDPSendBuffer);
+        setSocketIgnorePMTU(socket, addr.sin4.sin_family);
       }
       catch (const std::exception& e) {
-        warnlog(e.what());
+        warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", addr.toStringWithPort(), e.what());
       }
     }
 
-    if (g_socketUDPRecvBuffer > 0) {
-      try {
-        setSocketReceiveBuffer(cs->udpFD, g_socketUDPRecvBuffer);
+    if (!tcp) {
+      if (g_socketUDPSendBuffer > 0) {
+        try {
+          setSocketSendBuffer(socket, g_socketUDPSendBuffer);
+        }
+        catch (const std::exception& e) {
+          warnlog(e.what());
+        }
       }
-      catch (const std::exception& e) {
-        warnlog(e.what());
+
+      if (g_socketUDPRecvBuffer > 0) {
+        try {
+          setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
+        }
+        catch (const std::exception& e) {
+          warnlog(e.what());
+        }
       }
     }
-  }
 
-  const std::string& itf = cs->interface;
-  if (!itf.empty()) {
+    const std::string& itf = cs.interface;
+    if (!itf.empty()) {
 #ifdef SO_BINDTODEVICE
-    int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-    if (res != 0) {
-      warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), stringerror());
-    }
+      int res = setsockopt(socket, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", addr.toStringWithPort(), stringerror());
+      }
 #else
-    if (warn) {
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", cs->local.toStringWithPort());
-    }
+      if (warn) {
+        warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", addr.toStringWithPort());
+      }
 #endif
-  }
+    }
 
 #ifdef HAVE_EBPF
-  if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
-    cs->attachFilter(g_defaultBPFFilter);
-    vinfolog("Attaching default BPF Filter to %s frontend %s", (!cs->tcp ? "UDP" : "TCP"), cs->local.toStringWithPort());
-  }
+    if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
+      cs.attachFilter(g_defaultBPFFilter, socket);
+      vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? "UDP" : "TCP"), addr.toStringWithPort());
+    }
 #endif /* HAVE_EBPF */
 
-  if (cs->tlsFrontend != nullptr) {
-    if (!cs->tlsFrontend->setupTLS()) {
-      errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+    SBind(socket, addr);
+
+    if (tcp) {
+      SListen(socket, cs.tcpListenQueueSize);
+
+      if (cs.tlsFrontend != nullptr) {
+        infolog("Listening on %s for TLS", addr.toStringWithPort());
+      }
+      else if (cs.dohFrontend != nullptr) {
+        infolog("Listening on %s for DoH", addr.toStringWithPort());
+      }
+      else if (cs.dnscryptCtx != nullptr) {
+        infolog("Listening on %s for DNSCrypt", addr.toStringWithPort());
+      }
+      else {
+        infolog("Listening on %s", addr.toStringWithPort());
+      }
+    }
+  };
+
+  /* skip some warnings if there is an identical UDP context */
+  bool warn = cstate->tcp == false || cstate->tlsFrontend != nullptr || cstate->dohFrontend != nullptr;
+  int& fd = cstate->tcp == false ? cstate->udpFD : cstate->tcpFD;
+  (void) warn;
+
+  setupSocket(*cstate, cstate->local, fd, cstate->tcp, warn);
+
+  for (auto& [addr, socket] : cstate->d_additionalAddresses) {
+    setupSocket(*cstate, addr, socket, true, false);
+  }
+
+  if (cstate->tlsFrontend != nullptr) {
+    if (!cstate->tlsFrontend->setupTLS()) {
+      errlog("Error while setting up TLS on local address '%s', exiting", cstate->local.toStringWithPort());
       _exit(EXIT_FAILURE);
     }
   }
 
-  if (cs->dohFrontend != nullptr) {
-    cs->dohFrontend->setup();
+  if (cstate->dohFrontend != nullptr) {
+    cstate->dohFrontend->setup();
   }
 
-  SBind(fd, cs->local);
-
-  if (cs->tcp) {
-    SListen(cs->tcpFD, cs->tcpListenQueueSize);
-
-    if (cs->tlsFrontend != nullptr) {
-      infolog("Listening on %s for TLS", cs->local.toStringWithPort());
-    }
-    else if (cs->dohFrontend != nullptr) {
-      infolog("Listening on %s for DoH", cs->local.toStringWithPort());
-    }
-    else if (cs->dnscryptCtx != nullptr) {
-      infolog("Listening on %s for DNSCrypt", cs->local.toStringWithPort());
-    }
-    else {
-      infolog("Listening on %s", cs->local.toStringWithPort());
-    }
-  }
-
-  cs->ready = true;
+  cstate->ready = true;
 }
 
 struct
@@ -2689,7 +2734,9 @@ int main(int argc, char** argv)
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing
        the first TCP query */
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads);
+#ifndef USE_SINGLE_ACCEPTOR_THREAD
+    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
+#endif
 
     initDoHWorkers();
 
@@ -2734,6 +2781,8 @@ int main(int argc, char** argv)
       handleQueuedHealthChecks(*mplexer, true);
     }
 
+    std::vector<ClientState*> tcpStates;
+    std::vector<ClientState*> udpStates;
     for(auto& cs : g_frontends) {
       if (cs->dohFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -2746,21 +2795,37 @@ int main(int argc, char** argv)
         continue;
       }
       if (cs->udpFD >= 0) {
-        thread t1(udpClientThread, cs.get());
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+        udpStates.push_back(cs.get());
+#else /* USE_SINGLE_ACCEPTOR_THREAD */
+        thread t1(udpClientThread, std::vector<ClientState*>{ cs.get() });
         if (!cs->cpus.empty()) {
           mapThreadToCPUList(t1.native_handle(), cs->cpus);
         }
         t1.detach();
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
       }
       else if (cs->tcpFD >= 0) {
-        thread t1(tcpAcceptorThread, cs.get());
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+        tcpStates.push_back(cs.get());
+#else /* USE_SINGLE_ACCEPTOR_THREAD */
+        thread t1(tcpAcceptorThread, std::vector<ClientState*>{cs.get() });
         if (!cs->cpus.empty()) {
           mapThreadToCPUList(t1.native_handle(), cs->cpus);
         }
         t1.detach();
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
       }
     }
-
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+    if (!udpStates.empty()) {
+      thread udp(udpClientThread, udpStates);
+      udp.detach();
+    }
+    if (!tcpStates.empty()) {
+      g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
+    }
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
     dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON

@@ -1404,7 +1404,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   h2o_accept(conn.d_acceptCtx->get(), sock);
 }
 
-static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerConfig>& dsc, int fd)
+static int create_listener(std::shared_ptr<DOHServerConfig>& dsc, int fd)
 {
   auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
   sock->data = dsc.get();
@@ -1629,8 +1629,13 @@ void dohThread(ClientState* cs)
 
     setupAcceptContext(*dsc->accept_ctx, *dsc, false);
 
-    if (create_listener(df->d_local, dsc, cs->tcpFD) != 0) {
+    if (create_listener(dsc, cs->tcpFD) != 0) {
       throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));
+    }
+    for (const auto& [addr, fd] : cs->d_additionalAddresses) {
+      if (create_listener(dsc, fd) != 0) {
+        throw std::runtime_error("DOH server failed to listen on additional address " + addr.toStringWithPort() + " for DOH local" + df->d_local.toStringWithPort() + ": " + strerror(errno));
+      }
     }
 
     bool stop = false;
