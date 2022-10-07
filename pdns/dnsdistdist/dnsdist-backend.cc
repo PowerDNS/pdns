@@ -567,6 +567,8 @@ time_t DownstreamState::getNextLazyHealthCheck()
 void DownstreamState::submitHealthCheckResult(bool initial, bool newState)
 {
   if (initial) {
+    /* if this is the initial health-check, at startup, we do not care
+       about the minimum number of failed/successful health-checks */
     if (!IsAnyAddress(d_config.remote)) {
       infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
     }
@@ -579,15 +581,17 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newState)
     currentCheckFailures = 0;
 
     if (!upStatus) {
-      /* we were marked as down */
+      /* we were previously marked as "down" and had a successful health-check,
+         let's see if this is enough to move to the "up" state or if we need
+         more successful health-checks for that */
       consecutiveSuccessfulChecks++;
       if (consecutiveSuccessfulChecks < d_config.minRiseSuccesses) {
-        /* if we need more than one successful check to rise
-           and we didn't reach the threshold yet,
-           let's stay down */
+        /* we need more than one successful check to rise
+           and we didn't reach the threshold yet, let's stay down */
         newState = false;
       }
     }
+
     if (newState) {
       if (d_config.availability == DownstreamState::Availability::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
@@ -600,7 +604,9 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newState)
     consecutiveSuccessfulChecks = 0;
 
     if (upStatus) {
-      /* we are currently up */
+      /* we were previously marked as "up" and failed a health-check,
+         let's see if this is enough to move to the "down" state or if
+         need more failed checks for that */
       currentCheckFailures++;
       if (currentCheckFailures < d_config.maxCheckFailures) {
         /* we need more than one failure to be marked as down,
@@ -617,6 +623,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newState)
   }
 
   if (newState != upStatus) {
+    /* we are actually moving to a new state */
     if (!IsAnyAddress(d_config.remote)) {
       infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
     }
