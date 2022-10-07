@@ -61,7 +61,7 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
   });
 
   luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::NetworkListener>::*)(const std::string&, uint16_t, std::function<void(uint16_t, std::string & dgram, const std::string& from)>)>("addUnixListeningEndpoint", [client](std::shared_ptr<dnsdist::NetworkListener>& listener, const std::string& path, uint16_t endpointID, std::function<void(uint16_t endpoint, std::string & dgram, const std::string& from)> cb) {
-    if (client) {
+    if (client || !cb) {
       return false;
     }
 

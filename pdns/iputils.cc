@@ -591,6 +591,10 @@ std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string
 #if HAVE_GETIFADDRS
 static uint8_t convertNetmaskToBits(const struct in_addr* mask, socklen_t len)
 {
+  if (mask == nullptr || len > 128) {
+    throw std::runtime_error("Invalid parameters passed to convertNetmaskToBits");
+  }
+
   uint8_t result = 0;
   // for all bytes in the address (4 for IPv4, 16 for IPv6)
   for (size_t idx = 0; idx < len; idx++) {
