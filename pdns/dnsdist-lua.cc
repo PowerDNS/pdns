@@ -1743,7 +1743,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     for (const auto& entry : localPools) {
       const string& name = entry.first;
       ret.push_back(make_pair(count++, name));
-
     }
     return ret;
   });
