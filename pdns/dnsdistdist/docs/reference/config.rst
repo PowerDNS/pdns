@@ -779,6 +779,8 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
 .. function:: getPoolNames() -> [ table of names]
 
+  .. versionadded:: 1.8.0
+
   Returns a table of all pool names
 
 .. function:: showPools()
