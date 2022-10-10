@@ -22,6 +22,7 @@
 
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
+#include "dnsdist-lua-network.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
@@ -1083,4 +1084,43 @@ size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_en
   }
   return count;
 #endif
+}
+
+struct dnsdist_ffi_network_endpoint_t
+{
+  dnsdist::NetworkEndpoint d_endpoint;
+};
+
+bool dnsdist_ffi_network_endpoint_new(const char* path, size_t pathSize, dnsdist_ffi_network_endpoint_t** out)
+{
+  if (path == nullptr || pathSize == 0 || out == nullptr) {
+    return false;
+  }
+  try {
+    dnsdist::NetworkEndpoint endpoint(std::string(path, pathSize));
+    *out = new dnsdist_ffi_network_endpoint_t{std::move(endpoint)};
+    return true;
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error creating a new network endpoint: %s", e.what());
+    return false;
+  }
+}
+
+bool dnsdist_ffi_network_endpoint_is_valid(const dnsdist_ffi_network_endpoint_t* endpoint)
+{
+  return endpoint != nullptr;
+}
+
+bool dnsdist_ffi_network_endpoint_send(const dnsdist_ffi_network_endpoint_t* endpoint, const char* payload, size_t payloadSize)
+{
+  if (endpoint != nullptr && payload != nullptr && payloadSize != 0) {
+    return endpoint->d_endpoint.send(std::string_view(payload, payloadSize));
+  }
+  return false;
+}
+
+void dnsdist_ffi_network_endpoint_free(dnsdist_ffi_network_endpoint_t* endpoint)
+{
+  delete endpoint;
 }

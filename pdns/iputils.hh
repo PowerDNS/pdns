@@ -1707,6 +1707,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 
 std::set<std::string> getListOfNetworkInterfaces();
 std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf);
+std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf);
 
 /* These functions throw if the value was already set to a higher value,
    or on error */

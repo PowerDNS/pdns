@@ -29,6 +29,9 @@
 
 void setupLuaBindings(LuaContext& luaCtx, bool client)
 {
+  luaCtx.writeFunction("vinfolog", [](const string& arg) {
+      vinfolog("%s", arg);
+    });
   luaCtx.writeFunction("infolog", [](const string& arg) {
       infolog("%s", arg);
     });
@@ -739,6 +742,16 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.writeFunction("getListOfAddressesOfNetworkInterface", [](const std::string& itf) {
     LuaArray<std::string> result;
     auto addrs = getListOfAddressesOfNetworkInterface(itf);
+    int counter = 1;
+    for (const auto& addr : addrs) {
+      result.push_back({counter++, addr.toString()});
+    }
+    return result;
+  });
+
+  luaCtx.writeFunction("getListOfRangesOfNetworkInterface", [](const std::string& itf) {
+    LuaArray<std::string> result;
+    auto addrs = getListOfRangesOfNetworkInterface(itf);
     int counter = 1;
     for (const auto& addr : addrs) {
       result.push_back({counter++, addr.toString()});
