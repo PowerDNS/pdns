@@ -155,7 +155,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
       pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
       ComboAddress v6("2001:db8::1");
       pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
-      pwR.xfr32BitInt(0x01020304);
       pwR.commit();
 
       uint32_t key = 0;
@@ -249,7 +248,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
     pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
     ComboAddress v6("2001:db8::1");
     pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
-    pwR.xfr32BitInt(0x01020304);
     pwR.commit();
 
     {
@@ -436,6 +434,59 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
+  catch(const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
+
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  bool dnssecOK = false;
+
+  try {
+    DNSName name("truncated");
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 0;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->tc = 1;
+    pwR.getHeader()->rcode = RCode::NoError;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.commit();
+    pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfr32BitInt(0x01020304);
+    pwR.commit();
+
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, query, dnsdist::Protocol::DoUDP, &queryTime);
+    bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, name, QType::A, QClass::IN, response, receivedOverUDP, RCode::NXDomain, boost::none);
+
+    bool allowTruncated = true;
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
+    BOOST_CHECK_EQUAL(found, true);
+    BOOST_CHECK(!subnet);
+
+    allowTruncated = false;
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
+    BOOST_CHECK_EQUAL(found, false);
+}
   catch(const PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
     throw;
