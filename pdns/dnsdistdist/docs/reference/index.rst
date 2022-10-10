@@ -16,6 +16,7 @@ These chapters contain extensive information on all functions and object availab
   dq
   ebpf
   dnscrypt
+  dnsparser
   protobuf
   dnstap
   carbon

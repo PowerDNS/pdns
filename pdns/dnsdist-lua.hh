@@ -146,6 +146,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
 void setupLuaActions(LuaContext& luaCtx);
 void setupLuaBindings(LuaContext& luaCtx, bool client);
 void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
+void setupLuaBindingsDNSParser(LuaContext& luaCtx);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
 void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client);

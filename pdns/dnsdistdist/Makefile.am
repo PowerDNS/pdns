@@ -140,6 +140,7 @@ dnsdist_SOURCES = \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
+	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
@@ -150,6 +151,7 @@ dnsdist_SOURCES = \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings-dnscrypt.cc \
+	dnsdist-lua-bindings-dnsparser.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings-network.cc \
@@ -242,6 +244,7 @@ testrunner_SOURCES = \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
@@ -299,6 +302,7 @@ testrunner_SOURCES = \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
+	test-dnsdist-dnsparser.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
