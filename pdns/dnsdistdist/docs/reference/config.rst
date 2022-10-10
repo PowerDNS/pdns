@@ -1710,13 +1710,13 @@ Other functions
 
 .. function:: threadmessage(cmd, dict)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   This function, if it exists, is called when a separate thread (made with :func:`newThread`) calls :func:`submitToMainThread`.
 
 .. function:: newThread(code)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
@@ -1724,7 +1724,7 @@ Other functions
 
 .. function:: submitToMainThread(cmd, dict)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   Must be called from a separate thread (made with :func:`newThread`), submits data to the main thread by calling :func:`threadmessage` in it.
   If no ``threadmessage`` receiver is present in the main thread, ``submitToMainThread`` logs an error but returns normally.
