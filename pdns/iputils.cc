@@ -591,7 +591,7 @@ std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string
 #if HAVE_GETIFADDRS
 static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
 {
-  if (mask == nullptr || len > 128) {
+  if (mask == nullptr || len > 16) {
     throw std::runtime_error("Invalid parameters passed to convertNetmaskToBits");
   }
 
@@ -635,12 +635,12 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
 
     if (ifa->ifa_addr->sa_family == AF_INET) {
       auto netmask = reinterpret_cast<const struct sockaddr_in*>(ifa->ifa_netmask);
-      uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin_addr.s_addr), 4);
+      uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin_addr.s_addr), sizeof(netmask->sin_addr.s_addr));
       result.emplace_back(addr, maskBits);
     }
     else if (ifa->ifa_addr->sa_family == AF_INET6) {
       auto netmask = reinterpret_cast<const struct sockaddr_in6*>(ifa->ifa_netmask);
-      uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin6_addr.s6_addr), 16);
+      uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin6_addr.s6_addr), sizeof(netmask->sin6_addr.s6_addr));
       result.emplace_back(addr, maskBits);
     }
   }
