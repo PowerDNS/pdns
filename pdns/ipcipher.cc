@@ -21,8 +21,9 @@ std::string makeIPCipherKey(const std::string& password)
 
 static ComboAddress encryptCA4(const ComboAddress& ca, const std::string& key)
 {
-  if (key.size() != 16)
+  if (key.size() != 16) {
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
+  }
 
   ComboAddress ret = ca;
 
@@ -36,8 +37,9 @@ static ComboAddress encryptCA4(const ComboAddress& ca, const std::string& key)
 
 static ComboAddress decryptCA4(const ComboAddress& ca, const std::string& key)
 {
-  if (key.size() != 16)
+  if (key.size() != 16) {
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
+  }
 
   ComboAddress ret = ca;
 
@@ -49,30 +51,33 @@ static ComboAddress decryptCA4(const ComboAddress& ca, const std::string& key)
   return ret;
 }
 
-static ComboAddress encryptCA6(const ComboAddress& ca, const std::string& key)
+static ComboAddress encryptCA6(const ComboAddress& address, const std::string& key)
 {
-  if (key.size() != 16)
+  if (key.size() != 16) {
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
+  }
 
-  ComboAddress ret = ca;
+  ComboAddress ret = address;
 
   AES_KEY wctx;
   AES_set_encrypt_key((const unsigned char*)key.c_str(), 128, &wctx);
-  AES_encrypt((const unsigned char*)&ca.sin6.sin6_addr.s6_addr,
+  AES_encrypt((const unsigned char*)&address.sin6.sin6_addr.s6_addr,
               (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);
 
   return ret;
 }
 
-static ComboAddress decryptCA6(const ComboAddress& ca, const std::string& key)
+static ComboAddress decryptCA6(const ComboAddress& address, const std::string& key)
 {
-  if (key.size() != 16)
+  if (key.size() != 16) {
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
+  }
 
-  ComboAddress ret = ca;
+  ComboAddress ret = address;
+
   AES_KEY wctx;
   AES_set_decrypt_key((const unsigned char*)key.c_str(), 128, &wctx);
-  AES_decrypt((const unsigned char*)&ca.sin6.sin6_addr.s6_addr,
+  AES_decrypt((const unsigned char*)&address.sin6.sin6_addr.s6_addr,
               (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);
 
   return ret;
@@ -80,22 +85,28 @@ static ComboAddress decryptCA6(const ComboAddress& ca, const std::string& key)
 
 ComboAddress encryptCA(const ComboAddress& ca, const std::string& key)
 {
-  if (ca.sin4.sin_family == AF_INET)
+  if (ca.sin4.sin_family == AF_INET) {
     return encryptCA4(ca, key);
-  else if (ca.sin4.sin_family == AF_INET6)
+  }
+
+  if (ca.sin4.sin_family == AF_INET6) {
     return encryptCA6(ca, key);
-  else
-    throw std::runtime_error("ipcrypt can't encrypt non-IP addresses");
+  }
+
+  throw std::runtime_error("ipcrypt can't encrypt non-IP addresses");
 }
 
 ComboAddress decryptCA(const ComboAddress& ca, const std::string& key)
 {
-  if (ca.sin4.sin_family == AF_INET)
+  if (ca.sin4.sin_family == AF_INET) {
     return decryptCA4(ca, key);
-  else if (ca.sin4.sin_family == AF_INET6)
+  }
+
+  if (ca.sin4.sin_family == AF_INET6) {
     return decryptCA6(ca, key);
-  else
-    throw std::runtime_error("ipcrypt can't decrypt non-IP addresses");
+  }
+
+  throw std::runtime_error("ipcrypt can't decrypt non-IP addresses");
 }
 
 #endif /* HAVE_IPCIPHER */
