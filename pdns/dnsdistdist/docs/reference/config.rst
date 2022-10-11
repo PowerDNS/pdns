@@ -777,6 +777,12 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
   :param string name: The name of the pool
 
+.. function:: getPoolNames() -> [ table of names]
+
+  .. versionadded:: 1.8.0
+
+  Returns a table of all pool names
+
 .. function:: showPools()
 
    Display the name, associated cache, server policy and associated servers for every pool.
