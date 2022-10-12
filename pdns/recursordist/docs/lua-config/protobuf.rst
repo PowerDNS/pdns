@@ -145,7 +145,7 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
 
   Send dnstap formatted message for :ref:`Newly Observed Domain` and :ref:`Unique Domain Response`.
   ``Message.type`` will be set to ``CLIENT_QUERY`` for NOD and ``RESOLVER_RESPONSE`` for UDR. The concerned domain name will be attached in the ``Message.query_zone`` field.
-  UDR notifiations will get the reply attached to the ``response_message`` field.
+  UDR notifications will get the reply attached to the ``response_message`` field.
 
   :param servers: Either a pathname of a unix domain socket starting with a slash or the IP:port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :type servers: string or list of strings
