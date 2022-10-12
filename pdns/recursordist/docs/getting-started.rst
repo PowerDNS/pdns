@@ -28,7 +28,7 @@ To compile yourself from ports, run ``cd /usr/ports/dns/powerdns-recursor/ && ma
 
 OpenBSD
 ^^^^^^^
-On OpenBSDd, :program:`Recursor` is available through the `OpenBSD ports system <https://openports.se/net/powerdns_recursor>`_.
+On OpenBSD, :program:`Recursor` is available through the `OpenBSD ports system <https://openports.se/net/powerdns_recursor>`_.
 Run ``pkg_add powerdns-recursor`` as root to install.
 
 MacOS

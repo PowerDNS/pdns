@@ -1,4 +1,4 @@
-aaarecord
+aaaarecord
 aae
 aaldering
 ababd
@@ -364,6 +364,7 @@ DHCID
 DHCP
 dhcpd
 dhcpdupdate
+diffie
 diffs
 DIGESTALGOS
 Digitalus
@@ -799,6 +800,7 @@ journald
 jpmens
 json
 jsonstat
+jsrender
 Juergen
 jumpbox
 Juraj
@@ -1174,6 +1176,7 @@ openapi
 openbsd
 opendbx
 openpgpkey
+openports
 opensc
 openssl
 opensuse
@@ -1226,6 +1229,7 @@ pdnsldap
 pdnslog
 pdnsodbx
 pdnsrandom
+pdnsrec
 pdnssec
 pdnsutil
 Peeters
@@ -1345,6 +1349,7 @@ qtype
 qtypelist
 querycache
 querycount
+querytime
 quickstart
 qytpe
 ragel
@@ -1827,6 +1832,7 @@ Verschuren
 versionadded
 versionchanged
 versionmodified
+Viala
 viewcode
 virtualized
 visitedlinkcolor

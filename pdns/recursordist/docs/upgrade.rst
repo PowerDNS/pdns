@@ -9,7 +9,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 
 Structured logging
 ^^^^^^^^^^^^^^^^^^
-All logging (except query tracing) has been converted to stuctured logging.
+All logging (except query tracing) has been converted to structured logging.
 Switch to old style logging by setting the :ref:`setting-structured-logging` setting to ``no``.
 When using ``systemd``, structured logging information will be sent to ``journald`` using formatted text strings that list the key-value pairs and are human readable.
 Switch to native key-value pair logging (more suitable for automated log processing) by setting :ref:`setting-structured-logging-backend` on the command line to ``systemd-journal``.

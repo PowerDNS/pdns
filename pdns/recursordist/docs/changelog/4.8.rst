@@ -117,7 +117,7 @@ Changelogs for 4.8.X
     :tags: Improvements
     :pullreq: 11957
 
-    Use ``nullptr`` in ``getNSEC3PARAM`` + init ``bool`` at callsite (Axel Viala).
+    Use ``nullptr`` in ``getNSEC3PARAM`` + init ``bool`` at call site (Axel Viala).
 
   .. change::
     :tags: Improvements
