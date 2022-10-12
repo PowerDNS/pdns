@@ -49,6 +49,12 @@ def eq_zone_rrsets(rrsets, expected):
     assert data_got == data_expected, "%r != %r" % (data_got, data_expected)
 
 
+def assert_eq_rrsets(rrsets, expected):
+    """Assert rrsets sets are equal, ignoring sort order."""
+    key = lambda rrset: (rrset['name'], rrset['type'])
+    assert sorted(rrsets, key=key) == sorted(expected, key=key)
+
+
 class Zones(ApiTestCase):
 
     def _test_list_zones(self, dnssec=True):
@@ -2304,6 +2310,67 @@ $ORIGIN %NAME%
             'slave_tsig_key_ids': [keyname]
         }
         self.put_zone(name, payload, expect_error='A TSIG key with the name')
+
+    def test_zone_replace_rrsets_basic(self):
+        """Basic test: all automatic modification is off, on replace the new rrsets are ingested as is."""
+        name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')
+        rrsets = [
+            {'name': name, 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+            {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]},
+            {'name': 'www.' + name, 'type': 'A', 'ttl': 3600, 'records': [{'content': '192.0.2.1'}]},
+            {'name': 'sub.' + name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}]},
+        ]
+        self.put_zone(name, {'rrsets': rrsets})
+
+        data = self.get_zone(name)
+        for rrset in rrsets:
+            rrset.setdefault('comments', [])
+            for record in rrset['records']:
+                record.setdefault('disabled', False)
+        assert_eq_rrsets(data['rrsets'], rrsets)
+
+    def test_zone_replace_rrsets_dnssec(self):
+        """With dnssec: check automatic rectify is done"""
+        name, _, _ = self.create_zone(dnssec=True)
+        rrsets = [
+            {'name': name, 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+            {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]},
+            {'name': 'www.' + name, 'type': 'A', 'ttl': 3600, 'records': [{'content': '192.0.2.1'}]},
+        ]
+        self.put_zone(name, {'rrsets': rrsets})
+
+        if not is_auth_lmdb():
+            # lmdb: skip, no get_db_records implementations
+            dbrecs = get_db_records(name, 'A')
+            assert dbrecs[0]['ordername'] is not None  # default = rectify enabled
+
+    def test_zone_replace_rrsets_with_soa_edit(self):
+        """SOA-EDIT was enabled before rrsets will be replaced"""
+        name, _, _ = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')
+        rrsets = [
+            {'name': name, 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+            {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]},
+            {'name': 'www.' + name, 'type': 'A', 'ttl': 3600, 'records': [{'content': '192.0.2.1'}]},
+            {'name': 'sub.' + name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}]},
+        ]
+        self.put_zone(name, {'rrsets': rrsets})
+
+        data = self.get_zone(name)
+        soa = [rrset['records'][0]['content'] for rrset in data['rrsets'] if rrset['type'] == 'SOA'][0]
+        assert int(soa.split()[2]) > 1  # serial is larger than what we sent
+
+    def test_zone_replace_rrsets_no_soa_primary(self):
+        """Replace all RRsets but supply no SOA. Should fail."""
+        name, _, _ = self.create_zone()
+        rrsets = [
+            {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]}
+        ]
+        self.put_zone(name, {'rrsets': rrsets}, expect_error='Must give SOA record for zone when replacing all RR sets')
+
+    def test_zone_replace_rrsets_no_soa_secondary(self):
+        """Replace all RRsets in a SECONDARY zone, but supply no SOA. Should still fail."""
+        name, _, _ = self.create_zone(kind='Secondary', nameservers=None, masters=['127.0.0.2'])
+        self.put_zone(name, {'rrsets': []}, expect_error='Must give SOA record for zone when replacing all RR sets')
 
 
 @unittest.skipIf(not is_auth(), "Not applicable")

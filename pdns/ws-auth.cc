@@ -1899,10 +1899,76 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
 
   if(req->method == "PUT") {
-    // update domain settings
+    // update domain contents and/or settings
+    auto document = req->json();
 
-    di.backend->startTransaction(zonename, -1);
-    updateDomainSettingsFromDocument(B, di, zonename, req->json(), false);
+    auto rrsets = document["rrsets"];
+    bool zoneWasModified = false;
+    // if records/comments are given, load, check and insert them
+    if (rrsets.is_array()) {
+      zoneWasModified = true;
+      bool haveSoa = false;
+      string soaEditApiKind;
+      string soaEditKind;
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soaEditApiKind);
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soaEditKind);
+
+      vector<DNSResourceRecord> new_records;
+      vector<Comment> new_comments;
+
+      for (const auto& rrset : rrsets.array_items()) {
+        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+        apiCheckQNameAllowedCharacters(qname.toString());
+        QType qtype;
+        qtype = stringFromJson(rrset, "type");
+        if (qtype.getCode() == 0) {
+          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+        }
+        if (rrset["records"].is_array()) {
+          int ttl = intFromJson(rrset, "ttl");
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
+        }
+        if (rrset["comments"].is_array()) {
+          gatherComments(rrset, qname, qtype, new_comments);
+        }
+      }
+
+      for(auto& rr : new_records) {
+        rr.qname.makeUsLowerCase();
+        if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
+          throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
+        apiCheckQNameAllowedCharacters(rr.qname.toString());
+
+        if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+          haveSoa = true;
+          increaseSOARecord(rr, soaEditApiKind, soaEditKind);
+        }
+      }
+
+      if (!haveSoa) {
+        // Require SOA regardless if this is a secondary zone or not.
+        // If clients want to "zero out" a secondary zone, they should still send a SOA with a,
+        // for their use case, "low enough" serial.
+        throw ApiException("Must give SOA record for zone when replacing all RR sets");
+      }
+
+      checkNewRecords(new_records, zonename);
+
+      di.backend->startTransaction(zonename, di.id);
+      for(auto& rr : new_records) {
+        rr.domain_id = di.id;
+        di.backend->feedRecord(rr, DNSName());
+      }
+      for(Comment& c : new_comments) {
+        c.domain_id = di.id;
+        di.backend->feedComment(c);
+      }
+    } else {
+      // avoid deleting current zone contents
+      di.backend->startTransaction(zonename, -1);
+    }
+
+    updateDomainSettingsFromDocument(B, di, zonename, document, zoneWasModified);
     di.backend->commitTransaction();
 
     resp->body = "";
