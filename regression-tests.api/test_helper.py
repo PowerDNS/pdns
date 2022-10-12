@@ -116,10 +116,11 @@ def pdnsutil_rectify(zonename):
     pdnsutil('rectify-zone', zonename)
 
 def sdig(*args):
+    sdig_command_line = [SDIG, '127.0.0.1', str(DNSPORT)] + list(args)
     try:
-        return subprocess.check_call([SDIG, '127.0.0.1', str(DNSPORT)] + list(args))
+        return subprocess.check_output(sdig_command_line).decode('utf-8')
     except subprocess.CalledProcessError as except_inst:
-        raise RuntimeError("sdig %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
+        raise RuntimeError("sdig %s failed: %s" % (sdig_command_line, except_inst.output.decode('ascii', errors='replace')))
 
 def get_db_tsigkeys(keyname):
     db, placeholder = get_auth_db()
