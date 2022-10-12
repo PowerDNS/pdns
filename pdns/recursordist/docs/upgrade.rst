@@ -24,7 +24,7 @@ New settings
 
 :program:`pdns_recursor` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-THe ``--config`` comand line option now implements the ``check``, ``default`` and ``diff`` keywords.
+THe ``--config`` command line option now implements the ``check``, ``default`` and ``diff`` keywords.
 
 :program:`rec_control` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

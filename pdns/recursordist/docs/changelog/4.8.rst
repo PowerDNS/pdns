@@ -252,7 +252,7 @@ Changelogs for 4.8.X
     :tags: Improvements
     :pullreq: 11854,11714,11710,11693,11681,11662,11654,11642,11631
 
-    Stuctured logging for various subsystems.
+    Structured logging for various subsystems.
 
   .. change::
     :tags: Improvements
