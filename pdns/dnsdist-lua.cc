@@ -2508,9 +2508,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           try {
             std::map<int, std::string> ocspResponses = {};
             auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
-          } catch (const std::runtime_error& e) {
+          }
+          catch (const std::runtime_error& e) {
             errlog("Ignoring DoH frontend: '%s'", e.what());
-            return ;
+            return;
           }
         }
       }
@@ -2723,9 +2724,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           try {
             std::map<int, std::string> ocspResponses = {};
             auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
-          } catch (const std::runtime_error& e) {
+          }
+          catch (const std::runtime_error& e) {
             errlog("Ignoring TLS frontend: '%s'", e.what());
-            return ;
+            return;
           }
         }
       }
