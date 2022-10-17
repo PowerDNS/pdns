@@ -120,7 +120,7 @@ Listen Sockets
 
   .. versionchanged:: 1.8.0
      ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
-     ``additionalAddresses`` and ``keepIncomingHeaders`` options added.
+     ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -163,6 +163,7 @@ Listen Sockets
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
   * ``keepIncomingHeaders``: bool - Whether to retain the incoming headers in memory, to be able to use :func:`HTTPHeaderRule` or :meth:`DNSQuestion.getHTTPHeaders`. Default is false. Before 1.8.0 the headers were always kept in-memory.
   * ``additionalAddresses``: list - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses.
+  * ``ignoreTLSConfigurationErrors=false``: bool - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -176,7 +177,7 @@ Listen Sockets
     ``tlsAsyncMode`` option added.
   .. versionchanged:: 1.8.0
      ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`).
-     ``additionalAddresses`` option added.
+     ``additionalAddresses`` and ``ignoreTLSConfigurationErrors`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -212,6 +213,7 @@ Listen Sockets
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled (OpenSSL only, the GnuTLS provider does not support it). Disabled by default since it increases the attack surface and is seldom used for DNS.
   * ``tlsAsyncMode=false``: bool - Whether to enable experimental asynchronous TLS I/O operations if OpenSSL is used as the TLS provider and an asynchronous capable SSL engine is loaded. See also :func:`loadTLSEngine` to load the engine.
   * ``additionalAddresses``: list - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses.
+  * ``ignoreTLSConfigurationErrors=false``: bool - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 .. function:: setLocal(address[, options])
 
