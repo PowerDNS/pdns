@@ -829,6 +829,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool d_tcpOnly{false};
     bool d_addXForwardedHeaders{false}; // for DoH backends
     bool d_lazyHealthChecksUseExponentialBackOff{false};
+    bool d_upgradeToLazyHealthChecks{false};
   };
 
   DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);

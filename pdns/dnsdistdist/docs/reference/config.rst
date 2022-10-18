@@ -561,7 +561,7 @@ Servers
     Added ``addXForwardedHeaders``, ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
   .. versionchanged:: 1.8.0
-    Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool``, ``maxConcurrentTCPConnections``, ``subjectAddr``, ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval``, ``lazyHealthCheckMode``, ``lazyHealthCheckUseExponentialBackOff``, ``lazyHealthCheckMaxBackOff`` and ``healthCheckMode`` to server_table.
+    Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool``, ``maxConcurrentTCPConnections``, ``subjectAddr``, ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval``, ``lazyHealthCheckMode``, ``lazyHealthCheckUseExponentialBackOff``, ``lazyHealthCheckMaxBackOff``, ``lazyHealthCheckWhenUpgraded`` and ``healthCheckMode`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -635,7 +635,8 @@ Servers
       lazyHealthCheckSampleSize=NUM,             -- The maximum size of the sample of queries to record and consider for the ``lazyHealthCheckThreshold``. Default is 100, which means the result (failure or success) of the last 100 queries will be considered.
       lazyHealthCheckThreshold=NUM,              -- The threshold, as a percentage, of queries that should fail for the 'lazy' health-check to be triggered when ``healthCheckMode`` is set to ``lazy``. The default is 20 which means 20% of the last ``lazyHealthCheckSampleSize`` queries should fail for a health-check to be triggered.
       lazyHealthCheckUseExponentialBackOff=BOOL, -- Whether the 'lazy' health-check should use an exponential back-off instead of a fixed value, between health-check probes. The default is false which means that after a backend has been moved to the 'down' state health-check probes are sent every ``lazyHealthCheckFailedInterval`` seconds. When set to true, the delay between each probe starts at ``lazyHealthCheckFailedInterval`` seconds and double between every probe, capped at ``lazyHealthCheckMaxBackOff`` seconds.
-      lazyHealthCheckMaxBackOff=NUM            -- This value, in seconds, caps the time between two health-check queries when ``lazyHealthCheckUseExponentialBackOff`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries.
+      lazyHealthCheckMaxBackOff=NUM,             -- This value, in seconds, caps the time between two health-check queries when ``lazyHealthCheckUseExponentialBackOff`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries.
+      lazyHealthCheckWhenUpgraded=BOOL           -- Whether the auto-upgraded version of this backend (see ``autoUpgrade``) should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode.
     })
 
   :param str server_string: A simple IP:PORT string.

@@ -573,6 +573,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
+                         if (vars.count("lazyHealthCheckWhenUpgraded")) {
+                           config.d_upgradeToLazyHealthChecks = boost::get<bool>(vars.at("lazyHealthCheckWhenUpgraded"));
+                         }
+
                          if (vars.count("useClientSubnet")) {
                            config.useECS = boost::get<bool>(vars["useClientSubnet"]);
                          }
