@@ -612,6 +612,11 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
       infolog("Marking downstream %s as '%s'", getNameWithAddr(), newResult ? "up" : "down");
     }
     setUpStatus(newResult);
+    if (newResult == false) {
+      auto stats = d_lazyHealthCheckStats.lock();
+      stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+      updateNextLazyHealthCheck(*stats);
+    }
     return;
   }
 
