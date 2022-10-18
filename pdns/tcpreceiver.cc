@@ -593,7 +593,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   g_log<<Logger::Warning<<logPrefix<<"transfer initiated"<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
-  DomainInfo di;
+  SOAData sd;
   {
     auto packetHandler = s_P.lock();
     DLOG(g_log<<logPrefix<<"looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
@@ -610,7 +610,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       return 0;
     }
 
-    if (!(*packetHandler)->getBackend()->getDomainInfo(target, di, false)) {
+    if (!(*packetHandler)->getBackend()->getSOAUncached(target, sd)) {
       g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
@@ -619,7 +619,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   }
 
   UeberBackend db;
-  SOAData sd;
   if(!db.getSOAUncached(target, sd)) {
     g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(RCode::NotAuth);
@@ -632,11 +631,14 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   bool NSEC3Zone = false;
   bool narrow = false;
 
+  DomainInfo di;
+  bool isCatalogZone = sd.db->getDomainInfo(target, di, false) && di.isCatalogType();
+
   NSEC3PARAMRecordContent ns3pr;
 
   DNSSECKeeper dk(&db);
   DNSSECKeeper::clearCaches(target);
-  if (!di.isCatalogType()) {
+  if (!isCatalogZone) {
     securedZone = dk.isSecuredZone(target);
     presignedZone = dk.isPresigned(target);
   }
@@ -799,7 +801,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   // Catalog zone end
 
   // now start list zone
-  if (!(sd.db->list(target, sd.domain_id, di.isCatalogType()))) {
+  if (!sd.db->list(target, sd.domain_id, isCatalogZone)) {
     g_log<<Logger::Error<<logPrefix<<"backend signals error condition, aborting AXFR"<<endl;
     outpacket->setRcode(RCode::ServFail);
     sendPacket(outpacket,outsock);
