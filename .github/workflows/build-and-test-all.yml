@@ -53,7 +53,7 @@ jobs:
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
-        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.sanitizers }}
           path: /opt/dnsdist
