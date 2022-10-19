@@ -23,7 +23,7 @@ jobs:
           - debian-bookworm
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0  # for correct version numbers
           submodules: recursive
