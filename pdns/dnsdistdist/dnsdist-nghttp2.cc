@@ -137,7 +137,7 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
   try {
     if (!d_healthCheckQuery) {
       const double udiff = request.d_query.d_idstate.sentTime.udiff();
-      d_ds->latencyUsecTCP = (127.0 * d_ds->latencyUsecTCP / 128.0) + udiff / 128.0;
+      d_ds->updateTCPLatency(udiff);
     }
 
     request.d_sender->handleResponse(now, TCPResponse(std::move(request.d_buffer), std::move(request.d_query.d_idstate), shared_from_this()));
