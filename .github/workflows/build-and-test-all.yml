@@ -25,7 +25,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -68,7 +68,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -94,7 +94,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -124,7 +124,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -146,7 +146,7 @@ jobs:
       - test-recursor-bulk
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
