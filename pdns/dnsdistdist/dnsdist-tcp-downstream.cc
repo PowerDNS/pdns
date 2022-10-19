@@ -171,7 +171,7 @@ static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
   return ntohl(serial);
 }
 
-static bool getSerialFromXFRQuery(TCPQuery& query)
+static bool getSerialFromIXFRQuery(TCPQuery& query)
 {
   try {
     size_t proxyPayloadSize = query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0;
@@ -193,12 +193,12 @@ static bool getSerialFromXFRQuery(TCPQuery& query)
         return false;
       }
       auto raw = unknownContent->getRawContent();
-      query.d_xfrQuerySerial = getSerialFromRawSOAContent(raw);
+      query.d_ixfrQuerySerial = getSerialFromRawSOAContent(raw);
       return true;
     }
   }
   catch (const MOADNSException& e) {
-    DEBUGLOG("Exception when parsing TCPQuery to DNS: " << e.what());
+    DEBUGLOG("Exception when parsing IXFR TCP Query to DNS: " << e.what());
     /* ponder what to do here, shall we close the connection? */
   }
 
@@ -246,8 +246,8 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
       query.d_proxyProtocolPayloadAddedSize = 0;
     }
   }
-  if (query.d_idstate.qclass == QClass::IN && (query.d_idstate.qtype == QType::AXFR || query.d_idstate.qtype == QType::IXFR)) {
-    getSerialFromXFRQuery(query);
+  if (query.d_idstate.qclass == QClass::IN && query.d_idstate.qtype == QType::IXFR) {
+    getSerialFromIXFRQuery(query);
   }
 
   editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0, true);
@@ -803,7 +803,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         if (query.d_xfrMasterSerial == 0) {
           // store the first SOA in our client's connection metadata
           query.d_xfrMasterSerial = serial;
-          if (query.d_xfrMasterSerial <= query.d_xfrQuerySerial) {
+          if (query.d_idstate.qtype == QType::IXFR && query.d_xfrMasterSerial <= query.d_ixfrQuerySerial) {
             /* This is the first message with a master SOA:
                RFC 1995 Section 2:
                  If an IXFR query with the same or newer version number
