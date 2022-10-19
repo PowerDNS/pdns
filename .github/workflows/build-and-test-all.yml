@@ -88,7 +88,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -197,7 +197,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -221,7 +221,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
