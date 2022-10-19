@@ -149,6 +149,62 @@ void TCPConnectionToBackend::release(){
   }
 }
 
+static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
+{
+  /* minimal size for a SOA record, as defined by rfc1035:
+     MNAME (root): 1
+     RNAME (root): 1
+     SERIAL: 4
+     REFRESH: 4
+     RETRY: 4
+     EXPIRE: 4
+     MINIMUM: 4
+     = 22 bytes
+  */
+  if (raw.size() < 22) {
+    throw std::runtime_error("Invalid content of size " + std::to_string(raw.size()) + " for a SOA record");
+  }
+  /* As rfc1025 states that "all domain names in the RDATA section of these RRs may be compressed",
+     and we don't want to parse these names, start at the end */
+  uint32_t serial = 0;
+  memcpy(&serial, &raw.at(raw.size() - 20), sizeof(serial));
+  return ntohl(serial);
+}
+
+static bool getSerialFromXFRQuery(TCPQuery& query)
+{
+  try {
+    size_t proxyPayloadSize = query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0;
+    if (query.d_buffer.size() <= (proxyPayloadSize + sizeof(uint16_t))) {
+      return false;
+    }
+
+    size_t payloadSize = query.d_buffer.size() - sizeof(uint16_t) - proxyPayloadSize;
+
+    MOADNSParser parser(true, reinterpret_cast<const char*>(query.d_buffer.data() + sizeof(uint16_t) + proxyPayloadSize), payloadSize);
+
+    for (const auto& record : parser.d_answers) {
+      if (record.first.d_place != DNSResourceRecord::AUTHORITY || record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+        return false;
+      }
+
+      auto unknownContent = getRR<UnknownRecordContent>(record.first);
+      if (!unknownContent) {
+        return false;
+      }
+      auto raw = unknownContent->getRawContent();
+      query.d_xfrQuerySerial = getSerialFromRawSOAContent(raw);
+      return true;
+    }
+  }
+  catch (const MOADNSException& e) {
+    DEBUGLOG("Exception when parsing TCPQuery to DNS: " << e.what());
+    /* ponder what to do here, shall we close the connection? */
+  }
+
+  return false;
+}
+
 static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyProtocolPayloadSize, bool sizePrepended)
 {
   /* we cannot do a direct cast as the alignment might be off (the size of the payload might have been prepended, which is bad enough,
@@ -190,6 +246,10 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
       query.d_proxyProtocolPayloadAddedSize = 0;
     }
   }
+  if (query.d_idstate.qclass == QClass::IN && (query.d_idstate.qtype == QType::AXFR || query.d_idstate.qtype == QType::IXFR)) {
+    getSerialFromXFRQuery(query);
+  }
+
   editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0, true);
 }
 
@@ -580,28 +640,6 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   release();
 }
 
-static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
-{
-  /* minimal size for a SOA record, as defined by rfc1035:
-     MNAME (root): 1
-     RNAME (root): 1
-     SERIAL: 4
-     REFRESH: 4
-     RETRY: 4
-     EXPIRE: 4
-     MINIMUM: 4
-     = 22 bytes
-  */
-  if (raw.size() < 22) {
-    throw std::runtime_error("Invalid content of size " + std::to_string(raw.size()) + " for a SOA record");
-  }
-  /* As rfc1025 states that "all domain names in the RDATA section of these RRs may be compressed",
-     and we don't want to parse these names, start at the end */
-  uint32_t serial = 0;
-  memcpy(&serial, &raw.at(raw.size() - 20), sizeof(serial));
-  return ntohl(serial);
-}
-
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   d_downstreamFailures = 0;
@@ -743,8 +781,10 @@ bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<Proxy
 bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery& query)
 {
   bool done = false;
+
   try {
     MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
+
     if (parser.d_header.rcode != 0U) {
       done = true;
     }
@@ -760,22 +800,34 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         }
         auto raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
-        ++query.d_xfrSerialCount;
         if (query.d_xfrMasterSerial == 0) {
           // store the first SOA in our client's connection metadata
-          ++query.d_xfrMasterSerialCount;
           query.d_xfrMasterSerial = serial;
+          if (query.d_xfrMasterSerial == query.d_xfrQuerySerial) {
+            /* This is the first message with a master SOA:
+               RFC 1995 Section 2:
+                 If an IXFR query with the same or newer version number
+                 than that of the server is received, it is replied to
+                 with a single SOA record of the server's current version.
+            */
+            done = true;
+            break;
+          }
         }
-        else if (query.d_xfrMasterSerial == serial) {
+
+        ++query.d_xfrSerialCount;
+        if (serial == query.d_xfrMasterSerial) {
           ++query.d_xfrMasterSerialCount;
           // figure out if it's end when receiving master's SOA again
           if (query.d_xfrSerialCount == 2) {
             // if there are only two SOA records marks a finished AXFR
             done = true;
+            break;
           }
           if (query.d_xfrMasterSerialCount == 3) {
             // receiving master's SOA 3 times marks a finished IXFR
             done = true;
+            break;
           }
         }
       }

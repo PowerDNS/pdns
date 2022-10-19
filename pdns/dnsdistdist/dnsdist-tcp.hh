@@ -98,6 +98,7 @@ struct InternalQuery
   std::string d_proxyProtocolPayload;
   PacketBuffer d_buffer;
   uint32_t d_proxyProtocolPayloadAddedSize{0};
+  uint32_t d_xfrQuerySerial{0};
   uint32_t d_xfrMasterSerial{0};
   uint32_t d_xfrSerialCount{0};
   uint32_t d_downstreamFailures{0};
