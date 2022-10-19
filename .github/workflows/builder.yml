@@ -36,7 +36,7 @@ jobs:
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
       - name: Upload packages
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
