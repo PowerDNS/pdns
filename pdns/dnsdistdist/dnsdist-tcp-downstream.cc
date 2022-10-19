@@ -803,7 +803,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         if (query.d_xfrMasterSerial == 0) {
           // store the first SOA in our client's connection metadata
           query.d_xfrMasterSerial = serial;
-          if (query.d_xfrMasterSerial == query.d_xfrQuerySerial) {
+          if (query.d_xfrMasterSerial <= query.d_xfrQuerySerial) {
             /* This is the first message with a master SOA:
                RFC 1995 Section 2:
                  If an IXFR query with the same or newer version number
