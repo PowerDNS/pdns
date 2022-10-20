@@ -529,44 +529,44 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (vars.count("lazyHealthCheckSampleSize")) {
                            auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
                            checkParameterBound("lazyHealthCheckSampleSize", value);
-                           config.d_lazyHealthChecksSampleSize = value;
+                           config.d_lazyHealthCheckSampleSize = value;
                          }
 
                          if (vars.count("lazyHealthCheckMinSampleCount")) {
                            auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
                            checkParameterBound("lazyHealthCheckMinSampleCount", value);
-                           config.d_lazyHealthChecksMinSampleCount = value;
+                           config.d_lazyHealthCheckMinSampleCount = value;
                          }
 
                          if (vars.count("lazyHealthCheckThreshold")) {
                            auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
                            checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
-                           config.d_lazyHealthChecksThreshold = value;
+                           config.d_lazyHealthCheckThreshold = value;
                          }
 
                          if (vars.count("lazyHealthCheckFailedInterval")) {
                            auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
                            checkParameterBound("lazyHealthCheckFailedInterval", value);
-                           config.d_lazyHealthChecksFailedInterval = value;
+                           config.d_lazyHealthCheckFailedInterval = value;
                          }
 
                          if (vars.count("lazyHealthCheckUseExponentialBackOff")) {
-                           config.d_lazyHealthChecksUseExponentialBackOff = boost::get<bool>(vars.at("lazyHealthCheckUseExponentialBackOff"));
+                           config.d_lazyHealthCheckUseExponentialBackOff = boost::get<bool>(vars.at("lazyHealthCheckUseExponentialBackOff"));
                          }
 
                          if (vars.count("lazyHealthCheckMaxBackOff")) {
                            auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
                            checkParameterBound("lazyHealthCheckMaxBackOff", value);
-                           config.d_lazyHealthChecksMaxBackOff = value;
+                           config.d_lazyHealthCheckMaxBackOff = value;
                          }
 
                          if (vars.count("lazyHealthCheckMode")) {
                            auto mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
                            if (pdns_iequals(mode, "TimeoutOnly")) {
-                             config.d_lazyHealthChecksMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
+                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
                            }
                            else if (pdns_iequals(mode, "TimeoutOrServFail")) {
-                             config.d_lazyHealthChecksMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
+                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
                            }
                            else {
                              warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);

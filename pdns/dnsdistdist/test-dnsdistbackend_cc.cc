@@ -118,9 +118,9 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   DownstreamState::Config config;
   config.minRiseSuccesses = 5;
   config.maxCheckFailures = 3;
-  config.d_lazyHealthChecksMinSampleCount = 11;
-  config.d_lazyHealthChecksThreshold = 20;
-  config.d_lazyHealthChecksUseExponentialBackOff = false;
+  config.d_lazyHealthCheckMinSampleCount = 11;
+  config.d_lazyHealthCheckThreshold = 20;
+  config.d_lazyHealthCheckUseExponentialBackOff = false;
   config.availability = DownstreamState::Availability::Lazy;
   /* prevents a re-connection */
   config.remote = ComboAddress("0.0.0.0");
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   }
 
   /* the threshold should be reached (50% > 20%) but we do not have enough sample yet
-     (10 < config.d_lazyHealthChecksMinSampleCount) */
+     (10 < config.d_lazyHealthCheckMinSampleCount) */
   BOOST_CHECK_EQUAL(ds.isUp(), true);
   BOOST_CHECK_EQUAL(ds.getStatus(), "up");
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), false);
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), true);
 
   /* even if we fill the whole circular buffer with valid answers */
-  for (size_t idx = 0; idx < config.d_lazyHealthChecksSampleSize; idx++) {
+  for (size_t idx = 0; idx < config.d_lazyHealthCheckSampleSize; idx++) {
     ds.reportResponse(RCode::NoError);
   }
   BOOST_CHECK_EQUAL(ds.isUp(), true);
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), false);
 
   /* now let's reach the threshold again, this time just barely */
-  for (size_t idx = 0; idx < config.d_lazyHealthChecksThreshold; idx++) {
+  for (size_t idx = 0; idx < config.d_lazyHealthCheckThreshold; idx++) {
     ds.reportTimeoutOrError();
   }
   BOOST_CHECK_EQUAL(ds.isUp(), true);
@@ -180,6 +180,7 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), true);
 
   /* we need maxCheckFailures failed health-checks to go down */
+  BOOST_REQUIRE(config.maxCheckFailures >= 1);
   for (size_t idx = 0; idx < static_cast<size_t>(config.maxCheckFailures - 1); idx++) {
     ds.submitHealthCheckResult(false, false);
   }
@@ -192,14 +193,15 @@ BOOST_AUTO_TEST_CASE(test_Lazy)
   /* now we are in Failed state */
   BOOST_CHECK_EQUAL(ds.isUp(), false);
   BOOST_CHECK_EQUAL(ds.getStatus(), "down");
-  BOOST_CHECK(ds.getNextLazyHealthCheck() == (failedCheckTime + config.d_lazyHealthChecksFailedInterval));
+  BOOST_CHECK(ds.getNextLazyHealthCheck() == (failedCheckTime + config.d_lazyHealthCheckFailedInterval));
 
   /* let fill the buffer with successes, it does not matter */
-  for (size_t idx = 0; idx < config.d_lazyHealthChecksSampleSize; idx++) {
+  for (size_t idx = 0; idx < config.d_lazyHealthCheckSampleSize; idx++) {
     ds.reportResponse(RCode::NoError);
   }
 
   /* we need minRiseSuccesses successful health-checks to go up */
+  BOOST_REQUIRE(config.minRiseSuccesses >= 1);
   for (size_t idx = 0; idx < static_cast<size_t>(config.minRiseSuccesses - 1); idx++) {
     ds.submitHealthCheckResult(false, true);
   }
@@ -217,11 +219,11 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   DownstreamState::Config config;
   config.minRiseSuccesses = 5;
   config.maxCheckFailures = 3;
-  config.d_lazyHealthChecksMinSampleCount = 11;
-  config.d_lazyHealthChecksThreshold = 20;
-  config.d_lazyHealthChecksUseExponentialBackOff = true;
-  config.d_lazyHealthChecksMaxBackOff = 60;
-  config.d_lazyHealthChecksFailedInterval = 30;
+  config.d_lazyHealthCheckMinSampleCount = 11;
+  config.d_lazyHealthCheckThreshold = 20;
+  config.d_lazyHealthCheckUseExponentialBackOff = true;
+  config.d_lazyHealthCheckMaxBackOff = 60;
+  config.d_lazyHealthCheckFailedInterval = 30;
   config.availability = DownstreamState::Availability::Lazy;
   /* prevents a re-connection */
   config.remote = ComboAddress("0.0.0.0");
@@ -233,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), false);
 
   /* submit a few failed results */
-  for (size_t idx = 0; idx < config.d_lazyHealthChecksMinSampleCount; idx++) {
+  for (size_t idx = 0; idx < config.d_lazyHealthCheckMinSampleCount; idx++) {
     ds.reportTimeoutOrError();
   }
   BOOST_CHECK_EQUAL(ds.isUp(), true);
@@ -244,6 +246,7 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), true);
 
   /* we need maxCheckFailures failed health-checks to go down */
+  BOOST_REQUIRE(config.maxCheckFailures >= 1);
   for (size_t idx = 0; idx < static_cast<size_t>(config.maxCheckFailures - 1); idx++) {
     ds.submitHealthCheckResult(false, false);
   }
@@ -258,10 +261,11 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   BOOST_CHECK_EQUAL(ds.getStatus(), "down");
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), false);
   /* and the wait time between two checks will double every time a failure occurs */
-  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (failedCheckTime + (config.d_lazyHealthChecksFailedInterval * std::pow(2U, ds.currentCheckFailures))));
+  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (failedCheckTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
   BOOST_CHECK_EQUAL(ds.currentCheckFailures, 0U);
 
   /* we need minRiseSuccesses successful health-checks to go up */
+  BOOST_REQUIRE(config.minRiseSuccesses >= 1);
   for (size_t idx = 0; idx < static_cast<size_t>(config.minRiseSuccesses - 1); idx++) {
     ds.submitHealthCheckResult(false, true);
   }

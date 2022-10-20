@@ -807,12 +807,12 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     uint16_t d_retries{5};
     uint16_t xpfRRCode{0};
     uint16_t checkTimeout{1000}; /* in milliseconds */
-    uint16_t d_lazyHealthChecksSampleSize{100};
-    uint16_t d_lazyHealthChecksMinSampleCount{1};
-    uint16_t d_lazyHealthChecksFailedInterval{30};
-    uint16_t d_lazyHealthChecksMaxBackOff{3600};
-    uint8_t d_lazyHealthChecksThreshold{20};
-    LazyHealthCheckMode d_lazyHealthChecksMode{LazyHealthCheckMode::TimeoutOrServFail};
+    uint16_t d_lazyHealthCheckSampleSize{100};
+    uint16_t d_lazyHealthCheckMinSampleCount{1};
+    uint16_t d_lazyHealthCheckFailedInterval{30};
+    uint16_t d_lazyHealthCheckMaxBackOff{3600};
+    uint8_t d_lazyHealthCheckThreshold{20};
+    LazyHealthCheckMode d_lazyHealthCheckMode{LazyHealthCheckMode::TimeoutOrServFail};
     uint8_t maxCheckFailures{1};
     uint8_t minRiseSuccesses{1};
     Availability availability{Availability::Auto};
@@ -828,7 +828,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool d_tcpCheck{false};
     bool d_tcpOnly{false};
     bool d_addXForwardedHeaders{false}; // for DoH backends
-    bool d_lazyHealthChecksUseExponentialBackOff{false};
+    bool d_lazyHealthCheckUseExponentialBackOff{false};
     bool d_upgradeToLazyHealthChecks{false};
   };
 
@@ -948,7 +948,7 @@ public:
   }
   void setLazyAuto() {
     d_config.availability = Availability::Lazy;
-    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthChecksSampleSize);
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
   }
   bool healthCheckRequired();
 

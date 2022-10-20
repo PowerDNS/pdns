@@ -199,8 +199,8 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
     setWeight(d_config.d_weight);
   }
 
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
-    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthChecksSampleSize);
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
     setUpStatus(true);
   }
 
@@ -362,15 +362,15 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 
 void DownstreamState::reportResponse(uint8_t rcode)
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
-    bool failure = d_config.d_lazyHealthChecksMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    bool failure = d_config.d_lazyHealthCheckMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
   }
 }
 
 void DownstreamState::reportTimeoutOrError()
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthChecksSampleSize > 0) {
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
   }
 }
@@ -522,7 +522,7 @@ bool DownstreamState::healthCheckRequired()
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::Healthy) {
       auto& lastResults = stats->d_lastResults;
       size_t totalCount = lastResults.size();
-      if (totalCount < d_config.d_lazyHealthChecksMinSampleCount) {
+      if (totalCount < d_config.d_lazyHealthCheckMinSampleCount) {
         return false;
       }
 
@@ -533,11 +533,11 @@ bool DownstreamState::healthCheckRequired()
         }
       }
 
-      const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthChecksThreshold);
+      const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthCheckThreshold);
       auto current = (100.0 * failures) / totalCount;
       if (current >= maxFailureRate) {
         lastResults.clear();
-        vinfolog("Backend %s reached the lazy health-check threshold (%f out of %f, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
+        vinfolog("Backend %s reached the lazy health-check threshold (%f%% out of %f%%, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
         stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
         /* we update the next check time here because the check might time out,
            and we do not want to send a second check during that time unless
@@ -572,26 +572,26 @@ time_t DownstreamState::getNextLazyHealthCheck()
 void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
 {
   auto now = time(nullptr);
-  if (d_config.d_lazyHealthChecksUseExponentialBackOff) {
+  if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
     if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       /* we are still in the "up" state, we need to send the next query quickly to
          determine if the backend is really down */
-      stats.d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
     }
     else if (consecutiveSuccessfulChecks > 0) {
       /* we are in 'Failed' state, but just had one (or more) successful check,
          so we want the next one to happen quite quickly as the backend might
          be available again. */
-      stats.d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
     }
     else {
       const uint16_t failedTests = currentCheckFailures;
       size_t backOffCoeff = std::pow(2U, failedTests);
-      time_t backOff = d_config.d_lazyHealthChecksMaxBackOff;
-      if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthChecksFailedInterval) >= backOffCoeff) {
-        backOff = d_config.d_lazyHealthChecksFailedInterval * backOffCoeff;
-        if (backOff > d_config.d_lazyHealthChecksMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
-          backOff = d_config.d_lazyHealthChecksMaxBackOff;
+      time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
+      if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
+        backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
+        if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
+          backOff = d_config.d_lazyHealthCheckMaxBackOff;
         }
       }
 
@@ -599,7 +599,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
     }
   }
   else {
-    stats.d_nextCheck = now + d_config.d_lazyHealthChecksFailedInterval;
+    stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
   }
 }
 
