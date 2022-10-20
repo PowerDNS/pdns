@@ -26,7 +26,7 @@ jobs:
     - name: checkout
       if: ${{ github.event_name == 'push' }}
       uses: actions/checkout@v3.1.0
-    - uses: check-spelling/check-spelling@v0.0.19
+    - uses: check-spelling/check-spelling@v0.0.20
       id: spelling
       with:
         config: .github/actions/spell-check
