@@ -37,6 +37,11 @@
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
 
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
+{
+  return false;
+}
+
 BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
 
 static const uint16_t ECSSourcePrefixV4 = 24;

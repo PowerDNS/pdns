@@ -475,6 +475,25 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            config.id = boost::uuids::string_generator()(boost::get<string>(vars["id"]));
                          }
 
+                         if (vars.count("healthCheckMode")) {
+                           const auto& mode = boost::get<string>(vars.at("healthCheckMode"));
+                           if (pdns_iequals(mode, "auto")) {
+                             config.availability = DownstreamState::Availability::Auto;
+                           }
+                           else if (pdns_iequals(mode, "lazy")) {
+                             config.availability = DownstreamState::Availability::Lazy;
+                           }
+                           else if (pdns_iequals(mode, "up")) {
+                             config.availability = DownstreamState::Availability::Up;
+                           }
+                           else if (pdns_iequals(mode, "down")) {
+                             config.availability = DownstreamState::Availability::Down;
+                           }
+                           else {
+                             warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
+                           }
+                         }
+
                          if (vars.count("checkName")) {
                            config.checkName = DNSName(boost::get<string>(vars["checkName"]));
                          }
@@ -505,6 +524,57 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          if (vars.count("mustResolve")) {
                            config.mustResolve = boost::get<bool>(vars["mustResolve"]);
+                         }
+
+                         if (vars.count("lazyHealthCheckSampleSize")) {
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
+                           checkParameterBound("lazyHealthCheckSampleSize", value);
+                           config.d_lazyHealthCheckSampleSize = value;
+                         }
+
+                         if (vars.count("lazyHealthCheckMinSampleCount")) {
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
+                           checkParameterBound("lazyHealthCheckMinSampleCount", value);
+                           config.d_lazyHealthCheckMinSampleCount = value;
+                         }
+
+                         if (vars.count("lazyHealthCheckThreshold")) {
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                           checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
+                           config.d_lazyHealthCheckThreshold = value;
+                         }
+
+                         if (vars.count("lazyHealthCheckFailedInterval")) {
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
+                           checkParameterBound("lazyHealthCheckFailedInterval", value);
+                           config.d_lazyHealthCheckFailedInterval = value;
+                         }
+
+                         if (vars.count("lazyHealthCheckUseExponentialBackOff")) {
+                           config.d_lazyHealthCheckUseExponentialBackOff = boost::get<bool>(vars.at("lazyHealthCheckUseExponentialBackOff"));
+                         }
+
+                         if (vars.count("lazyHealthCheckMaxBackOff")) {
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
+                           checkParameterBound("lazyHealthCheckMaxBackOff", value);
+                           config.d_lazyHealthCheckMaxBackOff = value;
+                         }
+
+                         if (vars.count("lazyHealthCheckMode")) {
+                           const auto& mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
+                           if (pdns_iequals(mode, "TimeoutOnly")) {
+                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
+                           }
+                           else if (pdns_iequals(mode, "TimeoutOrServFail")) {
+                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
+                           }
+                           else {
+                             warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
+                           }
+                         }
+
+                         if (vars.count("lazyHealthCheckWhenUpgraded")) {
+                           config.d_upgradeToLazyHealthChecks = boost::get<bool>(vars.at("lazyHealthCheckWhenUpgraded"));
                          }
 
                          if (vars.count("useClientSubnet")) {

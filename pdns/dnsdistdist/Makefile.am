@@ -304,6 +304,7 @@ testrunner_SOURCES = \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistbackend_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \

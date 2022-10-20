@@ -33,6 +33,7 @@
 
 #include <boost/variant.hpp>
 
+#include "circular_buffer.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"
@@ -765,7 +766,8 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
   DownstreamState& operator=(DownstreamState&&) = delete;
 
   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
-  enum class Availability : uint8_t { Up, Down, Auto};
+  enum class Availability : uint8_t { Up, Down, Auto, Lazy };
+  enum class LazyHealthCheckMode : uint8_t { TimeoutOnly, TimeoutOrServFail };
 
   struct Config
   {
@@ -805,6 +807,12 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     uint16_t d_retries{5};
     uint16_t xpfRRCode{0};
     uint16_t checkTimeout{1000}; /* in milliseconds */
+    uint16_t d_lazyHealthCheckSampleSize{100};
+    uint16_t d_lazyHealthCheckMinSampleCount{1};
+    uint16_t d_lazyHealthCheckFailedInterval{30};
+    uint16_t d_lazyHealthCheckMaxBackOff{3600};
+    uint8_t d_lazyHealthCheckThreshold{20};
+    LazyHealthCheckMode d_lazyHealthCheckMode{LazyHealthCheckMode::TimeoutOrServFail};
     uint8_t maxCheckFailures{1};
     uint8_t minRiseSuccesses{1};
     Availability availability{Availability::Auto};
@@ -820,6 +828,8 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool d_tcpCheck{false};
     bool d_tcpOnly{false};
     bool d_addXForwardedHeaders{false}; // for DoH backends
+    bool d_lazyHealthCheckUseExponentialBackOff{false};
+    bool d_upgradeToLazyHealthChecks{false};
   };
 
   DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);
@@ -867,6 +877,16 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
 private:
   LockGuarded<std::map<uint16_t, IDState>> d_idStatesMap;
   vector<IDState> idStates;
+
+  struct LazyHealthCheckStats
+  {
+    boost::circular_buffer<bool> d_lastResults;
+    time_t d_nextCheck{0};
+    enum class LazyStatus: uint8_t { Healthy = 0, PotentialFailure, Failed };
+    LazyStatus d_status{LazyStatus::Healthy};
+  };
+  LockGuarded<LazyHealthCheckStats> d_lazyHealthCheckStats;
+
 public:
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::vector<int> sockets;
@@ -877,7 +897,7 @@ public:
   double latencyUsec{0.0};
   double latencyUsecTCP{0.0};
   unsigned int d_nextCheck{0};
-  uint8_t currentCheckFailures{0};
+  uint16_t currentCheckFailures{0};
   uint8_t consecutiveSuccessfulChecks{0};
   std::atomic<bool> hashesComputed{false};
   std::atomic<bool> connected{false};
@@ -926,6 +946,12 @@ public:
   void setAuto() {
     d_config.availability = Availability::Auto;
   }
+  void setLazyAuto() {
+    d_config.availability = Availability::Lazy;
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
+  }
+  bool healthCheckRequired();
+
   const string& getName() const {
     return d_config.name;
   }
@@ -1004,10 +1030,14 @@ public:
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
   int pickSocketForSending();
   void pickSocketsReadyForReceiving(std::vector<int>& ready);
-  void handleTimeouts();
+  void handleUDPTimeouts();
   IDState* getIDState(unsigned int& id, int64_t& generation);
   IDState* getExistingState(unsigned int id);
   void releaseState(unsigned int id);
+  void reportTimeoutOrError();
+  void reportResponse(uint8_t rcode);
+  void submitHealthCheckResult(bool initial, bool newState);
+  time_t getNextLazyHealthCheck();
 
   dnsdist::Protocol getProtocol() const
   {
@@ -1027,7 +1057,8 @@ public:
   static bool s_randomizeSockets;
   static bool s_randomizeIDs;
 private:
-  void handleTimeout(IDState& ids);
+  void handleUDPTimeout(IDState& ids);
+  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats);
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 

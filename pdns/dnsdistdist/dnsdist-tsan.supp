@@ -14,5 +14,5 @@ race:DownstreamState::setAuto
 # Same thing for whether a backend has been stopped,
 # eventual consistency is fine
 race:DownstreamState::stop
-race:updateHealthCheckResult
+race:DownstreamState::submitHealthCheckResult
 race:carbonDumpThread

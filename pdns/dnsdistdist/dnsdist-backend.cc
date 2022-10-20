@@ -45,6 +45,10 @@ bool DownstreamState::reconnect()
     return false;
   }
 
+  if (IsAnyAddress(d_config.remote)) {
+    return true;
+  }
+
   connected = false;
   for (auto& fd : sockets) {
     if (fd != -1) {
@@ -56,40 +60,38 @@ bool DownstreamState::reconnect()
       close(fd);
       fd = -1;
     }
-    if (!IsAnyAddress(d_config.remote)) {
-      fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
+    fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
 
 #ifdef SO_BINDTODEVICE
-      if (!d_config.sourceItfName.empty()) {
-        int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
-        if (res != 0) {
-          infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
-        }
+    if (!d_config.sourceItfName.empty()) {
+      int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
+      if (res != 0) {
+        infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
       }
+    }
 #endif
 
-      if (!IsAnyAddress(d_config.sourceAddr)) {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+    if (!IsAnyAddress(d_config.sourceAddr)) {
+      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
-        if (d_config.ipBindAddrNoPort) {
-          SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
-        }
+      if (d_config.ipBindAddrNoPort) {
+        SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+      }
 #endif
-        SBind(fd, d_config.sourceAddr);
-      }
+      SBind(fd, d_config.sourceAddr);
+    }
 
-      try {
-        SConnect(fd, d_config.remote);
-        if (sockets.size() > 1) {
-          (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
-        }
-        connected = true;
+    try {
+      SConnect(fd, d_config.remote);
+      if (sockets.size() > 1) {
+        (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
       }
-      catch (const std::runtime_error& error) {
-        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
-        connected = false;
-        break;
-      }
+      connected = true;
+    }
+    catch (const std::runtime_error& error) {
+      infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      connected = false;
+      break;
     }
   }
 
@@ -195,6 +197,11 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 
   if (d_config.d_weight > 0) {
     setWeight(d_config.d_weight);
+  }
+
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
+    setUpStatus(true);
   }
 
   setName(d_config.name);
@@ -320,7 +327,7 @@ static bool isIDSExpired(IDState& ids)
   return age > DownstreamState::s_udpTimeout;
 }
 
-void DownstreamState::handleTimeout(IDState& ids)
+void DownstreamState::handleUDPTimeout(IDState& ids)
 {
   /* We mark the state as unused as soon as possible
      to limit the risk of racing with the
@@ -349,16 +356,33 @@ void DownstreamState::handleTimeout(IDState& ids)
 
     g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
   }
+
+  reportTimeoutOrError();
 }
 
-void DownstreamState::handleTimeouts()
+void DownstreamState::reportResponse(uint8_t rcode)
+{
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    bool failure = d_config.d_lazyHealthCheckMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
+  }
+}
+
+void DownstreamState::reportTimeoutOrError()
+{
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
+  }
+}
+
+void DownstreamState::handleUDPTimeouts()
 {
   if (s_randomizeIDs) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
       auto& ids = it->second;
       if (isIDSExpired(ids)) {
-        handleTimeout(ids);
+        handleUDPTimeout(ids);
         it = map->erase(it);
         continue;
       }
@@ -376,7 +400,7 @@ void DownstreamState::handleTimeouts()
             continue;
           }
 
-          handleTimeout(ids);
+          handleUDPTimeout(ids);
         }
       }
     }
@@ -473,6 +497,200 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
   }
 
   return ids;
+}
+
+bool DownstreamState::healthCheckRequired()
+{
+  if (d_config.availability == DownstreamState::Availability::Lazy) {
+    auto stats = d_lazyHealthCheckStats.lock();
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      vinfolog("Sending health-check query for %s which is still in the Potential Failure state", getNameWithAddr());
+      return true;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Failed) {
+      auto now = time(nullptr);
+      if (stats->d_nextCheck <= now) {
+        /* we update the next check time here because the check might time out,
+           and we do not want to send a second check during that time unless
+           the timer is actually very short */
+        updateNextLazyHealthCheck(*stats);
+        vinfolog("Sending health-check query for %s which is still in the Failed state", getNameWithAddr());
+        return true;
+      }
+      return false;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Healthy) {
+      auto& lastResults = stats->d_lastResults;
+      size_t totalCount = lastResults.size();
+      if (totalCount < d_config.d_lazyHealthCheckMinSampleCount) {
+        return false;
+      }
+
+      size_t failures = 0;
+      for (const auto& result : lastResults) {
+        if (result) {
+          ++failures;
+        }
+      }
+
+      const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthCheckThreshold);
+      auto current = (100.0 * failures) / totalCount;
+      if (current >= maxFailureRate) {
+        lastResults.clear();
+        vinfolog("Backend %s reached the lazy health-check threshold (%f%% out of %f%%, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
+        stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
+        /* we update the next check time here because the check might time out,
+           and we do not want to send a second check during that time unless
+           the timer is actually very short */
+        updateNextLazyHealthCheck(*stats);
+        return true;
+      }
+    }
+
+    return false;
+  }
+  else if (d_config.availability == DownstreamState::Availability::Auto) {
+
+    if (d_nextCheck > 1) {
+      --d_nextCheck;
+      return false;
+    }
+
+    d_nextCheck = d_config.checkInterval;
+    return true;
+  }
+
+  return false;
+}
+
+time_t DownstreamState::getNextLazyHealthCheck()
+{
+  auto stats = d_lazyHealthCheckStats.lock();
+  return stats->d_nextCheck;
+}
+
+void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
+{
+  auto now = time(nullptr);
+  if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
+    if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      /* we are still in the "up" state, we need to send the next query quickly to
+         determine if the backend is really down */
+      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+    }
+    else if (consecutiveSuccessfulChecks > 0) {
+      /* we are in 'Failed' state, but just had one (or more) successful check,
+         so we want the next one to happen quite quickly as the backend might
+         be available again. */
+      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+    }
+    else {
+      const uint16_t failedTests = currentCheckFailures;
+      size_t backOffCoeff = std::pow(2U, failedTests);
+      time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
+      if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
+        backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
+        if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
+          backOff = d_config.d_lazyHealthCheckMaxBackOff;
+        }
+      }
+
+      stats.d_nextCheck = now + backOff;
+    }
+  }
+  else {
+    stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+  }
+}
+
+void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
+{
+  if (initial) {
+    /* if this is the initial health-check, at startup, we do not care
+       about the minimum number of failed/successful health-checks */
+    if (!IsAnyAddress(d_config.remote)) {
+      infolog("Marking downstream %s as '%s'", getNameWithAddr(), newResult ? "up" : "down");
+    }
+    setUpStatus(newResult);
+    if (newResult == false) {
+      auto stats = d_lazyHealthCheckStats.lock();
+      stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+      updateNextLazyHealthCheck(*stats);
+    }
+    return;
+  }
+
+  bool newState = newResult;
+
+  if (newResult) {
+    /* check succeeded */
+    currentCheckFailures = 0;
+
+    if (!upStatus) {
+      /* we were previously marked as "down" and had a successful health-check,
+         let's see if this is enough to move to the "up" state or if we need
+         more successful health-checks for that */
+      consecutiveSuccessfulChecks++;
+      if (consecutiveSuccessfulChecks < d_config.minRiseSuccesses) {
+        /* we need more than one successful check to rise
+           and we didn't reach the threshold yet, let's stay down */
+        newState = false;
+
+        if (d_config.availability == DownstreamState::Availability::Lazy) {
+          auto stats = d_lazyHealthCheckStats.lock();
+          updateNextLazyHealthCheck(*stats);
+        }
+      }
+    }
+
+    if (newState) {
+      if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
+        stats->d_lastResults.clear();
+      }
+    }
+  }
+  else {
+    /* check failed */
+    consecutiveSuccessfulChecks = 0;
+
+    currentCheckFailures++;
+
+    if (upStatus) {
+      /* we were previously marked as "up" and failed a health-check,
+         let's see if this is enough to move to the "down" state or if
+         need more failed checks for that */
+      if (currentCheckFailures < d_config.maxCheckFailures) {
+        /* we need more than one failure to be marked as down,
+           and we did not reach the threshold yet, let's stay up */
+        newState = true;
+      }
+      else if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+        currentCheckFailures = 0;
+        updateNextLazyHealthCheck(*stats);
+      }
+    }
+  }
+
+  if (newState != upStatus) {
+    /* we are actually moving to a new state */
+    if (!IsAnyAddress(d_config.remote)) {
+      infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
+    }
+
+    if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
+      newState = reconnect();
+      start();
+    }
+
+    setUpStatus(newState);
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendBackendStatusChangeTrap(*this);
+    }
+  }
 }
 
 size_t ServerPool::countServers(bool upOnly)

@@ -357,7 +357,13 @@ class TestBackendDiscovery(DNSDistTest):
                 continue
             tokens = line.split()
             self.assertTrue(len(tokens) == 12 or len(tokens) == 13)
-            self.assertEquals(tokens[2], 'UP')
+            if tokens[1] == '127.0.0.1:10652':
+                # in this particular case, the upgraded backend
+                # does not replace the existing one and thus
+                # the health-check is forced to auto (or lazy auto)
+                self.assertEquals(tokens[2], 'up')
+            else:
+                self.assertEquals(tokens[2], 'UP')
             pool = ''
             if len(tokens) == 13:
                 pool = tokens[12]

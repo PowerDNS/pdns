@@ -398,6 +398,19 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
   config.remote = discoveredConfig.d_addr;
   config.remote.setPort(discoveredConfig.d_port);
 
+  if (backend.keepAfterUpgrade && config.availability == DownstreamState::Availability::Up) {
+    /* it's OK to keep the forced state if we replace the initial
+       backend, but if we are adding a new backend, it should not
+       inherit that setting, especially since DoX backends are much
+       more likely to fail (certificate errors, ...) */
+    if (config.d_upgradeToLazyHealthChecks) {
+      config.availability = DownstreamState::Availability::Lazy;
+    }
+    else {
+      config.availability = DownstreamState::Availability::Auto;
+    }
+  }
+
   ComboAddress::addressOnlyEqual comparator;
   config.d_dohPath = discoveredConfig.d_dohPath;
   if (!discoveredConfig.d_subjectName.empty() && comparator(config.remote, backend.d_ds->d_config.remote)) {

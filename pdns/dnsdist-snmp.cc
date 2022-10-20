@@ -375,11 +375,11 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 }
 #endif /* HAVE_NET_SNMP */
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState>& dss)
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
 {
 #ifdef HAVE_NET_SNMP
-  const string backendAddress = dss->d_config.remote.toStringWithPort();
-  const string backendStatus = dss->getStatus();
+  const string backendAddress = dss.d_config.remote.toStringWithPort();
+  const string backendStatus = dss.getStatus();
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
@@ -394,8 +394,8 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<Downstr
                             backendNameOID,
                             OID_LENGTH(backendNameOID),
                             ASN_OCTET_STR,
-                            dss->getName().c_str(),
-                            dss->getName().size());
+                            dss.getName().c_str(),
+                            dss.getName().size());
 
   snmp_varlist_add_variable(&varList,
                             backendAddressOID,

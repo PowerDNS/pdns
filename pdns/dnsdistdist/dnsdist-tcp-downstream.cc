@@ -522,6 +522,7 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
 void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, FailureReason reason)
 {
   d_connectionDied = true;
+  d_ds->reportTimeoutOrError();
 
   /* we might be terminated while notifying a query sender */
   d_ds->outstanding -= d_pendingResponses.size();
@@ -669,6 +670,14 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   auto ids = std::move(it->second.d_query.d_idstate);
   const double udiff = ids.sentTime.udiff();
   conn->d_ds->updateTCPLatency(udiff);
+  if (d_responseBuffer.size() >= sizeof(dnsheader)) {
+    dnsheader dh;
+    memcpy(&dh, d_responseBuffer.data(), sizeof(dh));
+    conn->d_ds->reportResponse(dh.rcode);
+  }
+  else {
+    conn->d_ds->reportTimeoutOrError();
+  }
 
   d_pendingResponses.erase(it);
   /* marking as idle for now, so we can accept new queries if our queues are empty */
