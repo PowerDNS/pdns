@@ -15,7 +15,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -25,7 +25,7 @@ jobs:
           echo "::set-output name=stamp::$(/bin/date +%s)"
         shell: bash
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -41,7 +41,7 @@ jobs:
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
-        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -61,7 +61,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -71,7 +71,7 @@ jobs:
           echo "::set-output name=stamp::$(/bin/date +%s)"
         shell: bash
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ~/.ccache
           key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -87,7 +87,7 @@ jobs:
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
-        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
@@ -111,7 +111,7 @@ jobs:
       run:
         working-directory: ./pdns/dnsdistdist/
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -121,7 +121,7 @@ jobs:
           echo "::set-output name=stamp::$(/bin/date +%s)"
         shell: bash
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -137,7 +137,7 @@ jobs:
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
-        uses: actions/upload-artifact@v2 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}
           path: /opt/dnsdist
@@ -176,12 +176,12 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -238,12 +238,12 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -262,12 +262,12 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-auth
           path: /opt/pdns-auth
@@ -287,12 +287,12 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
@@ -313,12 +313,12 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
@@ -343,12 +343,12 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
@@ -370,12 +370,12 @@ jobs:
       # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
       SKIP_INCLUDEDIR_TESTS: yes
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
       - name: Fetch the binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}
           path: /opt/dnsdist
@@ -387,7 +387,7 @@ jobs:
   swagger-syntax-check:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -410,7 +410,7 @@ jobs:
       - test-recursor-bulk
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
