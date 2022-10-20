@@ -13,6 +13,7 @@ dist_doc_DATA = \
 	3.4.0_to_4.1.0_schema.mysql.sql \
 	4.1.0_to_4.2.0_schema.mysql.sql \
 	4.2.0_to_4.3.0_schema.mysql.sql \
+	4.3.0_to_4.7.0_schema.mysql.sql \
 	schema.mysql.sql
 
 libgmysqlbackend_la_SOURCES = \
