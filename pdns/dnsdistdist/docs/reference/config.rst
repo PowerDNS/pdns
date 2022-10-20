@@ -737,10 +737,10 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:setDown()
 
-    Set the server in an ``DOWN`` state.
-    The server will not receive queries and the health checks are disabled
+    Set the server in a ``DOWN`` state.
+    The server will not receive queries and the health checks are disabled.
 
-  .. method:: Server:setLazy([status])
+  .. method:: Server:setLazyAuto([status])
 
     .. versionadded:: 1.8.0
 
