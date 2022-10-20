@@ -15,7 +15,7 @@ Schema changes
 ^^^^^^^^^^^^^^
 
 The new Catalog Zones feature comes with a mandatory schema change for the gsql database backends.
-See files named ``4.3.0_to_4.7.0_schema.pgsql.sql`` for your database backend in our Git repo, tarball, or distro-specific documentation path.
+See files named ``4.3.0_to_4.7.0_schema.X.sql`` for your database backend in our Git repo, tarball, or distro-specific documentation path.
 For the LMDB backend, please review :ref:`setting-lmdb-schema-version`.
 The new LMDB schema version is 4.
 
