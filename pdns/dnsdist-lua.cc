@@ -476,7 +476,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("healthCheckMode")) {
-                           auto mode = boost::get<string>(vars.at("healthCheckMode"));
+                           const auto& mode = boost::get<string>(vars.at("healthCheckMode"));
                            if (pdns_iequals(mode, "auto")) {
                              config.availability = DownstreamState::Availability::Auto;
                            }
@@ -527,25 +527,25 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("lazyHealthCheckSampleSize")) {
-                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
                            checkParameterBound("lazyHealthCheckSampleSize", value);
                            config.d_lazyHealthCheckSampleSize = value;
                          }
 
                          if (vars.count("lazyHealthCheckMinSampleCount")) {
-                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
                            checkParameterBound("lazyHealthCheckMinSampleCount", value);
                            config.d_lazyHealthCheckMinSampleCount = value;
                          }
 
                          if (vars.count("lazyHealthCheckThreshold")) {
-                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
                            checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
                            config.d_lazyHealthCheckThreshold = value;
                          }
 
                          if (vars.count("lazyHealthCheckFailedInterval")) {
-                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
                            checkParameterBound("lazyHealthCheckFailedInterval", value);
                            config.d_lazyHealthCheckFailedInterval = value;
                          }
@@ -555,13 +555,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (vars.count("lazyHealthCheckMaxBackOff")) {
-                           auto value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
+                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
                            checkParameterBound("lazyHealthCheckMaxBackOff", value);
                            config.d_lazyHealthCheckMaxBackOff = value;
                          }
 
                          if (vars.count("lazyHealthCheckMode")) {
-                           auto mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
+                           const auto& mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
                            if (pdns_iequals(mode, "TimeoutOnly")) {
                              config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
                            }
