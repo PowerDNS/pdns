@@ -914,12 +914,14 @@ public:
     upStatus = newStatus;
     if (!upStatus) {
       latencyUsec = 0.0;
+      latencyUsecTCP = 0.0;
     }
   }
   void setDown()
   {
     d_config.availability = Availability::Down;
     latencyUsec = 0.0;
+    latencyUsecTCP = 0.0;
   }
   void setAuto() {
     d_config.availability = Availability::Auto;
@@ -969,6 +971,11 @@ public:
   {
     tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (nbQueries / 100.0);
     tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
+  }
+
+  void updateTCPLatency(double udiff)
+  {
+    latencyUsecTCP = (127.0 * latencyUsecTCP / 128.0) + udiff / 128.0;
   }
 
   void incQueriesCount()

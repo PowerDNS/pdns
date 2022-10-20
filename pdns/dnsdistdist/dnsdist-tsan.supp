@@ -5,6 +5,7 @@ race:updateTCPLatency
 race:handleStats
 race:ClientState::updateTCPMetrics
 race:DownstreamState::updateTCPMetrics
+race:DownstreamState::updateTCPLatency
 # There is a race when we update the status of a backend,
 # but eventual consistency is fine there
 race:DownstreamState::setDown
