@@ -70,37 +70,37 @@ Changelogs for 4.7.x
   Besides that, various other smaller features and improvements have landed - please browse the list below.
 
   .. change::
-    :tags: 
+    :tags: Bug Fixes
     :pullreq: 12043
 
     AXFR server: abort on chunk with TC set
 
   .. change::
-    :tags: 
+    :tags: New Features
     :pullreq: 12042
 
     add keyroller
 
   .. change::
-    :tags: 
+    :tags: Improvements
     :pullreq: 12040
 
     pdnsutil edit-zone, detect capitalization changes in LUA, TXT and SPF records (Kees Monshouwer)
 
   .. change::
-    :tags: 
+    :tags: Bug Fixes
     :pullreq: 12030
 
     axfr-retriever: abort on chunk with TC set
 
   .. change::
-    :tags: 
+    :tags: Improvements
     :pullreq: 12029
 
     clang14 has reached MacOS
 
   .. change::
-    :tags: 
+    :tags: Improvements
     :pullreq: 11972
 
     docker: upgrade to bullseye
