@@ -2,6 +2,49 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.0
+  :released: 20th of October 2022
+
+  This is version 4.7.0 of the Authoritative Server.
+
+  4.7.0 brings support for :doc:`Catalog Zones <../catalog>`, developed by Kees Monshouwer.
+  As part of that development, the freshness checks in the Primary code were reworked, reducing them from doing potentially thousands of SQL queries (if you have thousands of domains) to only a few.
+  Installations with lots of domains will benefit greatly from this, even without using catalog zones.
+
+  4.7.0 also brings back GSS-TSIG support, previously removed for quality reasons, now reworked with many stability improvements.
+
+  Other things of note:
+
+  * LUA records, when queried over TCP, can now re-use a Lua state, giving a serious performance boost.
+  * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
+  * lmdbbackend databases now optionally use random IDs for objects
+  * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
+  * autoprimary management in ``pdnsutil`` and the HTTP API
+  * in beta, a key roller daemon, currently not packaged
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  Besides that, various other smaller features and improvements have landed - please browse the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12069
+
+    Fix compilation of the event ports multiplexer (Jonathan Perkin)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12085
+
+    pdnsutil check-zone, skip metadata check for backends without getAllDomainMetadata() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12098
+
+    fix axfr for tinydns and pipe backend (Kees Monshouwer). Note that this was only broken since 4.7.0-beta2.
+
+.. changelog::
   :version: 4.7.0-rc1
   :released: 3rd of October 2022
 
