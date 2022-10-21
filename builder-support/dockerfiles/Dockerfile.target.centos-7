@@ -12,7 +12,7 @@ FROM amd64/centos:7 as dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 RUN touch /var/lib/rpm/* && yum install -y epel-release centos-release-scl-rh
-RUN touch /var/lib/rpm/* && yum install -y --nogpgcheck devtoolset-8-gcc-c++
+RUN touch /var/lib/rpm/* && yum install -y --nogpgcheck devtoolset-11-gcc-c++
 
 # Do the actual rpm build
 @INCLUDE Dockerfile.rpmbuild
