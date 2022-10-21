@@ -1015,7 +1015,7 @@ void DoHClientCollection::addThread()
 {
 #ifdef HAVE_NGHTTP2
   try {
-    auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(true, g_tcpInternalPipeBufferSize);
+    auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(true, true, g_tcpInternalPipeBufferSize);
 
     vinfolog("Adding DoH Client thread");
     std::lock_guard<std::mutex> lock(d_mutex);

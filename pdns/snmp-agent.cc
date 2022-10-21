@@ -186,7 +186,7 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& daemonSocket)
 
   init_snmp(name.c_str());
 
-  auto [sender, receiver] = pdns::channel::createObjectQueue<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>(true);
+  auto [sender, receiver] = pdns::channel::createObjectQueue<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>(true, true);
   d_sender = std::move(sender);
   d_receiver = std::move(receiver);
 #endif /* HAVE_NET_SNMP */

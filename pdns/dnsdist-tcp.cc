@@ -130,11 +130,11 @@ TCPClientCollection::TCPClientCollection(size_t maxThreads, std::vector<ClientSt
 void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates)
 {
   try {
-    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(true, g_tcpInternalPipeBufferSize);
+    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(true, true, g_tcpInternalPipeBufferSize);
 
-    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(true, g_tcpInternalPipeBufferSize);
+    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(true, true, g_tcpInternalPipeBufferSize);
 
-    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(true, g_tcpInternalPipeBufferSize);
+    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(true, true, g_tcpInternalPipeBufferSize);
 
     vinfolog("Adding TCP Client thread");
 

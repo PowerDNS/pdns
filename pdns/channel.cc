@@ -35,20 +35,25 @@ namespace channel
   bool Notifier::notify() const
   {
     char data = 'a';
-    auto sent = write(d_fd.getHandle(), &data, sizeof(data));
-    if (sent != sizeof(data)) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        return false;
+    while (true) {
+      auto sent = write(d_fd.getHandle(), &data, sizeof(data));
+      if (sent != sizeof(data)) {
+        if (errno == EINTR) {
+          continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          return false;
+        }
+        else {
+          throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
+        }
       }
-      else {
-        throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
-      }
+      return true;
     }
-    return true;
   }
 
-  Waiter::Waiter(FDWrapper&& fd) :
-    d_fd(std::move(fd))
+  Waiter::Waiter(FDWrapper&& fd, bool throwOnEOF) :
+    d_fd(std::move(fd)), d_throwOnEOF(throwOnEOF)
   {
   }
 
@@ -59,9 +64,15 @@ namespace channel
       char data;
       got = read(d_fd.getHandle(), &data, sizeof(data));
       if (got == 0) {
+        if (!d_throwOnEOF) {
+          return;
+        }
         throw std::runtime_error("EOF while clearing channel notifier pipe");
       }
       else if (got == -1) {
+        if (errno == EINTR) {
+          continue;
+        }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
           break;
         }
@@ -75,7 +86,7 @@ namespace channel
     return d_fd.getHandle();
   }
 
-  std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize)
+  std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize, bool throwOnEOF)
   {
     int fds[2] = {-1, -1};
     if (pipe(fds) < 0) {
@@ -99,7 +110,7 @@ namespace channel
       setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
     }
 
-    return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver)));
+    return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF));
   }
 }
 }
