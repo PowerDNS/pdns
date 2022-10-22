@@ -108,6 +108,7 @@ pdns_recursor_SOURCES = \
 	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	comment.hh \
 	credentials.cc credentials.hh \
