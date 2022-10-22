@@ -19,3 +19,14 @@ jobs:
           echo "::notice ::No newer devtoolset exists (good)"
           exit 0
         fi
+
+  check-debian-autoremovals:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3.1.0
+      with:
+        fetch-depth: 5
+        submodules: recursive
+
+    - name: Check if Debian is about to toss us off a balcony
+      run: ./build-scripts/check-debian-autoremovals.py
