@@ -659,7 +659,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + itoa(p.d.id) + ") from " + p.getRemoteString() + " for " + p.qdomain.toLogString() + ": ";
+  string msgPrefix="UPDATE (" + std::to_string(p.d.id) + ") from " + p.getRemoteString() + " for " + p.qdomain.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it

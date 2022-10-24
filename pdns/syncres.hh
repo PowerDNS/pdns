@@ -294,7 +294,7 @@ public:
   void setId(int id)
   {
     if(doLog())
-      d_prefix="["+itoa(id)+"] ";
+      d_prefix="["+std::to_string(id)+"] ";
   }
 
   void setLogMode(LogMode lm)

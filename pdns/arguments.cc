@@ -474,7 +474,7 @@ bool ArgvMap::parseFile(const char* fname, const string& arg, bool lax)
   string line;
   string pline;
 
-  ifstream configFileStream(fname);
+  std::ifstream configFileStream(fname);
   if (!configFileStream) {
     return false;
   }

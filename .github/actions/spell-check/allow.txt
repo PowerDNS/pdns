@@ -3826,7 +3826,6 @@ uhi
 uhry
 uintptr
 uio
-uitoa
 ulddquehrj
 ulen
 ulong

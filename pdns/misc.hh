@@ -163,8 +163,6 @@ bool IpToU32(const string &str, uint32_t *ip);
 string U32ToIP(uint32_t);
 string stringerror(int);
 string stringerror();
-string itoa(int i);
-string uitoa(unsigned int i);
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);

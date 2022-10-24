@@ -507,20 +507,6 @@ std::string getCarbonHostName()
   return *hostname;
 }
 
-string itoa(int i)
-{
-  ostringstream o;
-  o<<i;
-  return o.str();
-}
-
-string uitoa(unsigned int i) // MSVC 6 doesn't grok overloading (un)signed
-{
-  ostringstream o;
-  o<<i;
-  return o.str();
-}
-
 string bitFlip(const string &str)
 {
   string::size_type pos=0, epos=str.size();

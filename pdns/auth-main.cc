@@ -1113,7 +1113,7 @@ static int guardian(int argc, char** argv)
           // execute some kind of ping here
           if (DLQuitPlease())
             takedown(1); // needs a parameter..
-          setStatus("Child running on pid " + itoa(pid));
+          setStatus("Child running on pid " + std::to_string(pid));
           sleep(1);
         }
       }
@@ -1130,7 +1130,7 @@ static int guardian(int argc, char** argv)
           g_log << Logger::Error << "Child requested a stop, exiting" << endl;
           exit(1);
         }
-        setStatus("Child died with code " + itoa(ret));
+        setStatus("Child died with code " + std::to_string(ret));
         g_log << Logger::Error << "Our pdns instance exited with code " << ret << ", respawning" << endl;
 
         sleep(1);
@@ -1138,7 +1138,7 @@ static int guardian(int argc, char** argv)
       }
       if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
-        setStatus("Child died because of signal " + itoa(sig));
+        setStatus("Child died because of signal " + std::to_string(sig));
         g_log << Logger::Error << "Our pdns instance (" << pid << ") exited after signal " << sig << endl;
 #ifdef WCOREDUMP
         if (WCOREDUMP(status))
