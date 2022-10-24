@@ -92,7 +92,6 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
 
   bool doTransaction{true};
   bool inTransaction{false};
-  bool doOptions{false};
   CatalogInfo ciCreate, ciRemove;
   std::unordered_map<DNSName, bool> clearCache;
   vector<CatalogInfo> retrieve;
@@ -122,6 +121,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         CatalogInfo ciXFR = *xfr;
         CatalogInfo ciDB = *db;
         if (ciDB.d_unique.empty() || ciXFR.d_unique == ciDB.d_unique) { // update
+          bool doOptions{false};
 
           if (ciDB.d_unique.empty()) { // set unique
             g_log << Logger::Warning << logPrefix << "set unique, zone '" << ciXFR.d_zone << "' is now a member" << endl;
