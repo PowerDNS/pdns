@@ -1819,7 +1819,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
         if(d_cacheonly) { // very limited OOB support
           LWResult lwr;
-          LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype<<"', peeking at auth/forward zones"<<endl);
+          LOG(prefix<<qname<<": cache only lookup for '"<<qname<<"|"<<qtype<<"', first peeking at auth/forward zones"<<endl);
           DNSName authname(qname);
           domainmap_t::const_iterator iter=getBestAuthZone(&authname);
           if(iter != t_sstorage.domainmap->end()) {
