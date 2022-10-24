@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
       }
 
       cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-      auto deltas = getIXFRDeltas(master, zone, ourSoa, tt);
+      auto deltas = getIXFRDeltas(master, zone, ourSoa, 20, false, tt);
       cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
       for(const auto& delta : deltas) {
