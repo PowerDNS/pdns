@@ -121,7 +121,13 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       else {
         CatalogInfo ciXFR = *xfr;
         CatalogInfo ciDB = *db;
-        if (ciXFR.d_unique == ciDB.d_unique) { // update
+        if (ciDB.d_unique.empty() || ciXFR.d_unique == ciDB.d_unique) { // update
+
+          if (ciDB.d_unique.empty()) { // set unique
+            g_log << Logger::Warning << logPrefix << "set unique, zone '" << ciXFR.d_zone << "' is now a member" << endl;
+            ciDB.d_unique = ciXFR.d_unique;
+            doOptions = true;
+          }
 
           if (ciXFR.d_coo != ciDB.d_coo) { // update coo
             g_log << Logger::Warning << logPrefix << "update coo for zone '" << ciXFR.d_zone << "' to '" << ciXFR.d_coo << "'" << endl;
