@@ -943,8 +943,8 @@ static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
 {
   auto ret = make_unique<RemoteLoggerStats_t>();
 
-  if (t_protobufServers) {
-    for (const auto& server : *t_protobufServers) {
+  if (t_protobufServers.servers) {
+    for (const auto& server : *t_protobufServers.servers) {
       ret->emplace(std::make_pair(server->address(), server->getStats()));
     }
   }
@@ -966,8 +966,8 @@ static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
 {
   auto ret = make_unique<RemoteLoggerStats_t>();
 
-  if (t_outgoingProtobufServers) {
-    for (const auto& server : *t_outgoingProtobufServers) {
+  if (t_outgoingProtobufServers.servers) {
+    for (const auto& server : *t_outgoingProtobufServers.servers) {
       ret->emplace(std::make_pair(server->address(), server->getStats()));
     }
   }

@@ -54,9 +54,6 @@
 #include <systemd/sd-journal.h>
 #endif
 
-static thread_local uint64_t t_protobufServersGeneration;
-static thread_local uint64_t t_outgoingProtobufServersGeneration;
-
 #ifdef HAVE_FSTRM
 thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
@@ -409,11 +406,9 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobuf
 bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->protobufExportConfig.enabled) {
-    if (t_protobufServers) {
-      for (auto& server : *t_protobufServers) {
-        server->stop();
-      }
-      t_protobufServers.reset();
+    if (t_protobufServers.servers) {
+      t_protobufServers.servers.reset();
+      t_protobufServers.config = luaconfsLocal->protobufExportConfig;
     }
 
     return false;
@@ -421,18 +416,15 @@ bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 
   /* if the server was not running, or if it was running according to a
      previous configuration */
-  if (!t_protobufServers || t_protobufServersGeneration < luaconfsLocal->generation) {
+  if (t_protobufServers.generation < luaconfsLocal->generation && t_protobufServers.config != luaconfsLocal->protobufExportConfig) {
 
-    if (t_protobufServers) {
-      for (auto& server : *t_protobufServers) {
-        server->stop();
-      }
+    if (t_protobufServers.servers) {
+      t_protobufServers.servers.reset();
     }
-    t_protobufServers.reset();
-
     auto log = g_slog->withName("protobuf");
-    t_protobufServers = startProtobufServers(luaconfsLocal->protobufExportConfig, log);
-    t_protobufServersGeneration = luaconfsLocal->generation;
+    t_protobufServers.servers = startProtobufServers(luaconfsLocal->protobufExportConfig, log);
+    t_protobufServers.config = luaconfsLocal->protobufExportConfig;
+    t_protobufServers.generation = luaconfsLocal->generation;
   }
 
   return true;
@@ -441,30 +433,25 @@ bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->outgoingProtobufExportConfig.enabled) {
-    if (t_outgoingProtobufServers) {
-      for (auto& server : *t_outgoingProtobufServers) {
-        server->stop();
-      }
+    if (t_outgoingProtobufServers.servers) {
+      t_outgoingProtobufServers.servers.reset();
+      t_outgoingProtobufServers.config = luaconfsLocal->outgoingProtobufExportConfig;
     }
-    t_outgoingProtobufServers.reset();
 
     return false;
   }
 
   /* if the server was not running, or if it was running according to a
      previous configuration */
-  if (!t_outgoingProtobufServers || t_outgoingProtobufServersGeneration < luaconfsLocal->generation) {
+  if (t_outgoingProtobufServers.generation < luaconfsLocal->generation && t_outgoingProtobufServers.config != luaconfsLocal->outgoingProtobufExportConfig) {
 
-    if (t_outgoingProtobufServers) {
-      for (auto& server : *t_outgoingProtobufServers) {
-        server->stop();
-      }
+    if (t_outgoingProtobufServers.servers) {
+      t_outgoingProtobufServers.servers.reset();
     }
-    t_outgoingProtobufServers.reset();
-
     auto log = g_slog->withName("protobuf");
-    t_outgoingProtobufServers = startProtobufServers(luaconfsLocal->outgoingProtobufExportConfig, log);
-    t_outgoingProtobufServersGeneration = luaconfsLocal->generation;
+    t_outgoingProtobufServers.servers = startProtobufServers(luaconfsLocal->outgoingProtobufExportConfig, log);
+    t_outgoingProtobufServers.config = luaconfsLocal->outgoingProtobufExportConfig;
+    t_outgoingProtobufServers.generation = luaconfsLocal->generation;
   }
 
   return true;
@@ -472,7 +459,9 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
 
 void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedRemote, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
 {
-  if (!t_protobufServers) {
+  auto log = g_slog->withName("pblq");
+
+  if (!t_protobufServers.servers) {
     return;
   }
 
@@ -505,19 +494,19 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
 
   std::string msg(m.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers) {
+  for (auto& server : *t_protobufServers.servers) {
     remoteLoggerQueueData(*server, msg);
   }
 }
 
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
 {
-  if (!t_protobufServers) {
+  if (!t_protobufServers.servers) {
     return;
   }
 
   std::string msg(message.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers) {
+  for (auto& server : *t_protobufServers.servers) {
     remoteLoggerQueueData(*server, msg);
   }
 }
@@ -2149,6 +2138,19 @@ static void houseKeeping(void*)
 
     const auto& info = RecThreadInfo::self();
 
+    // Threads handling packets process config changes in the input path, but not all threads process input packets
+    // distr threads only process TCP, so that may not happenn very often. So do all periodically.
+    static thread_local PeriodicTask exportConfigTask{"exportConfigTask", 30};
+    auto luaconfsLocal = g_luaconfs.getLocal();
+    exportConfigTask.runIfDue(now, [&luaconfsLocal]() {
+      checkProtobufExport(luaconfsLocal);
+      checkOutgoingProtobufExport(luaconfsLocal);
+#ifdef HAVE_FSTRM
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
+#endif
+    });
+
     // Below are the thread specific tasks for the handler and the taskThread
     // Likley a few handler tasks could be moved to the taskThread
     if (info.isTaskThread()) {
@@ -2157,7 +2159,6 @@ static void houseKeeping(void*)
 
       static PeriodicTask ztcTask{"ZTC", 60};
       static map<DNSName, RecZoneToCache::State> ztcStates;
-      auto luaconfsLocal = g_luaconfs.getLocal();
       ztcTask.runIfDue(now, [&luaconfsLocal]() {
         RecZoneToCache::maintainStates(luaconfsLocal->ztcConfigs, ztcStates, luaconfsLocal->generation);
         for (auto& ztc : luaconfsLocal->ztcConfigs) {
@@ -2289,7 +2290,6 @@ static void houseKeeping(void*)
         }
       });
 
-      auto luaconfsLocal = g_luaconfs.getLocal();
       static PeriodicTask trustAnchorTask{"trustAnchorTask", std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval) * 3600};
       if (!trustAnchorTask.hasRun()) {
         // Loading the Lua config file already "refreshed" the TAs

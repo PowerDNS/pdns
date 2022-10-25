@@ -400,12 +400,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
-      logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
-      dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
-
-#ifdef HAVE_FSTRM
-      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
-#endif
+      logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
+      dc->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
       if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
 
@@ -454,14 +450,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       const dnsheader_aligned headerdata(conn->data.data());
       const struct dnsheader* dh = headerdata.get();
 
-      if (t_protobufServers || t_outgoingProtobufServers) {
+      if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
         dc->d_requestorId = requestorId;
         dc->d_deviceId = deviceId;
         dc->d_deviceName = deviceName;
         dc->d_uuid = getUniqueID();
       }
 
-      if (t_protobufServers) {
+      if (t_protobufServers.servers) {
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
@@ -570,7 +566,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_stats.cumulativeAnswers(spentUsec);
             dc->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-            if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+            if (t_protobufServers.servers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
               struct timeval tv
               {
                 0, 0
