@@ -461,7 +461,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
         continue;
       }
 
-      if (static_cast<time_t>(last_check + sd.refresh) < time(nullptr)) { // still fresh
+      if (static_cast<time_t>(last_check + sd.refresh) >= time(nullptr)) { // still fresh
         continue;
       }
       di.serial = sd.serial;
