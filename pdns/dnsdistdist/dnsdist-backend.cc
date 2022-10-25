@@ -585,13 +585,16 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
       stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
     }
     else {
-      const uint16_t failedTests = currentCheckFailures;
-      size_t backOffCoeff = std::pow(2U, failedTests);
       time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
-      if ((static_cast<size_t>(std::numeric_limits<time_t>::max()) / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
-        backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
-        if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
-          backOff = d_config.d_lazyHealthCheckMaxBackOff;
+      const uint16_t failedTests = currentCheckFailures;
+      double backOffCoeffTmp = std::pow(2U, failedTests);
+      if (backOffCoeffTmp != HUGE_VAL && backOffCoeffTmp <= std::numeric_limits<time_t>::max()) {
+        time_t backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
+        if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
+          backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
+          if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
+            backOff = d_config.d_lazyHealthCheckMaxBackOff;
+          }
         }
       }
 
