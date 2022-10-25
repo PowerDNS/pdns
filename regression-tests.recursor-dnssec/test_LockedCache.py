@@ -102,4 +102,4 @@ class testNotLockedCache(RecursorTest):
         self.assertRRsetInAnswer(res, expected2)
         self.assertMatchingRRSIGInAnswer(res, expected2)
         ttl2 = self.getCacheTTL()
-        self.assertAlmostEqual(ttl1, ttl2, 1)
+        self.assertAlmostEqual(ttl1, ttl2, delta=1)
