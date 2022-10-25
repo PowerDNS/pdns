@@ -28,18 +28,6 @@ the inner process and terminate it, after which it terminates itself.
 Requests that require data from the actual nameserver are passed to the
 inner process as well.
 
-Logging to syslog on systemd-based operating systems
-----------------------------------------------------
-
-By default, logging to syslog is disabled in the the systemd unit file
-to prevent the service logging twice, as the systemd journal picks up
-the output from the process itself.
-
-Removing the ``--disable-syslog`` option from the ``ExecStart`` line
-using ``systemctl edit --full pdns`` enables logging to syslog.
-
-.. _logging-to-syslog:
-
 Logging to syslog
 -----------------
 This chapter assumes familiarity with syslog, the unix logging device.

@@ -7,7 +7,7 @@ Before=nss-lookup.target
 After=network-online.target
 
 [Service]
-ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog --log-timestamp=no
+ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --structured-logging-backend=systemd-journal
 User=@service_user@
 Group=@service_group@
 Type=notify
