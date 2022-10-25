@@ -325,9 +325,14 @@ Name of this virtual configuration - will rename the binary image. See
 .. versionadded:: 4.4.0
 
 When this is set, PowerDNS assumes that any single zone lives in only one backend.
-This allows PowerDNS to send ANY lookups to its backends, instead of sometimes requesting the exact needed type.
+This allows PowerDNS to send ``ANY`` lookups to its backends, instead of sometimes requesting the exact needed type.
 This reduces the load on backends by retrieving all the types for a given name at once, adding all of them to the cache.
 It improves performance significantly for latency-sensitive backends, like SQL ones, where a round-trip takes serious time.
+
+.. warning::
+  This behaviour is only a meaningful optimization if the returned response to the ``ANY`` query can actually be cached,
+  which is not the case if it contains at least one record with a non-zero scope. For this reason ``consistent-backends``
+  should be disabled when at least one of the backends in use returns location-based records, like the GeoIP backend.
 
 .. note::
   Pre 4.5.0 the default was no.
