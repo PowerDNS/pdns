@@ -27,7 +27,7 @@ class testLockedCache(RecursorTest):
                 pieces = i.split(' ')
                 print(pieces)
                 if pieces[0] == 'mx1.secure.example.' and pieces[4] == 'A':
-                    return pieces[2]
+                    return int(pieces[2])
             raise AssertionError("Cache Line not found");
 
         except subprocess.CalledProcessError as e:
@@ -102,4 +102,4 @@ class testNotLockedCache(RecursorTest):
         self.assertRRsetInAnswer(res, expected2)
         self.assertMatchingRRSIGInAnswer(res, expected2)
         ttl2 = self.getCacheTTL()
-        self.assertAlmostEqual(ttl1, ttl2, 1)
+        self.assertAlmostEqual(ttl1, ttl2, delta=1)
