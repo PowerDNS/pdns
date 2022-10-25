@@ -359,7 +359,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
-        time.sleep(2)
+        time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(res.answer, expected)
@@ -386,8 +386,8 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        # the timeout in the LUA health checker is 1 second, so we make sure to wait slightly longer here
-        time.sleep(2)
+        # the timeout in the LUA health checker is 2 second, so we make sure to wait slightly longer here
+        time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
@@ -429,7 +429,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        time.sleep(2)
+        time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
