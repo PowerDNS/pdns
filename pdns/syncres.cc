@@ -1737,6 +1737,19 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
         return res;
       }
 
+      // If we have seen this child during resolution already; just skip it. We tried to QM it already or otherwise broken.
+      bool skipStep4 = false;
+      for (const auto& visitedNS : beenthere) {
+        if (visitedNS.qname == child) {
+          skipStep4 = true;
+          break;
+        }
+      }
+      if (skipStep4) {
+        QLOG("Step4 Being skipped as visited this child name already");
+        continue;
+      }
+
       // Step 4
       QLOG("Step4 Resolve A for child");
       bool oldFollowCNAME = d_followCNAME;
