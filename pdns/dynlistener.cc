@@ -219,7 +219,7 @@ string DynListener::getLine()
 
   if(d_nonlocal) {
     for(;;) {
-      d_client=accept(d_s,(sockaddr*)&remote,&remlen);
+      d_client = accept(d_s, reinterpret_cast<sockaddr *>(&remote), &remlen);
       if(d_client<0) {
         if(errno!=EINTR)
           g_log<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<stringerror()<<endl;
