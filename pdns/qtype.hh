@@ -150,7 +150,7 @@ namespace std {
   };
 }
 
-inline std::ostream& operator<<(std::ostream& stream, QType qtype)
+inline std::ostream& operator<<(std::ostream& stream, const QType& qtype)
 {
   return stream << qtype.toString();
 }
