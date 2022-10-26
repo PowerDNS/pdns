@@ -268,20 +268,26 @@ string DynListener::getLine()
     }
   }
   else {
-    if(isatty(0) != 0)
-      if(write(1, "% ", 2) !=2)
-        throw PDNSException("Writing to console: "+stringerror());
+    if (isatty(0) != 0) {
+      if (write(1, "% ", 2) != 2) {
+        throw PDNSException("Writing to console: " + stringerror());
+      }
+    }
 
     ssize_t len = read(0, mesg.data(), mesg.size());
-    if (len < 0)
-      throw PDNSException("Reading from the control pipe: "+stringerror());
-    else if(len==0)
+    if (len < 0) {
+      throw PDNSException("Reading from the control pipe: " + stringerror());
+    }
+
+    if (len == 0) {
       throw PDNSException("Guardian exited - going down as well");
+    }
 
-    if(static_cast<size_t>(len) == mesg.size())
+    if (static_cast<size_t>(len) == mesg.size()) {
       throw PDNSException("Line on control console was too long");
+    }
 
-    mesg[len]=0;
+    mesg[len] = 0;
   }
 
   return mesg.data();
