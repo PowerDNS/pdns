@@ -396,6 +396,8 @@ BOOST_AUTO_TEST_CASE(test_makeBytesFromHex) {
   BOOST_CHECK_EQUAL(out, "\x12\x34\x56\x78\x90\xab\xcd\xef");
 
   BOOST_CHECK_THROW(makeBytesFromHex("123"), std::range_error);
+
+  BOOST_CHECK_THROW(makeBytesFromHex("1234GG"), std::range_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
