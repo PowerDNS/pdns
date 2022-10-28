@@ -429,7 +429,7 @@ def ci_make_install(c):
 def add_auth_repo(c):
     dist = 'ubuntu' # FIXME take these from the caller?
     release = 'jammy'
-    version = '44'
+    version = '47'
 
     c.sudo('apt-get install -qq -y curl gnupg2')
     if version == 'master':
