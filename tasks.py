@@ -92,6 +92,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'gawk',
     'krb5-user',
     'ldnsutils',
+    'libboost-program-options1.74.0',
     'libboost-serialization1.74.0',
     'libcdb1',
     'libcurl4',
