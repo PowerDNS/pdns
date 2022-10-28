@@ -428,7 +428,7 @@ def ci_make_install(c):
 @task
 def add_auth_repo(c):
     dist = 'ubuntu' # FIXME take these from the caller?
-    release = 'focal'
+    release = 'jammy'
     version = '44'
 
     c.sudo('apt-get install -qq -y curl gnupg2')
