@@ -68,9 +68,23 @@ jobs:
       - name: Get version number
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
-      - name: Upload packages
+      - name: Upload packages as GH artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.event.inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
           retention-days: 7
+
+      # if you want to copy this step to another file or branch, first move hostkey, hostname, username, and path, into something central
+      # like a separate config file (perhaps even on a shared branch), or into GitHub secrets
+      - name: Upload packages to downloads.powerdns.com
+        env:
+          SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
+        if:
+          "${{ env.SSHKEY != '' }}"          
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          echo "$SSHKEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo 'download1.powerdns.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMivOwl5Ntwri3YWCDVI2m616afHvjSWw+01Oqdov1y' > ~/.ssh/known_hosts
+          rsync -4rlptD built_pkgs/* download_powerdns_com@download1.powerdns.com:/srv/www/downloads.powerdns.com/github-builds
