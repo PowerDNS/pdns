@@ -2,6 +2,31 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.1
+  :released: 31st of October 2022
+
+  This is version 4.7.1 of the Authoritative Server.
+  It fixes a few bugs spotted after the release of 4.7.0.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12110
+
+    include auth 4.7 schema upgrade files in tarballs and packages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12124
+
+    catalog zones: avoid bulk zone reset while migrating to a catalog (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12124
+
+    catalog zones: stop wasting options update queries (Kees Monshouwer)
+
+.. changelog::
   :version: 4.7.0
   :released: 20th of October 2022
 
