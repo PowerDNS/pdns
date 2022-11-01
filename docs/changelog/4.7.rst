@@ -2,6 +2,19 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.2
+  :released: 1st of November 2022
+
+  This is version 4.7.2 of the Authoritative Server.
+  It fixes one bug spotted after the release of 4.7.0, for which we forgot to include the fix in 4.7.1.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12130
+
+    Un-reverse xfr freshness check
+
+.. changelog::
   :version: 4.7.1
   :released: 31st of October 2022
 
