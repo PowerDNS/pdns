@@ -426,6 +426,53 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
   BOOST_CHECK_EQUAL(retrieved.at(0).d_ttl, static_cast<uint32_t>(ttd));
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
+{
+  // Test #12140: as QM does a best NS lookup and then  uses it, incoming infra records should update
+  // cache, otherwise they might expire in-between.
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0U);
+
+  const time_t expiry = 30;
+  time_t ttd = now + expiry;
+
+  DNSRecord ns1;
+  auto record1 = DNSName("ns1.powerdns.com.");
+  ns1.d_name = record1;
+  ns1.d_type = QType::NS;
+  ns1.d_class = QClass::IN;
+  ns1.d_content = std::make_shared<NSRecordContent>(record1);
+  ns1.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  ns1.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(ns1);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, DNSName("powerdns.com."), boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+
+  // Record will expire soon so we should hit the 5s margin, replace by non-auth data should succeed
+  now = ttd - 1;
+  ttd = now + expiry;
+  ns1.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  records.clear();
+  records.push_back(ns1);
+
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, false, DNSName("powerdns.com."), boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+
+  // Let time pass, if we did not insert the non-auth record, it wil be expired
+  now += expiry / 2;
+
+  std::vector<DNSRecord> retrieved;
+  BOOST_CHECK_EQUAL(MRC.get(now, record1, QType(QType::NS), MemRecursorCache::None, &retrieved, ComboAddress("192.0.2.2")), (ttd - now));
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+  BOOST_CHECK_EQUAL(retrieved.at(0).d_ttl, static_cast<uint32_t>(ttd));
+}
+
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 {
   MemRecursorCache MRC(1);
