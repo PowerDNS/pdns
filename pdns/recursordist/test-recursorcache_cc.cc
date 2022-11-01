@@ -464,7 +464,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
   MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, false, DNSName("powerdns.com."), boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
-  // Let time pass, if we did not insert the non-auth record, it wil be expired
+  // Let time pass, if we did not insert the non-auth record, it will be expired
   now += expiry / 2;
 
   std::vector<DNSRecord> retrieved;
