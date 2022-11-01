@@ -490,7 +490,10 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
 bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState state, bool refresh)
 {
   if (!auth && d_auth) { // unauth data came in, we have some auth data, but is it fresh?
-    if (d_ttd > now) { // we still have valid data, ignore unauth data
+    // an auth entry that is going to expire while we are resolving can hurt, as it prevents infra
+    // records (which might be unauth) to be updated. So apply a safety margin.
+    const time_t margin = 5;
+    if (d_ttd - margin > now) { // we still have valid data, ignore unauth data
       return false;
     }
     d_auth = false; // new data won't be auth
