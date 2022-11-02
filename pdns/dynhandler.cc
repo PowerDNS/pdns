@@ -343,11 +343,11 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     try {
       domain = DNSName(parts[1]);
     } catch (...) {
-      return "Failed to parse zone as valid DNS name";
+      return "Failed to parse zone as valid DNS name for '" + domain.toLogString() + "'";
     }
     if(!Communicator.notifyDomain(DNSName(parts[1]), &B))
-      return "Failed to add to the queue - see log";
-    return "Added to queue";
+      return "Failed to add to the queue for '" + domain.toLogString() + "' - see log";
+    return "Added to queue for '" + domain.toLogString() + "'";
   }
 }
 
