@@ -168,12 +168,13 @@ def write_release_files (release):
 
     if release in ['auth-46', 'auth-47', 'auth-master',
                    'rec-46', 'rec-47', 'rec-48', 'rec-master',
-                   'dnsdist-master']:
+                   'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
     if release in ['auth-47', 'auth-master',
-                   'rec-47', 'rec-48', 'rec-master']:
+                   'rec-47', 'rec-48', 'rec-master',
+                   'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('el', '9', release)
 
 # Test Release Functions

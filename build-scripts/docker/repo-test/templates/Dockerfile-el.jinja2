@@ -1,6 +1,8 @@
 FROM {{ os_image }}:{{ os_version }}
 
-RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm bind-utils
+{% if os_version == '8' or os_version == '9' %}
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ os_version }}.noarch.rpm bind-utils
+{% endif %}
 
 {% if os_version == '7' %}
 RUN yum install -y yum-plugin-priorities
