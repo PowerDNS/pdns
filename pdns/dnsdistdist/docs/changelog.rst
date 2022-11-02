@@ -2,6 +2,31 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.3
+  :released: 2nd of November 2022
+
+  dnsdist 1.7.3 contains no functional changes or bugfixes.
+  This release strictly serves to bring dnsdist packages to our EL9 and Ubuntu Jammy repositories, and upgrades the dnsdist Docker image from Debian buster to Debian bullseye, as buster is officially EOL.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11948
+
+    add el9/9stream targets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11974
+
+    docker images: upgrade to Debian bullseye
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11742
+
+    dh_builddeb: force gzip compression (this makes the Ubuntu Jammy packages compatible with our Debian-hosted repositories)
+
+.. changelog::
   :version: 1.7.2
   :released: 14th of June 2022
 
