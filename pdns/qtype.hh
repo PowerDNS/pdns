@@ -150,6 +150,11 @@ namespace std {
   };
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const QType& qtype)
+{
+  return stream << qtype.toString();
+}
+
 // Used by e.g. boost multi-index
 inline size_t hash_value(const QType qtype) {
   return qtype.getCode();
