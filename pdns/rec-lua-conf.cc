@@ -43,6 +43,28 @@ LuaConfigItems::LuaConfigItems()
 
 /* DID YOU READ THE STORY ABOVE? */
 
+bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB)
+{
+  // clang-format off
+  return configA.exportTypes          == configB.exportTypes       &&
+         configA.servers              == configB.servers           &&
+         configA.maxQueuedEntries     == configB.maxQueuedEntries  &&
+         configA.timeout              == configB.timeout           &&
+         configA.reconnectWaitTime    == configB.reconnectWaitTime &&
+         configA.asyncConnect         == configB.asyncConnect      &&
+         configA.enabled              == configB.enabled           &&
+         configA.logQueries           == configB.logQueries        &&
+         configA.logResponses         == configB.logResponses      &&
+         configA.taggedOnly           == configB.taggedOnly        &&
+         configA.logMappedFrom        == configB.logMappedFrom;
+  // clang-format on
+}
+
+bool operator!=(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB)
+{
+  return !(configA == configB);
+}
+
 bool operator==(const FrameStreamExportConfig& configA, const FrameStreamExportConfig& configB)
 {
   // clang-format off
