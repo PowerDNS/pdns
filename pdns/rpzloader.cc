@@ -599,5 +599,9 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
       SLOG(g_log << Logger::Error << "Error while applying the update received over XFR for "<<zoneName<<", skipping the update: "<< e.what() <<endl,
            logger->error(Logr::Error, e.what(), "Exception while applying the update received over XFR, skipping", "exception", Logging::Loggable("std::exception")));
     }
+    catch (const PDNSException& e) {
+      SLOG(g_log << Logger::Error << "Error while applying the update received over XFR for "<<zoneName<<", skipping the update: "<< e.reason <<endl,
+           logger->error(Logr::Error, e.reason, "Exception while applying the update received over XFR, skipping", "exception", Logging::Loggable("PDNSException")));
+    }
   }
 }
