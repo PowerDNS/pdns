@@ -150,22 +150,22 @@ static const oid nonResolvingNameserverEntriesOID[] = {RECURSOR_STATS_OID, 126};
 static const oid maintenanceUSecOID[] = {RECURSOR_STATS_OID, 127};
 static const oid maintenanceCallsOID[] = {RECURSOR_STATS_OID, 128};
 
-static const oid rcode0AnswersOID[] = {RECURSOR_STATS_OID, 129, 0};
-static const oid rcode1AnswersOID[] = {RECURSOR_STATS_OID, 129, 1};
-static const oid rcode2AnswersOID[] = {RECURSOR_STATS_OID, 129, 2};
-static const oid rcode3AnswersOID[] = {RECURSOR_STATS_OID, 129, 3};
-static const oid rcode4AnswersOID[] = {RECURSOR_STATS_OID, 129, 4};
-static const oid rcode5AnswersOID[] = {RECURSOR_STATS_OID, 129, 5};
-static const oid rcode6AnswersOID[] = {RECURSOR_STATS_OID, 129, 6};
-static const oid rcode7AnswersOID[] = {RECURSOR_STATS_OID, 129, 7};
-static const oid rcode8AnswersOID[] = {RECURSOR_STATS_OID, 129, 8};
-static const oid rcode9AnswersOID[] = {RECURSOR_STATS_OID, 129, 9};
-static const oid rcode10AnswersOID[] = {RECURSOR_STATS_OID, 129, 10};
-static const oid rcode11AnswersOID[] = {RECURSOR_STATS_OID, 129, 11};
-static const oid rcode12AnswersOID[] = {RECURSOR_STATS_OID, 129, 12};
-static const oid rcode13AnswersOID[] = {RECURSOR_STATS_OID, 129, 13};
-static const oid rcode14AnswersOID[] = {RECURSOR_STATS_OID, 129, 14};
-static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 129, 15};
+static const oid rcode0AnswersOID[] = {RECURSOR_STATS_OID, 129};
+static const oid rcode1AnswersOID[] = {RECURSOR_STATS_OID, 130};
+static const oid rcode2AnswersOID[] = {RECURSOR_STATS_OID, 131};
+static const oid rcode3AnswersOID[] = {RECURSOR_STATS_OID, 132};
+static const oid rcode4AnswersOID[] = {RECURSOR_STATS_OID, 133};
+static const oid rcode5AnswersOID[] = {RECURSOR_STATS_OID, 134};
+static const oid rcode6AnswersOID[] = {RECURSOR_STATS_OID, 135};
+static const oid rcode7AnswersOID[] = {RECURSOR_STATS_OID, 136};
+static const oid rcode8AnswersOID[] = {RECURSOR_STATS_OID, 137};
+static const oid rcode9AnswersOID[] = {RECURSOR_STATS_OID, 138};
+static const oid rcode10AnswersOID[] = {RECURSOR_STATS_OID, 139};
+static const oid rcode11AnswersOID[] = {RECURSOR_STATS_OID, 140};
+static const oid rcode12AnswersOID[] = {RECURSOR_STATS_OID, 141};
+static const oid rcode13AnswersOID[] = {RECURSOR_STATS_OID, 142};
+static const oid rcode14AnswersOID[] = {RECURSOR_STATS_OID, 143};
+static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 144};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
