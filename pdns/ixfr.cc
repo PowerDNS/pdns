@@ -127,8 +127,8 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
                                                                  uint16_t xfrTimeout, bool totalTimeout,
                                                                  const TSIGTriplet& tt, const ComboAddress* laddr, size_t maxReceivedBytes)
 {
-  // Auth documents xfrTimeout to be a max idle time
-  // Rec documents it do be a total XFR time
+  // Auth documents xfrTimeout to be a max idle time (sets totalTimeout=false)
+  // Rec documents it to be a total XFR time (sets totalTimeout=true)
   //
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
