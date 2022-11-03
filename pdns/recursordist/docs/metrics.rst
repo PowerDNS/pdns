@@ -236,7 +236,7 @@ auth-xxx-answers
 ^^^^^^^^^^^^^^^^
 where ``xxx`` is an rcode name (``noerror``, ``formerr``, ``servfail``, ``nxdomain``, ``notimp``, ``refused``, ``yxdomain``, ``yxrrset``, ``nxrrset``, ``notauth``, ``rcode10``, ``rcode11``, ``rcode2``, ``rcode13``, ``rcode14``, ``rcode15``).
 Counts the rcodes returned by authoritative servers.
-The corresponding Prometheus metrics consis of multiple entries of the form ``pdns_recursor_auth_rcode_answers{rcode="xxx"}``.
+The corresponding Prometheus metrics consist of multiple entries of the form ``pdns_recursor_auth_rcode_answers{rcode="xxx"}``.
 
 
 auth-zone-queries
