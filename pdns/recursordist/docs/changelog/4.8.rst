@@ -2,6 +2,59 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.0-beta2
+  :released: 7th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12163
+    :tickets: 12155
+
+    Fix SNMP OID numbers for rcode stats.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12162
+    :tickets: 12122
+
+    Implement output operator for QTypes, avoids numeric qtypes in trace logs.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12161
+    :tickets: 12125
+
+    Handle IXFR connect and transfer timeouts.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12146
+    :tickets: 12063
+
+    Only replace protobuf logger config objects if the reload changed them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12150
+    :tickets: 12140
+
+    Be more lenient replacing auth by non-auth records in cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12145
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12147
+    :tickets: 12066
+
+    Detect invalid bytes in makeBytesFromHex().
+
+.. changelog::
   :version: 4.8.0-beta1
   :released: 5th of October 2022
 

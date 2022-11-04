@@ -1122,7 +1122,7 @@ nostrip
 NOSUBDIR
 nosync
 Notaras
-NOTAUTH
+notauth
 NOTIFYs
 NOTPARALLEL
 notrack
