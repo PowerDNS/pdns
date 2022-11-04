@@ -261,7 +261,13 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
         return -1;
       } else {
         if (!entry->d_submitted) {
-          pushTask(qname, qtype, entry->d_ttd);
+          if (qtype == QType::ADDR) {
+            pushTask(qname, QType::A, entry->d_ttd);
+            pushTask(qname, QType::AAAA, entry->d_ttd);
+          }
+	  else {
+            pushTask(qname, qtype, entry->d_ttd);
+          }
           entry->d_submitted = true;
         }
       }
