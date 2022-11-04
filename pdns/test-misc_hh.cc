@@ -396,6 +396,14 @@ BOOST_AUTO_TEST_CASE(test_makeBytesFromHex) {
   BOOST_CHECK_EQUAL(out, "\x12\x34\x56\x78\x90\xab\xcd\xef");
 
   BOOST_CHECK_THROW(makeBytesFromHex("123"), std::range_error);
+
+  BOOST_CHECK_THROW(makeBytesFromHex("1234GG"), std::range_error);
+}
+
+BOOST_AUTO_TEST_CASE(test_makeHexDump) {
+  auto out = makeHexDump("\x12\x34\x56\x78\x90\xab\xcd\xef");
+  // there is a trailing white space by design
+  BOOST_CHECK_EQUAL(out, "12 34 56 78 90 ab cd ef ");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
