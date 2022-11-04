@@ -400,7 +400,7 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<LockGuarded<Aggre
 
     auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     if (it->d_ttd <= now) {
-      moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
+      moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
       return false;
     }
 
