@@ -1061,7 +1061,6 @@ ETIMEDOUT
 Eto
 etree
 etry
-eturn
 eui
 evah
 eventkey
@@ -1087,7 +1086,6 @@ exitvalue
 Expat
 expectedlen
 expf
-explicitely
 expr
 expungebyname
 expungebynameandtype
@@ -2312,6 +2310,8 @@ Nro
 nrr
 nsa
 nscount
+NSD
+nsd
 nsdname
 nsdomain
 nseconds
@@ -3304,9 +3304,7 @@ smtarg
 smtp
 SMTs
 smvmlo
-SMy
 smysql
-Smz
 sname
 snaplen
 snd
