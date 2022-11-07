@@ -94,6 +94,8 @@ BOOST_AUTO_TEST_CASE(test_Query)
     BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin4.sin_addr.s_addr));
     BOOST_CHECK(memcmp(buffer, &ids.origRemote.sin4.sin_addr.s_addr, sizeof(ids.origRemote.sin4.sin_addr.s_addr)) == 0);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_remote_port(&lightDQ), 4242U);
+    BOOST_CHECK(!dnsdist_ffi_dnsquestion_is_remote_v6(nullptr));
+    BOOST_CHECK(!dnsdist_ffi_dnsquestion_is_remote_v6(&lightDQ));
   }
 
   {
