@@ -1407,8 +1407,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  /* com|NS, powerdns.com|NS, powerdns.com|A */
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  /* com|NS, powerdns.com|DS, com|DNSKEY, powerdns.com|A */
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1417,7 +1417,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
@@ -1460,8 +1460,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  /* com|NS, powerdns.com|NS, powerdns.com|A */
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+
+  /* com|A, powerdns.com|DS, com|DNSKEY, powerdns.com|A */
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1470,7 +1471,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
