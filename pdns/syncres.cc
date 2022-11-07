@@ -2311,7 +2311,6 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
       LOG(prefix<<qname<<": reprimed the root"<<endl);
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
-        primeRootNSZones(g_dnssecmode, depth);
         auto log = g_slog->withName("housekeeping");
         getRootNS(d_now, d_asyncResolve, depth, log);
       }
@@ -3598,8 +3597,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
   vState state = vState::Indeterminate;
   const bool oldCacheOnly = setCacheOnly(false);
+  const bool oldQM = setQNameMinimization(true);
   int rcode = doResolve(zone, QType::DS, dsrecords, depth + 1, beenthere, state);
   setCacheOnly(oldCacheOnly);
+  setQNameMinimization(oldQM);
 
   if (rcode == RCode::ServFail) {
     throw ImmediateServFailException("Server Failure while retrieving DS records for " + zone.toLogString());
