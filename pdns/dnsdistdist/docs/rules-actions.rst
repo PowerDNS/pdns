@@ -1896,6 +1896,12 @@ The following actions exist.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
   prevent the TC bit from being set over TCP transports.
 
+.. function:: TCResponseAction()
+
+  .. versionadded:: 1.9.0
+
+  Truncate an existing answer, to force the client to TCP.
+
 .. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 
   .. versionchanged:: 1.8.0

@@ -51,6 +51,7 @@ void setupLuaVars(LuaContext& luaCtx)
       {"Drop",         (int)DNSResponseAction::Action::Drop         },
       {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
       {"ServFail",     (int)DNSResponseAction::Action::ServFail     },
+      {"Truncate",     (int)DNSResponseAction::Action::Truncate     },
       {"None",         (int)DNSResponseAction::Action::None         }
     });
 
