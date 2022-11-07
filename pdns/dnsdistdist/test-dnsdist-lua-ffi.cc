@@ -816,4 +816,31 @@ BOOST_AUTO_TEST_CASE(test_NetworkEndpoint)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_hash)
+{
+  const uint32_t seed = 0x42;
+  const std::array<unsigned char, 10> data{{'0', 'x', 'd', 'e', 'a', 'd', 'b', 'E', 'e', 'F'}};
+  const std::array<unsigned char, 10> capitalizedData{{'0', 'X', 'D', 'E', 'A', 'D', 'B', 'E', 'E', 'F'}};
+
+  {
+    /* invalid */
+    BOOST_CHECK_EQUAL(dnsdist_ffi_hash(0, nullptr, 0, false), 0U);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_hash(seed, nullptr, 0, false), seed);
+  }
+  {
+    /* case sensitive */
+    auto hash = dnsdist_ffi_hash(seed, data.data(), data.size(), false);
+    BOOST_CHECK_EQUAL(hash, burtle(data.data(), data.size(), seed));
+    BOOST_CHECK_NE(hash, burtle(capitalizedData.data(), capitalizedData.size(), seed));
+    BOOST_CHECK_NE(hash, burtleCI(capitalizedData.data(), capitalizedData.size(), seed));
+  }
+  {
+    /* case insensitive */
+    auto hash = dnsdist_ffi_hash(seed, data.data(), data.size(), true);
+    BOOST_CHECK_EQUAL(hash, burtleCI(data.data(), data.size(), seed));
+    BOOST_CHECK_NE(hash, burtle(capitalizedData.data(), capitalizedData.size(), seed));
+    BOOST_CHECK_EQUAL(hash, burtleCI(capitalizedData.data(), capitalizedData.size(), seed));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();

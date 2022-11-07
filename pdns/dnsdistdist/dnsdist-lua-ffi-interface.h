@@ -282,3 +282,5 @@ size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t*
 size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_list_t** out) __attribute__ ((visibility ("default")));
 const dnsdist_ffi_dynamic_block_entry_t* dnsdist_ffi_dynamic_blocks_list_get(const dnsdist_ffi_dynamic_blocks_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t*) __attribute__ ((visibility ("default")));
+
+uint32_t dnsdist_ffi_hash(uint32_t seed, const unsigned char* data, size_t dataSize, bool caseInsensitive) __attribute__ ((visibility ("default")));

@@ -2003,3 +2003,16 @@ void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* lis
 }
 
 #endif /* DISABLE_DYNBLOCKS */
+
+uint32_t dnsdist_ffi_hash(uint32_t seed, const unsigned char* data, size_t dataSize, bool caseInsensitive)
+{
+  if (data == nullptr || dataSize == 0) {
+    return seed;
+  }
+
+  if (caseInsensitive) {
+    return burtleCI(data, dataSize, seed);
+  }
+
+  return burtle(data, dataSize, seed);
+}
