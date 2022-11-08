@@ -171,6 +171,7 @@ pdns_recursor_SOURCES = \
 	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
+	rec-tcounters.cc rec-tcounters.hh \
 	rec-tcp.cc \
 	rec-tcpout.cc rec-tcpout.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
@@ -201,6 +202,7 @@ pdns_recursor_SOURCES = \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	taskqueue.cc taskqueue.hh \
+	tcounters.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
@@ -294,6 +296,7 @@ testrunner_SOURCES = \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-taskqueue.cc rec-taskqueue.hh \
+	rec-tcounters.cc rec-tcounters.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
@@ -334,6 +337,7 @@ testrunner_SOURCES = \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-rec-taskqueue.cc \
+	test-rec-tcounters_cc.cc \
 	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \

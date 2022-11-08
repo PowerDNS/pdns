@@ -12,6 +12,7 @@ class testSimpleDoT(RecursorTest):
     _config_template = """
 dnssec=validate
 dot-to-auth-names=powerdns.com
+devonly-regression-test-mode
     """
 
     _roothints = None

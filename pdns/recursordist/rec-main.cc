@@ -62,6 +62,7 @@ thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 string g_programname = "pdns_recursor";
 string g_pidfname;
 RecursorControlChannel g_rcc; // only active in the handler thread
+bool g_regressionTestMode;
 
 #ifdef NOD_ENABLED
 bool g_nodEnabled;
@@ -997,9 +998,16 @@ static void doStats(void)
 
   auto log = g_slog->withName("stats");
 
-  if (g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
+  auto qcounter = g_Counters.sum(rec::Counter::qcounter);
+  auto syncresqueries = g_Counters.sum(rec::Counter::syncresqueries);
+  auto outqueries = g_Counters.sum(rec::Counter::outqueries);
+  auto throttledqueries = g_Counters.sum(rec::Counter::throttledqueries);
+  auto tcpoutqueries = g_Counters.sum(rec::Counter::tcpoutqueries);
+  auto dotoutqueries = g_Counters.sum(rec::Counter::dotoutqueries);
+  auto outgoingtimeouts = g_Counters.sum(rec::Counter::outgoingtimeouts);
+  if (qcounter > 0 && (cacheHits + cacheMisses) > 0 && syncresqueries > 0 && outqueries > 0) {
     if (!g_slogStructured) {
-      g_log << Logger::Notice << "stats: " << g_stats.qcounter << " questions, " << cacheSize << " cache entries, " << negCacheSize << " negative entries, " << ratePercentage(cacheHits, cacheHits + cacheMisses) << "% cache hits" << endl;
+      g_log << Logger::Notice << "stats: " << qcounter << " questions, " << cacheSize << " cache entries, " << negCacheSize << " negative entries, " << ratePercentage(cacheHits, cacheHits + cacheMisses) << "% cache hits" << endl;
       g_log << Logger::Notice << "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
       g_log << Logger::Notice << "stats: throttle map: "
@@ -1010,18 +1018,18 @@ static void doStats(void)
             << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
             << SyncRes::getSaveParentsNSSetsSize()
             << endl;
-      g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries) << "%";
-      g_log << Logger::Notice << ", " << ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries) << "% throttled" << endl;
-      g_log << Logger::Notice << "stats: " << SyncRes::s_tcpoutqueries << "/" << SyncRes::s_dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, " << broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries) << " queries running, " << SyncRes::s_outgoingtimeouts << " outgoing timeouts " << endl;
+      g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(outqueries, syncresqueries) << "%";
+      g_log << Logger::Notice << ", " << ratePercentage(throttledqueries, outqueries + throttledqueries) << "% throttled" << endl;
+      g_log << Logger::Notice << "stats: " << tcpoutqueries << "/" << dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, " << broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries) << " queries running, " << outgoingtimeouts << " outgoing timeouts " << endl;
 
-      g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, g_stats.qcounter) << "% packet cache hits" << endl;
+      g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, qcounter) << "% packet cache hits" << endl;
 
       g_log << Logger::Notice << "stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl;
     }
     else {
       const string m = "Periodic statistics report";
       log->info(Logr::Info, m,
-                "questions", Logging::Loggable(g_stats.qcounter),
+                "questions", Logging::Loggable(qcounter),
                 "cache-entries", Logging::Loggable(cacheSize),
                 "negcache-entries", Logging::Loggable(negCacheSize),
                 "record-cache-hitratio-perc", Logging::Loggable(ratePercentage(cacheHits, cacheHits + cacheMisses)),
@@ -1035,17 +1043,17 @@ static void doStats(void)
                 "edns-entries", Logging::Loggable(SyncRes::getEDNSStatusesSize()),
                 "non-resolving-nameserver-entries", Logging::Loggable(SyncRes::getNonResolvingNSSize()),
                 "saved-parent-ns-sets-entries", Logging::Loggable(SyncRes::getSaveParentsNSSetsSize()),
-                "outqueries-per-query", Logging::Loggable(ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)));
+                "outqueries-per-query", Logging::Loggable(ratePercentage(outqueries, syncresqueries)));
       log->info(Logr::Info, m,
-                "throttled-queries-perc", Logging::Loggable(ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries + SyncRes::s_throttledqueries)),
-                "tcp-outqueries", Logging::Loggable(SyncRes::s_tcpoutqueries),
-                "dot-outqueries", Logging::Loggable(SyncRes::s_dotoutqueries),
+                "throttled-queries-perc", Logging::Loggable(ratePercentage(throttledqueries, outqueries + throttledqueries)),
+                "tcp-outqueries", Logging::Loggable(tcpoutqueries),
+                "dot-outqueries", Logging::Loggable(dotoutqueries),
                 "idle-tcpout-connections", Logging::Loggable(getCurrentIdleTCPConnections()),
                 "concurrent-queries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)),
-                "outgoing-timeouts", Logging::Loggable(SyncRes::s_outgoingtimeouts));
+                "outgoing-timeouts", Logging::Loggable(outgoingtimeouts));
       log->info(Logr::Info, m,
                 "packetcache-entries", Logging::Loggable(pcSize),
-                "packetcache-hitratio-perc", Logging::Loggable(ratePercentage(pcHits, g_stats.qcounter)),
+                "packetcache-hitratio-perc", Logging::Loggable(ratePercentage(pcHits, qcounter)),
                 "taskqueue-pushed", Logging::Loggable(taskPushes),
                 "taskqueue-expired", Logging::Loggable(taskExpired),
                 "taskqueue-size", Logging::Loggable(taskSize));
@@ -1060,12 +1068,12 @@ static void doStats(void)
     }
     time_t now = time(0);
     if (lastOutputTime && lastQueryCount && now != lastOutputTime) {
-      SLOG(g_log << Logger::Notice << "stats: " << (g_stats.qcounter - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl,
-           log->info(Logr::Info, "Periodic QPS report", "qps", Logging::Loggable((g_stats.qcounter - lastQueryCount) / (now - lastOutputTime)),
+      SLOG(g_log << Logger::Notice << "stats: " << (qcounter - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl,
+           log->info(Logr::Info, "Periodic QPS report", "qps", Logging::Loggable((qcounter - lastQueryCount) / (now - lastOutputTime)),
                      "averagedOver", Logging::Loggable(now - lastOutputTime)));
     }
     lastOutputTime = now;
-    lastQueryCount = g_stats.qcounter;
+    lastQueryCount = qcounter;
   }
   else if (statsWanted) {
     SLOG(g_log << Logger::Notice << "stats: no stats yet!" << endl,
@@ -1354,6 +1362,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
+  g_regressionTestMode = ::arg().mustDo("devonly-regression-test-mode");
 
   if (!::arg()["logging-facility"].empty()) {
     int val = logFacilityToLOG(::arg().asNum("logging-facility"));
@@ -1950,6 +1959,9 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   disableStats(StatComponent::RecControl, ::arg()["stats-rec-control-disabled-list"]);
   disableStats(StatComponent::SNMP, ::arg()["stats-snmp-disabled-list"]);
 
+  // Run before any thread doing stats related things
+  registerAllStats();
+
   if (::arg().mustDo("snmp-agent")) {
 #ifdef HAVE_NET_SNMP
     string setting = ::arg()["snmp-daemon-socket"];
@@ -2120,6 +2132,7 @@ static void houseKeeping(void*)
 
     struct timeval now;
     Utility::gettimeofday(&now);
+    t_Counters.updateSnap(now, g_regressionTestMode);
 
     // Below are the tasks that run for every recursorThread, including handler and taskThread
     if (t_packetCache) {
@@ -2225,7 +2238,10 @@ static void houseKeeping(void*)
       const unsigned int minRootRefreshInterval = 10;
       static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval)};
       rootUpdateTask.runIfDue(now, [now, &log, minRootRefreshInterval]() {
-        int res = SyncRes::getRootNS(now, nullptr, 0, log);
+        int res = 0;
+        if (!g_regressionTestMode) {
+          res = SyncRes::getRootNS(now, nullptr, 0, log);
+        }
         if (res == 0) {
           // Success, go back to the defaut period
           rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
@@ -2292,6 +2308,7 @@ static void houseKeeping(void*)
         }
       });
     }
+    t_Counters.updateSnap(g_regressionTestMode);
     t_running = false;
   }
   catch (const PDNSException& ae) {
@@ -2311,6 +2328,7 @@ static void houseKeeping(void*)
 static void recursorThread()
 {
   auto log = g_slog->withName("runtime");
+  t_Counters.updateSnap(true);
   try {
     auto& threadInfo = RecThreadInfo::self();
     {
@@ -2443,8 +2461,6 @@ static void recursorThread()
       }
     }
 
-    registerAllStats();
-
     if (threadInfo.isHandler()) {
       t_fdm->addReadFD(g_rcc.d_fd, handleRCC); // control channel
     }
@@ -2457,7 +2473,6 @@ static void recursorThread()
     time_t last_carbon = 0, last_lua_maintenance = 0;
     time_t carbonInterval = ::arg().asNum("carbon-interval");
     time_t luaMaintenanceInterval = ::arg().asNum("lua-maintenance-interval");
-    s_counter.store(0); // used to periodically execute certain tasks
 
 #ifdef HAVE_SYSTEMD
     if (threadInfo.isHandler()) {
@@ -2467,7 +2482,6 @@ static void recursorThread()
       sd_notify(0, "READY=1");
     }
 #endif
-
     while (!RecursorControlChannel::stop) {
       while (MT->schedule(&g_now))
         ; // MTasker letting the mthreads do their thing
@@ -2481,8 +2495,8 @@ static void recursorThread()
         if (!threadInfo.isTaskThread()) {
           struct timeval stop;
           Utility::gettimeofday(&stop);
-          g_stats.maintenanceUsec += uSec(stop - start);
-          ++g_stats.maintenanceCalls;
+          t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
+          ++t_Counters.at(rec::Counter::maintenanceCalls);
         }
       }
 
@@ -2526,8 +2540,8 @@ static void recursorThread()
             last_lua_maintenance = g_now.tv_sec;
             struct timeval stop;
             Utility::gettimeofday(&stop);
-            g_stats.maintenanceUsec += uSec(stop - start);
-            ++g_stats.maintenanceCalls;
+            t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
+            ++t_Counters.at(rec::Counter::maintenanceCalls);
           }
         }
       }
@@ -2587,6 +2601,8 @@ int main(int argc, char** argv)
 #else
     ::arg().set("stack-size", "stack size per mthread") = "200000";
 #endif
+    // This mode forces metrics snap updates and dsiable root-refresh, to get consistent counters
+    ::arg().setSwitch("devonly-regression-test-mode", "internal use only") = "no";
     ::arg().set("soa-minimum-ttl", "Don't change") = "0";
     ::arg().set("no-shuffle", "Don't change") = "off";
     ::arg().set("local-port", "port to listen on") = "53";

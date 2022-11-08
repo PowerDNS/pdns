@@ -46,6 +46,7 @@ webserver-port=%d
 webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
+devonly-regression-test-mode
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testRootNXTrust(self):
@@ -94,6 +95,7 @@ webserver-port=%d
 webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
+devonly-regression-test-mode
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testRootNXTrust(self):

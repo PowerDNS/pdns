@@ -53,6 +53,7 @@
 #include "tcpiohandler.hh"
 #include "rec-eventtrace.hh"
 #include "logr.hh"
+#include "rec-tcounters.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -458,18 +459,6 @@ public:
 
   static thread_local ThreadLocalStorage t_sstorage;
 
-  static pdns::stat_t s_queries;
-  static pdns::stat_t s_outgoingtimeouts;
-  static pdns::stat_t s_outgoing4timeouts;
-  static pdns::stat_t s_outgoing6timeouts;
-  static pdns::stat_t s_throttledqueries;
-  static pdns::stat_t s_dontqueries;
-  static pdns::stat_t s_qnameminfallbacksuccess;
-  static pdns::stat_t s_authzonequeries;
-  static pdns::stat_t s_outqueries;
-  static pdns::stat_t s_tcpoutqueries;
-  static pdns::stat_t s_dotoutqueries;
-  static pdns::stat_t s_unreachables;
   static pdns::stat_t s_ecsqueries;
   static pdns::stat_t s_ecsresponses;
   static std::map<uint8_t, pdns::stat_t> s_ecsResponsesBySubnetSize4;
@@ -760,79 +749,17 @@ struct PacketIDBirthdayCompare
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 
+extern rec::GlobalCounters g_Counters;
+extern thread_local rec::TCounters t_Counters;
+
 struct RecursorStats
 {
-  pdns::stat_t servFails;
-  pdns::stat_t nxDomains;
-  pdns::stat_t noErrors;
-  pdns::AtomicHistogram answers;
-  pdns::AtomicHistogram auth4Answers;
-  pdns::AtomicHistogram auth6Answers;
-  pdns::AtomicHistogram ourtime;
-  pdns::AtomicHistogram cumulativeAnswers;
-  pdns::AtomicHistogram cumulativeAuth4Answers;
-  pdns::AtomicHistogram cumulativeAuth6Answers;
-  pdns::stat_t_trait<double> avgLatencyUsec;
-  pdns::stat_t_trait<double> avgLatencyOursUsec;
-  pdns::stat_t qcounter;     // not increased for unauth packets
-  pdns::stat_t ipv6qcounter;
-  pdns::stat_t tcpqcounter;
-  pdns::stat_t unauthorizedUDP;  // when this is increased, qcounter isn't
-  pdns::stat_t unauthorizedTCP;  // when this is increased, qcounter isn't
-  pdns::stat_t sourceDisallowedNotify;  // when this is increased, qcounter is also
-  pdns::stat_t zoneDisallowedNotify;  // when this is increased, qcounter is also
-  pdns::stat_t policyDrops;
-  pdns::stat_t tcpClientOverflow;
-  pdns::stat_t clientParseError;
-  pdns::stat_t serverParseError;
-  pdns::stat_t tooOldDrops;
-  pdns::stat_t truncatedDrops;
-  pdns::stat_t queryPipeFullDrops;
-  pdns::stat_t unexpectedCount;
-  pdns::stat_t caseMismatchCount;
-  pdns::stat_t spoofCount;
-  pdns::stat_t resourceLimits;
-  pdns::stat_t overCapacityDrops;
-  pdns::stat_t ipv6queries;
-  pdns::stat_t chainResends;
-  pdns::stat_t nsSetInvalidations;
-  pdns::stat_t ednsPingMatches;
-  pdns::stat_t ednsPingMismatches;
-  pdns::stat_t noPingOutQueries, noEdnsOutQueries;
-  pdns::stat_t packetCacheHits;
-  pdns::stat_t noPacketError;
-  pdns::stat_t ignoredCount;
-  pdns::stat_t emptyQueriesCount;
   time_t startupTime{time(nullptr)};
-  pdns::stat_t dnssecQueries;
-  pdns::stat_t dnssecAuthenticDataQueries;
-  pdns::stat_t dnssecCheckDisabledQueries;
-  pdns::stat_t variableResponses;
-  pdns::stat_t maxMThreadStackUsage;
-  pdns::stat_t dnssecValidations; // should be the sum of all dnssecResult* stats
+  // XXX Convert counter below to be part of rec::Counters
   std::map<vState, pdns::stat_t > dnssecResults;
   std::map<vState, pdns::stat_t > xdnssecResults;
   std::map<DNSFilterEngine::PolicyKind, pdns::stat_t > policyResults;
   LockGuarded<std::unordered_map<std::string, pdns::stat_t>> policyHits;
-  pdns::stat_t rebalancedQueries{0};
-  pdns::stat_t proxyProtocolInvalidCount{0};
-  pdns::stat_t nodLookupsDroppedOversize{0};
-  pdns::stat_t dns64prefixanswers{0};
-  pdns::stat_t maintenanceUsec{0};
-  pdns::stat_t maintenanceCalls{0};
-  std::array<pdns::stat_t, 16> authRCode;
-
-  RecursorStats() :
-    answers("answers", { 1000, 10000, 100000, 1000000 }),
-    auth4Answers("auth4answers", { 1000, 10000, 100000, 1000000 }),
-    auth6Answers("auth6answers", { 1000, 10000, 100000, 1000000 }),
-    ourtime("ourtime", { 1000, 2000, 4000, 8000, 16000, 32000 }),
-    cumulativeAnswers("cumul-clientanswers-", 10, 19),
-    // These two will be merged when outputting
-    cumulativeAuth4Answers("cumul-authanswers-", 1000, 13),
-    cumulativeAuth6Answers("cumul-authanswers-", 1000, 13)
-  {
-  }
 };
 
 //! represents a running TCP/IP client session

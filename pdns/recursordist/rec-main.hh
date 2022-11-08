@@ -154,6 +154,7 @@ struct DNSComboWriter
 extern thread_local unique_ptr<FDMultiplexer> t_fdm;
 extern uint16_t g_minUdpSourcePort;
 extern uint16_t g_maxUdpSourcePort;
+extern bool g_regressionTestMode;
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it

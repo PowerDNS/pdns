@@ -229,7 +229,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         SLOG(g_log << Logger::Error << "Unable to consume proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
              g_slogtcpin->info(Logr::Error, "Unable to consume proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
       }
-      ++g_stats.proxyProtocolInvalidCount;
+      ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
       return;
     }
     else if (remaining < 0) {
@@ -250,7 +250,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           SLOG(g_log << Logger::Error << "Unable to parse proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
                g_slogtcpin->info(Logr::Error, "Unable to parse proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
         }
-        ++g_stats.proxyProtocolInvalidCount;
+        ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
         return;
       }
       else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
@@ -258,7 +258,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           SLOG(g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl,
                g_slogtcpin->info(Logr::Error, "Proxy protocol header in packet from TCP client is larger than proxy-protocol-maximum-size", "remote", Logging::Loggable(conn->d_remote), "size", Logging::Loggable(used)));
         }
-        ++g_stats.proxyProtocolInvalidCount;
+        ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
         return;
       }
 
@@ -278,7 +278,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                g_slogtcpin->info(Logr::Error, "Dropping TCP query, address not matched by allow-from", "remote", Logging::Loggable(conn->d_remote)));
         }
 
-        ++g_stats.unauthorizedTCP;
+        ++t_Counters.at(rec::Counter::unauthorizedTCP);
         return;
       }
 
@@ -348,7 +348,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
       }
       catch (const MOADNSException& mde) {
-        g_stats.clientParseError++;
+        t_Counters.at(rec::Counter::clientParseError)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Unable to parse packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
                g_slogtcpin->info(Logr::Error, "Unable to parse packet from TCP client", "remte", Logging::Loggable(conn->d_remote)));
@@ -471,13 +471,13 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
                  g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(dc->d_source)));
           }
-          g_stats.policyDrops++;
+          t_Counters.at(rec::Counter::policyDrops)++;
           return;
         }
       }
 
       if (dc->d_mdp.d_header.qr) {
-        g_stats.ignoredCount++;
+        t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl,
                g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(dc->getRemote())));
@@ -485,7 +485,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
       if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
-        g_stats.ignoredCount++;
+        t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl,
                g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(dc->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(dc->d_mdp.d_header.opcode))));
@@ -495,7 +495,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
       else if (dh->qdcount == 0) {
-        g_stats.emptyQueriesCount++;
+        t_Counters.at(rec::Counter::emptyQueriesCount)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl,
                g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(dc->getRemote())));
@@ -506,8 +506,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else {
         // We have read a proper query
-        ++g_stats.qcounter;
-        ++g_stats.tcpqcounter;
+        //++t_Counters.at(rec::Counter::qcounter);
+        ++t_Counters.at(rec::Counter::qcounter);
+        ++t_Counters.at(rec::Counter::tcpqcounter);
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_mappedSource)) {
@@ -516,7 +517,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                    g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(dc->d_mappedSource)));
             }
 
-            g_stats.sourceDisallowedNotify++;
+            t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
             return;
           }
 
@@ -526,7 +527,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                    g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(dc->d_mappedSource), "zone", Logging::Loggable(qname)));
             }
 
-            g_stats.zoneDisallowedNotify++;
+            t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
             return;
           }
         }
@@ -555,7 +556,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             struct timeval now;
             Utility::gettimeofday(&now, nullptr);
             uint64_t spentUsec = uSec(now - start);
-            g_stats.cumulativeAnswers(spentUsec);
+            t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
             dc->d_eventTrace.add(RecEventTrace::AnswerSent);
 
             if (t_protobufServers.servers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
@@ -571,6 +572,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                    g_slogtcpin->info(Logr::Info, dc->d_eventTrace.toString())); // More fancy?
             }
             tcpGuard.keep();
+            t_Counters.updateSnap(g_regressionTestMode);
             return;
           } // cache hit
         } // query opcode
@@ -618,7 +620,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
   int newsock = accept(fd, (struct sockaddr*)&addr, &addrlen);
   if (newsock >= 0) {
     if (MT->numProcesses() > g_maxMThreads) {
-      g_stats.overCapacityDrops++;
+      t_Counters.at(rec::Counter::overCapacityDrops)++;
       try {
         closesocket(newsock);
       }
@@ -646,7 +648,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
         SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
              g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
 
-      g_stats.unauthorizedTCP++;
+      t_Counters.at(rec::Counter::unauthorizedTCP)++;
       try {
         closesocket(newsock);
       }
@@ -658,7 +660,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     }
 
     if (g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
-      g_stats.tcpClientOverflow++;
+      t_Counters.at(rec::Counter::tcpClientOverflow)++;
       try {
         closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       }

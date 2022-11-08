@@ -338,7 +338,7 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& 
                              "nearmisslimit", Logging::Loggable(nearMissLimit),
                              "qname", Logging::Loggable(domain),
                              "from", Logging::Loggable(fromaddr)));
-      g_stats.spoofCount++;
+      t_Counters.at(rec::Counter::spoofCount)++;
       return LWResult::Result::Spoofed;
     }
 
@@ -366,13 +366,13 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
       if (query && t_servfailqueryring) // packet cache
         t_servfailqueryring->push_back({*query, qtype});
     }
-    g_stats.servFails++;
+    ++t_Counters.at(rec::Counter::servFails);
     break;
   case RCode::NXDomain:
-    g_stats.nxDomains++;
+    ++t_Counters.at(rec::Counter::nxDomains);
     break;
   case RCode::NoError:
-    g_stats.noErrors++;
+    t_Counters.at(rec::Counter::noErrors)++;
     break;
   }
 }
@@ -505,7 +505,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
 
   case DNSFilterEngine::PolicyKind::Drop:
     tcpGuard.setDropOnIdle();
-    ++g_stats.policyDrops;
+    ++t_Counters.at(rec::Counter::policyDrops);
     return PolicyResult::Drop;
 
   case DNSFilterEngine::PolicyKind::NXDOMAIN:
@@ -594,7 +594,7 @@ static void sendNODLookup(Logr::log_t nodlogger, const DNSName& dname)
       if (g_logCommonErrors) {
         nodlogger->v(10)->error(Logr::Error, "DNSName too long", "Unable to send NOD lookup");
       }
-      ++g_stats.nodLookupsDroppedOversize;
+      ++t_Counters.at(rec::Counter::nodLookupsDroppedOversize);
       return;
     }
     nodlogger->v(10)->info(Logr::Debug, "Sending NOD lookup", "nodqname", Logging::Loggable(qname));
@@ -721,7 +721,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
                 }),
               ret.end());
   }
-  g_stats.dns64prefixanswers++;
+  t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
 }
 
@@ -752,7 +752,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
   int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl, log);
 
-  g_stats.dns64prefixanswers++;
+  t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
 }
 
@@ -952,14 +952,14 @@ void startDoResolve(void* p)
       // Does the requestor want DNSSEC records?
       if (edo.d_extFlags & EDNSOpts::DNSSECOK) {
         DNSSECOK = true;
-        g_stats.dnssecQueries++;
+        t_Counters.at(rec::Counter::dnssecQueries)++;
       }
       if (dc->d_mdp.d_header.cd) {
         /* Per rfc6840 section 5.9, "When processing a request with
            the Checking Disabled (CD) bit set, a resolver SHOULD attempt
            to return all response data, even data that has failed DNSSEC
            validation. */
-        ++g_stats.dnssecCheckDisabledQueries;
+        ++t_Counters.at(rec::Counter::dnssecCheckDisabledQueries);
       }
       if (dc->d_mdp.d_header.ad) {
         /* Per rfc6840 section 5.7, "the AD bit in a query as a signal
@@ -967,7 +967,7 @@ void startDoResolve(void* p)
            value of the AD bit in the response.  This allows a requester to
            indicate that it understands the AD bit without also requesting
            DNSSEC data via the DO bit. */
-        ++g_stats.dnssecAuthenticDataQueries;
+        ++t_Counters.at(rec::Counter::dnssecAuthenticDataQueries);
       }
     }
     else {
@@ -1165,7 +1165,7 @@ void startDoResolve(void* p)
       }
       catch (const ImmediateQueryDropException& e) {
         // XXX We need to export a protobuf message (and do a NOD lookup) if requested!
-        g_stats.policyDrops++;
+        t_Counters.at(rec::Counter::policyDrops)++;
         SLOG(g_log << Logger::Debug << "Dropping query because of a filtering policy " << makeLoginfo(dc) << endl,
              sr.d_slog->info(Logr::Debug, "Dropping query because of a filtering policy"));
         return;
@@ -1286,7 +1286,7 @@ void startDoResolve(void* p)
     if (res == -1) {
       pw.getHeader()->rcode = RCode::ServFail;
       // no commit here, because no record
-      g_stats.servFails++;
+      ++t_Counters.at(rec::Counter::servFails);
     }
     else {
       pw.getHeader()->rcode = res;
@@ -1584,7 +1584,7 @@ void startDoResolve(void* p)
 #endif /* NOD_ENABLED */
 
     if (variableAnswer || sr.wasVariable()) {
-      g_stats.variableResponses++;
+      t_Counters.at(rec::Counter::variableResponses)++;
     }
 
     if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
@@ -1753,19 +1753,19 @@ void startDoResolve(void* p)
       }
     }
 
-    g_stats.answers(spentUsec);
-    g_stats.cumulativeAnswers(spentUsec);
+    t_Counters.at(rec::Histogram::answers)(spentUsec);
+    t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
 
     double newLat = spentUsec;
     newLat = min(newLat, g_networkTimeoutMsec * 1000.0); // outliers of several minutes exist..
-    g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + newLat / g_latencyStatSize;
+    t_Counters.at(rec::DoubleWAvgCounter::avgLatencyUsec).addToRollingAvg(newLat, g_latencyStatSize);
     // no worries, we do this for packet cache hits elsewhere
 
     if (spentUsec >= sr.d_totUsec) {
       uint64_t ourtime = spentUsec - sr.d_totUsec;
-      g_stats.ourtime(ourtime);
+      t_Counters.at(rec::Histogram::ourtime)(ourtime);
       newLat = ourtime; // usec
-      g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + newLat / g_latencyStatSize;
+      t_Counters.at(rec::DoubleWAvgCounter::avgLatencyOursUsec).addToRollingAvg(newLat, g_latencyStatSize);
     }
 
 #ifdef NOD_ENABLED
@@ -1807,9 +1807,13 @@ void startDoResolve(void* p)
          sr.d_slog->info(Logr::Error, "Any other exception in a resolver context"));
   }
 
+  if (g_regressionTestMode) {
+    t_Counters.updateSnap(g_regressionTestMode);
+  }
   runTaskOnce(g_logCommonErrors);
 
-  g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage.load());
+  t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(MT->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
+  t_Counters.updateSnap(g_regressionTestMode);
 }
 
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
@@ -1916,19 +1920,20 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
       }
     }
 
-    g_stats.packetCacheHits++;
-    SyncRes::s_queries++;
+    t_Counters.at(rec::Counter::packetCacheHits)++;
+    t_Counters.at(rec::Counter::syncresqueries)++; // XXX
     ageDNSPacket(response, age);
     if (response.length() >= sizeof(struct dnsheader)) {
       const struct dnsheader* dh = reinterpret_cast<const dnsheader*>(response.data());
       updateResponseStats(dh->rcode, source, response.length(), 0, 0);
     }
-    g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
-    g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
+    // we assume 0 usec
+    t_Counters.at(rec::DoubleWAvgCounter::avgLatencyUsec).addToRollingAvg(0.0, g_latencyStatSize);
+    t_Counters.at(rec::DoubleWAvgCounter::avgLatencyOursUsec).addToRollingAvg(0.0, g_latencyStatSize);
 #if 0
     // XXX changes behaviour compared to old code!
-    g_stats.answers(0);
-    g_stats.ourtime(0);
+    t_Counters.at(rec::Counter::answers)(0);
+    t_Counters.at(rec::Counter::ourtime)(0);
 #endif
   }
 
@@ -1977,14 +1982,15 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     double delta = (diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
 
     if (delta > 1000.0) {
-      g_stats.tooOldDrops++;
+      t_Counters.at(rec::Counter::tooOldDrops)++;
       return nullptr;
     }
   }
 
-  ++g_stats.qcounter;
+  ++t_Counters.at(rec::Counter::qcounter);
+
   if (fromaddr.sin4.sin_family == AF_INET6)
-    g_stats.ipv6qcounter++;
+    t_Counters.at(rec::Counter::ipv6qcounter)++;
 
   string response;
   const dnsheader_aligned headerdata(question.data());
@@ -2142,7 +2148,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         struct timeval now;
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - tv);
-        g_stats.cumulativeAnswers(spentUsec);
+        t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
+        t_Counters.updateSnap(g_regressionTestMode);
         return 0;
       }
     }
@@ -2162,7 +2169,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " based on policy" << endl,
              g_slogudpin->info(Logr::Notice, "Dropped question based on policy", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
       }
-      g_stats.policyDrops++;
+      t_Counters.at(rec::Counter::policyDrops)++;
       return 0;
     }
   }
@@ -2174,7 +2181,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
              g_slogudpin->info(Logr::Notice, "Dropping UDP NOTIFY, zone not matched by allow-notify-for", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
       }
 
-      g_stats.zoneDisallowedNotify++;
+      t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
       return 0;
     }
 
@@ -2197,7 +2204,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl,
            g_slogudpin->info(Logr::Notice, "Dropped question, over capacity", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
 
-    g_stats.overCapacityDrops++;
+    t_Counters.at(rec::Counter::overCapacityDrops)++;
     return 0;
   }
 
@@ -2270,7 +2277,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       firstQuery = false;
 
       if (msgh.msg_flags & MSG_TRUNC) {
-        g_stats.truncatedDrops++;
+        t_Counters.at(rec::Counter::truncatedDrops)++;
         if (!g_quiet) {
           SLOG(g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toString() << endl,
                g_slogudpin->info(Logr::Error, "Ignoring truncated query", "remote", Logging::Loggable(fromaddr)));
@@ -2284,7 +2291,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         bool tcp;
         ssize_t used = parseProxyHeader(data, proxyProto, source, destination, tcp, proxyProtocolValues);
         if (used <= 0) {
-          ++g_stats.proxyProtocolInvalidCount;
+          ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
           if (!g_quiet) {
             SLOG(g_log << Logger::Error << "Ignoring invalid proxy protocol (" << std::to_string(len) << ", " << std::to_string(used) << ") query from " << fromaddr.toStringWithPort() << endl,
                  g_slogudpin->info(Logr::Error, "Ignoring invalid proxy protocol query", "length", Logging::Loggable(len),
@@ -2298,7 +2305,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                  g_slogudpin->info(Logr::Error, "Proxy protocol header in UDP packet  is larger than proxy-protocol-maximum-size",
                                    "used", Logging::Loggable(used), "remote", Logging::Loggable(fromaddr)));
           }
-          ++g_stats.proxyProtocolInvalidCount;
+          ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
           return;
         }
 
@@ -2306,7 +2313,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else if (len > 512) {
         /* we only allow UDP packets larger than 512 for those with a proxy protocol header */
-        g_stats.truncatedDrops++;
+        t_Counters.at(rec::Counter::truncatedDrops)++;
         if (!g_quiet) {
           SLOG(g_log << Logger::Error << "Ignoring truncated query from " << fromaddr.toStringWithPort() << endl,
                g_slogudpin->info(Logr::Error, "Ignoring truncated query", "remote", Logging::Loggable(fromaddr)));
@@ -2315,7 +2322,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       if (data.size() < sizeof(dnsheader)) {
-        g_stats.ignoredCount++;
+        t_Counters.at(rec::Counter::ignoredCount)++;
         if (!g_quiet) {
           SLOG(g_log << Logger::Error << "Ignoring too-short (" << std::to_string(data.size()) << ") query from " << fromaddr.toString() << endl,
                g_slogudpin->info(Logr::Error, "Ignoring too-short query", "length", Logging::Loggable(data.size()),
@@ -2344,7 +2351,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                g_slogudpin->info(Logr::Error, "Dropping UDP query, address not matched by allow-from", "source", Logging::Loggable(mappedSource)));
         }
 
-        g_stats.unauthorizedUDP++;
+        t_Counters.at(rec::Counter::unauthorizedUDP)++;
         return;
       }
 
@@ -2355,7 +2362,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                g_slogudpin->info(Logr::Error, "Dropping UDP query can't deal with port 0", "remote", Logging::Loggable(fromaddr)));
         }
 
-        g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
+        t_Counters.at(rec::Counter::clientParseError)++; // not quite the best place to put it, but needs to go somewhere
         return;
       }
 
@@ -2364,21 +2371,21 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         const dnsheader* dh = headerdata.get();
 
         if (dh->qr) {
-          g_stats.ignoredCount++;
+          t_Counters.at(rec::Counter::ignoredCount)++;
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Error << "Ignoring answer from " << fromaddr.toString() << " on server socket!" << endl,
                  g_slogudpin->info(Logr::Error, "Ignoring answer on server socket", "remote", Logging::Loggable(fromaddr)));
           }
         }
         else if (dh->opcode != Opcode::Query && dh->opcode != Opcode::Notify) {
-          g_stats.ignoredCount++;
+          t_Counters.at(rec::Counter::ignoredCount)++;
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dh->opcode) << " from " << fromaddr.toString() << " on server socket!" << endl,
                  g_slogudpin->info(Logr::Error, "Ignoring unsupported opcode server socket", "remote", Logging::Loggable(fromaddr), "opcode", Logging::Loggable(Opcode::to_s(dh->opcode))));
           }
         }
         else if (dh->qdcount == 0) {
-          g_stats.emptyQueriesCount++;
+          t_Counters.at(rec::Counter::emptyQueriesCount)++;
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << fromaddr.toString() << " on server socket!" << endl,
                  g_slogudpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket!", "remote", Logging::Loggable(fromaddr)));
@@ -2393,7 +2400,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                                        "source", Logging::Loggable(mappedSource)));
               }
 
-              g_stats.sourceDisallowedNotify++;
+              t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
               return;
             }
           }
@@ -2435,14 +2442,14 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
       catch (const MOADNSException& mde) {
-        g_stats.clientParseError++;
+        t_Counters.at(rec::Counter::clientParseError)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << mde.what() << endl,
                g_slogudpin->error(Logr::Error, mde.what(), "Unable to parse packet from remote UDP client", "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("MOADNSException")));
         }
       }
       catch (const std::runtime_error& e) {
-        g_stats.clientParseError++;
+        t_Counters.at(rec::Counter::clientParseError)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP client " << fromaddr.toString() << ": " << e.what() << endl,
                g_slogudpin->error(Logr::Error, e.what(), "Unable to parse packet from remote UDP client", "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std::runtime_error")));
@@ -2452,12 +2459,13 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     else {
       // cerr<<t_id<<" had error: "<<stringerror()<<endl;
       if (firstQuery && errno == EAGAIN) {
-        g_stats.noPacketError++;
+        t_Counters.at(rec::Counter::noPacketError)++;
       }
 
       break;
     }
   }
+  t_Counters.updateSnap(g_regressionTestMode);
 }
 
 void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
@@ -2615,7 +2623,7 @@ static unsigned int selectWorker(unsigned int hash)
   unsigned int worker = hash % RecThreadInfo::numWorkers();
   /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
-    ++g_stats.rebalancedQueries;
+    ++t_Counters.at(rec::Counter::rebalancedQueries);
     do {
       worker = (worker + 1) % RecThreadInfo::numWorkers();
     } while (load[worker] > targetLoad);
@@ -2637,7 +2645,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed, ok);
   if (!ok) {
     // hashQuestion does detect invalid names, so we might as well punt here instead of in the worker thread
-    g_stats.ignoredCount++;
+    t_Counters.at(rec::Counter::ignoredCount)++;
     throw MOADNSException("too-short (" + std::to_string(packet.length()) + ") or invalid name");
   }
   unsigned int target = selectWorker(hash);
@@ -2655,7 +2663,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
     } while (newTarget == target);
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {
-      g_stats.queryPipeFullDrops++;
+      t_Counters.at(rec::Counter::queryPipeFullDrops)++;
       delete tmsg;
     }
   }
@@ -2675,7 +2683,7 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     r->fd = -1;
     r->id = *i;
     MT->sendEvent(r, &content);
-    g_stats.chainResends++;
+    t_Counters.at(rec::Counter::chainResends)++;
   }
 }
 
@@ -2694,7 +2702,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     if (len < 0)
       ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
     else {
-      g_stats.serverParseError++;
+      t_Counters.at(rec::Counter::serverParseError)++;
       if (g_logCommonErrors)
         SLOG(g_log << Logger::Error << "Unable to parse packet from remote UDP server " << fromaddr.toString() << ": packet smaller than DNS header" << endl,
              g_slogout->info(Logr::Error, "Unable to parse packet from remote UDP server", "from", Logging::Loggable(fromaddr)));
@@ -2736,7 +2744,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
         pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), len, 12, false, &pident->type); // don't copy this from above - we need to do the actual read
     }
     catch (std::exception& e) {
-      g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
+      t_Counters.at(rec::Counter::serverParseError)++; // won't be fed to lwres.cc, so we have to increment
       SLOG(g_log << Logger::Warning << "Error in packet from remote nameserver " << fromaddr.toStringWithPort() << ": " << e.what() << endl,
            g_slogudpin->error(Logr::Warning, "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr)));
       return;
@@ -2770,7 +2778,7 @@ retryWithName:
         goto retryWithName; // note that this only passes on an error, lwres will still reject the packet
       }
     }
-    g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
+    t_Counters.at(rec::Counter::unexpectedCount)++; // if we made it here, it really is an unexpected answer
     if (g_logCommonErrors) {
       SLOG(g_log << Logger::Warning << "Discarding unexpected packet from " << fromaddr.toStringWithPort() << ": " << (pident->domain.empty() ? "<empty>" : pident->domain.toString()) << ", " << pident->type << ", " << MT->d_waiters.size() << " waiters" << endl,
            g_slogudpin->info(Logr::Warning, "Discarding unexpected packet", "from", Logging::Loggable(fromaddr),
