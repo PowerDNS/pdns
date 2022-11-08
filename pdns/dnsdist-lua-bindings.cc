@@ -538,12 +538,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     default:
       throw std::runtime_error("Unsupported action for BPFFilter::block");
     }
-    return bpf->addRangeRule(Netmask(range), force.value_or(false), match);
+    return bpf->addRangeRule(Netmask(range), force ? *force : false, match);
   });
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action)>("blockQName", [](std::shared_ptr<BPFFilter> bpf, const DNSName& qname, boost::optional<uint16_t> qtype, boost::optional<uint32_t> action) {
       if (bpf) {
         if (!action) {
-          return bpf->block(qname, BPFFilter::MatchAction::Drop, qtype.value_or(255));
+          return bpf->block(qname, BPFFilter::MatchAction::Drop, qtype ? *qtype : 255);
         }
         else {
           BPFFilter::MatchAction match;
@@ -561,7 +561,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
           default:
             throw std::runtime_error("Unsupported action for BPFFilter::blockQName");
           }
-          return bpf->block(qname, match, qtype.value_or(255));
+          return bpf->block(qname, match, qtype ? *qtype : 255);
         }
       }
     });
