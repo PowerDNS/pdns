@@ -33,6 +33,12 @@
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#if OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/types.h>
+#include <openssl/core_names.h>
+#include <openssl/param_build.h>
+#include <openssl/params.h>
+#endif
 #include <openssl/opensslv.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -175,25 +181,29 @@ void openssl_seed()
   RAND_seed((const unsigned char*)entropy.c_str(), 1024);
 }
 
+using BigNum = unique_ptr<BIGNUM, decltype(&BN_clear_free)>;
+
+static auto mapToBN(const std::string& componentName, const std::map<std::string, std::string>& stormap, const std::string& key) -> BigNum
+{
+  const std::string& value = stormap.at(key);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const auto* valueCStr = reinterpret_cast<const unsigned char*>(value.c_str());
+  auto number = BigNum{BN_bin2bn(valueCStr, static_cast<int>(value.length()), nullptr), BN_clear_free};
+  if (number == nullptr) {
+    throw pdns::OpenSSL::error(componentName, "Failed to parse key `" + key + "`");
+  }
+
+  return number;
+}
+
 class OpenSSLRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLRSADNSCryptoKeyEngine(unsigned int algo) :
-    DNSCryptoKeyEngine(algo), d_key(std::unique_ptr<RSA, decltype(&RSA_free)>(nullptr, RSA_free))
-  {
-    int ret = RAND_status();
-    if (ret != 1) {
-      throw runtime_error(getName() + " insufficient entropy");
-    }
-  }
-
-  ~OpenSSLRSADNSCryptoKeyEngine()
-  {
-  }
+  explicit OpenSSLRSADNSCryptoKeyEngine(unsigned int algo);
 
   [[nodiscard]] string getName() const override { return "OpenSSL RSA"; }
-  [[nodiscard]] int getBits() const override { return RSA_size(d_key.get()) << 3; }
-
+  [[nodiscard]] int getBits() const override;
   void create(unsigned int bits) override;
 
   /**
@@ -226,11 +236,13 @@ public:
   void convertToPEM(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
+
+  // TODO Fred: hash() can probably be completely removed. See #12464.
   [[nodiscard]] std::string hash(const std::string& message) const override;
   [[nodiscard]] std::string sign(const std::string& message) const override;
   [[nodiscard]] bool verify(const std::string& message, const std::string& signature) const override;
   [[nodiscard]] std::string getPublicKeyString() const override;
-  std::unique_ptr<BIGNUM, decltype(&BN_clear_free)> parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
+
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey(vector<string>* errorMessages) const override;
@@ -241,10 +253,62 @@ public:
   }
 
 private:
+#if OPENSSL_VERSION_MAJOR >= 3
+  [[nodiscard]] BigNum getKeyParamModulus() const;
+  [[nodiscard]] BigNum getKeyParamPublicExponent() const;
+  [[nodiscard]] BigNum getKeyParamPrivateExponent() const;
+  [[nodiscard]] BigNum getKeyParamPrime1() const;
+  [[nodiscard]] BigNum getKeyParamPrime2() const;
+  [[nodiscard]] BigNum getKeyParamDmp1() const;
+  [[nodiscard]] BigNum getKeyParamDmq1() const;
+  [[nodiscard]] BigNum getKeyParamIqmp() const;
+
+  using Params = std::unique_ptr<OSSL_PARAM, decltype(&OSSL_PARAM_free)>;
+  auto makeKeyParams(const BIGNUM* modulus, const BIGNUM* publicExponent, const BIGNUM* privateExponent, const BIGNUM* prime1, const BIGNUM* prime2, const BIGNUM* dmp1, const BIGNUM* dmq1, const BIGNUM* iqmp) const -> Params;
+#endif
+
+  // TODO Fred: hashSize(), hasher() and hashSizeToKind() can probably be completely
+  // removed along with hash(). See #12464.
+  [[nodiscard]] std::size_t hashSize() const;
+  [[nodiscard]] const EVP_MD* hasher() const;
   static int hashSizeToKind(size_t hashSize);
 
-  std::unique_ptr<RSA, decltype(&RSA_free)> d_key;
+#if OPENSSL_VERSION_MAJOR >= 3
+  using KeyContext = std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>;
+  using Key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+  using MessageDigestContext = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+  using MessageDigest = std::unique_ptr<EVP_MD, decltype(&EVP_MD_free)>;
+#else
+  using Key = std::unique_ptr<RSA, decltype(&RSA_free)>;
+  using MessageDigest = std::unique_ptr<EVP_MD, decltype(&EVP_MD_meth_free)>;
+#endif
+
+  Key d_key;
 };
+
+OpenSSLRSADNSCryptoKeyEngine::OpenSSLRSADNSCryptoKeyEngine(unsigned int algo) :
+  DNSCryptoKeyEngine(algo),
+#if OPENSSL_VERSION_MAJOR >= 3
+  d_key(Key(nullptr, EVP_PKEY_free))
+#else
+  d_key(Key(nullptr, RSA_free))
+#endif
+{
+  int ret = RAND_status();
+  if (ret != 1) {
+    throw runtime_error(getName() + " insufficient entropy");
+  }
+}
+
+int OpenSSLRSADNSCryptoKeyEngine::getBits() const
+{
+#if OPENSSL_VERSION_MAJOR >= 3
+  return EVP_PKEY_get_bits(d_key.get());
+#else
+  return RSA_size(d_key.get()) << 3;
+#endif
+}
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
@@ -262,7 +326,7 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName() + " RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
   }
 
-  auto exponent = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>(BN_new(), BN_clear_free);
+  auto exponent = BigNum(BN_new(), BN_clear_free);
   if (!exponent) {
     throw runtime_error(getName() + " key generation failed, unable to allocate e");
   }
@@ -274,7 +338,32 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName() + " key generation failed while setting e");
   }
 
-  auto key = std::unique_ptr<RSA, decltype(&RSA_free)>(RSA_new(), RSA_free);
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto ctx = KeyContext(EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr), EVP_PKEY_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not initialize context");
+  }
+
+  if (EVP_PKEY_keygen_init(ctx.get()) != 1) {
+    throw pdns::OpenSSL::error(getName(), "Could not initialize keygen");
+  }
+
+  if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx.get(), (int) bits) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not set keygen bits to " + std::to_string(bits));
+  }
+
+  if (EVP_PKEY_CTX_set1_rsa_keygen_pubexp(ctx.get(), exponent.get()) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not set keygen public exponent");
+  }
+
+  EVP_PKEY* key = nullptr;
+  if (EVP_PKEY_generate(ctx.get(), &key) != 1) {
+    throw pdns::OpenSSL::error(getName(), "Could not generate key");
+  }
+
+  d_key.reset(key);
+#else
+  auto key = Key(RSA_new(), RSA_free);
   if (!key) {
     throw runtime_error(getName() + " allocation of key structure failed");
   }
@@ -285,30 +374,192 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
   }
 
   d_key = std::move(key);
+#endif
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile)
 {
   drc.d_algorithm = d_algorithm;
-  d_key = std::unique_ptr<RSA, decltype(&RSA_free)>(PEM_read_RSAPrivateKey(&inputFile, nullptr, nullptr, nullptr), &RSA_free);
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  EVP_PKEY* key = nullptr;
+  if (PEM_read_PrivateKey(&inputFile, &key, nullptr, nullptr) == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not read private key from PEM file `" + filename + "`");
+  }
+
+  d_key.reset(key);
+#else
+  d_key = Key(PEM_read_RSAPrivateKey(&inputFile, nullptr, nullptr, nullptr), &RSA_free);
   if (d_key == nullptr) {
     throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
   }
+#endif
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
 {
+#if OPENSSL_VERSION_MAJOR >= 3
+  if (PEM_write_PrivateKey(&outputFile, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not convert private key to PEM");
+  }
+#else
   auto ret = PEM_write_RSAPrivateKey(&outputFile, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {
     throw runtime_error(getName() + ": Could not convert private key to PEM");
   }
+#endif
 }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamModulus() const
+{
+  BIGNUM* modulus = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_N, &modulus) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's modulus (n) parameter");
+  }
+  return BigNum{modulus, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamPublicExponent() const
+{
+  BIGNUM* publicExponent = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_E, &publicExponent) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's public exponent (e) parameter");
+  }
+  return BigNum{publicExponent, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamPrivateExponent() const
+{
+  BIGNUM* privateExponent = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_D, &privateExponent) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's private exponent (d) parameter");
+  }
+  return BigNum{privateExponent, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamPrime1() const
+{
+  BIGNUM* prime1 = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_FACTOR1, &prime1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's first prime (p) parameter");
+  }
+  return BigNum{prime1, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamPrime2() const
+{
+  BIGNUM* prime2 = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_FACTOR2, &prime2) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's second prime (q) parameter");
+  }
+  return BigNum{prime2, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamDmp1() const
+{
+  BIGNUM* dmp1 = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_EXPONENT1, &dmp1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's first exponent parameter");
+  }
+  return BigNum{dmp1, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamDmq1() const
+{
+  BIGNUM* dmq1 = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_EXPONENT2, &dmq1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's second exponent parameter");
+  }
+  return BigNum{dmq1, BN_clear_free};
+}
+
+BigNum OpenSSLRSADNSCryptoKeyEngine::getKeyParamIqmp() const
+{
+  BIGNUM* iqmp = nullptr;
+  if (EVP_PKEY_get_bn_param(d_key.get(), OSSL_PKEY_PARAM_RSA_COEFFICIENT1, &iqmp) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get key's first coefficient parameter");
+  }
+  return BigNum{iqmp, BN_clear_free};
+}
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+auto OpenSSLRSADNSCryptoKeyEngine::makeKeyParams(const BIGNUM* modulus, const BIGNUM* publicExponent, const BIGNUM* privateExponent, const BIGNUM* prime1, const BIGNUM* prime2, const BIGNUM* dmp1, const BIGNUM* dmq1, const BIGNUM* iqmp) const -> Params
+{
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  if ((modulus != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_N, modulus) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's modulus parameter");
+  }
+
+  if ((publicExponent != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_E, publicExponent) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's public exponent parameter");
+  }
+
+  if ((privateExponent != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_D, privateExponent) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's private exponent parameter");
+  }
+
+  if ((prime1 != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_FACTOR1, prime1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's first prime parameter");
+  }
+
+  if ((prime2 != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_FACTOR2, prime2) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's second prime parameter");
+  }
+
+  if ((dmp1 != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_EXPONENT1, dmp1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's first exponent parameter");
+  }
+
+  if ((dmq1 != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_EXPONENT2, dmq1) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's second exponent parameter");
+  }
+
+  if ((iqmp != nullptr) && OSSL_PARAM_BLD_push_BN(params_build.get(), OSSL_PKEY_PARAM_RSA_COEFFICIENT1, iqmp) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's first coefficient parameter");
+  }
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters");
+  }
+
+  return params;
+}
+#endif
 
 DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVector() const
 {
   storvector_t storvect;
   using outputs_t = vector<pair<string, const BIGNUM*>>;
   outputs_t outputs;
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  // If any of those calls throw, we correctly free the BIGNUMs allocated before it.
+  BigNum modulusPtr = getKeyParamModulus();
+  BigNum publicExponentPtr = getKeyParamPublicExponent();
+  BigNum privateExponentPtr = getKeyParamPrivateExponent();
+  BigNum prime1Ptr = getKeyParamPrime1();
+  BigNum prime2Ptr = getKeyParamPrime2();
+  BigNum dmp1Ptr = getKeyParamDmp1();
+  BigNum dmq1Ptr = getKeyParamDmq1();
+  BigNum iqmpPtr = getKeyParamIqmp();
+
+  // All the calls succeeded, we can take references to the BIGNUM pointers.
+  BIGNUM* modulus = modulusPtr.get();
+  BIGNUM* publicExponent = publicExponentPtr.get();
+  BIGNUM* privateExponent = privateExponentPtr.get();
+  BIGNUM* prime1 = prime1Ptr.get();
+  BIGNUM* prime2 = prime2Ptr.get();
+  BIGNUM* dmp1 = dmp1Ptr.get();
+  BIGNUM* dmq1 = dmq1Ptr.get();
+  BIGNUM* iqmp = iqmpPtr.get();
+#else
   const BIGNUM* modulus = nullptr;
   const BIGNUM* publicExponent = nullptr;
   const BIGNUM* privateExponent = nullptr;
@@ -320,6 +571,8 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   RSA_get0_key(d_key.get(), &modulus, &publicExponent, &privateExponent);
   RSA_get0_factors(d_key.get(), &prime1, &prime2);
   RSA_get0_crt_params(d_key.get(), &dmp1, &dmq1, &iqmp);
+#endif
+
   outputs.emplace_back("Modulus", modulus);
   outputs.emplace_back("PublicExponent", publicExponent);
   outputs.emplace_back("PrivateExponent", privateExponent);
@@ -349,7 +602,8 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   for (const outputs_t::value_type& value : outputs) {
     std::string tmp;
     tmp.resize(BN_num_bytes(value.second));
-    int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(&tmp.at(0)));
+    // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+    int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(tmp.data()));
     if (len >= 0) {
       tmp.resize(len);
       storvect.emplace_back(value.first, tmp);
@@ -357,6 +611,47 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   }
 
   return storvect;
+}
+
+std::size_t OpenSSLRSADNSCryptoKeyEngine::hashSize() const
+{
+  switch (d_algorithm) {
+  case DNSSECKeeper::RSASHA1:
+  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+    return SHA_DIGEST_LENGTH;
+  case DNSSECKeeper::RSASHA256:
+    return SHA256_DIGEST_LENGTH;
+  case DNSSECKeeper::RSASHA512:
+    return SHA512_DIGEST_LENGTH;
+  default:
+    throw runtime_error(getName() + " does not support hash operations for algorithm " + std::to_string(d_algorithm));
+  }
+}
+
+const EVP_MD* OpenSSLRSADNSCryptoKeyEngine::hasher() const
+{
+  const EVP_MD* messageDigest = nullptr;
+
+  switch (d_algorithm) {
+  case DNSSECKeeper::RSASHA1:
+  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+    messageDigest = EVP_sha1();
+    break;
+  case DNSSECKeeper::RSASHA256:
+    messageDigest = EVP_sha256();
+    break;
+  case DNSSECKeeper::RSASHA512:
+    messageDigest = EVP_sha512();
+    break;
+  default:
+    throw runtime_error(getName() + " does not support hash operations for algorithm " + std::to_string(d_algorithm));
+  }
+
+  if (messageDigest == nullptr) {
+    throw std::runtime_error("Could not retrieve a SHA implementation of size " + std::to_string(hashSize()) + " from OpenSSL");
+  }
+
+  return messageDigest;
 }
 
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& message) const
@@ -406,42 +701,101 @@ int OpenSSLRSADNSCryptoKeyEngine::hashSizeToKind(const size_t hashSize)
 
 std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& message) const
 {
+  std::string signature;
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto ctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create context for signing");
+  }
+
+  if (EVP_DigestSignInit(ctx.get(), nullptr, hasher(), nullptr, d_key.get()) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not initialize context for signing");
+  }
+
+  std::size_t signatureLen = 0;
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const auto* messageData = reinterpret_cast<const unsigned char*>(message.data());
+  if (EVP_DigestSign(ctx.get(), nullptr, &signatureLen, messageData, message.size()) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not get message signature length");
+  }
+
+  signature.resize(signatureLen);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  auto* signatureData = reinterpret_cast<unsigned char*>(signature.data());
+  if (EVP_DigestSign(ctx.get(), signatureData, &signatureLen, messageData, message.size()) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not sign message");
+  }
+#else
+  unsigned int signatureLen = 0;
   string l_hash = this->hash(message);
   int hashKind = hashSizeToKind(l_hash.size());
-  std::string signature;
   signature.resize(RSA_size(d_key.get()));
-  unsigned int signatureLen = 0;
 
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   int res = RSA_sign(hashKind, reinterpret_cast<unsigned char*>(&l_hash.at(0)), l_hash.length(), reinterpret_cast<unsigned char*>(&signature.at(0)), &signatureLen, d_key.get());
   if (res != 1) {
     throw runtime_error(getName() + " failed to generate signature");
   }
 
   signature.resize(signatureLen);
+#endif
+
   return signature;
 }
 
-
 bool OpenSSLRSADNSCryptoKeyEngine::verify(const std::string& message, const std::string& signature) const
 {
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto ctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Failed to create context for verifying signature");
+  }
+
+  if (EVP_DigestVerifyInit(ctx.get(), nullptr, hasher(), nullptr, d_key.get()) == 0) {
+    throw pdns::OpenSSL::error(getName(), "Failed to initialize context for verifying signature");
+  }
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const int ret = EVP_DigestVerify(ctx.get(), reinterpret_cast<const unsigned char*>(signature.data()), signature.size(), reinterpret_cast<const unsigned char*>(message.data()), message.size());
+  if (ret < 0) {
+    throw pdns::OpenSSL::error(getName(), "Failed to verify message signature");
+  }
+
+  return (ret == 1);
+#else
   string l_hash = this->hash(message);
   int hashKind = hashSizeToKind(l_hash.size());
 
   int ret = RSA_verify(hashKind, (const unsigned char*)l_hash.c_str(), l_hash.length(), (unsigned char*)signature.c_str(), signature.length(), d_key.get());
 
   return (ret == 1);
+#endif
 }
 
 std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 {
+#if OPENSSL_VERSION_MAJOR >= 3
+  // If any of those calls throw, we correctly free the BIGNUMs allocated before it.
+  BigNum modulusPtr = getKeyParamModulus();
+  BigNum publicExponentPtr = getKeyParamPublicExponent();
+
+  // All the calls succeeded, we can take references to the BIGNUM pointers.
+  BIGNUM* modulus = modulusPtr.get();
+  BIGNUM* publicExponent = publicExponentPtr.get();
+#else
   const BIGNUM* modulus = nullptr;
   const BIGNUM* publicExponent = nullptr;
   const BIGNUM* privateExponent = nullptr;
   RSA_get0_key(d_key.get(), &modulus, &publicExponent, &privateExponent);
+#endif
+
   string keystring;
   std::string tmp;
   tmp.resize(std::max(BN_num_bytes(publicExponent), BN_num_bytes(modulus)));
 
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   int len = BN_bn2bin(publicExponent, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   if (len < 255) {
     keystring.assign(1, (char)(unsigned int)len);
@@ -454,52 +808,63 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
   }
   keystring.append(&tmp.at(0), len);
 
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   len = BN_bn2bin(modulus, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   keystring.append(&tmp.at(0), len);
 
   return keystring;
 }
 
-std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>OpenSSLRSADNSCryptoKeyEngine::parse(std::map<std::string, std::string>& stormap, const std::string& key) const
-{
-  const std::string& value = stormap.at(key);
-  auto number = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>(BN_bin2bn(reinterpret_cast<const unsigned char*>(value.data()), static_cast<int>(value.length()), nullptr), BN_clear_free);
-
-  if (!number) {
-    throw runtime_error(getName() + " parsing of " + key + " failed");
-  }
-  return number;
-}
-
 void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
-  auto key = std::unique_ptr<RSA, decltype(&RSA_free)>(RSA_new(), RSA_free);
-  if (!key) {
-    throw runtime_error(getName() + " allocation of key structure failed");
-  }
+  auto modulus = mapToBN(getName(), stormap, "modulus");
+  auto publicExponent = mapToBN(getName(), stormap, "publicexponent");
+  auto privateExponent = mapToBN(getName(), stormap, "privateexponent");
 
-  auto modulus = parse(stormap, "modulus");
-  auto publicExponent = parse(stormap, "publicexponent");
-  auto privateExponent = parse(stormap, "privateexponent");
+  auto prime1 = mapToBN(getName(), stormap, "prime1");
+  auto prime2 = mapToBN(getName(), stormap, "prime2");
 
-  auto prime1 = parse(stormap, "prime1");
-  auto prime2 = parse(stormap, "prime2");
-
-  auto dmp1 = parse(stormap, "exponent1");
-  auto dmq1 = parse(stormap, "exponent2");
-  auto iqmp = parse(stormap, "coefficient");
+  auto dmp1 = mapToBN(getName(), stormap, "exponent1");
+  auto dmq1 = mapToBN(getName(), stormap, "exponent2");
+  auto iqmp = mapToBN(getName(), stormap, "coefficient");
 
   pdns::checked_stoi_into(drc.d_algorithm, stormap["algorithm"]);
 
   if (drc.d_algorithm != d_algorithm) {
     throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto params = makeKeyParams(modulus.get(), publicExponent.get(), privateExponent.get(), prime1.get(), prime2.get(), dmp1.get(), dmq1.get(), iqmp.get());
+
+  auto ctx = KeyContext(EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr), EVP_PKEY_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key context");
+  }
+
+  if (EVP_PKEY_fromdata_init(ctx.get()) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not initialize key context for loading data from ISC");
+  }
+
+  EVP_PKEY* key = nullptr;
+  if (EVP_PKEY_fromdata(ctx.get(), &key, EVP_PKEY_KEYPAIR, params.get()) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key from parameters");
+  }
+
+  d_key.reset(key);
+#else
+  auto key = Key(RSA_new(), RSA_free);
+  if (!key) {
+    throw runtime_error(getName() + " allocation of key structure failed");
+  }
+
   // Everything OK, we're releasing ownership since the RSA_* functions want it
   RSA_set0_key(key.get(), modulus.release(), publicExponent.release(), privateExponent.release());
   RSA_set0_factors(key.get(), prime1.release(), prime2.release());
   RSA_set0_crt_params(key.get(), dmp1.release(), dmq1.release(), iqmp.release());
 
   d_key = std::move(key);
+#endif
 }
 
 bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
@@ -518,10 +883,20 @@ bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
       errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 1024 and 4096");
     }
   }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto ctx = KeyContext(EVP_PKEY_CTX_new_from_pkey(nullptr, d_key.get(), nullptr), EVP_PKEY_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Cannot create context to check key");
+  }
+
+  if (EVP_PKEY_pairwise_check(ctx.get()) != 1) {
+#else
   if (RSA_check_key(d_key.get()) != 1) {
+#endif
     retval = false;
     if (errorMessages != nullptr) {
-      const auto* errmsg = ERR_reason_error_string(ERR_get_error());
+      const auto* errmsg = ERR_error_string(ERR_get_error(), nullptr);
       if (errmsg == nullptr) {
         errmsg = "Unknown OpenSSL error";
       }
@@ -533,10 +908,12 @@ bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
 
 void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  string exponent;
+  string publicExponent;
   string modulus;
   const size_t contentLen = content.length();
-  const auto* raw = (const unsigned char*)content.c_str();
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
 
   if (contentLen < 1) {
     throw runtime_error(getName() + " invalid input size for the public key");
@@ -547,7 +924,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& conten
     if (contentLen < (exponentSize + 2)) {
       throw runtime_error(getName() + " invalid input size for the public key");
     }
-    exponent = content.substr(1, exponentSize);
+    publicExponent = content.substr(1, exponentSize);
     modulus = content.substr(exponentSize + 1);
   }
   else {
@@ -558,27 +935,49 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& conten
     if (contentLen < (exponentSize + 4)) {
       throw runtime_error(getName() + " invalid input size for the public key");
     }
-    exponent = content.substr(3, exponentSize);
+    publicExponent = content.substr(3, exponentSize);
     modulus = content.substr(exponentSize + 3);
   }
 
-  auto key = std::unique_ptr<RSA, decltype(&RSA_free)>(RSA_new(), RSA_free);
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  auto publicExponentBN = BigNum(BN_bin2bn(reinterpret_cast<unsigned char*>(const_cast<char*>(publicExponent.c_str())), static_cast<int>(publicExponent.length()), nullptr), BN_clear_free);
+  if (!publicExponentBN) {
+    throw runtime_error(getName() + " error loading public exponent (e) value of public key");
+  }
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  auto modulusBN = BigNum(BN_bin2bn(reinterpret_cast<unsigned char*>(const_cast<char*>(modulus.c_str())), static_cast<int>(modulus.length()), nullptr), BN_clear_free);
+  if (!modulusBN) {
+    throw runtime_error(getName() + " error loading modulus (n) value of public key");
+  }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto params = makeKeyParams(modulusBN.get(), publicExponentBN.get(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+  auto ctx = KeyContext(EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr), EVP_PKEY_CTX_free);
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Cannot create context to load key from public key data");
+  }
+
+  if (EVP_PKEY_fromdata_init(ctx.get()) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not initialize key context for loading data to check key");
+  }
+
+  EVP_PKEY* key = nullptr;
+  if (EVP_PKEY_fromdata(ctx.get(), &key, EVP_PKEY_PUBLIC_KEY, params.get()) <= 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not create public key from parameters");
+  }
+
+  d_key.reset(key);
+#else
+  auto key = Key(RSA_new(), RSA_free);
   if (!key) {
     throw runtime_error(getName() + " allocation of key structure failed");
   }
 
-  auto e = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>(BN_bin2bn((unsigned char*)exponent.c_str(), exponent.length(), nullptr), BN_clear_free);
-  if (!e) {
-    throw runtime_error(getName() + " error loading public exponent (e) value of public key");
-  }
-
-  auto n = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>(BN_bin2bn((unsigned char*)modulus.c_str(), modulus.length(), nullptr), BN_clear_free);
-  if (!n) {
-    throw runtime_error(getName() + " error loading modulus (n) value of public key");
-  }
-
-  RSA_set0_key(key.get(), n.release(), e.release(), nullptr);
+  RSA_set0_key(key.get(), modulusBN.release(), publicExponentBN.release(), nullptr);
   d_key = std::move(key);
+#endif
 }
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
