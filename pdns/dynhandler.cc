@@ -384,7 +384,7 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream ret;
   DomainInfo::DomainKind kind;
   if (parts.size() > 1) {
-    kind = DomainInfo::stringToKind(parts[1]);
+    kind = DomainInfo::stringToKind(parts.at(1));
   }
   else {
     kind = DomainInfo::All;
@@ -399,12 +399,7 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
     }
   }
 
-  if (kind == DomainInfo::All) {
-    ret<<parts[1]<<" zonecount:"<<count;
-  }
-  else {
-    ret<<"All zonecount:"<<count;
-  }
+  ret << DomainInfo::getKindString(kind) << " zonecount: " << count;
 
   return ret.str();
 }
