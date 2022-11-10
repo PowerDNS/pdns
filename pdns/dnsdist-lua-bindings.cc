@@ -435,7 +435,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         format = BPFFilter::MapFormat::WithActions;
       }
 
-      return std::make_shared<BPFFilter>(v4Config, v6Config, qnameConfig, format, external.value_or(false));
+      return std::make_shared<BPFFilter>(v4Config, v6Config, qnameConfig, format, external ? * external : false);
     });
 
   luaCtx.registerFunction<void(std::shared_ptr<BPFFilter>::*)(const ComboAddress& ca, boost::optional<uint32_t> action)>("block", [](std::shared_ptr<BPFFilter> bpf, const ComboAddress& ca, boost::optional<uint32_t> action) {
