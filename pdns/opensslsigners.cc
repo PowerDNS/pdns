@@ -143,12 +143,14 @@ static inline int RSA_set0_crt_params(RSA* rsakey, BIGNUM* dmp1, BIGNUM* dmq1, B
 }
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
-static inline void ECDSA_SIG_get0(const ECDSA_SIG* signature, const BIGNUM** pr, const BIGNUM** ps) {
+static inline void ECDSA_SIG_get0(const ECDSA_SIG* signature, const BIGNUM** pr, const BIGNUM** ps)
+{
   *pr = signature->r;
   *ps = signature->s;
 }
 
-static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps) {
+static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps)
+{
   BN_clear_free(signature->r);
   BN_clear_free(signature->s);
   signature->r = pr;
@@ -1065,7 +1067,7 @@ public:
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string> *errorMessages) const override;
+  bool checkKey(vector<string>* errorMessages) const override;
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -1082,12 +1084,12 @@ private:
 void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
 {
   if (bits >> 3 != d_len) {
-    throw runtime_error(getName()+" unknown key length of "+std::to_string(bits)+" bits requested");
+    throw runtime_error(getName() + " unknown key length of " + std::to_string(bits) + " bits requested");
   }
 
   int res = EC_KEY_generate_key(d_eckey.get());
   if (res == 0) {
-    throw runtime_error(getName()+" key generation failed");
+    throw runtime_error(getName() + " key generation failed");
   }
 
   EC_KEY_set_asn1_flag(d_eckey.get(), OPENSSL_EC_NAMED_CURVE);
@@ -1149,9 +1151,9 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
 
   storvect.emplace_back("Algorithm", algorithm);
 
-  const BIGNUM *key = EC_KEY_get0_private_key(d_eckey.get());
+  const BIGNUM* key = EC_KEY_get0_private_key(d_eckey.get());
   if (key == nullptr) {
-    throw runtime_error(getName()+" private key not set");
+    throw runtime_error(getName() + " private key not set");
   }
 
   std::string tmp;
@@ -1167,31 +1169,29 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
   return storvect;
 }
 
-
 std::string OpenSSLECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
-  if(getBits() == 256) {
+  if (getBits() == 256) {
     unsigned char l_hash[SHA256_DIGEST_LENGTH];
-    SHA256((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    SHA256((unsigned char*)orig.c_str(), orig.length(), l_hash);
     return string((char*)l_hash, sizeof(l_hash));
   }
-  else if(getBits() == 384) {
+  else if (getBits() == 384) {
     unsigned char l_hash[SHA384_DIGEST_LENGTH];
-    SHA384((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    SHA384((unsigned char*)orig.c_str(), orig.length(), l_hash);
     return string((char*)l_hash, sizeof(l_hash));
   }
 
-  throw runtime_error(getName()+" does not support a hash size of "+std::to_string(getBits())+" bits");
+  throw runtime_error(getName() + " does not support a hash size of " + std::to_string(getBits()) + " bits");
 }
-
 
 std::string OpenSSLECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   string l_hash = this->hash(msg);
 
-  auto signature = std::unique_ptr<ECDSA_SIG, void(*)(ECDSA_SIG*)>(ECDSA_do_sign((unsigned char*) l_hash.c_str(), l_hash.length(), d_eckey.get()), ECDSA_SIG_free);
+  auto signature = std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)>(ECDSA_do_sign((unsigned char*)l_hash.c_str(), l_hash.length(), d_eckey.get()), ECDSA_SIG_free);
   if (!signature) {
-    throw runtime_error(getName()+" failed to generate signature");
+    throw runtime_error(getName() + " failed to generate signature");
   }
 
   string ret;
@@ -1213,31 +1213,30 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   return ret;
 }
 
-
 bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   if (signature.length() != (d_len * 2)) {
-    throw runtime_error(getName()+" invalid signature size "+std::to_string(signature.length()));
+    throw runtime_error(getName() + " invalid signature size " + std::to_string(signature.length()));
   }
 
   string l_hash = this->hash(msg);
 
-  auto sig = std::unique_ptr<ECDSA_SIG, void(*)(ECDSA_SIG*)>(ECDSA_SIG_new(), ECDSA_SIG_free);
+  auto sig = std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)>(ECDSA_SIG_new(), ECDSA_SIG_free);
   if (!sig) {
-    throw runtime_error(getName()+" allocation of signature structure failed");
+    throw runtime_error(getName() + " allocation of signature structure failed");
   }
 
   auto r = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((unsigned char*) signature.c_str(), d_len, nullptr), BN_clear_free);
   auto s = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((unsigned char*) signature.c_str() + d_len, d_len, nullptr), BN_clear_free);
   if (!r || !s) {
-    throw runtime_error(getName()+" invalid signature");
+    throw runtime_error(getName() + " invalid signature");
   }
 
   ECDSA_SIG_set0(sig.get(), r.release(), s.release());
-  int ret = ECDSA_do_verify((unsigned char*) l_hash.c_str(), l_hash.length(), sig.get(), d_eckey.get());
+  int ret = ECDSA_do_verify((unsigned char*)l_hash.c_str(), l_hash.length(), sig.get(), d_eckey.get());
 
-  if (ret == -1){
-    throw runtime_error(getName()+" verify error");
+  if (ret == -1) {
+    throw runtime_error(getName() + " verify error");
   }
 
   return (ret == 1);
@@ -1250,7 +1249,7 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
 
   int ret = EC_POINT_point2oct(d_ecgroup.get(), EC_KEY_get0_public_key(d_eckey.get()), POINT_CONVERSION_UNCOMPRESSED, reinterpret_cast<unsigned char*>(&binaryPoint.at(0)), binaryPoint.size(), nullptr);
   if (ret == 0) {
-    throw runtime_error(getName()+" exporting point to binary failed");
+    throw runtime_error(getName() + " exporting point to binary failed");
   }
 
   /* we skip the first byte as the other backends use
@@ -1260,40 +1259,39 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
   return binaryPoint;
 }
 
-
 void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
 
   if (drc.d_algorithm != d_algorithm) {
-    throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
+    throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
 
   string privateKey = stormap["privatekey"];
 
   auto prv_key = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((unsigned char*) privateKey.c_str(), privateKey.length(), nullptr), BN_clear_free);
   if (!prv_key) {
-    throw runtime_error(getName()+" reading private key from binary failed");
+    throw runtime_error(getName() + " reading private key from binary failed");
   }
 
   int ret = EC_KEY_set_private_key(d_eckey.get(), prv_key.get());
   if (ret != 1) {
-    throw runtime_error(getName()+" setting private key failed");
+    throw runtime_error(getName() + " setting private key failed");
   }
 
-  auto pub_key = std::unique_ptr<EC_POINT, void(*)(EC_POINT*)>(EC_POINT_new(d_ecgroup.get()), EC_POINT_free);
+  auto pub_key = std::unique_ptr<EC_POINT, void (*)(EC_POINT*)>(EC_POINT_new(d_ecgroup.get()), EC_POINT_free);
   if (!pub_key) {
-    throw runtime_error(getName()+" allocation of public key point failed");
+    throw runtime_error(getName() + " allocation of public key point failed");
   }
 
   ret = EC_POINT_mul(d_ecgroup.get(), pub_key.get(), prv_key.get(), nullptr, nullptr, nullptr);
   if (ret != 1) {
-    throw runtime_error(getName()+" computing public key from private failed");
+    throw runtime_error(getName() + " computing public key from private failed");
   }
 
   ret = EC_KEY_set_public_key(d_eckey.get(), pub_key.get());
   if (ret != 1) {
-    throw runtime_error(getName()+" setting public key failed");
+    throw runtime_error(getName() + " setting public key failed");
   }
 
   EC_KEY_set_asn1_flag(d_eckey.get(), OPENSSL_EC_NAMED_CURVE);
@@ -1322,24 +1320,24 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
   string ecdsaPoint= "\x04";
   ecdsaPoint.append(input);
 
-  auto pub_key = std::unique_ptr<EC_POINT, void(*)(EC_POINT*)>(EC_POINT_new(d_ecgroup.get()), EC_POINT_free);
+  auto pub_key = std::unique_ptr<EC_POINT, void (*)(EC_POINT*)>(EC_POINT_new(d_ecgroup.get()), EC_POINT_free);
   if (!pub_key) {
-    throw runtime_error(getName()+" allocation of point structure failed");
+    throw runtime_error(getName() + " allocation of point structure failed");
   }
 
-  int ret = EC_POINT_oct2point(d_ecgroup.get(), pub_key.get(), (unsigned char*) ecdsaPoint.c_str(), ecdsaPoint.length(), nullptr);
+  int ret = EC_POINT_oct2point(d_ecgroup.get(), pub_key.get(), (unsigned char*)ecdsaPoint.c_str(), ecdsaPoint.length(), nullptr);
   if (ret != 1) {
-    throw runtime_error(getName()+" reading ECP point from binary failed");
+    throw runtime_error(getName() + " reading ECP point from binary failed");
   }
 
   ret = EC_KEY_set_private_key(d_eckey.get(), nullptr);
   if (ret == 1) {
-    throw runtime_error(getName()+" setting private key failed");
+    throw runtime_error(getName() + " setting private key failed");
   }
 
   ret = EC_KEY_set_public_key(d_eckey.get(), pub_key.get());
   if (ret != 1) {
-    throw runtime_error(getName()+" setting public key failed");
+    throw runtime_error(getName() + " setting public key failed");
   }
 }
 #endif
