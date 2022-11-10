@@ -124,6 +124,8 @@ keys need to be added separately with `add-meta`, not as a comma or
 space-separated list::
 
     $ pdnsutil add-meta example.org TSIG-ALLOW-DNSUPDATE test
+    Set 'example.org' meta TSIG-ALLOW-DNSUPDATE = test
+
     $ pdnsutil get-meta example.org TSIG-ALLOW-DNSUPDATE
     TSIG-ALLOW-DNSUPDATE = test
 
@@ -140,7 +142,6 @@ command (see the manpage for :program:`nsupdate` for full details)::
     !
 
     $ dig +noall +answer -t any test1.example.org @127.0.0.1
-
     test1.example.org.	3600	IN	A	1.2.3.4
     test1.example.org.	3600	IN	TXT	"this is a test"
 
