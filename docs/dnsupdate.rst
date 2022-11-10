@@ -112,28 +112,37 @@ This setting allows you to set the TSIG key required to do an DNS
 update. If you have GSS-TSIG enabled, you can use Kerberos principals
 here. An example, using :program:`pdnsutil` to create the key::
 
-    $ pdnsutil generate-tsig-key test hmac-md5
-    Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+    $ pdnsutil generate-tsig-key test hmac-sha512
+    Create new TSIG key test hmac-sha512 jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
+
+    $ pdnsutil list-tsig-keys | grep test
+    test. hmac-sha512. jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
 
 Then adding that key with the name `test` and add the metadata::
 
-    pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-    pdnsutil set-meta example.org TSIG-ALLOW-DNSUPDATE test
+    $ pdnsutil add-meta example.org TSIG-ALLOW-DNSUPDATE test
+    $ pdnsutil get-meta example.org TSIG-ALLOW-DNSUPDATE
+    TSIG-ALLOW-DNSUPDATE = test
 
 An example of how to use a TSIG key with the :program:`nsupdate` command::
 
-    nsupdate <<!
-    server <ip> <port>
+    $ nsupdate <<!
+    server 127.0.0.1 53
     zone example.org
-    update add test1.example.org 3600 A 203.0.113.1
-    key test kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+    update add test1.example.org 3600 A 1.2.3.4
+    update add test1.example.org 3600 TXT "this is a test"
+    key hmac-sha512:test jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
     send
     !
 
-If a TSIG key is set for the domain, it is required to be used for the
-update. The TSIG is an alternative means of securing updates, instead of using the
-``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, and if ``ALLOW-DNSUPDATE-FROM`` is set,
-the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``. 
+    $ dig +noall +answer -t any test1.example.org @127.0.0.1
+
+    test1.example.org.	3600	IN	A	1.2.3.4
+    test1.example.org.	3600	IN	TXT	"this is a test"
+
+If any TSIG keys are listed in ``TSIG-ALLOW-DNSUPDATE`` for the zone, one of
+them is required to be used for an update.  If ``ALLOW-DNSUPDATE-FROM`` is also set,
+both requirements need to be satisfied before an update will be accepted.
 
 .. _metadata-forward-dnsupdate:
 
