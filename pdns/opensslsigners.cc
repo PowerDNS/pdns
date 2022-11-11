@@ -79,13 +79,15 @@ void openssl_thread_cleanup()
 #ifndef HAVE_RSA_GET0_KEY
 /* those symbols are defined in LibreSSL 2.7.0+ */
 /* compat helpers. These DO NOT do any of the checking that the libssl 1.1 functions do. */
-static inline void RSA_get0_key(const RSA* rsakey, const BIGNUM** n, const BIGNUM** e, const BIGNUM** d) {
+static inline void RSA_get0_key(const RSA* rsakey, const BIGNUM** n, const BIGNUM** e, const BIGNUM** d)
+{
   *n = rsakey->n;
   *e = rsakey->e;
   *d = rsakey->d;
 }
 
-static inline int RSA_set0_key(RSA* rsakey, BIGNUM* n, BIGNUM* e, BIGNUM* d) {
+static inline int RSA_set0_key(RSA* rsakey, BIGNUM* n, BIGNUM* e, BIGNUM* d)
+{
   if (n) {
     BN_clear_free(rsakey->n);
     rsakey->n = n;
@@ -101,12 +103,14 @@ static inline int RSA_set0_key(RSA* rsakey, BIGNUM* n, BIGNUM* e, BIGNUM* d) {
   return 1;
 }
 
-static inline void RSA_get0_factors(const RSA* rsakey, const BIGNUM** p, const BIGNUM** q) {
+static inline void RSA_get0_factors(const RSA* rsakey, const BIGNUM** p, const BIGNUM** q)
+{
   *p = rsakey->p;
   *q = rsakey->q;
 }
 
-static inline int RSA_set0_factors(RSA* rsakey, BIGNUM* p, BIGNUM* q) {
+static inline int RSA_set0_factors(RSA* rsakey, BIGNUM* p, BIGNUM* q)
+{
   BN_clear_free(rsakey->p);
   rsakey->p = p;
   BN_clear_free(rsakey->q);
@@ -114,13 +118,15 @@ static inline int RSA_set0_factors(RSA* rsakey, BIGNUM* p, BIGNUM* q) {
   return 1;
 }
 
-static inline void RSA_get0_crt_params(const RSA* rsakey, const BIGNUM** dmp1, const BIGNUM** dmq1, const BIGNUM** iqmp) {
+static inline void RSA_get0_crt_params(const RSA* rsakey, const BIGNUM** dmp1, const BIGNUM** dmq1, const BIGNUM** iqmp)
+{
   *dmp1 = rsakey->dmp1;
   *dmq1 = rsakey->dmq1;
   *iqmp = rsakey->iqmp;
 }
 
-static inline int RSA_set0_crt_params(RSA* rsakey, BIGNUM* dmp1, BIGNUM* dmq1, BIGNUM* iqmp) {
+static inline int RSA_set0_crt_params(RSA* rsakey, BIGNUM* dmp1, BIGNUM* dmq1, BIGNUM* iqmp)
+{
   BN_clear_free(rsakey->dmp1);
   rsakey->dmp1 = dmp1;
   BN_clear_free(rsakey->dmq1);
@@ -244,43 +250,44 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
   // When changing the bitsizes, also edit them in ::checkKey
   if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
     /* RFC3110 */
-    throw runtime_error(getName()+" RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
+    throw runtime_error(getName() + " RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
   }
   if (d_algorithm == DNSSECKeeper::RSASHA256 && (bits < 512 || bits > 4096)) {
     /* RFC5702 */
-    throw runtime_error(getName()+" RSASHA256 key generation failed for invalid bits size " + std::to_string(bits));
+    throw runtime_error(getName() + " RSASHA256 key generation failed for invalid bits size " + std::to_string(bits));
   }
   if (d_algorithm == DNSSECKeeper::RSASHA512 && (bits < 1024 || bits > 4096)) {
     /* RFC5702 */
-    throw runtime_error(getName()+" RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
+    throw runtime_error(getName() + " RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
   }
 
   auto e = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_new(), BN_clear_free);
   if (!e) {
-    throw runtime_error(getName()+" key generation failed, unable to allocate e");
+    throw runtime_error(getName() + " key generation failed, unable to allocate e");
   }
 
   /* RSA_F4 is a public exponent value of 65537 */
   int res = BN_set_word(e.get(), RSA_F4);
 
   if (res == 0) {
-    throw runtime_error(getName()+" key generation failed while setting e");
+    throw runtime_error(getName() + " key generation failed while setting e");
   }
 
   auto key = std::unique_ptr<RSA, void(*)(RSA*)>(RSA_new(), RSA_free);
   if (!key) {
-    throw runtime_error(getName()+" allocation of key structure failed");
+    throw runtime_error(getName() + " allocation of key structure failed");
   }
 
   res = RSA_generate_key_ex(key.get(), bits, e.get(), nullptr);
   if (res == 0) {
-    throw runtime_error(getName()+" key generation failed");
+    throw runtime_error(getName() + " key generation failed");
   }
 
   d_key = std::move(key);
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) {
+void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp)
+{
   drc.d_algorithm = d_algorithm;
   d_key = std::unique_ptr<RSA, decltype(&RSA_free)>(PEM_read_RSAPrivateKey(&fp, nullptr, nullptr, nullptr), &RSA_free);
   if (d_key == nullptr) {
@@ -288,7 +295,8 @@ void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, c
   }
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const {
+void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+{
   auto ret = PEM_write_RSAPrivateKey(&fp, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {
     throw runtime_error(getName() + ": Could not convert private key to PEM");
@@ -298,7 +306,7 @@ void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const {
 DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVector() const
 {
   storvector_t storvect;
-  typedef vector<pair<string, const BIGNUM*> > outputs_t;
+  typedef vector<pair<string, const BIGNUM*>> outputs_t;
   outputs_t outputs;
   const BIGNUM *n, *e, *d, *p, *q, *dmp1, *dmq1, *iqmp;
   RSA_get0_key(d_key.get(), &n, &e, &d);
@@ -313,24 +321,24 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   outputs.emplace_back("Exponent2", dmq1);
   outputs.emplace_back("Coefficient", iqmp);
 
-  string algorithm=std::to_string(d_algorithm);
-  switch(d_algorithm) {
-    case DNSSECKeeper::RSASHA1:
-    case DNSSECKeeper::RSASHA1NSEC3SHA1:
-      algorithm += " (RSASHA1)";
-      break;
-    case DNSSECKeeper::RSASHA256:
-      algorithm += " (RSASHA256)";
-      break;
-    case DNSSECKeeper::RSASHA512:
-      algorithm += " (RSASHA512)";
-      break;
-    default:
-      algorithm += " (?)";
+  string algorithm = std::to_string(d_algorithm);
+  switch (d_algorithm) {
+  case DNSSECKeeper::RSASHA1:
+  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+    algorithm += " (RSASHA1)";
+    break;
+  case DNSSECKeeper::RSASHA256:
+    algorithm += " (RSASHA256)";
+    break;
+  case DNSSECKeeper::RSASHA512:
+    algorithm += " (RSASHA512)";
+    break;
+  default:
+    algorithm += " (?)";
   }
   storvect.emplace_back("Algorithm", algorithm);
 
-  for(const outputs_t::value_type& value :  outputs) {
+  for (const outputs_t::value_type& value : outputs) {
     std::string tmp;
     tmp.resize(BN_num_bytes(value.second));
     int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(&tmp.at(0)));
@@ -343,26 +351,25 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   return storvect;
 }
 
-
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
   if (d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
     unsigned char l_hash[SHA_DIGEST_LENGTH];
-    SHA1((unsigned char*) orig.c_str(), orig.length(), l_hash);
-    return string((char*) l_hash, sizeof(l_hash));
+    SHA1((unsigned char*)orig.c_str(), orig.length(), l_hash);
+    return string((char*)l_hash, sizeof(l_hash));
   }
   else if (d_algorithm == DNSSECKeeper::RSASHA256) {
     unsigned char l_hash[SHA256_DIGEST_LENGTH];
-    SHA256((unsigned char*) orig.c_str(), orig.length(), l_hash);
-    return string((char*) l_hash, sizeof(l_hash));
+    SHA256((unsigned char*)orig.c_str(), orig.length(), l_hash);
+    return string((char*)l_hash, sizeof(l_hash));
   }
   else if (d_algorithm == DNSSECKeeper::RSASHA512) {
     unsigned char l_hash[SHA512_DIGEST_LENGTH];
-    SHA512((unsigned char*) orig.c_str(), orig.length(), l_hash);
-    return string((char*) l_hash, sizeof(l_hash));
+    SHA512((unsigned char*)orig.c_str(), orig.length(), l_hash);
+    return string((char*)l_hash, sizeof(l_hash));
   }
 
-  throw runtime_error(getName()+" does not support hash operation for algorithm "+std::to_string(d_algorithm));
+  throw runtime_error(getName() + " does not support hash operation for algorithm " + std::to_string(d_algorithm));
 }
 
 int OpenSSLRSADNSCryptoKeyEngine::hashSizeToKind(const size_t hashSize)
@@ -391,7 +398,7 @@ std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
   int res = RSA_sign(hashKind, reinterpret_cast<unsigned char*>(&l_hash.at(0)), l_hash.length(), reinterpret_cast<unsigned char*>(&signature.at(0)), &signatureLen, d_key.get());
   if (res != 1) {
-    throw runtime_error(getName()+" failed to generate signature");
+    throw runtime_error(getName() + " failed to generate signature");
   }
 
   signature.resize(signatureLen);
@@ -419,8 +426,9 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 
   int len = BN_bn2bin(e, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   if (len < 255) {
-    keystring.assign(1, (char) (unsigned int) len);
-  } else {
+    keystring.assign(1, (char)(unsigned int)len);
+  }
+  else {
     keystring.assign(1, 0);
     uint16_t tempLen = len;
     tempLen = htons(tempLen);
@@ -433,7 +441,6 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 
   return keystring;
 }
-
 
 std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>OpenSSLRSADNSCryptoKeyEngine::parse(std::map<std::string, std::string>& stormap, const std::string& key) const
 {
@@ -477,11 +484,11 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   d_key = std::move(key);
 }
 
-bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
+bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
 {
   bool retval = true;
   // When changing the bitsizes, also edit them in ::create
-  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1 || d_algorithm == DNSSECKeeper::RSASHA256) && (getBits() < 512 || getBits()> 4096)) {
+  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1 || d_algorithm == DNSSECKeeper::RSASHA256) && (getBits() < 512 || getBits() > 4096)) {
     retval = false;
     if (errorMessages != nullptr) {
       errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 512 and 4096");
@@ -513,23 +520,24 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
   const unsigned char* raw = (const unsigned char*)input.c_str();
 
   if (inputLen < 1) {
-    throw runtime_error(getName()+" invalid input size for the public key");
+    throw runtime_error(getName() + " invalid input size for the public key");
   }
 
   if (raw[0] != 0) {
     const size_t exponentSize = raw[0];
     if (inputLen < (exponentSize + 2)) {
-      throw runtime_error(getName()+" invalid input size for the public key");
+      throw runtime_error(getName() + " invalid input size for the public key");
     }
     exponent = input.substr(1, exponentSize);
     modulus = input.substr(exponentSize + 1);
-  } else {
+  }
+  else {
     if (inputLen < 3) {
-      throw runtime_error(getName()+" invalid input size for the public key");
+      throw runtime_error(getName() + " invalid input size for the public key");
     }
-    const size_t exponentSize = raw[1]*0xff + raw[2];
+    const size_t exponentSize = raw[1] * 0xff + raw[2];
     if (inputLen < (exponentSize + 4)) {
-      throw runtime_error(getName()+" invalid input size for the public key");
+      throw runtime_error(getName() + " invalid input size for the public key");
     }
     exponent = input.substr(3, exponentSize);
     modulus = input.substr(exponentSize + 3);
@@ -537,16 +545,17 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 
   auto key = std::unique_ptr<RSA, void(*)(RSA*)>(RSA_new(), RSA_free);
   if (!key) {
-    throw runtime_error(getName()+" allocation of key structure failed");
+    throw runtime_error(getName() + " allocation of key structure failed");
   }
 
   auto e = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((unsigned char*)exponent.c_str(), exponent.length(), nullptr), BN_clear_free);
   if (!e) {
-    throw runtime_error(getName()+" error loading e value of public key");
+    throw runtime_error(getName() + " error loading public exponent (e) value of public key");
   }
+
   auto n = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((unsigned char*)modulus.c_str(), modulus.length(), nullptr), BN_clear_free);
   if (!n) {
-    throw runtime_error(getName()+" error loading n value of public key");
+    throw runtime_error(getName() + " error loading modulus (n) value of public key");
   }
 
   RSA_set0_key(key.get(), n.release(), e.release(), nullptr);
