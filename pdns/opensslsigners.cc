@@ -1746,7 +1746,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
 class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo), d_edkey(std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(nullptr, EVP_PKEY_free))
+  explicit OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo), d_edkey(std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(nullptr, EVP_PKEY_free))
   {
 
     int ret = RAND_status();
@@ -1771,12 +1771,8 @@ public:
     }
   }
 
-  ~OpenSSLEDDSADNSCryptoKeyEngine()
-  {
-  }
-
-  string getName() const override { return "OpenSSL EDDSA"; }
-  int getBits() const override { return d_len << 3; }
+  [[nodiscard]] string getName() const override { return "OpenSSL EDDSA"; }
+  [[nodiscard]] int getBits() const override { return d_len << 3; }
 
   void create(unsigned int bits) override;
 
@@ -1791,13 +1787,13 @@ public:
    * \param[in] filename Only used for providing filename information in
    * error messages.
    *
-   * \param[in] fp An open file handle to a file containing EDDSA PEM
+   * \param[in] inputFile An open file handle to a file containing EDDSA PEM
    * contents.
    *
    * \return An EDDSA key engine populated with the contents of the PEM
    * file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -1805,16 +1801,16 @@ public:
    * Receives an open file handle and writes this key's contents to the
    * file.
    *
-   * \param[in] fp An open file handle for writing.
+   * \param[in] outputFile An open file handle for writing.
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& fp) const override;
+  void convertToPEM(std::FILE& outputFile) const override;
 
-  storvector_t convertToISCVector() const override;
-  std::string sign(const std::string& msg) const override;
-  bool verify(const std::string& msg, const std::string& signature) const override;
-  std::string getPublicKeyString() const override;
+  [[nodiscard]] storvector_t convertToISCVector() const override;
+  [[nodiscard]] std::string sign(const std::string& msg) const override;
+  [[nodiscard]] bool verify(const std::string& msg, const std::string& signature) const override;
+  [[nodiscard]] std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey(vector<string>* errorMessages) const override;
@@ -1828,17 +1824,17 @@ private:
   size_t d_len{0};
   int d_id{0};
 
-  std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> d_edkey;
+  std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> d_edkey;
 };
 
-bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
+bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string> * /* errorMessages */) const
 {
-  return (d_edkey ? true : false);
+  return static_cast<bool>(d_edkey);
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
+void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */)
 {
-  auto pctx = std::unique_ptr<EVP_PKEY_CTX, void(*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(d_id, nullptr), EVP_PKEY_CTX_free);
+  auto pctx = std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>(EVP_PKEY_CTX_new_id(d_id, nullptr), EVP_PKEY_CTX_free);
   if (!pctx) {
     throw runtime_error(getName()+" context initialization failed");
   }
@@ -1852,18 +1848,18 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
   d_edkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(newKey, EVP_PKEY_free);
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
 {
   drc.d_algorithm = d_algorithm;
-  d_edkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  d_edkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
   if (d_edkey == nullptr) {
     throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
   }
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
 {
-  auto ret = PEM_write_PrivateKey(&fp, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  auto ret = PEM_write_PrivateKey(&outputFile, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {
     throw runtime_error(getName() + ": Could not convert private key to PEM");
   }
@@ -1893,6 +1889,8 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   string buf;
   size_t len = d_len;
   buf.resize(len);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   if (EVP_PKEY_get_raw_private_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw runtime_error(getName() + " Could not get private key from d_edkey");
   }
@@ -1902,7 +1900,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
   if (!mdctx) {
     throw runtime_error(getName()+" MD context initialization failed");
   }
@@ -1917,7 +1915,9 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   signature.resize(siglen);
 
   if (EVP_DigestSign(mdctx.get(),
+                     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
                      reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
+                     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
                      reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length())
       < 1) {
     throw runtime_error(getName() + " signing error");
@@ -1928,7 +1928,7 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
 bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
   if (!mdctx) {
     throw runtime_error(getName()+" MD context initialization failed");
   }
@@ -1939,14 +1939,16 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   string checkSignature = signature;
   string checkMsg = msg;
 
-  auto r = EVP_DigestVerify(mdctx.get(),
-                            reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
-                            reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
-  if (r < 0) {
+  auto ret = EVP_DigestVerify(mdctx.get(),
+                              // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                              reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
+                              // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                              reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
+  if (ret < 0) {
     throw runtime_error(getName() + " verification failure");
   }
 
-  return (r == 1);
+  return (ret == 1);
 }
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
@@ -1954,6 +1956,8 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
   string buf;
   size_t len = d_len;
   buf.resize(len);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   if (EVP_PKEY_get_raw_public_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw std::runtime_error(getName() + " unable to get public key from key struct");
   }
@@ -1967,7 +1971,8 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
 
-  d_edkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  d_edkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
   if (!d_edkey) {
     throw std::runtime_error(getName() + " could not create key structure from private key");
   }
@@ -1979,9 +1984,10 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
     throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
 
-  const unsigned char* raw = reinterpret_cast<const unsigned char*>(content.c_str());
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
 
-  d_edkey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
+  d_edkey = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
   if (!d_edkey) {
     throw runtime_error(getName()+" allocation of public key structure failed");
   }
