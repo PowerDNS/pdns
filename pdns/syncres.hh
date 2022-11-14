@@ -321,9 +321,11 @@ public:
     return old;
   }
 
-  void setQNameMinimization(bool state=true)
+  bool setQNameMinimization(bool state = true)
   {
-    d_qNameMinimization=state;
+    auto old = d_qNameMinimization;
+    d_qNameMinimization = state;
+    return old;
   }
 
   void setDoEDNS0(bool state=true)
@@ -922,7 +924,6 @@ uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
-void primeRootNSZones(DNSSECMode, unsigned int depth);
 
 struct WipeCacheResult
 {
