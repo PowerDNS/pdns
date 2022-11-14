@@ -1393,10 +1393,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
     if (type == QType::DS || type == QType::DNSKEY) {
       return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
     }
-    else {
-
-      setLWResult(res, 0, true, false, true);
-      return LWResult::Result::Success;
+    else if (type == QType::A) {
+      if (domain == DNSName("com.")) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, DNSName("com"), QType::SOA, "whatever.com. blah.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300);
+        addNSECRecordToLW(DNSName("com"), DNSName("com."), {QType::SOA}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        return LWResult::Result::Success;
+      }
+      else if (domain == target) {
+        setLWResult(res, 0, true, false, true);
+        return LWResult::Result::Success;
+      }
     }
 
     return LWResult::Result::Timeout;
@@ -1407,7 +1416,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  /* com|NS, powerdns.com|DS, com|DNSKEY, powerdns.com|A */
+  /* powerdns.com|A, com|A, com|DNSKEY, powerdns.com|DS */
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
@@ -1446,10 +1455,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
     if (type == QType::DS || type == QType::DNSKEY) {
       return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
     }
-    else {
-
-      setLWResult(res, RCode::NXDomain, true, false, true);
-      return LWResult::Result::Success;
+    else if (type == QType::A) {
+      if (domain == DNSName("com.")) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, DNSName("com"), QType::SOA, "whatever.com. blah.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300);
+        addNSECRecordToLW(DNSName("com"), DNSName("com."), {QType::SOA}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        return LWResult::Result::Success;
+      }
+      else if (domain == target) {
+        setLWResult(res, RCode::NXDomain, true, false, true);
+        return LWResult::Result::Success;
+      }
     }
 
     return LWResult::Result::Timeout;
@@ -1461,7 +1479,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
 
-  /* com|A, powerdns.com|DS, com|DNSKEY, powerdns.com|A */
+  /* powerdns.com|A, com|A, powerdns.com|DS, com|DNSKEY */
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
