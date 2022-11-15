@@ -587,7 +587,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
     else {
       time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
       const uint16_t failedTests = currentCheckFailures;
-      double backOffCoeffTmp = std::pow(2U, failedTests);
+      double backOffCoeffTmp = std::pow(2.0, failedTests);
       if (backOffCoeffTmp != HUGE_VAL && backOffCoeffTmp <= std::numeric_limits<time_t>::max()) {
         time_t backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
         if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
