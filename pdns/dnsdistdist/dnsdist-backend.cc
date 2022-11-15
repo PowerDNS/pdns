@@ -513,8 +513,8 @@ bool DownstreamState::healthCheckRequired()
         /* we update the next check time here because the check might time out,
            and we do not want to send a second check during that time unless
            the timer is actually very short */
-        updateNextLazyHealthCheck(*stats);
         vinfolog("Sending health-check query for %s which is still in the Failed state", getNameWithAddr());
+        updateNextLazyHealthCheck(*stats, true);
         return true;
       }
       return false;
@@ -542,7 +542,7 @@ bool DownstreamState::healthCheckRequired()
         /* we update the next check time here because the check might time out,
            and we do not want to send a second check during that time unless
            the timer is actually very short */
-        updateNextLazyHealthCheck(*stats);
+        updateNextLazyHealthCheck(*stats, true);
         return true;
       }
     }
@@ -569,24 +569,34 @@ time_t DownstreamState::getNextLazyHealthCheck()
   return stats->d_nextCheck;
 }
 
-void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
+void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled)
 {
   auto now = time(nullptr);
   if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
     if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       /* we are still in the "up" state, we need to send the next query quickly to
          determine if the backend is really down */
-      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+      stats.d_nextCheck = now + d_config.checkInterval;
+      vinfolog("Backend %s is in potential failure state, next check in %d seconds", getNameWithAddr(), d_config.checkInterval);
     }
     else if (consecutiveSuccessfulChecks > 0) {
       /* we are in 'Failed' state, but just had one (or more) successful check,
          so we want the next one to happen quite quickly as the backend might
          be available again. */
       stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+      if (!checkScheduled) {
+        vinfolog("Backend %s is in failed state but had %d consecutive successful checks, next check in %d seconds", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks), d_config.d_lazyHealthCheckFailedInterval);
+      }
     }
     else {
+      uint16_t failedTests = currentCheckFailures;
+      if (checkScheduled) {
+        /* we are planning the check after that one, which will only
+           occur if there is a failure */
+        failedTests++;
+      }
+
       time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
-      const uint16_t failedTests = currentCheckFailures;
       double backOffCoeffTmp = std::pow(2.0, failedTests);
       if (backOffCoeffTmp != HUGE_VAL && backOffCoeffTmp <= std::numeric_limits<time_t>::max()) {
         time_t backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
@@ -599,10 +609,12 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats)
       }
 
       stats.d_nextCheck = now + backOff;
+      vinfolog("Backend %s is in failed state and has failed %d consecutive checks, next check in %d seconds", getNameWithAddr(), failedTests, backOff);
     }
   }
   else {
     stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+    vinfolog("Backend %s is in %s state, next check in %d seconds", getNameWithAddr(), (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure ? "potential failure" : "failed"), d_config.d_lazyHealthCheckFailedInterval);
   }
 }
 
@@ -616,9 +628,10 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
     setUpStatus(newResult);
     if (newResult == false) {
+      currentCheckFailures++;
       auto stats = d_lazyHealthCheckStats.lock();
       stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
-      updateNextLazyHealthCheck(*stats);
+      updateNextLazyHealthCheck(*stats, false);
     }
     return;
   }
@@ -641,7 +654,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 
         if (d_config.availability == DownstreamState::Availability::Lazy) {
           auto stats = d_lazyHealthCheckStats.lock();
-          updateNextLazyHealthCheck(*stats);
+          updateNextLazyHealthCheck(*stats, false);
         }
       }
     }
@@ -649,6 +662,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     if (newState) {
       if (d_config.availability == DownstreamState::Availability::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
+        vinfolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks));
         stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
         stats->d_lastResults.clear();
       }
@@ -671,9 +685,10 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
       }
       else if (d_config.availability == DownstreamState::Availability::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
+        vinfolog("Backend %s failed its health-check, moving from Potential failure to Failed", getNameWithAddr());
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
         currentCheckFailures = 0;
-        updateNextLazyHealthCheck(*stats);
+        updateNextLazyHealthCheck(*stats, false);
       }
     }
   }

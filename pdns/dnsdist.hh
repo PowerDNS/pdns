@@ -1058,7 +1058,7 @@ public:
   static bool s_randomizeIDs;
 private:
   void handleUDPTimeout(IDState& ids);
-  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats);
+  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled);
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
