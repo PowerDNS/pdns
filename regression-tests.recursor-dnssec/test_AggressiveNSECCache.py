@@ -3,6 +3,7 @@ from recursortests import RecursorTest
 import os
 import requests
 import subprocess
+import time
 
 class AggressiveNSECCacheBase(RecursorTest):
     __test__ = False
@@ -21,7 +22,7 @@ class AggressiveNSECCacheBase(RecursorTest):
     """ % (_wsPort, _wsPassword, _apiKey)
 
     @classmethod
-    def setUp(cls):
+    def wipe(cls):
         confdir = os.path.join('configs', cls._confdir)
         cls.wipeRecursorCache(confdir)
 
@@ -42,6 +43,7 @@ class AggressiveNSECCacheBase(RecursorTest):
 
     def testNoData(self):
 
+        self.wipe()
         # first we query a non-existent type, to get the NSEC in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         res = self.sendQuery('host1.secure.example.', 'TXT')
@@ -71,6 +73,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
     # do not deny the same names than the non-hashed NSECs do
     def testNXD(self):
 
+        self.wipe()
         # first we query a non-existent name, to get the needed NSECs (name + widcard) in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         hits = self.getMetric('aggressive-nsec-cache-nsec-hits')
@@ -98,6 +101,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
 
     def testWildcard(self):
 
+        self.wipe()
         # first we query a non-existent name, but for which a wildcard matches,
         # to get the NSEC in our cache
         res = self.sendQuery('test1.wildcard.secure.example.', 'A')
@@ -142,8 +146,15 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
     def test_Bogus(self):
+        self.wipe()
+
+        # query a name in example to fill the aggressive negcache
+        res = self.sendQuery('example.', 'A')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnswerEmpty(res)
+        self.assertEqual(1, self.getMetric('aggressive-nsec-cache-entries'))
+
         # query a name in a Bogus zone
-        entries = self.getMetric('aggressive-nsec-cache-entries')
         res = self.sendQuery('ted1.bogus.example.', 'A')
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.assertAnswerEmpty(res)
@@ -167,8 +178,9 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertGreater(self.getMetric('all-outqueries'), nbQueries)
-        # we will accept a NSEC for root, which is secure..
-        self.assertEqual(entries + 1, self.getMetric('aggressive-nsec-cache-entries'))
+
+        # Check that we stil have one aggressive cache entry
+        self.assertEqual(1, self.getMetric('aggressive-nsec-cache-entries'))
 
 class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'

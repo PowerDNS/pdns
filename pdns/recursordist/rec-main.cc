@@ -2229,30 +2229,6 @@ static void houseKeeping(void*)
         if (res == 0) {
           // Success, go back to the defaut period
           rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
-          const string msg = "Exception while priming the root NS zones";
-          try {
-            primeRootNSZones(g_dnssecmode, 0);
-          }
-          catch (const std::exception& e) {
-            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.what() << endl,
-                 log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
-          }
-          catch (const PDNSException& e) {
-            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl,
-                 log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
-          }
-          catch (const ImmediateServFailException& e) {
-            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones: " << e.reason << endl,
-                 log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
-          }
-          catch (const PolicyHitException& e) {
-            SLOG(g_log << Logger::Error << "Policy hit while priming the root NS zones" << endl,
-                 log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
-          }
-          catch (...) {
-            SLOG(g_log << Logger::Error << "Exception while priming the root NS zones" << endl,
-                 log->info(Logr::Error, "Exception while priming the root NS zones"));
-          }
         }
         else {
           // On failure, go to the middle of the remaining period (initially 80% / 8 = 10%) and shorten the interval on each

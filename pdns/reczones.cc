@@ -35,24 +35,12 @@
 extern int g_argc;
 extern char** g_argv;
 
-static thread_local set<DNSName> t_rootNSZones;
-
-static void insertIntoRootNSZones(const DNSName& name)
-{
-  // do not insert dot, wiping dot's NS records from the cache in primeRootNSZones()
-  // will cause infinite recursion
-  if (!name.isRoot()) {
-    t_rootNSZones.insert(name);
-  }
-}
-
 bool primeHints(time_t ignored)
 {
   // prime root cache
   const vState validationState = vState::Insecure;
   const ComboAddress from("255.255.255.255");
   vector<DNSRecord> nsset;
-  t_rootNSZones.clear();
 
   time_t now = time(nullptr);
 
@@ -78,7 +66,6 @@ bool primeHints(time_t ignored)
       templ[sizeof(templ) - 1] = '\0';
       *templ = c;
       aaaarr.d_name = arr.d_name = DNSName(templ);
-      insertIntoRootNSZones(arr.d_name.getLastLabel());
       nsrr.d_content = std::make_shared<NSRecordContent>(DNSName(templ));
       arr.d_content = std::make_shared<ARecordContent>(ComboAddress(rootIps4[c - 'a']));
       vector<DNSRecord> aset;
@@ -134,7 +121,6 @@ bool primeHints(time_t ignored)
         rr.content = toLower(rr.content);
         nsset.push_back(DNSRecord(rr));
       }
-      insertIntoRootNSZones(rr.qname.getLastLabel());
     }
 
     // Check reachability of A and AAAA records
@@ -171,32 +157,6 @@ bool primeHints(time_t ignored)
   g_recCache->doWipeCache(g_rootdnsname, false, QType::NS);
   g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // and stuff in the cache
   return true;
-}
-
-// Do not only put the root hints into the cache, but also make sure
-// the NS records of the top level domains of the names of the root
-// servers are in the cache. We need these to correctly determine the
-// security status of that specific domain (normally
-// root-servers.net). This is caused by the accident that the root
-// servers are authoritative for root-servers.net, and some
-// implementations reply not with a delegation on a root-servers.net
-// DS query, but with a NODATA response (the domain is unsigned).
-void primeRootNSZones(DNSSECMode mode, unsigned int depth)
-{
-  struct timeval now;
-  gettimeofday(&now, 0);
-  SyncRes sr(now);
-
-  sr.setDoDNSSEC(mode != DNSSECMode::Off);
-  sr.setDNSSECValidationRequested(mode != DNSSECMode::Off && mode != DNSSECMode::ProcessNoValidate);
-  // beginResolve() can yield to another mthread that could trigger t_rootNSZones updates,
-  // so make a local copy
-  set<DNSName> copy(t_rootNSZones);
-  for (const auto& qname : copy) {
-    g_recCache->doWipeCache(qname, false, QType::NS);
-    vector<DNSRecord> ret;
-    sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret, depth + 1);
-  }
 }
 
 static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, Logr::log_t log, bool verbose = true)
