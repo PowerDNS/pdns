@@ -75,17 +75,30 @@ static void makeNameToIPZone(SyncRes::domainmap_t& newMap,
                              const ComboAddress& address,
                              Logr::log_t log)
 {
+  SyncRes::AuthDomain ad;
   DNSRecord dr;
+
   dr.d_name = hostname;
 
-  SyncRes::AuthDomain ad = makeSOAAndNSNodes(dr, "localhost.");
+  if (newMap.count(hostname) != 0) {
+    ad = newMap[hostname];
+  }
+  else {
+    ad = makeSOAAndNSNodes(dr, "localhost.");
+  }
 
   auto recType = address.isIPv6() ? QType::AAAA : QType::A;
   dr.d_type = recType;
+  dr.d_ttl = 86400;
   dr.d_content = DNSRecordContent::mastermake(recType, 1, address.toStringNoInterface());
   ad.d_records.insert(dr);
 
-  addToDomainMap(newMap, ad, dr.d_name, log);
+  if (newMap.count(hostname) != 0) {
+    newMap[ad.d_name] = ad;
+  }
+  else {
+    addToDomainMap(newMap, ad, dr.d_name, log);
+  }
 }
 
 static void makeIPToNamesZone(SyncRes::domainmap_t& newMap,
