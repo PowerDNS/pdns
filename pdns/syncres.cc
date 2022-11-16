@@ -1029,7 +1029,7 @@ bool SyncRes::isRecursiveForwardOrAuth(const DNSName &qname) const {
 bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
   DNSName authname(qname);
   domainmap_t::const_iterator iter = getBestAuthZone(&authname);
-  return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || !iter->second.shouldRecurse());
+  return iter != t_sstorage.domainmap->end();
 }
 
 // Will be needed in the future
@@ -4725,16 +4725,16 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         continue;
       }
     }
-    const bool negCacheIndiction = rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
+    const bool negCacheIndication = rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
       lwr.d_rcode == RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth);
 
     bool putInNegCache = true;
-    if (negCacheIndiction && qtype == QType::DS && isForwardOrAuth(qname)) {
+    if (negCacheIndication && qtype == QType::DS && isForwardOrAuth(qname)) {
       // #10189, a NXDOMAIN to a DS query for a forwarded or auth domain should not NXDOMAIN the whole domain
       putInNegCache = false;
     }
 
-    if (negCacheIndiction) {
+    if (negCacheIndication) {
       LOG(prefix<<qname<<": got negative caching indication for name '"<<qname<<"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
 
       rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
