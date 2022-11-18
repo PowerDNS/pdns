@@ -10,10 +10,9 @@ License: GPLv2
 URL: https://powerdns.com
 Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 
-Requires(post): systemd-sysv
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
