@@ -134,7 +134,7 @@ void NetworkListener::mainThread()
   struct timeval now;
 
   while (true) {
-    runOnce(now, 5000);
+    runOnce(now, -1);
   }
 }
 
