@@ -143,6 +143,29 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._sock.connect(("127.0.0.1", cls._dnsDistPort))
 
     @classmethod
+    def killProcess(cls, p):
+        # Don't try to kill it if it's already dead
+        if p.poll() is not None:
+            return
+        try:
+            p.terminate()
+            for count in range(10):
+                x = p.poll()
+                if x is not None:
+                    break
+                time.sleep(0.1)
+            if x is None:
+                print("kill...", p, file=sys.stderr)
+                p.kill()
+                p.wait()
+        except OSError as e:
+            # There is a race-condition with the poll() and
+            # kill() statements, when the process is dead on the
+            # kill(), this is fine
+            if e.errno != errno.ESRCH:
+                raise
+
+    @classmethod
     def setUpClass(cls):
 
         cls.startResponders()
@@ -153,22 +176,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._sock.close()
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.1
-        else:
-            delay = 1.0
-        if cls._dnsdist:
-            cls._dnsdist.terminate()
-            if cls._dnsdist.poll() is None:
-                time.sleep(delay)
-                if cls._dnsdist.poll() is None:
-                    cls._dnsdist.kill()
-                cls._dnsdist.wait()
-
-        # tell the background threads to stop, if any
-        for backgroundThread in cls._backgroundThreads:
-          cls._backgroundThreads[backgroundThread] = False
+        cls.killProcess(cls._dnsdist)
 
     @classmethod
     def _ResponderIncrementCounter(cls):
