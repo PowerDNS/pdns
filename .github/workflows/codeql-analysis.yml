@@ -9,7 +9,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
 
     strategy:
       fail-fast: false
@@ -113,7 +113,7 @@ jobs:
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
-        make -j4 dnsdist
+        make -j8 dnsdist
 
     - name: Build recursor
       if: matrix.product == 'rec'
@@ -123,7 +123,7 @@ jobs:
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
         make htmlfiles.h
-        make -j4 pdns_recursor rec_control
+        make -j8 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
