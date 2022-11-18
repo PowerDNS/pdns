@@ -255,7 +255,8 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
 
   be->getAllDomains(&result, true, true);
 
-  di = result[0];
+  BOOST_REQUIRE(!result.empty());
+  di = result.at(0);
   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
@@ -375,9 +376,9 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
 
   be->getUpdatedMasters(result, catalogs, hashes);
 
-  BOOST_CHECK(result.size() > 0);
+  BOOST_REQUIRE(result.size() > 0);
 
-  di = result[0];
+  di = result.at(0);
   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
