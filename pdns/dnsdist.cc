@@ -1942,13 +1942,12 @@ static void healthChecksThread()
   setThreadName("dnsdist/healthC");
 
   constexpr int interval = 1;
+  auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
 
   for (;;) {
     sleep(interval);
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
-
-    auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for (auto& dss : *states) {
       auto delta = dss->sw.udiffAndSet()/1000000.0;
       dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
