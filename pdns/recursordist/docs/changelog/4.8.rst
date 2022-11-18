@@ -2,6 +2,38 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.0-rc1
+  :released: 18th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12201
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache" code.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12200
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12197
+    :tickets: 12175
+
+    Get DS records with QName Minimization switched on.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12196
+    :tickets: 12194
+
+    Fix typo in structured logging key.
+
+.. changelog::
   :version: 4.8.0-beta2
   :released: 7th of November 2022
 
