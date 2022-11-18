@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import copy
+import errno
 import os
 import socket
 import ssl
@@ -73,6 +74,21 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _TCPResponder = None
 
     @classmethod
+    def waitForTCPSocket(cls, ipaddress, port):
+        for try_number in range(0, 20):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1.0)
+                sock.connect((ipaddress, port))
+                sock.close()
+                return
+            except Exception as err:
+                if err.errno != errno.ECONNREFUSED:
+                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+            time.sleep(0.1)
+       # We assume the dnsdist instance does not listen. That's fine.
+
+    @classmethod
     def startResponders(cls):
         print("Launching responders..")
 
@@ -124,16 +140,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         with open(logFile, 'w') as fdLog:
           cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdLog, stderr=fdLog)
 
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.5
-        else:
-            delay = cls._dnsdistStartupDelay
-
-        time.sleep(delay)
+        cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort);
 
         if cls._dnsdist.poll() is not None:
-            cls._dnsdist.kill()
-            sys.exit(cls._dnsdist.returncode)
+            print(f"\n*** startDNSDist log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startDNSDist log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (dnsdistcmd, cls._dnsdist.returncode))
 
     @classmethod
     def setUpSockets(cls):
@@ -176,6 +190,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls._sock.close()
+        # tell the background threads to stop, if any
+        for backgroundThread in cls._backgroundThreads:
+            cls._backgroundThreads[backgroundThread] = False
         cls.killProcess(cls._dnsdist)
 
     @classmethod

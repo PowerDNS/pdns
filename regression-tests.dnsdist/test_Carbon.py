@@ -71,6 +71,17 @@ class TestCarbon(DNSDistTest):
         cls._CarbonResponder2.setDaemon(True)
         cls._CarbonResponder2.start()
 
+    @classmethod
+    def setUpClass(cls):
+
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        time.sleep(1)
+
+        print("Launching tests..")
+
+
     def testCarbon(self):
         """
         Carbon: send data to 2 carbon servers
