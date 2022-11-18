@@ -1764,7 +1764,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
-    if (!have_soa && zonekind != DomainInfo::Slave) {
+    if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
       // synthesize a SOA record so the zone "really" exists
       string soa = ::arg()["default-soa-content"];
       boost::replace_all(soa, "@", zonename.toStringNoDot());
