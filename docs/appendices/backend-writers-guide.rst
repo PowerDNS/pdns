@@ -590,17 +590,13 @@ The mentioned DomainInfo struct looks like this:
 
   Last time this zone was checked over at the primary for changes
 
-.. cpp:member:: enum DomainKind DomainInfo::kind
+.. cpp:member:: ZoneKind DomainInfo::kind
 
   Type of zone
 
 .. cpp:member:: DNSBackend* DomainInfo::backend
 
   Pointer to the backend that feels authoritative for a domain and can act as a secondary
-
-.. cpp:enum:: DomainKind
-
-  The kind of domain, one of {Master,Slave,Native}.
 
 These functions all have a default implementation that returns false -
 which explains that these methods can be omitted in simple backends.
@@ -650,6 +646,32 @@ this zone.
   Indicate that a domain has either been updated or refreshed without the
   need for a retransfer. This causes the domain to vanish from the vector
   modified by ``getUnfreshSlaveInfos()``.
+
+.. cpp:class:: ZoneKind
+
+  The kind of a zone, one of {Master,Slave,Native,Producer,Consumer}.
+
+.. cpp:function:: bool ZoneKind::isPrimary()
+
+  Returns 'true' if the zone kind requires 'primary' behavior (Master or Producer).
+
+.. cpp:function:: bool ZoneKind::isSecondary()
+
+  Returns 'true' if the zone kind requires 'secondary' behavior (Slave or Consumer).
+
+.. cpp:function:: bool ZoneKind::isCatalog()
+
+  Returns 'true' if the zone kind requires 'catalog' behavior (Producer or Consumer).
+
+.. cpp:function:: const char *ZoneKind::toString()
+
+  Converts a zone kind to its canonical string representation.
+
+.. cpp:function:: ZoneKind ZoneKind::fromString()
+
+  Converts a string to a zone kind, case-insensitively. Accepts 'secondary' as an alias
+  for 'slave', and 'primary' as an alias for 'master'. If the supplied string does not match
+  any of the expected values, returns ``ZoneKind::Native``.
 
 PowerDNS will always call ``startTransaction()`` before making calls to
 ``feedRecord()``. Although it is likely that ``abortTransaction()`` will

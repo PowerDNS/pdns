@@ -155,7 +155,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
     if (mapHash != metaHash) {
       DomainInfo di;
       if (B->getDomainInfo(ch.first, di)) {
-        if (di.kind != DomainInfo::Producer) {
+        if (di.kind != ZoneKind::Producer) {
           g_log << Logger::Warning << "zone '" << di.zone << "' is no producer zone" << endl;
           continue;
         }

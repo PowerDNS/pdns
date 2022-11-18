@@ -118,7 +118,7 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool get
   return false;
 }
 
-bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
+bool UeberBackend::createDomain(const DNSName &domain, const ZoneKind kind, const vector<ComboAddress> &masters, const string &account)
 {
   for(DNSBackend* mydb :  backends) {
     if (mydb->createDomain(domain, kind, masters, account)) {

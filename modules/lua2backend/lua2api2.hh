@@ -264,12 +264,12 @@ public:
       else if (item.first == "serial")
         di.serial = static_cast<unsigned int>(boost::get<long>(item.second));
       else if (item.first == "kind")
-        di.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
+        di.kind = ZoneKind::fromString(boost::get<string>(item.second));
       else
         g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl;
     }
     di.backend = this;
-    logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
+    logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.kind.toString());
   }
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override

@@ -175,7 +175,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
       di.id = -1; //TODO: Check if this is ok.
       di.backend = this;
       di.zone = rr.qname;
-      di.kind = DomainInfo::Master;
+      di.kind = ZoneKind::Master;
       di.last_check = time(0);
 
       if (getSerial) {

@@ -266,19 +266,19 @@ bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &
   return true;
 }
 
-bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+bool GSQLBackend::setKind(const DNSName &domain, const ZoneKind kind)
 {
   try {
     reconnectIfNeeded();
 
     d_UpdateKindOfZoneQuery_stmt->
-      bind("kind", toUpper(DomainInfo::getKindString(kind)))->
+      bind("kind", toUpper(kind.toString()))->
       bind("domain", domain)->
       execute()->
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set kind of domain '"+domain.toLogString()+"' to " + toUpper(DomainInfo::getKindString(kind)) + ": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set kind of domain '"+domain.toLogString()+"' to " + toUpper(kind.toString()) + ": "+e.txtReason());
   }
   return true;
 }
@@ -371,7 +371,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   string type=d_result[0][5];
   di.options = d_result[0][6];
   di.account = d_result[0][8];
-  di.kind = DomainInfo::stringToKind(type);
+  di.kind = ZoneKind::fromString(type);
 
   vector<string> masters;
   stringtok(masters, d_result[0][2], " ,\t");
@@ -490,10 +490,10 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
 
     if (pdns_iequals(row[2], "SLAVE")) {
-      di.kind = DomainInfo::Slave;
+      di.kind = ZoneKind::Slave;
     }
     else if (pdns_iequals(row[2], "CONSUMER")) {
-      di.kind = DomainInfo::Consumer;
+      di.kind = ZoneKind::Consumer;
     }
     else {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << "type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
@@ -608,7 +608,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
     }
 
     if (di.notified_serial != sd.serial) {
-      di.kind = DomainInfo::Master;
+      di.kind = ZoneKind::Master;
       di.serial = sd.serial;
       di.catalog.clear();
 
@@ -1555,7 +1555,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool GSQLBackend::createDomain(const DNSName& domain, const ZoneKind kind, const vector<ComboAddress>& masters, const string& account)
 {
   vector<string> masters_s;
   masters_s.reserve(masters.size());
@@ -1568,7 +1568,7 @@ bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 
     // clang-format off
     d_InsertZoneQuery_stmt->
-      bind("type", toUpper(DomainInfo::getKindString(kind)))->
+      bind("type", toUpper(kind.toString()))->
       bind("domain", domain)->
       bind("masters", boost::join(masters_s, ", "))->
       bind("account", account)->
@@ -1608,7 +1608,7 @@ bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, con
         masters = tmp;
       }
     }
-    createDomain(domain, DomainInfo::Slave, masters, account);
+    createDomain(domain, ZoneKind::Slave, masters, account);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());
@@ -1681,21 +1681,21 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       }
 
       if (pdns_iequals(row[3], "MASTER")) {
-        di.kind = DomainInfo::Master;
+        di.kind = ZoneKind::Master;
       } else if (pdns_iequals(row[3], "SLAVE")) {
-        di.kind = DomainInfo::Slave;
+        di.kind = ZoneKind::Slave;
       } else if (pdns_iequals(row[3], "NATIVE")) {
-        di.kind = DomainInfo::Native;
+        di.kind = ZoneKind::Native;
       }
       else if (pdns_iequals(row[3], "PRODUCER")) {
-        di.kind = DomainInfo::Producer;
+        di.kind = ZoneKind::Producer;
       }
       else if (pdns_iequals(row[3], "CONSUMER")) {
-        di.kind = DomainInfo::Consumer;
+        di.kind = ZoneKind::Consumer;
       }
       else {
         g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
-        di.kind = DomainInfo::Native;
+        di.kind = ZoneKind::Native;
       }
 
       if (!row[4].empty()) {

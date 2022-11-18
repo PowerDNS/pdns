@@ -261,7 +261,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       return 1;
     }
   } catch(const PDNSException &e) {
-    if (di.kind == DomainInfo::Slave) {
+    if (di.kind == ZoneKind::Slave) {
       cout << "[Error] non-IP address for primaries: " << e.reason << endl;
       numerrors++;
     }
@@ -1404,7 +1404,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
   }
   else {
     cerr<<"Creating '"<<zone<<"'"<<endl;
-    B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
+    B.createDomain(zone, ZoneKind::Native, vector<ComboAddress>(), "");
 
     if(!B.getDomainInfo(zone, di)) {
       cerr << "Zone '" << zone << "' was not created - perhaps backend (" << ::arg()["launch"] << ") does not support storing new zones." << endl;
@@ -1484,7 +1484,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
 
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
+  B.createDomain(zone, ZoneKind::Native, vector<ComboAddress>(), "");
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
@@ -1518,7 +1518,7 @@ static int createSlaveZone(const vector<string>& cmds) {
     masters.emplace_back(cmds.at(i), 53);
   }
   cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(masters) << "'" << endl;
-  B.createDomain(zone, DomainInfo::Slave, masters, "");
+  B.createDomain(zone, ZoneKind::Slave, masters, "");
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
@@ -1948,7 +1948,7 @@ static int setZoneAccount(const DNSName& zone, const string &account)
   return EXIT_SUCCESS;
 }
 
-static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
+static int setZoneKind(const DNSName& zone, const ZoneKind kind)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1978,8 +1978,8 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       cout<<"This zone is owned by "<<di.account<<endl;
   }
   if (!exportDS) {
-    cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
-    if (di.isPrimaryType()) {
+    cout<<"This is a "<<di.kind.toString()<<" zone"<<endl;
+    if (di.kind.isPrimary()) {
       cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
       SOAData sd;
       if(B.getSOAUncached(zone, sd)) {
@@ -1990,7 +1990,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         cout<<sd.serial<<" (serial in the database)"<<endl;
       }
     }
-    else if (di.isSecondaryType()) {
+    else if (di.kind.isSecondary()) {
       cout << "Primar" << addS(di.masters, "y", "ies") << ": ";
       for(const auto& m : di.masters)
         cout<<m.toStringWithPort()<<" ";
@@ -2223,7 +2223,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     return false;
   }
 
-  if(di.kind == DomainInfo::Slave)
+  if(di.kind == ZoneKind::Slave)
   {
     cerr << "Warning! This is a secondary zone! If this was a mistake, please run" << endl;
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
@@ -3195,7 +3195,7 @@ try
       return 0;
     }
     DNSName zone(cmds.at(1));
-    auto kind = DomainInfo::stringToKind(cmds.at(2));
+    auto kind = ZoneKind::fromString(cmds.at(2));
     return setZoneKind(zone, kind);
   }
   else if (cmds.at(0) == "set-options-json") {

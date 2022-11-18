@@ -205,7 +205,7 @@ public:
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
+  bool createDomain(const DNSName& domain, const ZoneKind kind, const vector<ComboAddress>& masters, const string& account) override;
   bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const DNSName &domain) override;
   bool superMasterAdd(const AutoPrimary& primary) override;
@@ -220,7 +220,7 @@ public:
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
   bool setMasters(const DNSName &domain, const vector<ComboAddress> &masters) override;
-  bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;
+  bool setKind(const DNSName &domain, const ZoneKind kind) override;
   bool setOptions(const DNSName& domain, const string& options) override;
   bool setCatalog(const DNSName& domain, const DNSName& catalog) override;
   bool setAccount(const DNSName &domain, const string &account) override;
