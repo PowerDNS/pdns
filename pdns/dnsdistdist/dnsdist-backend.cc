@@ -499,7 +499,7 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
   return ids;
 }
 
-bool DownstreamState::healthCheckRequired()
+bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 {
   if (d_config.availability == DownstreamState::Availability::Lazy) {
     auto stats = d_lazyHealthCheckStats.lock();
@@ -508,13 +508,13 @@ bool DownstreamState::healthCheckRequired()
       return true;
     }
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::Failed) {
-      auto now = time(nullptr);
+      auto now = currentTime ? *currentTime : time(nullptr);
       if (stats->d_nextCheck <= now) {
         /* we update the next check time here because the check might time out,
            and we do not want to send a second check during that time unless
            the timer is actually very short */
         vinfolog("Sending health-check query for %s which is still in the Failed state", getNameWithAddr());
-        updateNextLazyHealthCheck(*stats, true);
+        updateNextLazyHealthCheck(*stats, true, now);
         return true;
       }
       return false;
@@ -569,9 +569,9 @@ time_t DownstreamState::getNextLazyHealthCheck()
   return stats->d_nextCheck;
 }
 
-void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled)
+void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime)
 {
-  auto now = time(nullptr);
+  auto now = currentTime ? * currentTime : time(nullptr);
   if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
     if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       /* we are still in the "up" state, we need to send the next query quickly to

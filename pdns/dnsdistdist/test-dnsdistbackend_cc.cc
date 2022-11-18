@@ -222,8 +222,8 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   config.d_lazyHealthCheckMinSampleCount = 11;
   config.d_lazyHealthCheckThreshold = 20;
   config.d_lazyHealthCheckUseExponentialBackOff = true;
-  config.d_lazyHealthCheckMaxBackOff = 60;
-  config.d_lazyHealthCheckFailedInterval = 30;
+  config.d_lazyHealthCheckMaxBackOff = 600;
+  config.d_lazyHealthCheckFailedInterval = 15;
   config.availability = DownstreamState::Availability::Lazy;
   /* prevents a re-connection */
   config.remote = ComboAddress("0.0.0.0");
@@ -253,16 +253,26 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   BOOST_CHECK_EQUAL(ds.isUp(), true);
   BOOST_CHECK_EQUAL(ds.getStatus(), "up");
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(), true);
-  time_t failedCheckTime = time(nullptr);
+  time_t currentTime = time(nullptr);
   ds.submitHealthCheckResult(false, false);
 
   /* now we are in Failed state */
   BOOST_CHECK_EQUAL(ds.isUp(), false);
   BOOST_CHECK_EQUAL(ds.getStatus(), "down");
-  BOOST_CHECK_EQUAL(ds.healthCheckRequired(), false);
+  BOOST_CHECK_EQUAL(ds.healthCheckRequired(currentTime), false);
   /* and the wait time between two checks will double every time a failure occurs */
-  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (failedCheckTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
+  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
   BOOST_CHECK_EQUAL(ds.currentCheckFailures, 0U);
+
+  /* so after 5 failures */
+  const size_t nbFailures = 5;
+  for (size_t idx = 0; idx < nbFailures; idx++) {
+    currentTime = ds.getNextLazyHealthCheck();
+    BOOST_CHECK(ds.healthCheckRequired(currentTime));
+    ds.submitHealthCheckResult(false, false);
+  }
+  BOOST_CHECK_EQUAL(ds.currentCheckFailures, nbFailures);
+  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
 
   /* we need minRiseSuccesses successful health-checks to go up */
   BOOST_REQUIRE(config.minRiseSuccesses >= 1);

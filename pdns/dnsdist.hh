@@ -950,7 +950,7 @@ public:
     d_config.availability = Availability::Lazy;
     d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
   }
-  bool healthCheckRequired();
+  bool healthCheckRequired(std::optional<time_t> currentTime = std::nullopt);
 
   const string& getName() const {
     return d_config.name;
@@ -1058,7 +1058,7 @@ public:
   static bool s_randomizeIDs;
 private:
   void handleUDPTimeout(IDState& ids);
-  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled);
+  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime = std::nullopt);
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
