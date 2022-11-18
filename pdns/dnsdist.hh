@@ -121,11 +121,11 @@ struct DNSQuestion
     return !(protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP);
   }
 
-  void setTag(const std::string& key, std::string&& value) {
+  void setTag(std::string&& key, std::string&& value) {
     if (!qTag) {
       qTag = std::make_unique<QTag>();
     }
-    qTag->insert_or_assign(key, std::move(value));
+    qTag->insert_or_assign(std::move(key), std::move(value));
   }
 
   void setTag(const std::string& key, const std::string& value) {
