@@ -90,7 +90,7 @@ Create a producer zone:
   pdnsutil load-zone catalog.example zones/catalog.example ZONEFILE
   pdnsutil set-kind catalog.example producer
 
-Creating producer zones is supported in the :doc:`API <http-api/zone>`.
+Creating producer zones is supported in the :doc:`API <http-api/zone>`, using type ``PRODUCER``.
 
 Assigning members to a producer zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -102,7 +102,7 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
 
   pdnsutil set-catalog example.com catalog.example
 
-Setting catalog values is supported in the :doc:`API <http-api/zone>`.
+Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 
 Each member zone may have one or more additional properties as defined in the draft.
 PowerDNS currently supports the following properties:
@@ -136,6 +136,6 @@ The only difference is the type, which is now set to CONSUMER.
   pdnsutil create-secondary-zone catalog.example 127.0.0.1
   pdnsutil set-kind catalog.example consumer
 
-Creating producer zones is supported in the :doc:`API <http-api/zone>`.
+Creating consumer zones is supported in the :doc:`API <http-api/zone>`, using type ``CONSUMER``.
 
 New member zones on the consumer adopt their primaries from the consumer zone.
