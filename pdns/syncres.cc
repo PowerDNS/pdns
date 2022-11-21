@@ -2073,9 +2073,6 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
-  if (d_refresh) {
-    flags |= MemRecursorCache::Refresh;
-  }
   try {
     // First look for both A and AAAA in the cache
     res_t cset;
@@ -2222,9 +2219,6 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
-  }
-  if (d_refresh) {
-    flags |= MemRecursorCache::Refresh;
   }
   do {
     if (cutOffDomain && (subdomain == *cutOffDomain || !subdomain.isPartOf(*cutOffDomain))) {
