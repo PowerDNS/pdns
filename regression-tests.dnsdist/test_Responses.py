@@ -55,6 +55,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
 
 class TestResponseRuleERCode(DNSDistTest):
 
+    _extraStartupSleep = 1
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     addResponseAction(ERCodeRule(DNSRCode.BADVERS), DelayResponseAction(1000))

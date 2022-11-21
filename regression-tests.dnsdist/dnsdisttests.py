@@ -72,6 +72,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _backgroundThreads = {}
     _UDPResponder = None
     _TCPResponder = None
+    _extraStartupSleep = 0
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
@@ -148,6 +149,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 print(fdLog.read())
             print(f"*** End startDNSDist log for {logFile} ***")
             raise AssertionError('%s failed (%d)' % (dnsdistcmd, cls._dnsdist.returncode))
+        time.sleep(cls._extraStartupSleep)
 
     @classmethod
     def setUpSockets(cls):

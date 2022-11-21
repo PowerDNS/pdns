@@ -7,6 +7,7 @@ from dnsdisttests import DNSDistTest, Queue
 
 class TestCarbon(DNSDistTest):
 
+    _extraStartupSleep = 2
     _carbonServer1Port = 8000
     _carbonServer1Name = "carbonname1"
     _carbonServer2Port = 8001
@@ -71,17 +72,6 @@ class TestCarbon(DNSDistTest):
         cls._CarbonResponder2.setDaemon(True)
         cls._CarbonResponder2.start()
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.startResponders()
-        cls.startDNSDist()
-        cls.setUpSockets()
-        time.sleep(1)
-
-        print("Launching tests..")
-
-
     def testCarbon(self):
         """
         Carbon: send data to 2 carbon servers
@@ -102,6 +92,7 @@ class TestCarbon(DNSDistTest):
         self.assertTrue(len(data1.splitlines()) > 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
+            print(line, file=sys.stderr)
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
             self.assertEqual(len(parts), 3)
@@ -113,6 +104,7 @@ class TestCarbon(DNSDistTest):
         self.assertTrue(len(data2.splitlines()) > 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
+            print(line, file=sys.stderr)
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
             self.assertEqual(len(parts), 3)

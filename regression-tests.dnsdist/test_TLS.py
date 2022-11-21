@@ -10,16 +10,6 @@ from dnsdisttests import DNSDistTest
 
 class TLSTests(object):
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.startResponders()
-        cls.startDNSDist()
-        cls.setUpSockets()
-        time.sleep(1)
-
-        print("Launching tests..")
-
     def getServerCertificate(self):
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
         cert = conn.getpeercert()
@@ -275,6 +265,7 @@ class TLSTests(object):
 
 class TestOpenSSL(DNSDistTest, TLSTests):
 
+    _extraStartupSleep = 1
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
