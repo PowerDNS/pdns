@@ -181,7 +181,7 @@ Tuning related functions
 
   :param int num: maximum number of UDP queries to accept
 
-.. function:: setUDPSocketBufferSize(recv, send)
+.. function:: setUDPSocketBufferSizes(recv, send)
 
   .. versionadded:: 1.7.0
 
