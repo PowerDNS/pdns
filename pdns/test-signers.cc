@@ -391,14 +391,16 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   auto signature = dcke->sign(message);
   BOOST_CHECK(dcke->verify(message, signature));
 
+  auto signerSignature = std::string(signer.signature.begin(), signer.signature.end());
   if (signer.isDeterministic) {
-    string b64 = Base64Encode(signature);
-    BOOST_CHECK_EQUAL(b64, Base64Encode(std::string(signer.signature.begin(), signer.signature.end())));
+    auto signatureBase64 = Base64Encode(signature);
+    auto signerSignatureBase64 = Base64Encode(signerSignature);
+    BOOST_CHECK_EQUAL(signatureBase64, signerSignatureBase64);
   }
   else {
     /* since the signing process is not deterministic, we can't directly compare our signature
        with the one we have. Still the one we have should also validate correctly. */
-    BOOST_CHECK(dcke->verify(message, std::string(signer.signature.begin(), signer.signature.end())));
+    BOOST_CHECK(dcke->verify(message, signerSignature));
   }
 
   if (!signer.rfcMsgDump.empty() && !signer.rfcB64Signature.empty()) {
@@ -415,11 +417,11 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
     test_generic_signer(dcke, drc, signer, message);
 
-    unique_ptr<std::FILE, decltype(&std::fclose)> fp{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
-    BOOST_REQUIRE(fp.get() != nullptr);
+    unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
+    BOOST_REQUIRE(inputFile.get() != nullptr);
 
     DNSKEYRecordContent pemDRC;
-    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *fp, signer.algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *inputFile, signer.algorithm)};
 
     BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 
