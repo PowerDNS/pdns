@@ -35,6 +35,7 @@
 #include <fstream>
 #include "misc.hh"
 #include <vector>
+#include <string>
 #include <sstream>
 #include <cerrno>
 #include <cstring>
@@ -66,6 +67,10 @@
 #  include <pthread.h>
 #  include <sched.h>
 #endif
+
+#if defined(HAVE_LIBCRYPTO)
+#include <openssl/err.h>
+#endif // HAVE_LIBCRYPTO
 
 size_t writen2(int fd, const void *buf, size_t count)
 {
@@ -224,6 +229,67 @@ auto pdns::getMessageFromErrno(const int errnum) -> std::string
   std::string message{errMsg};
   return message;
 }
+
+#if defined(HAVE_LIBCRYPTO)
+auto pdns::OpenSSL::error(const std::string& errorMessage) -> std::runtime_error
+{
+  unsigned long errorCode = 0;
+  auto fullErrorMessage{errorMessage};
+#if OPENSSL_VERSION_MAJOR >= 3
+  const char* filename = nullptr;
+  const char* functionName = nullptr;
+  int lineNumber = 0;
+  while ((errorCode = ERR_get_error_all(&filename, &lineNumber, &functionName, nullptr, nullptr)) != 0) {
+    fullErrorMessage += std::string(": ") + std::to_string(errorCode);
+
+    const auto* lib = ERR_lib_error_string(errorCode);
+    if (lib != nullptr) {
+      fullErrorMessage += std::string(":") + lib;
+    }
+
+    const auto* reason = ERR_reason_error_string(errorCode);
+    if (reason != nullptr) {
+      fullErrorMessage += std::string("::") + reason;
+    }
+
+    if (filename != nullptr) {
+      fullErrorMessage += std::string(" - ") + filename;
+    }
+    if (lineNumber != 0) {
+      fullErrorMessage += std::string(":") + std::to_string(lineNumber);
+    }
+    if (functionName != nullptr) {
+      fullErrorMessage += std::string(" - ") + functionName;
+    }
+  }
+#else
+  while ((errorCode = ERR_get_error()) != 0) {
+    fullErrorMessage += std::string(": ") + std::to_string(errorCode);
+
+    const auto* lib = ERR_lib_error_string(errorCode);
+    if (lib != nullptr) {
+      fullErrorMessage += std::string(":") + lib;
+    }
+
+    const auto* func = ERR_func_error_string(errorCode);
+    if (func != nullptr) {
+      fullErrorMessage += std::string(":") + func;
+    }
+
+    const auto* reason = ERR_reason_error_string(errorCode);
+    if (reason != nullptr) {
+      fullErrorMessage += std::string("::") + reason;
+    }
+  }
+#endif
+  return std::runtime_error(fullErrorMessage);
+}
+
+auto pdns::OpenSSL::error(const std::string& componentName, const std::string& errorMessage) -> std::runtime_error
+{
+  return pdns::OpenSSL::error(componentName + ": " + errorMessage);
+}
+#endif // HAVE_LIBCRYPTO
 
 string nowTime()
 {
