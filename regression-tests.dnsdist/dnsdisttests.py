@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import copy
+import errno
 import os
 import socket
 import ssl
@@ -71,6 +72,22 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _backgroundThreads = {}
     _UDPResponder = None
     _TCPResponder = None
+    _extraStartupSleep = 0
+
+    @classmethod
+    def waitForTCPSocket(cls, ipaddress, port):
+        for try_number in range(0, 20):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1.0)
+                sock.connect((ipaddress, port))
+                sock.close()
+                return
+            except Exception as err:
+                if err.errno != errno.ECONNREFUSED:
+                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+            time.sleep(0.1)
+       # We assume the dnsdist instance does not listen. That's fine.
 
     @classmethod
     def startResponders(cls):
@@ -124,16 +141,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         with open(logFile, 'w') as fdLog:
           cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdLog, stderr=fdLog)
 
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.5
-        else:
-            delay = cls._dnsdistStartupDelay
-
-        time.sleep(delay)
+        cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort);
 
         if cls._dnsdist.poll() is not None:
-            cls._dnsdist.kill()
-            sys.exit(cls._dnsdist.returncode)
+            print(f"\n*** startDNSDist log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startDNSDist log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (dnsdistcmd, cls._dnsdist.returncode))
+        time.sleep(cls._extraStartupSleep)
 
     @classmethod
     def setUpSockets(cls):
@@ -141,6 +157,29 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         cls._sock.settimeout(2.0)
         cls._sock.connect(("127.0.0.1", cls._dnsDistPort))
+
+    @classmethod
+    def killProcess(cls, p):
+        # Don't try to kill it if it's already dead
+        if p.poll() is not None:
+            return
+        try:
+            p.terminate()
+            for count in range(10):
+                x = p.poll()
+                if x is not None:
+                    break
+                time.sleep(0.1)
+            if x is None:
+                print("kill...", p, file=sys.stderr)
+                p.kill()
+                p.wait()
+        except OSError as e:
+            # There is a race-condition with the poll() and
+            # kill() statements, when the process is dead on the
+            # kill(), this is fine
+            if e.errno != errno.ESRCH:
+                raise
 
     @classmethod
     def setUpClass(cls):
@@ -154,21 +193,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls._sock.close()
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.1
-        else:
-            delay = 1.0
-        if cls._dnsdist:
-            cls._dnsdist.terminate()
-            if cls._dnsdist.poll() is None:
-                time.sleep(delay)
-                if cls._dnsdist.poll() is None:
-                    cls._dnsdist.kill()
-                cls._dnsdist.wait()
-
         # tell the background threads to stop, if any
         for backgroundThread in cls._backgroundThreads:
-          cls._backgroundThreads[backgroundThread] = False
+            cls._backgroundThreads[backgroundThread] = False
+        cls.killProcess(cls._dnsdist)
 
     @classmethod
     def _ResponderIncrementCounter(cls):

@@ -265,6 +265,7 @@ class TLSTests(object):
 
 class TestOpenSSL(DNSDistTest, TLSTests):
 
+    _extraStartupSleep = 1
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'

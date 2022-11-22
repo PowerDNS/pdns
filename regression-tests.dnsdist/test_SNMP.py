@@ -6,7 +6,8 @@ from pysnmp.hlapi import *
 from dnsdisttests import DNSDistTest
 
 class TestSNMP(DNSDistTest):
-
+    # wait 1s so that the uptime is > 0
+    _extraStartupSleep = 1
     _snmpTimeout = 2.0
     _snmpServer = '127.0.0.1'
     _snmpPort = 161
@@ -98,8 +99,6 @@ class TestSNMP(DNSDistTest):
         return results
 
     def _checkStats(self, auth, name):
-        # wait 1s so that the uptime is > 0
-        time.sleep(1)
 
         results = self._getSNMPStats(auth)
         self._checkStatsValues(results, self.__class__._queriesSent)

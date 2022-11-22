@@ -183,6 +183,7 @@ _dotHealthCheckQueries = 0
 _dohHealthCheckQueries = 0
 
 class TestLazyHealthChecks(HealthCheckTest):
+    _extraStartupSleep = 1
     _do53Port = 10700
     _dotPort = 10701
     _dohPort = 10702
