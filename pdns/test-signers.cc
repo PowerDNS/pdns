@@ -359,7 +359,15 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
 {
   BOOST_CHECK_EQUAL(dcke->getAlgorithm(), signer.algorithm);
   BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);
-  BOOST_CHECK_EQUAL(dcke->checkKey(nullptr), true);
+
+  vector<string> errorMessages{};
+  BOOST_CHECK_EQUAL(dcke->checkKey(&errorMessages), true);
+  if (!errorMessages.empty()) {
+    BOOST_TEST_MESSAGE("Errors from " + dcke->getName() + " checkKey()");
+    for (auto& errorMessage : errorMessages) {
+      BOOST_TEST_MESSAGE("  " + errorMessage);
+    }
+  }
 
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 
