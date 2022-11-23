@@ -3589,7 +3589,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   bool referralOnDS = false;
 
   for (auto& rec : lwr.d_records) {
-    if (rec.d_type != QType::OPT && rec.d_class != QClass::IN) {
+    if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
       continue;
     }
 
