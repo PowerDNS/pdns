@@ -2,6 +2,59 @@ Changelogs for 4.7.X
 ====================
 
 .. changelog::
+  :version: 4.7.4
+  :released: 25th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12231
+    :tickets: 12046
+
+    Fix compilation of the event ports multiplexer.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12230
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12227
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache code."
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12190
+    :tickets: 12125
+
+    Timout handling for IXFRs as a client.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12173
+    :tickets: 12066
+
+    Detect invalid bytes in makeBytesFromHex().
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12171
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12168
+    :tickets: 12038
+
+    When an expired NSEC3 entry is seen, move it to the front of the expiry queue.
+
+.. changelog::
   :version: 4.7.3
   :released: 20th of September 2022
 
