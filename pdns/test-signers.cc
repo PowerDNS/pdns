@@ -37,7 +37,8 @@ struct SignerParams
   std::string pem;
 };
 
-static const SignerParams rsaSha256SignerParams = SignerParams{
+static const SignerParams rsaSha256SignerParams = SignerParams
+{
   .iscMap = "Algorithm: 8\n"
             "Modulus: qtunSiHnYq4XRLBehKAw1Glxb+48oIpAC7w3Jhpj570bb2uHt6orWGqnuyRtK8oqUi2ABoV0PFm8+IPgDMEdCQ==\n"
             "PublicExponent: AQAB\n"
@@ -85,6 +86,19 @@ static const SignerParams rsaSha256SignerParams = SignerParams{
   .algorithm = DNSSECKeeper::RSASHA256,
   .isDeterministic = true,
 
+#if OPENSSL_VERSION_MAJOR >= 3
+  // OpenSSL 3.0.0 uses a generic key interface which stores the key PKCS#8-encoded.
+  .pem = "-----BEGIN PRIVATE KEY-----\n"
+         "MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAqtunSiHnYq4XRLBe\n"
+         "hKAw1Glxb+48oIpAC7w3Jhpj570bb2uHt6orWGqnuyRtK8oqUi2ABoV0PFm8+IPg\n"
+         "DMEdCQIDAQABAkAyIi2eJQCeBfMx5oZ1aAOr8Bym+UK04JwWVW3hMlEqR+nwM1FL\n"
+         "EjEbnc02U4WSnVbTSIsepgLYasfWqQqBP2X5AiEA3sZmM+5FKFy5xaRt0n2ZQOZ2\n"
+         "C+CoKzVil6/al9LmYVsCIQDEVw1ZIhbq/x0MvYlDWTEUOb/xFV5RKzUE1dee8KME\n"
+         "awIgWuUwhjfN1+4djlrMxHmisixWNfpwI1Eg7Ss/UXsnrMkCIQC98ypqzVw2xdGo\n"
+         "/cXKboPY+XYFG5NAG/kTUH9muZA9OQIgQ10z43cA3hkwOkKsj5T0W5jrX97LBwZo\n"
+         "Y5lIjDCa4+M=\n"
+         "-----END PRIVATE KEY-----\n"
+#else
   .pem = "-----BEGIN RSA PRIVATE KEY-----\n"
          "MIIBOgIBAAJBAKrbp0oh52KuF0SwXoSgMNRpcW/uPKCKQAu8NyYaY+e9G29rh7eq\n"
          "K1hqp7skbSvKKlItgAaFdDxZvPiD4AzBHQkCAwEAAQJAMiItniUAngXzMeaGdWgD\n"
@@ -93,7 +107,9 @@ static const SignerParams rsaSha256SignerParams = SignerParams{
          "DL2JQ1kxFDm/8RVeUSs1BNXXnvCjBGsCIFrlMIY3zdfuHY5azMR5orIsVjX6cCNR\n"
          "IO0rP1F7J6zJAiEAvfMqas1cNsXRqP3Fym6D2Pl2BRuTQBv5E1B/ZrmQPTkCIENd\n"
          "M+N3AN4ZMDpCrI+U9FuY61/eywcGaGOZSIwwmuPj\n"
-         "-----END RSA PRIVATE KEY-----\n"};
+         "-----END RSA PRIVATE KEY-----\n"
+#endif
+};
 
 /* ECDSA-P256-SHA256 from
  * https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h
