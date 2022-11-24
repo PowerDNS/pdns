@@ -99,7 +99,7 @@ struct IDState
     sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0; }
   IDState(const IDState& orig) = delete;
   IDState(IDState&& rhs) :
-    subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), packetCache(std::move(rhs.packetCache)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), origFD(rhs.origFD), backendFD(rhs.backendFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+    subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), packetCache(std::move(rhs.packetCache)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), backendFD(rhs.backendFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
   {
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
@@ -139,7 +139,6 @@ struct IDState
     cacheKey = rhs.cacheKey;
     cacheKeyNoECS = rhs.cacheKeyNoECS;
     cacheKeyUDP = rhs.cacheKeyUDP;
-    origFD = rhs.origFD;
     backendFD = rhs.backendFD;
     delayMsec = rhs.delayMsec;
 #ifdef __SANITIZE_THREAD__
@@ -157,7 +156,6 @@ struct IDState
     ednsAdded = rhs.ednsAdded;
     ecsAdded = rhs.ecsAdded;
     skipCache = rhs.skipCache;
-    destHarvested = rhs.destHarvested;
     dnssecOK = rhs.dnssecOK;
     useZeroScope = rhs.useZeroScope;
 
@@ -241,7 +239,7 @@ struct IDState
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   boost::optional<uint32_t> tempFailureTTL; // 8
-  const ClientState* cs{nullptr}; // 8
+  ClientState* cs{nullptr}; // 8
   DOHUnit* du{nullptr}; // 8 (not a unique_ptr because we currently need to be able to peek at it without taking ownership until later)
   std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8
   std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
@@ -249,7 +247,6 @@ struct IDState
   uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */
   uint32_t cacheKeyUDP{0}; // 4
-  int origFD{-1}; // 4
   int backendFD{-1}; // 4
   int delayMsec{0};
 #ifdef __SANITIZE_THREAD__
@@ -268,7 +265,6 @@ struct IDState
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
-  bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
   bool dnssecOK{false};
   bool useZeroScope{false};
 };
