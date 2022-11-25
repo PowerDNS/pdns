@@ -694,6 +694,10 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #endif
   }
 
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+  sslOptions |= SSL_OP_IGNORE_UNEXPECTED_EOF;
+#endif
+
   SSL_CTX_set_options(ctx.get(), sslOptions);
   if (!libssl_set_min_tls_version(ctx, config.d_minTLSVersion)) {
     throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(config.d_minTLSVersion));
