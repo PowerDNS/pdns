@@ -156,7 +156,7 @@ public:
     throw std::runtime_error("Unexpected XFR reponse to a health check query");
   }
 
-  void notifyIOError(IDState&& query, const struct timeval& now) override
+  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
   {
     d_data->d_ds->submitHealthCheckResult(d_data->d_initial, false);
   }
@@ -359,7 +359,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       mplexer->addReadFD(data->d_udpSocket.getHandle(), &healthCheckUDPCallback, data, &data->d_ttd);
     }
     else if (ds->isDoH()) {
-      InternalQuery query(std::move(packet), IDState());
+      InternalQuery query(std::move(packet), InternalQueryState());
       query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
       auto sender = std::shared_ptr<TCPQuerySender>(new HealthCheckQuerySender(data));
       if (!sendH2Query(ds, mplexer, sender, std::move(query), true)) {

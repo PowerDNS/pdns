@@ -198,9 +198,9 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult
       bool ecsAdded = false;
 
       std::string newECSOption;
-      generateECSOption(dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, newECSOption, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength);
+      generateECSOption(dq->ecs ? dq->ecs->getNetwork() : dq->ids.origRemote, newECSOption, dq->ecs ? dq->ecs->getBits() : dq->ecsPrefixLength);
 
-      if (!handleEDNSClientSubnet(query, dq->getMaximumSize(), dq->qname->wirelength(), ednsAdded, ecsAdded, dq->ecsOverride, newECSOption)) {
+      if (!handleEDNSClientSubnet(query, dq->getMaximumSize(), dq->ids.qname.wirelength(), ednsAdded, ecsAdded, dq->ecsOverride, newECSOption)) {
         return DNSAction::Action::None;
       }
 
@@ -288,7 +288,7 @@ public:
       return Action::Pool;
     }
     else {
-      dq->poolname = d_pool;
+      dq->ids.poolName = d_pool;
       return Action::None;
     }
   }
@@ -317,7 +317,7 @@ public:
         return Action::Pool;
       }
       else {
-        dq->poolname = d_pool;
+        dq->ids.poolName = d_pool;
         return Action::None;
       }
     }
@@ -409,23 +409,23 @@ public:
   {
     /* it will likely be a bit bigger than that because of additionals */
     uint16_t numberOfRecords = d_payloads.size();
-    const auto qnameWireLength = dq->qname->wirelength();
+    const auto qnameWireLength = dq->ids.qname.wirelength();
     if (dq->getMaximumSize() < (sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords*12 /* recordstart */ + d_totalPayloadsSize)) {
       return Action::None;
     }
 
     PacketBuffer newPacket;
     newPacket.reserve(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords*12 /* recordstart */ + d_totalPayloadsSize);
-    GenericDNSPacketWriter<PacketBuffer> pw(newPacket, *dq->qname, dq->qtype);
+    GenericDNSPacketWriter<PacketBuffer> pw(newPacket, dq->ids.qname, dq->ids.qtype);
     for (const auto& payload : d_payloads) {
-      pw.startRecord(*dq->qname, dq->qtype, d_responseConfig.ttl);
+      pw.startRecord(dq->ids.qname, dq->ids.qtype, d_responseConfig.ttl);
       pw.xfrBlob(payload);
       pw.commit();
     }
 
     if (newPacket.size() < dq->getMaximumSize()) {
       for (const auto& additional : d_additionals4) {
-        pw.startRecord(additional.first.isRoot() ? *dq->qname : additional.first, QType::A, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+        pw.startRecord(additional.first.isRoot() ? dq->ids.qname : additional.first, QType::A, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
         pw.xfrCAWithoutPort(4, additional.second);
         pw.commit();
       }
@@ -433,7 +433,7 @@ public:
 
     if (newPacket.size() < dq->getMaximumSize()) {
       for (const auto& additional : d_additionals6) {
-        pw.startRecord(additional.first.isRoot() ? *dq->qname : additional.first, QType::AAAA, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+        pw.startRecord(additional.first.isRoot() ? dq->ids.qname : additional.first, QType::AAAA, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
         pw.xfrCAWithoutPort(6, additional.second);
         pw.commit();
       }
@@ -783,7 +783,7 @@ thread_local std::default_random_engine SpoofAction::t_randomEngine;
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
-  uint16_t qtype = dq->qtype;
+  uint16_t qtype = dq->ids.qtype;
   // do we even have a response?
   if (d_cname.empty() &&
       d_rawResponses.empty() &&
@@ -934,7 +934,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dnsdist::MacAddress mac;
-    int res = dnsdist::MacAddressesCache::get(*dq->remote, mac.data(), mac.size());
+    int res = dnsdist::MacAddressesCache::get(dq->ids.origRemote, mac.data(), mac.size());
     if (res != 0) {
       return Action::None;
     }
@@ -957,8 +957,8 @@ public:
       }
 
       dq->getMutableData() = std::move(newContent);
-      if (!dq->ednsAdded && ednsAdded) {
-        dq->ednsAdded = true;
+      if (!dq->ids.ednsAdded && ednsAdded) {
+        dq->ids.ednsAdded = true;
       }
 
       return Action::None;
@@ -968,7 +968,7 @@ public:
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
       dq->getHeader()->arcount = htons(1);
       // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
-      dq->ednsAdded = true;
+      dq->ids.ednsAdded = true;
     }
 
     return Action::None;
@@ -1045,41 +1045,41 @@ public:
     if (!fp) {
       if (!d_verboseOnly || g_verbose) {
         if (d_includeTimestamp) {
-          infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dq->queryTime->tv_sec), static_cast<unsigned long>(dq->queryTime->tv_nsec), dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).toString(), dq->getHeader()->id);
+          infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dq->queryTime.tv_sec), static_cast<unsigned long>(dq->queryTime.tv_nsec), dq->ids.origRemote.toStringWithPort(), dq->ids.qname.toString(), QType(dq->ids.qtype).toString(), dq->getHeader()->id);
         }
         else {
-          infolog("Packet from %s for %s %s with id %d", dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).toString(), dq->getHeader()->id);
+          infolog("Packet from %s for %s %s with id %d", dq->ids.origRemote.toStringWithPort(), dq->ids.qname.toString(), QType(dq->ids.qtype).toString(), dq->getHeader()->id);
         }
       }
     }
     else {
       if (d_binary) {
-        const auto& out = dq->qname->getStorage();
+        const auto& out = dq->ids.qname.getStorage();
         if (d_includeTimestamp) {
-          uint64_t tv_sec = static_cast<uint64_t>(dq->queryTime->tv_sec);
-          uint32_t tv_nsec = static_cast<uint32_t>(dq->queryTime->tv_nsec);
+          uint64_t tv_sec = static_cast<uint64_t>(dq->queryTime.tv_sec);
+          uint32_t tv_nsec = static_cast<uint32_t>(dq->queryTime.tv_nsec);
           fwrite(&tv_sec, sizeof(tv_sec), 1, fp.get());
           fwrite(&tv_nsec, sizeof(tv_nsec), 1, fp.get());
         }
         uint16_t id = dq->getHeader()->id;
         fwrite(&id, sizeof(id), 1, fp.get());
         fwrite(out.c_str(), 1, out.size(), fp.get());
-        fwrite(&dq->qtype, sizeof(dq->qtype), 1, fp.get());
-        fwrite(&dq->remote->sin4.sin_family, sizeof(dq->remote->sin4.sin_family), 1, fp.get());
-        if (dq->remote->sin4.sin_family == AF_INET) {
-          fwrite(&dq->remote->sin4.sin_addr.s_addr, sizeof(dq->remote->sin4.sin_addr.s_addr), 1, fp.get());
+        fwrite(&dq->ids.qtype, sizeof(dq->ids.qtype), 1, fp.get());
+        fwrite(&dq->ids.origRemote.sin4.sin_family, sizeof(dq->ids.origRemote.sin4.sin_family), 1, fp.get());
+        if (dq->ids.origRemote.sin4.sin_family == AF_INET) {
+          fwrite(&dq->ids.origRemote.sin4.sin_addr.s_addr, sizeof(dq->ids.origRemote.sin4.sin_addr.s_addr), 1, fp.get());
         }
-        else if (dq->remote->sin4.sin_family == AF_INET6) {
-          fwrite(&dq->remote->sin6.sin6_addr.s6_addr, sizeof(dq->remote->sin6.sin6_addr.s6_addr), 1, fp.get());
+        else if (dq->ids.origRemote.sin4.sin_family == AF_INET6) {
+          fwrite(&dq->ids.origRemote.sin6.sin6_addr.s6_addr, sizeof(dq->ids.origRemote.sin6.sin6_addr.s6_addr), 1, fp.get());
         }
-        fwrite(&dq->remote->sin4.sin_port, sizeof(dq->remote->sin4.sin_port), 1, fp.get());
+        fwrite(&dq->ids.origRemote.sin4.sin_port, sizeof(dq->ids.origRemote.sin4.sin_port), 1, fp.get());
       }
       else {
         if (d_includeTimestamp) {
-          fprintf(fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %d\n", static_cast<unsigned long long>(dq->queryTime->tv_sec), static_cast<unsigned long>(dq->queryTime->tv_nsec), dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %d\n", static_cast<unsigned long long>(dq->queryTime.tv_sec), static_cast<unsigned long>(dq->queryTime.tv_nsec), dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
         }
         else {
-          fprintf(fp.get(), "Packet from %s for %s %s with id %d\n", dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "Packet from %s for %s %s with id %d\n", dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
         }
       }
     }
@@ -1157,19 +1157,19 @@ public:
     if (!fp) {
       if (!d_verboseOnly || g_verbose) {
         if (d_includeTimestamp) {
-          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %d", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort(), dr->qname->toString(), QType(dr->qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
+          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %d", static_cast<unsigned long long>(dr->queryTime.tv_sec), static_cast<unsigned long>(dr->queryTime.tv_nsec), dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
         }
         else {
-          infolog("Answer to %s for %s %s (%s) with id %d", dr->remote->toStringWithPort(), dr->qname->toString(), QType(dr->qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
+          infolog("Answer to %s for %s %s (%s) with id %d", dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
         }
       }
     }
     else {
       if (d_includeTimestamp) {
-        fprintf(fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->queryTime.tv_sec), static_cast<unsigned long>(dr->queryTime.tv_nsec), dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
       else {
-        fprintf(fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
     }
     return Action::None;
@@ -1242,7 +1242,7 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->skipCache = true;
+    dq->ids.skipCache = true;
     return Action::None;
   }
   std::string toString() const override
@@ -1256,7 +1256,7 @@ class SetSkipCacheResponseAction : public DNSResponseAction
 public:
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    dr->skipCache = true;
+    dr->ids.skipCache = true;
     return Action::None;
   }
   std::string toString() const override
@@ -1274,7 +1274,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->tempFailureTTL = d_ttl;
+    dq->ids.tempFailureTTL = d_ttl;
     return Action::None;
   }
   std::string toString() const override
@@ -1294,7 +1294,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->ecsPrefixLength = dq->remote->sin4.sin_family == AF_INET ? d_v4PrefixLength : d_v6PrefixLength;
+    dq->ecsPrefixLength = dq->ids.origRemote.sin4.sin_family == AF_INET ? d_v4PrefixLength : d_v6PrefixLength;
     return Action::None;
   }
   std::string toString() const override
@@ -1356,13 +1356,11 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->ecsSet = true;
-
     if (d_hasV6) {
-      dq->ecs = dq->remote->isIPv4() ? d_v4 : d_v6;
+      dq->ecs = std::make_unique<Netmask>(dq->ids.origRemote.isIPv4() ? d_v4 : d_v6);
     }
     else {
-      dq->ecs = d_v4;
+      dq->ecs = std::make_unique<Netmask>(d_v4);;
     }
 
     return Action::None;
@@ -1440,7 +1438,7 @@ public:
     data.clear();
 
     DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dq->getProtocol());
-    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
+    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, &dq->ids.origRemote, &dq->ids.origDest, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), &dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         auto lock = g_lua.lock();
@@ -1471,8 +1469,8 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (!dq->uniqueId) {
-      dq->uniqueId = getUniqueID();
+    if (!dq->ids.uniqueId) {
+      dq->ids.uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dq);
@@ -1483,7 +1481,7 @@ public:
 #if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
-      message.setRequestor(encryptCA(*dq->remote, d_ipEncryptKey));
+      message.setRequestor(encryptCA(dq->ids.origRemote, d_ipEncryptKey));
     }
 #endif /* HAVE_IPCIPHER */
 
@@ -1573,7 +1571,7 @@ public:
     data.clear();
 
     DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dr->getProtocol());
-    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
+    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, &dr->ids.origRemote, &dr->ids.origDest, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), &dr->queryTime, &now);
     {
       if (d_alterFunc) {
         auto lock = g_lua.lock();
@@ -1604,8 +1602,8 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    if (!dr->uniqueId) {
-      dr->uniqueId = getUniqueID();
+    if (!dr->ids.uniqueId) {
+      dr->ids.uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
@@ -1616,7 +1614,7 @@ public:
 #if HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty())
     {
-      message.setRequestor(encryptCA(*dr->remote, d_ipEncryptKey));
+      message.setRequestor(encryptCA(dr->ids.origRemote, d_ipEncryptKey));
     }
 #endif /* HAVE_IPCIPHER */
 
@@ -1810,11 +1808,11 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (!dq->du) {
+    if (!dq->ids.du) {
       return Action::None;
     }
 
-    dq->du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
+    dq->ids.du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
     dq->getHeader()->qr = true; // for good measure
     setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
     return Action::HeaderModify;

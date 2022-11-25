@@ -125,7 +125,7 @@ static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bo
   /* we take a copy of a shared pointer, not a reference, because the initial shared pointer might be released during the handling of the response */
   void handleResponse(const struct timeval& now, TCPResponse&& response) override;
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override;
-  void notifyIOError(IDState&& query, const struct timeval& now) override;
+  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override;
 
   void handleCrossProtocolResponse(const struct timeval& now, TCPResponse&& response);
 

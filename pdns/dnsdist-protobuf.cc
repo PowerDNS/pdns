@@ -145,7 +145,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     protocol = pdns::ProtoZero::Message::TransportProtocol::DNSCryptTCP;
   }
 
-  m.setRequest(d_dq.uniqueId ? *d_dq.uniqueId : getUniqueID(), d_requestor ? *d_requestor : *d_dq.remote, d_responder ? *d_responder : *d_dq.local, d_question ? d_question->d_name : *d_dq.qname, d_question ? d_question->d_type : d_dq.qtype, d_question ? d_question->d_class : d_dq.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
+  m.setRequest(d_dq.ids.uniqueId ? *d_dq.ids.uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
 
   if (d_serverIdentity) {
     m.setServerIdentity(*d_serverIdentity);
@@ -164,7 +164,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     m.setQueryTime(d_queryTime->first, d_queryTime->second);
   }
   else {
-    m.setQueryTime(d_dq.queryTime->tv_sec, d_dq.queryTime->tv_nsec / 1000);
+    m.setQueryTime(d_dq.queryTime.tv_sec, d_dq.queryTime.tv_nsec / 1000);
   }
 
   if (d_dr != nullptr) {

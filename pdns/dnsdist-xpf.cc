@@ -27,7 +27,7 @@
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode)
 {
-  std::string payload = generateXPFPayload(dq.overTCP(), *dq.remote, *dq.local);
+  std::string payload = generateXPFPayload(dq.overTCP(), dq.ids.origRemote, dq.ids.origDest);
   uint8_t root = '\0';
   dnsrecordheader drh;
   drh.d_type = htons(optionCode);

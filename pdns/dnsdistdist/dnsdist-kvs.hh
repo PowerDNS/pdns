@@ -44,7 +44,7 @@ public:
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    return getKeys(*dq.remote);
+    return getKeys(dq.ids.origRemote);
   }
 
   std::string toString() const override
@@ -75,7 +75,7 @@ public:
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    return getKeys(*dq.qname);
+    return getKeys(dq.ids.qname);
   }
 
   std::string toString() const override
@@ -101,7 +101,7 @@ public:
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    return getKeys(*dq.qname);
+    return getKeys(dq.ids.qname);
   }
 
   std::string toString() const override
@@ -126,9 +126,9 @@ public:
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    if (dq.qTag) {
-      const auto& it = dq.qTag->find(d_tag);
-      if (it != dq.qTag->end()) {
+    if (dq.ids.qTag) {
+      const auto& it = dq.ids.qTag->find(d_tag);
+      if (it != dq.ids.qTag->end()) {
         return { it->second };
       }
     }

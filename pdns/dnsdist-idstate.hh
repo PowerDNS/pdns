@@ -93,24 +93,79 @@ private:
 #endif
 #endif
 
+struct InternalQueryState
+{
+  static void DeleterPlaceHolder(DOHUnit*)
+  {
+  }
+
+  InternalQueryState() :
+    du(std::unique_ptr<DOHUnit, void (*)(DOHUnit*)>(nullptr, DeleterPlaceHolder))
+  {
+    origDest.sin4.sin_family = 0;
+  }
+
+  InternalQueryState(InternalQueryState&& rhs) = default;
+  InternalQueryState& operator=(InternalQueryState&& rhs) = default;
+
+  InternalQueryState(const InternalQueryState& orig) = delete;
+  InternalQueryState& operator=(const InternalQueryState& orig) = delete;
+
+  boost::optional<Netmask> subnet{boost::none}; // 40
+  ComboAddress origRemote; // 28
+  ComboAddress origDest; // 28
+  ComboAddress hopRemote;
+  ComboAddress hopLocal;
+  DNSName qname; // 24
+  std::string poolName; // 24
+  StopWatch sentTime; // 16
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
+  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
+  std::unique_ptr<QTag> qTag{nullptr}; // 8
+  boost::optional<uint32_t> tempFailureTTL; // 8
+  ClientState* cs{nullptr}; // 8
+  std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
+  uint32_t cacheKey{0}; // 4
+  uint32_t cacheKeyNoECS{0}; // 4
+  // DoH-only */
+  uint32_t cacheKeyUDP{0}; // 4
+  int backendFD{-1}; // 4
+  int delayMsec{0};
+  uint16_t qtype{0}; // 2
+  uint16_t qclass{0}; // 2
+  // origID is in network-byte order
+  uint16_t origID{0}; // 2
+  uint16_t origFlags{0}; // 2
+  uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
+  dnsdist::Protocol protocol; // 1
+  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
+  bool ednsAdded{false};
+  bool ecsAdded{false};
+  bool skipCache{false};
+  bool dnssecOK{false};
+  bool useZeroScope{false};
+  bool forwardedOverUDP{false};
+};
+
 struct IDState
 {
-  IDState() :
-    sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0; }
+  IDState()
+  {
+  }
+
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs) :
-    subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), packetCache(std::move(rhs.packetCache)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), backendFD(rhs.backendFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+  IDState(IDState&& rhs)
   {
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
     }
 
-    uniqueId = std::move(rhs.uniqueId);
 #ifdef __SANITIZE_THREAD__
     age.store(rhs.age.load());
 #else
     age = rhs.age;
 #endif
+    internal = std::move(rhs.internal);
   }
 
   IDState& operator=(IDState&& rhs)
@@ -122,42 +177,13 @@ struct IDState
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
     }
-
-    subnet = std::move(rhs.subnet);
-    origRemote = rhs.origRemote;
-    origDest = rhs.origDest;
-    hopRemote = rhs.hopRemote;
-    hopLocal = rhs.hopLocal;
-    qname = std::move(rhs.qname);
-    sentTime = rhs.sentTime;
-    dnsCryptQuery = std::move(rhs.dnsCryptQuery);
-    packetCache = std::move(rhs.packetCache);
-    qTag = std::move(rhs.qTag);
-    tempFailureTTL = std::move(rhs.tempFailureTTL);
-    cs = rhs.cs;
-    du = std::move(rhs.du);
-    cacheKey = rhs.cacheKey;
-    cacheKeyNoECS = rhs.cacheKeyNoECS;
-    cacheKeyUDP = rhs.cacheKeyUDP;
-    backendFD = rhs.backendFD;
-    delayMsec = rhs.delayMsec;
 #ifdef __SANITIZE_THREAD__
     age.store(rhs.age.load());
 #else
     age = rhs.age;
 #endif
-    qtype = rhs.qtype;
-    qclass = rhs.qclass;
-    origID = rhs.origID;
-    origFlags = rhs.origFlags;
-    cacheFlags = rhs.cacheFlags;
-    protocol = rhs.protocol;
-    uniqueId = std::move(rhs.uniqueId);
-    ednsAdded = rhs.ednsAdded;
-    ecsAdded = rhs.ecsAdded;
-    skipCache = rhs.skipCache;
-    dnssecOK = rhs.dnssecOK;
-    useZeroScope = rhs.useZeroScope;
+
+    internal = std::move(rhs.internal);
 
     return *this;
   }
@@ -228,43 +254,12 @@ struct IDState
      wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
      when the state is unused and the value of our counter otherwise.
   */
-  boost::optional<Netmask> subnet{boost::none}; // 40
-  ComboAddress origRemote; // 28
-  ComboAddress origDest; // 28
-  ComboAddress hopRemote;
-  ComboAddress hopLocal;
-  DNSName qname; // 24
-  StopWatch sentTime; // 16
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
-  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
-  std::unique_ptr<QTag> qTag{nullptr}; // 8
-  boost::optional<uint32_t> tempFailureTTL; // 8
-  ClientState* cs{nullptr}; // 8
-  DOHUnit* du{nullptr}; // 8 (not a unique_ptr because we currently need to be able to peek at it without taking ownership until later)
+  InternalQueryState internal;
   std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8
   std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
-  uint32_t cacheKey{0}; // 4
-  uint32_t cacheKeyNoECS{0}; // 4
-  // DoH-only */
-  uint32_t cacheKeyUDP{0}; // 4
-  int backendFD{-1}; // 4
-  int delayMsec{0};
 #ifdef __SANITIZE_THREAD__
   std::atomic<uint16_t> age{0};
 #else
   uint16_t age{0}; // 2
 #endif
-  uint16_t qtype{0}; // 2
-  uint16_t qclass{0}; // 2
-  // origID is in network-byte order
-  uint16_t origID{0}; // 2
-  uint16_t origFlags{0}; // 2
-  uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
-  dnsdist::Protocol protocol; // 1
-  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
-  bool ednsAdded{false};
-  bool ecsAdded{false};
-  bool skipCache{false};
-  bool dnssecOK{false};
-  bool useZeroScope{false};
 };

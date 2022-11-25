@@ -635,7 +635,7 @@ public:
   {
   }
 
-  void notifyIOError(IDState&& query, const struct timeval& now) override
+  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
   {
     d_error = true;
   }
@@ -730,7 +730,7 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 
   auto sender = std::make_shared<MockupQuerySender>();
   sender->d_id = counter;
-  InternalQuery internalQuery(std::move(query), IDState());
+  InternalQuery internalQuery(std::move(query), InternalQueryState());
 
   s_steps = {
     {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
@@ -808,7 +808,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -897,7 +897,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1011,7 +1011,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
        while TCP and DoT will first pass it back to the TCP worker thread */
     throw std::runtime_error("Invalid response");
   };
-  InternalQuery internalQuery(std::move(query), IDState());
+  InternalQuery internalQuery(std::move(query), InternalQueryState());
 
   s_steps = {
     {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
@@ -1086,7 +1086,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1173,7 +1173,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1260,7 +1260,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1347,7 +1347,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1441,7 +1441,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1527,7 +1527,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1623,7 +1623,7 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1732,7 +1732,7 @@ BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1825,7 +1825,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
 
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }
 
@@ -1928,7 +1928,7 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
     auto sender = std::make_shared<MockupQuerySender>();
     sender->d_id = counter;
     std::string payload = makeProxyHeader(counter % 2, local, local, {});
-    InternalQuery internalQuery(std::move(query), IDState());
+    InternalQuery internalQuery(std::move(query), InternalQueryState());
     internalQuery.d_proxyProtocolPayload = std::move(payload);
     queries.push_back({std::move(sender), std::move(internalQuery)});
   }

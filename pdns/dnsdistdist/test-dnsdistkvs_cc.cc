@@ -19,7 +19,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     /* local address is not in the db, remote is */
     BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
     BOOST_CHECK_EQUAL(kvs->keyExists(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr))), false);
-    BOOST_CHECK(kvs->keyExists(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr))));
+    BOOST_CHECK(kvs->keyExists(std::string(reinterpret_cast<const char*>(&dq.ids.origRemote.sin4.sin_addr.s_addr), sizeof(dq.ids.origRemote.sin4.sin_addr.s_addr))));
 
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), 1U);
@@ -66,7 +66,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     }
   }
 
-  const DNSName subdomain = DNSName("sub") + *dq.qname;
+  const DNSName subdomain = DNSName("sub") + dq.ids.qname;
   const DNSName notPDNS("not-powerdns.com.");
 
   /* qname match, in wire format */
@@ -147,9 +147,9 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
   {
     auto lookupKey = make_unique<KeyValueLookupKeySuffix>(0, true);
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
+    BOOST_CHECK_EQUAL(keys.size(), dq.ids.qname.countLabels());
     BOOST_REQUIRE(!keys.empty());
-    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toDNSStringLC());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.ids.qname.toDNSStringLC());
     std::string value;
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), true);
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
@@ -184,9 +184,9 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
   {
     auto lookupKey = make_unique<KeyValueLookupKeySuffix>(0, false);
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
+    BOOST_CHECK_EQUAL(keys.size(), dq.ids.qname.countLabels());
     BOOST_REQUIRE(!keys.empty());
-    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toStringRootDot());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.ids.qname.toStringRootDot());
     std::string value;
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
     value.clear();
@@ -221,7 +221,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), 1U);
     BOOST_REQUIRE(!keys.empty());
-    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toDNSStringLC());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.ids.qname.toDNSStringLC());
     std::string value;
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), true);
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
@@ -300,21 +300,22 @@ BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 #ifdef HAVE_LMDB
 BOOST_AUTO_TEST_CASE(test_LMDB) {
 
-  DNSName qname("powerdns.com.");
+  InternalQueryState ids;
+  ids.qname = DNSName("powerdns.com.");
   DNSName plaintextDomain("powerdns.org.");
-  uint16_t qtype = QType::A;
-  uint16_t qclass = QClass::IN;
-  ComboAddress lc("192.0.2.1:53");
-  ComboAddress rem("192.0.2.128:42");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.origDest = ComboAddress("192.0.2.1:53");
+  ids.origRemote = ComboAddress("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = dnsdist::Protocol::DoUDP;
+  ids.protocol = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
+  DNSQuestion dq(ids, packet, queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);
@@ -330,11 +331,11 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600, 50);
     auto transaction = env.getRWTransaction();
     auto dbi = transaction->openDB("db-name", MDB_CREATE);
-    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
-    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&rem.sin4.sin_port), sizeof(rem.sin4.sin_port))), MDBInVal("this is the value for the remote addr + port"));
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_addr.s_addr), sizeof(ids.origRemote.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_addr.s_addr), sizeof(ids.origRemote.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_port), sizeof(ids.origRemote.sin4.sin_port))), MDBInVal("this is the value for the remote addr + port"));
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the masked v4 addr"));
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr))), MDBInVal("this is the value for the masked v6 addr"));
-    transaction->put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
+    transaction->put(dbi, MDBInVal(dq.ids.qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
     transaction->put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
 
     transaction->commit();
@@ -355,7 +356,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   }
 
   std::unique_ptr<KeyValueStore> lmdb = std::make_unique<LMDBKVStore>(dbPath, "db-name");
-  doKVSChecks(lmdb, lc, rem, dq, plaintextDomain);
+  doKVSChecks(lmdb, ids.origDest, ids.origRemote, dq, plaintextDomain);
   lmdb.reset();
 
   lmdb = std::make_unique<LMDBKVStore>(dbPath, "range-db-name");
@@ -385,21 +386,22 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 #ifdef HAVE_CDB
 BOOST_AUTO_TEST_CASE(test_CDB) {
 
-  DNSName qname("powerdns.com.");
+  InternalQueryState ids;
+  ids.qname = DNSName("powerdns.com.");
   DNSName plaintextDomain("powerdns.org.");
-  uint16_t qtype = QType::A;
-  uint16_t qclass = QClass::IN;
-  ComboAddress lc("192.0.2.1:53");
-  ComboAddress rem("192.0.2.128:42");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.origDest = ComboAddress("192.0.2.1:53");
+  ids.origRemote = ComboAddress("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = dnsdist::Protocol::DoUDP;
+  ids.protocol = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
+  DNSQuestion dq(ids, packet, queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);
@@ -410,17 +412,17 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     int fd = mkstemp(db);
     BOOST_REQUIRE(fd >= 0);
     CDBWriter writer(fd);
-    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
-    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&rem.sin4.sin_port), sizeof(rem.sin4.sin_port)), "this is the value for the remote addr + port"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_addr.s_addr), sizeof(ids.origRemote.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_addr.s_addr), sizeof(ids.origRemote.sin4.sin_addr.s_addr)) + std::string(reinterpret_cast<const char*>(&ids.origRemote.sin4.sin_port), sizeof(ids.origRemote.sin4.sin_port)), "this is the value for the remote addr + port"));
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr)), "this is the value for the masked v4 addr"));
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr)), "this is the value for the masked v6 addr"));
-    BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
+    BOOST_REQUIRE(writer.addEntry(dq.ids.qname.toDNSStringLC(), "this is the value for the qname"));
     BOOST_REQUIRE(writer.addEntry(plaintextDomain.toStringRootDot(), "this is the value for the plaintext domain"));
     writer.close();
   }
 
   std::unique_ptr<KeyValueStore> cdb = std::make_unique<CDBKVStore>(db, 0);
-  doKVSChecks(cdb, lc, rem, dq, plaintextDomain);
+  doKVSChecks(cdb, ids.origDest, ids.origRemote, dq, plaintextDomain);
 
   unlink(db);
 

@@ -18,17 +18,18 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
   static const DNSName qname("powerdns.com.");
-  static const ComboAddress lc("127.0.0.1:53");
-  static const ComboAddress rem("192.0.2.1:42");
   static struct timespec queryRealTime;
   static PacketBuffer packet(sizeof(dnsheader));
-
-  uint16_t qtype = QType::A;
-  uint16_t qclass = QClass::IN;
-  auto proto = dnsdist::Protocol::DoUDP;
+  static InternalQueryState ids;
+  ids.origDest = ComboAddress("127.0.0.1:53");
+  ids.origRemote = ComboAddress("192.0.2.1:42");
+  ids.qname = providedName ? *providedName : qname;
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
   gettime(&queryRealTime, true);
 
-  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
+  DNSQuestion dq(ids, packet, queryRealTime);
   return dq;
 }
 
@@ -42,24 +43,25 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   unsigned int scanFraction = 10;
   MaxQPSIPRule rule(maxQPS, maxBurst, 32, 64, expiration, cleanupDelay, scanFraction);
 
-  DNSName qname("powerdns.com.");
-  uint16_t qtype = QType::A;
-  uint16_t qclass = QClass::IN;
-  ComboAddress lc("127.0.0.1:53");
-  ComboAddress rem("192.0.2.1:42");
+  InternalQueryState ids;
+  ids.qname = DNSName("powerdns.com.");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.origDest = ComboAddress("127.0.0.1:53");
+  ids.origRemote = ComboAddress("192.0.2.1:42");
+  ids.protocol = dnsdist::Protocol::DoUDP;
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
+  DNSQuestion dq(ids, packet, queryRealTime);
 
   for (size_t idx = 0; idx < maxQPS; idx++) {
     /* let's use different source ports, it shouldn't matter */
-    rem = ComboAddress("192.0.2.1:" + std::to_string(idx));
+    ids.origRemote = ComboAddress("192.0.2.1:" + std::to_string(idx));
     BOOST_CHECK_EQUAL(rule.matches(&dq), false);
     BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1U);
   }
@@ -87,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   /* Let's insert a lot of different sources now */
   for (size_t idxByte3 = 0; idxByte3 < 256; idxByte3++) {
     for (size_t idxByte4 = 0; idxByte4 < 256; idxByte4++) {
-      rem = ComboAddress("10.0." + std::to_string(idxByte3) + "." + std::to_string(idxByte4));
+      ids.origRemote = ComboAddress("10.0." + std::to_string(idxByte3) + "." + std::to_string(idxByte4));
       BOOST_CHECK_EQUAL(rule.matches(&dq), false);
     }
   }

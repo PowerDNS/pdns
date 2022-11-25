@@ -38,7 +38,7 @@ ConnectionToBackend::~ConnectionToBackend()
 bool ConnectionToBackend::reconnect()
 {
   std::unique_ptr<TLSSession> tlsSession{nullptr};
-  if (d_handler) {
+  if (d_handler) { 
     DEBUGLOG("closing socket "<<d_handler->getDescriptor());
     if (d_handler->isTLS()) {
       if (d_handler->hasTLSSessionBeenResumed()) {

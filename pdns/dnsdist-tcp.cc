@@ -539,11 +539,11 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       ++response.d_connection->getDS()->responses;
     }
 
-    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
+    DNSResponse dr(ids, response.d_buffer, ids.sentTime.d_start, response.d_connection->getDS());
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-    if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dr, false, false)) {
+    if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dr, false)) {
       state->terminateClientConnection();
       return;
     }
@@ -574,7 +574,7 @@ struct TCPCrossProtocolResponse
 class TCPCrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  TCPCrossProtocolQuery(PacketBuffer&& buffer, IDState&& ids, std::shared_ptr<DownstreamState> ds, std::shared_ptr<IncomingTCPConnectionState> sender): CrossProtocolQuery(InternalQuery(std::move(buffer), std::move(ids)), ds), d_sender(std::move(sender))
+  TCPCrossProtocolQuery(PacketBuffer&& buffer, InternalQueryState&& ids, std::shared_ptr<DownstreamState>& ds, std::shared_ptr<IncomingTCPConnectionState> sender): CrossProtocolQuery(InternalQuery(std::move(buffer), std::move(ids)), ds), d_sender(std::move(sender))
   {
     proxyProtocolPayloadSize = 0;
   }
@@ -652,9 +652,12 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
      rings for example */
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
+  InternalQueryState ids;
+  ids.origDest = state->d_proxiedDestination;
+  ids.origRemote = state->d_proxiedRemote;
+  ids.cs = state->d_ci.cs;
 
-  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
-  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, dnsCryptQuery, queryRealTime.tv_sec, true);
+  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, ids.dnsCryptQuery, queryRealTime.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
     state->d_state = IncomingTCPConnectionState::State::idle;
@@ -684,19 +687,19 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     }
   }
 
-  uint16_t qtype, qclass;
-  unsigned int qnameWireLength = 0;
-  DNSName qname(reinterpret_cast<const char*>(state->d_buffer.data()), state->d_buffer.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-  dnsdist::Protocol protocol = dnsdist::Protocol::DoTCP;
-  if (dnsCryptQuery) {
-    protocol = dnsdist::Protocol::DNSCryptTCP;
+  ids.qname = DNSName(reinterpret_cast<const char*>(state->d_buffer.data()), state->d_buffer.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
+  ids.protocol = dnsdist::Protocol::DoTCP;
+  if (ids.dnsCryptQuery) {
+    ids.protocol = dnsdist::Protocol::DNSCryptTCP;
   }
   else if (state->d_handler.isTLS()) {
-    protocol = dnsdist::Protocol::DoT;
+    ids.protocol = dnsdist::Protocol::DoT;
   }
 
-  DNSQuestion dq(&qname, qtype, qclass, &state->d_proxiedDestination, &state->d_proxiedRemote, state->d_buffer, protocol, &queryRealTime);
-  dq.dnsCryptQuery = std::move(dnsCryptQuery);
+  DNSQuestion dq(ids, state->d_buffer, queryRealTime);
+  const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
+  ids.origFlags = *flags;
+
   dq.sni = state->d_handler.getServerNameIndication();
   if (state->d_proxyProtocolValues) {
     /* we need to copy them, because the next queries received on that connection will
@@ -704,8 +707,8 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(*state->d_proxyProtocolValues);
   }
 
-  if (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR) {
-    dq.skipCache = true;
+  if (dq.ids.qtype == QType::AXFR || dq.ids.qtype == QType::IXFR) {
+    dq.ids.skipCache = true;
   }
 
   std::shared_ptr<DownstreamState> ds;
@@ -720,12 +723,10 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   const dnsheader* dh = dq.getHeader();
   if (result == ProcessQueryResult::SendAnswer) {
     TCPResponse response;
-    response.d_selfGenerated = true;
+    memcpy(&response.d_cleartextDH, dh, sizeof(response.d_cleartextDH));
+    response.d_idstate = std::move(ids);
     response.d_idstate.origID = dh->id;
     response.d_idstate.cs = state->d_ci.cs;
-    setIDStateFromDNSQuestion(response.d_idstate, dq, std::move(qname));
-
-    memcpy(&response.d_cleartextDH, dh, sizeof(response.d_cleartextDH));
     response.d_buffer = std::move(state->d_buffer);
 
     state->d_state = IncomingTCPConnectionState::State::idle;
@@ -739,16 +740,13 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     return;
   }
 
-  IDState ids;
-  setIDStateFromDNSQuestion(ids, dq, std::move(qname));
-  ids.origID = dh->id;
-  ids.cs = state->d_ci.cs;
+  dq.ids.origID = dh->id;
 
   ++state->d_currentQueriesCount;
 
   std::string proxyProtocolPayload;
   if (ds->isDoH()) {
-    vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
+    vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), state->d_buffer.size(), ds->getNameWithAddr());
 
     /* we need to do this _before_ creating the cross protocol query because
        after that the buffer will have been moved */
@@ -783,7 +781,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   TCPQuery query(std::move(state->d_buffer), std::move(ids));
   query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
+  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), query.d_buffer.size(), ds->getNameWithAddr());
   std::shared_ptr<TCPQuerySender> incoming = state;
   downstreamConnection->queueQuery(incoming, std::move(query));
 }
@@ -1055,7 +1053,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
   while ((iostate == IOState::NeedRead || iostate == IOState::NeedWrite) && !state->d_lastIOBlocked);
 }
 
-void IncomingTCPConnectionState::notifyIOError(IDState&& query, const struct timeval& now)
+void IncomingTCPConnectionState::notifyIOError(InternalQueryState&& query, const struct timeval& now)
 {
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
 
@@ -1182,6 +1180,9 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
       prependSizeToTCPQuery(query.d_buffer, proxyProtocolPayloadSize);
       query.d_proxyProtocolPayloadAddedSize = proxyProtocolPayloadSize;
+
+      vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), query.d_idstate.origRemote.toStringWithPort(), query.d_idstate.protocol.toString(), query.d_buffer.size(), downstreamServer->getNameWithAddr());
+
       downstream->queueQuery(tqs, std::move(query));
     }
     catch (...) {

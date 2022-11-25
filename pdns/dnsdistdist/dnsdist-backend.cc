@@ -333,18 +333,14 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
      to limit the risk of racing with the
      responder thread.
   */
-  auto oldDU = ids.du;
-
-  ids.du = nullptr;
-  handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-  oldDU = nullptr;
   ids.age = 0;
+  handleDOHTimeout(std::move(ids.internal.du));
   reuseds++;
   --outstanding;
   ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
            d_config.remote.toStringWithPort(), getName(),
-           ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
+           ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort());
 
   if (g_rings.shouldRecordResponses()) {
     struct timespec ts;
@@ -352,9 +348,9 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 
     struct dnsheader fake;
     memset(&fake, 0, sizeof(fake));
-    fake.id = ids.origID;
+    fake.id = ids.internal.origID;
 
-    g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+    g_rings.insertResponse(ts, ids.internal.origRemote, ids.internal.qname, ids.internal.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
   }
 
   reportTimeoutOrError();
@@ -476,13 +472,6 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
 
   ids->age = 0;
 
-  /* that means that the state was in use, possibly with an allocated
-     DOHUnit that we will need to handle, but we can't touch it before
-     confirming that we now own this state */
-  if (ids->isInUse()) {
-    du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
-  }
-
   /* we atomically replace the value, we now own this state */
   generation = ids->generation++;
   if (!ids->markAsUsed(generation)) {
@@ -494,10 +483,10 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
   else {
     /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
        to handle it because it's about to be overwritten. */
-    ids->du = nullptr;
+    auto oldDU = std::move(ids->internal.du);
     ++reuseds;
     ++g_stats.downstreamTimeouts;
-    handleDOHTimeout(std::move(du));
+    handleDOHTimeout(std::move(oldDU));
   }
 
   return ids;
