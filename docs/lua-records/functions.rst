@@ -86,12 +86,19 @@ Record creation functions
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
+  - ``headers``: A comma separated list of headers to be added to the request.
 
   An example of a list of address sets:
 
   .. code-block:: lua
 
     ifurlup("https://example.com/", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
+
+  An example usage of headers:
+
+  .. code-block:: lua
+
+    ifurlup("https://example.com/", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} }, {headers="X-API-Key: example-key, Cache-Control: no-cache" })
 
 .. function:: ifurlextup(groups-of-address-url-pairs[, options])
 
