@@ -188,6 +188,7 @@ bufsize
 bugfix
 bugfixes
 bugzilla
+builddeb
 bulc
 bulletinc
 burstable
