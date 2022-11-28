@@ -23,7 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <errno.h>
+#include <cerrno>
 #include <string>
 #include <set>
 #include <sys/types.h>
@@ -145,7 +145,7 @@ bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
 bool Bind2Backend::safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd)
 {
   auto state = s_state.read_lock();
-  auto& nameindex = boost::multi_index::get<NameTag>(*state);
+  const auto& nameindex = boost::multi_index::get<NameTag>(*state);
   auto iter = nameindex.find(name);
   if (iter == nameindex.end()) {
     return false;
@@ -157,7 +157,7 @@ bool Bind2Backend::safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd)
 bool Bind2Backend::safeRemoveBBDomainInfo(const DNSName& name)
 {
   auto state = s_state.write_lock();
-  typedef state_t::index<NameTag>::type nameindex_t;
+  using nameindex_t = state_t::index<NameTag>::type;
   nameindex_t& nameindex = boost::multi_index::get<NameTag>(*state);
 
   nameindex_t::iterator iter = nameindex.find(name);
@@ -553,7 +553,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   bdr.content = content;
   bdr.nsec3hash = hashed;
 
-  if (auth) // Set auth on empty non-terminals
+  if (auth != nullptr) // Set auth on empty non-terminals
     bdr.auth = *auth;
   else
     bdr.auth = true;
@@ -566,7 +566,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
 {
   ostringstream ret;
 
-  for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+  for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
     BB2DomainInfo bbd;
     DNSName zone(*i);
     if (safeGetBBDomainInfo(zone, &bbd)) {
@@ -592,7 +592,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pi
   ostringstream ret;
 
   if (parts.size() > 1) {
-    for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+    for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         ret << *i << ": " << (bbd.d_loaded ? "" : "[rejected]") << "\t" << bbd.d_status << "\n";
@@ -654,7 +654,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
   ostringstream ret;
 
   if (parts.size() > 1) {
-    for (vector<string>::const_iterator i = parts.begin() + 1; i < parts.end(); ++i) {
+    for (auto i = parts.begin() + 1; i < parts.end(); ++i) {
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         printDomainExtendedStatus(ret, bbd);
@@ -758,7 +758,7 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
   std::lock_guard<std::mutex> l(s_startup_lock);
 
   setupDNSSEC();
-  if (!s_first) {
+  if (s_first == 0) {
     return;
   }
 
@@ -811,16 +811,16 @@ void Bind2Backend::fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, 
 
     if (!iter->qname.isRoot() && shorter.chopOff() && !iter->qname.isRoot()) {
       do {
-        if (nssets.count(shorter)) {
+        if (nssets.count(shorter) != 0u) {
           skip = true;
           break;
         }
       } while (shorter.chopOff() && !iter->qname.isRoot());
     }
 
-    iter->auth = (!skip && (iter->qtype == QType::DS || iter->qtype == QType::RRSIG || !nssets.count(iter->qname)));
+    iter->auth = (!skip && (iter->qtype == QType::DS || iter->qtype == QType::RRSIG || (nssets.count(iter->qname) == 0u)));
 
-    if (!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && !ns3pr.d_flags) || dssets.count(iter->qname))) {
+    if (!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && (ns3pr.d_flags == 0u)) || (dssets.count(iter->qname) != 0u))) {
       Bind2DNSRecord bdr = *iter;
       bdr.nsec3hash = toBase32Hex(hashQNameWithSalt(ns3pr, bdr.qname + zoneName));
       records->replace(iter, bdr);
@@ -832,7 +832,7 @@ void Bind2Backend::fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, 
 
 void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr)
 {
-  bool auth;
+  bool auth = false;
   DNSName shorter;
   std::unordered_set<DNSName> qnames;
   std::unordered_map<DNSName, bool> nonterm;
@@ -845,19 +845,19 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   for (const auto& bdr : *records) {
 
     if (!bdr.auth && bdr.qtype == QType::NS)
-      auth = (!nsec3zone || !ns3pr.d_flags);
+      auth = (!nsec3zone || (ns3pr.d_flags == 0u));
     else
       auth = bdr.auth;
 
     shorter = bdr.qname;
     while (shorter.chopOff()) {
-      if (!qnames.count(shorter)) {
+      if (qnames.count(shorter) == 0u) {
         if (!(maxent)) {
           g_log << Logger::Error << "Zone '" << zoneName << "' has too many empty non terminals." << endl;
           return;
         }
 
-        if (!nonterm.count(shorter)) {
+        if (nonterm.count(shorter) == 0u) {
           nonterm.emplace(shorter, auth);
           --maxent;
         }
@@ -931,9 +931,10 @@ void Bind2Backend::loadConfig(string* status)
         continue;
       }
 
-      if (domain.type == "")
+      if (domain.type.empty()) {
         g_log << Logger::Notice << d_logprefix << " Zone '" << domain.name << "' has no type specified, assuming 'native'" << endl;
-      if (domain.type != "master" && domain.type != "slave" && domain.type != "native" && domain.type != "") {
+      }
+      if (domain.type != "master" && domain.type != "slave" && domain.type != "native" && !domain.type.empty()) {
         g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because type '" << domain.type << "' is invalid" << endl;
         rejected++;
         continue;
@@ -978,7 +979,7 @@ void Bind2Backend::loadConfig(string* status)
           ostringstream msg;
           msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.reason;
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
 
@@ -992,7 +993,7 @@ void Bind2Backend::loadConfig(string* status)
           else
             msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
           g_log << Logger::Warning << d_logprefix << msg.str() << endl;
@@ -1002,7 +1003,7 @@ void Bind2Backend::loadConfig(string* status)
           ostringstream msg;
           msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
-          if (status)
+          if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
 
@@ -1031,7 +1032,7 @@ void Bind2Backend::loadConfig(string* status)
 
     ostringstream msg;
     msg << " Done parsing domains, " << rejected << " rejected, " << newdomains << " new, " << remdomains << " removed";
-    if (status)
+    if (status != nullptr)
       *status = msg.str();
 
     g_log << Logger::Error << d_logprefix << msg.str() << endl;
@@ -1117,7 +1118,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
     return findBeforeAndAfterUnhashed(records, qname, unhashed, before, after);
   }
   else {
-    auto& hashindex = boost::multi_index::get<NSEC3Tag>(*records);
+    const auto& hashindex = boost::multi_index::get<NSEC3Tag>(*records);
 
     // for(auto iter = first; iter != hashindex.end(); iter++)
     //  cerr<<iter->nsec3hash<<endl;
@@ -1150,7 +1151,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
   static bool mustlog = ::arg().mustDo("query-logging");
 
-  bool found;
+  bool found = false;
   DNSName domain;
   BB2DomainInfo bbd;
 
@@ -1203,7 +1204,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
   d_handle.mustlog = mustlog;
 
-  auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
+  const auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
   auto range = hashedidx.equal_range(d_handle.qname);
 
   d_handle.d_list = false;
@@ -1340,7 +1341,7 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   while (getline(c_if, line)) {
     std::istringstream ii(line);
     ii >> sip;
-    if (sip.size() != 0) {
+    if (!sip.empty()) {
       ii >> saccount;
       primaries.emplace_back(sip, "", saccount);
     }
@@ -1520,7 +1521,7 @@ public:
 private:
   void assertEmptySuffix(const string& suffix)
   {
-    if (suffix.length())
+    if (!suffix.empty())
       throw PDNSException("launch= suffixes are not supported on the bindbackend");
   }
 };
