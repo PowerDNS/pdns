@@ -215,10 +215,18 @@ When unset, :ref:`setting-query-local-address` is used.
 axfrTimeout
 ^^^^^^^^^^^
 .. versionadded:: 4.1.2
-  Before 4.1.2, the timeout was fixed on 10 seconds.
+   Before 4.1.2, the timeout was fixed on 10 seconds.
 
-The timeout in seconds of the total initial AXFR transaction.
-20 by default.
+.. versionchanged:: 4.5.12
+   The same timeout applies to followup IXFR transactions.
+
+.. versionchanged:: 4.6.5
+   The same timeout applies to followup IXFR transactions.
+
+.. versionchanged:: 4.7.4
+   The same timeout applies to followup IXFR transactions.
+
+The timeout in seconds of the total initial AXFR transaction. 20 by default.
 
 dumpFile
 ^^^^^^^^
