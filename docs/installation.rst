@@ -33,7 +33,7 @@ required backend as follows:
 Redhat-based Systems
 ~~~~~~~~~~~~~~~~~~~~
 
-On RedHat based systems there are 3 options to install PowerDNS, from
+On RedHat based systems there are 2 options to install PowerDNS, from
 `EPEL <https://fedoraproject.org/wiki/EPEL>`__, 
 or from `the PowerDNS repositories <https://repo.powerdns.com>`__:
 
