@@ -24,7 +24,7 @@ Changelogs for 4.6.X
     :pullreq: 12191
     :tickets: 12125
 
-    Timout handling for IXFRs as a client.
+    Timeout handling for IXFRs as a client.
 
   .. change::
     :tags: Bug Fixes
