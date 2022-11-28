@@ -201,7 +201,7 @@ namespace serialization
     ar& g.masters;
     ar& g.id;
     ar& g.notified_serial;
-    ar& g.kind;
+    ar& g.kind._kind;
     ar& g.options;
     ar& g.catalog;
   }
@@ -215,7 +215,7 @@ namespace serialization
     ar& g.masters;
     ar& g.id;
     ar& g.notified_serial;
-    ar& g.kind;
+    ar& g.kind._kind;
     if (version >= 1) {
       ar& g.options;
       ar& g.catalog;
@@ -979,7 +979,7 @@ int LMDBBackend::genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> f
   return true;
 }
 
-bool LMDBBackend::setKind(const DNSName& domain, const DomainInfo::DomainKind kind)
+bool LMDBBackend::setKind(const DNSName& domain, const ZoneKind kind)
 {
   return genChangeDomain(domain, [kind](DomainInfo& di) {
     di.kind = kind;
@@ -1000,7 +1000,7 @@ bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& 
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool LMDBBackend::createDomain(const DNSName& domain, const ZoneKind kind, const vector<ComboAddress>& masters, const string& account)
 {
   DomainInfo di;
 
@@ -1048,7 +1048,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (!iter->isSecondaryType()) {
+    if (!iter->kind.isSecondary()) {
       continue;
     }
 
@@ -1097,11 +1097,11 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
 
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (!iter->isPrimaryType()) {
+    if (!iter->kind.isPrimary()) {
       continue;
     }
 
-    if (iter->kind == DomainInfo::Producer) {
+    if (iter->kind == ZoneKind::Producer) {
       catalogs.insert(iter->zone);
       catalogHashes[iter->zone].process("\0");
       continue; // Producer fresness check is performed elsewhere
@@ -1130,7 +1130,7 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
 {
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != DomainInfo::Slave) || iter->catalog != catalog) {
+    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != ZoneKind::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != ZoneKind::Slave) || iter->catalog != catalog) {
       continue;
     }
 

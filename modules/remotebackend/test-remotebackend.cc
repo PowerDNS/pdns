@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainInfo)
   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
-  BOOST_CHECK_EQUAL(di.kind, DomainInfo::Native);
+  BOOST_CHECK_EQUAL(di.kind, ZoneKind::Native);
   BOOST_CHECK_EQUAL(di.backend, be);
 }
 
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
-  BOOST_CHECK_EQUAL(di.kind, DomainInfo::Native);
+  BOOST_CHECK_EQUAL(di.kind, ZoneKind::Native);
   BOOST_CHECK_EQUAL(di.backend, be);
 }
 
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
-  BOOST_CHECK_EQUAL(di.kind, DomainInfo::Master);
+  BOOST_CHECK_EQUAL(di.kind, ZoneKind::Master);
   BOOST_CHECK_EQUAL(di.backend, be);
 }
 

@@ -324,7 +324,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
     {"id", zoneId},
     {"url", "/api/v1/servers/localhost/zones/" + zoneId},
     {"name", di.zone.toString()},
-    {"kind", di.getKindString()},
+    {"kind", di.kind.toString()},
     {"catalog", (!di.catalog.empty() ? di.catalog.toString() : "")},
     {"account", di.account},
     {"masters", std::move(masters)},
@@ -617,10 +617,10 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<ZoneKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
 {
   if (document["kind"].is_string()) {
-    kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+    kind = ZoneKind::fromString(stringFromJson(document, "kind"));
   } else {
     kind = boost::none;
   }
@@ -657,7 +657,7 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
 }
 
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
-  boost::optional<DomainInfo::DomainKind> kind;
+  boost::optional<ZoneKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<DNSName> catalog;
   boost::optional<string> account;
@@ -1696,7 +1696,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw HttpConflictException();
 
     // validate 'kind' is set
-    DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+    ZoneKind zonekind = ZoneKind::fromString(stringFromJson(document, "kind"));
 
     string zonestring = document["zone"].string_value();
     auto rrsets = document["rrsets"];
@@ -1704,7 +1704,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("You cannot give rrsets AND zone data as text");
 
     auto nameservers = document["nameservers"];
-    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave)
+    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != ZoneKind::Slave)
       throw ApiException("Nameservers is not a list");
 
     string soa_edit_api_kind;
@@ -1764,7 +1764,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
-    if (!have_soa && zonekind != DomainInfo::Slave) {
+    if (!have_soa && !zonekind.isSecondary()) {
       // synthesize a SOA record so the zone "really" exists
       string soa = ::arg()["default-soa-content"];
       boost::replace_all(soa, "@", zonename.toStringNoDot());
@@ -1811,14 +1811,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
-    boost::optional<DomainInfo::DomainKind> kind;
+    boost::optional<ZoneKind> kind;
     boost::optional<vector<ComboAddress>> masters;
     boost::optional<DNSName> catalog;
     boost::optional<string> account;
     extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
     // no going back after this
-    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
+    if(!B.createDomain(zonename, kind.get_value_or(ZoneKind::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
 
     if(!B.getDomainInfo(zonename, di))

@@ -237,7 +237,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         }
 
         g_log << Logger::Warning << logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl;
-        di.backend->createDomain(ciCreate.d_zone, DomainInfo::Slave, ciCreate.d_primaries, "");
+        di.backend->createDomain(ciCreate.d_zone, ZoneKind::Slave, ciCreate.d_primaries, "");
 
         di.backend->setMasters(ciCreate.d_zone, di.masters);
         di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
@@ -434,10 +434,10 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    bool wrongDomainKind = false;
-    // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
-    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
-      if(wrongDomainKind)
+    bool wrongZoneKind = false;
+    // this checks three error conditions, and sets wrongZoneKind if we hit the third & had an error
+    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongZoneKind = true, di.kind != ZoneKind::Slave)) { // di.backend and B are mostly identical
+      if(wrongZoneKind)
         g_log<<Logger::Warning<<logPrefix<<"can't determine backend, not configured as slave"<<endl;
       else
         g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
@@ -660,10 +660,10 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
   bool transaction=false;
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
-    bool wrongDomainKind = false;
-    // this checks three error conditions & sets wrongDomainKind if we hit the third
-    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && !di.isSecondaryType())) { // di.backend and B are mostly identical
-      if(wrongDomainKind)
+    bool wrongZoneKind = false;
+    // this checks three error conditions & sets wrongZoneKind if we hit the third
+    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongZoneKind = true, !force && !di.kind.isSecondary())) { // di.backend and B are mostly identical
+      if(wrongZoneKind)
         g_log << Logger::Warning << logPrefix << "can't determine backend, not configured as secondary" << endl;
       else
         g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
@@ -790,7 +790,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       g_log<<Logger::Notice<<logPrefix<<"retrieval finished"<<endl;
     }
 
-    if (di.kind == DomainInfo::Consumer) {
+    if (di.kind == ZoneKind::Consumer) {
       if (!catalogProcess(di, rrs, logPrefix)) {
         g_log << Logger::Warning << logPrefix << "Catalog-Zone update failed, only import records" << endl;
       }

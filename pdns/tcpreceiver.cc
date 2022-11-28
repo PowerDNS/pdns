@@ -632,7 +632,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   bool narrow = false;
 
   DomainInfo di;
-  bool isCatalogZone = sd.db->getDomainInfo(target, di, false) && di.isCatalogType();
+  bool isCatalogZone = sd.db->getDomainInfo(target, di, false) && di.kind.isCatalog();
 
   NSEC3PARAMRecordContent ns3pr;
 
@@ -772,7 +772,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   set<DNSName> qnames, nsset, terms;
 
   // Catalog zone start
-  if (di.kind == DomainInfo::Producer) {
+  if (di.kind == ZoneKind::Producer) {
     // Ignore all records except NS at apex
     sd.db->lookup(QType::NS, target, di.id);
     while (sd.db->get(zrr)) {

@@ -325,7 +325,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::un
     auto state = s_state.read_lock();
 
     for (const auto& i : *state) {
-      if (i.d_kind != DomainInfo::Master && this->alsoNotify.empty() && i.d_also_notify.empty())
+      if (i.d_kind != ZoneKind::Master && this->alsoNotify.empty() && i.d_also_notify.empty())
         continue;
 
       DomainInfo di;
@@ -334,7 +334,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::un
       di.last_check = i.d_lastcheck;
       di.notified_serial = i.d_lastnotified;
       di.backend = this;
-      di.kind = DomainInfo::Master;
+      di.kind = ZoneKind::Master;
       consider.push_back(std::move(di));
     }
   }
@@ -406,7 +406,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
     auto state = s_state.read_lock();
     domains.reserve(state->size());
     for (const auto& i : *state) {
-      if (i.d_kind != DomainInfo::Slave)
+      if (i.d_kind != ZoneKind::Slave)
         continue;
       DomainInfo sd;
       sd.id = i.d_id;
@@ -414,7 +414,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
       sd.masters = i.d_masters;
       sd.last_check = i.d_lastcheck;
       sd.backend = this;
-      sd.kind = DomainInfo::Slave;
+      sd.kind = ZoneKind::Slave;
       domains.push_back(std::move(sd));
     }
   }
@@ -623,10 +623,10 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << "\t On-disk file: " << info.d_filename << " (" << info.d_ctime << ")" << std::endl;
   ret << "\t Kind: ";
   switch (info.d_kind) {
-  case DomainInfo::Master:
+  case ZoneKind::Master:
     ret << "Master";
     break;
-  case DomainInfo::Slave:
+  case ZoneKind::Slave:
     ret << "Slave";
     break;
   default:
@@ -959,11 +959,11 @@ void Bind2Backend::loadConfig(string* status)
       bbd.d_masters = domain.masters;
       bbd.d_also_notify = domain.alsoNotify;
 
-      DomainInfo::DomainKind kind = DomainInfo::Native;
+      ZoneKind kind = ZoneKind::Native;
       if (domain.type == "master")
-        kind = DomainInfo::Master;
+        kind = ZoneKind::Master;
       if (domain.type == "slave")
-        kind = DomainInfo::Slave;
+        kind = ZoneKind::Slave;
 
       bool kindChanged = (bbd.d_kind != kind);
       bbd.d_kind = kind;
@@ -1400,7 +1400,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   }
 
   BB2DomainInfo bbd;
-  bbd.d_kind = DomainInfo::Native;
+  bbd.d_kind = ZoneKind::Native;
   bbd.d_id = newid;
   bbd.d_records = std::make_shared<recordstorage_t>();
   bbd.d_name = domain;
@@ -1438,7 +1438,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
-  bbd.d_kind = DomainInfo::Slave;
+  bbd.d_kind = ZoneKind::Slave;
   bbd.d_masters.push_back(ComboAddress(ip, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);

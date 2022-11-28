@@ -389,14 +389,14 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getS
     if (result.count("PdnsDomainType") && !result["PdnsDomainType"].empty()) {
       string kind = result["PdnsDomainType"][0];
       if (kind == "master")
-        di.kind = DomainInfo::Master;
+        di.kind = ZoneKind::Master;
       else if (kind == "slave")
-        di.kind = DomainInfo::Slave;
+        di.kind = ZoneKind::Slave;
       else
-        di.kind = DomainInfo::Native;
+        di.kind = ZoneKind::Native;
     }
     else {
-      di.kind = DomainInfo::Native;
+      di.kind = ZoneKind::Native;
     }
 
     di.backend = this;

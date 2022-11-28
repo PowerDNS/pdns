@@ -48,9 +48,56 @@ class DNSPacket;
 class DNSBackend;
 struct SOAData;
 
+struct ZoneKind
+{
+  // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
+  enum Kind : uint8_t
+    {
+      Master,
+      Slave,
+      Native,
+      Producer,
+      Consumer,
+      All
+    };
+
+  ZoneKind() = default;
+  constexpr ZoneKind(Kind kind) : _kind(kind) { }
+  constexpr operator Kind() const { return _kind; }
+  explicit operator bool() const = delete;
+  constexpr bool operator==(Kind rhs) const { return _kind == rhs; }
+  constexpr bool operator!=(Kind rhs) const { return _kind != rhs; }
+
+  constexpr bool isPrimary() const { return (_kind == Master || _kind == Producer); }
+  constexpr bool isSecondary() const { return (_kind == Slave || _kind == Consumer); }
+  constexpr bool isCatalog() const { return (_kind == Producer || _kind == Consumer); }
+
+  const char *toString() const {
+    const char *kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
+    return kinds[_kind];
+  }
+
+  static ZoneKind fromString(const string& kind)
+  {
+    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
+      return ZoneKind(Slave);
+    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
+      return ZoneKind(Master);
+    if (pdns_iequals(kind, "PRODUCER"))
+      return ZoneKind(Producer);
+    if (pdns_iequals(kind, "CONSUMER"))
+      return ZoneKind(Consumer);
+    // No "ALL" here please. Yes, I really mean it...
+    return ZoneKind(Native);
+  }
+
+  // can't be private as lmdbbackend needs to be save/load it
+  Kind _kind;
+};
+
 struct DomainInfo
 {
-  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(ZoneKind::Native) {}
 
   DNSName zone;
   DNSName catalog;
@@ -72,45 +119,7 @@ struct DomainInfo
     return zone < rhs.zone;
   }
 
-  // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
-  enum DomainKind : uint8_t
-  {
-    Master,
-    Slave,
-    Native,
-    Producer,
-    Consumer,
-    All
-  } kind;
-
-  const char *getKindString() const
-  {
-    return DomainInfo::getKindString(kind);
-  }
-
-  static const char *getKindString(enum DomainKind kind)
-  {
-    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
-    return kinds[kind];
-  }
-
-  static DomainKind stringToKind(const string& kind)
-  {
-    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
-      return DomainInfo::Slave;
-    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
-      return DomainInfo::Master;
-    if (pdns_iequals(kind, "PRODUCER"))
-      return DomainInfo::Producer;
-    if (pdns_iequals(kind, "CONSUMER"))
-      return DomainInfo::Consumer;
-    // No "ALL" here please. Yes, I really mean it...
-    return DomainInfo::Native;
-  }
-
-  bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
-  bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
-  bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
+  ZoneKind kind;
 
   bool isMaster(const ComboAddress& ip) const
   {
@@ -374,7 +383,7 @@ public:
   }
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
-  virtual bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+  virtual bool setKind(const DNSName &domain, const ZoneKind kind)
   {
     return false;
   }
@@ -425,7 +434,7 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+  virtual bool createDomain(const DNSName& domain, const ZoneKind kind, const vector<ComboAddress>& masters, const string& account)
   {
     return false;
   }

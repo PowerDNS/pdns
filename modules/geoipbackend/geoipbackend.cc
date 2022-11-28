@@ -843,7 +843,7 @@ bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool get
       di.id = dom.id;
       di.zone = dom.domain;
       di.serial = sd.serial;
-      di.kind = DomainInfo::Native;
+      di.kind = ZoneKind::Native;
       di.backend = this;
       return true;
     }
@@ -862,7 +862,7 @@ void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
     di.id = dom.id;
     di.zone = dom.domain;
     di.serial = sd.serial;
-    di.kind = DomainInfo::Native;
+    di.kind = ZoneKind::Native;
     di.backend = this;
     domains->emplace_back(di);
   }
