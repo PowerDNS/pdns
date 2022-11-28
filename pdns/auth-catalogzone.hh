@@ -41,7 +41,7 @@ public:
     Consumer
   };
 
-  static const char* getTypeString(enum CatalogType type)
+  static constexpr const char* getTypeString(enum CatalogType type)
   {
     const char* types[] = {"none", "producer", "consumer"};
     return types[type];
