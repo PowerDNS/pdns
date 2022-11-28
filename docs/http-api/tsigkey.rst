@@ -4,6 +4,18 @@ TSIGKeys
 
 TSIGKeys can be manipulated via the API.
 
+TSIGKey Endpoints
+-----------------
+
+.. openapi:: swagger/authoritative-api-swagger.yaml
+  :paths: /servers/{server_id}/tsigkeys /servers/{server_id}/tsigkeys/{tsigkey_id}
+
+Objects
+-------
+
+.. openapi:: swagger/authoritative-api-swagger.yaml
+  :definitions: TSIGKey
+
 Examples
 --------
 
@@ -44,16 +56,4 @@ Modifying the key material
   Content-Type: application/json
 
   {"algorithm": "hmac-sha256", "id": "mytsigkey.", "key": "GQNyFy1QagMUarHmiSgsIJajghdTGJGVcN5TRVwgbclzxGyhQR1uYLCOyJ/uj9uj12jyeLwzJuW12wCI9PYv7Q==", "name": "mytsigkey", "type": "TSIGKey"}
-
-
-TSIGKey Endpoints
------------------
-
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :paths: /servers/{server_id}/tsigkeys /servers/{server_id}/tsigkeys/{tsigkey_id}
-
-Objects
--------
-
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: TSIGKey
+  
