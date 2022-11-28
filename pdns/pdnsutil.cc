@@ -279,14 +279,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   catch (const PDNSException& e) {
     cout << "[Error] SOA lookup failed for zone '" << zone << "': " << e.reason << endl;
     numerrors++;
-    if (!sd.db) {
+    if (sd.db == nullptr) {
       return 1;
     }
   }
   catch (const std::exception& e) {
     cout << "[Error] SOA lookup failed for zone '" << zone << "': " << e.what() << endl;
     numerrors++;
-    if (!sd.db) {
+    if (sd.db == nullptr) {
       return 1;
     }
   }
@@ -361,7 +361,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   pair<map<string, unsigned int>::iterator,bool> ret;
 
   vector<DNSResourceRecord> records;
-  if(!suppliedrecords) {
+  if(suppliedrecords == nullptr) {
     DNSResourceRecord drr;
     sd.db->list(zone, sd.domain_id, g_verbose);
     while(sd.db->get(drr)) {
@@ -801,7 +801,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   for( const auto &rr : records ) {
     ok = ( rr.auth == 1 );
     ds_ns = false;
-    done = (suppliedrecords || !sd.db->doesDNSSEC());
+    done = (suppliedrecords != nullptr || !sd.db->doesDNSSEC());
     for( const auto &qname : checkOcclusion ) {
       if( qname.second == QType::NS ) {
         if( qname.first == rr.qname ) {
@@ -827,7 +827,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       cout << "[Warning] DS record without a delegation '" << rr.qname<<"'." << endl;
       numwarnings++;
     }
-    if( ! ok && ! suppliedrecords ) {
+    if( ! ok && suppliedrecords == nullptr ) {
       cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.toString() << " " << rr.content << endl;
       numerrors++;
     }
@@ -2218,7 +2218,8 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   DomainInfo di;
   UeberBackend B("default");
-  if(!B.getDomainInfo(zone, di, false) || !di.backend) { // di.backend and B are mostly identical
+  // di.backend and B are mostly identical
+  if(!B.getDomainInfo(zone, di, false) || di.backend == nullptr) {
     cerr<<"Can't find a zone called '"<<zone<<"'"<<endl;
     return false;
   }
@@ -2292,7 +2293,8 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout << "Secondary zone created" << endl;
 
   DomainInfo di;
-  if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
+  // di.backend and B are mostly identical
+  if(!B.getDomainInfo(zone, di) || di.backend == nullptr) {
     cout << "Can't find zone we just created, aborting" << endl;
     return EXIT_FAILURE;
   }
@@ -3993,8 +3995,8 @@ try
       return 1;
     }
 
-    DNSBackend *src,*tgt;
-    src = tgt = nullptr;
+    DNSBackend *src = nullptr;
+    DNSBackend *tgt = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds.at(1))
@@ -4002,11 +4004,11 @@ try
       if (b->getPrefix() == cmds.at(2))
         tgt = b;
     }
-    if (!src) {
+    if (src == nullptr) {
       cerr << "Unknown source backend '" << cmds.at(1) << "'" << endl;
       return 1;
     }
-    if (!tgt) {
+    if (tgt == nullptr) {
       cerr << "Unknown target backend '" << cmds.at(2) << "'" << endl;
       return 1;
     }
@@ -4097,15 +4099,14 @@ try
       return 1;
     }
 
-    DNSBackend *db;
-    db = nullptr;
+    DNSBackend *db = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds.at(1))
         db = b;
     }
 
-    if (!db) {
+    if (db == nullptr) {
       cerr << "Unknown backend '" << cmds.at(1) << "'" << endl;
       return 1;
     }
