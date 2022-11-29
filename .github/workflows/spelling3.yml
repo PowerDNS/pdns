@@ -1,4 +1,5 @@
 # spelling.yml is blocked per https://github.com/check-spelling/check-spelling/security/advisories/GHSA-g86g-chm8-7r2p
+# spelling2.yml is blocked per https://github.com/check-spelling/check-spelling/security/advisories/GHSA-p8r9-69g4-jwqq
 name: Spell checking
 
 # Comment management is handled through a secondary job, for details see:
