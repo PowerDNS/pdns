@@ -110,8 +110,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
     throw runtime_error("The algorithm does not support the given bit size.");
   }
   DNSSECPrivateKey dspk;
-  dspk.setKey(dpk, setSEPBit ? 257 : 256);
-  dspk.setAlgorithm(algorithm);
+  dspk.setKey(dpk, setSEPBit ? 257 : 256, algorithm);
   return addKey(name, dspk, id, active, published) && clearKeyCache(name);
 }
 
@@ -170,8 +169,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, kd.flags);
-    dpk.setAlgorithm(dkrc.d_algorithm);
+    dpk.setKey(key, kd.flags, dkrc.d_algorithm);
     
     return dpk;    
   }
@@ -583,8 +581,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, kd.flags);
-    dpk.setAlgorithm(dkrc.d_algorithm);
+    dpk.setKey(key, kd.flags, dkrc.d_algorithm);
 
     KeyMetaData kmd;
 

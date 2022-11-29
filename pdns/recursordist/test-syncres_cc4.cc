@@ -1194,9 +1194,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
   auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
-  dpk.setKey(std::move(dcke), 256);
   /* Fake algorithm number (private) */
-  dpk.setAlgorithm(253);
+  dpk.setKey(std::move(dcke), 256, 253);
 
   DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, drc);

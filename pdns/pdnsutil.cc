@@ -3513,8 +3513,7 @@ try
     else {
       flags = 257; // ksk
     }
-    dpk.setKey(key, flags);
-    dpk.setAlgorithm(algo);
+    dpk.setKey(key, flags, algo);
 
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id)) {
@@ -3566,11 +3565,11 @@ try
     }
 
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, flags);
-
-    if (dpk.getAlgorithm() == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-      dpk.setAlgorithm(DNSSECKeeper::RSASHA1);
+    uint8_t algo = key->getAlgorithm();
+    if (algo == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+      algo = DNSSECKeeper::RSASHA1;
     }
+    dpk.setKey(key, flags, algo);
 
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
@@ -3650,8 +3649,7 @@ try
     }
     dpk->create(bits);
     DNSSECPrivateKey dspk;
-    dspk.setKey(dpk, keyOrZone ? 257 : 256);
-    dspk.setAlgorithm(algorithm);
+    dspk.setKey(dpk, keyOrZone ? 257 : 256, algorithm);
 
     // print key to stdout
     cout << "Flags: " << dspk.getFlags() << endl <<

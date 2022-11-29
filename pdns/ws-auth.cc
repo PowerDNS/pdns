@@ -1307,11 +1307,11 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
       }
 
       uint8_t algorithm = dkrc.d_algorithm;
-      dpk.setKey(dke, flags);
       // TODO remove in 4.2.0
       if (algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-        dpk.setAlgorithm(DNSSECKeeper::RSASHA1);
+        algorithm = DNSSECKeeper::RSASHA1;
       }
+      dpk.setKey(dke, flags, algorithm);
     }
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
