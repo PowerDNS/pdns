@@ -305,12 +305,11 @@ static void checkRR(const SignerParams& signer)
   DNSKEYRecordContent drc;
   auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
   DNSSECPrivateKey dpk;
-  dpk.d_flags = signer.rfcFlags;
-  dpk.setKey(dcke);
+  dpk.setKey(dcke, signer.rfcFlags);
 
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
-  DNSName qname(dpk.d_algorithm == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
+  DNSName qname(dpk.getAlgorithm() == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
 
   reportBasicTypes();
 
@@ -318,7 +317,7 @@ static void checkRR(const SignerParams& signer)
   uint32_t expire = 1440021600;
   uint32_t inception = 1438207200;
 
-  if (dpk.d_algorithm == DNSSECKeeper::ECCGOST) {
+  if (dpk.getAlgorithm() == DNSSECKeeper::ECCGOST) {
     rrc.d_signer = DNSName("example.net.");
     inception = 946684800;
     expire = 1893456000;
@@ -335,7 +334,7 @@ static void checkRR(const SignerParams& signer)
   rrc.d_type = (*rrs.cbegin())->getType();
   rrc.d_labels = qname.countLabels();
   rrc.d_tag = dpk.getTag();
-  rrc.d_algorithm = dpk.d_algorithm;
+  rrc.d_algorithm = dpk.getAlgorithm();
 
   string msg = getMessageForRRSET(qname, rrc, rrs, false);
 
@@ -375,8 +374,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 
   DNSSECPrivateKey dpk;
-  dpk.d_flags = signer.flags;
-  dpk.setKey(dcke);
+  dpk.setKey(dcke, signer.flags);
   drc = dpk.getDNSKEY();
 
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);

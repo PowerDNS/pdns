@@ -1130,9 +1130,9 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
         { "active", value.second.active },
         { "published", value.second.published },
         { "keytype", keyType },
-        { "flags", (uint16_t)value.first.d_flags },
+        { "flags", (uint16_t)value.first.getFlags() },
         { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
-        { "algorithm", DNSSECKeeper::algorithm2name(value.first.d_algorithm) },
+        { "algorithm", DNSSECKeeper::algorithm2name(value.first.getAlgorithm()) },
         { "bits", value.first.getKey()->getBits() }
     };
 
@@ -1298,17 +1298,20 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
     DNSSECPrivateKey dpk;
     try {
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keyData));
-      dpk.d_algorithm = dkrc.d_algorithm;
+      uint16_t flags = 0;
+      if (keyOrZone) {
+        flags = 257;
+      }
+      else {
+        flags = 256;
+      }
+
+      uint8_t algorithm = dkrc.d_algorithm;
+      dpk.setKey(dke, flags);
       // TODO remove in 4.2.0
-      if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
-        dpk.d_algorithm = DNSSECKeeper::RSASHA1;
-
-      if (keyOrZone)
-        dpk.d_flags = 257;
-      else
-        dpk.d_flags = 256;
-
-      dpk.setKey(dke);
+      if (algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+        dpk.setAlgorithm(DNSSECKeeper::RSASHA1);
+      }
     }
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
