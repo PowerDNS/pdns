@@ -4,7 +4,7 @@ Documentation=man:ixfrdist(1)
 Documentation=man:ixfrdist.yml(5)
 Documentation=https://doc.powerdns.com
 Wants=network-online.target
-After=network-online.target
+After=network-online.target time-sync.target
 
 [Service]
 Type=simple

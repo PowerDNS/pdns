@@ -3,7 +3,7 @@ Description=DNS Loadbalancer
 Documentation=man:dnsdist(1)
 Documentation=https://dnsdist.org
 Wants=network-online.target
-After=network-online.target
+After=network-online.target time-sync.target
 
 [Service]
 ExecStartPre=@bindir@/dnsdist --check-config
