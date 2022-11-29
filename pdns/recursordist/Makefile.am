@@ -624,9 +624,6 @@ endif
 if !HAVE_SYSTEMD_PROTECT_PROC
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
 endif
-if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
-	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
-endif
 if !HAVE_SYSTEMD_PRIVATE_IPC
 	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
 endif

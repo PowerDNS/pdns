@@ -42,10 +42,11 @@ RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
 ProtectProc=invisible
-MemoryDenyWriteExecute=true
 PrivateIPC=true
 RemoveIPC=true
 DevicePolicy=closed
+# Not enabled by default because it does not play well with LuaJIT
+# MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target
