@@ -53,7 +53,7 @@ void DNSName::throwSafeRangeError(const std::string& msg, const char* buf, size_
   throw std::range_error(msg + label + dots);
 }
 
-DNSName::DNSName(const std::string_view& sw)
+DNSName::DNSName(const std::string_view sw)
 {
   const char* p = sw.data();
   size_t length = sw.length();
