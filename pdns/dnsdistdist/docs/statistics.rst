@@ -1,7 +1,7 @@
 Statistics
 ==========
 
-dnsdist keeps statistics on the queries is receives and send out. They can be accessed in different ways:
+:program:`dnsdist` keeps statistics on the queries is receives and send out. They can be accessed in different ways:
 
 - via the console (see :ref:`Console`), using :func:`dumpStats` for the general ones,
   :func:`showServers()` for the ones related to the backends, :func:`showBinds()` for the frontends,
@@ -21,7 +21,11 @@ Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
 accounted for in the eBPF statistics, and do not show up in the metrics
 described on this page.
 
-Note that counters that come from /proc/net/ are O.S. Counters. They do not reset on service restart and they are not only related to DNSDist.
+Note that counters that come from ``/proc/net/`` are operating system specific counters.
+They do not reset on service restart and they are not only related to :program:`dnsdist`.
+For more information on these counters, refer to `Linux networking
+counter documention <https://www.kernel.org/doc/html/latest/networking/snmp_counter.html>`_
+and the `RFC1213 <https://datatracker.ietf.org/doc/html/rfc1213>`_.
 
 acl-drops
 ---------
@@ -163,7 +167,7 @@ Number of queries answered in more than 1 second.
 
 latency-sum
 -----------
-Total response time of all queries combined in milliseconds since the start of dnsdist. Can be used to calculate the
+Total response time of all queries combined in milliseconds since the start of :program:`dnsdist`. Can be used to calculate the
 average response time over all queries.
 
 latency-tcp-avg100
@@ -293,7 +297,7 @@ tcp-listen-overflows
 --------------------
 .. versionadded:: 1.6.0
 
-From /proc/net/netstat ListenOverflows.
+From ``/proc/net/netstat`` ``ListenOverflows``.
 
 tcp-query-pipe-full
 -------------------
@@ -307,67 +311,62 @@ udp-in-csum-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp InErrors.
+From ``/proc/net/snmp`` ``InErrors``.
 
 udp-in-errors
 -------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp InErrors.
-Incremented in several cases: no memory in the receive queue, when a bad checksum is seen, and if sk_add_backlog fails to add the datagram.
+From ``/proc/net/snmp`` ``InErrors``.
 
 udp-noport-errors
 -----------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp NoPorts.
-Incremented when UDP packets arrive destined for a port where no program is listening.
+From ``/proc/net/snmp`` ``NoPorts``.
 
 udp-recvbuf-errors
 ------------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp RcvbufErrors.
-Incremented when sock_queue_rcv_skb reports that no memory is available; this happens if sk->sk_rmem_alloc is greater than or equal to sk->sk_rcvbuf.
+From ``/proc/net/snmp`` ``RcvbufErrors``.
 
 udp-sndbuf-errors
 -----------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp SndbufErrors.
-Incremented if the IP protocol layer reported an error when trying to send the packet and no error queue has been setup. Also incremented if no send queue space or kernel memory are available.
+From ``/proc/net/snmp`` ``SndbufErrors``.
 
 udp6-in-csum-errors
 -------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 InErrors.
-Incremented when a UDP checksum failure is detected. Note that in all cases I could find, InCsumErrors is incremented at the same time as InErrors. Thus, InErrors - InCsumErros should yield the count of memory related errors on the receive side.
+From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-in-errors
 --------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 InErrors.
+From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-noport-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 NoPorts.
+From ``/proc/net/snmp6`` ``NoPorts``.
 
 udp6-recvbuf-errors
 -------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 RcvbufErrors.
+From ``/proc/net/snmp6`` ``RcvbufErrors``.
 
 udp6-sndbuf-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 SndbufErrors.
+From ``/proc/net/snmp6`` ``SndbufErrors``.
 
 uptime
 ------
-Uptime of the dnsdist process, in seconds.
+Uptime of the :program:`dnsdist` process, in seconds.
