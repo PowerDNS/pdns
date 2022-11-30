@@ -72,33 +72,23 @@ static void addToDomainMap(SyncRes::domainmap_t& newMap,
 
 static void makeNameToIPZone(SyncRes::domainmap_t& newMap,
                              const DNSName& hostname,
-                             const ComboAddress& address,
-                             Logr::log_t log)
+                             const ComboAddress& address)
 {
-  SyncRes::AuthDomain ad;
   DNSRecord dr;
-
   dr.d_name = hostname;
 
-  if (newMap.count(hostname) != 0) {
-    ad = newMap[hostname];
-  }
-  else {
-    ad = makeSOAAndNSNodes(dr, "localhost.");
+  auto entry = newMap.find(hostname);
+  if (entry == newMap.end()) {
+    auto ad = makeSOAAndNSNodes(dr, "localhost.");
+    ad.d_name = dr.d_name;
+    entry = newMap.insert({dr.d_name, ad}).first;
   }
 
   auto recType = address.isIPv6() ? QType::AAAA : QType::A;
   dr.d_type = recType;
   dr.d_ttl = 86400;
-  dr.d_content = DNSRecordContent::mastermake(recType, 1, address.toStringNoInterface());
-  ad.d_records.insert(dr);
-
-  if (newMap.count(hostname) != 0) {
-    newMap[ad.d_name] = ad;
-  }
-  else {
-    addToDomainMap(newMap, ad, dr.d_name, log);
-  }
+  dr.d_content = DNSRecordContent::mastermake(recType, QClass::IN, address.toStringNoInterface());
+  entry->second.d_records.insert(dr);
 }
 
 static void makeIPToNamesZone(SyncRes::domainmap_t& newMap,
@@ -148,12 +138,12 @@ void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
   // for forward lookups.
   for (auto name = parts.cbegin() + 1; name != parts.cend(); ++name) {
     if (searchSuffix.empty() || name->find('.') != string::npos) {
-      makeNameToIPZone(newMap, DNSName(*name), address, log);
+      makeNameToIPZone(newMap, DNSName(*name), address);
     }
     else {
       DNSName canonical = toCanonic(DNSName(searchSuffix), *name);
       if (canonical != DNSName(*name)) {
-        makeNameToIPZone(newMap, canonical, address, log);
+        makeNameToIPZone(newMap, canonical, address);
       }
     }
   }
