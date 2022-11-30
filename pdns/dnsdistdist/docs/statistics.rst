@@ -1,7 +1,7 @@
 Statistics
 ==========
 
-:program:`dnsdist` keeps statistics on the queries is receives and send out. They can be accessed in different ways:
+:program:`dnsdist` keeps statistics on the queries it receives and send out. They can be accessed in different ways:
 
 - via the console (see :ref:`Console`), using :func:`dumpStats` for the general ones,
   :func:`showServers()` for the ones related to the backends, :func:`showBinds()` for the frontends,
