@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 4 * * *'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: docker build
