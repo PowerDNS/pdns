@@ -1,0 +1,7 @@
+; Written by PowerDNS, don't edit!
+; Zone 'test.com' retrieved from master 
+; at 2022-04-04 19:12:27 +0200
+@	3600	SOA	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+@	3600	A	127.0.0.1
+@	3600	NS	ns1.example.com.
+@	3600	NS	ns2.example.com.

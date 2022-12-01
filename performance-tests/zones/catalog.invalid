@@ -1,0 +1,10 @@
+$TTL 3600
+$ORIGIN catalog.invalid.
+@		IN	SOA	ns1.zone.invalid. hostmaster.zone.invalid. (  1
+			1M ; refresh
+			30S ; retry
+			1W ; expire
+			1D ; default_ttl
+			)
+
+@		IN	NS	ns1.zone.invalid.

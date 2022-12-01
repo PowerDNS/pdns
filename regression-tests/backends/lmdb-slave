@@ -58,7 +58,7 @@ __EOF__
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=lmdb2 --socket-dir=./ --no-shuffle \
-		--secondary --xfr-cycle-interval=15 --dname-processing --api --api-key=secret &
+		--secondary --xfr-cycle-interval=15 --dname-processing --api --api-key=secret $lua_prequery &
 
 	sleep 1
 	$PDNSCONTROL --config-name=lmdb2 --socket-dir=. --no-config retrieve catalog.invalid

@@ -59,3 +59,5 @@ compile_commands.*
 /.cache
 /.clang-tidy
 .gdb_history
+/.idea
+/.vscode
