@@ -15,6 +15,9 @@ on:
         description: OS to build for
         type: string
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: build ${{ github.event.inputs.product }} for ${{ github.event.inputs.os }}
