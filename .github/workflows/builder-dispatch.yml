@@ -34,6 +34,9 @@ on:
         - 'NO'
         - 'YES'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   prepare:
     name: generate OS list
