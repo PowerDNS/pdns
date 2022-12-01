@@ -1,5 +1,9 @@
 name: CIFuzz
 on: [pull_request]
+
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   Fuzzing:
     runs-on: ubuntu-20.04
