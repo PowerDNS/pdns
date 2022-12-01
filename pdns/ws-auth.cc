@@ -1819,7 +1819,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     // no going back after this
     if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
-      throw ApiException("Creating domain '"+zonename.toString()+"' failed");
+      throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
 
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
