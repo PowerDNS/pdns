@@ -12,6 +12,9 @@ on:
       - "**"
     types: ['opened', 'reopened', 'synchronize']
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: Spell checking
