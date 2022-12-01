@@ -24,7 +24,7 @@ described on this page.
 Note that counters that come from ``/proc/net/`` are operating system specific counters.
 They do not reset on service restart and they are not only related to :program:`dnsdist`.
 For more information on these counters, refer to `Linux networking
-counter documention <https://www.kernel.org/doc/html/latest/networking/snmp_counter.html>`_
+counter documentation <https://www.kernel.org/doc/html/latest/networking/snmp_counter.html>`_
 and the `RFC1213 <https://datatracker.ietf.org/doc/html/rfc1213>`_.
 
 acl-drops
