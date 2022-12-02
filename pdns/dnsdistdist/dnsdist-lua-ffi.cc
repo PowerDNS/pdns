@@ -549,13 +549,6 @@ void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq,
   }
 }
 
-void dnsdist_ffi_dnsquestion_add_type_to_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint16_t type)
-{
-  if (dq != nullptr && dq->dq != nullptr) {
-    dq->dq->ids.ttlCapTypes.insert(type);
-  }
-}
-
 size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)
 {
   return list->ffiServers.size();
@@ -646,13 +639,6 @@ void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr,
 {
   if (dr != nullptr && dr->dr != nullptr) {
     dr->dr->ids.ttlCap = max;
-  }
-}
-
-void dnsdist_ffi_dnsresponse_add_type_to_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr, uint16_t type)
-{
-  if (dr != nullptr && dr->dr != nullptr) {
-    dr->dr->ids.ttlCapTypes.insert(type);
   }
 }
 

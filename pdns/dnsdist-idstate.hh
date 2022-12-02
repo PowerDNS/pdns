@@ -117,7 +117,6 @@ struct InternalQueryState
   InternalQueryState& operator=(const InternalQueryState& orig) = delete;
 
   boost::optional<Netmask> subnet{boost::none}; // 40
-  std::unordered_set<QType> ttlCapTypes;
   ComboAddress origRemote; // 28
   ComboAddress origDest; // 28
   ComboAddress hopRemote;

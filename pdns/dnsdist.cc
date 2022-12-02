@@ -554,7 +554,7 @@ bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRu
 
   if (dr.ids.ttlCap > 0) {
     std::string result;
-    LimitTTLResponseAction ac(0, dr.ids.ttlCap, dr.ids.ttlCapTypes);
+    LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
     ac(&dr, &result);
   }
 
@@ -1226,7 +1226,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 
   if (dr.ids.ttlCap > 0) {
     std::string result;
-    LimitTTLResponseAction ac(0, dr.ids.ttlCap, dr.ids.ttlCapTypes);
+    LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
     ac(&dr, &result);
   }
 
