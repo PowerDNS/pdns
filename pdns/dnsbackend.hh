@@ -339,6 +339,9 @@ public:
   //! get a list of IP addresses that should also be notified for a domain
   virtual void alsoNotifies(const DNSName &domain, set<string> *ips)
   {
+    std::vector<std::string> meta;
+    getDomainMetadata(domain, "ALSO-NOTIFY", meta);
+    ips->insert(meta.begin(), meta.end());
   }
 
   //! get list of domains that have been changed since their last notification to slaves

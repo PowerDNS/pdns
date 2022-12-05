@@ -200,7 +200,6 @@ public:
   bool searchComments(const string& pattern, int maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  void alsoNotifies(const DNSName& domain, set<string>* ips) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;

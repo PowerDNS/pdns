@@ -1236,15 +1236,6 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
   return true;
 }
 
-void GSQLBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
-{
-  vector<string> meta;
-  getDomainMetadata(domain, "ALSO-NOTIFY", meta);
-  for(const auto& str: meta) {
-    ips->insert(str);
-  }
-}
-
 bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
   try {
