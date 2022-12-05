@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <unordered_map>
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.
 BOOST_AUTO_TEST_SUITE(test_signers)
 
 struct SignerParams
@@ -348,6 +349,7 @@ static void checkRR(const SignerParams& signer)
 
   string signature = dcke->sign(msg);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
   BOOST_CHECK(dcke->verify(msg, signature));
 
   if (signer.isDeterministic) {
@@ -357,6 +359,7 @@ static void checkRR(const SignerParams& signer)
   else {
     std::string raw;
     B64Decode(signer.rfcB64Signature, raw);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
     BOOST_CHECK(dcke->verify(msg, raw));
   }
 }
@@ -403,6 +406,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   }
 
   auto signature = dcke->sign(message);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
   BOOST_CHECK(dcke->verify(message, signature));
 
   auto signerSignature = std::string(signer.signature.begin(), signer.signature.end());
@@ -414,6 +418,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   else {
     /* since the signing process is not deterministic, we can't directly compare our signature
        with the one we have. Still the one we have should also validate correctly. */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
     BOOST_CHECK(dcke->verify(message, signerSignature));
   }
 
@@ -424,6 +429,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(Base64Encode(dcke->getPubKeyHash()), signer.pubKeyHash);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.
 BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
 {
   for (const auto& algoSignerPair : signerParams) {
@@ -434,6 +440,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     test_generic_signer(dcke, drc, signer, message);
 
     unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
     BOOST_REQUIRE(inputFile.get() != nullptr);
 
     DNSKEYRecordContent pemDRC;
@@ -465,6 +472,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
   }
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.
 BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
   {
     // rfc5155 appendix A
@@ -537,4 +545,5 @@ BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
   }
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.
 BOOST_AUTO_TEST_SUITE_END()
