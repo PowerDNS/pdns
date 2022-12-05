@@ -878,13 +878,6 @@ void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, b
   }
 }
 
-void RemoteBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
-{
-  std::vector<std::string> meta;
-  getDomainMetadata(domain, "ALSO-NOTIFY", meta);
-  ips->insert(meta.begin(), meta.end());
-}
-
 void RemoteBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   Json query = Json::object{
