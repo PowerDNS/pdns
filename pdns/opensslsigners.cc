@@ -1817,7 +1817,7 @@ public:
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string> *errorMessages) const override;
+  bool checkKey(vector<string>* errorMessages) const override;
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -1828,7 +1828,7 @@ private:
   size_t d_len{0};
   int d_id{0};
 
-  std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> d_edkey;
+  std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> d_edkey;
 };
 
 bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
@@ -1875,12 +1875,12 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   string algorithm;
 
 #ifdef HAVE_LIBCRYPTO_ED25519
-  if(d_algorithm == 15) {
+  if (d_algorithm == 15) {
     algorithm = "15 (ED25519)";
   }
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-  if(d_algorithm == 16) {
+  if (d_algorithm == 16) {
     algorithm = "16 (ED448)";
   }
 #endif
@@ -1917,9 +1917,10 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   signature.resize(siglen);
 
   if (EVP_DigestSign(mdctx.get(),
-        reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
-        reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
-    throw runtime_error(getName()+" signing error");
+                     reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
+                     reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length())
+      < 1) {
+    throw runtime_error(getName() + " signing error");
   }
 
   return signature;
@@ -1939,10 +1940,10 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   string checkMsg = msg;
 
   auto r = EVP_DigestVerify(mdctx.get(),
-      reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
-      reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
+                            reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
+                            reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
   if (r < 0) {
-    throw runtime_error(getName()+" verification failure");
+    throw runtime_error(getName() + " verification failure");
   }
 
   return (r == 1);
@@ -1956,6 +1957,7 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
   if (EVP_PKEY_get_raw_public_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw std::runtime_error(getName() + " unable to get public key from key struct");
   }
+
   return buf;
 }
 
