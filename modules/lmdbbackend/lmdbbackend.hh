@@ -113,6 +113,7 @@ public:
     }
     return false;
   }
+  void alsoNotifies(const DNSName& domain, set<string>* ips) override;
 
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
   bool setAccount(const DNSName& domain, const std::string& account) override;
