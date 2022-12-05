@@ -1862,6 +1862,13 @@ bool LMDBBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
   return true;
 }
 
+void LMDBBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
+{
+  std::vector<std::string> meta;
+  getDomainMetadata(domain, "ALSO-NOTIFY", meta);
+  ips->insert(meta.begin(), meta.end());
+}
+
 class LMDBFactory : public BackendFactory
 {
 public:
