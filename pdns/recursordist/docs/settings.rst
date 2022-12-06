@@ -1,16 +1,17 @@
 PowerDNS Recursor Settings
 ==========================
-Each setting can appear on the command line, prefixed by '--', or in the configuration file.
+Each setting can appear on the command line, prefixed by ``--``, or in the configuration file.
 The command line overrides the configuration file.
 
-**Note**: Settings marked as 'Boolean' can either be set to an empty value, which means on, or to 'no' or 'off' which means off.
-Anything else means on.
+.. note::
+   Settings marked as ``Boolean`` can either be set to an empty value, which means **on**, or to ``no`` or ``off`` which means **off**.
+   Anything else means **on**.
 
-As an example:
+   For example:
 
- - ``serve-rfc1918`` on its own means: do serve those zones.
- - ``serve-rfc1918=off`` or ``serve-rfc1918=no`` means: do not serve those zones.
- - Anything else means: do serve those zones.
+   - ``serve-rfc1918`` on its own means: do serve those zones.
+   - ``serve-rfc1918 = off`` or ``serve-rfc1918 = no`` means: do not serve those zones.
+   - Anything else means: do serve those zones.
 
 You can use ``+=`` syntax to set some variables incrementally, but this
 requires you to have at least one non-incremental setting for the
@@ -20,6 +21,14 @@ variable to act as base setting. This is mostly useful for
   forward-zones = foo.example.com=192.168.100.1;
   forward-zones += bar.example.com=[1234::abcde]:5353;
 
+When a list of **Netmasks** is mentioned, a list of subnets can be specified.
+A subnet that is not followed by ``/`` will be interpreted as a ``/32`` or ``/128`` subnet (a single address), depending on address family.
+For most settings, it is possible to exclude ranges by prefixing an item with the negation character ``!``.
+For example::
+
+  allow-from = 2001:DB8::/32, 128.66.0.0/16, !128.66.1.2
+
+In this case the addresss ``128.66.1.2`` is excluded from the addresses allowed access.
 
 .. _setting-aggressive-nsec-cache-size:
 
@@ -37,7 +46,7 @@ To use this, DNSSEC processing or validation must be enabled by setting `dnssec`
 
 ``allow-from``
 --------------
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10
 
 Netmasks (both IPv4 and IPv6) that are allowed to use the server.
@@ -92,7 +101,7 @@ NOTIFY-allowed zones can also be specified using `forward-zones-file`_.
 ---------------------
 .. versionadded:: 4.6.0
 
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: unset
 
 Netmasks (both IPv4 and IPv6) that are allowed to issue NOTIFY operations
@@ -362,7 +371,7 @@ Any servers' name suffix-matching the supplied names will never be throttled.
 ----------------------------
 .. versionadded:: 4.2.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation not supported
 -  Default: (empty)
 
 When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
@@ -522,7 +531,7 @@ Log every DNSSEC validation failure.
 
 ``dont-query``
 --------------
--  Netmasks, comma separated
+-  Netmasks, comma separated, negation supported
 -  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10, 0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32
 
 The DNS is a public database, but sometimes contains delegations to private IP addresses, like for example 127.0.0.1.
@@ -538,7 +547,7 @@ Queries for names in forward zones and to addresses as configured in any of the 
 ---------------
 .. versionadded:: 4.2.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation supported
 -  Default: 0.0.0.0/0, ::/0, !127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10
 
 List of requestor netmasks for which the requestor IP Address should be used as the :rfc:`EDNS Client Subnet <7871>` for outgoing queries. Outgoing queries for requestors that do not match this list will use the `ecs-scope-zero-address`_ instead.
@@ -686,7 +695,7 @@ Lower this if you experience timeouts.
 ---------------------
 .. versionadded:: 4.5.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation supported
 -  Default: (none)
 
 List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
@@ -739,7 +748,7 @@ effectively divides the packet cache in two when `edns-padding-from`_ is used. N
 --------------------------
 .. versionadded:: 4.5.0
 
--  Comma separated list of domain names and netmasks
+-  Comma separated list of domain names and netmasks, negation supported
 -  Default: (none)
 
 List of netmasks and domains that :rfc:`EDNS Client Subnet <7871>` should be enabled for in outgoing queries.
@@ -1603,7 +1612,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 -----------------------
 .. versionadded:: 4.4.0
 
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: empty
 
 Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
@@ -2379,7 +2388,7 @@ IP address for the webserver to listen on.
 
 ``webserver-allow-from``
 ------------------------
--  IP addresses or netmasks, comma separated
+-  IP addresses or netmasks, comma separated, negation supported
 -  Default: 127.0.0.1,::1
 
 .. versionchanged:: 4.1.0
