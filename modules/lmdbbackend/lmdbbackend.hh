@@ -101,7 +101,6 @@ public:
     }
     return false;
   }
-  void alsoNotifies(const DNSName& domain, set<string>* ips) override;
 
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
   void setStale(uint32_t domain_id) override;
