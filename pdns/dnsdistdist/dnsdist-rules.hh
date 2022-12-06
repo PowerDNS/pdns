@@ -403,11 +403,12 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
-    auto iter = d_rules.begin();
-    for(; iter != d_rules.end(); ++iter)
-      if(!(*iter)->matches(dq))
-        break;
-    return iter == d_rules.end();
+    for (const auto& rule : d_rules) {
+      if (!rule->matches(dq)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   string toString() const override
@@ -438,10 +439,11 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
-    auto iter = d_rules.begin();
-    for(; iter != d_rules.end(); ++iter)
-      if((*iter)->matches(dq))
+    for (const auto& rule: d_rules) {
+      if (rule->matches(dq)) {
         return true;
+      }
+    }
     return false;
   }
 
