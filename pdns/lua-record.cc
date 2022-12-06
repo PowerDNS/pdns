@@ -100,6 +100,10 @@ private:
       if (cd.opts.count("useragent")) {
         useragent = cd.opts.at("useragent");
       }
+      size_t byteslimit = 0;
+      if (cd.opts.count("byteslimit")) {
+        byteslimit = static_cast<size_t>(std::atoi(cd.opts.at("byteslimit").c_str()));
+      }
       MiniCurl mc(useragent);
 
       string content;
@@ -113,10 +117,10 @@ private:
 
       if (cd.opts.count("source")) {
         ComboAddress src(cd.opts.at("source"));
-        content=mc.getURL(cd.url, rem, &src, timeout);
+        content=mc.getURL(cd.url, rem, &src, timeout, false, false, byteslimit);
       }
       else {
-        content=mc.getURL(cd.url, rem, nullptr, timeout);
+        content=mc.getURL(cd.url, rem, nullptr, timeout, false, false, byteslimit);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
