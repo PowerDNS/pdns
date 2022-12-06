@@ -1,5 +1,8 @@
 *.a.b.c.test.com.	3600	IN	NSEC	counter.test.com. A RRSIG NSEC
 *.test.test.com.	3600	IN	NSEC	sub.test.test.com. CNAME RRSIG NSEC
+10.order.test.com.	3600	IN	NSEC	100.order.test.com. A RRSIG NSEC
+100.order.test.com.	3600	IN	NSEC	15.order.test.com. A RRSIG NSEC
+15.order.test.com.	3600	IN	NSEC	server1.test.com. A RRSIG NSEC
 _double._tcp.dc.test.com.	3600	IN	NSEC	_ldap._tcp.dc.test.com. SRV RRSIG NSEC
 _ldap._tcp.dc.test.com.	3600	IN	NSEC	_root._tcp.dc.test.com. SRV RRSIG NSEC
 _root._tcp.dc.test.com.	3600	IN	NSEC	enum.test.com. SRV RRSIG NSEC
@@ -13,7 +16,7 @@ enum.test.com.	3600	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC
 hightxt.test.com.	3600	IN	NSEC	interrupted-rrset.test.com. TXT RRSIG NSEC SPF
 interrupted-rrset.test.com.	3600	IN	NSEC	ns1.test.com. A TXT RRSIG NSEC
 ns1.test.com.	3600	IN	NSEC	ns2.test.com. A RRSIG NSEC
-ns2.test.com.	3600	IN	NSEC	server1.test.com. A RRSIG NSEC
+ns2.test.com.	3600	IN	NSEC	10.order.test.com. A RRSIG NSEC
 server1.test.com.	3600	IN	NSEC	*.test.test.com. A RP RRSIG NSEC
 sub.test.test.com.	3600	IN	NSEC	www.test.test.com. NS RRSIG NSEC
 test.com.	3600	IN	NSEC	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY

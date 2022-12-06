@@ -41,3 +41,8 @@ urc65226	IN	TYPE65226 \# 3 414243
 interrupted-rrset	IN	A	1.1.1.1
 interrupted-rrset	IN	TXT	"check AXFR signpipe"
 interrupted-rrset	IN	A	2.2.2.2
+
+; ordername sorting
+10.order IN A 192.168.0.1
+15.order IN A 192.168.0.1
+100.order IN A 192.168.0.1
