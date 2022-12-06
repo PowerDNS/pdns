@@ -707,6 +707,29 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['serial'], 0)
         self.assertEqual(data['rrsets'], [])
 
+    def test_create_consumer_zone(self):
+        # Test that nameservers can be absent for consumer zones.
+        name, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEqual(data[k], payload[k])
+        print("payload:", payload)
+        print("data:", data)
+        # Because consumer zones don't get a SOA, we need to test that they'll show up in the zone list.
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        zonelist = r.json()
+        print("zonelist:", zonelist)
+        self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
+        # Also test that fetching the zone works.
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        data = r.json()
+        print("zone (fetched):", data)
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEqual(data[k], payload[k])
+        self.assertEqual(data['serial'], 0)
+        self.assertEqual(data['rrsets'], [])
+
     def test_find_zone_by_name(self):
         name = 'foo/' + unique_zone_name()
         name, payload, data = self.create_zone(name=name)
@@ -717,6 +740,11 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_delete_slave_zone(self):
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        r.raise_for_status()
+
+    def test_delete_consumer_zone(self):
+        name, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data['id']))
         r.raise_for_status()
 
