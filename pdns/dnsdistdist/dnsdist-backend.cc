@@ -377,6 +377,10 @@ void DownstreamState::reportTimeoutOrError()
 
 void DownstreamState::handleUDPTimeouts()
 {
+  if (getProtocol() != dnsdist::Protocol::DoUDP) {
+    return;
+  }
+
   if (s_randomizeIDs) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {

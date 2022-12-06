@@ -1526,7 +1526,7 @@ void tcpAcceptorThread(std::vector<ClientState*> states)
 
     struct timeval tv;
     while (true) {
-      mplexer->run(&tv);
+      mplexer->run(&tv, -1);
     }
   }
 }
