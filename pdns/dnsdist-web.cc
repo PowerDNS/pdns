@@ -833,6 +833,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   addRulesToPrometheusOutput(output, g_ruleactions);
   addRulesToPrometheusOutput(output, g_respruleactions);
   addRulesToPrometheusOutput(output, g_cachehitrespruleactions);
+  addRulesToPrometheusOutput(output, g_cacheInsertedRespRuleActions);
   addRulesToPrometheusOutput(output, g_selfansweredrespruleactions);
 
 #ifndef DISABLE_DYNBLOCKS
@@ -1195,6 +1196,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
   auto responseRules = someResponseRulesToJson(&g_respruleactions);
   auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitrespruleactions);
+  auto cacheInsertedResponseRules = someResponseRulesToJson(&g_cacheInsertedRespRuleActions);
   auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredrespruleactions);
 
   string acl;
@@ -1236,6 +1238,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     { "rules", std::move(rules) },
     { "response-rules", std::move(responseRules) },
     { "cache-hit-response-rules", std::move(cacheHitResponseRules) },
+    { "cache-inserted-response-rules", std::move(cacheInsertedResponseRules) },
     { "self-answered-response-rules", std::move(selfAnsweredResponseRules) },
     { "acl", std::move(acl) },
     { "local", std::move(localaddressesStr) },

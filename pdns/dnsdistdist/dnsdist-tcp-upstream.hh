@@ -6,12 +6,14 @@
 class TCPClientThreadData
 {
 public:
-  TCPClientThreadData(): localRespRuleActions(g_respruleactions.getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+  TCPClientThreadData():
+    localRespRuleActions(g_respruleactions.getLocal()), localCacheInsertedRespRuleActions(g_cacheInsertedRespRuleActions.getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
 
   LocalHolders holders;
-  LocalStateHolder<vector<DNSDistResponseRuleAction> > localRespRuleActions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   int crossProtocolResponsesPipe{-1};
 };

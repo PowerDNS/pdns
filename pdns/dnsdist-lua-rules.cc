@@ -272,6 +272,22 @@ void setupLuaRules(LuaContext& luaCtx)
       mvRule(&g_cachehitrespruleactions, from, to);
     });
 
+  luaCtx.writeFunction("showCacheInsertedResponseRules", [](boost::optional<ruleparams_t> vars) {
+    showRules(&g_cacheInsertedRespRuleActions, vars);
+  });
+
+  luaCtx.writeFunction("rmCacheInsertedResponseRule", [](boost::variant<unsigned int, std::string> id) {
+    rmRule(&g_cacheInsertedRespRuleActions, id);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRuleToTop", []() {
+    moveRuleToTop(&g_cacheInsertedRespRuleActions);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRule", [](unsigned int from, unsigned int to) {
+    mvRule(&g_cacheInsertedRespRuleActions, from, to);
+  });
+
   luaCtx.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_selfansweredrespruleactions, vars);
     });

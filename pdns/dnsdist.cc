@@ -135,6 +135,7 @@ std::vector<uint32_t> g_TCPFastOpenKey;
 GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cacheInsertedRespRuleActions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
 
 Rings g_rings;
@@ -477,15 +478,15 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 }
 #endif /* HAVE_DNSCRYPT */
 
-static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr)
+static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& respRuleActions, DNSResponse& dr)
 {
-  DNSResponseAction::Action action=DNSResponseAction::Action::None;
+  DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
-  for(const auto& lr : *localRespRuleActions) {
-    if(lr.d_rule->matches(&dr)) {
+  for (const auto& lr : respRuleActions) {
+    if (lr.d_rule->matches(&dr)) {
       lr.d_rule->d_matches++;
-      action=(*lr.d_action)(&dr, &ruleresult);
-      switch(action) {
+      action = (*lr.d_action)(&dr, &ruleresult);
+      switch (action) {
       case DNSResponseAction::Action::Allow:
         return true;
         break;
@@ -514,9 +515,9 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
 
 // whether the query was received over TCP or not (for rules, dnstap, protobuf, ...) will be taken from the DNSResponse, but receivedOverUDP is used to insert into the cache,
 // so that answers received over UDP for DoH are still cached with UDP answers.
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP)
+bool processResponse(PacketBuffer& response, const vector<DNSDistResponseRuleAction>& respRuleActions, const vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP)
 {
-  if (!applyRulesToResponse(localRespRuleActions, dr)) {
+  if (!applyRulesToResponse(respRuleActions, dr)) {
     return false;
   }
 
@@ -547,6 +548,10 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
     }
 
     dr.packetCache->insert(cacheKey, zeroScope ? boost::none : dr.subnet, dr.cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, receivedOverUDP, dr.getHeader()->rcode, dr.tempFailureTTL);
+
+    if (!applyRulesToResponse(insertedRespRuleActions, dr)) {
+      return false;
+    }
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -637,6 +642,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   try {
   setThreadName("dnsdist/respond");
   auto localRespRuleActions = g_respruleactions.getLocal();
+  auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
   const size_t initialBufferSize = getInitialUDPPacketBufferSize();
   PacketBuffer response(initialBufferSize);
 
@@ -744,7 +750,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         }
         memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-        if (!processResponse(response, localRespRuleActions, dr, ids->cs && ids->cs->muted, true)) {
+        if (!processResponse(response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, ids->cs && ids->cs->muted, true)) {
           dss->releaseState(queryId);
           continue;
         }
@@ -1233,7 +1239,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
   dr.qTag = std::move(dq.qTag);
   dr.delayMsec = dq.delayMsec;
 
-  if (!applyRulesToResponse(cacheHit ? holders.cacheHitRespRuleactions : holders.selfAnsweredRespRuleactions, dr)) {
+  if (!applyRulesToResponse(cacheHit ? *holders.cacheHitRespRuleactions : *holders.selfAnsweredRespRuleactions, dr)) {
     return false;
   }
 
@@ -1413,6 +1419,7 @@ public:
     auto& ids = response.d_idstate;
 
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
     DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
     if (response.d_buffer.size() > d_payloadSize) {
       vinfolog("Got a response of size %d over TCP, while the initial UDP payload size was %d, truncating", response.d_buffer.size(), d_payloadSize);
@@ -1423,7 +1430,7 @@ public:
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-    if (!processResponse(response.d_buffer, localRespRuleActions, dr, false, true)) {
+    if (!processResponse(response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false, true)) {
       return;
     }
 
