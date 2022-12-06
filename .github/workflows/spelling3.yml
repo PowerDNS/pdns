@@ -22,8 +22,14 @@ jobs:
   spelling:
     name: Spell checking
     permissions:
+      # contents-read is needed to checkout in private repositories
       contents: read
+      # actions-read is needed (possibly only for private repositories)
+      # to identify the workflow's filename until
+      # https://github.com/actions/runner/issues/853 is fixed
       actions: read
+      # security-events-write is needed according to the documentation:
+      # https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github#uploading-a-code-scanning-analysis-with-github-actions
       security-events: write
     outputs:
       followup: ${{ steps.spelling.outputs.followup }}
