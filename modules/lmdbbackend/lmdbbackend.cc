@@ -1097,6 +1097,7 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
 
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+
     if (!iter->isPrimaryType()) {
       continue;
     }
@@ -1107,13 +1108,16 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       continue; // Producer fresness check is performed elsewhere
     }
 
+    di = *iter;
+    di.id = iter.getID();
+
     if (!iter->catalog.empty()) {
       ci.fromJson(iter->options, CatalogInfo::CatalogType::Producer);
-      ci.updateHash(catalogHashes, *iter);
+      ci.updateHash(catalogHashes, di);
     }
 
-    di = *iter;
     if (getSerial(di) && di.serial != di.notified_serial) {
+      di.backend = this;
       updatedDomains.emplace_back(di);
     }
   }
@@ -1122,7 +1126,7 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
 void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   genChangeDomain(domain_id, [serial](DomainInfo& di) {
-    di.serial = serial;
+    di.notified_serial = serial;
   });
 }
 
