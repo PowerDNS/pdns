@@ -1593,16 +1593,13 @@ static void registerAllStats1()
 
 void registerAllStats()
 {
-  static std::once_flag s_once;
-  std::call_once(s_once, []() {
-    try {
-      registerAllStats1();
-    }
-    catch (...) {
-      g_log << Logger::Critical << "Could not add stat entries" << endl;
-      exit(1);
-    }
-  });
+  try {
+    registerAllStats1();
+  }
+  catch (...) {
+    g_log << Logger::Critical << "Could not add stat entries" << endl;
+    exit(1);
+  }
 }
 
 void doExitGeneric(bool nicely)

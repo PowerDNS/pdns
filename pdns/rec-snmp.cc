@@ -271,10 +271,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   SNMPAgent(name, masterSocket)
 {
 #ifdef HAVE_NET_SNMP
-  /* This is done so that the statistics maps are
-     initialized. */
-  registerAllStats();
-
   registerCounter64Stat("questions", questionsOID, OID_LENGTH(questionsOID));
   registerCounter64Stat("ipv6-questions", ipv6QuestionsOID, OID_LENGTH(ipv6QuestionsOID));
   registerCounter64Stat("tcp-questions", tcpQuestionsOID, OID_LENGTH(tcpQuestionsOID));
