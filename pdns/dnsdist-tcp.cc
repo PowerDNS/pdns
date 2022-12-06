@@ -1408,17 +1408,19 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
   ComboAddress remote;
   remote.sin4.sin_family = param.local.sin4.sin_family;
 
-  std::unique_ptr<ConnectionInfo> ci;
   tcpClientCountIncremented = false;
   try {
     socklen_t remlen = remote.getSocklen();
-    ci = std::make_unique<ConnectionInfo>(&cs);
+    ConnectionInfo ci(&cs);
 #ifdef HAVE_ACCEPT4
-    ci->fd = accept4(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
+    ci.fd = accept4(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
 #else
-    ci->fd = accept(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
+    ci.fd = accept(socket, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
-    if (ci->fd < 0) {
+    // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
+    auto concurrentConnections = ++cs.tcpCurrentConnections;
+
+    if (ci.fd < 0) {
       throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
     }
 
@@ -1428,8 +1430,6 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       return;
     }
 
-    // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
-    auto concurrentConnections = ++cs.tcpCurrentConnections;
     if (cs.d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs.d_tcpConcurrentConnectionsLimit) {
       return;
     }
@@ -1439,12 +1439,12 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     }
 
 #ifndef HAVE_ACCEPT4
-    if (!setNonBlocking(ci->fd)) {
+    if (!setNonBlocking(ci.fd)) {
       return;
     }
 #endif
 
-    setTCPNoDelay(ci->fd);  // disable NAGLE
+    setTCPNoDelay(ci.fd);  // disable NAGLE
 
     if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
       vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
@@ -1464,9 +1464,9 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 
     vinfolog("Got TCP connection from %s", remote.toStringWithPort());
 
-    ci->remote = remote;
+    ci.remote = remote;
     if (threadData == nullptr) {
-      if (!g_tcpclientthreads->passConnectionToThread(std::move(ci))) {
+      if (!g_tcpclientthreads->passConnectionToThread(std::make_unique<ConnectionInfo>(std::move(ci)))) {
         if (tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
@@ -1475,7 +1475,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     else {
       struct timeval now;
       gettimeofday(&now, nullptr);
-      auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*ci), *threadData, now);
+      auto state = std::make_shared<IncomingTCPConnectionState>(std::move(ci), *threadData, now);
       IncomingTCPConnectionState::handleIO(state, now);
     }
   }
