@@ -133,6 +133,10 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
   }
 
+  if(mdp.d_header.tc) {
+    throw ResolverException("AXFR chunk had TC bit set");
+  }
+
   try {
     d_tsigVerifier.check(std::string(d_buf.get(), len), mdp);
   }
