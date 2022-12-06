@@ -49,7 +49,7 @@ jobs:
       # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-oslist
-        run: echo "::set-output name=oslist::"$(jo -a ${{ github.event.inputs.os }})
+        run: echo "oslist=$(jo -a ${{ github.event.inputs.os }})" >> "$GITHUB_OUTPUT"
 
   build:
     needs: prepare
