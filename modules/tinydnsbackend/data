@@ -20167,6 +20167,9 @@ Zexample.com:ns1.example.com.:ahu.example.com.:2847484148:28800:7200:604800:8640
 &sub.test.test.com::ns-test.example.net.test.com.:3600
 &test.com::ns1.test.com.:3600
 &test.com::ns2.test.com.:3600
++10.order.test.com:192.168.0.1:3600
++100.order.test.com:192.168.0.1:3600
++15.order.test.com:192.168.0.1:3600
 +\052.a.b.c.test.com:8.7.6.5:3600
 +b.c.test.com:5.6.7.8:3600
 +blah.test.com:192.168.6.1:3600
