@@ -1626,6 +1626,11 @@ void startDoResolve(void* p)
                                           dq.validationState,
                                           std::move(pbDataForCache), dc->d_tcp);
     }
+
+    if (g_regressionTestMode) {
+      t_Counters.updateSnap(g_regressionTestMode);
+    }
+
     if (!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
@@ -1807,9 +1812,6 @@ void startDoResolve(void* p)
          sr.d_slog->info(Logr::Error, "Any other exception in a resolver context"));
   }
 
-  if (g_regressionTestMode) {
-    t_Counters.updateSnap(g_regressionTestMode);
-  }
   runTaskOnce(g_logCommonErrors);
 
   t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(MT->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
