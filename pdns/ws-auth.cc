@@ -656,7 +656,8 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
   }
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
+// Must be called within backend transaction.
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<DNSName> catalog;
@@ -691,7 +692,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
 
   DNSSECKeeper dk(&B);
-  bool shouldRectify = false;
+  bool shouldRectify = zoneWasModified;
   bool dnssecInJSON = false;
   bool dnssecDocVal = false;
   bool nsec3paramInJSON = false;
@@ -802,7 +803,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     if (api_rectify == "1") {
       string info;
       string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, rectifyTransaction)) {
+      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
         throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
@@ -1707,15 +1708,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave)
       throw ApiException("Nameservers is not a list");
 
-    string soa_edit_api_kind;
-    if (document["soa_edit_api"].is_string()) {
-      soa_edit_api_kind = document["soa_edit_api"].string_value();
-    }
-    else {
-      soa_edit_api_kind = "DEFAULT";
-    }
-    string soa_edit_kind = document["soa_edit"].string_value();
-
     // if records/comments are given, load and check them
     bool have_soa = false;
     bool have_zone_ns = false;
@@ -1751,7 +1743,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
         have_soa = true;
-        increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
       if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
         have_zone_ns = true;
@@ -1773,7 +1764,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       sd.serial=document["serial"].int_value();
       autorr.qtype = QType::SOA;
       autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
-      increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
+      // updateDomainSettingsFromDocument will apply SOA-EDIT-API as needed
       new_records.push_back(autorr);
     }
 
@@ -1826,10 +1817,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->startTransaction(zonename, di.id);
 
-    // updateDomainSettingsFromDocument does NOT fill out the default we've established above.
-    if (!soa_edit_api_kind.empty()) {
-      di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
-    }
+    // will be overridden by updateDomainSettingsFromDocument, if given in document.
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
     for(auto rr : new_records) {
       rr.domain_id = di.id;
@@ -1840,7 +1829,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(B, di, zonename, document, false);
+    updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
 
     di.backend->commitTransaction();
 

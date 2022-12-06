@@ -6,7 +6,7 @@ import unittest
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify, sdig
 
 
 def get_rrset(data, qname, qtype):
@@ -591,10 +591,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_dnssec_serial(self):
         """
-        Create a zone set/unset "dnssec" and see if the serial was increased
+        Create a zone, then set and unset "dnssec", then check if the serial was increased
         after every step
         """
-        name = unique_zone_name()
         name, payload, data = self.create_zone()
 
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
@@ -2077,9 +2076,8 @@ $ORIGIN %NAME%
         self.assertEqual(len(r.json()), 5)
 
     @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
-    def test_default_api_rectify(self):
+    def test_default_api_rectify_dnssec(self):
         name = unique_zone_name()
-        search = name.split('.')[0]
         rrsets = [
             {
                 "name": 'a.' + name,
@@ -2103,6 +2101,35 @@ $ORIGIN %NAME%
         self.create_zone(name=name, rrsets=rrsets, dnssec=True, nsec3param='1 0 1 ab')
         dbrecs = get_db_records(name, 'AAAA')
         self.assertIsNotNone(dbrecs[0]['ordername'])
+
+    def test_default_api_rectify_nodnssec(self):
+        """Without any DNSSEC settings, rectify should still add ENTs. Setup the zone
+        so ENTs are necessary, and check for their existence using sdig.
+        """
+        name = unique_zone_name()
+        rrsets = [
+            {
+                "name": 'a.sub.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::1",
+                    "disabled": False,
+                }],
+            },
+            {
+                "name": 'b.sub.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::2",
+                    "disabled": False,
+                }],
+            },
+        ]
+        self.create_zone(name=name, rrsets=rrsets)
+        # default-api-rectify is yes (by default). expect rectify to have happened.
+        assert 'Rcode: 0 ' in sdig('sub.' + name, 'TXT')
 
     @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_override_api_rectify(self):
