@@ -135,7 +135,7 @@ public:
 
   const static uint16_t rfc6895MetaLowerBound = 128;
   const static uint16_t rfc6895MetaUpperBound = 254; // Note 255: ANY is not included
-  const static uint16_t rfc6896Reserved = 65535;
+  const static uint16_t rfc6895Reserved = 65535;
 
   const static map<const string, uint16_t> names;
   const static map<uint16_t, const string> numbers;
