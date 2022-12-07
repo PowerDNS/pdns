@@ -361,11 +361,10 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
     throw std::runtime_error("Unable to get memory lock limit: " + stringerror());
   }
 
-  const rlim_t minimal_limit_size = 64 * 124;
   const rlim_t new_limit_size = 1024 * 1024;
 
-  /* Check if the current soft memlock limit is at least minimal_limit */
-  if (old_limit.rlim_cur < minimal_limit_size) {
+  /* Check if the current soft memlock limit is at least the limit */
+  if (old_limit.rlim_cur < new_limit_size) {
     infolog("The current limit of locked memory (soft: %d, hard: %d) is too low for eBPF, trying to raise it to %d", old_limit.rlim_cur, old_limit.rlim_max, new_limit_size);
 
     struct rlimit new_limit;
