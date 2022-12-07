@@ -1,14 +1,14 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#include <stdio.h>
+#include <cstdio>
 
 #include "test-syncres_cc.hh"
 #include "reczones-helpers.hh"
 
 BOOST_AUTO_TEST_SUITE(reczones_helpers)
 
-static const std::array<std::string, 9> hostLines = {
+static const std::array<std::string, 10> hostLines = {
   "192.168.0.1             foo bar\n",
   "192.168.0.1             dupfoo\n",
   "192.168.0.2             baz\n",
@@ -16,6 +16,7 @@ static const std::array<std::string, 9> hostLines = {
   "2.2.2.2                 more.fancy\n",
   "2001:db8::567:89ab      foo6 bar6\n",
   "2001:db8::567:89ab      dupfoo6\n",
+  "127.0.0.1               localhost\n",
   "::1                     localhost self\n",
   "2001:db8::567:89ac      some.address.somewhere some some.address\n",
 };
@@ -80,7 +81,7 @@ struct Fixture
       {
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.0.168.192.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
-        DNSRecord("1.0.168.192.in-addr.arpa", makePtrDRC("foo."), QType::PTR),
+        DNSRecord("1.0.168.192.in-addr.arpa", makePtrDRC("foo" + actualSearchSuffix), QType::PTR),
       });
     addDomainMapFixtureEntry(domainMap, "baz" + actualSearchSuffix, QType::A, "192.168.0.2");
     addDomainMapFixtureEntry(
@@ -89,7 +90,7 @@ struct Fixture
       {
         DNSRecord("2.0.168.192.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("2.0.168.192.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
-        DNSRecord("2.0.168.192.in-addr.arpa", makePtrDRC("baz."), QType::PTR),
+        DNSRecord("2.0.168.192.in-addr.arpa", makePtrDRC("baz" + actualSearchSuffix), QType::PTR),
       });
     addDomainMapFixtureEntry(domainMap, "fancy" + actualSearchSuffix, QType::A, "1.1.1.1");
     addDomainMapFixtureEntry(
@@ -98,7 +99,7 @@ struct Fixture
       {
         DNSRecord("1.1.1.1.in-addr.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.1.1.1.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
-        DNSRecord("1.1.1.1.in-addr.arpa", makePtrDRC("fancy."), QType::PTR),
+        DNSRecord("1.1.1.1.in-addr.arpa", makePtrDRC("fancy" + actualSearchSuffix), QType::PTR),
       });
     addDomainMapFixtureEntry(domainMap, "more.fancy", QType::A, "2.2.2.2");
     addDomainMapFixtureEntry(
@@ -119,10 +120,16 @@ struct Fixture
       {
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
-        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("foo6."), QType::PTR),
+        DNSRecord("b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", makePtrDRC("foo6" + actualSearchSuffix), QType::PTR),
       });
 
-    addDomainMapFixtureEntry(domainMap, "localhost" + actualSearchSuffix, QType::AAAA, "::1");
+    addDomainMapFixtureEntry(
+      domainMap,
+      "localhost" + actualSearchSuffix,
+      {DNSRecord("localhost" + actualSearchSuffix, makeLocalhostDRC(), QType::NS),
+       DNSRecord("localhost" + actualSearchSuffix, makeLocalhostRootDRC(), QType::SOA),
+       DNSRecord("localhost" + actualSearchSuffix, DNSRecordContent::mastermake(QType::AAAA, QClass::IN, "::1"), QType::AAAA),
+       DNSRecord("localhost" + actualSearchSuffix, DNSRecordContent::mastermake(QType::A, QClass::IN, "127.0.0.1"), QType::A)});
     addDomainMapFixtureEntry(domainMap, "self" + actualSearchSuffix, QType::AAAA, "::1");
     addDomainMapFixtureEntry(
       domainMap,
@@ -130,7 +137,15 @@ struct Fixture
       {
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostDRC(), QType::NS),
         DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makeLocalhostRootDRC(), QType::SOA),
-        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("localhost."), QType::PTR),
+        DNSRecord("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", makePtrDRC("localhost" + actualSearchSuffix), QType::PTR),
+      });
+    addDomainMapFixtureEntry(
+      domainMap,
+      "1.0.0.127.in-addr.arpa",
+      {
+        DNSRecord("1.0.0.127.in-addr.arpa", makeLocalhostDRC(), QType::NS),
+        DNSRecord("1.0.0.127.in-addr.arpa", makeLocalhostRootDRC(), QType::SOA),
+        DNSRecord("1.0.0.127.in-addr.arpa", makePtrDRC("localhost" + actualSearchSuffix), QType::PTR),
       });
 
     addDomainMapFixtureEntry(domainMap, "some" + actualSearchSuffix, QType::AAAA, "2001:db8::567:89ac");

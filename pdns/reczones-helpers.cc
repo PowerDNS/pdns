@@ -149,7 +149,13 @@ void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
   }
 
   // Add entries for the primary name for reverse lookups.
-  makeIPToNamesZone(newMap, address, parts[1], log);
+  if (searchSuffix.empty() || parts[1].find('.') != string::npos) {
+    makeIPToNamesZone(newMap, address, parts[1], log);
+  }
+  else {
+    DNSName canonical = toCanonic(DNSName(searchSuffix), parts[1]);
+    makeIPToNamesZone(newMap, address, canonical.toString(), log);
+  }
 }
 
 bool parseEtcHostsLine(std::vector<std::string>& parts, std::string& line)
