@@ -20,7 +20,9 @@ class TestSNMP(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s", name="servername"}
     snmpAgent(true)
+    setVerboseHealthChecks(true)
     """
+    _verboseMode = True
 
     def _checkStatsValues(self, results, queriesCountersValue):
         for i in list(range(1, 5)) + list(range(6, 20)) + list(range(24, 35)) + [ 35 ] :
