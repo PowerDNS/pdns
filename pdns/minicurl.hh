@@ -41,12 +41,12 @@ public:
   std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2, bool fastopen = false, bool verify = false, size_t byteslimit = 0);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers, int timeout = 2, bool fastopen = false, bool verify = false);
 private:
-  CURL *d_curl;
+  CURL *d_curl{};
   static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
   static size_t progress_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
   std::string d_data;
-  size_t d_byteslimit;
-  struct curl_slist* d_header_list = nullptr;
+  size_t d_byteslimit{};
+  struct curl_slist* d_header_list{};
   void setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify);
   void setHeaders(const MiniCurlHeaders& headers);
   void clearHeaders();
