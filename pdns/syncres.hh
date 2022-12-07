@@ -449,7 +449,7 @@ public:
     case QType::rfc6895Reserved:
       // Other
     case QType::RRSIG:
-    case QType::NSEC3: // what about NSEC?
+    case QType::NSEC3: // We use the same logic as for an auth: NSEC is queryable, NSEC3 not
     case QType::OPT:
       return true;
     }
