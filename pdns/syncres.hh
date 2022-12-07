@@ -446,7 +446,7 @@ public:
     case QType::ENT: // aka TYPE0
     case QType::ADDR:
       // RFC
-    case QType::rfc6896Reserved:
+    case QType::rfc6895Reserved:
       // Other
     case QType::RRSIG:
     case QType::NSEC3: // what about NSEC?
