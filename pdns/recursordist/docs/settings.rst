@@ -28,7 +28,7 @@ For example::
 
   allow-from = 2001:DB8::/32, 128.66.0.0/16, !128.66.1.2
 
-In this case the addresss ``128.66.1.2`` is excluded from the addresses allowed access.
+In this case the address ``128.66.1.2`` is excluded from the addresses allowed access.
 
 .. _setting-aggressive-nsec-cache-size:
 
