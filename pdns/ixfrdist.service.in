@@ -34,6 +34,11 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
+ProtectProc=invisible
+PrivateIPC=true
+RemoveIPC=true
+DevicePolicy=closed
+MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target

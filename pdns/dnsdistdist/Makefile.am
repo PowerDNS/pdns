@@ -539,6 +539,15 @@ endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
 endif
+if !HAVE_SYSTEMD_PROTECT_PROC
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
+endif
+if !HAVE_SYSTEMD_REMOVE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^RemoveIPC/' $@
+endif
 
 dnsdist@.service: dnsdist.service
 	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' \
