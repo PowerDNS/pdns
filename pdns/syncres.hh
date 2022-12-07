@@ -436,10 +436,21 @@ public:
 
   static bool isUnsupported(QType qtype)
   {
-    switch (qtype.getCode()) {
+    auto qcode = qtype.getCode();
+    // rfc6895 section 3.1, note ANY is 255 and falls outside the range
+    if (qcode >= QType::rfc6895MetaLowerBound && qcode <= QType::rfc6895MetaUpperBound) {
+      return true;
+    }
+    switch (qcode) {
       // Internal types
-    case QType::ENT:
+    case QType::ENT: // aka TYPE0
     case QType::ADDR:
+      // RFC
+    case QType::rfc6896Reserved:
+      // Other
+    case QType::RRSIG:
+    case QType::NSEC3: // what about NSEC?
+    case QType::OPT:
       return true;
     }
     return false;
