@@ -191,7 +191,7 @@ void RemoteLogger::maintenanceThread()
 {
   try {
 #ifdef WE_ARE_RECURSOR
-    string threadName = "pdns-r/remLog";
+    string threadName = "rec/remLog";
 #else
     string threadName = "dnsdist/remLog";
 #endif
