@@ -898,7 +898,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
 static void dohClientThread(int crossProtocolPipeFD)
 {
-  setThreadName("dnsdist/dohClie");
+  setThreadName("dohClient-h2");
 
   try {
     DoHClientThreadData data;

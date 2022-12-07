@@ -176,7 +176,7 @@ vector<BenchQuery> g_queries;
 
 static void worker()
 {
-  setThreadName("dnstcpb/worker");
+  setThreadName("dnstcpb:worker");
   for(;;) {
     unsigned int pos = g_pos++; 
     if(pos >= g_queries.size())

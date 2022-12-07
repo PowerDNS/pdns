@@ -240,7 +240,7 @@ std::map<std::string,double> TeeAction::getStats() const
 
 void TeeAction::worker()
 {
-  setThreadName("dnsdist/TeeWork");
+  setThreadName("tee:worker");
   char packet[1500];
   int res=0;
   struct dnsheader* dh=(struct dnsheader*)packet;

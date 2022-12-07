@@ -237,7 +237,7 @@ void WebServer::registerWebHandler(const string& url, const HandlerFunction& han
 }
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
-  setThreadName("pdns-r/webhndlr");
+  setThreadName("webHandler");
   const std::string msg = "Exception while serving a connection in main webserver thread";
   try {
     webServer->serveConnection(client);

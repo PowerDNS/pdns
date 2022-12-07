@@ -223,7 +223,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 
 void TCPNameserver::doConnection(int fd)
 {
-  setThreadName("pdns/tcpConnect");
+  setThreadName("tcpConnect");
   std::unique_ptr<DNSPacket> packet;
   ComboAddress remote, accountremote;
   socklen_t remotelen=sizeof(remote);
@@ -1368,7 +1368,7 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
-  setThreadName("pdns/tcpnameser");
+  setThreadName("tcpnameser");
   try {
     for(;;) {
       int fd;

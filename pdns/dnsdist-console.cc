@@ -837,7 +837,7 @@ char** my_completion( const char * text , int start,  int end)
 static void controlClientThread(ConsoleConnection&& conn)
 {
   try {
-    setThreadName("dnsdist/conscli");
+    setThreadName("conscli");
 
     setTCPNoDelay(conn.getFD());
 
@@ -974,7 +974,7 @@ void controlThread(int fd, ComboAddress local)
   FDWrapper acceptFD(fd);
   try
   {
-    setThreadName("dnsdist/control");
+    setThreadName("control");
     ComboAddress client;
     int sock;
     auto localACL = g_consoleACL.getLocal();

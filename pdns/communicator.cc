@@ -42,7 +42,7 @@
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread()
 {
-  setThreadName("pdns/comm-retre");
+  setThreadName("comm-retrieval");
   for(;;) {
     d_suck_sem.wait();
     SuckRequest sr;
@@ -116,7 +116,7 @@ void CommunicatorClass::go()
 void CommunicatorClass::mainloop()
 {
   try {
-    setThreadName("pdns/comm-main");
+    setThreadName("comm-main");
     signal(SIGPIPE,SIG_IGN);
     g_log<<Logger::Error<<"Primary/secondary communicator launching"<<endl;
     PacketHandler P;

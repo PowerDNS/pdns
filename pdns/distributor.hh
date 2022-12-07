@@ -188,7 +188,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 template<class Answer, class Question, class Backend>void MultiThreadDistributor<Answer,Question,Backend>::distribute(int ournum)
 {
   // this is the longest name we can use, not a typo
-  setThreadName("pdns/distributo");
+  setThreadName("distributor");
 
   try {
     std::unique_ptr<Backend> b= make_unique<Backend>(); // this will answer our questions

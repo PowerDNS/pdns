@@ -37,7 +37,7 @@ void carbonDumpThread()
 {
   try
   {
-    setThreadName("dnsdist/carbon");
+    setThreadName("carbon");
     auto localCarbon = g_carbon.getLocal();
     for(int numloops=0;;++numloops) {
       if(localCarbon->empty()) {

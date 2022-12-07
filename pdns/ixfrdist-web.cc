@@ -35,7 +35,7 @@ IXFRDistWebServer::IXFRDistWebServer(const ComboAddress& listenAddress, const Ne
 }
 
 void IXFRDistWebServer::go() {
-  setThreadName("ixfrdist/web");
+  setThreadName("ixfr:web");
   d_ws->go();
 }
 

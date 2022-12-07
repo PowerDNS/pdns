@@ -1276,7 +1276,7 @@ static void tcpClientThread(int pipefd, int crossProtocolQueriesPipeFD, int cros
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
 
-  setThreadName("dnsdist/tcpClie");
+  setThreadName("tcpClient");
 
   try {
     TCPClientThreadData data;
@@ -1494,7 +1494,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
 void tcpAcceptorThread(std::vector<ClientState*> states)
 {
-  setThreadName("dnsdist/tcpAcce");
+  setThreadName("tcpAcceptor");
 
   auto acl = g_ACL.getLocal();
   std::vector<TCPAcceptorParam> params;

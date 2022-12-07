@@ -378,7 +378,7 @@ static bool dumpZoneToDisk(Logr::log_t logger, const DNSName& zoneName, const st
 
 void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t xfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration)
 {
-  setThreadName("pdns-r/RPZIXFR");
+  setThreadName("RPZIXFR");
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
 

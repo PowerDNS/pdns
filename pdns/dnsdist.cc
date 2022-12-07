@@ -635,7 +635,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
-  setThreadName("dnsdist/respond");
+  setThreadName("respond");
   auto localRespRuleActions = g_respruleactions.getLocal();
   const size_t initialBufferSize = getInitialUDPPacketBufferSize();
   PacketBuffer response(initialBufferSize);
@@ -1736,7 +1736,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 static void udpClientThread(std::vector<ClientState*> states)
 {
   try {
-    setThreadName("dnsdist/udpClie");
+    setThreadName("udpClient");
     LocalHolders holders;
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
@@ -1840,7 +1840,7 @@ pdns::stat16_t g_cacheCleaningPercentage{100};
 
 static void maintThread()
 {
-  setThreadName("dnsdist/main");
+  setThreadName("maint");
   int interval = 1;
   size_t counter = 0;
   int32_t secondsToWaitLog = 0;
@@ -1914,7 +1914,7 @@ static void maintThread()
 #ifndef DISABLE_DYNBLOCKS
 static void dynBlockMaintenanceThread()
 {
-  setThreadName("dnsdist/dynBloc");
+  setThreadName("dynBlock");
 
   DynBlockMaintenance::run();
 }
@@ -1923,7 +1923,7 @@ static void dynBlockMaintenanceThread()
 #ifndef DISABLE_SECPOLL
 static void secPollThread()
 {
-  setThreadName("dnsdist/secpoll");
+  setThreadName("secpoll");
 
   for (;;) {
     try {
@@ -1939,7 +1939,7 @@ static void secPollThread()
 
 static void healthChecksThread()
 {
-  setThreadName("dnsdist/healthC");
+  setThreadName("healthChecks");
 
   constexpr int interval = 1;
   auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!

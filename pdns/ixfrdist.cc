@@ -271,7 +271,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
 }
 
 static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
-  setThreadName("ixfrdist/update");
+  setThreadName("ixfr:update");
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -852,7 +852,7 @@ static void handleTCPRequest(int fd, boost::any&) {
 /* Thread to handle TCP traffic
  */
 static void tcpWorker(int tid) {
-  setThreadName("ixfrdist/tcpWor");
+  setThreadName("ixfr:tcpWorker");
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {

@@ -107,7 +107,7 @@ void SNMPAgent::worker()
   }
 
 #ifdef RECURSOR
-  string threadName = "pdns-r/SNMP";
+  string threadName = "rec/SNMP";
 #else
   string threadName = "dnsdist/SNMP";
 #endif
