@@ -357,22 +357,24 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
   }
 
   struct rlimit old_limit;
-  const rlim_t new_limit_size = 1024 * 1024;
-
   if (getrlimit(RLIMIT_MEMLOCK, &old_limit) != 0) {
     throw std::runtime_error("Unable to get memory lock limit: " + stringerror());
   }
 
-  /* Check if the current soft memlock limit is 64k */ 
-  if (old_limit.rlim_cur < (64 * 1024)) {
-    struct rlimit new_limit;
-    new_limit.rlim_cur = new_limit_size; /* Increase soft limit to 1024k */
-    new_limit.rlim_max = new_limit_size; /* Increase hard limit to 1024k */
-  
-    if (setrlimit(RLIMIT_MEMLOCK, &new_limit) != 0) {
-      errlog("Unable to raise the maximum amount of locked memory for eBPF from %d to %d, consider raising RLIMIT_MEMLOCK or setting LimitMEMLOCK=infinity in the systemd unit: %s", old_limit.rlim_cur, new_limit.rlim_cur, stringerror());
-    }
+  const rlim_t minimal_limit_size = 64 * 124;
+  const rlim_t new_limit_size = 1024 * 1024;
+
+  /* Check if the current soft memlock limit is at least minimal_limit */
+  if (old_limit.rlim_cur < minimal_limit_size) {
     infolog("The current limit of locked memory (soft: %d, hard: %d) is too low for eBPF, trying to raise it to %d", old_limit.rlim_cur, old_limit.rlim_max, new_limit_size);
+
+    struct rlimit new_limit;
+    new_limit.rlim_cur = new_limit_size;
+    new_limit.rlim_max = new_limit_size;
+
+    if (setrlimit(RLIMIT_MEMLOCK, &new_limit) != 0) {
+      warnlog("Unable to raise the maximum amount of locked memory for eBPF from %d to %d, consider raising RLIMIT_MEMLOCK or setting LimitMEMLOCK in the systemd unit: %d", old_limit.rlim_cur, new_limit.rlim_cur, stringerror());
+    }
   }
 
   auto maps = d_maps.lock();
