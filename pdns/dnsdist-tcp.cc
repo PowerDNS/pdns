@@ -491,7 +491,7 @@ void IncomingTCPConnectionState::updateIO(std::shared_ptr<IncomingTCPConnectionS
 /* called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPResponse&& response)
 {
-  if (std::this_thread::get_id() != d_mainThreadID) {
+  if (std::this_thread::get_id() != d_creatorThreadID) {
     handleCrossProtocolResponse(now, std::move(response));
     return;
   }
