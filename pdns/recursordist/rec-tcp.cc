@@ -355,14 +355,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         return;
       }
-      if (SyncRes::isUnsupported(dc->d_mdp.d_qtype)) {
-        g_stats.ignoredCount++;
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Unsupported qtype " << dc->d_mdp.d_qtype << " from TCP client " << conn->d_remote.toStringWithPort() << endl,
-               g_slogtcpin->info(Logr::Error, "Unsupported qtype from TCP client", "remote", Logging::Loggable(conn->d_remote), "qtype", Logging::Loggable(dc->d_mdp.d_qtype)));
-        }
-        return;
-      }
 
       dc->d_tcpConnection = conn; // carry the torch
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
