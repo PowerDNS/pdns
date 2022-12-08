@@ -1103,6 +1103,14 @@ Status, Statistics and More
 
   :param int top: How many response rules to return.
 
+.. function:: getTopCacheInsertedResponseRules([top])
+
+  .. versionadded:: 1.8.0
+
+  Return the cache-inserted response rules that matched the most.
+
+  :param int top: How many response rules to return.
+
 .. function:: getTopResponseRules([top])
 
   .. versionadded:: 1.6.0
@@ -1252,6 +1260,19 @@ Status, Statistics and More
   .. versionadded:: 1.6.0
 
   This function shows the cache-hit response rules that matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+
+.. function:: topCacheInsertedResponseRules([top [, options]])
+
+  .. versionadded:: 1.8.0
+
+  This function shows the cache-inserted response rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
