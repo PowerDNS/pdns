@@ -85,7 +85,10 @@ Requirements
 In addition to the capabilities explained above, that feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
 When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
 
-Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=infinity`` in the systemd unit file. It can also be done manually for testing purposes, in a non-permanent way, by using ``ulimit -l``.
+Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=limit`` in the systemd unit file, where limit is specified using byte as unit. It can also be done manually for testing purposes, in a non-permanent way, by using ``ulimit -l``.
+
+To change the default hard limit on ``RLIMIT_MEMLOCK`` add the following line to ``/etc/security/limits.conf`` for the user, specifying a limit in units of 1k, for example:
+  > $USER   hard    memlock   1024
 
 External program, maps and XDP filtering
 ----------------------------------------
@@ -110,3 +113,4 @@ The first, legacy format is still used because of the limitations of eBPF socket
 XDP programs are more powerful than eBPF socket filtering ones as they are not limited to accepting or denying a packet, but can immediately craft and send an answer. They are also executed a bit earlier in the kernel networking path so can provide better performance.
 
 A sample program using the maps populated by dnsdist in an external XDP program can be found in the `contrib/ directory of our git repository <https://github.com/PowerDNS/pdns/tree/master/contrib>`__. That program supports answering with a TC=1 response instead of simply dropping the packet.
+
