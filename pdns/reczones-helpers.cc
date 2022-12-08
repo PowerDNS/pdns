@@ -72,20 +72,23 @@ static void addToDomainMap(SyncRes::domainmap_t& newMap,
 
 static void makeNameToIPZone(SyncRes::domainmap_t& newMap,
                              const DNSName& hostname,
-                             const ComboAddress& address,
-                             Logr::log_t log)
+                             const ComboAddress& address)
 {
   DNSRecord dr;
   dr.d_name = hostname;
 
-  SyncRes::AuthDomain ad = makeSOAAndNSNodes(dr, "localhost.");
+  auto entry = newMap.find(hostname);
+  if (entry == newMap.end()) {
+    auto ad = makeSOAAndNSNodes(dr, "localhost.");
+    ad.d_name = dr.d_name;
+    entry = newMap.insert({dr.d_name, ad}).first;
+  }
 
   auto recType = address.isIPv6() ? QType::AAAA : QType::A;
   dr.d_type = recType;
-  dr.d_content = DNSRecordContent::mastermake(recType, 1, address.toStringNoInterface());
-  ad.d_records.insert(dr);
-
-  addToDomainMap(newMap, ad, dr.d_name, log);
+  dr.d_ttl = 86400;
+  dr.d_content = DNSRecordContent::mastermake(recType, QClass::IN, address.toStringNoInterface());
+  entry->second.d_records.insert(dr);
 }
 
 static void makeIPToNamesZone(SyncRes::domainmap_t& newMap,
@@ -135,18 +138,24 @@ void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
   // for forward lookups.
   for (auto name = parts.cbegin() + 1; name != parts.cend(); ++name) {
     if (searchSuffix.empty() || name->find('.') != string::npos) {
-      makeNameToIPZone(newMap, DNSName(*name), address, log);
+      makeNameToIPZone(newMap, DNSName(*name), address);
     }
     else {
       DNSName canonical = toCanonic(DNSName(searchSuffix), *name);
       if (canonical != DNSName(*name)) {
-        makeNameToIPZone(newMap, canonical, address, log);
+        makeNameToIPZone(newMap, canonical, address);
       }
     }
   }
 
   // Add entries for the primary name for reverse lookups.
-  makeIPToNamesZone(newMap, address, parts[1], log);
+  if (searchSuffix.empty() || parts[1].find('.') != string::npos) {
+    makeIPToNamesZone(newMap, address, parts[1], log);
+  }
+  else {
+    DNSName canonical = toCanonic(DNSName(searchSuffix), parts[1]);
+    makeIPToNamesZone(newMap, address, canonical.toString(), log);
+  }
 }
 
 bool parseEtcHostsLine(std::vector<std::string>& parts, std::string& line)
