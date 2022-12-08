@@ -1,9 +1,9 @@
 Packet Policies
 ===============
 
-dnsdist works in essence like any other loadbalancer:
+:program:`dnsdist` works in essence like any other loadbalancer:
 
-It receives packets on one or several addresses it listens on, and determines whether it will process this packet based on the :doc:`advanced/acl`. Should the packet be processed, dnsdist attempts to match any of the configured rules in order and when one matches, the associated action is performed.
+It receives packets on one or several addresses it listens on, and determines whether it will process this packet based on the :doc:`advanced/acl`. Should the packet be processed, :program:`dnsdist` attempts to match any of the configured rules in order and when one matches, the associated action is performed.
 
 These rule and action combinations are considered policies.
 
@@ -19,6 +19,7 @@ Each packet can be:
 - Be delayed
 
 This decision can be taken at different times during the forwarding process.
+All packets not handled by an explicit action are forwarded to a downstream server in the default pool.
 
 Examples
 ~~~~~~~~
@@ -712,7 +713,7 @@ These ``DNSRule``\ s be one of the following items:
 
   For an example of usage, see :func:`RegexRule`.
 
-  :note: Only available when dnsdist was built with libre2 support.
+  :note: Only available when :program:`dnsdist` was built with libre2 support.
 
   :param str regex: The regular expression to match the QNAME.
 
@@ -1669,7 +1670,7 @@ The following actions exist.
 
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
-  If ``local`` has provided a value like "192.0.2.53", dnsdist will try binding that address as local address when sending the queries.
+  If ``local`` has provided a value like "192.0.2.53", :program:`dnsdist` will try binding that address as local address when sending the queries.
   Subsequent rules are processed after this action.
 
   :param string remote: An IP:PORT combination to send the copied queries to
