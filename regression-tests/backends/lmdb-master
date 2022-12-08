@@ -53,7 +53,7 @@ __EOF__
 
         # setup catalog zone
 
-        if ! $PDNSUTIL --config-dir=. --config-name=gmysql list-all-zones | grep '^.$' # detect root tests
+        if ! $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones | grep '^.$' # detect root tests
         then
             for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
             do
