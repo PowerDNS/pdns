@@ -576,6 +576,22 @@ static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, c
   }
 }
 
+static bool checkIPTransparentUsability()
+{
+#ifdef IP_TRANSPARENT
+  try {
+    auto s = Socket(SSocket(AF_INET, SOCK_DGRAM, 0));
+    SSetsockopt(s.getHandle(), IPPROTO_IP , IP_TRANSPARENT, 1);
+    return true;
+  }
+  catch (const std::exception& e) {
+    cerr << "Error while checking whether IP_TRANSPARENT (required for '--source-from-pcap') is working properly: " << e.what() << endl;
+  }
+#endif /* IP_TRANSPARENT */
+  return false;
+}
+
+
 static bool g_rdSelector;
 static uint16_t g_pcapDnsPort;
 
@@ -615,11 +631,10 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
       }
 #ifdef IP_TRANSPARENT
       if (usePCAPSourceIP) {
-        int s = SSocket(AF_INET, SOCK_DGRAM, 0);
-        SSetsockopt(s, IPPROTO_IP , IP_TRANSPARENT, 1);
-        SBind(s, pr.getSource());
-        sendto(s, reinterpret_cast<const char*>(pr.d_payload), dlen, 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
-        close(s);
+        auto s = Socket(SSocket(AF_INET, SOCK_DGRAM, 0));
+        SSetsockopt(s.getHandle(), IPPROTO_IP , IP_TRANSPARENT, 1);
+        SBind(s.getHandle(), pr.getSource());
+        sendto(s.getHandle(), reinterpret_cast<const char*>(pr.d_payload), dlen, 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
       }
       else {
 #endif /* IP_TRANSPARENT */
@@ -674,17 +689,17 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
       }
     }
   }
-  catch(const MOADNSException &mde)
-  {
-    if(!g_quiet)
+  catch (const MOADNSException& mde) {
+    if (!g_quiet) {
       cerr<<"Error parsing packet: "<<mde.what()<<endl;
+    }
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
-  catch(std::exception &e)
-  {
-    if(!g_quiet)
+  catch (std::exception& e) {
+    if (!g_quiet) {
       cerr<<"Error parsing packet: "<<e.what()<<endl;
+    }
 
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;    
@@ -794,6 +809,11 @@ try
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
   bool usePCAPSourceIP = g_vm["source-from-pcap"].as<bool>();
+  if (usePCAPSourceIP && !checkIPTransparentUsability()) {
+    cerr << "--source-from-pcap requested but IP_TRANSPARENT support is not working properly" << endl;
+    exit(EXIT_FAILURE);
+  }
+
   unsigned int once=0;
   struct timeval mental_time;
   mental_time.tv_sec=0; mental_time.tv_usec=0;
