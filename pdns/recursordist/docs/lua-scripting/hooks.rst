@@ -178,11 +178,22 @@ Interception Functions
 .. function:: preoutquery(dq) -> bool
 
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
-  When this hook sets the special result code -3, the whole DNS client query causing this outquery gets a `ServFail`.
+
+  When this hook sets the special result code ``-3``, the whole DNS client query causing this outgoing query gets a ``ServFail``.
 
   However, this function can also return records like :func:`preresolve`.
 
-  :param DNSQuestion dq: The DNS question to handle
+  :param DNSQuestion dq: The DNS question to handle.
+
+  In the case of :func:`preoutquery`, only a few attributes if the :class:`dq <DNSQuestion>` object are filled in:
+
+  - :attr:`dq.remoteaddr <DNSQuestion.remoteaddr>` containing the target nameserver address
+  - :attr:`dq.localaddr <DNSQuestion.localaddr>`
+  - :attr:`dq.qname <DNSQuestion.qname>`
+  - :attr:`dq.qtype <DNSQuestion.qtype>`
+  - :attr:`dq.isTcp <DNSQuestion.isTcp>`
+
+  Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the recordset manipulation methods.
 
 .. function:: policyEventFilter(event) -> bool
 
