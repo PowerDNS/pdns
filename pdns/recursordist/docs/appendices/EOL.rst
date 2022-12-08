@@ -10,15 +10,15 @@ The two releases before that get critical updates only.
 Older releases are marked end of life and receive no updates at all.
 Pre-releases do not receive immediate security updates.
 
-The currently supported release train of the PowerDNS Recursor is 4.7.
+The currently supported release train of the PowerDNS Recursor is 4.8.
+
+PowerDNS Recursor 4.7 will only receive critical updates and will be
+end of life after PowerDNS Recursor 4.10 or 5.0 is released.
 
 PowerDNS Recursor 4.6 will only receive critical updates and will be
 end of life after PowerDNS Recursor 4.9 is released.
 
-PowerDNS Recursor 4.5 will only receive critical updates and will be
-end of life after PowerDNS Recursor 4.8 is released.
-
-PowerDNS Recursor 4.0 through 4.4, 3.x, and 2.x are End of Life.
+PowerDNS Recursor 4.0 through 4.5, 3.x, and 2.x are End of Life.
 
 Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
@@ -34,18 +34,22 @@ for details.
      - Release date
      - Critical-Only updates
      - End of Life
+   * - 4.8
+     - December 12 2022
+     - ~ June 2023
+     - ~ June 2024
    * - 4.7
      - May 30 2022
-     - ~ December 2022
+     - December 12 2022
      - ~ December 2023
    * - 4.6
      - December 17 2021
      - May 30 2022
-     - ~ May 2023
+     - ~ June 2023
    * - 4.5
      - May 11 2021
      - December 17 2021
-     - ~ December 2022
+     - EOL December 12 2022
    * - 4.4
      - October 19 2020
      - May 11 2021
