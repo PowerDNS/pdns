@@ -25,6 +25,20 @@
 
 #include "misc.hh"
 
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#endif
+
+#if __SANITIZE_THREAD__
+extern "C" void __tsan_acquire(void *addr);
+extern "C" void __tsan_release(void *addr);
+#endif
+
 namespace pdns
 {
 namespace channel
@@ -210,6 +224,9 @@ namespace channel
     auto ptr = object.get();
     static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranted not to interleaved and to either fully succeed or fail");
     while (true) {
+#if __SANITIZE_THREAD__
+      __tsan_release(ptr);
+#endif /* __SANITIZE_THREAD__ */
       ssize_t sent = write(d_fd.getHandle(), &ptr, sizeof(ptr));
 
       if (sent == sizeof(ptr)) {
@@ -218,6 +235,9 @@ namespace channel
         return true;
       }
       else {
+#if __SANITIZE_THREAD__
+      __tsan_acquire(ptr);
+#endif /* __SANITIZE_THREAD__ */
         if (errno == EINTR) {
           continue;
         }
@@ -251,6 +271,9 @@ namespace channel
       T* obj{nullptr};
       ssize_t got = read(d_fd.getHandle(), &obj, sizeof(obj));
       if (got == sizeof(obj)) {
+#if __SANITIZE_THREAD__
+        __tsan_acquire(obj);
+#endif /* __SANITIZE_THREAD__ */
         return std::unique_ptr<T, D>(obj, deleter);
       }
       else if (got == 0) {
