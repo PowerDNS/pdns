@@ -2,6 +2,56 @@ Changelogs for 4.6.x
 ====================
 
 .. changelog::
+  :version: 4.6.4
+  :released: 9th of December 2022
+
+  This is release 4.6.4 of the Authoritative Server.
+  It contains various small fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12303
+
+    pdnsutil edit-zone, detect capitalization changes in LUA, TXT and SPF records
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11945
+
+    initialize zone cache after dropping privileges; Detect invalid bytes in makeBytesFromHex()  (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12035
+
+    Log "NULL" for nullptr-bound properties instead of dereferencing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12033
+
+    LUA records: we only need one IsUpOracle checker thread
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12031
+
+    axfr-retriever: abort on chunk with TC set
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11978
+
+    docker: upgrade to bullseye
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11871
+
+    use getInnerRemote() for the remotes ring
+
+
+.. changelog::
   :version: 4.6.3
   :released: 13th of July 2022
 
