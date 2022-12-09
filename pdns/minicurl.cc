@@ -65,6 +65,7 @@ size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *user
   return 0;
 }
 
+#if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
 size_t MiniCurl::progress_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
   if (clientp != nullptr) {
@@ -75,6 +76,18 @@ size_t MiniCurl::progress_callback(void *clientp, curl_off_t dltotal, curl_off_t
   }
   return 0;
 }
+#else
+size_t MiniCurl::progress_callback(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+{
+  if (clientp != nullptr) {
+    MiniCurl* us = static_cast<MiniCurl*>(clientp);
+    if (us->d_byteslimit > 0 && dlnow > static_cast<double>(us->d_byteslimit)) {
+      return static_cast<size_t>(dlnow);
+    }
+  }
+  return 0;
+}
+#endif
 
 static string extractHostFromURL(const std::string& url)
 {
@@ -131,8 +144,13 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   if (d_byteslimit > 0) {
     /* enable progress meter */
     curl_easy_setopt(d_curl, CURLOPT_NOPROGRESS, 0L);
+#if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
     curl_easy_setopt(d_curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
     curl_easy_setopt(d_curl, CURLOPT_XFERINFODATA, this);
+#else
+    curl_easy_setopt(d_curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
+    curl_easy_setopt(d_curl, CURLOPT_PROGRESSDATA, this);
+#endif
   }
 
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, static_cast<long>(timeout));

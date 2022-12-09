@@ -43,7 +43,11 @@ public:
 private:
   CURL *d_curl{};
   static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+#if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
   static size_t progress_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
+#else
+  static size_t progress_callback(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow);
+#endif
   std::string d_data;
   size_t d_byteslimit{};
   struct curl_slist* d_header_list{};
