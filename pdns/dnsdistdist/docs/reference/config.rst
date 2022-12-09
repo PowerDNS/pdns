@@ -1101,7 +1101,7 @@ Status, Statistics and More
 
   Return the cache-hit response rules that matched the most.
 
-  :param int top: How many response rules to return.
+  :param int top: How many response rules to return. Default is 10.
 
 .. function:: getTopCacheInsertedResponseRules([top])
 
@@ -1109,7 +1109,7 @@ Status, Statistics and More
 
   Return the cache-inserted response rules that matched the most.
 
-  :param int top: How many response rules to return.
+  :param int top: How many response rules to return. Default is 10.
 
 .. function:: getTopResponseRules([top])
 
@@ -1117,7 +1117,7 @@ Status, Statistics and More
 
   Return the response rules that matched the most.
 
-  :param int top: How many response rules to return.
+  :param int top: How many response rules to return. Default is 10.
 
 .. function:: getTopRules([top])
 
@@ -1125,7 +1125,7 @@ Status, Statistics and More
 
   Return the rules that matched the most.
 
-  :param int top: How many rules to return.
+  :param int top: How many rules to return. Default is 10.
 
 .. function:: getTopSelfAnsweredRules([top])
 
@@ -1133,7 +1133,7 @@ Status, Statistics and More
 
   Return the self-answered rules that matched the most.
 
-  :param int top: How many rules to return.
+  :param int top: How many rules to return. Default is 10.
 
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
