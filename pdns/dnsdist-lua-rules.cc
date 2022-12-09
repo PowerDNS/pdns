@@ -272,6 +272,22 @@ void setupLuaRules(LuaContext& luaCtx)
       mvRule(&g_cachehitrespruleactions, from, to);
     });
 
+  luaCtx.writeFunction("showCacheInsertedResponseRules", [](boost::optional<ruleparams_t> vars) {
+    showRules(&g_cacheInsertedRespRuleActions, vars);
+  });
+
+  luaCtx.writeFunction("rmCacheInsertedResponseRule", [](boost::variant<unsigned int, std::string> id) {
+    rmRule(&g_cacheInsertedRespRuleActions, id);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRuleToTop", []() {
+    moveRuleToTop(&g_cacheInsertedRespRuleActions);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRule", [](unsigned int from, unsigned int to) {
+    mvRule(&g_cacheInsertedRespRuleActions, from, to);
+  });
+
   luaCtx.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_selfansweredrespruleactions, vars);
     });
@@ -333,15 +349,27 @@ void setupLuaRules(LuaContext& luaCtx)
     return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
   });
 
-  luaCtx.writeFunction("getCacheHitResponseRules", [](boost::optional<unsigned int> top) {
+  luaCtx.writeFunction("getTopCacheHitResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
     return getTopRules(*rules, top.get_value_or(10));
   });
 
-  luaCtx.writeFunction("topCacheHitRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("topCacheHitResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
+
+  luaCtx.writeFunction("getTopCacheInsertedResponseRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_cacheInsertedRespRuleActions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topCacheInsertedResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_cacheInsertedRespRuleActions.getLocal();
     return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
   });
 

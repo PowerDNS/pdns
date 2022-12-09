@@ -543,7 +543,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-    if (!processResponse(response.d_buffer, state->d_threadData.localRespRuleActions, dr, false, false)) {
+    if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dr, false, false)) {
       state->terminateClientConnection();
       return;
     }

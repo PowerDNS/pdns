@@ -458,12 +458,13 @@ public:
     du->response = std::move(response.d_buffer);
     du->ids = std::move(response.d_idstate);
 
-    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
     DNSResponse dr = makeDNSResponseFromIDState(du->ids, du->response);
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-    if (!processResponse(du->response, localRespRuleActions, dr, false, false)) {
+    if (!processResponse(du->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false, false)) {
       du.reset();
       return;
     }
@@ -1666,12 +1667,13 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
 
   const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
   if (!dh->tc) {
-    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localcacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
     DNSResponse dr = makeDNSResponseFromIDState(du->ids, du->response);
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-    if (!processResponse(du->response, localRespRuleActions, dr, false, true)) {
+    if (!processResponse(du->response, *localRespRuleActions, *localcacheInsertedRespRuleActions, dr, false, true)) {
       return;
     }
 

@@ -354,6 +354,58 @@ Functions for manipulating Cache Hit Response Rules:
 
   Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
 
+Functions for manipulating Cache Inserted Response Rules:
+
+.. function:: addCacheInsertedResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 1.8.0
+
+  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
+
+.. function:: mvCacheInsertedResponseRule(from, to)
+
+  .. versionadded:: 1.8.0
+
+  Move cache inserted response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: mvCacheInsertedResponseRuleToTop()
+
+  .. versionadded:: 1.8.0
+
+  This function moves the last cache inserted response rule to the first position.
+
+.. function:: rmCacheInsertedResponseRule(id)
+
+  .. versionadded:: 1.8.0
+
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
+
+.. function:: showCacheInsertedResponseRules([options])
+
+  .. versionadded:: 1.8.0
+
+  Show all defined cache inserted response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
+
 Functions for manipulating Self-Answered Response Rules:
 
 .. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])

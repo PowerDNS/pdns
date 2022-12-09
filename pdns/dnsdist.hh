@@ -1146,6 +1146,7 @@ extern GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
 extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
 extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
 extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cacheInsertedRespRuleActions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -1181,7 +1182,7 @@ extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 
 struct LocalHolders
 {
-  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(g_ruleactions.getLocal()), cacheHitRespRuleactions(g_cachehitrespruleactions.getLocal()), selfAnsweredRespRuleactions(g_selfansweredrespruleactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(g_ruleactions.getLocal()), cacheHitRespRuleactions(g_cachehitrespruleactions.getLocal()), cacheInsertedRespRuleActions(g_cacheInsertedRespRuleActions.getLocal()), selfAnsweredRespRuleactions(g_selfansweredrespruleactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
   {
   }
 
@@ -1189,6 +1190,7 @@ struct LocalHolders
   LocalStateHolder<ServerPolicy> policy;
   LocalStateHolder<vector<DNSDistRuleAction> > ruleactions;
   LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRuleactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheInsertedRespRuleActions;
   LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRuleactions;
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange> > dynNMGBlock;
@@ -1210,7 +1212,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength);
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP);
+bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs);
