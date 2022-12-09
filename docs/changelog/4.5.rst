@@ -2,6 +2,37 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.5
+  :released: 9th of December 2022
+
+  This is release 4.5.5 of the Authoritative Server.
+  It contains various small fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12032
+
+    axfr-retriever: abort on chunk with TC set
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12034
+
+    LUA records: we only need one IsUpOracle checker thread
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11979
+
+    docker: upgrade to bullseye
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11454
+
+    IXFR-in: Fix a case where an incomplete read caused by network error might result in a truncated zone
+
+.. changelog::
   :version: 4.5.4
   :released: 25th of March 2022
 

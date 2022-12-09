@@ -2,6 +2,56 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.3
+  :released: 9th of December 2022
+
+  This is release 4.7.3 of the Authoritative Server.
+  It contains various fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12299
+
+    lmdb: make outgoing notifications work
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12266
+
+    lmdb: implement alsoNotifies
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12291
+
+    API: do not create SOA and NS records for consumer zones
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12296
+
+    API: slightly clearer message when a backend cannot create domains
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12273
+
+    API: fix newly created zone not rectified
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12272
+
+    fix invalid catalog zone sql query for gpgsqlbackend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12181
+
+    fix pdns_control list-zones
+
+
+.. changelog::
   :version: 4.7.2
   :released: 1st of November 2022
 
