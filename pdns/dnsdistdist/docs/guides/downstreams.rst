@@ -54,7 +54,7 @@ The number of health check failures before a server is considered down is config
 The ``CD`` flag can be set on the query by setting ``setCD`` to true.
 e.g.::
 
-  newServer({address="192.0.2.1", checkType="AAAA", checkType=DNSClass.CHAOS, checkName="a.root-servers.net.", mustResolve=true})
+  newServer({address="192.0.2.1", checkType="AAAA", checkClass=DNSClass.CHAOS, checkName="a.root-servers.net.", mustResolve=true})
 
 You can turn on logging of health check errors using the :func:`setVerboseHealthChecks` function.
 
