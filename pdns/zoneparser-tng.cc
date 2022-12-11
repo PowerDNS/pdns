@@ -80,7 +80,7 @@ void ZoneParserTNG::stackFile(const std::string& fname)
     throw std::system_error(ec, "File '" + fname + "': not a regular file");
   }
   FILE *fp = fdopen(fd, "r");
-  if (!fp) {
+  if (fp == nullptr) {
     int err = errno;
     close(fd);
     std::error_code ec (err, std::generic_category());
