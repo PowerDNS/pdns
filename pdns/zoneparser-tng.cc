@@ -108,7 +108,7 @@ static bool isTimeSpec(const string& nextpart)
 {
   if(nextpart.empty())
     return false;
-  for(string::const_iterator iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
+  for (auto iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
     if(isdigit(*iter))
       continue;
     if(iter+1 != nextpart.end())
@@ -168,9 +168,10 @@ bool ZoneParserTNG::getTemplateLine()
   }
 
   string retline;
-  for(parts_t::const_iterator iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
-    if(iter != d_templateparts.begin())
-      retline+=" ";
+  for (auto iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
+    if(iter != d_templateparts.begin()) {
+      retline += " ";
+    }
 
     string part=makeString(d_templateline, *iter);
 
