@@ -66,7 +66,8 @@ void ZoneParserTNG::stackFile(const std::string& fname)
     std::error_code ec (err, std::generic_category());
     throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
   }
-  struct stat st;
+
+  struct stat st = {};
   if (fstat(fd, &st) == -1) {
     int err = errno;
     close(fd);
@@ -132,7 +133,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   if(str.empty())
     return 0;
 
-  unsigned int val;
+  unsigned int val = 0;
   try {
     pdns::checked_stoi_into(val, str);
   }
@@ -278,9 +279,11 @@ static void chopComment(string& line)
 {
   if(line.find(';')==string::npos)
     return;
-  string::size_type pos, len = line.length();
-  bool inQuote=false;
-  for(pos = 0 ; pos < len; ++pos) {
+
+  string::size_type pos = 0;
+  auto len = line.length();
+  bool inQuote = false;
+  for(; pos < len; ++pos) {
     if(line[pos]=='\\')
       pos++;
     else if(line[pos]=='"')
