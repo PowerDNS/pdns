@@ -106,14 +106,21 @@ static string makeString(const string& line, const pair<string::size_type, strin
 
 static bool isTimeSpec(const string& nextpart)
 {
-  if(nextpart.empty())
+  if (nextpart.empty()) {
     return false;
+  }
+
   for (auto iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
-    if(isdigit(*iter))
+    auto current = static_cast<unsigned char>(*iter);
+    if (isdigit(current) != 0) {
       continue;
-    if(iter+1 != nextpart.end())
+    }
+
+    if (iter + 1 != nextpart.end()) {
       return false;
-    char c=tolower(*iter);
+    }
+
+    char c = static_cast<char>(tolower(current));
     return (c=='s' || c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
   }
   return true;
@@ -621,8 +628,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if(n)
+      if (n != 0) {
         rr.content.append(1,' ');
+      }
 
       rr.content+=recparts[n];
     }
@@ -641,8 +649,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if(n)
+      if (n != 0) {
         rr.content.append(1,' ');
+      }
 
       if(n > 1)
         rr.content+=std::to_string(makeTTLFromZone(recparts[n]));
