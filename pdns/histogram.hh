@@ -38,9 +38,18 @@ struct Bucket
 {
   Bucket(std::string name, uint64_t boundary, uint64_t val) :
     d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
-  std::string d_name;
-  uint64_t d_boundary{0};
+  const std::string d_name;
+  const uint64_t d_boundary;
   mutable uint64_t d_count{0};
+
+  Bucket(const Bucket&) = default;
+  Bucket& operator=(const Bucket& rhs)
+  {
+    assert(d_name == rhs.d_name);
+    assert(d_boundary == rhs.d_boundary);
+    d_count = rhs.d_count;
+    return *this;
+  }
 };
 
 struct AtomicBucket
