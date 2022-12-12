@@ -33,13 +33,13 @@ namespace pdns
 {
 // We keep three sets of related counters:
 //
-// 1. The current counters (thread-local, updated individually by thread code very often)
+// 1. The current counters (thread local, updated individually by thread code very often)
 // 2. The snapshot counters (thread local, updated by thread code in one single mutex protected copy)
 // 3. The history counters (global) to keep track of the counters of deleted threads
 
-// We have two main clasess: one that holds the thread local counters
+// We have two main classes: one that holds the thread local counters
 // (both current and snapshot ones) and one that aggregates the
-// values for all threads adn keeps the history counters.
+// values for all threads and keeps the history counters.
 
 // The thread local current counters are the ones updated by
 // performance critical code.  Every once in a while, all values in the
@@ -53,7 +53,7 @@ namespace pdns
 // in a while. This will fill the snapshot values for that thread if some
 // time has passed since the last snap update.
 
-// To fet aggregate value call globals.sum(counter1) or
+// To fetch aggregate values, call globals.sum(counter1) or
 // globals.avg(counter2), or any aggreggation function.  If multiple
 // counters need to be collected in a consistent way:
 // auto data = globals.aggregatedSnap();
