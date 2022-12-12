@@ -35,8 +35,8 @@
 #endif
 
 #if __SANITIZE_THREAD__
-extern "C" void __tsan_acquire(void *addr);
-extern "C" void __tsan_release(void *addr);
+extern "C" void __tsan_acquire(void* addr);
+extern "C" void __tsan_release(void* addr);
 #endif
 
 namespace pdns
@@ -236,7 +236,7 @@ namespace channel
       }
       else {
 #if __SANITIZE_THREAD__
-      __tsan_acquire(ptr);
+        __tsan_acquire(ptr);
 #endif /* __SANITIZE_THREAD__ */
         if (errno == EINTR) {
           continue;
