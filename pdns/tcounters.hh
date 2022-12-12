@@ -66,7 +66,7 @@ namespace pdns
 // thread T2 that increments "processed", it may happen that the value
 // of "processed" observed by sum() is higher than "received", as T1
 // might not have called updateSnap() yet while T2 did.  To avoid this
-// inconsistentcy, be careful to update related counters in a single
+// inconsistency, be careful to update related counters in a single
 // thread only.
 
 // For an example of the use of these templates, see rec-tcounters.hh
