@@ -169,7 +169,6 @@ That means that they will be answered with ``127.0.0.1``, ``::1`` or a negative 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For the commands that write to a file, the file to be dumped to is now opened by the :program:`rec_control` command itself using the credentials and the current working directory of the user running :program:`rec_control`.
 A single minus *-* can be used as a filename to write the data to the standard output stream.
-Additionally, a single minus *-* can be used as a filename to write the data to the standard output stream.
 Previously the file was opened by the recursor, possibly in its chroot environment.
 
 New settings

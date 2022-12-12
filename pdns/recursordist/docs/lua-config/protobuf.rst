@@ -139,7 +139,7 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``queueNotifyThreshold=0``: unsigned
   * ``reopenInterval=0``: unsigned
 
-.. function:: dnstapNODFrameStreamServer(servers, [, options])
+.. function:: dnstapNODFrameStreamServer(servers [, options])
 
   .. versionadded:: 4.8.0
 

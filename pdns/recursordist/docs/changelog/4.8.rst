@@ -2,6 +2,24 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.0
+  :released: 12th of December 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12293
+    :tickets: 12289
+
+    Refactor unsupported qtype code and make sure we ServFail on all unsupported qtypes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12221
+    :tickets: 11776, 11376, 12078, 12219
+
+    Infra queries should not use refresh mode.
+
+.. changelog::
   :version: 4.8.0-rc1
   :released: 18th of November 2022
 
