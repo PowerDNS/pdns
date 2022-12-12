@@ -95,7 +95,7 @@ enum class Counter : uint8_t
   numberOfCounters
 };
 
-// double avegares times, weighted according to how many packets they processed
+// double averages times, weighted according to how many packets they processed
 enum class DoubleWAvgCounter : uint8_t
 {
   avgLatencyUsec,
@@ -126,7 +126,7 @@ enum class Histogram : uint8_t
 
 struct Counters
 {
-  // An aray of simple counters
+  // An array of simple counters
   std::array<uint64_t, static_cast<size_t>(Counter::numberOfCounters)> uint64Count{};
 
   struct WeightedAverage
@@ -187,7 +187,7 @@ struct Counters
   // for averages, we should take the weights into account. Histograms need to sum all individual counts.
   Counters& merge(const Counters& data);
 
-  // The following accessors select the rightcounter type based on the index type
+  // The following accessors select the right counter type based on the index type
   uint64_t& at(Counter index)
   {
     return uint64Count.at(static_cast<size_t>(index));

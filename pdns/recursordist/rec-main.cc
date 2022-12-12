@@ -2601,7 +2601,7 @@ int main(int argc, char** argv)
 #else
     ::arg().set("stack-size", "stack size per mthread") = "200000";
 #endif
-    // This mode forces metrics snap updates and dsiable root-refresh, to get consistent counters
+    // This mode forces metrics snap updates and disable root-refresh, to get consistent counters
     ::arg().setSwitch("devonly-regression-test-mode", "internal use only") = "no";
     ::arg().set("soa-minimum-ttl", "Don't change") = "0";
     ::arg().set("no-shuffle", "Don't change") = "off";
