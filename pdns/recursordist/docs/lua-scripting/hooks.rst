@@ -193,7 +193,7 @@ Interception Functions
   - :attr:`dq.qtype <DNSQuestion.qtype>`
   - :attr:`dq.isTcp <DNSQuestion.isTcp>`
 
-  Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the recordset manipulation methods.
+  Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
 .. function:: policyEventFilter(event) -> bool
 

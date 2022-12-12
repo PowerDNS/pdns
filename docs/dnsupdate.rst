@@ -114,10 +114,10 @@ here. Here is an example using :program:`pdnsutil` to create a key named
 `test`::
 
     $ pdnsutil generate-tsig-key test hmac-sha512
-    Create new TSIG key test hmac-sha512 jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
+    Create new TSIG key test hmac-sha512 [base64-encoded key]
 
     $ pdnsutil list-tsig-keys | grep test
-    test. hmac-sha512. jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
+    test. hmac-sha512. [base64-encoded key]
 
 This adds the key with the name `test` to the zone's metadata. Note, the
 keys need to be added separately with `add-meta`, not as a comma or
@@ -137,7 +137,7 @@ command (see the manpage for :program:`nsupdate` for full details)::
     zone example.org
     update add test1.example.org 3600 A 1.2.3.4
     update add test1.example.org 3600 TXT "this is a test"
-    key hmac-sha512:test jMp41zXrTRKa9l9EGMj+9I9AL8exyIjXBdkFuNMJKv/UpNd83kFt+CrHQpuqBI8lf28xH1SrOFN1mr7QzOe7pQ==
+    key hmac-sha512:test [base64-encoded key]
     send
     !
 
