@@ -11,6 +11,7 @@ class AggressiveNSECCacheBase(RecursorTest):
     _wsTimeout = 10
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
+    #_recursorStartupDelay = 4.0
     _config_template = """
     dnssec=validate
     aggressive-nsec-cache-size=10000
@@ -19,12 +20,14 @@ class AggressiveNSECCacheBase(RecursorTest):
     webserver-address=127.0.0.1
     webserver-password=%s
     api-key=%s
+    devonly-regression-test-mode
     """ % (_wsPort, _wsPassword, _apiKey)
 
     @classmethod
     def wipe(cls):
         confdir = os.path.join('configs', cls._confdir)
-        cls.wipeRecursorCache(confdir)
+        # Only wipe examples, as wiping the root triggers root NS refreshes
+        cls.wipeRecursorCache(confdir, "example$")
 
     def getMetric(self, name):
         headers = {'x-api-key': self._apiKey}
@@ -42,8 +45,8 @@ class AggressiveNSECCacheBase(RecursorTest):
         self.assertTrue(False)
 
     def testNoData(self):
-
         self.wipe()
+
         # first we query a non-existent type, to get the NSEC in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         res = self.sendQuery('host1.secure.example.', 'TXT')
@@ -72,8 +75,8 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
     # we can't use the same tests for NSEC and NSEC3 because the hashed NSEC3s
     # do not deny the same names than the non-hashed NSECs do
     def testNXD(self):
-
         self.wipe()
+
         # first we query a non-existent name, to get the needed NSECs (name + widcard) in our cache
         entries = self.getMetric('aggressive-nsec-cache-entries')
         hits = self.getMetric('aggressive-nsec-cache-nsec-hits')
@@ -100,8 +103,8 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
     def testWildcard(self):
-
         self.wipe()
+
         # first we query a non-existent name, but for which a wildcard matches,
         # to get the NSEC in our cache
         res = self.sendQuery('test1.wildcard.secure.example.', 'A')
@@ -231,6 +234,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
             raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     def testNXD(self):
+        self.wipe()
 
         # first we query a non-existent name, to get the needed NSEC3s in our cache
         res = self.sendQuery('host2.secure.example.', 'TXT')
@@ -250,6 +254,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
     def testWildcard(self):
+        self.wipe()
 
         # first let's get the SOA and wildcard NSEC in our cache by asking a name that matches the wildcard
         # but a type that does not exist
@@ -297,6 +302,8 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
     def test_OptOut(self):
+        self.wipe()
+
         # query a name in an opt-out zone
         res = self.sendQuery('ns2.optout.example.', 'A')
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)

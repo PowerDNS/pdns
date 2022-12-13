@@ -29,10 +29,6 @@ ArgvMap& arg()
   return theArg;
 }
 
-void primeRootNSZones(DNSSECMode, unsigned int)
-{
-}
-
 BaseLua4::~BaseLua4()
 {
 }

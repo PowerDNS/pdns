@@ -455,8 +455,6 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
   if (req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  registerAllStats();
-
   std::ostringstream output;
 
   // Argument controls disabling of any stats. So
@@ -1194,8 +1192,6 @@ static void validatePrometheusMetrics()
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
-  registerAllStats();
-
 #if CHECK_PROMETHEUS_METRICS
   validatePrometheusMetrics();
 #endif

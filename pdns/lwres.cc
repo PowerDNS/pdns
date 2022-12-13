@@ -466,7 +466,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
   if(!doTCP) {
     int queryfd;
     if (ip.sin4.sin_family==AF_INET6) {
-      g_stats.ipv6queries++;
+      t_Counters.at(rec::Counter::ipv6queries)++;
     }
 
     ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
@@ -624,7 +624,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
     lwr->d_rcode = RCode::FormErr;
     lwr->d_validpacket = false;
-    g_stats.serverParseError++;
+    t_Counters.at(rec::Counter::serverParseError)++;
 
     if(outgoingLoggers) {
       logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
@@ -637,7 +637,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
          g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(ip)));
   }
 
-  g_stats.serverParseError++;
+  t_Counters.at(rec::Counter::serverParseError)++;
 
  out:
   if (!lwr->d_rcode) {

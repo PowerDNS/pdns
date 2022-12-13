@@ -39,7 +39,6 @@ void doCarbonDump(void*)
       config.instance_name = "recursor";
     }
 
-    registerAllStats();
     PacketBuffer msg;
     for (const auto& carbonServer : config.servers) {
       ComboAddress remote(carbonServer, 2003);

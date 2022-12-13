@@ -39,7 +39,6 @@ class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     _confdir = 'recursor'
 
-    _recursorStartupDelay = 2.0
     _recursorPort = 5300
 
     _recursor = None
@@ -649,11 +648,11 @@ distributor-threads={threads}""".format(confdir=confdir,
             raise AssertionError('%s failed (%d)' % (recursorcmd, cls._recursor.returncode))
 
     @classmethod
-    def wipeRecursorCache(cls, confdir):
+    def wipeRecursorCache(cls, confdir, name='.$'):
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % confdir,
                           'wipe-cache',
-                          '.$']
+                          name]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:

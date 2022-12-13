@@ -1149,7 +1149,7 @@ static uint64_t doGetMallocated()
   return 0;
 }
 
-static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& histogram)
+static StatsMap toStatsMap(const string& name, const pdns::Histogram& histogram)
 {
   const auto& data = histogram.getCumulativeBuckets();
   const string pbasename = getPrometheusName(name);
@@ -1169,7 +1169,7 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
   return entries;
 }
 
-static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& histogram4, const pdns::AtomicHistogram& histogram6)
+static StatsMap toStatsMap(const string& name, const pdns::Histogram& histogram4, const pdns::Histogram& histogram6)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
@@ -1199,13 +1199,14 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
   return entries;
 }
 
-static StatsMap toAuthRCodeStatsMap(const string& name, const std::array<pdns::stat_t, 16>& v)
+static StatsMap toAuthRCodeStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
 
   uint8_t n = 0;
-  for (const auto& entry : v) {
+  auto rcodes = g_Counters.sum(rec::RCode::auth).rcodeCounters;
+  for (const auto& entry : rcodes) {
     const auto key = RCode::to_short_s(n);
     std::string pname = pbasename + "{rcode=\"" + key + "\"}";
     entries.emplace("auth-" + key + "-answers", StatsMapEntry{pname, std::to_string(entry)});
@@ -1313,9 +1314,9 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
 
 static void registerAllStats1()
 {
-  addGetStat("questions", &g_stats.qcounter);
-  addGetStat("ipv6-questions", &g_stats.ipv6qcounter);
-  addGetStat("tcp-questions", &g_stats.tcpqcounter);
+  addGetStat("questions", [] { return g_Counters.sum(rec::Counter::qcounter); });
+  addGetStat("ipv6-questions", [] { return g_Counters.sum(rec::Counter::ipv6qcounter); });
+  addGetStat("tcp-questions", [] { return g_Counters.sum(rec::Counter::tcpqcounter); });
 
   addGetStat("cache-hits", doGetCacheHits);
   addGetStat("cache-misses", doGetCacheMisses);
@@ -1339,63 +1340,63 @@ static void registerAllStats1()
 
   addGetStat("malloc-bytes", doGetMallocated);
 
-  addGetStat("servfail-answers", &g_stats.servFails);
-  addGetStat("nxdomain-answers", &g_stats.nxDomains);
-  addGetStat("noerror-answers", &g_stats.noErrors);
+  addGetStat("servfail-answers", [] { return g_Counters.sum(rec::Counter::servFails); });
+  addGetStat("nxdomain-answers", [] { return g_Counters.sum(rec::Counter::nxDomains); });
+  addGetStat("noerror-answers", [] { return g_Counters.sum(rec::Counter::noErrors); });
 
-  addGetStat("unauthorized-udp", &g_stats.unauthorizedUDP);
-  addGetStat("unauthorized-tcp", &g_stats.unauthorizedTCP);
-  addGetStat("source-disallowed-notify", &g_stats.sourceDisallowedNotify);
-  addGetStat("zone-disallowed-notify", &g_stats.zoneDisallowedNotify);
-  addGetStat("tcp-client-overflow", &g_stats.tcpClientOverflow);
+  addGetStat("unauthorized-udp", [] { return g_Counters.sum(rec::Counter::unauthorizedUDP); });
+  addGetStat("unauthorized-tcp", [] { return g_Counters.sum(rec::Counter::unauthorizedTCP); });
+  addGetStat("source-disallowed-notify", [] { return g_Counters.sum(rec::Counter::sourceDisallowedNotify); });
+  addGetStat("zone-disallowed-notify", [] { return g_Counters.sum(rec::Counter::zoneDisallowedNotify); });
+  addGetStat("tcp-client-overflow", [] { return g_Counters.sum(rec::Counter::tcpClientOverflow); });
 
-  addGetStat("client-parse-errors", &g_stats.clientParseError);
-  addGetStat("server-parse-errors", &g_stats.serverParseError);
-  addGetStat("too-old-drops", &g_stats.tooOldDrops);
-  addGetStat("truncated-drops", &g_stats.truncatedDrops);
-  addGetStat("query-pipe-full-drops", &g_stats.queryPipeFullDrops);
+  addGetStat("client-parse-errors", [] { return g_Counters.sum(rec::Counter::clientParseError); });
+  addGetStat("server-parse-errors", [] { return g_Counters.sum(rec::Counter::serverParseError); });
+  addGetStat("too-old-drops", [] { return g_Counters.sum(rec::Counter::tooOldDrops); });
+  addGetStat("truncated-drops", [] { return g_Counters.sum(rec::Counter::truncatedDrops); });
+  addGetStat("query-pipe-full-drops", [] { return g_Counters.sum(rec::Counter::queryPipeFullDrops); });
 
-  addGetStat("answers0-1", []() { return g_stats.answers.getCount(0); });
-  addGetStat("answers1-10", []() { return g_stats.answers.getCount(1); });
-  addGetStat("answers10-100", []() { return g_stats.answers.getCount(2); });
-  addGetStat("answers100-1000", []() { return g_stats.answers.getCount(3); });
-  addGetStat("answers-slow", []() { return g_stats.answers.getCount(4); });
+  addGetStat("answers0-1", []() { return g_Counters.sum(rec::Histogram::answers).getCount(0); });
+  addGetStat("answers1-10", []() { return g_Counters.sum(rec::Histogram::answers).getCount(1); });
+  addGetStat("answers10-100", []() { return g_Counters.sum(rec::Histogram::answers).getCount(2); });
+  addGetStat("answers100-1000", []() { return g_Counters.sum(rec::Histogram::answers).getCount(3); });
+  addGetStat("answers-slow", []() { return g_Counters.sum(rec::Histogram::answers).getCount(4); });
 
-  addGetStat("x-ourtime0-1", []() { return g_stats.ourtime.getCount(0); });
-  addGetStat("x-ourtime1-2", []() { return g_stats.ourtime.getCount(1); });
-  addGetStat("x-ourtime2-4", []() { return g_stats.ourtime.getCount(2); });
-  addGetStat("x-ourtime4-8", []() { return g_stats.ourtime.getCount(3); });
-  addGetStat("x-ourtime8-16", []() { return g_stats.ourtime.getCount(4); });
-  addGetStat("x-ourtime16-32", []() { return g_stats.ourtime.getCount(5); });
-  addGetStat("x-ourtime-slow", []() { return g_stats.ourtime.getCount(6); });
+  addGetStat("x-ourtime0-1", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(0); });
+  addGetStat("x-ourtime1-2", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(1); });
+  addGetStat("x-ourtime2-4", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(2); });
+  addGetStat("x-ourtime4-8", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(3); });
+  addGetStat("x-ourtime8-16", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(4); });
+  addGetStat("x-ourtime16-32", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(5); });
+  addGetStat("x-ourtime-slow", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(6); });
 
-  addGetStat("auth4-answers0-1", []() { return g_stats.auth4Answers.getCount(0); });
-  addGetStat("auth4-answers1-10", []() { return g_stats.auth4Answers.getCount(1); });
-  addGetStat("auth4-answers10-100", []() { return g_stats.auth4Answers.getCount(2); });
-  addGetStat("auth4-answers100-1000", []() { return g_stats.auth4Answers.getCount(3); });
-  addGetStat("auth4-answers-slow", []() { return g_stats.auth4Answers.getCount(4); });
+  addGetStat("auth4-answers0-1", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(0); });
+  addGetStat("auth4-answers1-10", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(1); });
+  addGetStat("auth4-answers10-100", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(2); });
+  addGetStat("auth4-answers100-1000", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(3); });
+  addGetStat("auth4-answers-slow", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(4); });
 
-  addGetStat("auth6-answers0-1", []() { return g_stats.auth6Answers.getCount(0); });
-  addGetStat("auth6-answers1-10", []() { return g_stats.auth6Answers.getCount(1); });
-  addGetStat("auth6-answers10-100", []() { return g_stats.auth6Answers.getCount(2); });
-  addGetStat("auth6-answers100-1000", []() { return g_stats.auth6Answers.getCount(3); });
-  addGetStat("auth6-answers-slow", []() { return g_stats.auth6Answers.getCount(4); });
+  addGetStat("auth6-answers0-1", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(0); });
+  addGetStat("auth6-answers1-10", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(1); });
+  addGetStat("auth6-answers10-100", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(2); });
+  addGetStat("auth6-answers100-1000", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(3); });
+  addGetStat("auth6-answers-slow", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(4); });
 
-  addGetStat("qa-latency", []() { return round(g_stats.avgLatencyUsec.load()); });
-  addGetStat("x-our-latency", []() { return round(g_stats.avgLatencyOursUsec.load()); });
-  addGetStat("unexpected-packets", &g_stats.unexpectedCount);
-  addGetStat("case-mismatches", &g_stats.caseMismatchCount);
-  addGetStat("spoof-prevents", &g_stats.spoofCount);
+  addGetStat("qa-latency", []() { return round(g_Counters.avg(rec::DoubleWAvgCounter::avgLatencyUsec)); });
+  addGetStat("x-our-latency", []() { return round(g_Counters.avg(rec::DoubleWAvgCounter::avgLatencyOursUsec)); });
+  addGetStat("unexpected-packets", [] { return g_Counters.sum(rec::Counter::unexpectedCount); });
+  addGetStat("case-mismatches", [] { return g_Counters.sum(rec::Counter::caseMismatchCount); });
+  addGetStat("spoof-prevents", [] { return g_Counters.sum(rec::Counter::spoofCount); });
 
-  addGetStat("nsset-invalidations", &g_stats.nsSetInvalidations);
+  addGetStat("nsset-invalidations", [] { return g_Counters.sum(rec::Counter::nsSetInvalidations); });
 
-  addGetStat("resource-limits", &g_stats.resourceLimits);
-  addGetStat("over-capacity-drops", &g_stats.overCapacityDrops);
-  addGetStat("policy-drops", &g_stats.policyDrops);
-  addGetStat("no-packet-error", &g_stats.noPacketError);
-  addGetStat("ignored-packets", &g_stats.ignoredCount);
-  addGetStat("empty-queries", &g_stats.emptyQueriesCount);
-  addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
+  addGetStat("resource-limits", [] { return g_Counters.sum(rec::Counter::resourceLimits); });
+  addGetStat("over-capacity-drops", [] { return g_Counters.sum(rec::Counter::overCapacityDrops); });
+  addGetStat("policy-drops", [] { return g_Counters.sum(rec::Counter::policyDrops); });
+  addGetStat("no-packet-error", [] { return g_Counters.sum(rec::Counter::noPacketError); });
+  addGetStat("ignored-packets", [] { return g_Counters.sum(rec::Counter::ignoredCount); });
+  addGetStat("empty-queries", [] { return g_Counters.sum(rec::Counter::emptyQueriesCount); });
+  addGetStat("max-mthread-stack", [] { return g_Counters.max(rec::Counter::maxMThreadStackUsage); });
 
   addGetStat("negcache-entries", getNegCacheSize);
   addGetStat("throttle-entries", SyncRes::getThrottledServersSize);
@@ -1406,22 +1407,22 @@ static void registerAllStats1()
 
   addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);
-  addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
-  addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
-  addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
-  addGetStat("auth-zone-queries", &SyncRes::s_authzonequeries);
-  addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
-  addGetStat("dot-outqueries", &SyncRes::s_dotoutqueries);
-  addGetStat("all-outqueries", &SyncRes::s_outqueries);
-  addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
-  addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
-  addGetStat("dont-outqueries", &SyncRes::s_dontqueries);
-  addGetStat("qname-min-fallback-success", &SyncRes::s_qnameminfallbacksuccess);
-  addGetStat("throttled-out", &SyncRes::s_throttledqueries);
-  addGetStat("unreachables", &SyncRes::s_unreachables);
+  addGetStat("outgoing-timeouts", [] { return g_Counters.sum(rec::Counter::outgoingtimeouts); });
+  addGetStat("outgoing4-timeouts", [] { return g_Counters.sum(rec::Counter::outgoing4timeouts); });
+  addGetStat("outgoing6-timeouts", [] { return g_Counters.sum(rec::Counter::outgoing6timeouts); });
+  addGetStat("auth-zone-queries", [] { return g_Counters.sum(rec::Counter::authzonequeries); });
+  addGetStat("tcp-outqueries", [] { return g_Counters.sum(rec::Counter::tcpoutqueries); });
+  addGetStat("dot-outqueries", [] { return g_Counters.sum(rec::Counter::dotoutqueries); });
+  addGetStat("all-outqueries", [] { return g_Counters.sum(rec::Counter::outqueries); });
+  addGetStat("ipv6-outqueries", [] { return g_Counters.sum(rec::Counter::ipv6queries); });
+  addGetStat("throttled-outqueries", [] { return g_Counters.sum(rec::Counter::throttledqueries); });
+  addGetStat("dont-outqueries", [] { return g_Counters.sum(rec::Counter::dontqueries); });
+  addGetStat("qname-min-fallback-success", [] { return g_Counters.sum(rec::Counter::qnameminfallbacksuccess); });
+  addGetStat("throttled-out", [] { return g_Counters.sum(rec::Counter::throttledqueries); });
+  addGetStat("unreachables", [] { return g_Counters.sum(rec::Counter::unreachables); });
   addGetStat("ecs-queries", &SyncRes::s_ecsqueries);
   addGetStat("ecs-responses", &SyncRes::s_ecsresponses);
-  addGetStat("chain-resends", &g_stats.chainResends);
+  addGetStat("chain-resends", [] { return g_Counters.sum(rec::Counter::chainResends); });
   addGetStat("tcp-clients", [] { return TCPConnection::getCurrentConnections(); });
 
 #ifdef __linux__
@@ -1437,17 +1438,17 @@ static void registerAllStats1()
   addGetStat("udp6-in-csum-errors", [] { return udp6ErrorStats("udp6-in-csum-errors"); });
 #endif
 
-  addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
-  addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
-  addGetStat("dnssec-queries", &g_stats.dnssecQueries);
+  addGetStat("edns-ping-matches", [] { return g_Counters.sum(rec::Counter::ednsPingMatches); });
+  addGetStat("edns-ping-mismatches", [] { return g_Counters.sum(rec::Counter::ednsPingMismatches); });
+  addGetStat("dnssec-queries", [] { return g_Counters.sum(rec::Counter::dnssecQueries); });
 
-  addGetStat("dnssec-authentic-data-queries", &g_stats.dnssecAuthenticDataQueries);
-  addGetStat("dnssec-check-disabled-queries", &g_stats.dnssecCheckDisabledQueries);
+  addGetStat("dnssec-authentic-data-queries", [] { return g_Counters.sum(rec::Counter::dnssecAuthenticDataQueries); });
+  addGetStat("dnssec-check-disabled-queries", [] { return g_Counters.sum(rec::Counter::dnssecCheckDisabledQueries); });
 
-  addGetStat("variable-responses", &g_stats.variableResponses);
+  addGetStat("variable-responses", [] { return g_Counters.sum(rec::Counter::variableResponses); });
 
-  addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
-  addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
+  addGetStat("noping-outqueries", [] { return g_Counters.sum(rec::Counter::noPingOutQueries); });
+  addGetStat("noedns-outqueries", [] { return g_Counters.sum(rec::Counter::noEdnsOutQueries); });
 
   addGetStat("uptime", calculateUptime);
   addGetStat("real-memory-usage", [] { return getRealMemoryUsage(string()); });
@@ -1471,7 +1472,7 @@ static void registerAllStats1()
   addGetStat("memory-allocated", [] { return g_mtracer->getTotAllocated(string()); });
 #endif
 
-  addGetStat("dnssec-validations", &g_stats.dnssecValidations);
+  addGetStat("dnssec-validations", [] { return g_Counters.sum(rec::Counter::dnssecValidations); });
   addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[vState::Insecure]);
   addGetStat("dnssec-result-secure", &g_stats.dnssecResults[vState::Secure]);
   addGetStat("dnssec-result-bogus", []() {
@@ -1538,17 +1539,17 @@ static void registerAllStats1()
   addGetStat("policy-result-truncate", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Truncate]);
   addGetStat("policy-result-custom", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Custom]);
 
-  addGetStat("rebalanced-queries", &g_stats.rebalancedQueries);
+  addGetStat("rebalanced-queries", [] { return g_Counters.sum(rec::Counter::rebalancedQueries); });
 
-  addGetStat("proxy-protocol-invalid", &g_stats.proxyProtocolInvalidCount);
+  addGetStat("proxy-protocol-invalid", [] { return g_Counters.sum(rec::Counter::proxyProtocolInvalidCount); });
 
-  addGetStat("nod-lookups-dropped-oversize", &g_stats.nodLookupsDroppedOversize);
+  addGetStat("nod-lookups-dropped-oversize", [] { return g_Counters.sum(rec::Counter::nodLookupsDroppedOversize); });
 
   addGetStat("taskqueue-pushed", []() { return getTaskPushes(); });
   addGetStat("taskqueue-expired", []() { return getTaskExpired(); });
   addGetStat("taskqueue-size", []() { return getTaskSize(); });
 
-  addGetStat("dns64-prefix-answers", &g_stats.dns64prefixanswers);
+  addGetStat("dns64-prefix-answers", [] { return g_Counters.sum(rec::Counter::dns64prefixanswers); });
 
   addGetStat("almost-expired-pushed", []() { return getAlmostExpiredTasksPushed(); });
   addGetStat("almost-expired-run", []() { return getAlmostExpiredTasksRun(); });
@@ -1556,8 +1557,8 @@ static void registerAllStats1()
 
   addGetStat("idle-tcpout-connections", getCurrentIdleTCPConnections);
 
-  addGetStat("maintenance-usec", &g_stats.maintenanceUsec);
-  addGetStat("maintenance-calls", &g_stats.maintenanceCalls);
+  addGetStat("maintenance-usec", [] { return g_Counters.sum(rec::Counter::maintenanceUsec); });
+  addGetStat("maintenance-calls", [] { return g_Counters.sum(rec::Counter::maintenanceCalls); });
 
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
@@ -1571,10 +1572,10 @@ static void registerAllStats1()
   }
 
   addGetStat("cumul-clientanswers", []() {
-    return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers);
+    return toStatsMap(t_Counters.at(rec::Histogram::cumulativeAnswers).getName(), g_Counters.sum(rec::Histogram::cumulativeAnswers));
   });
   addGetStat("cumul-authanswers", []() {
-    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers, g_stats.cumulativeAuth6Answers);
+    return toStatsMap(t_Counters.at(rec::Histogram::cumulativeAuth4Answers).getName(), g_Counters.sum(rec::Histogram::cumulativeAuth4Answers), g_Counters.sum(rec::Histogram::cumulativeAuth6Answers));
   });
   addGetStat("policy-hits", []() {
     return toRPZStatsMap("policy-hits", g_stats.policyHits);
@@ -1583,7 +1584,7 @@ static void registerAllStats1()
     return toProxyMappingStatsMap("proxy-mapping-total");
   });
   addGetStat("auth-rcode-answers", []() {
-    return toAuthRCodeStatsMap("auth-rcode-answers", g_stats.authRCode);
+    return toAuthRCodeStatsMap("auth-rcode-answers");
   });
   addGetStat("remote-logger-count", []() {
     return toRemoteLoggerStatsMap("remote-logger-count");
@@ -1592,16 +1593,13 @@ static void registerAllStats1()
 
 void registerAllStats()
 {
-  static std::once_flag s_once;
-  std::call_once(s_once, []() {
-    try {
-      registerAllStats1();
-    }
-    catch (...) {
-      g_log << Logger::Critical << "Could not add stat entries" << endl;
-      exit(1);
-    }
-  });
+  try {
+    registerAllStats1();
+  }
+  catch (...) {
+    g_log << Logger::Critical << "Could not add stat entries" << endl;
+    exit(1);
+  }
 }
 
 void doExitGeneric(bool nicely)

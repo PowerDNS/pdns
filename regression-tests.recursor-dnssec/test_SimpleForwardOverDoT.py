@@ -12,6 +12,7 @@ class testSimpleForwardOverDoT(RecursorTest):
     _config_template = """
 dnssec=validate
 forward-zones-recurse=.=9.9.9.9:853
+devonly-regression-test-mode
     """
 
     @classmethod

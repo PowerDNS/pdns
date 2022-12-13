@@ -38,6 +38,9 @@
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
 
+rec::GlobalCounters g_Counters;
+thread_local rec::TCounters t_Counters(g_Counters);
+
 template<class T>
 class fails_t : public boost::noncopyable
 {
@@ -427,18 +430,6 @@ unsigned int SyncRes::s_serverdownthrottletime;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
 unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
-pdns::stat_t SyncRes::s_authzonequeries;
-pdns::stat_t SyncRes::s_queries;
-pdns::stat_t SyncRes::s_outgoingtimeouts;
-pdns::stat_t SyncRes::s_outgoing4timeouts;
-pdns::stat_t SyncRes::s_outgoing6timeouts;
-pdns::stat_t SyncRes::s_outqueries;
-pdns::stat_t SyncRes::s_tcpoutqueries;
-pdns::stat_t SyncRes::s_dotoutqueries;
-pdns::stat_t SyncRes::s_throttledqueries;
-pdns::stat_t SyncRes::s_dontqueries;
-pdns::stat_t SyncRes::s_qnameminfallbacksuccess;
-pdns::stat_t SyncRes::s_unreachables;
 pdns::stat_t SyncRes::s_ecsqueries;
 pdns::stat_t SyncRes::s_ecsresponses;
 std::map<uint8_t, pdns::stat_t> SyncRes::s_ecsResponsesBySubnetSize4;
@@ -486,11 +477,11 @@ static inline std::string fmtfloat(const char* fmt, double f)
 static inline void accountAuthLatency(uint64_t usec, int family)
 {
   if (family == AF_INET) {
-    g_stats.auth4Answers(usec);
-    g_stats.cumulativeAuth4Answers(usec);
+    t_Counters.at(rec::Histogram::auth4Answers)(usec);
+    t_Counters.at(rec::Histogram::cumulativeAuth4Answers)(usec);
   } else  {
-    g_stats.auth6Answers(usec);
-    g_stats.cumulativeAuth6Answers(usec);
+    t_Counters.at(rec::Histogram::auth6Answers)(usec);
+    t_Counters.at(rec::Histogram::cumulativeAuth6Answers)(usec);
   }
 }
 
@@ -694,7 +685,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
 {
   d_eventTrace.add(RecEventTrace::SyncRes);
   vState state = vState::Indeterminate;
-  s_queries++;
+  t_Counters.at(rec::Counter::syncresqueries)++;
   d_wasVariable=false;
   d_wasOutOfBand=false;
   d_cutStates.clear();
@@ -726,7 +717,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
 
   if (shouldValidate()) {
     if (d_queryValidationState != vState::Indeterminate) {
-      g_stats.dnssecValidations++;
+      t_Counters.at(rec::Counter::dnssecValidations)++;
     }
     auto xdnssec = g_xdnssec.getLocal();
     if (xdnssec->check(qname)) {
@@ -993,7 +984,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
 bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, int& res)
 {
   d_authzonequeries++;
-  s_authzonequeries++;
+  t_Counters.at(rec::Counter::authzonequeries)++;
 
   res = domain.getRecords(qname, qtype, ret);
   return true;
@@ -1516,7 +1507,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   for (int tries = 0; tries < 2; ++tries) {
 
     if (mode == EDNSStatus::NOEDNS) {
-      g_stats.noEdnsOutQueries++;
+      t_Counters.at(rec::Counter::noEdnsOutQueries)++;
       EDNSLevel = 0; // level != mode
     }
     else if (ednsMANDATORY || mode != EDNSStatus::NOEDNS) {
@@ -1772,7 +1763,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth/2, beenthere, state);
 
         if(res == RCode::NoError) {
-          s_qnameminfallbacksuccess++;
+          t_Counters.at(rec::Counter::qnameminfallbacksuccess)++;
         }
 
         QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size());
@@ -1853,7 +1844,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
               d_totUsec += lwr.d_usec;
               accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-              ++g_stats.authRCode.at(lwr.d_rcode);
+              ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
               if (fromCache)
                 *fromCache = true;
 
@@ -3242,7 +3233,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
       return;
 
   case DNSFilterEngine::PolicyKind::Drop:
-    ++g_stats.policyDrops;
+    ++t_Counters.at(rec::Counter::policyDrops);
     throw ImmediateQueryDropException();
 
   case DNSFilterEngine::PolicyKind::NXDOMAIN:
@@ -3417,12 +3408,14 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
 {
   if (isThrottled(d_now.tv_sec, remoteIP)) {
     LOG(prefix<<qname<<": server throttled "<<endl);
-    s_throttledqueries++; d_throttledqueries++;
+    t_Counters.at(rec::Counter::throttledqueries)++;
+    d_throttledqueries++;
     return true;
   }
   else if (isThrottled(d_now.tv_sec, remoteIP, qname, qtype)) {
     LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype<<endl);
-    s_throttledqueries++; d_throttledqueries++;
+    t_Counters.at(rec::Counter::throttledqueries)++;
+    d_throttledqueries++;
     return true;
   }
   else if(!pierceDontQuery && s_dontQuery && s_dontQuery->match(&remoteIP)) {
@@ -3432,14 +3425,14 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     auto it = getBestAuthZone(&forwardCandidate);
     if (it == t_sstorage.domainmap->end()) {
       LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
-      s_dontqueries++;
+      t_Counters.at(rec::Counter::dontqueries)++;
       return true;
     } else {
       // The name (from the cache) is forwarded, but is it forwarded to an IP in known forwarders?
       const auto& ips = it->second.d_servers;
       if (std::find(ips.cbegin(), ips.cend(), remoteIP) == ips.cend()) {
         LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
-        s_dontqueries++;
+        t_Counters.at(rec::Counter::dontqueries)++;
         return true;
       } else {
         LOG(prefix<<qname<<": sending query to " << remoteIP.toString() << ", blocked by 'dont-query' but a forwarding/auth case" << endl);
@@ -5148,7 +5141,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
-  s_outqueries++;
+  t_Counters.at(rec::Counter::outqueries)++;
   d_outqueries++;
   checkMaxQperQ(qname);
 
@@ -5159,11 +5152,11 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   if(doTCP) {
     if (doDoT) {
       LOG(prefix<<qname<<": using DoT with "<< remoteIP.toStringWithPort() <<endl);
-      s_dotoutqueries++;
+      t_Counters.at(rec::Counter::dotoutqueries)++;
       d_dotoutqueries++;
     } else {
       LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
-      s_tcpoutqueries++;
+      t_Counters.at(rec::Counter::tcpoutqueries)++;
       d_tcpoutqueries++;
     }
   }
@@ -5201,7 +5194,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   d_totUsec += lwr.d_usec;
   accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-  ++g_stats.authRCode.at(lwr.d_rcode);
+  ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
 
   if (!dontThrottle) {
     auto dontThrottleNames = g_dontThrottleNames.getLocal();
@@ -5216,12 +5209,12 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
       LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
       d_timeouts++;
-      s_outgoingtimeouts++;
+      t_Counters.at(rec::Counter::outgoingtimeouts)++;
 
       if(remoteIP.sin4.sin_family == AF_INET)
-        s_outgoing4timeouts++;
+        t_Counters.at(rec::Counter::outgoing4timeouts)++;
       else
-        s_outgoing6timeouts++;
+        t_Counters.at(rec::Counter::outgoing6timeouts)++;
 
       if(t_timeouts)
         t_timeouts->push_back(remoteIP);
@@ -5229,14 +5222,14 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     else if (resolveret == LWResult::Result::OSLimitError) {
       /* OS resource limit reached */
       LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
-      g_stats.resourceLimits++;
+      t_Counters.at(rec::Counter::resourceLimits)++;
     }
     else if (resolveret == LWResult::Result::Spoofed) {
       spoofed = true;
     }
     else {
       /* LWResult::Result::PermanentError */
-      s_unreachables++;
+      t_Counters.at(rec::Counter::unreachables)++;
       d_unreachables++;
       // XXX questionable use of errno
       LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<stringerror()<< endl);
@@ -5570,7 +5563,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
 
           if(g_recCache->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
-            g_stats.nsSetInvalidations++;
+            t_Counters.at(rec::Counter::nsSetInvalidations)++;
         }
         return -1;
       }
