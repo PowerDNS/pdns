@@ -2034,7 +2034,7 @@ static void dropUserPrivs(uid_t uid)
 static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCount)
 {
   /* stdin, stdout, stderr */
-  size_t requiredFDsCount = 3;
+  rlim_t requiredFDsCount = 3;
   auto backends = g_dstates.getLocal();
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
