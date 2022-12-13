@@ -169,6 +169,7 @@ pdns_recursor_SOURCES = \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-main.hh rec-main.cc \
 	rec-protozero.cc rec-protozero.hh \
+	rec-responsestats.hh rec-responsestats.cc \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
@@ -184,7 +185,6 @@ pdns_recursor_SOURCES = \
 	remote_logger.cc remote_logger.hh \
 	resolve-context.hh \
 	resolver.hh resolver.cc \
-	responsestats.hh responsestats.cc \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
@@ -295,6 +295,7 @@ testrunner_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
+	rec-responsestats.hh rec-responsestats.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
@@ -302,7 +303,6 @@ testrunner_SOURCES = \
 	recursor_cache.cc recursor_cache.hh \
 	reczones-helpers.cc reczones-helpers.hh \
 	resolver.hh resolver.cc \
-	responsestats.cc \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
 	secpoll.cc \

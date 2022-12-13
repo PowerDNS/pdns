@@ -109,6 +109,7 @@ allow-from-file=acl.list
 allow-notify-from-file=acl-notify.list
 api-config-dir=%(conf_dir)s
 include-dir=%(conf_dir)s
+devonly-regression-test-mode
 """
 
 

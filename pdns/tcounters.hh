@@ -196,7 +196,7 @@ private:
 };
 
 // Sum for a specific index
-// In the future we might the move the specifics of computing an aggregated value to the
+// In the future we might want to move the specifics of computing an aggregated value to the
 // app specific Counters class
 template <typename Counters>
 template <typename Enum>
@@ -211,7 +211,7 @@ auto GlobalCounters<Counters>::sum(Enum index)
 }
 
 // Average for a specific index
-// In the future we might the move the specifics of computing an aggregated value to the
+// In the future we might want to move the specifics of computing an aggregated value to the
 // app specific Counters class
 template <typename Counters>
 template <typename Enum>
@@ -230,7 +230,7 @@ auto GlobalCounters<Counters>::avg(Enum index)
 }
 
 // Max for a specific  index
-// In the future we might the move the specifics of computing an aggregated value to the
+// In the future we might want to move the specifics of computing an aggregated value to the
 // app specific Counters class
 template <typename Counters>
 template <typename Enum>
