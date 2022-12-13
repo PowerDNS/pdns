@@ -154,8 +154,6 @@
 ./pdns/ednspadding.cc
 ./pdns/ednssubnet.cc
 ./pdns/ednssubnet.hh
-./pdns/filterpo.cc
-./pdns/filterpo.hh
 ./pdns/fstrm_logger.cc
 ./pdns/fstrm_logger.hh
 ./pdns/fuzz_dnsdistcache.cc
@@ -183,7 +181,6 @@
 ./pdns/json.cc
 ./pdns/json.hh
 ./pdns/kvresp.cc
-./pdns/lazy_allocator.hh
 ./pdns/libssl.cc
 ./pdns/libssl.hh
 ./pdns/lock.hh
@@ -192,8 +189,6 @@
 ./pdns/lua-base4.cc
 ./pdns/lua-base4.hh
 ./pdns/lua-record.cc
-./pdns/lwres.cc
-./pdns/lwres.hh
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
 ./pdns/mastercommunicator.cc
@@ -203,14 +198,9 @@
 ./pdns/misc.hh
 ./pdns/mtasker.cc
 ./pdns/mtasker.hh
-./pdns/mtasker_context.hh
-./pdns/mtasker_fcontext.cc
-./pdns/mtasker_ucontext.cc
 ./pdns/nameserver.cc
 ./pdns/nameserver.hh
 ./pdns/namespaces.hh
-./pdns/nod.cc
-./pdns/nod.hh
 ./pdns/noinitvector.hh
 ./pdns/notify.cc
 ./pdns/nproxy.cc
@@ -237,14 +227,11 @@
 ./pdns/rcpgenerator.hh
 ./pdns/remote_logger.cc
 ./pdns/remote_logger.hh
-./pdns/resolve-context.hh
 ./pdns/resolver.cc
 ./pdns/resolver.hh
 ./pdns/responsestats-auth.cc
 ./pdns/rfc2136handler.cc
-./pdns/root-addresses.hh
 ./pdns/root-dnssec.hh
-./pdns/rpzloader.cc
 ./pdns/saxfr.cc
 ./pdns/sdig.cc
 ./pdns/secpoll-auth.cc
@@ -277,8 +264,6 @@
 ./pdns/stubresolver.cc
 ./pdns/svc-records.cc
 ./pdns/svc-records.hh
-./pdns/syncres.cc
-./pdns/syncres.hh
 ./pdns/tcpiohandler.cc
 ./pdns/tcpiohandler.hh
 ./pdns/tcpreceiver.cc

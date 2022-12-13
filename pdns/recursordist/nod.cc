@@ -36,7 +36,7 @@
 using namespace nod;
 namespace filesystem = boost::filesystem;
 
-// PersistentSBF Implementation 
+// PersistentSBF Implementation
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
@@ -55,7 +55,8 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<
 // In this way, we can have per-thread SBFs, but still snapshot and restore.
 // The mutex has to be static because we can't have multiple (i.e. per-thread)
 // instances iterating and writing to the cache dir at the same time
-bool PersistentSBF::init(bool ignore_pid) {
+bool PersistentSBF::init(bool ignore_pid)
+{
   if (d_init)
     return false;
 
@@ -67,16 +68,13 @@ bool PersistentSBF::init(bool ignore_pid) {
       if (filesystem::exists(p) && filesystem::is_directory(p)) {
         remove_tmp_files(p, lock);
         filesystem::path newest_file;
-        std::time_t newest_time=time(nullptr);
+        std::time_t newest_time = time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
         for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
-          if (filesystem::is_regular_file(i->path()) &&
-              file_regex.match(i->path().filename().string())) {
-            if (ignore_pid ||
-                (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
+          if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
+            if (ignore_pid || (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
-              if ((last_write_time(i->path()) < newest_time) ||
-                  newest_file.empty()) {
+              if ((last_write_time(i->path()) < newest_time) || newest_file.empty()) {
                 newest_time = last_write_time(i->path());
                 newest_file = i->path();
               }
@@ -101,14 +99,14 @@ bool PersistentSBF::init(bool ignore_pid) {
           catch (const std::runtime_error& e) {
             infile.close();
             filesystem::remove(newest_file);
-            SLOG(g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl,
-                 log->error(Logr::Warning, e.what(), "NODDB init: Cannot parse file, removed", "file",  Logging::Loggable(filename)));
+            SLOG(g_log << Logger::Warning << "NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl,
+                 log->error(Logr::Warning, e.what(), "NODDB init: Cannot parse file, removed", "file", Logging::Loggable(filename)));
           }
         }
       }
     }
     catch (const filesystem::filesystem_error& e) {
-      SLOG(g_log<<Logger::Warning<<"NODDB init failed: " << e.what() << endl,
+      SLOG(g_log << Logger::Warning << "NODDB init failed: " << e.what() << endl,
            log->error(Logr::Warning, e.what(), "NODDB init failed", "exception", Logging::Loggable("filesystem::filesystem_error")));
       return false;
     }
@@ -157,7 +155,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
         std::string str = iss.str();
-        ssize_t len = write(fd,  str.data(), str.length());
+        ssize_t len = write(fd, str.data(), str.length());
         if (len != static_cast<ssize_t>(str.length())) {
           close(fd);
           filesystem::remove(ftmp.c_str());
@@ -171,7 +169,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           filesystem::rename(ftmp, f);
         }
         catch (const std::runtime_error& e) {
-          SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot rename file: " << e.what() << endl,
+          SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot rename file: " << e.what() << endl,
                log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot rename file", "exception", Logging::Loggable("std::runtime_error")));
           filesystem::remove(ftmp);
           throw;
@@ -179,12 +177,12 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         return true;
       }
       catch (const std::runtime_error& e) {
-        SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl,
-              log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot write file", "exception", Logging::Loggable("std::runtime_error")));
+        SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << e.what() << endl,
+             log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot write file", "exception", Logging::Loggable("std::runtime_error")));
       }
     }
     else {
-      SLOG(g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl,
+      SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << f.string() << endl,
            log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(f.string())));
     }
   }
