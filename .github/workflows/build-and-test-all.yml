@@ -18,7 +18,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -64,7 +64,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -114,7 +114,7 @@ jobs:
       run:
         working-directory: ./pdns/dnsdistdist/
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -179,7 +179,7 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -241,7 +241,7 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -265,7 +265,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -290,7 +290,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -316,7 +316,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -346,7 +346,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -374,7 +374,7 @@ jobs:
       # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
       SKIP_INCLUDEDIR_TESTS: yes
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -391,7 +391,7 @@ jobs:
   swagger-syntax-check:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -414,7 +414,7 @@ jobs:
       - test-recursor-bulk
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive

@@ -20,12 +20,12 @@ jobs:
     steps:
     - name: checkout-merge
       if: "contains(github.event_name, 'pull_request')"
-      uses: actions/checkout@v3.1.0
+      uses: actions/checkout@v3.2.0
       with:
         ref: refs/pull/${{github.event.pull_request.number}}/merge
     - name: checkout
       if: ${{ github.event_name == 'push' }}
-      uses: actions/checkout@v3.1.0
+      uses: actions/checkout@v3.2.0
     - uses: check-spelling/check-spelling@v0.0.19
       id: spelling
       with:

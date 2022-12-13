@@ -17,7 +17,7 @@ jobs:
       matrix:
         product: ['auth', 'recursor', 'dnsdist']
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.2.0
         with:
           fetch-depth: 5
           submodules: recursive
