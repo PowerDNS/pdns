@@ -1830,8 +1830,9 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
   auto txn = d_ttsig->getRWTransaction();
 
   for (auto range = txn.equal_range<0>(name); range.first != range.second; ++range.first) {
-    if (range.first->algorithm == algorithm)
-      range.first.del();
+    if (range.first->algorithm == algorithm) {
+      txn.del(range.first.getID());
+    }
   }
 
   TSIGKey tk;
@@ -1850,7 +1851,7 @@ bool LMDBBackend::deleteTSIGKey(const DNSName& name)
   TSIGKey tk;
 
   for (auto range = txn.equal_range<0>(name); range.first != range.second; ++range.first) {
-    range.first.del();
+    txn.del(range.first.getID());
   }
   txn.commit();
   return true;
