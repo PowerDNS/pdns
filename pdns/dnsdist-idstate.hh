@@ -137,6 +137,7 @@ struct InternalQueryState
   uint16_t origID{0}; // 2
   uint16_t origFlags{0}; // 2
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
+  uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
   dnsdist::Protocol protocol; // 1
   boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
   bool ednsAdded{false};
