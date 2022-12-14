@@ -307,7 +307,6 @@
 ./pdns/testrunner.cc
 ./pdns/threadname.cc
 ./pdns/tkey.cc
-./pdns/toysdig.cc
 ./pdns/trusted-notification-proxy.cc
 ./pdns/trusted-notification-proxy.hh
 ./pdns/tsig-tests.cc

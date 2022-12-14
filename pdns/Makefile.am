@@ -184,7 +184,6 @@ EXTRA_PROGRAMS = \
 	sdig \
 	speedtest \
 	testrunner \
-	toysdig \
 	tsig-tests \
 	zone2ldap
 
@@ -887,48 +886,6 @@ nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
-toysdig_SOURCES = \
-	base32.cc \
-	base64.cc base64.hh \
-	dns_random_urandom.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc dnsparser.hh \
-	dnsrecords.cc \
-	dnssecinfra.cc \
-	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc ednssubnet.hh \
-	filterpo.hh \
-	iputils.cc \
-	logger.cc \
-	misc.cc misc.hh \
-	nsecrecords.cc \
-	opensslsigners.cc opensslsigners.hh \
-	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	rec-lua-conf.hh \
-	recursor_cache.hh \
-	root-dnssec.hh \
-	sholder.hh \
-	sillyrecords.cc \
-	sortlist.hh \
-	sstuff.hh \
-	statbag.cc \
-	svc-records.cc svc-records.hh \
-	toysdig.cc \
-	unix_utility.cc \
-	validate.cc validate.hh
-
-
-toysdig_LDFLAGS = $(AM_LDFLAGS) \
-	$(LIBCRYPTO_LDFLAGS)
-toysdig_LDADD = $(LIBCRYPTO_LIBS)
-
-if PKCS11
-toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
-toysdig_LDADD += $(P11KIT1_LIBS)
-endif
-
 tsig_tests_SOURCES = \
 	arguments.cc \
 	axfr-retriever.cc \
@@ -962,10 +919,6 @@ tsig_tests_SOURCES = \
 
 tsig_tests_LDADD = $(LIBCRYPTO_LIBS)
 tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
-
-if GSS_TSIG
-toysdig_LDADD += $(GSS_LIBS)
-endif
 
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh

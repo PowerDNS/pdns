@@ -37,7 +37,6 @@
 /nproxy
 /speedtest
 /tcpbench
-/toysdig
 /tsig-tests
 version_generated.h
 /zone2ldap
