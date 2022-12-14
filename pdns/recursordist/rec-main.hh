@@ -217,7 +217,6 @@ extern bool g_useIncomingECS;
 extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
-extern bool g_addExtendedResolutionDNSErrors;
 extern NetmaskGroup g_proxyProtocolACL;
 extern std::atomic<bool> g_statsWanted;
 extern uint32_t g_disthashseed;

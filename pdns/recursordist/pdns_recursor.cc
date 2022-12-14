@@ -1474,13 +1474,17 @@ void startDoResolve(void* p)
 
     if (haveEDNS) {
       auto state = sr.getValidationState();
-      if (dc->d_extendedErrorCode || (g_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
+      if (dc->d_extendedErrorCode || sr.d_extendedError || (SyncRes::s_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
         EDNSExtendedError::code code;
         std::string extra;
 
         if (dc->d_extendedErrorCode) {
           code = static_cast<EDNSExtendedError::code>(*dc->d_extendedErrorCode);
           extra = std::move(dc->d_extendedErrorExtra);
+        }
+        else if (sr.d_extendedError) {
+          code = static_cast<EDNSExtendedError::code>(sr.d_extendedError->infoCode);
+          extra = std::move(sr.d_extendedError->extraText);
         }
         else {
           switch (state) {

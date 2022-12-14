@@ -467,6 +467,7 @@ bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
 bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
+bool SyncRes::s_addExtendedResolutionDNSErrors;
 
 #define LOG(x)                     \
   if (d_lm == Log) {               \
@@ -519,7 +520,8 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
   switch (mode) {
   case AdditionalMode::ResolveImmediately: {
     set<GetBestNSAnswer> beenthere;
-    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
+    boost::optional<EDNSExtendedError> extendedError;
+    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state, extendedError);
     if (res != 0) {
       return;
     }
@@ -563,7 +565,8 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
   case AdditionalMode::ResolveDeferred: {
     const bool oldCacheOnly = setCacheOnly(true);
     set<GetBestNSAnswer> beenthere;
-    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state);
+    boost::optional<EDNSExtendedError> extendedError;
+    int res = doResolve(qname, qtype, addRecords, depth, beenthere, state, extendedError);
     setCacheOnly(oldCacheOnly);
     if (res == 0 && addRecords.size() > 0) {
       // We're conservative here. We do not add Bogus records in any circumstance, we add Indeterminates only if no
@@ -729,8 +732,10 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
   }
 
   set<GetBestNSAnswer> beenthere;
-  int res = doResolve(qname, qtype, ret, depth, beenthere, state);
+  boost::optional<EDNSExtendedError> extendedError;
+  int res = doResolve(qname, qtype, ret, depth, beenthere, state, extendedError);
   d_queryValidationState = state;
+  d_extendedError = extendedError;
 
   if (shouldValidate()) {
     if (d_queryValidationState != vState::Indeterminate) {
@@ -1600,7 +1605,7 @@ static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsign
   return targetlen;
 }
 
-int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state)
+int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, boost::optional<EDNSExtendedError>& extendedError)
 {
 
   string prefix = d_prefix;
@@ -1624,7 +1629,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
 
   // In the auth or recursive forward case, it does not make sense to do qname-minimization
   if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
-    return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
+    return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state, extendedError);
   }
 
   // The qname minimization algorithm is a simplified version of the one in RFC 7816 (bis).
@@ -1654,7 +1659,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   // For cache peeking, we tell doResolveNoQNameMinimization not to consider the (non-recursive) forward case.
   // Otherwise all queries in a forward domain will be forwarded, while we want to consult the cache.
   // The out-of-band cases for doResolveNoQNameMinimization() should be reconsidered and redone some day.
-  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, &fromCache, nullptr, false);
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, extendedError, &fromCache, nullptr, false);
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
@@ -1736,7 +1741,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       // Step 3 resolve
       if (child == qname) {
         QLOG("Step3 Going to do final resolve");
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state, extendedError);
         QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size());
         return res;
       }
@@ -1760,7 +1765,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       d_followCNAME = false;
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
-      res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, nullptr, &stopAtDelegation);
+      res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, extendedError, nullptr, &stopAtDelegation);
       d_followCNAME = oldFollowCNAME;
       QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
       if (stopAtDelegation == Stopped) {
@@ -1775,7 +1780,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
         // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
         // maxdepth.
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth / 2, beenthere, state);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth / 2, beenthere, state, extendedError);
 
         if (res == RCode::NoError) {
           t_Counters.at(rec::Counter::qnameminfallbacksuccess)++;
@@ -1803,7 +1808,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool* fromCache, StopAtDelegation* stopAtDelegation, bool considerforwards)
+int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, boost::optional<EDNSExtendedError>& extendedError, bool* fromCache, StopAtDelegation* stopAtDelegation, bool considerforwards)
 {
   string prefix;
   if (doLog()) {
@@ -1926,7 +1931,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
           return res;
         }
 
-        if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
+        if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state, extendedError)) {
           // we done
           d_wasOutOfBand = wasAuthZone;
           if (fromCache) {
@@ -1996,7 +2001,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         subdomain = getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
       }
 
-      res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, nullptr);
+      res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, extendedError, stopAtDelegation, nullptr);
 
       if (res == -1 && s_save_parent_ns_set) {
         // It did not work out, lets check if we have a saved parent NS set
@@ -2015,8 +2020,8 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
           }
         }
         if (fallBack.size() > 0) {
-          LOG(prefix << qname << ": Failure, but we have a saved parent NS set, trying that one" << endl)
-          res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation, &fallBack);
+          LOG(prefix << qname << ": Failure, but we have a saved parent NS set, trying that one" << endl);
+          res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, extendedError, stopAtDelegation, &fallBack);
           if (res == 0) {
             // It did work out
             s_savedParentNSSet.lock()->inc(subdomain);
@@ -2113,9 +2118,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
     if (ret.empty()) {
       // Neither A nor AAAA in the cache...
       vState newState = vState::Indeterminate;
+      boost::optional<EDNSExtendedError> extendedError;
       cset.clear();
       // Go out to get A's
-      if (s_doIPv4 && doResolve(qname, QType::A, cset, depth + 1, beenthere, newState) == 0) { // this consults cache, OR goes out
+      if (s_doIPv4 && doResolve(qname, QType::A, cset, depth + 1, beenthere, newState, extendedError) == 0) { // this consults cache, OR goes out
         for (auto const& i : cset) {
           if (i.d_type == QType::A) {
             if (auto rec = getRR<ARecordContent>(i)) {
@@ -2129,7 +2135,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
           // We only go out immediately to find IPv6 records if we did not find any IPv4 ones.
           newState = vState::Indeterminate;
           cset.clear();
-          if (doResolve(qname, QType::AAAA, cset, depth + 1, beenthere, newState) == 0) { // this consults cache, OR goes out
+          if (doResolve(qname, QType::AAAA, cset, depth + 1, beenthere, newState, extendedError) == 0) { // this consults cache, OR goes out
             for (const auto& i : cset) {
               if (i.d_type == QType::AAAA) {
                 if (auto rec = getRR<AAAARecordContent>(i)) {
@@ -2644,9 +2650,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
 
       set<GetBestNSAnswer> beenthere;
       vState cnameState = vState::Indeterminate;
+      boost::optional<EDNSExtendedError> extendedError;
       // Be aware that going out on the network might be disabled (cache-only), for example because we are in QM Step0,
       // so you can't trust that a real lookup will have been made.
-      res = doResolve(newTarget, qtype, ret, depth + 1, beenthere, cnameState);
+      res = doResolve(newTarget, qtype, ret, depth + 1, beenthere, cnameState, extendedError);
       LOG(prefix << qname << ": updating validation state for response to " << qname << " from " << state << " with the state from the DNAME/CNAME quest: " << cnameState << endl);
       updateValidationState(state, cnameState);
 
@@ -2775,7 +2782,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, int& res, vState& state)
+bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, int& res, vState& state, boost::optional<EDNSExtendedError>& extendedError)
 {
   bool giveNegative = false;
 
@@ -2799,6 +2806,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     res = RCode::NXDomain;
     giveNegative = true;
     cachedState = ne.d_validationState;
+    if (s_addExtendedResolutionDNSErrors) {
+      extendedError = EDNSExtendedError{0, "Result synthesized by root-nx-trust"};
+    }
   }
   else if (g_negCache->get(qname, qtype, d_now, ne, false, d_serveStale, d_refresh)) {
     /* If we are looking for a DS, discard NXD if auth == qname
@@ -2822,6 +2832,10 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
         else {
           LOG(prefix << qname << ": Entire name '" << qname << "' is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
         }
+        if (s_addExtendedResolutionDNSErrors) {
+          // XXX Do we want this?
+          extendedError = EDNSExtendedError{0, "Result from negative cache"};
+        }
       }
     }
   }
@@ -2844,6 +2858,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
           giveNegative = true;
           cachedState = ne.d_validationState;
           LOG(prefix << qname << ": Name '" << negCacheName << "' and below, is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
+          if (s_addExtendedResolutionDNSErrors) {
+            extendedError = EDNSExtendedError{0, "Result synthesized by nothing-below-nxdomain (RFC8020)"};
+          }
           break;
         }
       }
@@ -3003,6 +3020,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   if (g_aggressiveNSECCache && !wasForwardedOrAuthZone) {
     if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC)) {
       state = vState::Secure;
+      if (s_addExtendedResolutionDNSErrors) {
+        extendedError = EDNSExtendedError{0, "Result synthesized from aggressive NSEC cache (RFC8198)"};
+      }
       return true;
     }
   }
@@ -3612,9 +3632,11 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   std::vector<DNSRecord> dsrecords;
 
   vState state = vState::Indeterminate;
+  boost::optional<EDNSExtendedError> extendedError;
+
   const bool oldCacheOnly = setCacheOnly(false);
   const bool oldQM = setQNameMinimization(true);
-  int rcode = doResolve(zone, QType::DS, dsrecords, depth + 1, beenthere, state);
+  int rcode = doResolve(zone, QType::DS, dsrecords, depth + 1, beenthere, state, extendedError);
   setCacheOnly(oldCacheOnly);
   setQNameMinimization(oldQM);
 
@@ -3869,8 +3891,10 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFai
   LOG(d_prefix << "Retrieving DNSKeys for " << signer << endl);
 
   vState state = vState::Indeterminate;
+  boost::optional<EDNSExtendedError> extendedError;
+
   const bool oldCacheOnly = setCacheOnly(false);
-  int rcode = doResolve(signer, QType::DNSKEY, records, depth + 1, beenthere, state);
+  int rcode = doResolve(signer, QType::DNSKEY, records, depth + 1, beenthere, state, extendedError);
   setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::ServFail) {
@@ -5126,7 +5150,8 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
   // We use the fact that qname equals auth
   bool ok = false;
   try {
-    ok = doResolveAtThisIP("", qname, qtype, lwr, nm, qname, false, false, nsName, address, true, true, truncated, spoofed, true);
+    boost::optional<EDNSExtendedError> extendedError;
+    ok = doResolveAtThisIP("", qname, qtype, lwr, nm, qname, false, false, nsName, address, true, true, truncated, spoofed, extendedError, true);
     ok = ok && lwr.d_rcode == RCode::NoError && lwr.d_records.size() > 0;
   }
   catch (const PDNSException& e) {
@@ -5148,7 +5173,7 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
   return ok;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, bool dontThrottle)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -5157,6 +5182,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   checkMaxQperQ(qname);
 
   if (s_maxtotusec && d_totUsec > s_maxtotusec) {
+    if (s_addExtendedResolutionDNSErrors) {
+      extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NoReachableAuthority), "Timeout waiting for answer(s)"};
+    }
     throw ImmediateServFailException("Too much time waiting for " + qname.toLogString() + "|" + qtype.toString() + ", timeouts: " + std::to_string(d_timeouts) + ", throttles: " + std::to_string(d_throttledqueries) + ", queries: " + std::to_string(d_outqueries) + ", " + std::to_string(d_totUsec / 1000) + "msec");
   }
 
@@ -5379,7 +5407,8 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
 
   set<GetBestNSAnswer> beenthere;
   vState cnameState = vState::Indeterminate;
-  rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere, cnameState);
+  boost::optional<EDNSExtendedError> extendedError;
+  rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere, cnameState, extendedError);
   LOG(prefix << qname << ": updating validation state for response to " << qname << " from " << state << " with the state from the CNAME quest: " << cnameState << endl);
   updateValidationState(state, cnameState);
 }
@@ -5526,7 +5555,7 @@ bool SyncRes::doDoTtoAuth(const DNSName& ns) const
  */
 int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, const DNSName& qname, const QType qtype,
                          vector<DNSRecord>& ret,
-                         unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, StopAtDelegation* stopAtDelegation,
+                         unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, boost::optional<EDNSExtendedError>& extendedError, StopAtDelegation* stopAtDelegation,
                          map<DNSName, vector<ComboAddress>>* fallBack)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -5571,11 +5600,14 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
       }
       if (tns == rnameservers.cend()) {
         LOG(prefix << qname << ": Failed to resolve via any of the " << (unsigned int)rnameservers.size() << " offered NS at level '" << auth << "'" << endl);
+        if (s_addExtendedResolutionDNSErrors) {
+          extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NoReachableAuthority), "delegation " + auth.toLogString()};
+        }
         if (!auth.isRoot() && flawedNSSet) {
           LOG(prefix << qname << ": Ageing nameservers for level '" << auth << "', next query might succeed" << endl);
-
-          if (g_recCache->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
+          if (g_recCache->doAgeCache(d_now.tv_sec, auth, QType::NS, 10)) {
             t_Counters.at(rec::Counter::nsSetInvalidations)++;
+          }
         }
         return -1;
       }
@@ -5691,12 +5723,12 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, false, false, truncated, spoofed);
+                                          tns->first, *remoteIP, false, false, truncated, spoofed, extendedError);
           }
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed);
+                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed, extendedError);
           }
 
           if (!gotAnswer) {
