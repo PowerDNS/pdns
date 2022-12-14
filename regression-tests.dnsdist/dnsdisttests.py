@@ -99,6 +99,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
+        cls.waitForTCPSocket("127.0.0.1", cls._testServerPort);
 
     @classmethod
     def startDNSDist(cls):
