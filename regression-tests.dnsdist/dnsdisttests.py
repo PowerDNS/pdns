@@ -247,7 +247,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("127.0.0.1", port))
-        sock.settimeout(1.0)
+        sock.settimeout(0.5)
         while True:
             try:
               data, addr = sock.recvfrom(4096)
@@ -363,7 +363,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sys.exit(1)
 
         sock.listen(100)
-        sock.settimeout(1.0)
+        sock.settimeout(0.5)
         if tlsContext:
           sock = tlsContext.wrap_socket(sock, server_side=True)
 
@@ -506,7 +506,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sys.exit(1)
 
         sock.listen(100)
-        sock.settimeout(1.0)
+        sock.settimeout(0.5)
         if tlsContext:
             sock = tlsContext.wrap_socket(sock, server_side=True)
 
