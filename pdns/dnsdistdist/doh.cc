@@ -454,7 +454,7 @@ public:
 
     du->response = std::move(response.d_buffer);
     du->ids = std::move(response.d_idstate);
-    DNSResponse dr(du->ids, du->response, du->ids.sentTime.d_start, du->downstream);
+    DNSResponse dr(du->ids, du->response, du->downstream);
 
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
@@ -474,7 +474,7 @@ public:
 
     du = std::move(dr.ids.du);
 
-    double udiff = du->ids.sentTime.udiff();
+    double udiff = du->ids.queryRealTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
     auto backendProtocol = du->downstream->getProtocol();
@@ -585,12 +585,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit)
 
     ++cs.queries;
     ++g_stats.queries;
-
-    /* we need an accurate ("real") value for the response and
-       to store into the IDS, but not for insertion into the
-       rings for example */
-    struct timespec queryRealTime;
-    gettime(&queryRealTime, true);
+    du->ids.queryRealTime.start();
 
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
@@ -615,7 +610,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit)
     }
 
     du->ids.qname = DNSName(reinterpret_cast<const char*>(du->query.data()), du->query.size(), sizeof(dnsheader), false, &du->ids.qtype, &du->ids.qclass);
-    DNSQuestion dq(du->ids, du->query, queryRealTime);
+    DNSQuestion dq(du->ids, du->query);
     const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
     ids.origFlags = *flags;
     du->ids.cs = &cs;
@@ -1601,7 +1596,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localcacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-    DNSResponse dr(du->ids, du->response, du->ids.sentTime.d_start, du->downstream);
+    DNSResponse dr(du->ids, du->response, du->downstream);
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
@@ -1615,7 +1610,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
     }
 
     du = std::move(dr.ids.du);
-    double udiff = du->ids.sentTime.udiff();
+    double udiff = du->ids.queryRealTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
     handleResponseSent(du->ids, udiff, dr.ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol());

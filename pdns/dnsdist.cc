@@ -636,7 +636,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 
 static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, uint16_t maxPayloadSize, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& ds, bool selfGenerated, std::optional<uint16_t> queryId)
 {
-  DNSResponse dr(ids, response, ids.sentTime.d_start, ds);
+  DNSResponse dr(ids, response, ds);
 
   if (maxPayloadSize > 0 && response.size() > maxPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), maxPayloadSize);
@@ -673,7 +673,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 
   if (!selfGenerated) {
-    double udiff = ids.sentTime.udiff();
+    double udiff = ids.queryRealTime.udiff();
     if (!muted) {
       vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
     }
@@ -778,7 +778,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dh->id = ids->internal.origID;
         ++dss->responses;
 
-        double udiff = ids->internal.sentTime.udiff();
+        double udiff = ids->internal.queryRealTime.udiff();
         // do that _before_ the processing, otherwise it's not fair to the backend
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
         dss->reportResponse(dh->rcode);
@@ -1254,7 +1254,7 @@ static void queueResponse(const ClientState& cs, const PacketBuffer& response, c
 static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQuestion& dq, bool cacheHit)
 {
   std::shared_ptr<DownstreamState> ds{nullptr};
-  DNSResponse dr(dq.ids, dq.getMutableData(), dq.queryTime, ds);
+  DNSResponse dr(dq.ids, dq.getMutableData(), ds);
 
   if (!applyRulesToResponse(cacheHit ? *holders.cacheHitRespRuleactions : *holders.selfAnsweredRespRuleactions, dr)) {
     return false;
@@ -1587,13 +1587,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    /* we need an accurate ("real") value for the response and
-       to store into the IDS, but not for insertion into the
-       rings for example */
-    struct timespec queryRealTime;
-    gettime(&queryRealTime, true);
+    ids.queryRealTime.start();
 
-    auto dnsCryptResponse = checkDNSCryptQuery(cs, query, ids.dnsCryptQuery, queryRealTime.tv_sec, false);
+    auto dnsCryptResponse = checkDNSCryptQuery(cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
     if (dnsCryptResponse) {
       sendUDPResponse(cs.udpFD, query, 0, dest, remote);
       return;
@@ -1623,7 +1619,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     if (ids.dnsCryptQuery) {
       ids.protocol = dnsdist::Protocol::DNSCryptUDP;
     }
-    DNSQuestion dq(ids, query, queryRealTime);
+    DNSQuestion dq(ids, query);
     const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
     ids.origFlags = *flags;
 

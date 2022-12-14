@@ -668,7 +668,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   --conn->d_ds->outstanding;
   auto ids = std::move(it->second.d_query.d_idstate);
-  const double udiff = ids.sentTime.udiff();
+  const double udiff = ids.queryRealTime.udiff();
   conn->d_ds->updateTCPLatency(udiff);
   if (d_responseBuffer.size() >= sizeof(dnsheader)) {
     dnsheader dh;

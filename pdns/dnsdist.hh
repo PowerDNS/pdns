@@ -63,8 +63,8 @@ using QTag = std::unordered_map<string, string>;
 
 struct DNSQuestion
 {
-  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_, const struct timespec& queryTime_):
-    data(data_), ids(ids_), queryTime(queryTime_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), ecsOverride(g_ECSOverride) {
+  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_):
+    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), ecsOverride(g_ECSOverride) {
   }
   DNSQuestion(const DNSQuestion&) = delete;
   DNSQuestion& operator=(const DNSQuestion&) = delete;
@@ -134,6 +134,11 @@ struct DNSQuestion
     ids.qTag->insert_or_assign(key, value);
   }
 
+  const struct timespec& getQueryRealTime() const
+  {
+    return ids.queryRealTime.d_start;
+  }
+
 protected:
   PacketBuffer& data;
 
@@ -143,7 +148,6 @@ public:
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
   mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
-  const struct timespec& queryTime;
   uint16_t ecsPrefixLength;
   uint8_t ednsRCode{0};
   bool ecsOverride;
@@ -153,8 +157,8 @@ public:
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(InternalQueryState& ids_, PacketBuffer& data_, const struct timespec& queryTime_, const std::shared_ptr<DownstreamState>& downstream):
-    DNSQuestion(ids_, data_, queryTime_), d_downstream(downstream) { }
+  DNSResponse(InternalQueryState& ids_, PacketBuffer& data_, const std::shared_ptr<DownstreamState>& downstream):
+    DNSQuestion(ids_, data_), d_downstream(downstream) { }
   DNSResponse(const DNSResponse&) = delete;
   DNSResponse& operator=(const DNSResponse&) = delete;
   DNSResponse(DNSResponse&&) = default;

@@ -21,8 +21,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   size_t counter = 0;
   size_t skipped = 0;
@@ -54,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
@@ -85,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (found == true) {
         auto removed = PC.expungeByName(ids.qname);
@@ -104,7 +102,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
         matches++;
       }
@@ -133,8 +131,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
   const size_t numberOfShards = 10;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, numberOfShards);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   size_t counter = 0;
   size_t skipped = 0;
@@ -167,7 +163,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
 
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
@@ -198,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP)) {
         matches++;
       }
@@ -238,8 +234,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -266,7 +260,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
       /* UDP */
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
@@ -282,7 +276,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
       ids.protocol = dnsdist::Protocol::DoTCP;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = PC.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
@@ -306,8 +300,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -330,7 +322,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
 
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    DNSQuestion dq(ids, query, queryTime);
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -363,8 +355,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   try {
     DNSName name("nodata");
@@ -388,7 +378,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
 
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    DNSQuestion dq(ids, query, queryTime);
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -418,8 +408,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -445,7 +433,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
 
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    DNSQuestion dq(ids, query, queryTime);
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -471,14 +459,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
-
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  ids.sentTime.start();  // does not have to be accurate ("realTime") in tests
+  ids.queryRealTime.start();  // does not have to be accurate ("realTime") in tests
   bool dnssecOK = false;
 
   try {
@@ -502,7 +487,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
 
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
-    DNSQuestion dq(ids, query, queryTime);
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -532,8 +517,6 @@ static void threadMangler(unsigned int offset)
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   try {
     ComboAddress remote;
@@ -556,7 +539,7 @@ static void threadMangler(unsigned int offset)
 
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
 
       g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
@@ -577,8 +560,6 @@ static void threadReader(unsigned int offset)
   ids.qclass = QClass::IN;
   ids.qname = DNSName("www.powerdns.com.");
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   bool dnssecOK = false;
   try
   {
@@ -591,7 +572,7 @@ static void threadReader(unsigned int offset)
 
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(ids, query, queryTime);
+      DNSQuestion dq(ids, query);
       bool found = g_PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (!found) {
 	g_missing++;
@@ -652,8 +633,6 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   uint32_t secondKey;
   boost::optional<Netmask> subnetOut;
   bool dnssecOK = false;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   /* lookup for a query with a first ECS value,
      insert a corresponding response */
@@ -670,8 +649,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     pwQ.commit();
 
     ComboAddress remote("192.0.2.1");
-    ids.sentTime.start();
-    DNSQuestion dq(ids, query, queryTime);
+    ids.queryRealTime.start();
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_REQUIRE(subnetOut);
@@ -712,8 +691,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     pwQ.commit();
 
     ComboAddress remote("192.0.2.1");
-    ids.sentTime.start();
-    DNSQuestion dq(ids, query, queryTime);
+    ids.queryRealTime.start();
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &secondKey, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK_EQUAL(secondKey, key);
@@ -777,8 +756,6 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
   uint16_t qid = 0x42;
   uint32_t key;
   boost::optional<Netmask> subnetOut;
-  struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   /* lookup for a query with DNSSEC OK,
      insert a corresponding response with DO set,
@@ -792,9 +769,9 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     pwQ.commit();
 
     ComboAddress remote("192.0.2.1");
-    ids.sentTime.start();
+    ids.queryRealTime.start();
     ids.origRemote = remote;
-    DNSQuestion dq(ids, query, queryTime);
+    DNSQuestion dq(ids, query);
     bool found = PC.get(dq, 0, &key, subnetOut, true, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
 

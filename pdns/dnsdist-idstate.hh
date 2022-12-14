@@ -118,7 +118,7 @@ struct InternalQueryState
   ComboAddress hopLocal;
   DNSName qname; // 24
   std::string poolName; // 24
-  StopWatch sentTime; // 16
+  StopWatch queryRealTime{true}; // 16
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8

@@ -108,7 +108,6 @@ std::atomic<bool> g_configurationDone{false};
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
   static const DNSName qname("powerdns.com.");
-  static struct timespec queryRealTime;
   static PacketBuffer packet(sizeof(dnsheader));
   static InternalQueryState ids;
   ids.origDest = ComboAddress("127.0.0.1:53");
@@ -117,9 +116,9 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  gettime(&queryRealTime, true);
+  ids.queryRealTime.start();
 
-  DNSQuestion dq(ids, packet, queryRealTime);
+  DNSQuestion dq(ids, packet);
   return dq;
 }
 

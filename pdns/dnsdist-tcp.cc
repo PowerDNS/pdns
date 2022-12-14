@@ -249,7 +249,7 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
   if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
     const auto& ds = currentResponse.d_connection->getDS();
     const auto& ids = currentResponse.d_idstate;
-    double udiff = ids.sentTime.udiff();
+    double udiff = ids.queryRealTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
 
     auto backendProtocol = ds->getProtocol();
@@ -539,7 +539,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       ++response.d_connection->getDS()->responses;
     }
 
-    DNSResponse dr(ids, response.d_buffer, ids.sentTime.d_start, response.d_connection->getDS());
+    DNSResponse dr(ids, response.d_buffer, response.d_connection->getDS());
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
@@ -647,17 +647,13 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     }
   }
 
-  /* we need an accurate ("real") value for the response and
-     to store into the IDS, but not for insertion into the
-     rings for example */
-  struct timespec queryRealTime;
-  gettime(&queryRealTime, true);
   InternalQueryState ids;
   ids.origDest = state->d_proxiedDestination;
   ids.origRemote = state->d_proxiedRemote;
   ids.cs = state->d_ci.cs;
+  ids.queryRealTime.start();
 
-  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, ids.dnsCryptQuery, queryRealTime.tv_sec, true);
+  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
     state->d_state = IncomingTCPConnectionState::State::idle;
@@ -696,7 +692,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     ids.protocol = dnsdist::Protocol::DoT;
   }
 
-  DNSQuestion dq(ids, state->d_buffer, queryRealTime);
+  DNSQuestion dq(ids, state->d_buffer);
   const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
   ids.origFlags = *flags;
 

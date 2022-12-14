@@ -96,7 +96,7 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
-    cleanupIfNeeded(dq->queryTime);
+    cleanupIfNeeded(dq->getQueryRealTime());
 
     ComboAddress zeroport(dq->ids.origRemote);
     zeroport.sin4.sin_port=0;

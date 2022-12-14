@@ -164,7 +164,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     m.setQueryTime(d_queryTime->first, d_queryTime->second);
   }
   else {
-    m.setQueryTime(d_dq.queryTime.tv_sec, d_dq.queryTime.tv_nsec / 1000);
+    m.setQueryTime(d_dq.getQueryRealTime().tv_sec, d_dq.getQueryRealTime().tv_nsec / 1000);
   }
 
   if (d_dr != nullptr) {

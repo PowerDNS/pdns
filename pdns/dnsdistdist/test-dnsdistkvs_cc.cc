@@ -309,13 +309,12 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   ids.origRemote = ComboAddress("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryRealTime;
-  gettime(&queryRealTime, true);
+  ids.queryRealTime.start();
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(ids, packet, queryRealTime);
+  DNSQuestion dq(ids, packet);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);
@@ -395,13 +394,12 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   ids.origRemote = ComboAddress("192.0.2.128:42");
   PacketBuffer packet(sizeof(dnsheader));
   ids.protocol = dnsdist::Protocol::DoUDP;
-  struct timespec queryRealTime;
-  gettime(&queryRealTime, true);
+  ids.queryRealTime.start();
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(ids, packet, queryRealTime);
+  DNSQuestion dq(ids, packet);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);

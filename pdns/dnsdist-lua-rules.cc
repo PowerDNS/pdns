@@ -461,6 +461,7 @@ void setupLuaRules(LuaContext& luaCtx)
         i.ids.protocol = dnsdist::Protocol::DoUDP;
         i.ids.origRemote = ComboAddress("127.0.0.1");
         i.ids.origRemote.sin4.sin_addr.s_addr = random();
+        i.ids.queryRealTime.start();
         GenericDNSPacketWriter<PacketBuffer> pw(i.packet, i.ids.qname, i.ids.qtype);
         items.push_back(std::move(i));
       }
@@ -471,13 +472,13 @@ void setupLuaRules(LuaContext& luaCtx)
       sw.start();
       for (unsigned int n = 0; n < times; ++n) {
         item& i = items[n % items.size()];
-        DNSQuestion dq(i.ids, i.packet, sw.d_start);
+        DNSQuestion dq(i.ids, i.packet);
 
         if (rule->matches(&dq)) {
           matches++;
         }
       }
-      double udiff=sw.udiff();
+      double udiff = sw.udiff();
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
 
     });

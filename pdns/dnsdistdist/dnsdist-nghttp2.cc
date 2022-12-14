@@ -136,7 +136,7 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
   gettimeofday(&now, nullptr);
   try {
     if (!d_healthCheckQuery) {
-      const double udiff = request.d_query.d_idstate.sentTime.udiff();
+      const double udiff = request.d_query.d_idstate.queryRealTime.udiff();
       d_ds->updateTCPLatency(udiff);
       if (request.d_buffer.size() >= sizeof(dnsheader)) {
         dnsheader dh;

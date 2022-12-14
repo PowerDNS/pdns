@@ -18,7 +18,6 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
   static const DNSName qname("powerdns.com.");
-  static struct timespec queryRealTime;
   static PacketBuffer packet(sizeof(dnsheader));
   static InternalQueryState ids;
   ids.origDest = ComboAddress("127.0.0.1:53");
@@ -27,9 +26,9 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  gettime(&queryRealTime, true);
+  ids.queryRealTime.start();
 
-  DNSQuestion dq(ids, packet, queryRealTime);
+  DNSQuestion dq(ids, packet);
   return dq;
 }
 
@@ -50,14 +49,13 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   ids.origDest = ComboAddress("127.0.0.1:53");
   ids.origRemote = ComboAddress("192.0.2.1:42");
   ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.queryRealTime.start();
   PacketBuffer packet(sizeof(dnsheader));
-  struct timespec queryRealTime;
-  gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(ids, packet, queryRealTime);
+  DNSQuestion dq(ids, packet);
 
   for (size_t idx = 0; idx < maxQPS; idx++) {
     /* let's use different source ports, it shouldn't matter */
