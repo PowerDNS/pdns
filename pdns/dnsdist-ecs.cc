@@ -263,7 +263,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   return true;
 }
 
-static bool slowParseEDNSOptions(const PacketBuffer& packet, std::shared_ptr<std::map<uint16_t, EDNSOptionView> >& options)
+static bool slowParseEDNSOptions(const PacketBuffer& packet, std::map<uint16_t, EDNSOptionView>& options)
 {
   if (packet.size() < sizeof(dnsheader)) {
     return false;
@@ -304,7 +304,7 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, std::shared_ptr<std
         }
         /* if we survive this call, we can parse it safely */
         dpm.skipRData();
-        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, *options) == 0;
+        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, options) == 0;
       }
       else {
         dpm.skipRData();
@@ -515,7 +515,7 @@ bool parseEDNSOptions(const DNSQuestion& dq)
     return true;
   }
 
-  dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView> >();
+  dq.ednsOptions = std::make_unique<std::map<uint16_t, EDNSOptionView> >();
 
   if (ntohs(dh->arcount) == 0) {
     /* nothing in additional so no EDNS */
@@ -523,7 +523,7 @@ bool parseEDNSOptions(const DNSQuestion& dq)
   }
 
   if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) > 1) {
-    return slowParseEDNSOptions(dq.getData(), dq.ednsOptions);
+    return slowParseEDNSOptions(dq.getData(), *dq.ednsOptions);
   }
 
   size_t remaining = 0;
@@ -1051,12 +1051,11 @@ bool queryHasEDNS(const DNSQuestion& dq)
   return false;
 }
 
-bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
+bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0)
 {
   uint16_t optStart;
   size_t optLen = 0;
   bool last = false;
-  const auto& packet = dq.getData();
   int res = locateEDNSOptRR(packet, &optStart, &optLen, &last);
   if (res != 0) {
     // no EDNS OPT RR

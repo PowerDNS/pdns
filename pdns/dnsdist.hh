@@ -146,7 +146,7 @@ public:
   InternalQueryState& ids;
   std::unique_ptr<Netmask> ecs{nullptr};
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
-  mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
+  mutable std::unique_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions; /* this needs to be mutable because it is parsed just in time, when DNSQuestion is read-only */
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
   uint16_t ecsPrefixLength;
   uint8_t ednsRCode{0};

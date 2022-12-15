@@ -924,7 +924,7 @@ public:
     }
 
     EDNS0Record edns0;
-    if (!getEDNS0Record(*dq, edns0)) {
+    if (!getEDNS0Record(dq->getData(), edns0)) {
       return false;
     }
 
@@ -948,7 +948,7 @@ public:
   bool matches(const DNSQuestion* dq) const override
   {
     EDNS0Record edns0;
-    if (!getEDNS0Record(*dq, edns0)) {
+    if (!getEDNS0Record(dq->getData(), edns0)) {
       return false;
     }
 

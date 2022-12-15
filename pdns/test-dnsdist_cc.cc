@@ -2215,7 +2215,7 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, g_rootdnsname);
 
   EDNS0Record edns0;
-  BOOST_REQUIRE(getEDNS0Record(dq, edns0));
+  BOOST_REQUIRE(getEDNS0Record(dq.getData(), edns0));
   BOOST_CHECK_EQUAL(edns0.version, 0U);
   BOOST_CHECK_EQUAL(edns0.extRCode, 0U);
   BOOST_CHECK_EQUAL(edns0.extFlags, EDNS_HEADER_FLAG_DO);
