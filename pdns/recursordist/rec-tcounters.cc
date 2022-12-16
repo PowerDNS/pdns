@@ -51,7 +51,7 @@ Counters& Counters::merge(const Counters& data)
   for (size_t i = 0; i < histograms.size(); i++) {
     histograms.at(i) += data.histograms.at(i);
   }
-
+  responseStats += data.responseStats;
   return *this;
 }
 

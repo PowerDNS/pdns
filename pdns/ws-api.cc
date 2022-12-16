@@ -32,8 +32,10 @@
 #include "version.hh"
 #include "arguments.hh"
 #include "dnsparser.hh"
+#ifdef RECURSOR
+#include "syncres.hh"
+#else
 #include "responsestats.hh"
-#ifndef RECURSOR
 #include "statbag.hh"
 #endif
 #include <stdio.h>
@@ -206,9 +208,16 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     });
   }
 
+#ifdef RECURSOR
+  auto stats = g_Counters.sum(rec::ResponseStats::responseStats);
+  auto resp_qtype_stats = stats.getQTypeResponseCounts();
+  auto resp_size_stats = stats.getSizeResponseCounts();
+  auto resp_rcode_stats = stats.getRCodeResponseCounts();
+#else
   auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
   auto resp_size_stats = g_rs.getSizeResponseCounts();
   auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
+#endif
   {
     Json::array values;
     for(const auto& item : resp_qtype_stats) {

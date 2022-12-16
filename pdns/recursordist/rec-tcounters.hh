@@ -27,6 +27,7 @@
 #include <string>
 
 #include "histogram.hh"
+#include "rec-responsestats.hh"
 
 namespace rec
 {
@@ -110,6 +111,13 @@ enum class RCode : uint8_t
   numberOfCounters
 };
 
+// Recursor Response Stats
+enum class ResponseStats : uint8_t
+{
+  responseStats,
+  numberOfCounters
+};
+
 // A few other histograms
 enum class Histogram : uint8_t
 {
@@ -172,15 +180,20 @@ struct Counters
     pdns::Histogram{"cumul-authanswers-", 1000, 13},
     pdns::Histogram{"cumul-authanswers-", 1000, 13}};
 
+  // Response stats
+  RecResponseStats responseStats{};
+
   Counters()
   {
     for (auto& elem : uint64Count) {
       elem = 0;
     }
-    // doubleWAvg has a default ct that initializes
+    // doubleWAvg has a default constructor that initializes
     for (auto& elem : auth.rcodeCounters) {
       elem = 0;
     }
+    // Histogram has a constructor that initializes
+    // RecResponseStats has a default constructor that initializes
   }
 
   // Merge a set of counters into an existing set of counters. For simple counters, that will be additions
@@ -202,6 +215,12 @@ struct Counters
   {
     // We only have a single RCode indexed Histogram, so no need to select a specific one
     return auth;
+  }
+
+  RecResponseStats& at(ResponseStats index)
+  {
+    // We only have a single ResponseStats indexed RecResponseStats, so no need to select a specific one
+    return responseStats;
   }
 
   pdns::Histogram& at(Histogram index)

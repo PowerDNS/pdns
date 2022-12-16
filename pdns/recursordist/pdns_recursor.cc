@@ -28,7 +28,6 @@
 #include "ednspadding.hh"
 #include "query-local-address.hh"
 #include "rec-taskqueue.hh"
-#include "responsestats.hh"
 #include "shuffle.hh"
 #include "validate-recursor.hh"
 
@@ -1553,7 +1552,7 @@ void startDoResolve(void* p)
       pw.commit();
     }
 
-    g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), pw.getHeader()->rcode, !dc->d_tcp);
+    t_Counters.at(rec::ResponseStats::responseStats).submitResponse(dc->d_mdp.d_qtype, packet.size(), pw.getHeader()->rcode);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef NOD_ENABLED
     bool nod = false;
@@ -1927,8 +1926,10 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
     ageDNSPacket(response, age);
     if (response.length() >= sizeof(struct dnsheader)) {
       const struct dnsheader* dh = reinterpret_cast<const dnsheader*>(response.data());
-      updateResponseStats(dh->rcode, source, response.length(), 0, 0);
+      updateResponseStats(dh->rcode, source, response.length(), nullptr, 0);
+      t_Counters.at(rec::ResponseStats::responseStats).submitResponse(qtype, response.length(), dh->rcode);
     }
+
     // we assume 0 usec
     t_Counters.at(rec::DoubleWAvgCounter::avgLatencyUsec).addToRollingAvg(0.0, g_latencyStatSize);
     t_Counters.at(rec::DoubleWAvgCounter::avgLatencyOursUsec).addToRollingAvg(0.0, g_latencyStatSize);
