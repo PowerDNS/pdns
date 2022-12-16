@@ -516,11 +516,13 @@ void setSocketBuffer(int fd, int optname, uint32_t size)
   uint32_t psize = 0;
   socklen_t len = sizeof(psize);
 
-  if (!getsockopt(fd, SOL_SOCKET, optname, &psize, &len) && psize > size) {
-    throw std::runtime_error("Not decreasing socket buffer size from " + std::to_string(psize) + " to " + std::to_string(size));
+  if (getsockopt(fd, SOL_SOCKET, optname, &psize, &len) != 0) {
+    throw std::runtime_error("Unable to retrieve socket buffer size:" + stringerror());
   }
-
-  if (setsockopt(fd, SOL_SOCKET, optname, &size, sizeof(size)) < 0) {
+  if (psize >= size) {
+    return;
+  }
+  if (setsockopt(fd, SOL_SOCKET, optname, &size, sizeof(size)) != 0) {
     throw std::runtime_error("Unable to raise socket buffer size to " + std::to_string(size) + ": " + stringerror());
   }
 }
