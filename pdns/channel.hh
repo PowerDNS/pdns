@@ -263,7 +263,7 @@ namespace channel
   template <typename T, typename D>
   std::optional<std::unique_ptr<T, D>> Receiver<T, D>::receive()
   {
-    return receive(std::default_delete<T>());
+    return receive(D());
   }
 
   template <typename T, typename D>
