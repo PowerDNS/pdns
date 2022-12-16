@@ -271,13 +271,13 @@ namespace channel
   {
     while (true) {
       std::optional<std::unique_ptr<T, D>> result;
-      T* obj{nullptr};
-      ssize_t got = read(d_fd.getHandle(), &obj, sizeof(obj));
-      if (got == sizeof(obj)) {
+      T* objPtr{nullptr};
+      ssize_t got = read(d_fd.getHandle(), &objPtr, sizeof(objPtr));
+      if (got == sizeof(objPtr)) {
 #if __SANITIZE_THREAD__
-        __tsan_acquire(obj);
+        __tsan_acquire(objPtr);
 #endif /* __SANITIZE_THREAD__ */
-        return std::unique_ptr<T, D>(obj, deleter);
+        return std::unique_ptr<T, D>(objPtr, deleter);
       }
       else if (got == 0) {
         d_closed = true;
