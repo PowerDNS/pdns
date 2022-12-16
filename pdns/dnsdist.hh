@@ -61,6 +61,10 @@ extern bool g_ECSOverride;
 
 using QTag = std::unordered_map<string, string>;
 
+class IncomingTCPConnectionState;
+
+struct ClientState;
+
 struct DNSQuestion
 {
   DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_):
@@ -69,6 +73,7 @@ struct DNSQuestion
   DNSQuestion(const DNSQuestion&) = delete;
   DNSQuestion& operator=(const DNSQuestion&) = delete;
   DNSQuestion(DNSQuestion&&) = default;
+  virtual ~DNSQuestion() = default;
 
   std::string getTrailingData() const;
   bool setTrailingData(const std::string&);
@@ -139,6 +144,21 @@ struct DNSQuestion
     return ids.queryRealTime.d_start;
   }
 
+  bool isAsynchronous() const
+  {
+    return asynchronous;
+  }
+
+  std::shared_ptr<IncomingTCPConnectionState> getIncomingTCPState() const
+  {
+    return d_incomingTCPState;
+  }
+
+  ClientState* getFrontend() const
+  {
+    return ids.cs;
+  }
+
 protected:
   PacketBuffer& data;
 
@@ -147,13 +167,17 @@ public:
   std::unique_ptr<Netmask> ecs{nullptr};
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
   mutable std::unique_ptr<EDNSOptionViewMap> ednsOptions; /* this needs to be mutable because it is parsed just in time, when DNSQuestion is read-only */
+  std::shared_ptr<IncomingTCPConnectionState> d_incomingTCPState{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
   uint16_t ecsPrefixLength;
   uint8_t ednsRCode{0};
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
+  bool asynchronous{false};
 };
+
+struct DownstreamState;
 
 struct DNSResponse : DNSQuestion
 {
@@ -1183,8 +1207,6 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength);
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted);
-bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs);
 
@@ -1203,11 +1225,16 @@ extern std::set<std::string> g_capabilitiesToRetain;
 static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses larger than this value
 
-enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend };
-ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
+enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend, Asynchronous };
+ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
+bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted);
+bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
+bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest);
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
+bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol);
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol);

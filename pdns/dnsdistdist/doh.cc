@@ -433,18 +433,13 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
 class DoHTCPCrossQuerySender : public TCPQuerySender
 {
 public:
-  DoHTCPCrossQuerySender(const ClientState& cs): d_cs(cs)
+  DoHTCPCrossQuerySender()
   {
   }
 
   bool active() const override
   {
     return true;
-  }
-
-  const ClientState* getClientState() const override
-  {
-    return &d_cs;
   }
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
@@ -462,32 +457,40 @@ public:
     du->ids = std::move(response.d_idstate);
     DNSResponse dr(du->ids, du->response, du->downstream);
 
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
-
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-    dr.ids.du = std::move(du);
+    if (!response.isAsync()) {
+      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-    if (!processResponse(dr.ids.du->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
-      if (dr.ids.du) {
-        dr.ids.du->status_code = 503;
-        sendDoHUnitToTheMainThread(std::move(dr.ids.du), "Response dropped by rules");
+      dr.ids.du = std::move(du);
+
+      if (!processResponse(dr.ids.du->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
+        if (dr.ids.du) {
+          dr.ids.du->status_code = 503;
+          sendDoHUnitToTheMainThread(std::move(dr.ids.du), "Response dropped by rules");
+        }
+        return;
       }
-      return;
+
+      if (dr.isAsynchronous()) {
+        return;
+      }
+
+      du = std::move(dr.ids.du);
     }
 
-    du = std::move(dr.ids.du);
+    if (!du->ids.selfGenerated) {
+      double udiff = du->ids.queryRealTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    double udiff = du->ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
-
-    auto backendProtocol = du->downstream->getProtocol();
-    if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
-      backendProtocol = dnsdist::Protocol::DoTCP;
+      auto backendProtocol = du->downstream->getProtocol();
+      if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
+        backendProtocol = dnsdist::Protocol::DoTCP;
+      }
+      handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol);
     }
-    handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol);
 
     ++g_stats.responses;
     if (du->ids.cs) {
@@ -517,16 +520,23 @@ public:
     du->status_code = 502;
     sendDoHUnitToTheMainThread(std::move(du), "cross-protocol error response");
   }
-protected:
-  const ClientState& d_cs;
 };
 
 class DoHCrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  DoHCrossProtocolQuery(DOHUnitUniquePtr&& du)
+  DoHCrossProtocolQuery(DOHUnitUniquePtr&& du, bool isResponse)
   {
-    query = InternalQuery(std::move(du->query), std::move(du->ids));
+    if (isResponse) {
+      /* happens when a response becomes async */
+      query = InternalQuery(std::move(du->response), std::move(du->ids));
+    }
+    else {
+      /* we need to duplicate the query here because we might need
+         the existing query later if we get a truncated answer */
+      query = InternalQuery(PacketBuffer(du->query), std::move(du->ids));
+    }
+
     /* it might have been moved when we moved du->ids */
     if (du) {
       query.d_idstate.du = std::move(du);
@@ -551,15 +561,60 @@ public:
   std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
   {
     query.d_idstate.du->downstream = downstream;
-    auto sender = std::make_shared<DoHTCPCrossQuerySender>(*query.d_idstate.cs);
-    return sender;
+    return s_sender;
   }
+
+  DNSQuestion getDQ() override
+  {
+    auto& ids = query.d_idstate;
+    DNSQuestion dq(ids, query.d_buffer);
+    return dq;
+  }
+
+  DNSResponse getDR() override
+  {
+    auto& ids = query.d_idstate;
+    DNSResponse dr(ids, query.d_buffer, downstream);
+    return dr;
+   }
 
   DOHUnitUniquePtr&& releaseDU()
   {
     return std::move(query.d_idstate.du);
   }
+
+private:
+  static std::shared_ptr<DoHTCPCrossQuerySender> s_sender;
 };
+
+std::shared_ptr<DoHTCPCrossQuerySender> DoHCrossProtocolQuery::s_sender = std::make_shared<DoHTCPCrossQuerySender>();
+
+std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse)
+{
+  if (!dq.ids.du) {
+    throw std::runtime_error("Trying to create a DoH cross protocol query without a valid DoH unit");
+  }
+
+  auto du = std::move(dq.ids.du);
+  if (&dq.ids != &du->ids) {
+   du->ids = std::move(dq.ids);
+  }
+
+  du->ids.origID = dq.getHeader()->id;
+
+  if (!isResponse) {
+    if (du->query.data() != dq.getMutableData().data()) {
+      du->query = std::move(dq.getMutableData());
+    }
+  }
+  else {
+    if (du->response.data() != dq.getMutableData().data()) {
+      du->response = std::move(dq.getMutableData());
+    }
+  }
+
+  return std::make_unique<DoHCrossProtocolQuery>(std::move(du), isResponse);
+}
 
 /*
    We are not in the main DoH thread but in the DoH 'client' thread.
@@ -650,6 +705,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       queryId = ntohs(dh->id);
     }
 
+    auto downstream = du->downstream;
     du->ids.qname = DNSName(reinterpret_cast<const char*>(du->query.data()), du->query.size(), sizeof(dnsheader), false, &du->ids.qtype, &du->ids.qclass);
     DNSQuestion dq(du->ids, du->query);
     const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
@@ -657,22 +713,24 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     du->ids.cs = &cs;
     dq.sni = std::move(du->sni);
 
-    auto result = processQuery(dq, cs, holders, du->downstream);
+    auto result = processQuery(dq, holders, downstream);
 
     if (result == ProcessQueryResult::Drop) {
       du->status_code = 403;
       handleImmediateResponse(std::move(du), "DoH dropped query");
       return;
     }
-
-    if (result == ProcessQueryResult::SendAnswer) {
+    else if (result == ProcessQueryResult::Asynchronous) {
+      return;
+    }
+    else if (result == ProcessQueryResult::SendAnswer) {
       if (du->response.empty()) {
         du->response = std::move(du->query);
       }
       if (du->response.size() >= sizeof(dnsheader) && du->contentType.empty()) {
         auto dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
 
-        handleResponseSent(ids.qname, QType(ids.qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH);
+        handleResponseSent(du->ids.qname, QType(du->ids.qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH);
       }
       handleImmediateResponse(std::move(du), "DoH self-answered response");
       return;
@@ -684,7 +742,6 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       return;
     }
 
-    auto downstream = du->downstream;
     if (downstream == nullptr) {
       du->status_code = 502;
       handleImmediateResponse(std::move(du), "DoH no backend available");
@@ -705,7 +762,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       du->tcp = true;
 
       /* this moves du->ids, careful! */
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(du));
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(du), false);
       cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
       if (downstream->passCrossProtocolQuery(std::move(cpq))) {
@@ -1302,7 +1359,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       du->truncated = false;
       du->response.clear();
 
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(du));
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(du), false);
 
       if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
         continue;
@@ -1636,18 +1693,22 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
   const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
   if (!dh->tc) {
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localcacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
     DNSResponse dr(du->ids, du->response, du->downstream);
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
     dr.ids.du = std::move(du);
-    if (!processResponse(dr.ids.du->response, *localRespRuleActions, *localcacheInsertedRespRuleActions, dr, false)) {
+    if (!processResponse(dr.ids.du->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
       if (dr.ids.du) {
         dr.ids.du->status_code = 503;
         sendDoHUnitToTheMainThread(std::move(dr.ids.du), "Response dropped by rules");
       }
+      return;
+    }
+
+    if (dr.isAsynchronous()) {
       return;
     }
 

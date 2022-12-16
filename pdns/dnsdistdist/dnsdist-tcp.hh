@@ -72,8 +72,9 @@ struct ConnectionInfo
   int fd{-1};
 };
 
-struct InternalQuery
+class InternalQuery
 {
+public:
   InternalQuery()
   {
   }
@@ -119,15 +120,26 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(PacketBuffer&& buffer, InternalQueryState&& state, std::shared_ptr<ConnectionToBackend> conn) :
-    TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
+  TCPResponse(PacketBuffer&& buffer, InternalQueryState&& state, std::shared_ptr<ConnectionToBackend> conn, std::shared_ptr<DownstreamState> ds) :
+    TCPQuery(std::move(buffer), std::move(state)), d_connection(conn), d_ds(ds)
   {
-    memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
+    if (d_buffer.size() >= sizeof(dnsheader)) {
+      memcpy(&d_cleartextDH, reinterpret_cast<const dnsheader*>(d_buffer.data()), sizeof(d_cleartextDH));
+    }
+    else {
+      memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
+    }
+  }
+
+  bool isAsync() const
+  {
+    return d_async;
   }
 
   std::shared_ptr<ConnectionToBackend> d_connection{nullptr};
+  std::shared_ptr<DownstreamState> d_ds{nullptr};
   dnsheader d_cleartextDH;
-  bool d_selfGenerated{false};
+  bool d_async{false};
 };
 
 class TCPQuerySender
@@ -138,7 +150,6 @@ public:
   }
 
   virtual bool active() const = 0;
-  virtual const ClientState* getClientState() const = 0;
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void handleXFRResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void notifyIOError(InternalQueryState&& query, const struct timeval& now) = 0;
@@ -170,11 +181,24 @@ struct CrossProtocolQuery
   }
 
   virtual std::shared_ptr<TCPQuerySender> getTCPQuerySender() = 0;
+  virtual DNSQuestion getDQ()
+  {
+    auto& ids = query.d_idstate;
+    DNSQuestion dq(ids, query.d_buffer);
+    return dq;
+  }
+
+  virtual DNSResponse getDR()
+  {
+    auto& ids = query.d_idstate;
+    DNSResponse dr(ids, query.d_buffer, downstream);
+    return dr;
+  }
 
   InternalQuery query;
   std::shared_ptr<DownstreamState> downstream{nullptr};
   size_t proxyProtocolPayloadSize{0};
-  bool isXFR{false};
+  bool d_isResponse{false};
 };
 
 class TCPClientCollection
@@ -278,3 +302,5 @@ private:
 };
 
 extern std::unique_ptr<TCPClientCollection> g_tcpclientthreads;
+
+std::unique_ptr<CrossProtocolQuery> getTCPCrossProtocolQueryFromDQ(DNSQuestion& dq);

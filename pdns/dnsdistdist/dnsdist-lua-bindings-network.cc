@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-async.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-network.hh"
 #include "dolog.hh"
@@ -66,8 +67,11 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
     }
 
     return listener->addUnixListeningEndpoint(path, endpointID, [cb](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
-      auto lock = g_lua.lock();
-      cb(endpoint, dgram, from);
+      {
+        auto lock = g_lua.lock();
+        cb(endpoint, dgram, from);
+      }
+      dnsdist::handleQueuedAsynchronousEvents();
     });
   });
 

@@ -599,11 +599,6 @@ public:
     return true;
   }
 
-  const ClientState* getClientState() const override
-  {
-    return nullptr;
-  }
-
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
     if (d_customHandler) {

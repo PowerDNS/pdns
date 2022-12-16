@@ -140,11 +140,6 @@ public:
     return true;
   }
 
-  const ClientState* getClientState() const override
-  {
-    return nullptr;
-  }
-
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
     d_data->d_buffer = std::move(response.d_buffer);

@@ -134,6 +134,7 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
@@ -147,6 +148,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.hh \
+	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
@@ -242,6 +244,7 @@ testrunner_SOURCES = \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
@@ -304,6 +307,7 @@ testrunner_SOURCES = \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistasync.cc \
 	test-dnsdistbackend_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
