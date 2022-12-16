@@ -3,7 +3,7 @@
 #include "dolog.hh"
 #include "dnsdist-tcp.hh"
 
-class TCPCrossProtocolResponse;
+struct TCPCrossProtocolResponse;
 
 class TCPClientThreadData
 {
