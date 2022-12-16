@@ -394,6 +394,7 @@ pdnsutil_SOURCES = \
 	ueberbackend.cc \
 	unix_utility.cc \
 	uuid-utils.hh uuid-utils.cc \
+	validate.hh \
 	zonemd.hh zonemd.cc \
 	zoneparser-tng.cc
 
@@ -1422,6 +1423,7 @@ testrunner_SOURCES = \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
+	validate.hh \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
