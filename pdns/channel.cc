@@ -37,6 +37,9 @@ namespace channel
     char data = 'a';
     while (true) {
       auto sent = write(d_fd.getHandle(), &data, sizeof(data));
+      if (sent == 0) {
+        throw std::runtime_error("Unable to write to channel notifier pipe: remote end has been closed");
+      }
       if (sent != sizeof(data)) {
         if (errno == EINTR) {
           continue;

@@ -234,6 +234,9 @@ namespace channel
         object.release();
         return true;
       }
+      else if (sent == 0) {
+        throw std::runtime_error("Unable to write to channel: remote end has been closed");
+      }
       else {
 #if __SANITIZE_THREAD__
         __tsan_acquire(ptr);
