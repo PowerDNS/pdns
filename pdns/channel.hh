@@ -138,7 +138,7 @@ namespace channel
    * \throw runtime_error if the channel creation failed.
    */
   template <typename T, typename D = std::default_delete<T>>
-  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool sendNonBlocking = true, bool writeNonBlocking = true, size_t pipeBufferSize = 0, bool throwOnEOF = true);
+  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool sendNonBlocking = true, bool receiveNonBlocking = true, size_t pipeBufferSize = 0, bool throwOnEOF = true);
 
   /**
    * The notifier's end of a channel used to communicate between threads.
