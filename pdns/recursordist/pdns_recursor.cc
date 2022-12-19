@@ -483,7 +483,8 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
-    ++g_stats.policyResults[appliedPolicy.d_kind];
+    //++g_stats.policyResults[appliedPolicy.d_kind];
+    t_Counters.at(rec::PolicyHistogram::policy).at(appliedPolicy.d_kind)++;
     ++(g_stats.policyHits.lock()->operator[](appliedPolicy.getName()));
   }
 

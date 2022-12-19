@@ -52,6 +52,19 @@ Counters& Counters::merge(const Counters& data)
     histograms.at(i) += data.histograms.at(i);
   }
   responseStats += data.responseStats;
+
+  // DNSSEC histograms: add individual entries
+  for (size_t i = 0; i < dnssecCounters.size(); i++) {
+    auto& lhs = dnssecCounters.at(i);
+    const auto& rhs = data.dnssecCounters.at(i);
+    for (size_t j = 0; j < lhs.counts.size(); j++) {
+      lhs.counts.at(j) += rhs.counts.at(j);
+    }
+  }
+  for (size_t i = 0; i < policyCounters.counts.size(); i++) {
+    policyCounters.counts.at(i) += data.policyCounters.counts.at(i);
+  }
+
   return *this;
 }
 
@@ -74,6 +87,9 @@ std::string Counters::toString() const
   for (const auto& element : histograms) {
     stream << element.getName() << ": NYI";
   }
+  stream << "DNSSEC Histograms: ";
+  stream << "NYI";
+
   stream << std::endl;
   return stream.str();
 }

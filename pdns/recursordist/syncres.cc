@@ -3237,7 +3237,8 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
 
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !d_queryReceivedOverTCP) {
-    ++g_stats.policyResults[d_appliedPolicy.d_kind];
+    t_Counters.at(rec::PolicyHistogram::policy).at(d_appliedPolicy.d_kind)++;
+    //++g_stats.policyResults[d_appliedPolicy.d_kind];
     ++(g_stats.policyHits.lock()->operator[](d_appliedPolicy.getName()));
   }
 

@@ -773,11 +773,7 @@ extern thread_local rec::TCounters t_Counters;
 
 struct RecursorStats
 {
-  time_t startupTime{time(nullptr)};
-  // XXX Convert counter below to be part of rec::Counters
-  std::map<vState, pdns::stat_t> dnssecResults;
-  std::map<vState, pdns::stat_t> xdnssecResults;
-  std::map<DNSFilterEngine::PolicyKind, pdns::stat_t> policyResults;
+  // XXX Convert counters below to be part of rec::Counters
   LockGuarded<std::unordered_map<std::string, pdns::stat_t>> policyHits;
 };
 
