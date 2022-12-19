@@ -80,7 +80,7 @@ static bool init_unit_test()
 {
   ::arg().set("rng") = "auto";
   ::arg().set("entropy-source") = "/dev/urandom";
-  // Force init while w're still unthreaded
+  // Force init while we are still unthreaded
   dns_random_uint16();
   g_slog = Logging::Logger::create(loggerBackend);
   reportAllTypes();
