@@ -839,7 +839,7 @@ static void mainthread()
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
   vector<string> locals;
-  stringtok(locals,::arg()["local-address"], " ,");
+  stringtok(locals, ::arg()["local-address"], " ,");
   s_distributors.resize(max_rthreads);
   for (const auto& address : locals) {
     auto udpNameserver = std::make_shared<UDPNameserver>(address);

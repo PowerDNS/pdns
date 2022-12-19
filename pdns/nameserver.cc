@@ -187,7 +187,7 @@ bool AddressIsUs(const ComboAddress& remote)
   return false;
 }
 
-UDPNameserver::UDPNameserver(std::string address, bool additional_socket )
+UDPNameserver::UDPNameserver(std::string address, bool additional_socket)
 {
   d_can_reuseport = ::arg().mustDo("reuseport");
   // Are we the main socket (false) or a rebinding using SO_REUSEPORT ?
