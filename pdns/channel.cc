@@ -60,13 +60,14 @@ namespace channel
   {
   }
 
-  void Waiter::clear() const
+  void Waiter::clear()
   {
     ssize_t got;
     do {
       char data;
       got = read(d_fd.getHandle(), &data, sizeof(data));
       if (got == 0) {
+        d_closed = true;
         if (!d_throwOnEOF) {
           return;
         }

@@ -1337,6 +1337,7 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	channel.cc channel.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	dns.cc \
@@ -1384,6 +1385,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-channel.cc \
 	test-common.hh \
 	test-communicator_hh.cc \
 	test-credentials_cc.cc \

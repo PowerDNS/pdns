@@ -187,7 +187,7 @@ namespace channel
     /**
      * \brief Clear all notifications queued on that channel, if any.
      */
-    void clear() const;
+    void clear();
     /**
      * \brief Get a descriptor that can be used with an I/O multiplexer to wait for a notification to arrive.
      *

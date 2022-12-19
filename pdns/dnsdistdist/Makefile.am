@@ -306,6 +306,7 @@ testrunner_SOURCES = \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
+	test-channel.cc \
 	test-connectionmanagement_hh.cc \
 	test-credentials_cc.cc \
 	test-delaypipe_hh.cc \
