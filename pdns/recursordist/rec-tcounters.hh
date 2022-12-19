@@ -147,7 +147,14 @@ enum class DNSSECHistogram : uint8_t
 enum class PolicyHistogram : uint8_t
 {
   policy,
-  
+
+  numberOfCounters
+};
+
+enum class PolicyNameHits : uint8_t
+{
+  policyName,
+
   numberOfCounters
 };
 
@@ -238,6 +245,20 @@ struct Counters
   };
   PolicyCounters policyCounters{};
 
+  // Policy hits by name
+  struct PolicyNameCounters
+  {
+    PolicyNameCounters& operator+=(const PolicyNameCounters& rhs)
+    {
+      for (const auto& [name, count] : rhs.counts) {
+        counts[name] += count;
+      }
+      return *this;
+    }
+    std::unordered_map<std::string, uint64_t> counts;
+  };
+  PolicyNameCounters policyNameHits;
+
   Counters()
   {
     for (auto& elem : uint64Count) {
@@ -257,6 +278,7 @@ struct Counters
     for (auto& elem : policyCounters.counts) {
       elem = 0;
     }
+    // PolicyNameCounters has a default constuctor that initializes
   }
 
   // Merge a set of counters into an existing set of counters. For simple counters, that will be additions
@@ -274,13 +296,13 @@ struct Counters
     return doubleWAvg.at(static_cast<size_t>(index));
   }
 
-  RCodeCounters& at(RCode index)
+  RCodeCounters& at(RCode /*unused*/)
   {
     // We only have a single RCode indexed Histogram, so no need to select a specific one
     return auth;
   }
 
-  RecResponseStats& at(ResponseStats index)
+  RecResponseStats& at(ResponseStats /*unused*/)
   {
     // We only have a single ResponseStats indexed RecResponseStats, so no need to select a specific one
     return responseStats;
@@ -296,9 +318,16 @@ struct Counters
     return dnssecCounters.at(static_cast<size_t>(index));
   }
 
-  PolicyCounters& at(PolicyHistogram index)
+  // We only have a single PolicyHistogram indexed PolicyCounters, so no need to select a specific one
+  PolicyCounters& at(PolicyHistogram)
   {
     return policyCounters;
+  }
+
+  // We only have a single policyNameHits indexed PolicyNameCounters, so no need to select a specific one
+  PolicyNameCounters& at(PolicyNameHits /*unused*/)
+  {
+    return policyNameHits;
   }
 
   // Mainly for debugging purposes

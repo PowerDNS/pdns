@@ -1223,15 +1223,15 @@ static StatsMap toCPUStatsMap(const string& name)
   return entries;
 }
 
-static StatsMap toRPZStatsMap(const string& name, LockGuarded<std::unordered_map<std::string, pdns::stat_t>>& map)
+static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::string, uint64_t>& map)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
 
   uint64_t total = 0;
-  for (const auto& entry : *map.lock()) {
-    auto& key = entry.first;
-    auto count = entry.second.load();
+  for (const auto& entry : map) {
+    const auto& key = entry.first;
+    auto count = entry.second;
     std::string sname, pname;
     if (key.empty()) {
       sname = name + "-filter";
@@ -1576,7 +1576,7 @@ static void registerAllStats1()
     return toStatsMap(t_Counters.at(rec::Histogram::cumulativeAuth4Answers).getName(), g_Counters.sum(rec::Histogram::cumulativeAuth4Answers), g_Counters.sum(rec::Histogram::cumulativeAuth6Answers));
   });
   addGetStat("policy-hits", []() {
-    return toRPZStatsMap("policy-hits", g_stats.policyHits);
+    return toRPZStatsMap("policy-hits", g_Counters.sum(rec::PolicyNameHits::policyName).counts);
   });
   addGetStat("proxy-mapping-total", []() {
     return toProxyMappingStatsMap("proxy-mapping-total");

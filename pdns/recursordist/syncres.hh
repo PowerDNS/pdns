@@ -771,12 +771,6 @@ extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern rec::GlobalCounters g_Counters;
 extern thread_local rec::TCounters t_Counters;
 
-struct RecursorStats
-{
-  // XXX Convert counters below to be part of rec::Counters
-  LockGuarded<std::unordered_map<std::string, pdns::stat_t>> policyHits;
-};
-
 //! represents a running TCP/IP client session
 class TCPConnection : public boost::noncopyable
 {
@@ -854,7 +848,6 @@ extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
-extern RecursorStats g_stats;
 extern unsigned int g_networkTimeoutMsec;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
