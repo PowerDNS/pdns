@@ -78,7 +78,7 @@
 class UDPNameserver
 {
 public:
-  UDPNameserver( bool additional_socket = false );  //!< Opens the socket
+  UDPNameserver(std::string address, bool additional_socket = false );  //!< Opens the socket
   bool receive(DNSPacket& packet, std::string& buffer); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket&); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {
@@ -88,9 +88,9 @@ public:
 private:
   bool d_additional_socket;
   bool d_can_reuseport{false};
-  vector<int> d_sockets;
-  void bindAddresses();
-  vector<pollfd> d_rfds;
+  std::string d_address;
+  int d_socket;
+  void bindAddress();
 };
 
 bool AddressIsUs(const ComboAddress& remote);

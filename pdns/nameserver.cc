@@ -88,86 +88,71 @@ extern StatBag S;
 
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
 
-void UDPNameserver::bindAddresses()
+void UDPNameserver::bindAddress()
 {
-  vector<string>locals;
-  stringtok(locals,::arg()["local-address"]," ,");
-
   int one = 1;
 
-  if(locals.empty())
-    throw PDNSException("No local address specified");
-
   int s;
-  // for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-  for (const auto &local : locals) {
-    ComboAddress locala(local, ::arg().asNum("local-port"));
 
-    s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
+  ComboAddress locala(d_address, ::arg().asNum("local-port"));
 
-    if(s < 0) {
-      if(errno == EAFNOSUPPORT) {
-        g_log<<Logger::Error<<"Binding "<<locala.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
-        return;
-      }
-      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
+  s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
+
+  if(s < 0) {
+    if(errno == EAFNOSUPPORT) {
+      g_log<<Logger::Error<<"Binding "<<locala.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
+      return;
     }
-
-    setCloseOnExec(s);
-    if(!setNonBlocking(s))
-      throw PDNSException("Unable to set UDP socket " + locala.toStringWithPort() + " to non-blocking: "+stringerror());
-
-    if(IsAnyAddress(locala)) {
-      (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
-      if (locala.isIPv6()) {
-        (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
-#ifdef IPV6_RECVPKTINFO
-        (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
-#endif
-      }
-    }
-
-    if (!setSocketTimestamps(s))
-      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
-
-    try {
-      setSocketIgnorePMTU(s, locala.sin4.sin_family);
-    }
-    catch(const std::exception& e) {
-      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
-    }
-
-    if (d_can_reuseport) {
-      if (!setReusePort(s)) {
-        d_can_reuseport = false;
-      }
-    }
-
-    if( ::arg().mustDo("non-local-bind") )
-      Utility::setBindAny(locala.sin4.sin_family, s);
-
-    if( !d_additional_socket )
-        g_localaddresses.push_back(locala);
-
-    if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
-      int err = errno;
-      close(s);
-      if (err == EADDRNOTAVAIL && !::arg().mustDo("local-address-nonexist-fail")) {
-        g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
-        continue;
-      } else {
-        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
-        throw PDNSException("Unable to bind to UDP socket");
-      }
-    }
-    d_sockets.push_back(s);
-    struct pollfd pfd;
-    pfd.fd = s;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
-    d_rfds.push_back(pfd);
-    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
+    throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
   }
+
+  setCloseOnExec(s);
+
+  if(IsAnyAddress(locala)) {
+    (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
+    if (locala.isIPv6()) {
+      (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
+#ifdef IPV6_RECVPKTINFO
+      (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+#endif
+    }
+  }
+
+  if (!setSocketTimestamps(s))
+    g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
+
+  try {
+    setSocketIgnorePMTU(s, locala.sin4.sin_family);
+  }
+  catch(const std::exception& e) {
+    g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+  }
+
+  if (d_can_reuseport) {
+    if (!setReusePort(s)) {
+      d_can_reuseport = false;
+    }
+  }
+
+  if( ::arg().mustDo("non-local-bind") )
+    Utility::setBindAny(locala.sin4.sin_family, s);
+
+  if( !d_additional_socket )
+    g_localaddresses.push_back(locala);
+
+  if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
+    int err = errno;
+    close(s);
+    if (err == EADDRNOTAVAIL && !::arg().mustDo("local-address-nonexist-fail")) {
+      g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
+        return;
+    } else {
+      g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
+      throw PDNSException("Unable to bind to UDP socket");
+    }
+  }
+  d_socket = s;
+  g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
 }
 
 bool AddressIsUs(const ComboAddress& remote)
@@ -202,16 +187,15 @@ bool AddressIsUs(const ComboAddress& remote)
   return false;
 }
 
-UDPNameserver::UDPNameserver( bool additional_socket )
+UDPNameserver::UDPNameserver(std::string address, bool additional_socket )
 {
   d_can_reuseport = ::arg().mustDo("reuseport");
   // Are we the main socket (false) or a rebinding using SO_REUSEPORT ?
   d_additional_socket = additional_socket;
 
-  if(::arg()["local-address"].empty())
-    g_log<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
+  d_address = address;
 
-  bindAddresses();
+  bindAddress();
 }
 
 void UDPNameserver::send(DNSPacket& p)
@@ -233,7 +217,7 @@ void UDPNameserver::send(DNSPacket& p)
   if(buffer.length() > p.getMaxReplyLen()) {
     g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p.getMaxReplyLen()<<". Question was for "<<p.qdomain<<"|"<<p.qtype.toString()<<endl;
   }
-  if(sendmsg(p.getSocket(), &msgh, 0) < 0)
+  if(sendmsg(d_socket, &msgh, 0) < 0)
     g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror()<<endl;
 }
 
@@ -242,7 +226,6 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   ComboAddress remote;
   extern StatBag S;
   ssize_t len=-1;
-  Utility::sock_t sock=-1;
 
   struct msghdr msgh;
   struct iovec iov;
@@ -250,38 +233,13 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
 
   remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
   fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
-  
-  int err;
-  vector<struct pollfd> rfds= d_rfds;
 
-  for(auto &pfd :  rfds) {
-    pfd.events = POLLIN;
-    pfd.revents = 0;
+  if((len=recvmsg(d_socket, &msgh, 0)) < 0 ) {
+    if(errno != EAGAIN)
+      g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<stringerror()<<endl;
+    return false;
   }
-    
-  retry:;
-  
-  err = poll(&rfds[0], rfds.size(), -1);
-  if(err < 0) {
-    if(errno==EINTR)
-      goto retry;
-    unixDie("Unable to poll for new UDP events");
-  }
-    
-  for(auto &pfd :  rfds) {
-    if(pfd.revents & POLLIN) {
-      sock=pfd.fd;        
-      if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
-        if(errno != EAGAIN)
-          g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<stringerror()<<endl;
-        return false;
-      }
-      break;
-    }
-  }
-  if(sock==-1)
-    throw PDNSException("poll betrayed us! (should not happen)");
-  
+
   DLOG(g_log<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
 
   BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
@@ -289,7 +247,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   if(remote.sin4.sin_port == 0) // would generate error on responding. sin4 also works for ipv6
     return false;
   
-  packet.setSocket(sock);
+  packet.setSocket(d_socket);
   packet.setRemote(&remote);
 
   ComboAddress dest;

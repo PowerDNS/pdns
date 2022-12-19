@@ -125,8 +125,6 @@ CommunicatorClass Communicator;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> s_distributors;
-static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
-static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
 
@@ -506,7 +504,7 @@ static int isGuarded(char** argv)
   return !!p;
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a, int start)
+static void sendout(shared_ptr<UDPNameserver> nameserver, std::unique_ptr<DNSPacket>& a, int start)
 {
   if (!a)
     return;
@@ -516,7 +514,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
     start = diff;
 
-    s_udpNameserver->send(*a);
+    nameserver->send(*a);
 
     diff = a->d_dt.udiff();
     send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
@@ -529,9 +527,9 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
-static void qthread(unsigned int num)
+static void qthread(unsigned int num, shared_ptr<UDPNameserver> NS)
 try {
-  setThreadName("pdns/receiver");
+  setThreadName("pdns/udphandler");
 
   s_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
   DNSDistributor* distributor = s_distributors[num]; // the big dispatcher!
@@ -549,21 +547,8 @@ try {
 
   int diff, start;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
-  shared_ptr<UDPNameserver> NS;
   std::string buffer;
   ComboAddress accountremote;
-
-  // If we have SO_REUSEPORT then create a new port for all receiver threads
-  // other than the first one.
-  if (s_udpNameserver->canReusePort()) {
-    NS = s_udpReceivers[num];
-    if (NS == nullptr) {
-      NS = s_udpNameserver;
-    }
-  }
-  else {
-    NS = s_udpNameserver;
-  }
 
   for (;;) {
     try {
@@ -656,7 +641,7 @@ try {
       }
 
       try {
-        distributor->question(question, &sendout); // otherwise, give to the distributor
+        distributor->question(question, std::bind(&sendout, NS, std::placeholders::_1, std::placeholders::_2)); // otherwise, give to the distributor
       }
       catch (DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
         _exit(1);
@@ -853,10 +838,19 @@ static void mainthread()
   s_tcpNameserver->go(); // tcp nameserver launch
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
+  vector<string>locals;
+  stringtok(locals,::arg()["local-address"]," ,");
   s_distributors.resize(max_rthreads);
-  for (unsigned int n = 0; n < max_rthreads; ++n) {
-    std::thread t(qthread, n);
-    t.detach();
+  for (const auto &address: locals) {
+    auto udpNameserver = std::make_shared<UDPNameserver>(address);
+    for (unsigned int n = 0; n < max_rthreads; ++n) {
+      auto ns = udpNameserver;
+      if (udpNameserver->canReusePort() && n > 0) {
+        ns = std::make_shared<UDPNameserver>(address, true);
+      }
+      std::thread t(qthread, n, ns);
+      t.detach();
+    }
   }
 
   std::thread carbonThread(carbonDumpThread); // runs even w/o carbon, might change @ runtime
@@ -1446,23 +1440,8 @@ int main(int argc, char** argv)
       }
     }
 
-    s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
-    s_udpReceivers.push_back(s_udpNameserver);
-
-    size_t rthreads = ::arg().asNum("receiver-threads", 1);
-    if (rthreads > 1 && s_udpNameserver->canReusePort()) {
-      s_udpReceivers.resize(rthreads);
-
-      for (size_t idx = 1; idx < rthreads; idx++) {
-        try {
-          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
-        }
-        catch (const PDNSException& e) {
-          g_log << Logger::Error << "Unable to reuse port, falling back to original bind" << endl;
-          break;
-        }
-      }
-    }
+    if(::arg()["local-address"].empty())
+      g_log<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;
 
     s_tcpNameserver = make_unique<TCPNameserver>();
   }
