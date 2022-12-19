@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <thread>
+#include "dns_random.hh"
 #include "rec-tcounters.hh"
 
 static rec::GlobalCounters global;
@@ -49,7 +50,7 @@ BOOST_AUTO_TEST_CASE(update_fast)
       ++tlocal.at(rec::Counter::servFails);
       ++tlocal.at(rec::Counter::nxDomains);
       tlocal.at(rec::DoubleWAvgCounter::avgLatencyUsec).add(1.1);
-      if (random() % 10000 == 0) {
+      if (dns_random(10000) == 0) {
         tlocal.updateSnap();
       }
     }
@@ -60,7 +61,7 @@ BOOST_AUTO_TEST_CASE(update_fast)
       ++tlocal.at(rec::Counter::servFails);
       ++tlocal.at(rec::Counter::nxDomains);
       tlocal.at(rec::DoubleWAvgCounter::avgLatencyUsec).add(2.2);
-      if (random() % 10000 == 0) {
+      if (dns_random(10000) == 0) {
         tlocal.updateSnap();
       }
     }
@@ -90,18 +91,18 @@ BOOST_AUTO_TEST_CASE(update_with_sleep)
 
   std::atomic<int> done{};
 
-  const size_t count = 1000000;
+  const size_t count = 100;
   std::thread thread1([&done] {
     for (size_t i = 0; i < count; i++) {
       ++tlocal.at(rec::Counter::servFails);
       ++tlocal.at(rec::Counter::nxDomains);
       tlocal.at(rec::DoubleWAvgCounter::avgLatencyUsec).add(1.1);
-      if (random() % 10000 == 0) {
+      if (dns_random(10000) == 0) {
         tlocal.updateSnap();
       }
       struct timespec interval
       {
-        0, random() % 5000
+        0, dns_random(20 * 1000 * 1000)
       };
       nanosleep(&interval, nullptr);
     }
@@ -112,12 +113,12 @@ BOOST_AUTO_TEST_CASE(update_with_sleep)
       ++tlocal.at(rec::Counter::servFails);
       ++tlocal.at(rec::Counter::nxDomains);
       tlocal.at(rec::DoubleWAvgCounter::avgLatencyUsec).add(2.2);
-      if (random() % 10000 == 0) {
+      if (dns_random(10000) == 0) {
         tlocal.updateSnap();
       }
       struct timespec interval
       {
-        0, random() % 999
+        0, dns_random(40 * 1000 * 1000)
       };
       nanosleep(&interval, nullptr);
     }
@@ -132,7 +133,7 @@ BOOST_AUTO_TEST_CASE(update_with_sleep)
       BOOST_CHECK(avg == 0.0 || (avg >= 1.1 && avg <= 2.2));
       struct timespec interval
       {
-        0, random() % 10000
+        0, dns_random(80 * 1000 * 1000)
       };
       nanosleep(&interval, nullptr);
     }

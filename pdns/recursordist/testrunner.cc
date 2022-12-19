@@ -31,6 +31,8 @@
 #include <iomanip>
 #include "logger.hh"
 #include "logging.hh"
+#include "arguments.hh"
+#include "dns_random.hh"
 
 static std::string s_timestampFormat = "%s";
 
@@ -76,6 +78,10 @@ static void loggerBackend(const Logging::Entry& entry)
 
 static bool init_unit_test()
 {
+  ::arg().set("rng") = "auto";
+  ::arg().set("entropy-source") = "/dev/urandom";
+  // Force init while w're still unthreaded
+  dns_random_uint16();
   g_slog = Logging::Logger::create(loggerBackend);
   reportAllTypes();
   return true;
