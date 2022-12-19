@@ -12,7 +12,8 @@ struct MyObject
 
 BOOST_AUTO_TEST_SUITE(test_channel)
 
-BOOST_AUTO_TEST_CASE(test_object_queue) {
+BOOST_AUTO_TEST_CASE(test_object_queue)
+{
   auto [sender, receiver] = pdns::channel::createObjectQueue<MyObject>();
 
   BOOST_CHECK(receiver.getDescriptor() != -1);
@@ -30,7 +31,8 @@ BOOST_AUTO_TEST_CASE(test_object_queue) {
   BOOST_CHECK_EQUAL((*got)->a, 42U);
 }
 
-BOOST_AUTO_TEST_CASE(test_object_queue_full) {
+BOOST_AUTO_TEST_CASE(test_object_queue_full)
+{
   auto [sender, receiver] = pdns::channel::createObjectQueue<MyObject>();
 
   {
@@ -77,14 +79,16 @@ BOOST_AUTO_TEST_CASE(test_object_queue_full) {
   BOOST_CHECK(sender.send(std::move(obj)));
 }
 
-BOOST_AUTO_TEST_CASE(test_object_queue_throw_on_eof) {
+BOOST_AUTO_TEST_CASE(test_object_queue_throw_on_eof)
+{
   auto [sender, receiver] = pdns::channel::createObjectQueue<MyObject>();
   sender.close();
   BOOST_CHECK_THROW(receiver.receive(), std::runtime_error);
   BOOST_CHECK_EQUAL(receiver.isClosed(), true);
 }
 
-BOOST_AUTO_TEST_CASE(test_object_queue_do_not_throw_on_eof) {
+BOOST_AUTO_TEST_CASE(test_object_queue_do_not_throw_on_eof)
+{
   auto [sender, receiver] = pdns::channel::createObjectQueue<MyObject>(true, true, 0U, false);
   sender.close();
   auto got = receiver.receive();
@@ -92,7 +96,8 @@ BOOST_AUTO_TEST_CASE(test_object_queue_do_not_throw_on_eof) {
   BOOST_CHECK_EQUAL(receiver.isClosed(), true);
 }
 
-BOOST_AUTO_TEST_CASE(test_notification_queue_full) {
+BOOST_AUTO_TEST_CASE(test_notification_queue_full)
+{
   auto [notifier, waiter] = pdns::channel::createNotificationQueue();
 
   BOOST_CHECK(waiter.getDescriptor() != -1);
@@ -101,8 +106,7 @@ BOOST_AUTO_TEST_CASE(test_notification_queue_full) {
 
   /* add notifications until the queue becomes full */
   bool blocked = false;
-  while (!blocked)
-  {
+  while (!blocked) {
     blocked = notifier.notify();
   }
 
@@ -113,7 +117,8 @@ BOOST_AUTO_TEST_CASE(test_notification_queue_full) {
   BOOST_CHECK(notifier.notify());
 }
 
-BOOST_AUTO_TEST_CASE(test_notification_queue_throw_on_eof) {
+BOOST_AUTO_TEST_CASE(test_notification_queue_throw_on_eof)
+{
   auto [notifier, waiter] = pdns::channel::createNotificationQueue();
 
   BOOST_CHECK(waiter.getDescriptor() != -1);
@@ -126,7 +131,8 @@ BOOST_AUTO_TEST_CASE(test_notification_queue_throw_on_eof) {
   BOOST_CHECK_THROW(waiter.clear(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(test_notification_queue_do_not_throw_on_eof) {
+BOOST_AUTO_TEST_CASE(test_notification_queue_do_not_throw_on_eof)
+{
   auto [notifier, waiter] = pdns::channel::createNotificationQueue(true, 0, false);
 
   BOOST_CHECK(waiter.getDescriptor() != -1);
@@ -141,4 +147,3 @@ BOOST_AUTO_TEST_CASE(test_notification_queue_do_not_throw_on_eof) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
