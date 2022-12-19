@@ -838,10 +838,10 @@ static void mainthread()
   s_tcpNameserver->go(); // tcp nameserver launch
 
   unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
-  vector<string>locals;
-  stringtok(locals,::arg()["local-address"]," ,");
+  vector<string> locals;
+  stringtok(locals,::arg()["local-address"], " ,");
   s_distributors.resize(max_rthreads);
-  for (const auto &address: locals) {
+  for (const auto& address : locals) {
     auto udpNameserver = std::make_shared<UDPNameserver>(address);
     for (unsigned int n = 0; n < max_rthreads; ++n) {
       auto ns = udpNameserver;
@@ -1440,8 +1440,8 @@ int main(int argc, char** argv)
       }
     }
 
-    if(::arg()["local-address"].empty())
-      g_log<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;
+    if (::arg()["local-address"].empty())
+      g_log << Logger::Critical << "PDNS is deaf and mute! Not listening on any interfaces" << endl;
 
     s_tcpNameserver = make_unique<TCPNameserver>();
   }
