@@ -810,7 +810,7 @@ try
 
   bool usePCAPSourceIP = g_vm["source-from-pcap"].as<bool>();
   if (usePCAPSourceIP && !checkIPTransparentUsability()) {
-    cerr << "--source-from-pcap requested but IP_TRANSPARENT support is not working properly" << endl;
+    cerr << "--source-from-pcap requested but IP_TRANSPARENT support is unavailable or not working properly" << endl;
     exit(EXIT_FAILURE);
   }
 
