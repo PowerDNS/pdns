@@ -4,6 +4,7 @@ import os
 import requests
 import subprocess
 import time
+import extendederrors
 
 class AggressiveNSECCacheBase(RecursorTest):
     __test__ = False
@@ -21,6 +22,7 @@ class AggressiveNSECCacheBase(RecursorTest):
     webserver-password=%s
     api-key=%s
     devonly-regression-test-mode
+    extended-resolution-errors=yes
     """ % (_wsPort, _wsPassword, _apiKey)
 
     @classmethod
@@ -67,6 +69,10 @@ class AggressiveNSECCacheBase(RecursorTest):
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertEqual(self.getMetric('aggressive-nsec-cache-entries'), entries)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
 class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC'
@@ -101,6 +107,10 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertEqual(self.getMetric('aggressive-nsec-cache-entries'), entries)
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
     def testWildcard(self):
         self.wipe()
@@ -124,6 +134,10 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-wc-hits'), hits)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
         # now we ask for a type that does not exist at the wildcard
         hits = self.getMetric('aggressive-nsec-cache-nsec-hits')
@@ -135,6 +149,10 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
         # we can also ask a different type, for a different name that is covered
         # by the NSEC and matches the wildcard (but the type does not exist)
@@ -147,6 +165,10 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
     def test_Bogus(self):
         self.wipe()
@@ -184,6 +206,11 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
 
         # Check that we stil have one aggressive cache entry
         self.assertEqual(1, self.getMetric('aggressive-nsec-cache-entries'))
+        print(res.options)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(9, b''))
 
 class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'
@@ -252,6 +279,10 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
     def testWildcard(self):
         self.wipe()
@@ -281,6 +312,10 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertMatchingRRSIGInAnswer(res, expected)
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
         # now we ask for a type that does not exist at the wildcard
         nbQueries = self.getMetric('all-outqueries')
@@ -290,6 +325,10 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
         # we can also ask a different type, for a different name that is covered
         # by the NSEC3s and matches the wildcard (but the type does not exist)
@@ -300,6 +339,10 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
         self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
     def test_OptOut(self):
         self.wipe()
@@ -317,3 +360,5 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertGreater(self.getMetric('all-outqueries'), nbQueries)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 0)
