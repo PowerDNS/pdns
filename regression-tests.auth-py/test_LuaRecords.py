@@ -916,6 +916,8 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             }),
             ".createforward6.example.org." : (dns.rdatatype.AAAA, {
                 "2001--db8" : "2001::db8",
+                "20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
+                "blabla20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
                 "4000-db8--1" : "fe80::1"   # filtered, with fallback address override
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
