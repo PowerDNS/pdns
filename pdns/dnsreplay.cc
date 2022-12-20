@@ -576,10 +576,26 @@ static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, c
   }
 }
 
+static bool checkIPTransparentUsability()
+{
+#ifdef IP_TRANSPARENT
+  try {
+    auto s = Socket(SSocket(AF_INET, SOCK_DGRAM, 0));
+    SSetsockopt(s.getHandle(), IPPROTO_IP , IP_TRANSPARENT, 1);
+    return true;
+  }
+  catch (const std::exception& e) {
+    cerr << "Error while checking whether IP_TRANSPARENT (required for '--source-from-pcap') is working properly: " << e.what() << endl;
+  }
+#endif /* IP_TRANSPARENT */
+  return false;
+}
+
+
 static bool g_rdSelector;
 static uint16_t g_pcapDnsPort;
 
-static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
+static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp, bool usePCAPSourceIP)
 {
   bool sent=false;
   if (pr.d_len <= sizeof(dnsheader)) {
@@ -613,8 +629,19 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
         addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
         pr.d_len=dlen;
       }
-
-      s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
+#ifdef IP_TRANSPARENT
+      if (usePCAPSourceIP) {
+        auto s = Socket(SSocket(AF_INET, SOCK_DGRAM, 0));
+        SSetsockopt(s.getHandle(), IPPROTO_IP , IP_TRANSPARENT, 1);
+        SBind(s.getHandle(), pr.getSource());
+        sendto(s.getHandle(), reinterpret_cast<const char*>(pr.d_payload), dlen, 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
+      }
+      else {
+#endif /* IP_TRANSPARENT */
+        s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
+#ifdef IP_TRANSPARENT
+      }
+#endif /* IP_TRANSPARENT */
       sent=true;
       dh->id=tmp;
     }
@@ -662,17 +689,17 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
       }
     }
   }
-  catch(const MOADNSException &mde)
-  {
-    if(!g_quiet)
+  catch (const MOADNSException& mde) {
+    if (!g_quiet) {
       cerr<<"Error parsing packet: "<<mde.what()<<endl;
+    }
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
-  catch(std::exception &e)
-  {
-    if(!g_quiet)
+  catch (std::exception& e) {
+    if (!g_quiet) {
       cerr<<"Error parsing packet: "<<e.what()<<endl;
+    }
 
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;    
@@ -702,6 +729,7 @@ try
     ("ecs-stamp", "Add original IP address to ECS in replay")
     ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")
     ("source-ip", po::value<string>()->default_value(""), "IP to send the replayed packet from")
+    ("source-from-pcap", po::value<bool>()->default_value(false), "Send the replayed packets from the source IP present in the PCAP (requires IP_TRANSPARENT support)")
     ("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from");
 
   po::options_description alloptions;
@@ -750,12 +778,13 @@ try
   g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
-  s_socket= make_unique<Socket>(AF_INET, SOCK_DGRAM);
+  s_socket = make_unique<Socket>(AF_INET, SOCK_DGRAM);
 
   s_socket->setNonBlocking();
 
-  if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
+  if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty()) {
     s_socket->bind(ComboAddress(g_vm["source-ip"].as<string>(), g_vm["source-port"].as<uint16_t>()));
+  }
 
   try {
     setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
@@ -778,6 +807,12 @@ try
    stamp=g_vm["ecs-mask"].as<uint16_t>();
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
+
+  bool usePCAPSourceIP = g_vm["source-from-pcap"].as<bool>();
+  if (usePCAPSourceIP && !checkIPTransparentUsability()) {
+    cerr << "--source-from-pcap requested but IP_TRANSPARENT support is unavailable or not working properly" << endl;
+    exit(EXIT_FAILURE);
+  }
 
   unsigned int once=0;
   struct timeval mental_time;
@@ -807,8 +842,9 @@ try
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
-      if(sendPacketFromPR(pr, remote, stamp))
+      if (sendPacketFromPR(pr, remote, stamp, usePCAPSourceIP)) {
         count++;
+      }
     } 
     if(packetLimit && count >= packetLimit) 
       break;
