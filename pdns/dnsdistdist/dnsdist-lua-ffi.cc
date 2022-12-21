@@ -22,6 +22,7 @@
 
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
 #include "dnsdist-lua-network.hh"
@@ -694,8 +695,7 @@ bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
 {
   try {
     dq->dq->asynchronous = true;
-    dnsdist::suspendQuery(*dq->dq, asyncID, queryID, timeoutMs);
-    return true;
+    return dnsdist::suspendQuery(*dq->dq, asyncID, queryID, timeoutMs);
   }
   catch (const std::exception& e) {
     vinfolog("Error in dnsdist_ffi_dnsquestion_set_async: %s", e.what());
@@ -717,8 +717,7 @@ bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
       return false;
     }
 
-    dnsdist::suspendResponse(*dr, asyncID, queryID, timeoutMs);
-    return true;
+    return dnsdist::suspendResponse(*dr, asyncID, queryID, timeoutMs);
   }
   catch (const std::exception& e) {
     vinfolog("Error in dnsdist_ffi_dnsresponse_set_async: %s", e.what());
@@ -767,35 +766,8 @@ bool dnsdist_ffi_set_rcode_from_async(uint16_t asyncID, uint16_t queryID, uint8_
     return false;
   }
 
-  const auto qnameLength = query->query.d_idstate.qname.wirelength();
-  auto& buffer = query->query.d_buffer;
-  if (buffer.size() < sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t)) {
+  if (!dnsdist::setInternalQueryRCode(query->query.d_idstate, query->query.d_buffer, rcode, clearAnswers)) {
     return false;
-  }
-
-  EDNS0Record edns0;
-  bool hadEDNS = false;
-  if (clearAnswers) {
-    hadEDNS = getEDNS0Record(buffer, edns0);
-  }
-
-  auto dh = reinterpret_cast<dnsheader*>(buffer.data());
-  dh->rcode = rcode;
-  dh->ad = false;
-  dh->aa = false;
-  dh->ra = dh->rd;
-  dh->qr = true;
-
-  if (clearAnswers) {
-    dh->ancount = 0;
-    dh->nscount = 0;
-    dh->arcount = 0;
-    buffer.resize(sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t));
-    if (hadEDNS) {
-      if (!addEDNS(buffer, query->query.d_idstate.protocol.isUDP() ? 4096 : std::numeric_limits<uint16_t>::max(), edns0.extFlags & htons(EDNS_HEADER_FLAG_DO), g_PayloadSizeSelfGenAnswers, 0)) {
-        return false;
-      }
-    }
   }
 
   query->query.d_idstate.skipCache = true;

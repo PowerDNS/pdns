@@ -156,7 +156,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.rd=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getRD", [](const dnsheader& dh) {
       return (bool)dh.rd;
     });
 
@@ -164,7 +164,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.ra=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getRA", [](const dnsheader& dh) {
       return (bool)dh.ra;
     });
 
@@ -172,7 +172,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.ad=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getAD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getAD", [](const dnsheader& dh) {
       return (bool)dh.ad;
     });
 
@@ -180,7 +180,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.aa=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getAA", [](const dnsheader& dh) {
       return (bool)dh.aa;
     });
 
@@ -188,8 +188,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.cd=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const >("getCD", [](const dnsheader& dh) {
       return (bool)dh.cd;
+    });
+
+    luaCtx.registerFunction<uint16_t(dnsheader::*)()const>("getID", [](const dnsheader& dh) {
+      return ntohs(dh.id);
     });
 
   luaCtx.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {

@@ -57,3 +57,7 @@ bool queryHasEDNS(const DNSQuestion& dq);
 bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);
 
 bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& data);
+
+namespace dnsdist {
+bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer,  uint8_t rcode, bool clearAnswers);
+}

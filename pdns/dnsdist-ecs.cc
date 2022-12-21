@@ -1114,3 +1114,41 @@ bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& ednsDa
 
   return true;
 }
+
+namespace dnsdist {
+bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer,  uint8_t rcode, bool clearAnswers)
+{
+  const auto qnameLength = state.qname.wirelength();
+  if (buffer.size() < sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t)) {
+    return false;
+  }
+
+  EDNS0Record edns0;
+  bool hadEDNS = false;
+  if (clearAnswers) {
+    hadEDNS = getEDNS0Record(buffer, edns0);
+  }
+
+  auto dh = reinterpret_cast<dnsheader*>(buffer.data());
+  dh->rcode = rcode;
+  dh->ad = false;
+  dh->aa = false;
+  dh->ra = dh->rd;
+  dh->qr = true;
+
+  if (clearAnswers) {
+    dh->ancount = 0;
+    dh->nscount = 0;
+    dh->arcount = 0;
+    buffer.resize(sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t));
+    if (hadEDNS) {
+      DNSQuestion dq(state, buffer);
+      if (!addEDNS(buffer, dq.getMaximumSize(), edns0.extFlags & htons(EDNS_HEADER_FLAG_DO), g_PayloadSizeSelfGenAnswers, 0)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+}
