@@ -84,116 +84,7 @@ asyncResponder = threading.Thread(name='Asynchronous Responder', target=AsyncRes
 asyncResponder.setDaemon(True)
 asyncResponder.start()
 
-@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
-class TestAsync(DNSDistTest):
-
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-
-    _config_template = """
-    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
-    newServer{address="127.0.0.1:%s", pool="tcp-only", tcpOnly=true }
-
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
-
-    local ffi = require("ffi")
-    local C = ffi.C
-
-    local filteringTagName = 'filtering'
-    local filteringTagValue = 'pass'
-    local asyncID = 0
-
-    pc = newPacketCache(100)
-    getPool('cache'):setCache(pc)
-
-    function gotAsyncResponse(endpointID, message, from)
-
-      print('Got async response '..message)
-      local parts = {}
-      for part in message:gmatch("%%S+") do table.insert(parts, part) end
-      if #parts ~= 2 then
-        print('Invalid message')
-        return
-      end
-      local queryID = tonumber(parts[1])
-      if parts[2] == 'accept' then
-        print('accepting')
-        C.dnsdist_ffi_resume_from_async(asyncID, queryID, filteringTagName, #filteringTagName, filteringTagValue, #filteringTagValue, true)
-        return
-      end
-      if parts[2] == 'refuse' then
-        print('refusing')
-        C.dnsdist_ffi_set_rcode_from_async(asyncID, queryID, DNSRCode.REFUSED, true)
-        return
-      end
-      if parts[2] == 'drop' then
-        print('dropping')
-        C.dnsdist_ffi_drop_from_async(asyncID, queryID)
-        return
-      end
-      if parts[2] == 'custom' then
-        print('sending a custom response')
-        local raw = '\\000\\000\\128\\129\\000\\001\\000\\000\\000\\000\\000\\001\\006custom\\005async\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001\\000\\000\\041\\002\\000\\000\\000\\128\\000\\000\\000'
-        C.dnsdist_ffi_set_answer_from_async(asyncID, queryID, raw, #raw)
-        return
-      end
-    end
-
-    local asyncResponderEndpoint = newNetworkEndpoint('%s')
-    local listener = newNetworkListener()
-    listener:addUnixListeningEndpoint('%s', 0, gotAsyncResponse)
-    listener:start()
-
-    function passQueryToAsyncFilter(dq)
-      print('in passQueryToAsyncFilter')
-      local timeout = 500 -- 500 ms
-
-      local queryPtr = C.dnsdist_ffi_dnsquestion_get_header(dq)
-      local querySize = C.dnsdist_ffi_dnsquestion_get_len(dq)
-
-      -- we need to take a copy, as we can no longer touch that data after calling set_async
-      local buffer = ffi.string(queryPtr, querySize)
-
-      print(C.dnsdist_ffi_dnsquestion_set_async(dq, asyncID, C.dnsdist_ffi_dnsquestion_get_id(dq), timeout))
-      asyncResponderEndpoint:send(buffer)
-
-      return DNSAction.Allow
-    end
-
-    function passResponseToAsyncFilter(dr)
-      print('in passResponseToAsyncFilter')
-      local timeout = 500 -- 500 ms
-
-      local responsePtr = C.dnsdist_ffi_dnsquestion_get_header(dr)
-      local responseSize = C.dnsdist_ffi_dnsquestion_get_len(dr)
-
-      -- we need to take a copy, as we can no longer touch that data after calling set_async
-      local buffer = ffi.string(responsePtr, responseSize)
-
-      print(C.dnsdist_ffi_dnsresponse_set_async(dr, asyncID, C.dnsdist_ffi_dnsquestion_get_id(dr), timeout))
-      asyncResponderEndpoint:send(buffer)
-
-      return DNSResponseAction.Allow
-    end
-
-    -- this only matters for tests actually reaching the backend
-    addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
-    addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
-    addAction(AllRule(), LuaFFIAction(passQueryToAsyncFilter))
-    addCacheHitResponseAction(AllRule(), LuaFFIResponseAction(passResponseToAsyncFilter))
-    addResponseAction(AllRule(), LuaFFIResponseAction(passResponseToAsyncFilter))
-    """
-    _asyncResponderSocketPath = asyncResponderSocketPath
-    _dnsdistSocketPath = dnsdistSocketPath
-    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
-    _verboseMode = True
-
+class AsyncTests(object):
     def testPass(self):
         """
         Async: Accept
@@ -262,8 +153,6 @@ class TestAsync(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=None, useQueue=False, caFile=self._caCert)
-        print(response)
-        print(receivedResponse)
         self.assertEqual(response, receivedResponse)
 
     def testTimeoutThenAccept(self):
@@ -493,8 +382,6 @@ class TestAsync(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            print(expectedResponse)
-            print(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
@@ -536,8 +423,6 @@ class TestAsync(DNSDistTest):
 
         # check the response
         self.assertTrue(receivedResponse)
-        print(response)
-        print(receivedResponse)
         self.assertEqual(response, receivedResponse)
 
         # check the second query, received by the responder over TCP
@@ -546,3 +431,221 @@ class TestAsync(DNSDistTest):
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
+class TestAsyncFFI(DNSDistTest, AsyncTests):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
+    newServer{address="127.0.0.1:%s", pool="tcp-only", tcpOnly=true }
+
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
+
+    local ffi = require("ffi")
+    local C = ffi.C
+
+    local filteringTagName = 'filtering'
+    local filteringTagValue = 'pass'
+    local asyncID = 0
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+
+    function gotAsyncResponse(endpointID, message, from)
+
+      print('Got async response '..message)
+      local parts = {}
+      for part in message:gmatch("%%S+") do table.insert(parts, part) end
+      if #parts ~= 2 then
+        print('Invalid message')
+        return
+      end
+      local queryID = tonumber(parts[1])
+      if parts[2] == 'accept' then
+        print('accepting')
+        C.dnsdist_ffi_resume_from_async(asyncID, queryID, filteringTagName, #filteringTagName, filteringTagValue, #filteringTagValue, true)
+        return
+      end
+      if parts[2] == 'refuse' then
+        print('refusing')
+        C.dnsdist_ffi_set_rcode_from_async(asyncID, queryID, DNSRCode.REFUSED, true)
+        return
+      end
+      if parts[2] == 'drop' then
+        print('dropping')
+        C.dnsdist_ffi_drop_from_async(asyncID, queryID)
+        return
+      end
+      if parts[2] == 'custom' then
+        print('sending a custom response')
+        local raw = '\\000\\000\\128\\129\\000\\001\\000\\000\\000\\000\\000\\001\\006custom\\005async\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001\\000\\000\\041\\002\\000\\000\\000\\128\\000\\000\\000'
+        C.dnsdist_ffi_set_answer_from_async(asyncID, queryID, raw, #raw)
+        return
+      end
+    end
+
+    local asyncResponderEndpoint = newNetworkEndpoint('%s')
+    local listener = newNetworkListener()
+    listener:addUnixListeningEndpoint('%s', 0, gotAsyncResponse)
+    listener:start()
+
+    function passQueryToAsyncFilter(dq)
+      print('in passQueryToAsyncFilter')
+      local timeout = 500 -- 500 ms
+
+      local queryPtr = C.dnsdist_ffi_dnsquestion_get_header(dq)
+      local querySize = C.dnsdist_ffi_dnsquestion_get_len(dq)
+
+      -- we need to take a copy, as we can no longer touch that data after calling set_async
+      local buffer = ffi.string(queryPtr, querySize)
+
+      print(C.dnsdist_ffi_dnsquestion_set_async(dq, asyncID, C.dnsdist_ffi_dnsquestion_get_id(dq), timeout))
+      asyncResponderEndpoint:send(buffer)
+
+      return DNSAction.Allow
+    end
+
+    function passResponseToAsyncFilter(dr)
+      print('in passResponseToAsyncFilter')
+      local timeout = 500 -- 500 ms
+
+      local responsePtr = C.dnsdist_ffi_dnsquestion_get_header(dr)
+      local responseSize = C.dnsdist_ffi_dnsquestion_get_len(dr)
+
+      -- we need to take a copy, as we can no longer touch that data after calling set_async
+      local buffer = ffi.string(responsePtr, responseSize)
+
+      print(C.dnsdist_ffi_dnsresponse_set_async(dr, asyncID, C.dnsdist_ffi_dnsquestion_get_id(dr), timeout))
+      asyncResponderEndpoint:send(buffer)
+
+      return DNSResponseAction.Allow
+    end
+
+    -- this only matters for tests actually reaching the backend
+    addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
+    addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
+    addAction(AllRule(), LuaFFIAction(passQueryToAsyncFilter))
+    addCacheHitResponseAction(AllRule(), LuaFFIResponseAction(passResponseToAsyncFilter))
+    addResponseAction(AllRule(), LuaFFIResponseAction(passResponseToAsyncFilter))
+    """
+    _asyncResponderSocketPath = asyncResponderSocketPath
+    _dnsdistSocketPath = dnsdistSocketPath
+    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
+    _verboseMode = True
+
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
+class TestAsyncLua(DNSDistTest, AsyncTests):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
+    newServer{address="127.0.0.1:%s", pool="tcp-only", tcpOnly=true }
+
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
+
+    local filteringTagName = 'filtering'
+    local filteringTagValue = 'pass'
+    local asyncID = 0
+
+    pc = newPacketCache(100)
+    getPool('cache'):setCache(pc)
+
+    function gotAsyncResponse(endpointID, message, from)
+
+      print('Got async response '..message)
+      local parts = {}
+      for part in message:gmatch("%%S+") do
+        table.insert(parts, part)
+      end
+      if #parts ~= 2 then
+        print('Invalid message')
+        return
+      end
+      local queryID = tonumber(parts[1])
+      local asyncObject = getAsynchronousObject(asyncID, queryID)
+      if parts[2] == 'accept' then
+        print('accepting')
+        local dq = asyncObject:getDQ()
+        dq:setTag(filteringTagName, filteringTagValue)
+        asyncObject:resume()
+        return
+      end
+      if parts[2] == 'refuse' then
+        print('refusing')
+        local dq = asyncObject:getDQ()
+        asyncObject:setRCode(DNSRCode.REFUSED, true)
+        asyncObject:resume()
+        return
+      end
+      if parts[2] == 'drop' then
+        print('dropping')
+        asyncObject:drop()
+        return
+      end
+      if parts[2] == 'custom' then
+        print('sending a custom response')
+        local raw = '\\000\\000\\128\\129\\000\\001\\000\\000\\000\\000\\000\\001\\006custom\\005async\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001\\000\\000\\041\\002\\000\\000\\000\\128\\000\\000\\000'
+        local dq = asyncObject:getDQ()
+        dq:setContent(raw)
+        asyncObject:resume()
+        return
+      end
+    end
+
+    local asyncResponderEndpoint = newNetworkEndpoint('%s')
+    local listener = newNetworkListener()
+    listener:addUnixListeningEndpoint('%s', 0, gotAsyncResponse)
+    listener:start()
+
+    function passQueryToAsyncFilter(dq)
+      print('in passQueryToAsyncFilter')
+      local timeout = 500 -- 500 ms
+
+      local buffer = dq:getContent()
+      local id = dq.dh:getID()
+      dq:suspend(asyncID, id, timeout)
+      asyncResponderEndpoint:send(buffer)
+
+      return DNSAction.Allow
+    end
+
+    function passResponseToAsyncFilter(dr)
+      print('in passResponseToAsyncFilter')
+      local timeout = 500 -- 500 ms
+
+      local buffer = dr:getContent()
+      local id = dr.dh:getID()
+      dr:suspend(asyncID, id, timeout)
+      asyncResponderEndpoint:send(buffer)
+
+      return DNSResponseAction.Allow
+    end
+
+    -- this only matters for tests actually reaching the backend
+    addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
+    addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
+    addAction(AllRule(), LuaAction(passQueryToAsyncFilter))
+    addCacheHitResponseAction(AllRule(), LuaResponseAction(passResponseToAsyncFilter))
+    addResponseAction(AllRule(), LuaResponseAction(passResponseToAsyncFilter))
+    """
+    _asyncResponderSocketPath = asyncResponderSocketPath
+    _dnsdistSocketPath = dnsdistSocketPath
+    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
+    _verboseMode = True
