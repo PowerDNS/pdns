@@ -514,6 +514,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -706,6 +707,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -1222,6 +1224,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 {
   /* test that we don't compare a hash using the wrong (former) salt or iterations count in case of a rollover,
      or when different servers use different parameters */
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   auto cache = make_unique<AggressiveNSECCache>(10000);
   g_recCache = std::make_unique<MemRecursorCache>();
 
@@ -1524,6 +1527,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
 {
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   auto cache = make_unique<AggressiveNSECCache>(10000);
   g_recCache = std::make_unique<MemRecursorCache>();
 

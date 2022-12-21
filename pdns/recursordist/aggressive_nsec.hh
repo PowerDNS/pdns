@@ -40,6 +40,9 @@ using namespace ::boost::multi_index;
 class AggressiveNSECCache
 {
 public:
+  static const uint8_t s_default_maxNSEC3CommonPrefix = 10;
+  static uint8_t s_maxNSEC3CommonPrefix;
+
   AggressiveNSECCache(uint64_t entries) :
     d_maxEntries(entries)
   {
