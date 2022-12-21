@@ -70,7 +70,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
 
   while (ni != content->d_map.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
     if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
-      updateStaleEntry(now.tv_sec, ni);
+      updateStaleEntry(now.tv_sec, ni, QType(QType::A));
     }
     // We have something
     if (now.tv_sec < ni->d_ttd) {
@@ -86,7 +86,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
   return false;
 }
 
-void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry)
+void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry, const QType& qtype)
 {
   // We need to take care a infrequently access stale item cannot be extended past
   // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
@@ -96,7 +96,7 @@ void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry)
   entry->d_servedStale = std::min(entry->d_servedStale + 1 + howlong / extension, static_cast<time_t>(s_maxServedStaleExtensions));
   entry->d_ttd = now + std::min(entry->d_orig_ttl, s_serveStaleExtensionPeriod);
 
-  pushAlmostExpiredTask(entry->d_name, entry->d_qtype == 0 ? QType::A : entry->d_qtype, entry->d_ttd, Netmask());
+  pushAlmostExpiredTask(entry->d_name, entry->d_qtype == 0 ? qtype : entry->d_qtype, entry->d_ttd, Netmask());
 }
 
 /*!
@@ -124,7 +124,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
       auto firstIndexIterator = content->d_map.project<CompositeKey>(ni);
 
       if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
-        updateStaleEntry(now.tv_sec, firstIndexIterator);
+        updateStaleEntry(now.tv_sec, firstIndexIterator, qtype);
       }
       if (now.tv_sec < ni->d_ttd && !(refresh && ni->d_servedStale > 0)) {
         // Not expired
