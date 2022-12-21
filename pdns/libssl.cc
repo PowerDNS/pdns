@@ -20,6 +20,9 @@
 #include <openssl/ocsp.h>
 #endif /* DISABLE_OCSP_STAPLING */
 #include <openssl/pkcs12.h>
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/provider.h>
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <fcntl.h>
@@ -828,10 +831,30 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
       EVP_PKEY *keyptr = nullptr;
       X509 *certptr = nullptr;
       STACK_OF(X509) *captr = nullptr;
-      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr))
-      {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        bool failed = true;
+        /* we might be opening a PKCS12 file that uses RC2 CBC or 3DES CBC which, since OpenSSL 3.0.0, requires loading the legacy provider */
+        auto libCtx = OSSL_LIB_CTX_get0_global_default();
+        /* check whether the legacy provider is already loaded */
+        if (!OSSL_PROVIDER_available(libCtx, "legacy")) {
+          /* it's not */
+          auto provider = OSSL_PROVIDER_load(libCtx, "legacy");
+          if (provider != nullptr) {
+            if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+              failed = false;
+            }
+            /* we do not want to keep that provider around after that */
+            OSSL_PROVIDER_unload(provider);
+          }
+        }
+        if (failed) {
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        }
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
       }
       auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
       auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
