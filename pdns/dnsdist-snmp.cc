@@ -445,16 +445,16 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
-  std::string local = dq.local->toString();
-  std::string remote = dq.remote->toString();
-  std::string qname = dq.qname->toStringNoDot();
-  const uint32_t socketFamily = dq.remote->isIPv4() ? 1 : 2;
+  std::string local = dq.ids.origDest.toString();
+  std::string remote = dq.ids.origRemote.toString();
+  std::string qname = dq.ids.qname.toStringNoDot();
+  const uint32_t socketFamily = dq.ids.origRemote.isIPv4() ? 1 : 2;
   const uint32_t socketProtocol = dq.overTCP() ? 2 : 1;
   const uint32_t queryType = dq.getHeader()->qr ? 2 : 1;
   const uint32_t querySize = (uint32_t) dq.getData().size();
   const uint32_t queryID = (uint32_t) ntohs(dq.getHeader()->id);
-  const uint32_t qType = (uint32_t) dq.qtype;
-  const uint32_t qClass = (uint32_t) dq.qclass;
+  const uint32_t qType = (uint32_t) dq.ids.qtype;
+  const uint32_t qClass = (uint32_t) dq.ids.qclass;
 
   netsnmp_variable_list* varList = nullptr;
 

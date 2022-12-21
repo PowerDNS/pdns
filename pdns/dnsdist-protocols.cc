@@ -74,6 +74,11 @@ const std::string& Protocol::toPrettyString() const
   return s_prettyNames.at(static_cast<uint8_t>(d_protocol));
 }
 
+bool Protocol::isUDP() const
+{
+  return d_protocol == DoUDP || d_protocol == DNSCryptUDP;
+}
+
 uint8_t Protocol::toNumber() const
 {
   return static_cast<uint8_t>(d_protocol);

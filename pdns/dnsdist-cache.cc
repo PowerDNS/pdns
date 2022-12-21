@@ -194,15 +194,15 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 
 bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK)
 {
-  const auto& dnsQName = dq.qname->getStorage();
-  uint32_t key = getKey(dnsQName, dq.qname->wirelength(), dq.getData(), receivedOverUDP);
+  const auto& dnsQName = dq.ids.qname.getStorage();
+  uint32_t key = getKey(dnsQName, dq.ids.qname.wirelength(), dq.getData(), receivedOverUDP);
 
   if (keyOut) {
     *keyOut = key;
   }
 
   if (d_parseECS) {
-    getClientSubnet(dq.getData(), dq.qname->wirelength(), subnet);
+    getClientSubnet(dq.getData(), dq.ids.qname.wirelength(), subnet);
   }
 
   uint32_t shardIndex = getShardIndex(key);
@@ -240,7 +240,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.getHeader())), *dq.qname, dq.qtype, dq.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.getHeader())), dq.ids.qname, dq.ids.qtype, dq.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
       d_lookupCollisions++;
       return false;
     }

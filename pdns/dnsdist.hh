@@ -37,6 +37,7 @@
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"
+#include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
 #include "dnsdist-protocols.hh"
 #include "dnsname.hh"
@@ -62,10 +63,8 @@ using QTag = std::unordered_map<string, string>;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, dnsdist::Protocol proto, const struct timespec* queryTime_):
-    data(data_), qname(name), local(lc), remote(rem), queryTime(queryTime_), tempFailureTTL(boost::none), qtype(type), qclass(class_), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), protocol(proto), ecsOverride(g_ECSOverride) {
-    const uint16_t* flags = getFlagsFromDNSHeader(getHeader());
-    origFlags = *flags;
+  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_):
+    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), ecsOverride(g_ECSOverride) {
   }
   DNSQuestion(const DNSQuestion&) = delete;
   DNSQuestion& operator=(const DNSQuestion&) = delete;
@@ -113,83 +112,58 @@ struct DNSQuestion
 
   dnsdist::Protocol getProtocol() const
   {
-    return protocol;
+    return ids.protocol;
   }
 
   bool overTCP() const
   {
-    return !(protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP);
+    return !(ids.protocol == dnsdist::Protocol::DoUDP || ids.protocol == dnsdist::Protocol::DNSCryptUDP);
   }
 
   void setTag(std::string&& key, std::string&& value) {
-    if (!qTag) {
-      qTag = std::make_unique<QTag>();
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
     }
-    qTag->insert_or_assign(std::move(key), std::move(value));
+    ids.qTag->insert_or_assign(std::move(key), std::move(value));
   }
 
   void setTag(const std::string& key, const std::string& value) {
-    if (!qTag) {
-      qTag = std::make_unique<QTag>();
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
     }
-    qTag->insert_or_assign(key, value);
+    ids.qTag->insert_or_assign(key, value);
+  }
+
+  const struct timespec& getQueryRealTime() const
+  {
+    return ids.queryRealTime.d_start;
   }
 
 protected:
   PacketBuffer& data;
 
 public:
-  boost::optional<boost::uuids::uuid> uniqueId;
-  Netmask ecs;
-  boost::optional<Netmask> subnet;
+  InternalQueryState& ids;
+  std::unique_ptr<Netmask> ecs{nullptr};
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
-  std::string poolname;
   mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
-  const DNSName* qname{nullptr};
-  const ComboAddress* local{nullptr};
-  const ComboAddress* remote{nullptr};
-  /* this is the address dnsdist received the packet on,
-     which might not match local when support for incoming proxy protocol
-     is enabled */
-  const ComboAddress* hopLocal{nullptr};  /* the address dnsdist received the packet from, see above */
-  const ComboAddress* hopRemote{nullptr};
-  std::unique_ptr<QTag> qTag{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
-  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
-  const struct timespec* queryTime{nullptr};
-  struct DOHUnit* du{nullptr};
-  int delayMsec{0};
-  boost::optional<uint32_t> tempFailureTTL;
-  uint32_t cacheKeyNoECS{0};
-  uint32_t cacheKey{0};
-  /* for DoH */
-  uint32_t cacheKeyUDP{0};
-  const uint16_t qtype;
-  const uint16_t qclass;
   uint16_t ecsPrefixLength;
-  uint16_t origFlags;
-  uint16_t cacheFlags{0}; /* DNS flags as sent to the backend */
-  const dnsdist::Protocol protocol;
   uint8_t ednsRCode{0};
-  bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
-  bool ecsSet{false};
-  bool ecsAdded{false};
-  bool ednsAdded{false};
-  bool useZeroScope{false};
-  bool dnssecOK{false};
 };
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, dnsdist::Protocol proto, const struct timespec* queryTime_):
-    DNSQuestion(name, type, class_, lc, rem, data_, proto, queryTime_) { }
+  DNSResponse(InternalQueryState& ids_, PacketBuffer& data_, const std::shared_ptr<DownstreamState>& downstream):
+    DNSQuestion(ids_, data_), d_downstream(downstream) { }
   DNSResponse(const DNSResponse&) = delete;
   DNSResponse& operator=(const DNSResponse&) = delete;
   DNSResponse(DNSResponse&&) = default;
+
+  const std::shared_ptr<DownstreamState>& d_downstream;
 };
 
 /* so what could you do:
@@ -457,9 +431,6 @@ struct DNSDistStats
 };
 
 extern struct DNSDistStats g_stats;
-void doLatencyStats(dnsdist::Protocol protocol, double udiff);
-
-#include "dnsdist-idstate.hh"
 
 class BasicQPSLimiter
 {
@@ -1212,7 +1183,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength);
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP);
+bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs);
@@ -1235,9 +1206,8 @@ static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses la
 enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data);
-void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer&& query, ComboAddress& dest);
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol);
-void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol);
+void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol);

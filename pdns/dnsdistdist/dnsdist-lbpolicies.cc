@@ -166,7 +166,7 @@ shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return whashedFromHash(servers, dq->qname->hash(g_hashperturb));
+  return whashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
 }
 
 shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t qhash)
@@ -228,7 +228,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return chashedFromHash(servers, dq->qname->hash(g_hashperturb));
+  return chashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
 }
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
