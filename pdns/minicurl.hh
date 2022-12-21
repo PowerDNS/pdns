@@ -69,6 +69,7 @@ private:
 #endif
   std::string d_data;
   size_t d_byteslimit{};
+  bool d_fresh{true};
 
   void setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify);
   void setHeaders(const MiniCurlHeaders& headers);

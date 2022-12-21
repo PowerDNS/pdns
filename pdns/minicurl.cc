@@ -118,6 +118,15 @@ static string extractHostFromURL(const std::string& url)
 
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify)
 {
+  if (!d_fresh) {
+    curl_easy_reset(getCURLPtr(d_curl));
+  }
+  else {
+    d_fresh = false;
+  }
+
+  clearHostsList();
+
   if (rem) {
     struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
 
