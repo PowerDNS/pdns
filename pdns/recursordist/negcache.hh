@@ -120,7 +120,7 @@ private:
                         member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
 
-  void updateStaleEntry(time_t now, negcache_t::iterator& entry);
+  void updateStaleEntry(time_t now, negcache_t::iterator& entry, const QType& qtype);
 
   struct MapCombo
   {
