@@ -23,9 +23,16 @@
  */
 
 #include "minicurl.hh"
-#include <curl/curl.h>
 #include <stdexcept>
 #include <boost/format.hpp>
+
+#ifdef CURL_STRICTER
+#define getCURLPtr(x) \
+  x.get()
+#else
+#define getCURLPtr(x) \
+  x
+#endif
 
 void MiniCurl::init()
 {
@@ -42,17 +49,24 @@ void MiniCurl::init()
 
 MiniCurl::MiniCurl(const string& useragent)
 {
+#ifdef CURL_STRICTER
+  d_curl = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), curl_easy_cleanup);
+#else
   d_curl = curl_easy_init();
+#endif
   if (d_curl == nullptr) {
     throw std::runtime_error("Error creating a MiniCurl session");
   }
-  curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_USERAGENT, useragent.c_str());
 }
 
 MiniCurl::~MiniCurl()
 {
-  // NEEDS TO CLEAN HOSTLIST
+  clearHeaders();
+  clearHostsList();
+#ifndef CURL_STRICTER
   curl_easy_cleanup(d_curl);
+#endif
 }
 
 size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
@@ -104,7 +118,16 @@ static string extractHostFromURL(const std::string& url)
 
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify)
 {
-  if(rem) {
+  if (!d_fresh) {
+    curl_easy_reset(getCURLPtr(d_curl));
+  }
+  else {
+    d_fresh = false;
+  }
+
+  clearHostsList();
+
+  if (rem) {
     struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
 
     // url = http://hostname.enzo/url
@@ -125,38 +148,44 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
       hostlist = curl_slist_append(hostlist, hcode.c_str());
     }
 
-    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
+#ifdef CURL_STRICTER
+    d_host_list = std::unique_ptr<struct curl_slist, decltype(&curl_slist_free_all)>(hostlist, curl_slist_free_all);
+#else
+    d_host_list = hostlist;
+#endif
+
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_RESOLVE, getCURLPtr(d_host_list));
   }
   if(src) {
-    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_INTERFACE, src->toString().c_str());
   }
-  curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_FOLLOWLOCATION, true);
   /* only allow HTTP and HTTPS */
-  curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-  curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYPEER, verify);
-  curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, verify ? 2 : 0);
-  curl_easy_setopt(d_curl, CURLOPT_FAILONERROR, true);
-  curl_easy_setopt(d_curl, CURLOPT_URL, str.c_str());
-  curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
-  curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_SSL_VERIFYPEER, verify);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_SSL_VERIFYHOST, verify ? 2 : 0);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_FAILONERROR, true);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_URL, str.c_str());
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEDATA, this);
 
   d_byteslimit = byteslimit;
   if (d_byteslimit > 0) {
     /* enable progress meter */
-    curl_easy_setopt(d_curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_NOPROGRESS, 0L);
 #if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
-    curl_easy_setopt(d_curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
-    curl_easy_setopt(d_curl, CURLOPT_XFERINFODATA, this);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_XFERINFOFUNCTION, progress_callback);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_XFERINFODATA, this);
 #else
-    curl_easy_setopt(d_curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
-    curl_easy_setopt(d_curl, CURLOPT_PROGRESSDATA, this);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_PROGRESSFUNCTION, progress_callback);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_PROGRESSDATA, this);
 #endif
   }
 
-  curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, static_cast<long>(timeout));
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_TIMEOUT, static_cast<long>(timeout));
 #if defined(CURL_AT_LEAST_VERSION)
 #if CURL_AT_LEAST_VERSION(7, 49, 0) && defined(__linux__)
-  curl_easy_setopt(d_curl, CURLOPT_TCP_FASTOPEN, fastopen);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_TCP_FASTOPEN, fastopen);
 #endif
 #endif
   clearHeaders();
@@ -166,9 +195,9 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify, size_t byteslimit)
 {
   setupURL(str, rem, src, timeout, byteslimit, fastopen, verify);
-  auto res = curl_easy_perform(d_curl);
+  auto res = curl_easy_perform(getCURLPtr(d_curl));
   long http_code = 0;
-  curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_easy_getinfo(getCURLPtr(d_curl), CURLINFO_RESPONSE_CODE, &http_code);
 
   if ((res != CURLE_OK && res != CURLE_ABORTED_BY_CALLBACK) || http_code != 200)  {
     throw std::runtime_error("Unable to retrieve URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
@@ -182,13 +211,13 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
 {
   setupURL(str, nullptr, nullptr, timeout, 0, fastopen, verify);
   setHeaders(headers);
-  curl_easy_setopt(d_curl, CURLOPT_POSTFIELDSIZE, postdata.size());
-  curl_easy_setopt(d_curl, CURLOPT_POSTFIELDS, postdata.c_str());
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_POSTFIELDSIZE, postdata.size());
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_POSTFIELDS, postdata.c_str());
 
-  auto res = curl_easy_perform(d_curl);
+  auto res = curl_easy_perform(getCURLPtr(d_curl));
 
   long http_code = 0;
-  curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_easy_getinfo(getCURLPtr(d_curl), CURLINFO_RESPONSE_CODE, &http_code);
 
   if(res != CURLE_OK)
     throw std::runtime_error("Unable to post URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
@@ -202,11 +231,26 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
 void MiniCurl::clearHeaders()
 {
   if (d_curl) {
-    curl_easy_setopt(d_curl, CURLOPT_HTTPHEADER, NULL);
-    if (d_header_list != nullptr) {
-      curl_slist_free_all(d_header_list);
-      d_header_list = nullptr;
-    }
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_HTTPHEADER, nullptr);
+#ifdef CURL_STRICTER
+    d_header_list.reset();
+#else
+    curl_slist_free_all(d_header_list);
+    d_header_list = nullptr;
+#endif
+  }
+}
+
+void MiniCurl::clearHostsList()
+{
+  if (d_curl) {
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_RESOLVE, nullptr);
+#ifdef CURL_STRICTER
+    d_host_list.reset();
+#else
+    curl_slist_free_all(d_host_list);
+    d_host_list = nullptr;
+#endif
   }
 }
 
@@ -216,8 +260,16 @@ void MiniCurl::setHeaders(const MiniCurlHeaders& headers)
     for (auto& header : headers) {
       std::stringstream header_ss;
       header_ss << header.first << ": " << header.second;
+#ifdef CURL_STRICTER
+      struct curl_slist * list = nullptr;
+      if (d_header_list) {
+        list = d_header_list.release();
+      }
+      d_header_list = std::unique_ptr<struct curl_slist, decltype(&curl_slist_free_all)>(curl_slist_append(list, header_ss.str().c_str()), curl_slist_free_all);
+#else
       d_header_list = curl_slist_append(d_header_list, header_ss.str().c_str());
+#endif
     }
-    curl_easy_setopt(d_curl, CURLOPT_HTTPHEADER, d_header_list);
+    curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_HTTPHEADER, getCURLPtr(d_header_list));
   }
 }
