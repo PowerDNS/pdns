@@ -220,8 +220,10 @@ namespace channel
   template <typename T, typename D>
   bool Sender<T, D>::send(std::unique_ptr<T, D>&& object) const
   {
-    // we do not release right away because we might need the custom deleter later
-    auto ptr = object.get();
+    /* we cannot touch the initial unique pointer after writing to the pipe,
+       not even to release it, so let's transfer it to a local object */
+    auto localObj = std::move(object);
+    auto ptr = localObj.get();
     static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranted not to interleaved and to either fully succeed or fail");
     while (true) {
 #if __SANITIZE_THREAD__
@@ -230,11 +232,13 @@ namespace channel
       ssize_t sent = write(d_fd.getHandle(), &ptr, sizeof(ptr));
 
       if (sent == sizeof(ptr)) {
-        // we cannot touch it anymore
-        object.release();
+        localObj.release();
         return true;
       }
       else if (sent == 0) {
+#if __SANITIZE_THREAD__
+        __tsan_acquire(ptr);
+#endif /* __SANITIZE_THREAD__ */
         throw std::runtime_error("Unable to write to channel: remote end has been closed");
       }
       else {
@@ -245,6 +249,7 @@ namespace channel
           continue;
         }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          object = std::move(localObj);
           return false;
         }
         else {
