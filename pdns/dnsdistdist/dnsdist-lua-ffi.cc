@@ -591,6 +591,16 @@ void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq,
   }
 }
 
+bool dnsdist_ffi_dnsquestion_set_restartable(dnsdist_ffi_dnsquestion_t* dq)
+{
+  if (dq == nullptr || dq->dq == nullptr) {
+    return false;
+  }
+
+  dq->dq->ids.d_packet = std::make_unique<PacketBuffer>(dq->dq->getData());
+  return true;
+}
+
 size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)
 {
   return list->ffiServers.size();

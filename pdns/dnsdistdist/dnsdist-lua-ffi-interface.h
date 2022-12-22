@@ -128,6 +128,7 @@ void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const c
 
 /* decrease the returned TTL but _after_ inserting the original response into the packet cache */
 void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dnsquestion_set_restartable(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
 typedef struct dnsdist_ffi_server_t dnsdist_ffi_server_t;

@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-internal-queries.hh"
 #include "dnsdist-lua.hh"
 #include "dnsparser.hh"
 
@@ -42,6 +43,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerMember<uint8_t (DNSQuestion::*)>("opcode", [](const DNSQuestion& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSQuestion& dq, uint8_t newOpcode) { (void) newOpcode; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.overTCP(); }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.ids.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+  luaCtx.registerMember<std::string (DNSQuestion::*)>("pool", [](const DNSQuestion& dq) -> std::string { return dq.ids.poolName; }, [](DNSQuestion& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
   luaCtx.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
@@ -201,6 +203,11 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dnsdist::suspendQuery(dq, asyncID, queryID, timeoutMs);
   });
 
+  luaCtx.registerFunction<bool(DNSQuestion::*)()>("setRestartable", [](DNSQuestion& dq) {
+    dq.ids.d_packet = std::make_unique<PacketBuffer>(dq.getData());
+    return true;
+  });
+
 class AsynchronousObject
 {
 public:
@@ -288,6 +295,7 @@ private:
   luaCtx.registerMember<uint8_t (DNSResponse::*)>("opcode", [](const DNSResponse& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void) newOpcode; });
   luaCtx.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.overTCP(); }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
   luaCtx.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.ids.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+  luaCtx.registerMember<std::string (DNSResponse::*)>("pool", [](const DNSResponse& dq) -> std::string { return dq.ids.poolName; }, [](DNSResponse& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
   luaCtx.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
     editDNSPacketTTL(reinterpret_cast<char *>(dr.getMutableData().data()), dr.getData().size(), editFunc);
       });
@@ -425,6 +433,16 @@ private:
   luaCtx.registerFunction<bool(DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
     dr.asynchronous = true;
     return dnsdist::suspendResponse(dr, asyncID, queryID, timeoutMs);
+  });
+
+  luaCtx.registerFunction<bool(DNSResponse::*)()>("restart", [](DNSResponse& dr) {
+    if (!dr.ids.d_packet) {
+      return false;
+    }
+    dr.asynchronous = true;
+    dr.getMutableData() = *dr.ids.d_packet;
+    auto query = dnsdist::getInternalQueryFromDQ(dr, false);
+    return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
