@@ -6,6 +6,7 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "zoneparser-tng.hh"
+#include "rec-tcounters.hh"
 
 DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};
 bool g_dnssecLogBogus;
@@ -30,13 +31,13 @@ bool warnIfDNSSECDisabled(const string& msg)
 
 vState increaseDNSSECStateCounter(const vState& state)
 {
-  g_stats.dnssecResults[state]++;
+  t_Counters.at(rec::DNSSECHistogram::dnssec).at(state)++;
   return state;
 }
 
 vState increaseXDNSSECStateCounter(const vState& state)
 {
-  g_stats.xdnssecResults[state]++;
+  t_Counters.at(rec::DNSSECHistogram::xdnssec).at(state)++;
   return state;
 }
 

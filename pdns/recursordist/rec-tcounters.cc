@@ -39,19 +39,41 @@ Counters& Counters::merge(const Counters& data)
     const auto& rhs = data.doubleWAvg.at(i);
     auto weight = lhs.weight + rhs.weight;
     auto avg = lhs.avg * static_cast<double>(lhs.weight) + rhs.avg * static_cast<double>(rhs.weight);
-    avg = weight == 0 ? 0 : avg / weight;
+    avg = weight == 0 ? 0 : avg / static_cast<double>(weight);
     lhs.avg = avg;
     lhs.weight = weight;
   }
+
   // Rcode Counters are simply added
   for (size_t i = 0; i < auth.rcodeCounters.size(); i++) {
     auth.rcodeCounters.at(i) += data.auth.rcodeCounters.at(i);
   }
+
   // Histograms counts are added by += operator on Histograms
   for (size_t i = 0; i < histograms.size(); i++) {
     histograms.at(i) += data.histograms.at(i);
   }
+
+  // ResponseStats knows how to add
   responseStats += data.responseStats;
+
+  // DNSSEC histograms: add individual entries
+  for (size_t i = 0; i < dnssecCounters.size(); i++) {
+    auto& lhs = dnssecCounters.at(i);
+    const auto& rhs = data.dnssecCounters.at(i);
+    for (size_t j = 0; j < lhs.counts.size(); j++) {
+      lhs.counts.at(j) += rhs.counts.at(j);
+    }
+  }
+
+  // policy kind counters: add individual entries
+  for (size_t i = 0; i < policyCounters.counts.size(); i++) {
+    policyCounters.counts.at(i) += data.policyCounters.counts.at(i);
+  }
+
+  // Policy name counts knows how to add
+  policyNameHits += data.policyNameHits;
+
   return *this;
 }
 
@@ -72,8 +94,15 @@ std::string Counters::toString() const
   }
   stream << "Histograms: ";
   for (const auto& element : histograms) {
-    stream << element.getName() << ": NYI";
+    stream << element.getName() << ": NYI ";
   }
+  stream << "DNSSEC Histograms: ";
+  stream << "NYI ";
+  stream << "Policy Counters: ";
+  stream << "NYI ";
+  stream << "Policy Name Counters: ";
+  stream << "NYI ";
+
   stream << std::endl;
   return stream.str();
 }

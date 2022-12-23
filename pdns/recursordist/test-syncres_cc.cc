@@ -8,7 +8,6 @@
 #include "rec-taskqueue.hh"
 #include "test-syncres_cc.hh"
 
-RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;

@@ -28,6 +28,8 @@
 
 #include "histogram.hh"
 #include "rec-responsestats.hh"
+#include "validate.hh"
+#include "filterpo.hh"
 
 namespace rec
 {
@@ -132,6 +134,30 @@ enum class Histogram : uint8_t
   numberOfCounters
 };
 
+// DNSSEC validation results
+enum class DNSSECHistogram : uint8_t
+{
+  dnssec,
+  xdnssec,
+
+  numberOfCounters
+};
+
+// Policy hits
+enum class PolicyHistogram : uint8_t
+{
+  policy,
+
+  numberOfCounters
+};
+
+enum class PolicyNameHits : uint8_t
+{
+  policyName,
+
+  numberOfCounters
+};
+
 struct Counters
 {
   // An array of simple counters
@@ -183,6 +209,56 @@ struct Counters
   // Response stats
   RecResponseStats responseStats{};
 
+  // DNSSEC stats
+  struct DNSSECCounters
+  {
+    DNSSECCounters& operator+=(const DNSSECCounters& rhs)
+    {
+      for (size_t i = 0; i < counts.size(); i++) {
+        counts.at(i) += rhs.counts.at(i);
+      }
+      return *this;
+    }
+    uint64_t& at(vState index)
+    {
+      return counts.at(static_cast<size_t>(index));
+    }
+    std::array<uint64_t, static_cast<size_t>(vState::BogusInvalidDNSKEYProtocol) + 1> counts;
+  };
+  std::array<DNSSECCounters, static_cast<size_t>(DNSSECHistogram::numberOfCounters)> dnssecCounters{};
+
+  // Policy histogram
+  struct PolicyCounters
+  {
+    PolicyCounters& operator+=(const PolicyCounters& rhs)
+    {
+      for (size_t i = 0; i < counts.size(); i++) {
+        counts.at(i) += rhs.counts.at(i);
+      }
+      return *this;
+    }
+    uint64_t& at(DNSFilterEngine::PolicyKind index)
+    {
+      return counts.at(static_cast<size_t>(index));
+    }
+    std::array<uint64_t, static_cast<size_t>(DNSFilterEngine::PolicyKind::Custom) + 1> counts;
+  };
+  PolicyCounters policyCounters{};
+
+  // Policy hits by name
+  struct PolicyNameCounters
+  {
+    PolicyNameCounters& operator+=(const PolicyNameCounters& rhs)
+    {
+      for (const auto& [name, count] : rhs.counts) {
+        counts[name] += count;
+      }
+      return *this;
+    }
+    std::unordered_map<std::string, uint64_t> counts;
+  };
+  PolicyNameCounters policyNameHits;
+
   Counters()
   {
     for (auto& elem : uint64Count) {
@@ -194,6 +270,15 @@ struct Counters
     }
     // Histogram has a constructor that initializes
     // RecResponseStats has a default constructor that initializes
+    for (auto& histogram : dnssecCounters) {
+      for (auto& elem : histogram.counts) {
+        elem = 0;
+      }
+    }
+    for (auto& elem : policyCounters.counts) {
+      elem = 0;
+    }
+    // PolicyNameCounters has a default constuctor that initializes
   }
 
   // Merge a set of counters into an existing set of counters. For simple counters, that will be additions
@@ -211,13 +296,13 @@ struct Counters
     return doubleWAvg.at(static_cast<size_t>(index));
   }
 
-  RCodeCounters& at(RCode index)
+  RCodeCounters& at(RCode /*unused*/)
   {
     // We only have a single RCode indexed Histogram, so no need to select a specific one
     return auth;
   }
 
-  RecResponseStats& at(ResponseStats index)
+  RecResponseStats& at(ResponseStats /*unused*/)
   {
     // We only have a single ResponseStats indexed RecResponseStats, so no need to select a specific one
     return responseStats;
@@ -226,6 +311,23 @@ struct Counters
   pdns::Histogram& at(Histogram index)
   {
     return histograms.at(static_cast<size_t>(index));
+  }
+
+  DNSSECCounters& at(DNSSECHistogram index)
+  {
+    return dnssecCounters.at(static_cast<size_t>(index));
+  }
+
+  // We only have a single PolicyHistogram indexed PolicyCounters, so no need to select a specific one
+  PolicyCounters& at(PolicyHistogram)
+  {
+    return policyCounters;
+  }
+
+  // We only have a single policyNameHits indexed PolicyNameCounters, so no need to select a specific one
+  PolicyNameCounters& at(PolicyNameHits /*unused*/)
+  {
+    return policyNameHits;
   }
 
   // Mainly for debugging purposes
