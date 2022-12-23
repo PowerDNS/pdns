@@ -4,6 +4,7 @@
 #include <utility>
 #include <algorithm>
 #include <random>
+#include "qtype.hh"
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -501,6 +502,17 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
     }
   }
   return ret;
+}
+
+static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
+{
+  static LockGuarded<UeberBackend> s_ub;
+
+  vector<DNSZoneRecord> ret;
+  {
+    auto ueback = s_ub.lock();
+    return ueback->getAuth(name, qtype, soaData);
+  }
 }
 
 static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
@@ -1102,6 +1114,36 @@ static void setupLuaRecords(LuaContext& lua)
       }
       return result;
     });
+
+  lua.writeFunction("dblookup", [](const string& record, const string& type) {
+    DNSName rec;
+    QType qtype;
+    vector<string> ret;
+    try {
+      rec = DNSName(record);
+      qtype = type;
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") or type (" << type << ") is malformed: " << e.what() << endl;
+      return ret;
+    }
+    try {
+      SOAData soaData;
+
+      if (!getAuth(rec, qtype, &soaData)) {
+        return ret;
+      }
+
+      vector<DNSZoneRecord> drs = lookup(rec, qtype, soaData.domain_id);
+      for (const auto& drec : drs) {
+        ret.push_back(drec.dr.getContent()->getZoneRepresentation());
+      }
+    }
+    catch (std::exception& e) {
+      g_log << Logger::Error << "Failed to do DB lookup for " << rec << "/" << type << ": " << e.what() << endl;
+    }
+    return ret;
+  });
 
   lua.writeFunction("include", [&lua](string record) {
       DNSName rec;

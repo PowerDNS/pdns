@@ -149,6 +149,9 @@ newcafromraw     IN    LUA    A    "newCAFromRaw('ABCD'):toString()"
 newcafromraw     IN    LUA    AAAA "newCAFromRaw('ABCD020340506070'):toString()"
 
 counter          IN    LUA    TXT  ";counter = counter or 0 counter=counter+1 return tostring(counter)"
+
+lookmeup         IN           A  192.0.2.5
+dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', 'A')[1]"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -1024,6 +1027,24 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
 
         self.assertEqual(len(resUDP), 1)
         self.assertEqual(len(resTCP), 1)
+
+    def testDblookup(self):
+        """
+        Test dblookup() function
+        """
+
+        name = 'dblookup.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.5'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(self.sortRRsets(res.answer), self.sortRRsets(response.answer))
+
 
 class TestLuaRecordsShared(TestLuaRecords):
     _config_template = """
