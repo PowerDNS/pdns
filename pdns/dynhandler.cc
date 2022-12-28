@@ -175,6 +175,8 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     os<<i->second;
   }
+  if(!first) 
+    os<<", ";
   os<<"packets: "<<packetEntries;
 
   return os.str();
