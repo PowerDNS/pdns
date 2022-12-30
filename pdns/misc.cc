@@ -19,15 +19,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/time.h>
-#include <time.h>
+#include <ctime>
 #include <sys/resource.h>
 #include <netinet/in.h>
 #include <sys/un.h>
@@ -47,19 +49,16 @@
 #include <iomanip>
 #include <netinet/tcp.h>
 #include <optional>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include "pdnsexception.hh"
-#include <sys/types.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "iputils.hh"
 #include "dnsparser.hh"
-#include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include <limits.h>
+#include <climits>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
