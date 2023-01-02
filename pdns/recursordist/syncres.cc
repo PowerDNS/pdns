@@ -1773,6 +1773,8 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         // Case 5: unexpected answer
         QLOG("Step5: other rcode, last effort final resolve");
         setQNameMinimization(false);
+        setQMFallbackMode(true);
+
         // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
         // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
         // maxdepth.
@@ -3600,7 +3602,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   Context context;
 
   const bool oldCacheOnly = setCacheOnly(false);
-  const bool oldQM = setQNameMinimization(true);
+  const bool oldQM = setQNameMinimization(!getQMFallbackMode());
   int rcode = doResolve(zone, QType::DS, dsrecords, depth + 1, beenthere, context);
   setCacheOnly(oldCacheOnly);
   setQNameMinimization(oldQM);
