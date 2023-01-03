@@ -2,6 +2,8 @@ import dns
 import requests
 import socket
 import time
+import extendederrors
+
 from recursortests import RecursorTest
 
 class RootNXTrustRecursorTest(RecursorTest):
@@ -47,6 +49,7 @@ webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
 devonly-regression-test-mode
+extended-resolution-errors
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testRootNXTrust(self):
@@ -72,7 +75,7 @@ devonly-regression-test-mode
 
         # then query nx2.example.
         before = after
-        query = dns.message.make_query('www2.nx-example.', 'A')
+        query = dns.message.make_query('www2.nx-example.', 'A', use_edns=True)
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
@@ -80,6 +83,8 @@ devonly-regression-test-mode
 
         after = self.getOutgoingQueriesCount()
         self.assertEqual(after, before + 1)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 0)
 
 class testRootNXTrustEnabled(RootNXTrustRecursorTest):
     _confdir = 'RootNXTrustEnabled'
@@ -96,6 +101,7 @@ webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
 devonly-regression-test-mode
+extended-resolution-errors
 """ % (_wsPort, _wsPassword, _apiKey)
 
     def testRootNXTrust(self):
@@ -121,7 +127,7 @@ devonly-regression-test-mode
 
         # then query nx2.example.
         before = after
-        query = dns.message.make_query('www2.nx-example.', 'A')
+        query = dns.message.make_query('www2.nx-example.', 'A', use_edns=True)
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
@@ -129,3 +135,7 @@ devonly-regression-test-mode
 
         after = self.getOutgoingQueriesCount()
         self.assertEqual(after, before)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized by root-nx-trust'))

@@ -89,7 +89,6 @@ std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this
 std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 bool g_logRPZChanges{false};
 static time_t s_statisticsInterval;
-bool g_addExtendedResolutionDNSErrors;
 static std::atomic<uint32_t> s_counter;
 int g_argc;
 char** g_argv;
@@ -1703,7 +1702,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
 
   s_statisticsInterval = ::arg().asNum("statistics-interval");
 
-  g_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
+  SyncRes::s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
   if (::arg().asNum("aggressive-nsec-cache-size") > 0) {
     if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || g_dnssecmode == DNSSECMode::Process) {
