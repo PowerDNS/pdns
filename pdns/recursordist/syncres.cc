@@ -2822,13 +2822,15 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
         if (ne.d_qtype.getCode()) {
           LOG(prefix << qname << ": " << qtype << " is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
           res = RCode::NoError;
+          if (s_addExtendedResolutionDNSErrors) {
+            context.extendedError = EDNSExtendedError{0, "Result from negative cache"};
+          }
         }
         else {
           LOG(prefix << qname << ": Entire name '" << qname << "' is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
-        }
-        if (s_addExtendedResolutionDNSErrors) {
-          // XXX Do we want this?
-          context.extendedError = EDNSExtendedError{0, "Result from negative cache"};
+          if (s_addExtendedResolutionDNSErrors) {
+            context.extendedError = EDNSExtendedError{0, "Result from negative cache for entire name"};
+          }
         }
       }
     }
