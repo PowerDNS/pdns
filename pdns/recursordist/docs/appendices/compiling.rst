@@ -40,9 +40,57 @@ By default, the :program:`Recursor` requires the following libraries and headers
 * `OpenSSL <https://openssl.org>`_
 
 .. note::
-   On Debian and Ubuntu, the following will get you the dependencies: `apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
-   libboost-system-dev libboost-thread-dev libboost-context-dev libboost-test-dev \
-   libssl-dev libboost-test-dev g++ make pkg-config libluajit-5.1-dev`
+   On Debian and Ubuntu, the following will get you the dependencies::
+
+      apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
+         libboost-system-dev libboost-thread-dev libboost-context-dev \
+         libboost-test-dev libssl-dev libboost-test-dev g++ make pkg-config \
+         libluajit-5.1-dev
+
+Compiling from a git checkout
+-----------------------------
+Source code is available on GitHub::
+
+   git clone https://github.com/PowerDNS/pdns.git
+
+This repository contains the sources for the PowerDNS Recursor, the PowerDNS
+Authoritative Server, and dnsdist (a powerful DNS loadbalancer). The sources for
+the recursor are located in the `pdns/recursordist` subdirectory of the repository.
+
+To compile from a git checkout, install the dependencies above plus ragel, automake, autoconf, libtool, virtualenv and curl.
+Then run::
+
+    cd pdns/pdns/recursordist/
+    autoreconf -vi
+    ./configure
+    make
+
+
+macOS Notes
+-----------
+
+If you want to compile yourself, the dependencies can be installed using
+Homebrew. You need to tell configure where to find OpenSSL, too::
+
+    brew install boost lua pkg-config ragel openssl
+    ./configure PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+    make -j4
+
+
+Lua scripting
+^^^^^^^^^^^^^
+To benefit from Lua scripting, as described on https://doc.powerdns.com/md/recursor/scripting/
+Install Lua and development headers. PowerDNS supports Lua 5.1, 5.2, 5.3 and LuaJIT.
+On Debian/Ubuntu, install e.g. `liblua5.2-dev` to use Lua 5.2.
+
+The configure script will automatically detect the Lua version. If more than one
+version of Lua is installed, the `--with-lua` configure flag can be set to the
+desired version. e.g.::
+
+    ./configure --with-lua=lua51
+
+(On older versions of Debian/Ubuntu, you'll need to pass `--with-lua=lua5.1` instead.)
+
 
 Optional dependencies
 ---------------------
@@ -84,3 +132,9 @@ To set the directory where the unit files should be installed, use ``--with-syst
 
 .. note::
    If you want systemd support, you will need to install the corresponding development package. On Debian and Ubuntu, this means `apt install libsystemd-dev`.
+
+Documentation
+=============
+After compiling, run `pdns\_recursor --config` to view the configuration options
+and a short description. The full documentation is online at
+https://doc.powerdns.com/recursor/
