@@ -761,7 +761,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName& qname, 
   return updated;
 }
 
-uint64_t MemRecursorCache::doDump(int fd)
+uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
 {
   int newfd = dup(fd);
   if (newfd == -1) {
@@ -775,11 +775,16 @@ uint64_t MemRecursorCache::doDump(int fd)
 
   fprintf(fp.get(), "; main record cache dump follows\n;\n");
   uint64_t count = 0;
-
+  size_t shard = 0;
+  size_t min = std::numeric_limits<size_t>::max();
+  size_t max = 0;
   for (auto& mc : d_maps) {
     auto map = mc.lock();
+    const auto shardSize = map->d_map.size();
+    min = std::min(min, shardSize);
+    max = std::max(max, shardSize);
+    shard++;
     const auto& sidx = map->d_map.get<SequencedTag>();
-
     time_t now = time(nullptr);
     for (const auto& i : sidx) {
       for (const auto& j : i.d_records) {
@@ -802,13 +807,17 @@ uint64_t MemRecursorCache::doDump(int fd)
       }
     }
   }
+  fprintf(fp.get(), "; main record cache size: %zu/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), maxCacheEntries, d_maps.size(), min, max);
   return count;
 }
 
 void MemRecursorCache::doPrune(size_t keep)
 {
   size_t cacheSize = size();
+  cerr << "=====-Cache=============" << endl;
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
+  cerr << "Size is now " << size() << endl;
+  cerr << "========================" << endl;
 }
 
 namespace boost

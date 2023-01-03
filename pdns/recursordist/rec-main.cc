@@ -2187,7 +2187,7 @@ static void houseKeeping(void*)
 
       static PeriodicTask negCachePruneTask{"NegCachePrunteTask", 5};
       negCachePruneTask.runIfDue(now, []() {
-        g_negCache->prune(g_maxCacheEntries / 10);
+        g_negCache->prune(g_maxCacheEntries / 8);
       });
 
       static PeriodicTask aggrNSECPruneTask{"AggrNSECPruneTask", 5};
@@ -3027,7 +3027,7 @@ int main(int argc, char** argv)
     }
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
-    g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards"));
+    g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
 
     ret = serviceMain(argc, argv, startupLog);
   }
