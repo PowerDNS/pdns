@@ -1816,6 +1816,19 @@ void startDoResolve(void* p)
 
   runTaskOnce(g_logCommonErrors);
 
+  static const size_t stackSizeThreshold = 9 * ::arg().asNum("stack-size") / 10;
+  if (MT->getMaxStackUsage() >= stackSizeThreshold) {
+    SLOG(g_log << Logger::Error << "Reached mthread stack usage of 90%: " << MT->getMaxStackUsage() << " " << makeLoginfo(dc) << " after " << sr.d_outqueries << " out queries, " << sr.d_tcpoutqueries << " TCP out queries, " << sr.d_dotoutqueries << " DoT out queries" << endl,
+         sr.d_slog->info(Logr::Error, "Reached mthread stack usage of 90%",
+                         "stackUsage", Logging::Loggable(MT->getMaxStackUsage()),
+                         "outqueries", Logging::Loggable(sr.d_outqueries),
+                         "netms", Logging::Loggable(sr.d_totUsec / 1000.0),
+                         "throttled", Logging::Loggable(sr.d_throttledqueries),
+                         "timeouts", Logging::Loggable(sr.d_timeouts),
+                         "tcpout", Logging::Loggable(sr.d_tcpoutqueries),
+                         "dotout", Logging::Loggable(sr.d_dotoutqueries),
+                         "validationState", Logging::Loggable(sr.getValidationState())));
+  }
   t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(MT->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
   t_Counters.updateSnap(g_regressionTestMode);
 }
