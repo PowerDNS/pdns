@@ -31,7 +31,7 @@
 uint16_t NegCache::s_maxServedStaleExtensions;
 
 NegCache::NegCache(size_t mapsCount) :
-  d_maps(mapsCount)
+  d_maps(mapsCount == 0 ? 1 : mapsCount)
 {
 }
 
@@ -258,10 +258,7 @@ void NegCache::clear()
 void NegCache::prune(size_t maxEntries)
 {
   size_t cacheSize = size();
-  cerr << "======= NegCache =======" << endl;
   pruneMutexCollectionsVector<SequenceTag>(*this, d_maps, maxEntries, cacheSize);
-  cerr << "NegCache size is now " << size() << endl;
-  cerr << "========================" << endl;
 }
 
 /*!
@@ -292,6 +289,7 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
   for (auto& mc : d_maps) {
     auto m = mc.lock();
     const auto shardSize = m->d_map.size();
+    fprintf(fp.get(), "; negcache shard %zu; size %zu\n", shard, shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shard++;

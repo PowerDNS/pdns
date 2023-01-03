@@ -55,7 +55,7 @@
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
-  d_maps(mapsCount)
+  d_maps(mapsCount == 0 ? 1 : mapsCount)
 {
 }
 
@@ -781,6 +781,7 @@ uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
   for (auto& mc : d_maps) {
     auto map = mc.lock();
     const auto shardSize = map->d_map.size();
+    fprintf(fp.get(), "; record cache shard %zu; size %zu\n", shard, shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shard++;
@@ -814,10 +815,7 @@ uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
 void MemRecursorCache::doPrune(size_t keep)
 {
   size_t cacheSize = size();
-  cerr << "=====-Cache=============" << endl;
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
-  cerr << "Size is now " << size() << endl;
-  cerr << "========================" << endl;
 }
 
 namespace boost
