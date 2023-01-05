@@ -257,6 +257,27 @@ template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal
   return 1;
 }
 
+template<class Key, class Val, class Cmp> std::shared_ptr<pdns_ucontext_t> MTasker<Key,Val,Cmp>::getUContext()
+{
+  auto uc = std::make_shared<pdns_ucontext_t>();
+  if (d_cachedStacks.empty()) {
+    uc->uc_stack.resize(d_stacksize + 1);
+  }
+  else {
+    uc->uc_stack = std::move(d_cachedStacks.top());
+    d_cachedStacks.pop();
+  }
+
+  uc->uc_link = &d_kernel; // come back to kernel after dying
+
+#ifdef PDNS_USE_VALGRIND
+  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
+                                            &uc->uc_stack[uc->uc_stack.size()-1]);
+#endif /* PDNS_USE_VALGRIND */
+
+  return uc;
+}
+
 //! launches a new thread
 /** The kernel can call this to make a new thread, which starts at the function start and gets passed the val void pointer.
     \param start Pointer to the function which will form the start of the thread
@@ -264,14 +285,7 @@ template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal
 */
 template<class Key, class Val, class Cmp>void MTasker<Key,Val,Cmp>::makeThread(tfunc_t *start, void* val)
 {
-  auto uc=std::make_shared<pdns_ucontext_t>();
-  
-  uc->uc_link = &d_kernel; // come back to kernel after dying
-  uc->uc_stack.resize (d_stacksize+1);
-#ifdef PDNS_USE_VALGRIND
-  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size()-1]);
-#endif /* PDNS_USE_VALGRIND */
+  auto uc = getUContext();
 
   ++d_threadsCount;
   auto& thread = d_threads[d_maxtid];
@@ -317,8 +331,18 @@ template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(con
     d_runQueue.pop();
     return true;
   }
-  if(!d_zombiesQueue.empty()) {
-    d_threads.erase(d_zombiesQueue.front());
+  if (!d_zombiesQueue.empty()) {
+    auto zombi = d_zombiesQueue.front();
+    if (d_cachedStacks.size() < d_maxCachedStacks) {
+      auto thread = d_threads.find(zombi);
+      if (thread != d_threads.end()) {
+        d_cachedStacks.push(std::move(thread->second.context->uc_stack));
+      }
+      d_threads.erase(thread);
+    }
+    else {
+      d_threads.erase(zombi);
+    }
     --d_threadsCount;
     d_zombiesQueue.pop();
     return true;

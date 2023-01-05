@@ -2408,7 +2408,7 @@ static void recursorThread()
       t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
       t_bogusqueryring->set_capacity(ringsize);
     }
-    MT = std::make_unique<MT_t>(::arg().asNum("stack-size"));
+    MT = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
     threadInfo.mt = MT.get();
 
     /* start protobuf export threads if needed */
@@ -2601,6 +2601,7 @@ int main(int argc, char** argv)
 #else
     ::arg().set("stack-size", "stack size per mthread") = "200000";
 #endif
+    ::arg().set("stack-cache-size", "Size of the stack cache, per mthread") = "100";
     // This mode forces metrics snap updates and disable root-refresh, to get consistent counters
     ::arg().setSwitch("devonly-regression-test-mode", "internal use only") = "no";
     ::arg().set("soa-minimum-ttl", "Don't change") = "0";

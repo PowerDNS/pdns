@@ -1971,6 +1971,18 @@ Owner and group can be specified by name, mode is in octal.
 
 If set to non-zero, PowerDNS will assume it is being spoofed after seeing this many answers with the wrong id.
 
+.. _setting-stack-cache-size:
+
+``stack-cache-size``
+--------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 100
+
+Maximum number of mthread stacks that can be cached for later reuse, per thread. Caching these stacks reduces the CPU load at the cost of a slightly higher memory usage, each cached stack consuming `stack-size` bytes of memory.
+It makes no sense to cache more stacks than the value of `max-mthreads`, since there will never be more stacks than that in use at a given time.
+
 .. _setting-stack-size:
 
 ``stack-size``
@@ -1978,7 +1990,7 @@ If set to non-zero, PowerDNS will assume it is being spoofed after seeing this m
 -  Integer
 -  Default: 200000
 
-Size of the stack of each mthread.
+Size in bytes of the stack of each mthread.
 
 .. _setting-statistics-interval:
 
