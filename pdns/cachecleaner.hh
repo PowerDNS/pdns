@@ -156,7 +156,6 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
     auto shard = content.lock();
     const auto shardSize = shard->d_map.size();
     const uint64_t toScanForThisShard = std::ceil(lookAt * ((1.0 * shardSize) / cacheSize));
-    const uint64_t toTrimForThisShard = toTrim > 0 ? std::ceil(toTrim * ((1.0 * shardSize) / cacheSize)) : 0;
     shard->invalidate();
     auto& sidx = boost::multi_index::get<S>(shard->d_map);
     uint64_t erased = 0;
@@ -170,10 +169,6 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
       }
       else {
         ++i;
-      }
-
-      if (toTrim > 0 && erased >= toTrimForThisShard) {
-        break;
       }
 
       if (lookedAt >= toScanForThisShard) {
@@ -192,11 +187,11 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
   // It was not enough, so we need to remove entries that are not
   // expired, still using the LRU index.
 
-  // From here on cacheSize is the total size of the shards that still
-  // need to be cleaned. When a shard is processed, we subtract its
-  // original size from cacheSize as it used to compute the
-  // fraction of the next shards to clean. This way rounding issues do
-  // not cause over or undershoot of the target.
+  // From here on cacheSize is the total number of entries in the
+  // shards that still need to be cleaned. When a shard is processed,
+  // we subtract its original size from cacheSize as we use this value
+  // to compute the fraction of the next shards to clean. This way
+  // rounding issues do not cause over or undershoot of the target.
   //
   // Suppose we have 10 perfectly balanced shards, each filled with
   // 100 entries. So cacheSize is 1000. When cleaning 10%, after shard
@@ -206,7 +201,7 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
   // shard, we would end up with cacheSize 100, and to clean 10.
   //
   // When the balance is not perfect, e.g. shard 0 has 54 entries, we
-  // would clean 5 entries due to rounding, and for the remaning
+  // would clean 5 entries due to rounding, and for the remaining
   // shards we start with cacheSize 946 and toTrim 95: the fraction
   // becomes slightly larger than 10%, since we "missed" one item in
   // shard 0.
