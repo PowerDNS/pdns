@@ -282,6 +282,28 @@ BOOST_AUTO_TEST_CASE(test_prune)
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
+  NegCache cache(1);
+  NegCache::NegCacheEntry ne;
+  for (int i = 0; i < 400; i++) {
+    ne = genNegCacheEntry(DNSName(std::to_string(i) + qname), auth, now);
+    cache.add(ne);
+  }
+
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
+
+  cache.prune(100);
+
+  BOOST_CHECK_EQUAL(cache.size(), 100U);
+}
+
+BOOST_AUTO_TEST_CASE(test_prune_many_shards)
+{
+  string qname(".powerdns.com");
+  DNSName auth("powerdns.com");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
   NegCache cache;
   NegCache::NegCacheEntry ne;
   for (int i = 0; i < 400; i++) {
@@ -440,17 +462,21 @@ BOOST_AUTO_TEST_CASE(test_clear)
 BOOST_AUTO_TEST_CASE(test_dumpToFile)
 {
   NegCache cache(1);
-  vector<string> expected;
-  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) origttl=600 ss=0\n");
-  expected.push_back("powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
-  expected.push_back("powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) origttl=600 ss=0\n");
-  expected.push_back("powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
-  expected.push_back("powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  vector<string> expected = {
+    "; negcache dump follows\n",
+    ";\n",
+    "; negcache shard 0; size 2\n",
+    "www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) origttl=600 ss=0\n",
+    "powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n",
+    "powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n",
+    "powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n",
+    "powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n",
+    "www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) origttl=600 ss=0\n",
+    "powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n",
+    "powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n",
+    "powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n",
+    "powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n",
+    "; negcache size: 2/0 shards: 1 min/max shard size: 2/2\n"};
 
   struct timeval now;
   Utility::gettimeofday(&now, 0);
@@ -462,7 +488,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   if (!fp)
     BOOST_FAIL("Temporary file could not be opened");
 
-  cache.dumpToFile(fp.get(), now);
+  cache.doDump(fileno(fp.get()), 0);
 
   rewind(fp.get());
   char* line = nullptr;

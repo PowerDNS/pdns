@@ -54,7 +54,7 @@ typedef struct
 class NegCache : public boost::noncopyable
 {
 public:
-  NegCache(size_t mapsCount = 1024);
+  NegCache(size_t mapsCount = 128);
 
   // For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
   // The number of times a stale cache entry is extended
@@ -94,7 +94,7 @@ public:
   size_t count(const DNSName& qname, QType qtype);
   void prune(size_t maxEntries);
   void clear();
-  size_t dumpToFile(FILE* fd, const struct timeval& now);
+  size_t doDump(int fd, size_t maxCacheEntries);
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t size() const;
 
