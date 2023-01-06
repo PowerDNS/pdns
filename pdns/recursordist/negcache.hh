@@ -97,8 +97,6 @@ public:
   size_t doDump(int fd, size_t maxCacheEntries);
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t size() const;
-  void purge(const DNSName& qname, QType qtype);
-
 
 private:
   struct CompositeKey
