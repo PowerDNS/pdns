@@ -2001,6 +2001,32 @@ private:
   uint8_t d_type;
 };
 
+class SetReducedTTLResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  // this action does not stop the processing
+  SetReducedTTLResponseAction(uint8_t percentage) : d_ratio(percentage / 100.0)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      return ttl * d_ratio;
+    };
+    editDNSPacketTTL(reinterpret_cast<char *>(dr->getMutableData().data()), dr->getData().size(), visitor);
+    return DNSResponseAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "reduce ttl to " + std::to_string(d_ratio * 100) + " of its value";
+  }
+
+private:
+  double d_ratio{1.0};
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
@@ -2270,6 +2296,13 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SetMaxTTLResponseAction", [](uint32_t max) {
       return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
+    });
+
+  luaCtx.writeFunction("SetReducedTTLResponseAction", [](uint8_t percentage) {
+      if (percentage > 100) {
+        throw std::runtime_error(std::string("SetReducedTTLResponseAction takes a percentage between 0 and 100."));
+      }
+      return std::shared_ptr<DNSResponseAction>(new SetReducedTTLResponseAction(percentage));
     });
 
   luaCtx.writeFunction("ClearRecordTypesResponseAction", [](LuaTypeOrArrayOf<int> types) {

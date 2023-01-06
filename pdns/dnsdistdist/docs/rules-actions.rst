@@ -1494,6 +1494,16 @@ The following actions exist.
 
   :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
 
+.. function:: SetReducedTTLResponseAction(percentage)
+
+  .. versionadded:: 1.8.0
+
+  Reduce the TTL of records in a response to a percentage of the original TTL. For example,
+  passing 50 means that the original TTL will be cut in half.
+  Subsequent rules are processed after this action.
+
+  :param int percentage: The percentage to use
+
 .. function:: SetSkipCacheAction()
 
   .. versionadded:: 1.6.0
