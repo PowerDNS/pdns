@@ -4637,7 +4637,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           rememberParentSetIfNeeded(i->first.name, i->second.records, depth);
         }
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh);
-
+        // delete negcache
+        g_negCache->purge(i->first.name, i->first.type);
+        
         if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
           /* we have an answer synthesized from a wildcard and aggressive NSEC is enabled, we need to store the
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
@@ -4803,6 +4805,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       */
       if (newtarget.empty() && putInNegCache) {
         g_negCache->add(ne);
+        if(qtype == QType::CNAME){
+            g_recCache->purge(qname, qtype);
+        }
         if (s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
           g_negCache->add(ne);

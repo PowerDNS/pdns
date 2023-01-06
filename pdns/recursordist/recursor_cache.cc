@@ -316,6 +316,20 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
   return match;
 }
 
+void MemRecursorCache::purge(const DNSName& qname, QType qt)
+{
+   if(qt == QType::CNAME)
+   {
+        auto& mc = getMap(qname);
+        auto map = mc.lock();
+        auto key = std::make_tuple(qname, qt, boost::none, Netmask());
+        auto entry = map->d_map.find(key);
+        if (entry != map->d_map.end()) {
+            map->d_map.erase(entry);
+        }
+   }  
+}
+
 // Fake a cache miss if more than refreshTTLPerc of the original TTL has passed
 time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh)
 {
