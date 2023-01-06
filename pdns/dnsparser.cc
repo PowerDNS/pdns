@@ -96,8 +96,8 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
 
   memcpy(&packet[0], &dnsheader, sizeof(dnsheader)); pos+=sizeof(dnsheader);
 
-  char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
-  memcpy(&packet[pos], &tmp, 5); pos+=5;
+  constexpr std::array<uint8_t, 5> tmp= {'\x0', '\x0', '\x1', '\x0', '\x1' }; // root question for ns_t_a
+  memcpy(&packet[pos], tmp.data(), tmp.size()); pos += tmp.size();
 
   memcpy(&packet[pos], encoded.c_str(), encoded.size()); pos+=(uint16_t)encoded.size();
 
@@ -108,13 +108,13 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   drh.d_clen=htons(serialized.size());
 
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
-  if (serialized.size() > 0) {
+  if (!serialized.empty()) {
     memcpy(&packet[pos], serialized.c_str(), serialized.size());
     pos += (uint16_t) serialized.size();
     (void) pos;
   }
 
-  MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(false, reinterpret_cast<const char *>(packet.data()), packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   return ret;
 }

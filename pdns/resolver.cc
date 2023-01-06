@@ -27,7 +27,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <iostream>
-#include <errno.h>
+#include <cerrno>
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>

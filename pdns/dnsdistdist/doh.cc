@@ -4,7 +4,7 @@
 #ifdef HAVE_DNS_OVER_HTTPS
 #define H2O_USE_EPOLL 1
 
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <thread>
 

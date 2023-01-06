@@ -22,7 +22,7 @@
 #pragma once
 #include "qtype.hh"
 #include "dnsname.hh"
-#include <time.h>
+#include <ctime>
 #include <sys/types.h>
 
 #undef BADSIG  // signal.h SIG_ERR

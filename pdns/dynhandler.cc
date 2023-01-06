@@ -31,7 +31,7 @@
 #include "logger.hh"
 #include "dns.hh"
 #include "arguments.hh"
-#include <signal.h>
+#include <csignal>
 #include "misc.hh"
 #include "communicator.hh"
 #include "dnsseckeeper.hh"

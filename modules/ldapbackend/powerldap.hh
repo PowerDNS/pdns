@@ -29,7 +29,7 @@
 #include <vector>
 #include <stdexcept>
 #include <inttypes.h>
-#include <errno.h>
+#include <cerrno>
 #include <lber.h>
 #include <ldap.h>
 

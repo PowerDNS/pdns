@@ -25,7 +25,7 @@
 #include "auth-caches.hh"
 #include "auth-zonecache.hh"
 #include "utility.hh"
-#include <errno.h>
+#include <cerrno>
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>

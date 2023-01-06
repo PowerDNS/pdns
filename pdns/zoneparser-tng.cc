@@ -27,7 +27,6 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "misc.hh"
 #include <fstream>
 #include "dns.hh"
 #include "zoneparser-tng.hh"
@@ -67,7 +66,8 @@ void ZoneParserTNG::stackFile(const std::string& fname)
     std::error_code ec (err, std::generic_category());
     throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
   }
-  struct stat st;
+
+  struct stat st = {};
   if (fstat(fd, &st) == -1) {
     int err = errno;
     close(fd);
@@ -80,7 +80,7 @@ void ZoneParserTNG::stackFile(const std::string& fname)
     throw std::system_error(ec, "File '" + fname + "': not a regular file");
   }
   FILE *fp = fdopen(fd, "r");
-  if (!fp) {
+  if (fp == nullptr) {
     int err = errno;
     close(fd);
     std::error_code ec (err, std::generic_category());
@@ -107,14 +107,21 @@ static string makeString(const string& line, const pair<string::size_type, strin
 
 static bool isTimeSpec(const string& nextpart)
 {
-  if(nextpart.empty())
+  if (nextpart.empty()) {
     return false;
-  for(string::const_iterator iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
-    if(isdigit(*iter))
+  }
+
+  for (auto iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
+    auto current = static_cast<unsigned char>(*iter);
+    if (isdigit(current) != 0) {
       continue;
-    if(iter+1 != nextpart.end())
+    }
+
+    if (iter + 1 != nextpart.end()) {
       return false;
-    char c=tolower(*iter);
+    }
+
+    char c = static_cast<char>(tolower(current));
     return (c=='s' || c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
   }
   return true;
@@ -126,7 +133,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   if(str.empty())
     return 0;
 
-  unsigned int val;
+  unsigned int val = 0;
   try {
     pdns::checked_stoi_into(val, str);
   }
@@ -169,9 +176,10 @@ bool ZoneParserTNG::getTemplateLine()
   }
 
   string retline;
-  for(parts_t::const_iterator iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
-    if(iter != d_templateparts.begin())
-      retline+=" ";
+  for (auto iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
+    if(iter != d_templateparts.begin()) {
+      retline += " ";
+    }
 
     string part=makeString(d_templateline, *iter);
 
@@ -271,9 +279,11 @@ static void chopComment(string& line)
 {
   if(line.find(';')==string::npos)
     return;
-  string::size_type pos, len = line.length();
-  bool inQuote=false;
-  for(pos = 0 ; pos < len; ++pos) {
+
+  string::size_type pos = 0;
+  auto len = line.length();
+  bool inQuote = false;
+  for(; pos < len; ++pos) {
     if(line[pos]=='\\')
       pos++;
     else if(line[pos]=='"')
@@ -311,7 +321,7 @@ DNSName ZoneParserTNG::getZoneName()
 
 string ZoneParserTNG::getLineOfFile()
 {
-  if (d_zonedata.size() > 0)
+  if (!d_zonedata.empty())
     return "on line "+std::to_string(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
 
   if (d_filestates.empty())
@@ -621,8 +631,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if(n)
+      if (n != 0) {
         rr.content.append(1,' ');
+      }
 
       rr.content+=recparts[n];
     }
@@ -641,8 +652,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if(n)
+      if (n != 0) {
         rr.content.append(1,' ');
+      }
 
       if(n > 1)
         rr.content+=std::to_string(makeTTLFromZone(recparts[n]));
@@ -658,7 +670,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 
 bool ZoneParserTNG::getLine()
 {
-  if (d_zonedata.size() > 0) {
+  if (!d_zonedata.empty()) {
     if (d_zonedataline != d_zonedata.end()) {
       d_line = *d_zonedataline;
       ++d_zonedataline;

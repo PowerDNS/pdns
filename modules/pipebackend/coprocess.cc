@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string>
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>

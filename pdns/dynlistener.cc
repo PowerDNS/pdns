@@ -37,7 +37,7 @@
 #include <iostream>
 #include <sstream>
 #include <sys/types.h>
-#include <signal.h>
+#include <csignal>
 
 #include <sys/stat.h>
 #include <fcntl.h>

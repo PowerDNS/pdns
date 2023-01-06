@@ -27,7 +27,7 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "base32.hh"
-#include <errno.h>
+#include <cerrno>
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>
