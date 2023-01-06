@@ -984,13 +984,16 @@ bool setReceiveSocketErrors(int sock, int af)
 }
 
 // Closes a socket.
-int closesocket( int socket )
+int closesocket(int socket)
 {
-  int ret=::close(socket);
-  if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
+  int ret = ::close(socket);
+  if(ret < 0 && errno == ECONNRESET) { // see ticket 192, odd BSD behaviour
     return 0;
-  if(ret < 0)
-    throw PDNSException("Error closing socket: "+stringerror());
+  }
+  if (ret < 0) {
+    int err = errno;
+    throw PDNSException("Error closing socket: " + stringerror(err));
+  }
   return ret;
 }
 

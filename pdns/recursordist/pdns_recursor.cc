@@ -154,7 +154,8 @@ int UDPClientSocks::makeClientSocket(int family)
     return ret;
   }
   if (ret < 0) {
-    throw PDNSException("Making a socket for resolver (family = " + std::to_string(family) + "): " + stringerror());
+    int err = errno;
+    throw PDNSException("Making a socket for resolver (family = " + std::to_string(family) + "): " + stringerror(err));
   }
 
   // The loop below runs the body with [tries-1 tries-2 ... 1]. Last iteration with tries == 1 is special: it uses a kernel
@@ -165,7 +166,7 @@ int UDPClientSocks::makeClientSocket(int family)
   int tries = 2; // hit the reliable kernel random case for OpenBSD immediately (because it will match tries==1 below), using sysctl net.inet.udp.baddynamic to exclude ports
 #endif
   ComboAddress sin;
-  while (--tries) {
+  while (--tries != 0) {
     in_port_t port;
 
     if (tries == 1) { // last iteration: fall back to kernel 'random'
@@ -174,17 +175,20 @@ int UDPClientSocks::makeClientSocket(int family)
     else {
       do {
         port = g_minUdpSourcePort + dns_random(g_maxUdpSourcePort - g_minUdpSourcePort + 1);
-      } while (g_avoidUdpSourcePorts.count(port));
+      } while (g_avoidUdpSourcePorts.count(port) != 0);
     }
 
     sin = pdns::getQueryLocalAddress(family, port); // does htons for us
-    if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0)
+    if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0) {
       break;
+    }
   }
 
-  if (!tries) {
+  int err = errno;
+
+  if (tries == 0) {
     closesocket(ret);
-    throw PDNSException("Resolver binding to local query client socket on " + sin.toString() + ": " + stringerror());
+    throw PDNSException("Resolver binding to local query client socket on " + sin.toString() + ": " + stringerror(err));
   }
 
   try {
