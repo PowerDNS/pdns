@@ -74,22 +74,38 @@ struct lazy_allocator
        and the runtime CPU overhead is one call to mprotect() for every
        stack allocation.
     */
-    static const auto pageSize = sysconf(_SC_PAGESIZE);
+    static const size_type pageSize = sysconf(_SC_PAGESIZE);
 
     const size_type requestedSize = n * sizeof(value_type);
     const auto padding = getAlignmentPadding(requestedSize, pageSize);
     const size_type allocatedSize = requestedSize + padding + (pageSize * 2);
 
-    void* p = mmap(nullptr, allocatedSize,
-                   PROT_NONE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
+#ifdef __OpenBSD__
+    // OpenBSD does not like mmap MAP_STACK regions that have
+    // PROT_NONE, so allocate r/w and mprotect the guard pages
+    // explictly.
+    const int protection = PROT_READ | PROT_WRITE;
+#else
+    const int protection = PROT_NONE;
+#endif
+    void* p = mmap(nullptr, allocatedSize, protection, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
     if (p == MAP_FAILED) {
       throw std::bad_alloc();
     }
     char* basePointer = static_cast<char*>(p);
     void* usablePointer = basePointer + pageSize;
-    int res = mprotect(usablePointer, requestedSize + padding, PROT_READ | PROT_WRITE);
+#ifdef __OpenBSD__
+    int res = mprotect(basePointer, pageSize, PROT_NONE);
     if (res != 0) {
-      munmap(p, requestedSize + padding + (pageSize * 2));
+      munmap(p, allocatedSize);
+      throw std::bad_alloc();
+    }
+    res = mprotect(basePointer + allocatedSize - pageSize, pageSize, PROT_NONE);
+#else
+    int res = mprotect(usablePointer, allocatedSize - (pageSize * 2), PROT_READ | PROT_WRITE);
+#endif
+    if (res != 0) {
+      munmap(p, allocatedSize);
       throw std::bad_alloc();
     }
     return static_cast<pointer>(usablePointer);
@@ -107,7 +123,7 @@ struct lazy_allocator
     ::operator delete(ptr);
 #endif
 #else /* LAZY_ALLOCATOR_USES_NEW */
-    static const auto pageSize = sysconf(_SC_PAGESIZE);
+    static const size_type pageSize = sysconf(_SC_PAGESIZE);
 
     const size_type requestedSize = n * sizeof(value_type);
     const auto padding = getAlignmentPadding(requestedSize, pageSize);
