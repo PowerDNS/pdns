@@ -1286,6 +1286,10 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
             return ProcessQueryResult::Drop;
           }
 
+          ++g_stats.responses;
+          if (dq.ids.cs) {
+            ++dq.ids.cs->responses;
+          }
           return ProcessQueryResult::SendAnswer;
         }
 
@@ -1317,15 +1321,23 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
           return ProcessQueryResult::Drop;
         }
 
+        ++g_stats.responses;
+        if (dq.ids.cs) {
+          ++dq.ids.cs->responses;
+        }
         return ProcessQueryResult::SendAnswer;
       }
       else if (dq.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
         /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
-        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyUDP, dq.ids.subnet, dq.ids.dnssecOK, true, allowExpired, false)) {
+        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyUDP, dq.ids.subnet, dq.ids.dnssecOK, true, allowExpired, false, false, false)) {
           if (!prepareOutgoingResponse(holders, cs, dq, true)) {
             return ProcessQueryResult::Drop;
           }
 
+          ++g_stats.responses;
+          if (dq.ids.cs) {
+            ++dq.ids.cs->responses;
+          }
           return ProcessQueryResult::SendAnswer;
         }
       }
@@ -1347,6 +1359,10 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
         if (!prepareOutgoingResponse(holders, cs, dq, false)) {
           return ProcessQueryResult::Drop;
+        }
+        ++g_stats.responses;
+        if (dq.ids.cs) {
+          ++dq.ids.cs->responses;
         }
         // no response-only statistics counter to update.
         return ProcessQueryResult::SendAnswer;

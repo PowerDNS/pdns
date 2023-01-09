@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+1.7.x to 1.8.0
+--------------
+
+Cache-hits are now counted as responses in our metrics.
+
 1.7.0 to 1.7.1
 --------------
 
