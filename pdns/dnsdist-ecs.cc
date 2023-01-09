@@ -263,7 +263,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   return true;
 }
 
-static bool slowParseEDNSOptions(const PacketBuffer& packet, std::map<uint16_t, EDNSOptionView>& options)
+static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options)
 {
   if (packet.size() < sizeof(dnsheader)) {
     return false;
@@ -515,7 +515,8 @@ bool parseEDNSOptions(const DNSQuestion& dq)
     return true;
   }
 
-  dq.ednsOptions = std::make_unique<std::map<uint16_t, EDNSOptionView> >();
+  // dq.ednsOptions is mutable
+  dq.ednsOptions = std::make_unique<EDNSOptionViewMap>();
 
   if (ntohs(dh->arcount) == 0) {
     /* nothing in additional so no EDNS */
