@@ -4637,7 +4637,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           rememberParentSetIfNeeded(i->first.name, i->second.records, depth);
         }
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh);
-        // delete negcache entry
+
+        // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
+        // served, as negcache entries are checked before record cache entries
         g_negCache->wipe(i->first.name, i->first.type);
 
         if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
@@ -4805,6 +4807,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       */
       if (newtarget.empty() && putInNegCache) {
         g_negCache->add(ne);
+        // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that and old record might be found if
+        // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
         if (qtype == QType::CNAME) {
           g_recCache->doWipeCache(qname, false, qtype);
         }
