@@ -161,8 +161,12 @@ const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
 string U32ToIP(uint32_t);
-string stringerror(int);
-string stringerror();
+
+inline string stringerror(int err = errno)
+{
+  return pdns::getMessageFromErrno(err);
+}
+
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
