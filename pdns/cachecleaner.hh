@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <cmath>
 #include <boost/multi_index_container.hpp>
 
 #include "dnsname.hh"
