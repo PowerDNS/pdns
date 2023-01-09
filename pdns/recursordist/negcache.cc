@@ -44,25 +44,6 @@ size_t NegCache::size() const
   return count;
 }
 
-void NegCache::purge(const DNSName& qname, QType qtype)
-{
-  auto& mc = getMap(qname);
-  auto content = mc.lock();
-  auto& idx = content->d_map.get<NegCacheEntry>();
-
-  auto range = idx.equal_range(qname);
-  auto ni = range.first;
-
-  while (ni != range.second) {
-    // We have an entry
-    if ((ni->d_qtype == QType::ENT) || ni->d_qtype == qtype) {
-        ni = idx.erase(ni);
-    }
-    else
-        ++ni;
-  }
-}
-
 /*!
  * Set ne to the NegCacheEntry for the last label in qname and return true if there
  * was one.
@@ -257,6 +238,26 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
     i = content->d_map.erase(i);
     ret++;
     --map.d_entriesCount;
+  }
+  return ret;
+}
+
+size_t NegCache::wipe(const DNSName& qname, QType qtype)
+{
+  size_t ret = 0;
+  auto& map = getMap(qname);
+  auto content = map.lock();
+  auto range = content->d_map.equal_range(std::tie(qname));
+  auto i = range.first;
+  while (i != range.second) {
+    if (i->d_qtype == QType::ENT || i->d_qtype == qtype) {
+      i = content->d_map.erase(i);
+      ++ret;
+      --map.d_entriesCount;
+    }
+    else {
+      ++i;
+    }
   }
   return ret;
 }
