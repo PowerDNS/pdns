@@ -224,7 +224,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     handlerInfo.start(0, "web+stat", cpusMap, log);
     auto& taskInfo = RecThreadInfo::info(2);
     taskInfo.setTaskThread();
-    taskInfo.start(2, "taskThread", cpusMap, log);
+    taskInfo.start(2, "task", cpusMap, log);
 
     auto& info = RecThreadInfo::info(currentThreadId);
     info.setListener();
@@ -278,7 +278,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
 
     for (unsigned int n = 0; n < RecThreadInfo::numTaskThreads(); ++n) {
       auto& info = RecThreadInfo::info(currentThreadId);
-      info.start(currentThreadId++, "taskThread", cpusMap, log);
+      info.start(currentThreadId++, "task", cpusMap, log);
     }
 
     /* This thread handles the web server, carbon, statistics and the control channel */
