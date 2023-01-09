@@ -192,7 +192,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK)
+bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
   const auto& dnsQName = dq.ids.qname.getStorage();
   uint32_t key = getKey(dnsQName, dq.ids.qname.wirelength(), dq.getData(), receivedOverUDP);
@@ -220,14 +220,18 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
     std::unordered_map<uint32_t,CacheValue>::const_iterator it = map->find(key);
     if (it == map->end()) {
-      d_misses++;
+      if (recordMiss) {
+        d_misses++;
+      }
       return false;
     }
 
     const CacheValue& value = it->second;
     if (value.validity <= now) {
       if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
-        d_misses++;
+        if (recordMiss) {
+          d_misses++;
+        }
         return false;
       }
       else {
