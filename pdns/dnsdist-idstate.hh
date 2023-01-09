@@ -122,7 +122,7 @@ struct InternalQueryState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
-  boost::optional<uint32_t> tempFailureTTL; // 8
+  boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
   uint32_t cacheKey{0}; // 4
