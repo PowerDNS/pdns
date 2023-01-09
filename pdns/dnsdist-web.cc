@@ -565,7 +565,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP " << statesbase << "tcpavgconnduration "              << "The average duration of a TCP connection (ms)"                                        << "\n";
   output << "# TYPE " << statesbase << "tcpavgconnduration "              << "gauge"                                                                                << "\n";
   output << "# HELP " << statesbase << "tlsresumptions "                  << "The number of times a TLS session has been resumed"                                   << "\n";
-  output << "# TYPE " << statesbase << "tlsersumptions "                  << "counter"                                                                              << "\n";
+  output << "# TYPE " << statesbase << "tlsresumptions "                  << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "tcplatency "                      << "Server's latency when answering TCP questions in milliseconds"                        << "\n";
   output << "# TYPE " << statesbase << "tcplatency "                      << "gauge"                                                                                << "\n";
 

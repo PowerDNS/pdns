@@ -407,7 +407,7 @@ URL Endpoints
       # HELP dnsdist_server_tcpavgconnduration The average duration of a TCP connection (ms)
       # TYPE dnsdist_server_tcpavgconnduration gauge
       # HELP dnsdist_server_tlsresumptions The number of times a TLS session has been resumed
-      # TYPE dnsdist_server_tlsersumptions counter
+      # TYPE dnsdist_server_tlsresumptions counter
       # HELP dnsdist_server_tcplatency Server's latency when answering TCP questions in milliseconds
       # TYPE dnsdist_server_tcplatency gauge
       dnsdist_server_status{server="9_9_9_9:443",address="9.9.9.9:443"} 1
