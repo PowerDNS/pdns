@@ -182,6 +182,9 @@ CXXFLAGS="$SANITIZER_FLAGS $PIE_CFLAGS $CXXFLAGS"
 PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 AC_SUBST([PROGRAM_LDFLAGS])
 
+CCVERSION=`$CC --version | head -1`
+CXXVERSION=`$CXX --version | head -1`
+
 AC_CONFIG_FILES([Makefile
 	ext/Makefile
 	ext/json11/Makefile
@@ -201,8 +204,8 @@ AS_IF([test "x$pdns_configure_args" != "x"],
 )
 AC_MSG_NOTICE([PowerDNS Recursor $VERSION configured with: $summary_conf_opts])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([CC: $CC])
-AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([CC: $CC ($CCVERSION)])
+AC_MSG_NOTICE([CXX: $CXX ($CXXVERSION)])
 AC_MSG_NOTICE([LD: $LD])
 AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
