@@ -1114,6 +1114,8 @@ noerrors
 NOLOCK
 nometasync
 Nominet
+noncompliantqueries
+noncompliantresponses
 nonexist
 Nonnekes
 noout
@@ -1687,8 +1689,14 @@ tbhandler
 tbody
 tcely
 tcp
+tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
+tcplatency
+tcpmaxconcurrentconnections
+tcpnewconnections
+tcpreusedconnections
+tcptoomanyconcurrentconnections
 tds
 teeaction
 Telenet
@@ -1724,6 +1732,7 @@ tinydnsbackend
 tisr
 tls
 tlsa
+tlsresumptions
 tmp
 tmpfs
 tobool
