@@ -80,6 +80,10 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dq.getProtocol().toPrettyString();
   });
 
+  luaCtx.registerFunction<timespec(DNSQuestion::*)()const>("getQueryTime", [](const DNSQuestion& dq) {
+    return dq.ids.queryRealTime.getStartTime();
+  });
+
   luaCtx.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
@@ -251,6 +255,10 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
   luaCtx.registerFunction<std::string (DNSResponse::*)()const>("getProtocol", [](const DNSResponse& dr) {
     return dr.getProtocol().toPrettyString();
+  });
+
+  luaCtx.registerFunction<timespec(DNSResponse::*)()const>("getQueryTime", [](const DNSResponse& dr) {
+    return dr.ids.queryRealTime.getStartTime();
   });
 
   luaCtx.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {

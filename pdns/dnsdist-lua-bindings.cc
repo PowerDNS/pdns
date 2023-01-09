@@ -768,4 +768,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.writeFunction("getMACAddress", [](const std::string& ip) {
     return getMACAddress(ComboAddress(ip));
   });
+
+  luaCtx.writeFunction("getCurrentTime", []() -> timespec {
+    timespec now;
+    if (gettime(&now, true) < 0) {
+      unixDie("Getting timestamp");
+    }
+    return now;
+  });
 }
