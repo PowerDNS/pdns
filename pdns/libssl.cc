@@ -216,7 +216,7 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
 
 int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 {
-  if (enc) {
+  if (enc != 0) {
     const auto key = keyring.getEncryptionKey();
     if (key == nullptr) {
       return -1;
@@ -233,7 +233,7 @@ int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsign
     return 0;
   }
 
-  if (key->decrypt(iv, ectx, hctx) == false) {
+  if (!key->decrypt(iv, ectx, hctx)) {
     return -1;
   }
 
