@@ -1774,29 +1774,21 @@ static void udpClientThread(std::vector<ClientState*> states)
       ComboAddress dest;
 
       auto handleOnePacket = [&packet, &iov, &holders, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
-        try {
-          packet.resize(initialBufferSize);
-          iov.iov_base = &packet.at(0);
-          iov.iov_len = packet.size();
+        packet.resize(initialBufferSize);
+        iov.iov_base = &packet.at(0);
+        iov.iov_len = packet.size();
 
-          ssize_t got = recvmsg(param.socket, &msgh, 0);
+        ssize_t got = recvmsg(param.socket, &msgh, 0);
 
-          if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-            ++g_stats.nonCompliantQueries;
-            ++param.cs->nonCompliantQueries;
-            return;
-          }
-
-          packet.resize(static_cast<size_t>(got));
-
-          processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+        if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+          ++g_stats.nonCompliantQueries;
+          ++param.cs->nonCompliantQueries;
+          return;
         }
-        catch (const std::bad_alloc& e) {
-          /* most exceptions are handled by processUDPQuery(), but we might be out of memory (std::bad_alloc)
-             in which case we DO NOT want to log (as it would trigger another memory allocation attempt
-             that might throw as well) but wait a bit (one millisecond) and then try to recover */
-          usleep(1000);
-        }
+
+        packet.resize(static_cast<size_t>(got));
+
+        processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
       };
 
       std::vector<UDPStateParam> params;
@@ -1812,7 +1804,15 @@ static void udpClientThread(std::vector<ClientState*> states)
         cmsgbuf_aligned cbuf;
         fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param.maxIncomingPacketSize, &remote);
         while (true) {
-          handleOnePacket(param);
+          try {
+            handleOnePacket(param);
+          }
+          catch (const std::bad_alloc& e) {
+            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
+               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
+               that might throw as well) but wait a bit (one millisecond) and then try to recover */
+            usleep(1000);
+          }
         }
       }
       else {
