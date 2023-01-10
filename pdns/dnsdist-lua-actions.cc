@@ -2020,7 +2020,7 @@ public:
 
   std::string toString() const override
   {
-    return "reduce ttl to " + std::to_string(d_ratio * 100) + " of its value";
+    return "reduce ttl to " + std::to_string(d_ratio * 100) + " percent of its value";
   }
 
 private:
