@@ -80,7 +80,7 @@ static void openssl_thread_cleanup()
 
 static std::atomic<uint64_t> s_users;
 #ifndef OPENSSL_NO_ENGINE
-static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, int(*)(ENGINE*)>>> s_engines;
+static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, decltype(&ENGINE_free)>>> s_engines;
 #endif
 static int s_ticketsKeyIndex{-1};
 static int s_countersIndex{-1};
@@ -182,13 +182,10 @@ std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, c
     return { false, "TLS engine already loaded" };
   }
 
-  ENGINE* enginePtr = ENGINE_by_id(engineName.c_str());
-  if (enginePtr == nullptr) {
+  auto engine = std::unique_ptr<ENGINE, decltype(&ENGINE_free)>(ENGINE_by_id(engineName.c_str()), ENGINE_free);
+  if (engine == nullptr) {
     return { false, "unable to load TLS engine '" + engineName + "'" };
   }
-
-  auto engine = std::unique_ptr<ENGINE, int(*)(ENGINE*)>(enginePtr, ENGINE_free);
-  enginePtr = nullptr;
 
   if (!ENGINE_init(engine.get())) {
     return { false, "Unable to init TLS engine '" + engineName + "'" };
