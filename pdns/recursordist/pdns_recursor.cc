@@ -277,7 +277,7 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
     auto chain = MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
     for (; chain.first != chain.second; chain.first++) {
-      // Line below detected an issue with the two ways of ordering PackeIDs (birtday and non-birthday)
+      // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
       assert(chain.first->key->domain == pident->domain);
       // don't chain onto existing chained waiter or a chain already processed
       if (chain.first->key->fd > -1 && !chain.first->key->closed) {
