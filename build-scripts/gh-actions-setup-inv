@@ -5,6 +5,7 @@ exit 101
 EOF
 "
 sudo chmod 755 /usr/sbin/policy-rc.d
+sudo sed -i 's/azure\.//' /etc/apt/sources.list
 sudo apt-get update
 sudo apt-get -qq -y dist-upgrade
 sudo apt-get -qq -y --no-install-recommends install python3-pip
