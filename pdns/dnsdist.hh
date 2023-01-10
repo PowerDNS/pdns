@@ -426,8 +426,8 @@ struct DNSDistStats
     {"latency-sum", &latencySum},
     {"latency-count", &latencyCount},
   };
-  std::map<std::string, stat_t> customCounters;
-  std::map<std::string, pdns::stat_t_trait<double> > customGauges;
+  std::map<std::string, stat_t, std::less<>> customCounters;
+  std::map<std::string, pdns::stat_t_trait<double>, std::less<>> customGauges;
 };
 
 extern struct DNSDistStats g_stats;
