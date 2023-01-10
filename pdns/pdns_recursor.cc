@@ -261,7 +261,7 @@ thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const char* data, size_t len, int flags,
-                         const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd)
+                         const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, bool ecs, int* fd)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -269,18 +269,24 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
   pident->remote = toaddr;
   pident->type = qtype;
 
-  // see if there is an existing outstanding request we can chain on to, using partial equivalence function looking for the same
-  // query (qname and qtype) to the same host, but with a different message ID
-  pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain = MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
+  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope 
+  // of the response might be narrower, so instead we do not chain ECS-enabled queries
+  // at all.
+  if (!ecs) {
+    // See if there is an existing outstanding request we can chain on to, using partial equivalence
+    // function looking for the same query (qname and qtype) to the same host, but with a different
+    // message ID.
+    auto chain = MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
-  for (; chain.first != chain.second; chain.first++) {
-    // Line below detected an issue with the two ways of ordering PackeIDs (birtday and non-birthday)
-    assert(chain.first->key->domain == pident->domain);
-    if (chain.first->key->fd > -1 && !chain.first->key->closed) { // don't chain onto existing chained waiter or a chain already processed
-      // cerr << "Insert " << id << ' ' << pident << " into chain for  " << chain.first->key << endl;
-      chain.first->key->chain.insert(id); // we can chain
-      *fd = -1; // gets used in waitEvent / sendEvent later on
-      return LWResult::Result::Success;
+    for (; chain.first != chain.second; chain.first++) {
+      // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
+      assert(chain.first->key->domain == pident->domain);
+      // don't chain onto existing chained waiter or a chain already processed
+      if (chain.first->key->fd > -1 && !chain.first->key->closed) {
+        chain.first->key->chain.insert(id); // we can chain
+        *fd = -1;                           // gets used in waitEvent / sendEvent later on
+        return LWResult::Result::Success;
+      }
     }
   }
 
