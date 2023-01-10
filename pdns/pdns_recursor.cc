@@ -269,7 +269,7 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
   pident->remote = toaddr;
   pident->type = qtype;
 
-  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope 
+  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope
   // of the response might be narrower, so instead we do not chain ECS-enabled queries
   // at all.
   if (!ecs) {
@@ -284,7 +284,7 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
       // don't chain onto existing chained waiter or a chain already processed
       if (chain.first->key->fd > -1 && !chain.first->key->closed) {
         chain.first->key->chain.insert(id); // we can chain
-        *fd = -1;                           // gets used in waitEvent / sendEvent later on
+        *fd = -1; // gets used in waitEvent / sendEvent later on
         return LWResult::Result::Success;
       }
     }
