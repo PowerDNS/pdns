@@ -1827,18 +1827,34 @@ static void udpClientThread(std::vector<ClientState*> states)
         cmsgbuf_aligned cbuf;
         fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param.maxIncomingPacketSize, &remote);
         while (true) {
-          handleOnePacket(param);
+          try {
+            handleOnePacket(param);
+          }
+          catch (const std::bad_alloc& e) {
+            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
+               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
+               that might throw as well) but wait a bit (one millisecond) and then try to recover */
+            usleep(1000);
+          }
         }
       }
       else {
         auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
           auto param = boost::any_cast<const UDPStateParam*>(funcparam);
-          remote.sin4.sin_family = param->cs->local.sin4.sin_family;
-          packet.resize(initialBufferSize);
-          /* used by HarvestDestinationAddress */
-          cmsgbuf_aligned cbuf;
-          fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
-          handleOnePacket(*param);
+          try {
+            remote.sin4.sin_family = param->cs->local.sin4.sin_family;
+            packet.resize(initialBufferSize);
+            /* used by HarvestDestinationAddress */
+            cmsgbuf_aligned cbuf;
+            fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
+            handleOnePacket(*param);
+          }
+          catch (const std::bad_alloc& e) {
+            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
+               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
+               that might throw as well) but wait a bit (one millisecond) and then try to recover */
+            usleep(1000);
+          }
         };
         auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
         for (size_t idx = 0; idx < params.size(); idx++) {
