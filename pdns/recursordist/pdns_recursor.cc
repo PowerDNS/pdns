@@ -267,9 +267,9 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
   pident->remote = toaddr;
   pident->type = qtype;
 
-  // We might want to put the ecs netmask into the PacketID key, but we take the easy way:
-  // Avoid processing a chain with queries having different ECS data by lwres:asyncresolve() as it
-  // assumes the mask received corresponds to the mask sent out, so do not chain ecs queries.
+  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope 
+  // of the response might be narrower, so instead we do not chain ECS-enabled queries
+  // at all.
   if (!ecs) {
     // See if there is an existing outstanding request we can chain on to, using partial equivalence
     // function looking for the same query (qname and qtype) to the same host, but with a different
