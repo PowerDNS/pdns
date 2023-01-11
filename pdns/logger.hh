@@ -166,3 +166,10 @@ Logger& getLogger();
 #else
 #define DLOG(x) ((void)0)
 #endif
+
+struct LogVariant {
+  string prefix;
+  std::variant<Logger*, ostringstream*> v;
+};
+
+using OptLog = std::optional<LogVariant>;

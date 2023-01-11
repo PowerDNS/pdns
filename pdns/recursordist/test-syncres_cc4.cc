@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
   std::vector<std::shared_ptr<RRSIGRecordContent>> sigs;
   sigs.push_back(std::make_shared<RRSIGRecordContent>(rrc));
 
-  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset) == vState::Secure);
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt) == vState::Secure);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)

@@ -250,7 +250,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   sr.setDNSSECValidationRequested(true);
 
   dsmap_t dsmap; // Actually a set
-  vState dsState = sr.getDSRecords(d_zone, dsmap, false, 0);
+  vState dsState = sr.getDSRecords(d_zone, dsmap, false, 0, "");
   if (dsState != vState::Secure) {
     return dsState;
   }
@@ -266,7 +266,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   }
 
   skeyset_t validKeys;
-  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(), validKeys);
+  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(), validKeys, std::nullopt);
   if (dnsKeyState != vState::Secure) {
     return dnsKeyState;
   }
@@ -288,7 +288,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
 
     if (nsecs.records.size() > 0 && nsecs.signatures.size() > 0) {
       // Valdidate the NSEC
-      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys);
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys, std::nullopt);
       csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
     }
     else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
@@ -297,13 +297,13 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       for (const auto& rec : zonemd.getNSEC3Params()) {
         records.emplace(rec);
       }
-      nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys);
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys, std::nullopt);
       if (nsecValidationStatus != vState::Secure) {
         d_log->info("NSEC3PARAMS records did not validate");
         return nsecValidationStatus;
       }
       // Valdidate the NSEC3
-      nsecValidationStatus = validateWithKeySet(d_now, zonemd.getNSEC3Label(), nsec3s.records, nsec3s.signatures, validKeys);
+      nsecValidationStatus = validateWithKeySet(d_now, zonemd.getNSEC3Label(), nsec3s.records, nsec3s.signatures, validKeys, std::nullopt);
       csp.emplace(std::make_pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
     }
     else {
@@ -316,7 +316,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       return nsecValidationStatus;
     }
 
-    auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, true);
+    auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, std::nullopt, true);
     if (denial == dState::NXQTYPE) {
       d_log->info("Validated denial of absence of ZONEMD record");
       return vState::Secure;
@@ -330,7 +330,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   for (const auto& rec : zonemdRecords) {
     records.emplace(rec);
   }
-  return validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys);
+  return validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys, std::nullopt);
 }
 
 void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)

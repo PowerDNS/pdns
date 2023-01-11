@@ -764,7 +764,7 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo)
   });
 
   dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
+  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
   BOOST_REQUIRE_EQUAL(ds.size(), 1U);
   for (const auto& i : ds) {
@@ -817,7 +817,7 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_all_sha)
   });
 
   dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
+  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
   BOOST_REQUIRE_EQUAL(ds.size(), 2U);
   for (const auto& i : ds) {
@@ -870,7 +870,7 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_two_highest)
   });
 
   dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
+  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
   BOOST_REQUIRE_EQUAL(ds.size(), 2U);
   for (const auto& i : ds) {

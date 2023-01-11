@@ -467,12 +467,17 @@ static void addRecordToRRSet(time_t now, const DNSName& owner, const QType& type
   }
 }
 
-#define LOG(x)                     \
-  if (g_dnssecLOG) {               \
-    g_log << Logger::Warning << x; \
+#define LOG(x)                                                          \
+  if (log) {                                                            \
+    if (std::holds_alternative<Logger*>(log->v)) {                      \
+      *std::get<Logger*>(log->v) << Logger::Warning << log->prefix << x; \
+    }                                                                   \
+    else if (std::holds_alternative<ostringstream*>(log->v)) {          \
+      *std::get<ostringstream*>(log->v) << x;                          \
+    }                                                                   \
   }
 
-bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName)
+bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName, OptLog& log)
 {
   vState cachedState;
 
@@ -494,7 +499,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   return true;
 }
 
-bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName)
+bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName, OptLog& log)
 {
   vState cachedState;
 
@@ -514,7 +519,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   return true;
 }
 
-bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC)
+bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, OptLog& log)
 {
   DNSName zone;
   std::string salt;
@@ -694,7 +699,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
 
     if (!isTypeDenied(nsec3, type)) {
       LOG(" but the requested type (" << type.toString() << ") does exist" << endl);
-      return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard);
+      return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard, log);
     }
 
     res = RCode::NoError;
@@ -739,7 +744,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
   return true;
 }
 
-bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC)
+bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC, OptLog log)
 {
   std::shared_ptr<LockGuarded<ZoneEntry>> zoneEntry;
   if (type == QType::DS) {
@@ -779,7 +784,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   }
 
   if (nsec3) {
-    return getNSEC3Denial(now, zoneEntry, soaSet, soaSignatures, name, type, ret, res, doDNSSEC);
+    return getNSEC3Denial(now, zoneEntry, soaSet, soaSignatures, name, type, ret, res, doDNSSEC, log);
   }
 
   ZoneEntry::CacheEntry entry;
@@ -800,7 +805,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   LOG(": found a possible NSEC at " << entry.d_owner << " ");
   // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
-  auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures);
+  auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures, log);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
     LOG(" but it does no cover us" << endl);
     return false;
@@ -825,12 +830,12 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
     auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(wcEntry.d_record);
 
-    denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures);
+    denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures, log);
     if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
 
       if (wcEntry.d_owner == wc) {
         LOG(" proving that the wildcard does exist" << endl);
-        return synthesizeFromNSECWildcard(now, name, type, ret, res, doDNSSEC, entry, wc);
+        return synthesizeFromNSECWildcard(now, name, type, ret, res, doDNSSEC, entry, wc, log);
       }
 
       LOG(" but it does no cover us" << endl);
