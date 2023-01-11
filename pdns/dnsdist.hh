@@ -1002,13 +1002,13 @@ public:
   int pickSocketForSending();
   void pickSocketsReadyForReceiving(std::vector<int>& ready);
   void handleUDPTimeouts();
-  IDState* getIDState(unsigned int& id, int64_t& generation);
-  IDState* getExistingState(unsigned int id);
-  void releaseState(unsigned int id);
   void reportTimeoutOrError();
   void reportResponse(uint8_t rcode);
   void submitHealthCheckResult(bool initial, bool newState);
   time_t getNextLazyHealthCheck();
+  uint16_t saveState(InternalQueryState&&);
+  void restoreState(uint16_t id, InternalQueryState&&);
+  std::optional<InternalQueryState> getState(uint16_t id);
 
   dnsdist::Protocol getProtocol() const
   {
@@ -1206,7 +1206,7 @@ static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses la
 enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer&& query, ComboAddress& dest);
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest);
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol);

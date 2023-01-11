@@ -677,8 +677,9 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit)
     }
 
     ComboAddress dest = dq.ids.origDest;
-    if (!assignOutgoingUDPQueryToBackend(downstream, htons(queryId), dq, std::move(du->query), dest)) {
-            sendDoHUnitToTheMainThread(std::move(du), "DoH internal error");
+    if (!assignOutgoingUDPQueryToBackend(downstream, htons(queryId), dq, du->query, dest)) {
+      du->status_code = 500;
+      sendDoHUnitToTheMainThread(std::move(du), "DoH internal error");
       return;
     }
   }

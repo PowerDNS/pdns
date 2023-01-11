@@ -321,19 +321,16 @@ bool DownstreamState::s_randomizeSockets{false};
 bool DownstreamState::s_randomizeIDs{false};
 int DownstreamState::s_udpTimeout{2};
 
-static bool isIDSExpired(IDState& ids)
+static bool isIDSExpired(const IDState& ids)
 {
-  auto age = ids.age++;
+  auto age = ids.age.load();
   return age > DownstreamState::s_udpTimeout;
 }
 
 void DownstreamState::handleUDPTimeout(IDState& ids)
 {
-  /* We mark the state as unused as soon as possible
-     to limit the risk of racing with the
-     responder thread.
-  */
   ids.age = 0;
+  ids.inUse = false;
   handleDOHTimeout(std::move(ids.internal.du));
   reuseds++;
   --outstanding;
@@ -386,20 +383,26 @@ void DownstreamState::handleUDPTimeouts()
         it = map->erase(it);
         continue;
       }
+      ++ids.age;
       ++it;
     }
   }
   else {
     if (outstanding.load() > 0) {
       for (IDState& ids : idStates) {
-        int64_t usageIndicator = ids.usageIndicator;
-        if (IDState::isInUse(usageIndicator) && isIDSExpired(ids)) {
-          if (!ids.tryMarkUnused(usageIndicator)) {
-            /* this state has been altered in the meantime,
-               don't go anywhere near it */
-            continue;
-          }
-
+        if (!ids.isInUse()) {
+          continue;
+        }
+        if (!isIDSExpired(ids)) {
+          ++ids.age;
+          continue;
+        }
+        auto guard = ids.acquire();
+        if (!guard) {
+          continue;
+        }
+        /* check again, now that we have locked this state */
+        if (ids.isInUse() && isIDSExpired(ids)) {
           handleUDPTimeout(ids);
         }
       }
@@ -407,43 +410,8 @@ void DownstreamState::handleUDPTimeouts()
   }
 }
 
-IDState* DownstreamState::getExistingState(unsigned int stateId)
+uint16_t DownstreamState::saveState(InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
-    auto map = d_idStatesMap.lock();
-    auto it = map->find(stateId);
-    if (it == map->end()) {
-      return nullptr;
-    }
-    return &it->second;
-  }
-  else {
-    if (stateId >= idStates.size()) {
-      return nullptr;
-    }
-    return &idStates[stateId];
-  }
-}
-
-void DownstreamState::releaseState(unsigned int stateId)
-{
-  if (s_randomizeIDs) {
-    auto map = d_idStatesMap.lock();
-    auto it = map->find(stateId);
-    if (it == map->end()) {
-      return;
-    }
-    if (it->second.isInUse()) {
-      return;
-    }
-    map->erase(it);
-  }
-}
-
-IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generation)
-{
-  DOHUnitUniquePtr du(nullptr, DOHUnit::release);
-  IDState* ids = nullptr;
   if (s_randomizeIDs) {
     /* if the state is already in use we will retry,
        up to 5 five times. The last selected one is used
@@ -451,45 +419,133 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
     size_t remainingAttempts = 5;
     auto map = d_idStatesMap.lock();
 
-    bool done = false;
     do {
-      selectedID = dnsdist::getRandomValue(std::numeric_limits<uint16_t>::max());
-      auto [it, inserted] = map->insert({selectedID, IDState()});
-      ids = &it->second;
-      if (inserted) {
-        done = true;
+      uint16_t selectedID = dnsdist::getRandomValue(std::numeric_limits<uint16_t>::max());
+      auto [it, inserted] = map->emplace(selectedID, IDState());
+
+      if (!inserted) {
+        remainingAttempts--;
+        if (remainingAttempts > 0) {
+          continue;
+        }
+
+        auto oldDU = std::move(it->second.internal.du);
+        ++reuseds;
+        ++g_stats.downstreamTimeouts;
+        handleDOHTimeout(std::move(oldDU));
       }
       else {
-        remainingAttempts--;
+        ++outstanding;
       }
+
+      it->second.internal = std::move(state);
+      it->second.age.store(0);
+
+      return it->first;
     }
-    while (!done && remainingAttempts > 0);
-  }
-  else {
-    selectedID = (idOffset++) % idStates.size();
-    ids = &idStates[selectedID];
+    while (true);
   }
 
-  ids->age = 0;
-
-  /* we atomically replace the value, we now own this state */
-  generation = ids->generation++;
-  if (!ids->markAsUsed(generation)) {
-    /* the state was not in use.
-       we reset 'du' because it might have still been in use when we read it. */
-    du.release();
-    ++outstanding;
+  do {
+    uint16_t selectedID = (idOffset++) % idStates.size();
+    IDState& ids = idStates[selectedID];
+    auto guard = ids.acquire();
+    if (!guard) {
+      continue;
+    }
+    if (ids.isInUse()) {
+      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
+      auto oldDU = std::move(ids.internal.du);
+      ++reuseds;
+      ++g_stats.downstreamTimeouts;
+      handleDOHTimeout(std::move(oldDU));
+    }
+    else {
+      ++outstanding;
+    }
+    ids.internal = std::move(state);
+    ids.age.store(0);
+    ids.inUse = true;
+    return selectedID;
   }
-  else {
-    /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
-       to handle it because it's about to be overwritten. */
-    auto oldDU = std::move(ids->internal.du);
+  while (true);
+}
+
+void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
+{
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+
+    auto [it, inserted] = map->emplace(id, IDState());
+    if (!inserted) {
+      /* already used */
+      ++reuseds;
+      ++g_stats.downstreamTimeouts;
+      handleDOHTimeout(std::move(state.du));
+    }
+    else {
+      it->second.internal = std::move(state);
+      ++outstanding;
+    }
+    return;
+  }
+
+  auto& ids = idStates[id];
+  auto guard = ids.acquire();
+  if (!guard) {
+    /* already used */
     ++reuseds;
     ++g_stats.downstreamTimeouts;
-    handleDOHTimeout(std::move(oldDU));
+    handleDOHTimeout(std::move(state.du));
+    return;
+  }
+  if (ids.isInUse()) {
+    /* already used */
+    ++reuseds;
+    ++g_stats.downstreamTimeouts;
+    handleDOHTimeout(std::move(state.du));
+    return;
+  }
+  ids.internal = std::move(state);
+  ids.inUse = true;
+  ++outstanding;
+}
+
+std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
+{
+  std::optional<InternalQueryState> result = std::nullopt;
+
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+
+    auto it = map->find(id);
+    if (it == map->end()) {
+      return result;
+    }
+
+    result = std::move(it->second.internal);
+    map->erase(it);
+    --outstanding;
+    return result;
   }
 
-  return ids;
+  if (id > idStates.size()) {
+    return result;
+  }
+
+  auto& ids = idStates[id];
+  auto guard = ids.acquire();
+  if (!guard) {
+    return result;
+  }
+
+  if (ids.isInUse()) {
+    result = std::move(ids.internal);
+    --outstanding;
+  }
+  ids.inUse = false;
+  return result;
 }
 
 bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)

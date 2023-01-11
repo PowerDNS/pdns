@@ -634,7 +634,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& ds, bool selfGenerated, std::optional<uint16_t> queryId)
+static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& ds, bool selfGenerated)
 {
   DNSResponse dr(ids, response, ds);
 
@@ -653,9 +653,6 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
   if (!processResponse(response, respRuleActions, cacheInsertedRespRuleActions, dr, ids.cs && ids.cs->muted)) {
-    if (queryId) {
-      ds->releaseState(*queryId);
-    }
     return;
   }
 
@@ -685,10 +682,6 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
   else {
     handleResponseSent(ids, 0., dr.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP);
-  }
-
-  if (queryId) {
-    ds->releaseState(*queryId);
   }
 }
 
@@ -728,57 +721,23 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
         queryId = dh->id;
 
-        IDState* ids = dss->getExistingState(queryId);
-        if (ids == nullptr) {
+        auto ids = dss->getState(queryId);
+        if (!ids) {
           continue;
         }
-
-        int64_t usageIndicator = ids->usageIndicator;
-
-        if (!IDState::isInUse(usageIndicator)) {
-          /* the corresponding state is marked as not in use, meaning that:
-             - it was already cleaned up by another thread and the state is gone ;
-             - we already got a response for this query and this one is a duplicate.
-             Either way, we don't touch it.
-          */
-          continue;
-        }
-
-        /* setting age to 0 to prevent the maintainer thread from
-           cleaning this IDS while we process the response.
-        */
-        ids->age = 0;
 
         unsigned int qnameWireLength = 0;
-        if (fd != ids->internal.backendFD || !responseContentMatches(response, ids->internal.qname, ids->internal.qtype, ids->internal.qclass, dss, qnameWireLength)) {
+        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss, qnameWireLength)) {
+          dss->restoreState(queryId, std::move(*ids));
           continue;
         }
 
-        DOHUnitUniquePtr du(nullptr, DOHUnit::release);
-        /* atomically mark the state as available, but only if it has not been altered
-           in the meantime */
-        if (ids->tryMarkUnused(usageIndicator)) {
-          /* clear the potential DOHUnit asap, it's ours now
-           and since we just marked the state as unused,
-           someone could overwrite it. */
-          du = std::move(ids->internal.du);
-          /* we only decrement the outstanding counter if the value was not
-             altered in the meantime, which would mean that the state has been actively reused
-             and the other thread has not incremented the outstanding counter, so we don't
-             want it to be decremented twice. */
-          --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
-        } else {
-          /* someone updated the state in the meantime, we can't touch the existing pointer */
-          du.release();
-          /* since the state has been updated, we can't safely access it so let's just drop
-             this response */
-          continue;
-        }
+        auto du = std::move(ids->du);
 
-        dh->id = ids->internal.origID;
+        dh->id = ids->origID;
         ++dss->responses;
 
-        double udiff = ids->internal.queryRealTime.udiff();
+        double udiff = ids->queryRealTime.udiff();
         // do that _before_ the processing, otherwise it's not fair to the backend
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
         dss->reportResponse(dh->rcode);
@@ -787,13 +746,12 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
           // DoH query, we cannot touch du after that
-          handleUDPResponseForDoH(std::move(du), std::move(response), std::move(ids->internal));
+          handleUDPResponseForDoH(std::move(du), std::move(response), std::move(*ids));
 #endif
-          dss->releaseState(queryId);
           continue;
         }
 
-        handleResponseForUDPClient(ids->internal, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dss, false, queryId);
+        handleResponseForUDPClient(*ids, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dss, false);
       }
     }
     catch (const std::exception& e) {
@@ -1445,7 +1403,7 @@ public:
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-    handleResponseForUDPClient(ids, response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, d_ds, response.d_selfGenerated, std::nullopt);
+    handleResponseForUDPClient(ids, response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, d_ds, response.d_selfGenerated);
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1487,62 +1445,55 @@ public:
   }
 };
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer&& query, ComboAddress& dest)
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest)
 {
   bool doh = dq.ids.du != nullptr;
-  unsigned int idOffset = 0;
-  int64_t generation;
-  IDState* ids = ds->getIDState(idOffset, generation);
-
-  dq.getHeader()->id = idOffset;
 
   bool failed = false;
+  size_t proxyPayloadSize = 0;
   if (ds->d_config.useProxyProtocol) {
     try {
-      size_t payloadSize = 0;
-      if (addProxyProtocol(dq, &payloadSize)) {
+      if (addProxyProtocol(dq, &proxyPayloadSize)) {
         if (dq.ids.du) {
-          dq.ids.du->proxyProtocolPayloadSize = payloadSize;
+          dq.ids.du->proxyProtocolPayloadSize = proxyPayloadSize;
         }
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Adding proxy protocol payload to %squery from %s failed: %s", (dq.ids.du ? "DoH" : ""), dq.ids.origDest.toStringWithPort(), e.what());
-      failed = true;
+      vinfolog("Adding proxy protocol payload to %s query from %s failed: %s", (dq.ids.du ? "DoH" : ""), dq.ids.origDest.toStringWithPort(), e.what());
+      return false;
     }
   }
 
   try {
-    if (!failed) {
-      int fd = ds->pickSocketForSending();
-      dq.ids.backendFD = fd;
-      dq.ids.origID = queryID;
-      dq.ids.forwardedOverUDP = true;
-      ids->internal = std::move(dq.ids);
+    int fd = ds->pickSocketForSending();
+    dq.ids.backendFD = fd;
+    dq.ids.origID = queryID;
+    dq.ids.forwardedOverUDP = true;
 
-      vinfolog("Got query for %s|%s from %s%s, relayed to %s", ids->internal.qname.toLogString(), QType(ids->internal.qtype).toString(), ids->internal.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr());
-      /* you can't touch du after this line, unless the call returned a non-negative value,
-         because it might already have been freed */
-      ssize_t ret = udpClientSendRequestToBackend(ds, fd, query);
+    vinfolog("Got query for %s|%s from %s%s, relayed to %s", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr());
 
-      if (ret < 0) {
-        failed = true;
-      }
-    }
-    else {
-      ids->internal = std::move(dq.ids);
+    auto idOffset = ds->saveState(std::move(dq.ids));
+    /* set the correct ID */
+    memcpy(query.data() + proxyPayloadSize, &idOffset, sizeof(idOffset));
+
+    /* you can't touch ids or du after this line, unless the call returned a non-negative value,
+       because it might already have been freed */
+    ssize_t ret = udpClientSendRequestToBackend(ds, fd, query);
+
+    if (ret < 0) {
+      failed = true;
     }
 
     if (failed) {
-      /* we are about to handle the error, make sure that
-         this pointer is not accessed when the state is cleaned,
-         but first check that it still belongs to us */
-      if (ids->tryMarkUnused(generation) && ids->internal.du) {
-        dq.ids.du = std::move(ids->internal.du);
-        --ds->outstanding;
-      }
-      if (dq.ids.du) {
-        dq.ids.du->status_code = 502;
+      /* clear up the state. In the very unlikely event it was reused
+         in the meantime, so be it. */
+      auto cleared = ds->getState(idOffset);
+      if (cleared) {
+        dq.ids.du = std::move(cleared->du);
+        if (dq.ids.du) {
+          dq.ids.du->status_code = 502;
+        }
       }
       ++g_stats.downstreamSendErrors;
       ++ds->sendErrors;
@@ -1667,7 +1618,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, std::move(query), dest);
+    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, dest);
   }
   catch(const std::exception& e){
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what());
