@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <unordered_map>
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.
 BOOST_AUTO_TEST_SUITE(test_signers)
 
 struct SignerParams
@@ -28,6 +29,7 @@ struct SignerParams
   std::string name;
   std::string rfcMsgDump;
   std::string rfcB64Signature;
+  std::string pubKeyHash;
   int bits;
   uint16_t flags;
   uint16_t rfcFlags;
@@ -76,6 +78,7 @@ static const SignerParams rsaSha256SignerParams = SignerParams{
 
   .rfcMsgDump = "",
   .rfcB64Signature = "",
+  .pubKeyHash = "QH+uURzTHkYZ5MrwNvOrn+BtnL4=",
 
   .bits = 512,
   .flags = 256,
@@ -130,6 +133,7 @@ static const SignerParams ecdsaSha256 = SignerParams{
 
   .rfcMsgDump = "",
   .rfcB64Signature = "",
+  .pubKeyHash = "aIQTEsTXwMDIOXPY9e6W1G1AnAk=",
 
   .bits = 256,
   .flags = 256,
@@ -187,6 +191,7 @@ static const SignerParams ed25519 = SignerParams{
   // https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
   .rfcB64Signature = "oL9krJun7xfBOIWcGHi7mag5/hdZrKWw15jPGrHpjQeR"
                      "AvTdszaPD+QLs3fx8A4M3e23mRZ9VrbpMngwcrqNAg==",
+  .pubKeyHash = "l02Woi0iS8Aa25FQkUd9RMzZHJpBoRQwAQEX1SxZJA4=",
 
   .bits = 256,
   .flags = 256,
@@ -248,6 +253,8 @@ static const SignerParams ed448 = SignerParams{
   .rfcB64Signature = "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEA"
                      "IJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07"
                      "+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA",
+  .pubKeyHash = "3kgROaDjrh0H2iuixWBrc8g2EpBBLCdGzHmn+G2MpTPhpj/"
+                "OiBVHHSfPodx1FYYUcJKm1MDpJtIA",
 
   .bits = 456,
   .flags = 256,
@@ -342,6 +349,7 @@ static void checkRR(const SignerParams& signer)
 
   string signature = dcke->sign(msg);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
   BOOST_CHECK(dcke->verify(msg, signature));
 
   if (signer.isDeterministic) {
@@ -351,6 +359,7 @@ static void checkRR(const SignerParams& signer)
   else {
     std::string raw;
     B64Decode(signer.rfcB64Signature, raw);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
     BOOST_CHECK(dcke->verify(msg, raw));
   }
 }
@@ -359,7 +368,15 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
 {
   BOOST_CHECK_EQUAL(dcke->getAlgorithm(), signer.algorithm);
   BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);
-  BOOST_CHECK_EQUAL(dcke->checkKey(nullptr), true);
+
+  vector<string> errorMessages{};
+  BOOST_CHECK_EQUAL(dcke->checkKey(&errorMessages), true);
+  if (!errorMessages.empty()) {
+    BOOST_TEST_MESSAGE("Errors from " + dcke->getName() + " checkKey()");
+    for (auto& errorMessage : errorMessages) {
+      BOOST_TEST_MESSAGE("  " + errorMessage);
+    }
+  }
 
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 
@@ -389,23 +406,30 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   }
 
   auto signature = dcke->sign(message);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
   BOOST_CHECK(dcke->verify(message, signature));
 
+  auto signerSignature = std::string(signer.signature.begin(), signer.signature.end());
   if (signer.isDeterministic) {
-    string b64 = Base64Encode(signature);
-    BOOST_CHECK_EQUAL(b64, Base64Encode(std::string(signer.signature.begin(), signer.signature.end())));
+    auto signatureBase64 = Base64Encode(signature);
+    auto signerSignatureBase64 = Base64Encode(signerSignature);
+    BOOST_CHECK_EQUAL(signatureBase64, signerSignatureBase64);
   }
   else {
     /* since the signing process is not deterministic, we can't directly compare our signature
        with the one we have. Still the one we have should also validate correctly. */
-    BOOST_CHECK(dcke->verify(message, std::string(signer.signature.begin(), signer.signature.end())));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
+    BOOST_CHECK(dcke->verify(message, signerSignature));
   }
 
   if (!signer.rfcMsgDump.empty() && !signer.rfcB64Signature.empty()) {
     checkRR(signer);
   }
+
+  BOOST_CHECK_EQUAL(Base64Encode(dcke->getPubKeyHash()), signer.pubKeyHash);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.
 BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
 {
   for (const auto& algoSignerPair : signerParams) {
@@ -415,11 +439,12 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
     test_generic_signer(dcke, drc, signer, message);
 
-    unique_ptr<std::FILE, decltype(&std::fclose)> fp{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
-    BOOST_REQUIRE(fp.get() != nullptr);
+    unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
+    BOOST_REQUIRE(inputFile.get() != nullptr);
 
     DNSKEYRecordContent pemDRC;
-    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *fp, signer.algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *inputFile, signer.algorithm)};
 
     BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 
@@ -447,6 +472,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
   }
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.
 BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
   {
     // rfc5155 appendix A
@@ -519,4 +545,5 @@ BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
   }
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.
 BOOST_AUTO_TEST_SUITE_END()

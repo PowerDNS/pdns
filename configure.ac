@@ -325,6 +325,9 @@ AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 CFLAGS="$SANITIZER_FLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
+CCVERSION=`$CC --version | head -1`
+CXXVERSION=`$CXX --version | head -1`
+
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
 AS_IF([test "x$PACKAGEVERSION" != "x"],
   [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
@@ -365,8 +368,8 @@ AC_MSG_NOTICE([=====================])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configured with: $pdns_configure_args])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([CC: $CC])
-AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([CC: $CC ($CCVERSION)])
+AC_MSG_NOTICE([CXX: $CXX ($CXXVERSION)])
 AC_MSG_NOTICE([LD: $LD])
 AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])

@@ -19,15 +19,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/time.h>
-#include <time.h>
+#include <ctime>
 #include <sys/resource.h>
 #include <netinet/in.h>
 #include <sys/un.h>
@@ -35,6 +37,7 @@
 #include <fstream>
 #include "misc.hh"
 #include <vector>
+#include <string>
 #include <sstream>
 #include <cerrno>
 #include <cstring>
@@ -46,19 +49,16 @@
 #include <iomanip>
 #include <netinet/tcp.h>
 #include <optional>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include "pdnsexception.hh"
-#include <sys/types.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "iputils.hh"
 #include "dnsparser.hh"
-#include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include <limits.h>
+#include <climits>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -66,6 +66,10 @@
 #  include <pthread.h>
 #  include <sched.h>
 #endif
+
+#if defined(HAVE_LIBCRYPTO)
+#include <openssl/err.h>
+#endif // HAVE_LIBCRYPTO
 
 size_t writen2(int fd, const void *buf, size_t count)
 {
@@ -224,6 +228,67 @@ auto pdns::getMessageFromErrno(const int errnum) -> std::string
   std::string message{errMsg};
   return message;
 }
+
+#if defined(HAVE_LIBCRYPTO)
+auto pdns::OpenSSL::error(const std::string& errorMessage) -> std::runtime_error
+{
+  unsigned long errorCode = 0;
+  auto fullErrorMessage{errorMessage};
+#if OPENSSL_VERSION_MAJOR >= 3
+  const char* filename = nullptr;
+  const char* functionName = nullptr;
+  int lineNumber = 0;
+  while ((errorCode = ERR_get_error_all(&filename, &lineNumber, &functionName, nullptr, nullptr)) != 0) {
+    fullErrorMessage += std::string(": ") + std::to_string(errorCode);
+
+    const auto* lib = ERR_lib_error_string(errorCode);
+    if (lib != nullptr) {
+      fullErrorMessage += std::string(":") + lib;
+    }
+
+    const auto* reason = ERR_reason_error_string(errorCode);
+    if (reason != nullptr) {
+      fullErrorMessage += std::string("::") + reason;
+    }
+
+    if (filename != nullptr) {
+      fullErrorMessage += std::string(" - ") + filename;
+    }
+    if (lineNumber != 0) {
+      fullErrorMessage += std::string(":") + std::to_string(lineNumber);
+    }
+    if (functionName != nullptr) {
+      fullErrorMessage += std::string(" - ") + functionName;
+    }
+  }
+#else
+  while ((errorCode = ERR_get_error()) != 0) {
+    fullErrorMessage += std::string(": ") + std::to_string(errorCode);
+
+    const auto* lib = ERR_lib_error_string(errorCode);
+    if (lib != nullptr) {
+      fullErrorMessage += std::string(":") + lib;
+    }
+
+    const auto* func = ERR_func_error_string(errorCode);
+    if (func != nullptr) {
+      fullErrorMessage += std::string(":") + func;
+    }
+
+    const auto* reason = ERR_reason_error_string(errorCode);
+    if (reason != nullptr) {
+      fullErrorMessage += std::string("::") + reason;
+    }
+  }
+#endif
+  return std::runtime_error(fullErrorMessage);
+}
+
+auto pdns::OpenSSL::error(const std::string& componentName, const std::string& errorMessage) -> std::runtime_error
+{
+  return pdns::OpenSSL::error(componentName + ": " + errorMessage);
+}
+#endif // HAVE_LIBCRYPTO
 
 string nowTime()
 {

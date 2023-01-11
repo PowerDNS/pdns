@@ -49,6 +49,7 @@ typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_
 
 namespace pdns
 {
+#if defined(HAVE_LIBCRYPTO)
 /**
  * \brief Retrieves the errno-based error message in a reentrant way.
  *
@@ -61,6 +62,25 @@ namespace pdns
  * \return The `std::string` error message.
  */
 auto getMessageFromErrno(int errnum) -> std::string;
+
+namespace OpenSSL
+{
+  /**
+   * \brief Throws a `std::runtime_error` with the current OpenSSL error.
+   *
+   * \param[in] errorMessage The message to attach in addition to the OpenSSL error.
+   */
+  [[nodiscard]] auto error(const std::string& errorMessage) -> std::runtime_error;
+
+  /**
+   * \brief Throws a `std::runtime_error` with a name and the current OpenSSL error.
+   *
+   * \param[in] componentName The name of the component to mark the error message with.
+   * \param[in] errorMessage The message to attach in addition to the OpenSSL error.
+   */
+  [[nodiscard]] auto error(const std::string& componentName, const std::string& errorMessage) -> std::runtime_error;
+}
+#endif // HAVE_LIBCRYPTO
 }
 
 string nowTime();

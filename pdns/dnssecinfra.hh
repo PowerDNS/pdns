@@ -36,43 +36,51 @@ class DNSCryptoKeyEngine
   public:
     explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
     virtual ~DNSCryptoKeyEngine() {};
-    virtual string getName() const = 0;
+    [[nodiscard]] virtual string getName() const = 0;
 
-    typedef std::map<std::string, std::string> stormap_t;
-    typedef std::vector<std::pair<std::string, std::string > > storvector_t;
+    using stormap_t = std::map<std::string, std::string>;
+    using storvector_t = std::vector<std::pair<std::string, std::string>>;
     virtual void create(unsigned int bits)=0;
+
     virtual void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp)
     {
       throw std::runtime_error("Can't create key from PEM file");
     }
-    virtual storvector_t convertToISCVector() const =0;
-    std::string convertToISC() const ;
+
+    [[nodiscard]] virtual storvector_t convertToISCVector() const =0;
+    [[nodiscard]] std::string convertToISC() const ;
+
     virtual void convertToPEM(std::FILE& fp) const
     {
       throw std::runtime_error(getName() + ": Conversion to PEM not supported");
     };
-    virtual std::string sign(const std::string& msg) const =0;
-    virtual std::string hash(const std::string& msg) const
+
+    [[nodiscard]] virtual std::string sign(const std::string& msg) const =0;
+
+    [[nodiscard]] virtual std::string hash(const std::string& msg) const
     {
        throw std::runtime_error("hash() function not implemented");
        return msg;
     }
-    virtual bool verify(const std::string& msg, const std::string& signature) const =0;
 
-    virtual std::string getPubKeyHash()const =0;
-    virtual std::string getPublicKeyString()const =0;
-    virtual int getBits() const =0;
-    virtual unsigned int getAlgorithm() const
+    [[nodiscard]] virtual bool verify(const std::string& msg, const std::string& signature) const =0;
+
+    [[nodiscard]] virtual std::string getPubKeyHash()const =0;
+    [[nodiscard]] virtual std::string getPublicKeyString()const =0;
+    [[nodiscard]] virtual int getBits() const =0;
+    [[nodiscard]] virtual unsigned int getAlgorithm() const
     {
       return d_algorithm;
     }
 
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) = 0;
     virtual void fromPublicKeyString(const std::string& content) = 0;
+
     virtual bool checkKey(vector<string>* errorMessages = nullptr) const
     {
       return true;
     }
+
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
 
     /**
@@ -95,7 +103,7 @@ class DNSCryptoKeyEngine
      * \return A key engine corresponding to the requested algorithm and
      * populated with the contents of the PEM file.
      */
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp, uint8_t algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile, uint8_t algorithm);
 
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
@@ -103,17 +111,17 @@ class DNSCryptoKeyEngine
     static bool isAlgorithmSupported(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
 
-    typedef std::unique_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
+    using maker_t = std::unique_ptr<DNSCryptoKeyEngine> (unsigned int);
 
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static void testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
     static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
     static bool testAll();
     static bool testOne(int algo);
-  private:
 
-    typedef std::map<unsigned int, maker_t*> makers_t;
-    typedef std::map<unsigned int, vector<maker_t*> > allmakers_t;
+  private:
+    using makers_t = std::map<unsigned int, maker_t *>;
+    using allmakers_t = std::map<unsigned int, vector<maker_t *>>;
     static makers_t& getMakers()
     {
       static makers_t s_makers;
@@ -124,6 +132,7 @@ class DNSCryptoKeyEngine
       static allmakers_t s_allmakers;
       return s_allmakers;
     }
+
   protected:
     const unsigned int d_algorithm;
 };

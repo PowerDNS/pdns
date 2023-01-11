@@ -165,7 +165,6 @@
 ./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/ipcipher.cc
 ./pdns/iputils.cc
 ./pdns/iputils.hh
 ./pdns/ixfr.cc
@@ -284,7 +283,6 @@
 ./pdns/test-dnsrecordcontent.cc
 ./pdns/test-dnsrecords_cc.cc
 ./pdns/test-dnswriter_cc.cc
-./pdns/test-ipcrypt_cc.cc
 ./pdns/test-iputils_hh.cc
 ./pdns/test-ixfr_cc.cc
 ./pdns/test-lock_hh.cc
@@ -304,7 +302,6 @@
 ./pdns/test-tsig.cc
 ./pdns/test-ueberbackend_cc.cc
 ./pdns/test-zoneparser_tng_cc.cc
-./pdns/testrunner.cc
 ./pdns/threadname.cc
 ./pdns/tkey.cc
 ./pdns/trusted-notification-proxy.cc
