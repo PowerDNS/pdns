@@ -517,3 +517,75 @@ class TestCustomMetrics(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
+
+class TestDNSQuestionTime(DNSDistTest):
+    _config_template = """
+    local queryTime = nil
+
+    function luaquery(dq)
+      if queryTime then
+        errlog('Error, the time variable is already set')
+        return DNSAction.Drop
+      end
+      queryTime = dq:getQueryTime()
+      local currentTime = getCurrentTime()
+      if queryTime.tv_sec > currentTime.tv_sec then
+        errlog('Error, query time is higher than current time')
+        return DNSAction.Drop
+      end
+      if queryTime.tv_sec == currentTime.tv_sec and queryTime.tv_nsec > currentTime.tv_nsec then
+        errlog('Error, query time NS is higher than current time')
+        return DNSAction.Drop
+      end
+      return DNSAction.None
+    end
+
+    function luaresponse(dr)
+      if queryTime == nil then
+        errlog('Error, the time variable is NOT set')
+        return DNSAction.Drop
+      end
+      local currentTime	= getCurrentTime()
+      local queryTimeFromResponse = dr:getQueryTime()
+      if queryTime.tv_sec ~= queryTimeFromResponse.tv_sec or queryTime.tv_nsec ~= queryTimeFromResponse.tv_nsec then
+        errlog('Error, the query time in the response does NOT match the one from the query')
+        return DNSAction.Drop
+      end
+      if queryTime.tv_sec > currentTime.tv_sec then
+        errlog('Error, query time is higher than current time')
+        return DNSAction.Drop
+      end
+      if queryTime.tv_sec == currentTime.tv_sec and queryTime.tv_nsec > currentTime.tv_nsec then
+        errlog('Error, query time (NS) is higher than current time')
+        return DNSAction.Drop
+      end
+
+      queryTime = nil
+      return DNSAction.None
+    end
+
+    addAction(AllRule(), LuaAction(luaquery))
+    addResponseAction(AllRule(), LuaResponseAction(luaresponse))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testQueryTime(self):
+        """
+        Advanced: Test query time
+        """
+        name = 'query.time.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '4.3.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)

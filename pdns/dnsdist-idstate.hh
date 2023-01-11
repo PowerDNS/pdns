@@ -66,6 +66,17 @@ struct StopWatch
     return ret;
   }
 
+  struct timespec getStartTime() const
+  {
+    return d_start;
+  }
+
+  struct timespec d_start
+  {
+    0, 0
+  };
+
+private:
   struct timespec getCurrentTime() const
   {
     struct timespec now;
@@ -75,12 +86,6 @@ struct StopWatch
     return now;
   }
 
-  struct timespec d_start
-  {
-    0, 0
-  };
-
-private:
   bool d_needRealTime;
 };
 

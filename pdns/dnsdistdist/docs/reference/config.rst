@@ -1743,6 +1743,14 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: getCurrentTime -> timespec
+
+  .. versionadded:: 1.8.0
+
+  Return the current time, in whole seconds and nanoseconds since epoch.
+
+  :returns: A timespec object, see :ref:`timespec`
+
 .. function:: getResolvers(path)
 
   .. versionadded:: 1.8.0
@@ -1979,6 +1987,8 @@ LuaRingEntry
 .. attribute:: LuaRingEntry.when
 
     The timestamp of this entry, as a :ref:`timespec`.
+
+.. _timespec:
 
 timespec
 ~~~~~~~~

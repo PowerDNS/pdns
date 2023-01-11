@@ -517,6 +517,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getAction", true, "n", "Returns the Action associated with rule n" },
   { "getBind", true, "n", "returns the listener at index n" },
   { "getBindCount", true, "", "returns the number of listeners all kinds" },
+  { "getCurrentTime", true, "", "returns the current time" },
   { "getDNSCryptBind", true, "n", "return the `DNSCryptContext` object corresponding to the bind `n`" },
   { "getDNSCryptBindCount", true, "", "returns the number of DNSCrypt listeners" },
   { "getDOHFrontend", true, "n", "returns the DOH frontend with index n" },

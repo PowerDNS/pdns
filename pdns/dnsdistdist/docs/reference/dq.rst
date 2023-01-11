@@ -173,6 +173,14 @@ This state can be modified from the various hooks.
 
     :returns: A table whose keys are types and values are binary-safe strings
 
+  .. method:: DNSQuestion:getQueryTime -> timespec
+
+    .. versionadded:: 1.8.0
+
+    Return the time at which the current query has been received, in whole seconds and nanoseconds since epoch, as a :ref:`timespec` object.
+
+    :returns: A :ref:`timespec` object
+
   .. method:: DNSQuestion:getServerNameIndication() -> string
 
     .. versionadded:: 1.4.0
