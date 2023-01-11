@@ -119,6 +119,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
 
 @task
 def apt_fresh(c):
+    c.sudo('sed -i \'s/azure\.//\' /etc/apt/sources.list')
     c.sudo('apt-get update')
     c.sudo('apt-get dist-upgrade')
 
