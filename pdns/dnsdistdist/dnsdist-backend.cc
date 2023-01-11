@@ -447,17 +447,16 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
   }
 
   do {
-    IDState* ids = nullptr;
     uint16_t selectedID = (idOffset++) % idStates.size();
-    ids = &idStates[selectedID];
-    auto guard = ids->acquire();
+    IDState& ids = idStates[selectedID];
+    auto guard = ids.acquire();
     if (!guard) {
       continue;
     }
-    if (ids->isInUse()) {
+    if (ids.isInUse()) {
       /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
          to handle it because it's about to be overwritten. */
-      auto oldDU = std::move(ids->internal.du);
+      auto oldDU = std::move(ids.internal.du);
       ++reuseds;
       ++g_stats.downstreamTimeouts;
       handleDOHTimeout(std::move(oldDU));
@@ -465,9 +464,9 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
     else {
       ++outstanding;
     }
-    ids->internal = std::move(state);
-    ids->age.store(0);
-    ids->inUse = true;
+    ids.internal = std::move(state);
+    ids.age.store(0);
+    ids.inUse = true;
     return selectedID;
   }
   while (true);

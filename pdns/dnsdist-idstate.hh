@@ -160,14 +160,13 @@ struct IDState
   }
 
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs)
+  IDState(IDState&& rhs) noexcept: internal(std::move(rhs.internal))
   {
     inUse.store(rhs.inUse.load());
     age.store(rhs.age.load());
-    internal = std::move(rhs.internal);
   }
 
-  IDState& operator=(IDState&& rhs)
+  IDState& operator=(IDState&& rhs) noexcept
   {
     inUse.store(rhs.inUse.load());
     age.store(rhs.age.load());
@@ -177,7 +176,7 @@ struct IDState
 
   bool isInUse() const
   {
-    return inUse == true;
+    return inUse;
   }
 
   /* For performance reasons we don't want to use a lock here, but that means
