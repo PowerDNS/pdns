@@ -160,7 +160,7 @@ struct IDState
   }
 
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs) noexcept:
+  IDState(IDState&& rhs) noexcept :
     internal(std::move(rhs.internal))
   {
     inUse.store(rhs.inUse.load());
