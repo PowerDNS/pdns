@@ -259,7 +259,7 @@ void DownstreamState::connectUDPSockets()
   sockets.resize(d_config.d_numberOfSockets);
 
   if (sockets.size() > 1) {
-    *(mplexer.lock()) = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    *(mplexer.lock()) = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(sockets.size()));
   }
 
   for (auto& fd : sockets) {

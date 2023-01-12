@@ -1807,7 +1807,7 @@ static void udpClientThread(std::vector<ClientState*> states)
             usleep(1000);
           }
         };
-        auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+        auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(params.size()));
         for (size_t idx = 0; idx < params.size(); idx++) {
           const auto& param = params.at(idx);
           mplexer->addReadFD(param.socket, callback, &param);
@@ -1959,7 +1959,7 @@ static void healthChecksThread()
       }
 
       if (!mplexer) {
-        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states->size()));
       }
 
       if (!queueHealthCheck(mplexer, dss)) {
