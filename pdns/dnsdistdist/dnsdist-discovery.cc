@@ -147,7 +147,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
   }
 
   for (const auto& [priority, resolver] : resolvers) {
-    (void) priority;
+    (void)priority;
     /* do not compare the ports */
     std::set<ComboAddress, ComboAddress::addressOnlyLessThan> tentativeAddresses;
     ServiceDiscovery::DiscoveredResolverConfig tempConfig;
