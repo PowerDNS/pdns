@@ -35,6 +35,12 @@ This state can be modified from the various hooks.
 
     Integer describing the OPCODE of the packet. Can be matched against :ref:`DNSOpcode`.
 
+  .. attribute:: DNSQuestion.pool
+
+    .. versionadded:: 1.8.0
+
+    The pool of servers to which this query will be routed.
+
   .. attribute:: DNSQuestion.qclass
 
     QClass (as an unsigned integer) of this question.
@@ -272,6 +278,14 @@ This state can be modified from the various hooks.
 
     :param table values: A table of types and values to send, for example: ``{ [0x00] = "foo", [0x42] = "bar" }``. Note that the type must be an integer. Try to avoid these values: 0x01 - 0x05, 0x20 - 0x25, 0x30 as those are predefined in https://www.haproxy.org/download/2.3/doc/proxy-protocol.txt (search for `PP2_TYPE_ALPN`)
 
+  .. method:: DNSQuestion:setRestartable()
+
+    .. versionadded:: 1.8.0
+
+    Make it possible to restart that query after receiving the response, for example to try a different pool of servers after receiving a SERVFAIL or a REFUSED response.
+    Under the hood, this tells dnsdist to keep a copy of the initial query around so that we can send it a second time if needed. Copying the initial DNS payload has a small memory and CPU cost and thus is not done by default.
+    See also :func:`DNSResponse:restart`.
+
   .. method:: DNSQuestion:setTag(key, value)
 
     .. versionchanged:: 1.7.0
@@ -369,6 +383,35 @@ DNSResponse object
     Setting this TTL to 0 to leaves it unchanged
 
     :param string func: The function to call to edit TTLs.
+
+  .. method:: DNSResponse:restart()
+
+    .. versionadded:: 1.8.0
+
+    Discard the received response and restart the processing of the query, for example after selecting a different pool of servers:
+
+    .. code-block:: Lua
+
+      function makeQueryRestartable(dq)
+        -- make it possible to restart that query later
+        -- by keeping a copy of the initial DNS payload around
+        dq:setRestartable()
+        return DNSAction.None
+      end
+      function restartOnServFail(dr)
+        if dr.rcode == DNSRCode.SERVFAIL then
+          -- assign this query to a new pool
+          dr.pool = 'restarted'
+          -- discard the received response and
+          -- restart the processing of the query
+          dr:restart()
+        end
+        return DNSResponseAction.None
+      end
+      addAction(AllRule(), LuaAction(makeQueryRestartable))
+      addResponseAction(AllRule(), LuaResponseAction(restartOnServFail))
+
+    For this function to be usable, the query should have been made restartable first, via :func:`DNSQuestion:setRestartable`.
 
 .. _DNSHeader:
 
