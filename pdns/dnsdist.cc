@@ -552,6 +552,12 @@ bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRu
     }
   }
 
+  if (dr.ids.ttlCap > 0) {
+    std::string result;
+    LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
+    ac(&dr, &result);
+  }
+
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
     if (!encryptResponse(response, dr.getMaximumSize(), dr.overTCP(), dr.ids.dnsCryptQuery)) {
@@ -1216,6 +1222,12 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 
   if (!applyRulesToResponse(cacheHit ? *holders.cacheHitRespRuleactions : *holders.selfAnsweredRespRuleactions, dr)) {
     return false;
+  }
+
+  if (dr.ids.ttlCap > 0) {
+    std::string result;
+    LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
+    ac(&dr, &result);
   }
 
 #ifdef HAVE_DNSCRYPT
