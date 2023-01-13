@@ -19,7 +19,6 @@ dnl <http://www.gnu.org/licenses/>.
 dnl
 
 AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
-  AC_MSG_CHECKING([whether FORTIFY_SOURCE is supported])
   AC_ARG_ENABLE([fortify-source],
     AS_HELP_STRING([--enable-fortify-source], [enable FORTIFY_SOURCE support @<:@default=2@:>@]),
     [enable_fortify_source=$enableval],
@@ -65,5 +64,6 @@ AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
 
   ], [])
 
+  AC_MSG_CHECKING([whether FORTIFY_SOURCE is supported])
   AC_MSG_RESULT([$enable_fortify_source])
 ])
