@@ -168,8 +168,8 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return result;
   });
 
-  luaCtx.registerFunction<bool(DNSQuestion::*)(const DNSName& newName)>("rebase", [](DNSQuestion& dq, const DNSName& newName) -> bool {
-    if (!dnsdist::rebaseDNSPacket(dq.getMutableData(), dq.ids.qname, newName)) {
+  luaCtx.registerFunction<bool(DNSQuestion::*)(const DNSName& newName)>("changeName", [](DNSQuestion& dq, const DNSName& newName) -> bool {
+    if (!dnsdist::changeNameInDNSPacket(dq.getMutableData(), dq.ids.qname, newName)) {
       return false;
     }
     dq.ids.qname = newName;
@@ -444,8 +444,8 @@ private:
     return dnsdist::suspendResponse(dr, asyncID, queryID, timeoutMs);
   });
 
-  luaCtx.registerFunction<bool(DNSResponse::*)(const DNSName& newName)>("rebase", [](DNSResponse& dr, const DNSName& newName) -> bool {
-    if (!dnsdist::rebaseDNSPacket(dr.getMutableData(), dr.ids.qname, newName)) {
+  luaCtx.registerFunction<bool(DNSResponse::*)(const DNSName& newName)>("changeName", [](DNSResponse& dr, const DNSName& newName) -> bool {
+    if (!dnsdist::changeNameInDNSPacket(dr.getMutableData(), dr.ids.qname, newName)) {
       return false;
     }
     dr.ids.qname = newName;
