@@ -26,6 +26,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -69,6 +70,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -95,6 +97,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -125,6 +128,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
