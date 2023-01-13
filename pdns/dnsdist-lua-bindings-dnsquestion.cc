@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-lua.hh"
@@ -165,6 +166,14 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     }
 
     return result;
+  });
+
+  luaCtx.registerFunction<bool(DNSQuestion::*)(const DNSName& newName)>("rebase", [](DNSQuestion& dq, const DNSName& newName) -> bool {
+    if (!dnsdist::rebaseDNSPacket(dq.getMutableData(), dq.ids.qname, newName)) {
+      return false;
+    }
+    dq.ids.qname = newName;
+    return true;
   });
 
   luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response) {
@@ -433,6 +442,14 @@ private:
   luaCtx.registerFunction<bool(DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
     dr.asynchronous = true;
     return dnsdist::suspendResponse(dr, asyncID, queryID, timeoutMs);
+  });
+
+  luaCtx.registerFunction<bool(DNSResponse::*)(const DNSName& newName)>("rebase", [](DNSResponse& dr, const DNSName& newName) -> bool {
+    if (!dnsdist::rebaseDNSPacket(dr.getMutableData(), dr.ids.qname, newName)) {
+      return false;
+    }
+    dr.ids.qname = newName;
+    return true;
   });
 
   luaCtx.registerFunction<bool(DNSResponse::*)()>("restart", [](DNSResponse& dr) {

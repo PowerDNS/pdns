@@ -217,6 +217,17 @@ This state can be modified from the various hooks.
 
     :returns: The trailing data as a null-safe string
 
+  .. method:: DNSQuestion:rebase(newName) -> bool
+
+    .. versionadded:: 1.8.0
+
+    Change the qname of the current query in the DNS payload.
+    The reverse operation will have to be done on the response to set it back to the initial name, or the client will be confused and likely drop the response.
+    See :func:`DNSResponse:rebase`.
+    Returns false on failure, true on success.
+
+    :param DNSName newName: The new qname to use
+
   .. method:: DNSQuestion:sendTrap(reason)
 
     Send an SNMP trap.
@@ -393,6 +404,24 @@ DNSResponse object
     Setting this TTL to 0 to leaves it unchanged
 
     :param string func: The function to call to edit TTLs.
+
+  .. method:: DNSResponse:rebase(initialName) -> bool
+
+    .. versionadded:: 1.8.0
+
+    Change the qname and records matching exactly this qname in the DNS payload of the current response to the supplied new name.
+    This only makes if the reverse operation was performed on the query, or the client will be confused and likely drop the response.
+    Note that only records whose owner name matches the qname in the initial response will be rewritten, and that only the owner name itself will be altered,
+    not the content of the record rdata. For some records this might cause an issue with compression pointers contained in the payload, as they might
+    no longer point to the correct position in the DNS payload. To prevent that, the records are checked against a list of supported record types,
+    and the rewriting will not be performed if an unsupported type is present. As of 1.8.0 the list of supported types is:
+    A, AAAA, DHCID, TXT, OPT, HINFO, DNSKEY, CDNSKEY, DS, CDS, DLV, SSHFP, KEY, CERT, TLSA, SMIMEA, OPENPGPKEY, NSEC, NSEC3, CSYNC, NSEC3PARAM, LOC, NID, L32, L64, EUI48, EUI64, URI, CAA, NS, PTR, CNAME, DNAME, RRSIG, MX, SOA, SRV
+    Therefore this functionality only makes sense when the initial query is requesting a very simple type, like A or AAAA.
+
+    See also :func:`DNSQuestion:rebase`.
+    Returns false on failure, true on success.
+
+    :param DNSName initialName: The initial qname
 
   .. method:: DNSResponse:restart()
 
