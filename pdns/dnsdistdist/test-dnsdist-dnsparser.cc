@@ -71,6 +71,13 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
     pwR.addOpt(4096, 0, 0);
     pwR.commit();
 
+    {
+      // check packet smaller than dnsheader
+      BOOST_CHECK_THROW(dnsdist::DNSPacketOverlay(std::string_view(reinterpret_cast<const char*>(response.data()), 11U)), std::runtime_error);
+      // check corrupted packet
+      BOOST_CHECK_THROW(dnsdist::DNSPacketOverlay(std::string_view(reinterpret_cast<const char*>(response.data()), response.size() - 1)), std::runtime_error);
+    }
+
     dnsdist::DNSPacketOverlay overlay(std::string_view(reinterpret_cast<const char*>(response.data()), response.size()));
     BOOST_CHECK_EQUAL(overlay.d_qname, target);
     BOOST_CHECK_EQUAL(overlay.d_qtype, QType::ANY);
