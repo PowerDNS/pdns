@@ -27,6 +27,12 @@
 #include <openssl/ssl.h>
 #include <fcntl.h>
 
+#if OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
+#include <openssl/evp.h>
+#endif
+
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
@@ -214,9 +220,13 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
   SSL_CTX_set_ex_data(ctx, s_ticketsKeyIndex, data);
 }
 
-int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+#if OPENSSL_VERSION_MAJOR >= 3
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+#else
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+#endif
 {
-  if (enc) {
+  if (enc != 0) {
     const auto key = keyring.getEncryptionKey();
     if (key == nullptr) {
       return -1;
@@ -233,7 +243,7 @@ int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsign
     return 0;
   }
 
-  if (key->decrypt(iv, ectx, hctx) == false) {
+  if (!key->decrypt(iv, ectx, hctx)) {
     return -1;
   }
 
@@ -695,7 +705,15 @@ bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_N
   return (memcmp(d_name, name, sizeof(d_name)) == 0);
 }
 
-int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+#if OPENSSL_VERSION_MAJOR >= 3
+static const std::string sha256KeyName{"sha256"};
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const
+#else
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
+#endif
 {
   memcpy(keyName, d_name, sizeof(d_name));
 
@@ -707,18 +725,74 @@ int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE
     return -1;
   }
 
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    return -1;
+  }
+
+  if (OSSL_PARAM_BLD_push_utf8_string(params_build.get(), OSSL_MAC_PARAM_DIGEST, sha256KeyName.c_str(), sha256KeyName.size()) == 0) {
+    return -1;
+  }
+
+  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  if (params == nullptr) {
+    return -1;
+  }
+
+  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+    return -1;
+  }
+
+  if (EVP_MAC_init(hctx, d_hmacKey, sizeof(d_hmacKey), nullptr) == 0) {
+    return -1;
+  }
+#else
   if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
     return -1;
   }
+#endif
 
   return 1;
 }
 
-bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+#if OPENSSL_VERSION_MAJOR >= 3
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const
+#else
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
+#endif
 {
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    return false;
+  }
+
+  if (OSSL_PARAM_BLD_push_utf8_string(params_build.get(), OSSL_MAC_PARAM_DIGEST, sha256KeyName.c_str(), sha256KeyName.size()) == 0) {
+    return false;
+  }
+
+  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  if (params == nullptr) {
+    return false;
+  }
+
+  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+    return false;
+  }
+
+  if (EVP_MAC_init(hctx, d_hmacKey, sizeof(d_hmacKey), nullptr) == 0) {
+    return false;
+  }
+#else
   if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
     return false;
   }
+#endif
 
   if (EVP_DecryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
     return false;

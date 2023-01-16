@@ -1391,7 +1391,11 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
 }
 #endif /* DISABLE_OCSP_STAPLING */
 
+#if OPENSSL_VERSION_MAJOR >= 3
+static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, EVP_MAC_CTX *hctx, int enc)
+#else
 static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+#endif
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(libssl_get_ticket_key_callback_data(s));
   if (ctx == nullptr || !ctx->d_ticketKeys) {
@@ -1425,7 +1429,11 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
 
   if (tlsConfig.d_enableTickets && tlsConfig.d_numberOfTicketsKeys > 0) {
     acceptCtx.d_ticketKeys = std::make_unique<OpenSSLTLSTicketKeysRing>(tlsConfig.d_numberOfTicketsKeys);
+#if OPENSSL_VERSION_MAJOR >= 3
+    SSL_CTX_set_tlsext_ticket_key_evp_cb(ctx.get(), &ticket_key_callback);
+#else
     SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
+#endif
     libssl_set_ticket_key_callback_data(ctx.get(), &acceptCtx);
   }
 
