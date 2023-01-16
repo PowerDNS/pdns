@@ -133,9 +133,6 @@ int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsign
 
 #ifndef DISABLE_OCSP_STAPLING
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap);
-
-std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes);
-
 #ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
 #endif
@@ -147,8 +144,10 @@ LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
 bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
 
-std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
-                                                                       std::map<int, std::string>& ocspResponses);
+/* return the created context, and a list of warning messages for issues not severe enough
+   to trigger raising an exception, like failing to load an OCSP response file */
+std::pair<std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
+                                                                                                            std::map<int, std::string>& ocspResponses);
 
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
 
