@@ -305,7 +305,7 @@ static bool libssl_validate_ocsp_response(const std::string& response)
   return true;
 }
 
-std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes)
+static std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes, std::vector<std::string>& warnings)
 {
   std::map<int, std::string> ocspResponses;
 
@@ -317,12 +317,13 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   for (const auto& filename : ocspFiles) {
     std::ifstream file(filename, std::ios::binary);
     std::string content;
-    while(file) {
+    while (file) {
       char buffer[4096];
       file.read(buffer, sizeof(buffer));
       if (file.bad()) {
         file.close();
-        throw std::runtime_error("Unable to load OCSP response from '" + filename + "'");
+        warnings.push_back("Unable to load OCSP response from " + filename);
+        continue;
       }
       content.append(buffer, file.gcount());
     }
@@ -333,7 +334,8 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
       ocspResponses.insert({keyTypes.at(count), std::move(content)});
     }
     catch (const std::exception& e) {
-      throw std::runtime_error("Error checking the validity of OCSP response from '" + filename + "': " + e.what());
+      warnings.push_back("Error checking the validity of OCSP response from '" + filename + "': " + e.what());
+      continue;
     }
     ++count;
   }
@@ -341,7 +343,7 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   return ocspResponses;
 }
 
-int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
+static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
 {
 #ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
   auto pkey = SSL_CTX_get0_privatekey(ctx.get());
@@ -645,10 +647,15 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx,
   return true;
 }
 
-std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
-                                                                       std::map<int, std::string>& ocspResponses)
+std::pair<std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
+                                                                                                            std::map<int, std::string>& ocspResponses)
 {
-  auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+  std::vector<std::string> warnings;
+  auto ctx = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+
+  if (!ctx) {
+    throw std::runtime_error("Error creating an OpenSSL server context");
+  }
 
   int sslOptions =
     SSL_OP_NO_SSLv2 |
@@ -742,7 +749,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 
   if (!config.d_ocspFiles.empty()) {
     try {
-      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes);
+      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes, warnings);
     }
     catch(const std::exception& e) {
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
@@ -759,7 +766,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
-  return ctx;
+  return std::make_pair(std::move(ctx), std::move(warnings));
 }
 
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK

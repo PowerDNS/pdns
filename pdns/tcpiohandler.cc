@@ -30,7 +30,12 @@ public:
   {
     registerOpenSSLUser();
 
-    d_tlsCtx = libssl_init_server_context(tlsConfig, d_ocspResponses);
+    auto [ctx, warnings] = libssl_init_server_context(tlsConfig, d_ocspResponses);
+    for (const auto& warning : warnings) {
+      warnlog("%s", warning);
+    }
+    d_tlsCtx = std::move(ctx);
+
     if (!d_tlsCtx) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Error creating TLS context on " + addr.toStringWithPort());
@@ -1494,7 +1499,7 @@ public:
     for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).first + "') and key ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, fe.d_tlsConfig.d_certKeyPairs.at(count).first, fe.d_tlsConfig.d_certKeyPairs.at(count).second, fe.d_addr.toStringWithPort(), gnutls_strerror(rc));
       }
       ++count;
     }

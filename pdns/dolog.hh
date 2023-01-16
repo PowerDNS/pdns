@@ -170,4 +170,3 @@ void errlog(const char* s, Args... args)
 }
 
 #endif
-
