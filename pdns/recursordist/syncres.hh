@@ -652,6 +652,16 @@ private:
     d_updatingRootNS = true;
   }
 
+  std::string getPrefix(unsigned int depth) const
+  {
+    if (!doLog()) {
+      return "";
+    }
+    auto prefix = d_prefix;
+    prefix.append(depth, ' ');
+    return prefix;
+  }
+
   zonesStates_t d_cutStates;
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
