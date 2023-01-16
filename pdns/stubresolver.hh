@@ -26,5 +26,5 @@
 
 void stubParseResolveConf();
 bool resolversDefined();
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, EDNSSubnetOpts* d_eso);
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, EDNSSubnetOpts* d_eso);
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, EDNSSubnetOpts* d_eso = nullptr);
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, EDNSSubnetOpts* d_eso = nullptr);

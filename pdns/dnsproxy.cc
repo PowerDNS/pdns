@@ -93,15 +93,15 @@ void DNSProxy::go()
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
 bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask)
 {
-  bool pass_edns = false;
+  bool pass_ecs = false;
   string ECSOptionStr = "";
 
   DLOG(g_log<<"dnsproxy::completePacket: Parsed edns source: "<<r->d_eso.source.toString()<<", scope: "<<r->d_eso.scope.toString()<<", family = "<<r->d_eso.scope.getNetwork().sin4.sin_family<<endl);
   if (r->hasEDNSSubnet())
   {
     ECSOptionStr = makeEDNSSubnetOptsString(r->d_eso);
-    DLOG(g_log<<"from dnsproxy::completePacket: adding edns options "<<ECSOptionStr<<endl);
-    pass_edns = true;
+    DLOG(g_log<<"from dnsproxy::completePacket: adding edns options "<<makeHexDump(ECSOptionStr)<<endl);
+    pass_ecs = true;
   }
 
   if(r->d_tcp) {
@@ -165,9 +165,9 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   pw.getHeader()->rd=true;
   pw.getHeader()->id=id ^ d_xor;
   // Add EDNS Subnet if the client sent one - issue #5469
-  if (pass_edns)
+  if (pass_ecs)
   {
-    DLOG(g_log<<"from dnsproxy::completePacket: adding ECS option "<<ECSOptionStr<<endl);
+    DLOG(g_log<<"from dnsproxy::completePacket: adding ECS option "<<makeHexDump(ECSOptionStr)<<endl);
     DNSPacketWriter::optvect_t opts;
     opts.emplace_back(EDNSOptionCode::ECS, ECSOptionStr);
     pw.addOpt(512, 0, 0, opts);
