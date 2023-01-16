@@ -1,6 +1,6 @@
-:program:`PowerDNS Recursor`
------------------
-For full details on building :program:`PowerDNS Recursor`, please read https://docs.powerdns.com/recursor/appendices/compiling.html
+PowerDNS Recursor
+=================
+For full details on building PowerDNS Recursor, please read https://docs.powerdns.com/recursor/appendices/compiling.html
 
 Documentation
 =============
