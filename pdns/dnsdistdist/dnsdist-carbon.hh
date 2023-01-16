@@ -24,18 +24,38 @@
 #include "config.h"
 
 #ifndef DISABLE_CARBON
-#include "sholder.hh"
-#include "iputils.hh"
 
-struct CarbonConfig
+#include <thread>
+#include "iputils.hh"
+#include "lock.hh"
+
+namespace dnsdist
 {
-  ComboAddress server;
-  std::string namespace_name;
-  std::string ourname;
-  std::string instance_name;
-  unsigned int interval;
+class Carbon
+{
+public:
+  struct Endpoint
+  {
+    ComboAddress server;
+    std::string namespace_name;
+    std::string ourname;
+    std::string instance_name;
+    unsigned int interval;
+  };
+
+  static bool addEndpoint(Endpoint&& endpoint);
+  static void run();
+
+private:
+  struct Config
+  {
+    std::vector<Endpoint> d_endpoints;
+    bool d_running{false};
+  };
+
+  static LockGuarded<Config> s_config;
 };
 
-extern GlobalStateHolder<std::vector<CarbonConfig>> g_carbon;
-void carbonDumpThread();
+}
+
 #endif /* DISABLE_CARBON */

@@ -2852,8 +2852,7 @@ int main(int argc, char** argv)
     dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON
-    thread carbonthread(carbonDumpThread);
-    carbonthread.detach();
+    dnsdist::Carbon::run();
 #endif /* DISABLE_CARBON */
 
     thread stattid(maintThread);
