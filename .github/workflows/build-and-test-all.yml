@@ -18,6 +18,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -64,6 +65,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -114,6 +116,7 @@ jobs:
       run:
         working-directory: ./pdns/dnsdistdist/
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -179,6 +182,7 @@ jobs:
         options: >-
           --restart always
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -241,6 +245,7 @@ jobs:
         options: >-
           --restart always
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -265,6 +270,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -290,6 +296,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -316,6 +323,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -346,6 +354,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
       TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -374,6 +383,7 @@ jobs:
       # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
       SKIP_INCLUDEDIR_TESTS: yes
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
@@ -391,6 +401,7 @@ jobs:
   swagger-syntax-check:
     runs-on: ubuntu-20.04
     steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
