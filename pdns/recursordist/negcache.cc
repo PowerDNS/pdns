@@ -274,6 +274,7 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
   }
   auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
   if (!fp) {
+    close(newfd);
     return 0;
   }
   fprintf(fp.get(), "; negcache dump follows\n;\n");
