@@ -4,12 +4,54 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.7.0 to master
+4.8.0 to master
 ---------------
+
+Metrics
+-------
+The way metrics are collected has been changed to increase performance, especially when many thread are used.
+This allows for solving a long standing issue that some statistics were not updated on packet cache hits.
+This is now resolved, but has the consequence that some metrics (in particular response related ones) changed behaviour as they now also reflect packet cache hits, while they did not before.
+This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
+Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
+
+
+4.7.0 to 4.8.0
+--------------
+
+Structured logging
+^^^^^^^^^^^^^^^^^^
+All logging (except query tracing) has been converted to structured logging.
+Switch to old style logging by setting the :ref:`setting-structured-logging` setting to ``no``.
+When using ``systemd``, structured logging information will be sent to ``journald`` using formatted text strings that list the key-value pairs and are human readable.
+Switch to native key-value pair logging (more suitable for automated log processing) by setting :ref:`setting-structured-logging-backend` on the command line to ``systemd-journal``.
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
+- The :ref:`setting-serve-stale-extensions` setting to control the new ``Serve Stale`` feature has been introduced.
+- The :ref:`setting-record-cache-locked-ttl-perc` setting to control locking of record sets in the record cache has been introduced.
+- The :ref:`setting-edns-padding-out` setting to control EDNS padding for outgoing DoT has been introduced.
+- The :ref:`setting-structured-logging-backend` setting to control the type of structured logging to ``journald`` has been introduced.
+
+:program:`pdns_recursor` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+THe ``--config`` command line option now implements the ``check``, ``default`` and ``diff`` keywords.
 
 :program:`rec_control` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The ``dump-throttle`` subcommand no longer produces a table per thread, as the corresponding table now is shared by all threads.
+The ``dump-throttle`` and ``dump-edns`` subcommands no longer produces a table per thread, as the corresponding tables are now shared by all threads.
+Additionally, the ``dump-edns`` command  now only lists IPs that have a not OK status.
+The ``dump-nsspeeds`` command has changed format to make it more readable and lists the last round trip time recorded for each address.
+The ``get-proxymapping-stats`` and ``get-remotelogger-stats`` subcommands have been added.
+
+
+4.7.2 to 4.7.3
+--------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.6.2 to 4.7.0
 ---------------
@@ -44,6 +86,13 @@ New settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``dump-nsspeeds``, ``dump-failedservers`` and ``dump-non-resolving`` subcommands no longer produce a table per thread, as the corresponding tables are now shared by all threads.
 They also use a better readable and sortable timestamp format.
+
+4.6.3 to 4.6.4
+--------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
 
 4.6.1 to 4.6.2
 --------------
@@ -85,6 +134,13 @@ Privileged port binding in Docker
 In our Docker image, our binaries are no longer granted the ``net_bind_service`` capability, as this is unnecessary in many deployments.
 For more information, see the section `"Privileged ports" in Docker-README <https://github.com/PowerDNS/pdns/blob/master/Docker-README.md#privileged-ports>`__.
 
+4.5.10 to 4.5.11
+----------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-ns-per-resolve` setting to limit the number of NS records processed to resolve a name has been introduced.
+
 4.5.1 to 4.5.2
 --------------
 
@@ -125,7 +181,6 @@ That means that they will be answered with ``127.0.0.1``, ``::1`` or a negative 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For the commands that write to a file, the file to be dumped to is now opened by the :program:`rec_control` command itself using the credentials and the current working directory of the user running :program:`rec_control`.
 A single minus *-* can be used as a filename to write the data to the standard output stream.
-Additionally, a single minus *-* can be used as a filename to write the data to the standard output stream.
 Previously the file was opened by the recursor, possibly in its chroot environment.
 
 New settings

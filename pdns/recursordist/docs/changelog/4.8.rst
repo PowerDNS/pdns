@@ -1,0 +1,406 @@
+Changelogs for 4.8.X
+====================
+
+.. changelog::
+  :version: 4.8.0
+  :released: 12th of December 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12293
+    :tickets: 12289
+
+    Refactor unsupported qtype code and make sure we ServFail on all unsupported qtypes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12221
+    :tickets: 11776, 11376, 12078, 12219
+
+    Infra queries should not use refresh mode.
+
+.. changelog::
+  :version: 4.8.0-rc1
+  :released: 18th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12201
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache" code.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12200
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12197
+    :tickets: 12175
+
+    Get DS records with QName Minimization switched on.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12196
+    :tickets: 12194
+
+    Fix typo in structured logging key.
+
+.. changelog::
+  :version: 4.8.0-beta2
+  :released: 7th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12163
+    :tickets: 12155
+
+    Fix SNMP OID numbers for rcode stats.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12162
+    :tickets: 12122
+
+    Implement output operator for QTypes, avoids numeric qtypes in trace logs.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12161
+    :tickets: 12125
+
+    Handle IXFR connect and transfer timeouts.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12146
+    :tickets: 12063
+
+    Only replace protobuf logger config objects if the reload changed them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12150
+    :tickets: 12140
+
+    Be more lenient replacing auth by non-auth records in cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12145
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12147
+    :tickets: 12066
+
+    Detect invalid bytes in makeBytesFromHex().
+
+.. changelog::
+  :version: 4.8.0-beta1
+  :released: 5th of October 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12047
+
+    Add support for NOD/UDR notifications using dnstap.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12048
+
+    Fix --config (should be equal to --config=default),  followup to #11907.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12046
+    :tickets: 12044
+
+    Fix compilation of the event ports multiplexer.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11903, 12049
+    :tickets: 11841
+
+    Protobuf and dnstap metrics, including rec_control subcommand to show them.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12038
+
+    When an expired NSEC3 entry is seen move it to the front of the expiry queue.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11949
+    :tickets: 7164
+
+    Provide metrics for rcode received from authoritative servers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12027
+    :tickets: 11958
+
+    If new data is auth and existing data is not, replace even if cache locking is active.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11866
+    :tickets: 11648
+
+    Proxymapping metrics, including rec_control subcommand to show them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11909
+
+    Add querytime attribute to Lua DNSQuestion object, to see the time a query was received.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11768
+    :tickets: 11766
+
+    Enable include-dir by default in RPM builds, to be in line with DEB builds (Frank Louwers).
+
+  .. change::
+    :tags: Removals
+    :pullreq: 11856
+
+    Remove XPF support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11989
+
+    Improve error message when invalid values for `local-address` are provided in recursor config file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12011
+    :tickets: 11999
+
+    Enable SNMP support for debian and ubuntu builds.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12009
+    :tickets: 11998
+
+    Warn if snmp-agent is set but SNMP support is not available.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11959
+
+    A few tweaks to structured logging calls.
+
+.. changelog::
+  :version: 4.8.0-alpha1
+  :released: 23rd of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11958
+
+    Lock record cache entries if enabled by :ref:`setting-record-cache-locked-ttl-perc`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11957
+
+    Use ``nullptr`` in ``getNSEC3PARAM`` + init ``bool`` at call site (Axel Viala).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11953
+    :tickets: 11804
+
+    Axfr-retriever: abort on chunk with TC set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11955
+
+    Clarify return codes for the Lua hooks in the Recursor (Frank Louwers).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11907
+
+    Recursor: Add ``--config[=check|=diff|=default]``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11776
+
+    Implement optional Serve stale functionality, enabled by :ref:`setting-serve-stale-extensions`..
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11906
+
+    Implement padding of (DoT) messages to authoritative servers, if set by :ref:`setting-edns-padding-out` (default ``yes``).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11800
+
+    Log socket directory path if there is a problem.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11862
+    :tickets: 11853
+
+    Libssl: Properly load ciphers and digests with OpenSSL 3.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11823
+
+    Handle Lua script loading errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11813
+    :tickets: 4979
+
+    Stop sending Server: header (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11867
+    :tickets: 11864
+
+    rec_control: test for ``--version`` before requiring an argument.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11869
+    :tickets: 6981
+
+    Keep time and count metrics when maintenance is called.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11849
+
+    Consider dns64 processing in more cases than ``Rcode == NoError``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11672
+
+    Make rec zone files with trailing dot (phonedph1).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11857
+    :tickets: 11855
+
+    Set ``rec_control_LDFLAGS``, needed for MacOS or any platforms where libcrypto is not in default lib path.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11812
+
+    Replace/remove jQuery (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11820
+    :tickets: 11818, 10079
+
+    Handle file related errors initially loading Lua script.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11811
+
+    Remove unused ``jsrender.js`` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11780
+    :tickets: 11736
+
+    Save the last nameserver speed recorded plus output it in ``rec_control dump-nsspeeds``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11754
+    :tickets: 11734
+
+    Set ``TCP_NODELAY`` on in and outgoing TCP.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11744
+
+    Remove > 5 check on TTL of glue from the cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11854,11714,11710,11693,11681,11662,11654,11642,11631
+
+    Structured logging for various subsystems.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11704,11779
+
+    Make edns table a sparse table.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11601
+
+    Shared ednsmap.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11682
+    :tickets: 2248
+
+    Load IPv6 entries from etc-hosts file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11660,11709
+    :tickets: 11705, 11706
+
+    Use ``systemd-journal`` for structured logging if it is available and set by :ref:`setting-structured-logging-backend`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11680,11671
+    :tickets: 11671,11654
+
+    Fix typos in stats log messages (Matt Nordhoff).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11598
+
+    Shared throttle map.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11381
+
+    Adaptive root refresh interval, normally at 80% of :ref:`setting-max-cache-ttl`.
+
+
+

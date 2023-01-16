@@ -106,6 +106,10 @@ When notifying a zone, also notify these nameservers. Example:
 ``also-notify`` always receive a notification. Even if they do not match
 the list in :ref:`setting-only-notify`.
 
+You may specify an alternate port by appending :port. Example:
+``also-notify=192.0.2.1:5300``. If no port is specified, port 53
+is used.
+
 .. _setting-any-to-tcp:
 
 ``any-to-tcp``
@@ -269,6 +273,26 @@ Either don't ``chroot`` on these systems or set the 'Type' of the
 service to 'simple' instead of 'notify' (refer to the systemd
 documentation on how to modify unit-files).
 
+.. _setting-secondary-check-signature-freshness:
+
+``secondary-check-signature-freshness``
+---------------------------------------
+
+.. versionadded:: 4.7.0
+
+-  Boolean
+-  Default: yes
+
+Enabled by default, freshness checks for secondary zones will set the DO flag on SOA queries. PowerDNS
+can detect (signature) changes on the primary server without serial number bumps using the DNSSEC
+signatures in the SOA response.
+
+In some problematic scenarios, primary servers send truncated SOA responses. As a workaround, this setting
+can be turned off, and the DO flag as well as the signature checking will be disabled. To avoid additional
+drift, primary servers must then always increase the zone serial when it updates signatures.
+
+It is strongly recommended to keep this setting enabled (`yes`).
+
 .. _setting-config-dir:
 
 ``config-dir``
@@ -301,9 +325,14 @@ Name of this virtual configuration - will rename the binary image. See
 .. versionadded:: 4.4.0
 
 When this is set, PowerDNS assumes that any single zone lives in only one backend.
-This allows PowerDNS to send ANY lookups to its backends, instead of sometimes requesting the exact needed type.
+This allows PowerDNS to send ``ANY`` lookups to its backends, instead of sometimes requesting the exact needed type.
 This reduces the load on backends by retrieving all the types for a given name at once, adding all of them to the cache.
 It improves performance significantly for latency-sensitive backends, like SQL ones, where a round-trip takes serious time.
+
+.. warning::
+  This behaviour is only a meaningful optimization if the returned response to the ``ANY`` query can actually be cached,
+  which is not the case if it contains at least one record with a non-zero scope. For this reason ``consistent-backends``
+  should be disabled when at least one of the backends in use returns location-based records, like the GeoIP backend.
 
 .. note::
   Pre 4.5.0 the default was no.
@@ -648,6 +677,17 @@ This setting MUST be 32 hexadecimal characters, as the siphash algorithm's key u
 -  Default: no
 
 Enables EDNS subnet processing, for backends that support it.
+
+.. _setting-enable-gss-tsig:
+
+``enable-gss-tsig``
+-------------------
+
+-  Boolean
+-  Default: no
+
+Enable accepting GSS-TSIG signed messages.
+In addition to this setting, see :doc:`tsig`.
 
 .. _setting-enable-lua-records:
 

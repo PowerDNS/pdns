@@ -94,6 +94,7 @@ static LuaArray<std::vector<boost::variant<string,double>>> getGenResponses(uint
 }
 #endif /* DISABLE_TOP_N_BINDINGS */
 
+#ifndef DISABLE_DYNBLOCKS
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
 
 typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
@@ -241,6 +242,7 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 }
 
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
+#endif /* DISABLE_DYNBLOCKS */
 
 void setupLuaInspection(LuaContext& luaCtx)
 {
@@ -296,7 +298,8 @@ void setupLuaInspection(LuaContext& luaCtx)
 	unsigned int lab = *labels;
         for (const auto& shard : g_rings.d_shards) {
           auto rl = shard->queryRing.lock();
-          for(auto a : *rl) {
+          // coverity[auto_causes_copy]
+          for (auto a : *rl) {
             a.name.trimToLabels(lab);
             counts[a.name]++;
             total++;
@@ -527,11 +530,17 @@ void setupLuaInspection(LuaContext& luaCtx)
 	    extra.clear();
           }
 
+          std::string server = c.ds.toStringWithPort();
+          std::string protocol = dnsdist::Protocol(c.protocol).toString();
+          if (server == "0.0.0.0:0") {
+            server = "Cache";
+            protocol = "-";
+          }
           if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
-            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
           else {
-            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
+            out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
           }
 
           if (limit && *limit == ++num) {
@@ -623,13 +632,13 @@ void setupLuaInspection(LuaContext& luaCtx)
       ret << endl;
 
       ret << "Backends:" << endl;
-      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
-      ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
+      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
+      ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Too many conn" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
 
       auto states = g_dstates.getLocal();
       counter = 0;
       for(const auto& s : *states) {
-        ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpMaxConcurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpConnectTimeouts % s->tcpNewConnections % s->tcpReusedConnections % s->tlsResumptions % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
+        ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpMaxConcurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpConnectTimeouts % s->tcpTooManyConcurrentConnections % s->tcpNewConnections % s->tcpReusedConnections % s->tlsResumptions % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
         ++counter;
       }
 
@@ -690,19 +699,27 @@ void setupLuaInspection(LuaContext& luaCtx)
 	     return a.first < b.first;
 	   });
       boost::format flt("    %9.1f");
-      for(const auto& e : entries) {
-	string second;
-	if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
-	  second=std::to_string((*val)->load());
-	else if (const auto& dval = boost::get<double*>(&e.second))
-	  second=(flt % (**dval)).str();
-	else
-	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+      for (const auto& e : entries) {
+        string second;
+        if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
+          second = std::to_string((*val)->load());
+        }
+        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+          second = (flt % (*adval)->load()).str();
+        }
+        else if (const auto& dval = boost::get<double*>(&e.second)) {
+          second = (flt % (**dval)).str();
+        }
+        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
+          second = std::to_string((*func)(e.first));
+        }
 
-	if(leftcolumn.size() < g_stats.entries.size()/2)
-	  leftcolumn.push_back((fmt % e.first % second).str());
-	else
-	  rightcolumn.push_back((fmt % e.first % second).str());
+        if (leftcolumn.size() < g_stats.entries.size()/2) {
+          leftcolumn.push_back((fmt % e.first % second).str());
+        }
+        else {
+          rightcolumn.push_back((fmt % e.first % second).str());
+        }
       }
 
       auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
@@ -722,6 +739,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     });
 
+#ifndef DISABLE_DYNBLOCKS
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
   luaCtx.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
@@ -868,4 +886,5 @@ void setupLuaInspection(LuaContext& luaCtx)
   });
   luaCtx.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
   luaCtx.registerFunction("toString", &DynBlockRulesGroup::toString);
+#endif /* DISABLE_DYNBLOCKS */
 }

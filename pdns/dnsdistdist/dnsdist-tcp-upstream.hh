@@ -6,12 +6,14 @@
 class TCPClientThreadData
 {
 public:
-  TCPClientThreadData(): localRespRuleActions(g_respruleactions.getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+  TCPClientThreadData():
+    localRespRuleActions(g_respruleactions.getLocal()), localCacheInsertedRespRuleActions(g_cacheInsertedRespRuleActions.getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
 
   LocalHolders holders;
-  LocalStateHolder<vector<DNSDistResponseRuleAction> > localRespRuleActions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   int crossProtocolResponsesPipe{-1};
 };
@@ -19,7 +21,7 @@ public:
 class IncomingTCPConnectionState : public TCPQuerySender, public std::enable_shared_from_this<IncomingTCPConnectionState>
 {
 public:
-  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{g_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData)
+  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{g_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData), d_creatorThreadID(std::this_thread::get_id())
   {
     d_origDest.reset();
     d_origDest.sin4.sin_family = d_ci.remote.sin4.sin_family;
@@ -123,7 +125,9 @@ static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bo
   /* we take a copy of a shared pointer, not a reference, because the initial shared pointer might be released during the handling of the response */
   void handleResponse(const struct timeval& now, TCPResponse&& response) override;
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override;
-  void notifyIOError(IDState&& query, const struct timeval& now) override;
+  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override;
+
+  void handleCrossProtocolResponse(const struct timeval& now, TCPResponse&& response);
 
   void terminateClientConnection();
   void queueQuery(TCPQuery&& query);
@@ -170,6 +174,7 @@ static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bo
   size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
+  std::thread::id d_creatorThreadID;
   uint16_t d_querySize{0};
   State d_state{State::doingHandshake};
   bool d_isXFR{false};

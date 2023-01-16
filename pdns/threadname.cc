@@ -35,6 +35,7 @@
 #include "dolog.hh"
 #else
 #include "logger.hh"
+#include "logging.hh"
 #endif
 
 #include "threadname.hh"
@@ -72,7 +73,8 @@ void setThreadName(const std::string& threadName) {
 #ifdef DNSDIST
     warnlog("Could not set thread name %s for thread: %s", threadName, strerror(retval));
 #else
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for thread: "<<strerror(retval)<<endl;
+    SLOG(g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for thread: "<<strerror(retval)<<endl,
+         g_slog->withName("runtime")->error(Logr::Warning, retval, "Could not set thread name", "name", Logging::Loggable(threadName)));
 #endif
   }
 }

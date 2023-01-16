@@ -66,6 +66,17 @@ struct StopWatch
     return ret;
   }
 
+  struct timespec getStartTime() const
+  {
+    return d_start;
+  }
+
+  struct timespec d_start
+  {
+    0, 0
+  };
+
+private:
   struct timespec getCurrentTime() const
   {
     struct timespec now;
@@ -75,12 +86,6 @@ struct StopWatch
     return now;
   }
 
-  struct timespec d_start
-  {
-    0, 0
-  };
-
-private:
   bool d_needRealTime;
 };
 
@@ -93,112 +98,90 @@ private:
 #endif
 #endif
 
+struct InternalQueryState
+{
+  static void DeleterPlaceHolder(DOHUnit*)
+  {
+  }
+
+  InternalQueryState() :
+    du(std::unique_ptr<DOHUnit, void (*)(DOHUnit*)>(nullptr, DeleterPlaceHolder))
+  {
+    origDest.sin4.sin_family = 0;
+  }
+
+  InternalQueryState(InternalQueryState&& rhs) = default;
+  InternalQueryState& operator=(InternalQueryState&& rhs) = default;
+
+  InternalQueryState(const InternalQueryState& orig) = delete;
+  InternalQueryState& operator=(const InternalQueryState& orig) = delete;
+
+  boost::optional<Netmask> subnet{boost::none}; // 40
+  ComboAddress origRemote; // 28
+  ComboAddress origDest; // 28
+  ComboAddress hopRemote;
+  ComboAddress hopLocal;
+  DNSName qname; // 24
+  std::string poolName; // 24
+  StopWatch queryRealTime{true}; // 16
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
+  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
+  std::unique_ptr<QTag> qTag{nullptr}; // 8
+  boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
+  ClientState* cs{nullptr}; // 8
+  std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
+  uint32_t cacheKey{0}; // 4
+  uint32_t cacheKeyNoECS{0}; // 4
+  // DoH-only */
+  uint32_t cacheKeyUDP{0}; // 4
+  uint32_t ttlCap{0}; // cap the TTL _after_ inserting into the packet cache // 4
+  int backendFD{-1}; // 4
+  int delayMsec{0};
+  uint16_t qtype{0}; // 2
+  uint16_t qclass{0}; // 2
+  // origID is in network-byte order
+  uint16_t origID{0}; // 2
+  uint16_t origFlags{0}; // 2
+  uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
+  uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
+  dnsdist::Protocol protocol; // 1
+  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
+  bool ednsAdded{false};
+  bool ecsAdded{false};
+  bool skipCache{false};
+  bool dnssecOK{false};
+  bool useZeroScope{false};
+  bool forwardedOverUDP{false};
+};
+
 struct IDState
 {
-  IDState() :
-    sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0; }
+  IDState()
+  {
+  }
+
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs) :
-    subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), packetCache(std::move(rhs.packetCache)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), origFD(rhs.origFD), backendFD(rhs.backendFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+  IDState(IDState&& rhs) noexcept :
+    internal(std::move(rhs.internal))
   {
-    if (rhs.isInUse()) {
-      throw std::runtime_error("Trying to move an in-use IDState");
-    }
-
-    uniqueId = std::move(rhs.uniqueId);
-#ifdef __SANITIZE_THREAD__
+    inUse.store(rhs.inUse.load());
     age.store(rhs.age.load());
-#else
-    age = rhs.age;
-#endif
   }
 
-  IDState& operator=(IDState&& rhs)
+  IDState& operator=(IDState&& rhs) noexcept
   {
-    if (isInUse()) {
-      throw std::runtime_error("Trying to overwrite an in-use IDState");
-    }
-
-    if (rhs.isInUse()) {
-      throw std::runtime_error("Trying to move an in-use IDState");
-    }
-
-    subnet = std::move(rhs.subnet);
-    origRemote = rhs.origRemote;
-    origDest = rhs.origDest;
-    hopRemote = rhs.hopRemote;
-    hopLocal = rhs.hopLocal;
-    qname = std::move(rhs.qname);
-    sentTime = rhs.sentTime;
-    dnsCryptQuery = std::move(rhs.dnsCryptQuery);
-    packetCache = std::move(rhs.packetCache);
-    qTag = std::move(rhs.qTag);
-    tempFailureTTL = std::move(rhs.tempFailureTTL);
-    cs = rhs.cs;
-    du = std::move(rhs.du);
-    cacheKey = rhs.cacheKey;
-    cacheKeyNoECS = rhs.cacheKeyNoECS;
-    cacheKeyUDP = rhs.cacheKeyUDP;
-    origFD = rhs.origFD;
-    backendFD = rhs.backendFD;
-    delayMsec = rhs.delayMsec;
-#ifdef __SANITIZE_THREAD__
+    inUse.store(rhs.inUse.load());
     age.store(rhs.age.load());
-#else
-    age = rhs.age;
-#endif
-    qtype = rhs.qtype;
-    qclass = rhs.qclass;
-    origID = rhs.origID;
-    origFlags = rhs.origFlags;
-    cacheFlags = rhs.cacheFlags;
-    protocol = rhs.protocol;
-    uniqueId = std::move(rhs.uniqueId);
-    ednsAdded = rhs.ednsAdded;
-    ecsAdded = rhs.ecsAdded;
-    skipCache = rhs.skipCache;
-    destHarvested = rhs.destHarvested;
-    dnssecOK = rhs.dnssecOK;
-    useZeroScope = rhs.useZeroScope;
-
+    internal = std::move(rhs.internal);
     return *this;
-  }
-
-  static const int64_t unusedIndicator = -1;
-
-  static bool isInUse(int64_t usageIndicator)
-  {
-    return usageIndicator != unusedIndicator;
   }
 
   bool isInUse() const
   {
-    return usageIndicator != unusedIndicator;
+    return inUse;
   }
 
-  /* return true if the value has been successfully replaced meaning that
-     no-one updated the usage indicator in the meantime */
-  bool tryMarkUnused(int64_t expectedUsageIndicator)
-  {
-    return usageIndicator.compare_exchange_strong(expectedUsageIndicator, unusedIndicator);
-  }
-
-  /* mark as used no matter what, return true if the state was in use before */
-  bool markAsUsed()
-  {
-    auto currentGeneration = generation++;
-    return markAsUsed(currentGeneration);
-  }
-
-  /* mark as used no matter what, return true if the state was in use before */
-  bool markAsUsed(int64_t currentGeneration)
-  {
-    int64_t oldUsage = usageIndicator.exchange(currentGeneration);
-    return oldUsage != unusedIndicator;
-  }
-
-  /* We use this value to detect whether this state is in use.
-     For performance reasons we don't want to use a lock here, but that means
+  /* For performance reasons we don't want to use a lock here, but that means
      we need to be very careful when modifying this value. Modifications happen
      from:
      - one of the UDP or DoH 'client' threads receiving a query, selecting a backend
@@ -216,59 +199,52 @@ struct IDState
        the corresponding state and sending the response to the client ;
      - the 'healthcheck' thread scanning the states to actively discover timeouts,
        mostly to keep some counters like the 'outstanding' one sane.
-     We previously based that logic on the origFD (FD on which the query was received,
-     and therefore from where the response should be sent) but this suffered from an
-     ABA problem since it was quite likely that a UDP 'client thread' would reset it to the
-     same value since we only have so much incoming sockets:
-     - 1/ 'client' thread gets a query and set origFD to its FD, say 5 ;
-     - 2/ 'receiver' thread gets a response, read the value of origFD to 5, check that the qname,
-       qtype and qclass match
-     - 3/ during that time the 'client' thread reuses the state, setting again origFD to 5 ;
-     - 4/ the 'receiver' thread uses compare_exchange_strong() to only replace the value if it's still
-       5, except it's not the same 5 anymore and it overrides a fresh state.
-     We now use a 32-bit unsigned counter instead, which is incremented every time the state is set,
-     wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
-     when the state is unused and the value of our counter otherwise.
+
+     We have two flags:
+     - inUse tells us if there currently is a in-flight query whose state is stored
+       in this state
+     - locked tells us whether someone currently owns the state, so no-one else can touch
+       it
   */
-  boost::optional<Netmask> subnet{boost::none}; // 40
-  ComboAddress origRemote; // 28
-  ComboAddress origDest; // 28
-  ComboAddress hopRemote;
-  ComboAddress hopLocal;
-  DNSName qname; // 24
-  StopWatch sentTime; // 16
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
-  std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
-  std::unique_ptr<QTag> qTag{nullptr}; // 8
-  boost::optional<uint32_t> tempFailureTTL; // 8
-  const ClientState* cs{nullptr}; // 8
-  DOHUnit* du{nullptr}; // 8 (not a unique_ptr because we currently need to be able to peek at it without taking ownership until later)
-  std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8
-  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
-  uint32_t cacheKey{0}; // 4
-  uint32_t cacheKeyNoECS{0}; // 4
-  // DoH-only */
-  uint32_t cacheKeyUDP{0}; // 4
-  int origFD{-1}; // 4
-  int backendFD{-1}; // 4
-  int delayMsec{0};
-#ifdef __SANITIZE_THREAD__
+  InternalQueryState internal;
   std::atomic<uint16_t> age{0};
-#else
-  uint16_t age{0}; // 2
-#endif
-  uint16_t qtype{0}; // 2
-  uint16_t qclass{0}; // 2
-  // origID is in network-byte order
-  uint16_t origID{0}; // 2
-  uint16_t origFlags{0}; // 2
-  uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
-  dnsdist::Protocol protocol; // 1
-  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
-  bool ednsAdded{false};
-  bool ecsAdded{false};
-  bool skipCache{false};
-  bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
-  bool dnssecOK{false};
-  bool useZeroScope{false};
+
+  class StateGuard
+  {
+  public:
+    StateGuard(IDState& ids) :
+      d_ids(ids)
+    {
+    }
+    ~StateGuard()
+    {
+      d_ids.release();
+    }
+    StateGuard(const StateGuard&) = delete;
+    StateGuard(StateGuard&&) = delete;
+    StateGuard& operator=(const StateGuard&) = delete;
+    StateGuard& operator=(StateGuard&&) = delete;
+
+  private:
+    IDState& d_ids;
+  };
+
+  [[nodiscard]] std::optional<StateGuard> acquire()
+  {
+    bool expected = false;
+    if (locked.compare_exchange_strong(expected, true)) {
+      return std::optional<StateGuard>(*this);
+    }
+    return std::nullopt;
+  }
+
+  void release()
+  {
+    locked.store(false);
+  }
+
+  std::atomic<bool> inUse{false}; // 1
+
+private:
+  std::atomic<bool> locked{false}; // 1
 };

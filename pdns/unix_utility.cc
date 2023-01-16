@@ -26,9 +26,10 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include "pdnsexception.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "misc.hh"
 #include <pwd.h>
 #include <grp.h>
@@ -83,23 +84,36 @@ void Utility::setBindAny(int af, sock_t sock)
 
   (void) one; // avoids 'unused var' warning on systems that have none of the defines checked below
 #ifdef IP_FREEBIND
-  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
-      g_log<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<stringerror()<<endl;
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0) {
+    int err = errno;
+    SLOG(g_log<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<stringerror(err)<<endl,
+         g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: IP_FREEBIND setsockopt failed"));
+  }
 #endif
 
 #ifdef IP_BINDANY
   if (af == AF_INET)
-    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
-      g_log<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<stringerror()<<endl;
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0) {
+      int err = errno;
+      SLOG(g_log<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<stringerror(err)<<endl,
+           g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: IP_BINDANY setsockopt failed"));
+    }
 #endif
 #ifdef IPV6_BINDANY
-  if (af == AF_INET6)
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
-      g_log<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<stringerror()<<endl;
+  if (af == AF_INET6) {
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0) {
+      int err = errno;
+      SLOG(g_log<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<stringerror(err)<<endl,
+           g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: IPV6_BINDANY setsockopt failed"));
+    }
+  }
 #endif
 #ifdef SO_BINDANY
-  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
-      g_log<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<stringerror()<<endl;
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0) {
+    int err = errno;
+    SLOG(g_log<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<stringerror(err)<<endl,
+         g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: SO_BINDANY setsockopt failed"));
+  }
 #endif
 }
 
@@ -128,22 +142,30 @@ void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
 {
   if(gid && gid != getegid()) {
     if(setgid(gid)<0) {
-      g_log<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
+      int err = errno;
+      SLOG(g_log<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror(err)<<endl,
+           g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to set effective group id", "gid", Logging::Loggable(gid)));
       exit(1);
     }
-    else
-      g_log<<Logger::Info<<"Set effective group id to "<<gid<<endl;
-
+    else {
+      SLOG(g_log<<Logger::Info<<"Set effective group id to "<<gid<<endl,
+           g_slog->withName("runtime")->info(Logr::Info, "Set effective group id", "gid", Logging::Loggable(gid)));
+    }
     struct passwd *pw=getpwuid(uid);
     if(!pw) {
-      g_log<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
+      SLOG(g_log<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl,
+           g_slog->withName("runtime")->info(Logr::Warning, "Unable to determine user name", "uid", Logging::Loggable(uid)));
       if (setgroups(0, nullptr)<0) {
-        g_log<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
+        int err = errno;
+        SLOG(g_log<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror(err)<<endl,
+             g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to drop supplementary gids"));
         exit(1);
       }
     } else {
       if (initgroups(pw->pw_name, gid)<0) {
-        g_log<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror()<<endl;
+        int err = errno;
+        SLOG(g_log<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror(err)<<endl,
+             g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to drop supplementary groups"));
         exit(1);
       }
     }
@@ -156,11 +178,15 @@ void Utility::dropUserPrivs( uid_t uid )
 {
   if(uid && uid != geteuid()) {
     if(setuid(uid)<0) {
-      g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror()<<endl;
+      int err = errno;
+      SLOG(g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror(err)<<endl,
+           g_slog->withName("runtime")->error(Logr::Error, err, "Unable to set effective user id", "uid", Logging::Loggable(uid)));
       exit(1);
     }
-    else
-      g_log<<Logger::Info<<"Set effective user id to "<<uid<<endl;
+    else {
+      SLOG(g_log<<Logger::Info<<"Set effective user id to "<<uid<<endl,
+           g_slog->withName("runtime")->info("Set effective user", "uid", Logging::Loggable(uid)));
+    }
   }
 }
 

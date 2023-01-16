@@ -35,6 +35,10 @@ if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
+if GSS_TSIG
+AM_CPPFLAGS +=$(GSS_CFLAGS)
+endif
+
 if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
@@ -180,15 +184,15 @@ EXTRA_PROGRAMS = \
 	sdig \
 	speedtest \
 	testrunner \
-	toysdig \
 	tsig-tests \
 	zone2ldap
 
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
-	ascii.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
+	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -200,10 +204,10 @@ pdns_server_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
 	bindlexer.l \
 	bindparser.cc \
+	burtle.hh \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	comment.hh \
-	common_startup.cc common_startup.hh \
 	communicator.cc communicator.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
@@ -228,12 +232,14 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	histogram.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \
+	logging.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-base4.cc lua-base4.hh \
 	mastercommunicator.cc \
@@ -250,7 +256,6 @@ pdns_server_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
-	receiver.cc \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
@@ -327,9 +332,14 @@ if LUA
 pdns_server_LDADD += $(LUA_LIBS)
 endif
 
+if GSS_TSIG
+pdns_server_LDADD += $(GSS_LIBS)
+endif
+
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
+	auth-catalogzone.cc auth-catalogzone.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -358,6 +368,7 @@ pdnsutil_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \
 	json.cc \
@@ -383,6 +394,7 @@ pdnsutil_SOURCES = \
 	ueberbackend.cc \
 	unix_utility.cc \
 	uuid-utils.hh uuid-utils.cc \
+	validate.hh \
 	zonemd.hh zonemd.cc \
 	zoneparser-tng.cc
 
@@ -425,6 +437,10 @@ endif
 
 if LUA
 pdnsutil_LDADD += $(LUA_LIBS)
+endif
+
+if GSS_TSIG
+pdnsutil_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \
@@ -523,6 +539,10 @@ zone2ldap_SOURCES = \
 zone2ldap_LDADD = $(LIBCRYPTO_LIBS)
 zone2ldap_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
+if GSS_TSIG
+zone2ldap_LDADD += $(GSS_LIBS)
+endif
+
 sdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -617,6 +637,8 @@ dumresp_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+dumresp_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
 kvresp_SOURCES = \
 	dnslabeltext.cc dnsname.cc dnsname.hh \
 	kvresp.cc \
@@ -664,6 +686,7 @@ saxfr_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -685,6 +708,10 @@ saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+saxfr_LDADD += $(GSS_LIBS)
+endif
+
 ixfrdist_SOURCES = \
 	arguments.cc \
 	axfr-retriever.cc \
@@ -699,6 +726,7 @@ ixfrdist_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrdist-stats.hh ixfrdist-stats.cc \
@@ -746,6 +774,11 @@ ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
 ixfrdist_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+ixfrdist_LDADD += $(GSS_LIBS)
+endif
+
+
 ixplore_SOURCES = \
 	arguments.cc \
 	axfr-retriever.cc \
@@ -761,6 +794,7 @@ ixplore_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+  gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
@@ -781,6 +815,9 @@ ixplore_SOURCES = \
 
 ixplore_LDADD = $(LIBCRYPTO_LIBS)
 ixplore_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+if GSS_TSIG
+ixplore_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -827,6 +864,7 @@ nsec3dig_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -840,54 +878,17 @@ nsec3dig_SOURCES = \
 	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
+
 nsec3dig_LDADD = $(LIBCRYPTO_LIBS)
 nsec3dig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
+if GSS_TSIG
+nsec3dig_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
-endif
-
-toysdig_SOURCES = \
-	base32.cc \
-	base64.cc base64.hh \
-	dns_random_urandom.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc dnsparser.hh \
-	dnsrecords.cc \
-	dnssecinfra.cc \
-	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc ednssubnet.hh \
-	filterpo.hh \
-	iputils.cc \
-	logger.cc \
-	misc.cc misc.hh \
-	nsecrecords.cc \
-	opensslsigners.cc opensslsigners.hh \
-	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	rec-lua-conf.hh \
-	recursor_cache.hh \
-	root-dnssec.hh \
-	sholder.hh \
-	sillyrecords.cc \
-	sortlist.hh \
-	sstuff.hh \
-	statbag.cc \
-	svc-records.cc svc-records.hh \
-	toysdig.cc \
-	unix_utility.cc \
-	validate.cc validate.hh
-
-
-toysdig_LDFLAGS = $(AM_LDFLAGS) \
-	$(LIBCRYPTO_LDFLAGS)
-toysdig_LDADD = $(LIBCRYPTO_LIBS)
-
-if PKCS11
-toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
-toysdig_LDADD += $(P11KIT1_LIBS)
 endif
 
 tsig_tests_SOURCES = \
@@ -904,6 +905,7 @@ tsig_tests_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -940,6 +942,7 @@ speedtest_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -1354,6 +1357,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
+        gss_context.cc gss_context.hh \
 	histogram.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \
@@ -1423,6 +1427,7 @@ testrunner_SOURCES = \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
+	validate.hh \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -1438,6 +1443,10 @@ testrunner_LDADD = \
 	$(LUA_LIBS) \
 	$(LIBDL) \
 	$(IPCRYPT_LIBS)
+
+if GSS_TSIG
+testrunner_LDADD += $(GSS_LIBS)
+endif
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -1524,8 +1533,9 @@ fuzz_targets_programs =  \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
 	fuzz_target_proxyprotocol \
-	fuzz_target_zoneparsertng \
-	fuzz_target_dnslabeltext_parseRFC1035CharString
+	fuzz_target_dnslabeltext_parseRFC1035CharString \
+	fuzz_target_yahttp \
+	fuzz_target_zoneparsertng
 
 fuzz_targets: $(fuzz_targets_programs)
 
@@ -1616,6 +1626,14 @@ fuzz_target_dnsdistcache_SOURCES = \
 fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
+
+fuzz_target_yahttp_SOURCES = \
+	fuzz_yahttp.cc
+
+fuzz_target_yahttp_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_yahttp_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_yahttp_LDADD = $(fuzz_targets_libs) \
+	$(YAHTTP_LIBS)
 
 fuzz_target_zoneparsertng_SOURCES = \
 	base32.cc base32.hh \
@@ -1734,6 +1752,15 @@ endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
 endif
+if !HAVE_SYSTEMD_PROTECT_PROC
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
+endif
+if !HAVE_SYSTEMD_REMOVE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^RemoveIPC/' $@
+endif
 
 pdns@.service: pdns.service
 	$(AM_V_GEN)sed -e 's!/pdns_server!& --config-name=%i!' \
@@ -1813,6 +1840,18 @@ if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
 endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_PROC
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
+endif
+if !HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE
+	$(AM_V_GEN)perl -ni -e 'print unless /^MemoryDenyWriteExecute/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
+endif
+if !HAVE_SYSTEMD_REMOVE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^RemoveIPC/' $@
 endif
 
 ixfrdist@.service: ixfrdist.service

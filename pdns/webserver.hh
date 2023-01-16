@@ -31,6 +31,7 @@
 #include "credentials.hh"
 #include "namespaces.hh"
 #include "sstuff.hh"
+#include "logging.hh"
 
 class HttpRequest : public YaHTTP::Request {
 public:
@@ -48,6 +49,14 @@ public:
   bool compareAuthorization(const CredentialsHolder& expectedCredentials) const;
   bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
   bool compareHeader(const string &header_name, const string &expected_value) const;
+
+#ifdef RECURSOR
+  void setSLog(Logr::log_t log)
+  {
+    d_slog = log;
+  }
+  std::shared_ptr<Logr::Logger> d_slog;
+#endif
 };
 
 class HttpResponse: public YaHTTP::Response {
@@ -61,6 +70,14 @@ public:
   void setJsonBody(const json11::Json& document);
   void setErrorResult(const std::string& message, const int status);
   void setSuccessResult(const std::string& message, const int status = 200);
+
+#ifdef RECURSOR
+  void setSLog(Logr::log_t log)
+  {
+    d_slog = log;
+  }
+  std::shared_ptr<Logr::Logger> d_slog;
+#endif
 };
 
 
@@ -163,6 +180,13 @@ public:
   WebServer(string listenaddress, int port);
   virtual ~WebServer() { };
 
+#ifdef RECURSOR
+  void setSLog(Logr::log_t log)
+  {
+    d_slog = log;
+  }
+#endif
+
   void setApiKey(const string &apikey, bool hashPlaintext) {
     if (!apikey.empty()) {
       d_apikey = make_unique<CredentialsHolder>(std::string(apikey), hashPlaintext);
@@ -231,6 +255,10 @@ public:
   LogLevel getLogLevel() {
     return d_loglevel;
   };
+
+#ifdef RECURSOR
+  std::shared_ptr<Logr::Logger> d_slog;
+#endif
 
 protected:
   void registerBareHandler(const string& url, const HandlerFunction& handler);

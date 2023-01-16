@@ -10,6 +10,24 @@ We do this by retrieving the A records for ``www.example.com``, and translating 
 Elsewhere, a NAT64 device listens on these IPv6 addresses, and extracts the IPv4 address from each packet, and proxies it on.
 
 As of 4.4.0, an efficient implementation is built the recursor and can be enabled via the using the :ref:`dns64-prefix setting <setting-dns64-prefix>`.
+
+Native DNS64 support
+--------------------
+Native DNS64 processing will happen after calling a ``nodata`` or ``nxdomain`` Lua hook (if defined), but before calling a ``postresolve`` or ``postresolve_ffi`` Lua hook (if defined).
+
+To consider native DNS64 processing the following conditions must be met:
+
+- The :ref:`setting-dns64-prefix` is defined.
+- A ``nodata`` or ``nxdomain`` Lua hook did not return ``true``.
+- The original query type was ``AAAA``.
+- The result code of the ``AAAA`` query was not ``NXDomain``.
+- No relevant answer was received: the result code was ``NoError`` with no relevant answer records, or an error unequal to ``NXDomain`` occurred.
+- If DNSSEC processing is requested the validation result was not ``Bogus``.
+
+Before version 4.8.0, only ``NoError`` results were considers candidates for DNS64 processing.
+
+Scripted DNS64 Support
+----------------------
 On earlier versions or for maximum flexibility, DNS64 support is included in the :doc:`lua-scripting/index`.
 This allows for example to hand out custom IPv6 gateway ranges depending on the location of the requestor, enabling the use of NAT64 services close to the user.
 

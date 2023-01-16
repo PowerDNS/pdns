@@ -169,7 +169,6 @@ void openssl_seed()
   RAND_seed((const unsigned char*)entropy.c_str(), 1024);
 }
 
-
 class OpenSSLRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
@@ -177,7 +176,7 @@ public:
   {
     int ret = RAND_status();
     if (ret != 1) {
-      throw runtime_error(getName()+" insufficient entropy");
+      throw runtime_error(getName() + " insufficient entropy");
     }
   }
 
@@ -225,10 +224,10 @@ public:
   bool verify(const std::string& hash, const std::string& signature) const override;
   std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
-  std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
+  std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string> *errorMessages) const override;
+  bool checkKey(vector<string>* errorMessages) const override;
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -238,9 +237,8 @@ public:
 private:
   static int hashSizeToKind(size_t hashSize);
 
-  std::unique_ptr<RSA, void(*)(RSA*)> d_key;
+  std::unique_ptr<RSA, void (*)(RSA*)> d_key;
 };
-
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
@@ -370,17 +368,17 @@ std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 
 int OpenSSLRSADNSCryptoKeyEngine::hashSizeToKind(const size_t hashSize)
 {
-  switch(hashSize) {
-    case SHA_DIGEST_LENGTH:
-      return NID_sha1;
-    case SHA256_DIGEST_LENGTH:
-      return NID_sha256;
-    case SHA384_DIGEST_LENGTH:
-      return NID_sha384;
-    case SHA512_DIGEST_LENGTH:
-      return NID_sha512;
-    default:
-      throw runtime_error("OpenSSL RSA does not handle hash of size " + std::to_string(hashSize));
+  switch (hashSize) {
+  case SHA_DIGEST_LENGTH:
+    return NID_sha1;
+  case SHA256_DIGEST_LENGTH:
+    return NID_sha256;
+  case SHA384_DIGEST_LENGTH:
+    return NID_sha384;
+  case SHA512_DIGEST_LENGTH:
+    return NID_sha512;
+  default:
+    throw runtime_error("OpenSSL RSA does not handle hash of size " + std::to_string(hashSize));
   }
 }
 
@@ -597,35 +595,37 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 class OpenSSLECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo), d_eckey(std::unique_ptr<EC_KEY, void(*)(EC_KEY*)>(EC_KEY_new(), EC_KEY_free)), d_ecgroup(std::unique_ptr<EC_GROUP, void(*)(EC_GROUP*)>(nullptr, EC_GROUP_clear_free))
+  explicit OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo) :
+    DNSCryptoKeyEngine(algo), d_eckey(std::unique_ptr<EC_KEY, void (*)(EC_KEY*)>(EC_KEY_new(), EC_KEY_free)), d_ecgroup(std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)>(nullptr, EC_GROUP_clear_free))
   {
-
     int ret = RAND_status();
     if (ret != 1) {
-      throw runtime_error(getName()+" insufficient entropy");
+      throw runtime_error(getName() + " insufficient entropy");
     }
 
     if (!d_eckey) {
-      throw runtime_error(getName()+" allocation of key structure failed");
+      throw runtime_error(getName() + " allocation of key structure failed");
     }
 
-    if(d_algorithm == 13) {
-      d_ecgroup = std::unique_ptr<EC_GROUP, void(*)(EC_GROUP*)>(EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1), EC_GROUP_clear_free);
+    if (d_algorithm == 13) {
+      d_ecgroup = std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)>(EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1), EC_GROUP_clear_free);
       d_len = 32;
-    } else if (d_algorithm == 14) {
-      d_ecgroup = std::unique_ptr<EC_GROUP, void(*)(EC_GROUP*)>(EC_GROUP_new_by_curve_name(NID_secp384r1), EC_GROUP_clear_free);
+    }
+    else if (d_algorithm == 14) {
+      d_ecgroup = std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)>(EC_GROUP_new_by_curve_name(NID_secp384r1), EC_GROUP_clear_free);
       d_len = 48;
-    } else {
-      throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
+    }
+    else {
+      throw runtime_error(getName() + " unknown algorithm " + std::to_string(d_algorithm));
     }
 
     if (!d_ecgroup) {
-      throw runtime_error(getName()+" allocation of group structure failed");
+      throw runtime_error(getName() + " allocation of group structure failed");
     }
 
     ret = EC_KEY_set_group(d_eckey.get(), d_ecgroup.get());
     if (ret != 1) {
-      throw runtime_error(getName()+" setting key group failed");
+      throw runtime_error(getName() + " setting key group failed");
     }
   }
 
@@ -690,7 +690,6 @@ private:
   std::unique_ptr<EC_KEY, void(*)(EC_KEY*)> d_eckey;
   std::unique_ptr<EC_GROUP, void(*)(EC_GROUP*)> d_ecgroup;
 };
-
 
 void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
 {
@@ -856,7 +855,6 @@ bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   return (ret == 1);
 }
 
-
 std::string OpenSSLECDSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   string pubKey = getPublicKeyString();
@@ -864,7 +862,6 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::getPubKeyHash() const
   SHA1((unsigned char*) pubKey.c_str(), pubKey.length(), l_hash);
   return string((char*) l_hash, sizeof(l_hash));
 }
-
 
 std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
 {

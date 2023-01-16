@@ -406,7 +406,7 @@ bool CredentialsHolder::isHashingAvailable()
 #endif
 }
 
-#include <signal.h>
+#include <csignal>
 #include <termios.h>
 
 SensitiveData CredentialsHolder::readFromTerminal()

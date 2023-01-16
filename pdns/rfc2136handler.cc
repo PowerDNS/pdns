@@ -1,3 +1,4 @@
+#include "dnswriter.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -17,6 +18,8 @@
 #include "backends/gsql/ssql.hh"
 #include "communicator.hh"
 #include "query-local-address.hh"
+#include "gss_context.hh"
+#include "auth-main.hh"
 
 extern StatBag S;
 extern CommunicatorClass Communicator;
@@ -398,7 +401,17 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           recordsToDelete.push_back(rec);
       }
       if (rr->d_class == QClass::NONE) { // 3.4.2.4
-        if (rrType == rec.qtype && rec.getZoneRepresentation() == rr->d_content->getZoneRepresentation())
+        auto repr = rec.getZoneRepresentation();
+        if (rec.qtype == QType::TXT) {
+          DLOG(g_log<<msgPrefix<<"Adjusting TXT content from ["<<repr<<"]"<<endl);
+          auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), QClass::IN, repr);
+          auto ser = drc->serialize(rec.qname, true, true);
+          auto rc = DNSRecordContent::deserialize(rec.qname, rec.qtype.getCode(), ser);
+          repr = rc->getZoneRepresentation(true);
+          DLOG(g_log<<msgPrefix<<"Adjusted TXT content to ["<<repr<<"]"<<endl);
+        }
+        DLOG(g_log<<msgPrefix<<"Matching RR in RRset - (adjusted) representation from request=["<<repr<<"], rr->d_content->getZoneRepresentation()=["<<rr->d_content->getZoneRepresentation()<<"]"<<endl);
+        if (rrType == rec.qtype && repr == rr->d_content->getZoneRepresentation())
           recordsToDelete.push_back(rec);
         else
           rrset.push_back(rec);
@@ -646,7 +659,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + itoa(p.d.id) + ") from " + p.getRemoteString() + " for " + p.qdomain.toLogString() + ": ";
+  string msgPrefix="UPDATE (" + std::to_string(p.d.id) + ") from " + p.getRemoteString() + " for " + p.qdomain.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
@@ -682,11 +695,24 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         g_log<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
         return RCode::Refused;
       }
-
-      for(const auto& key: tsigKeys) {
-        if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
-          validKey=true;
-          break;
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
+        GssName inputname(p.d_peer_principal); // match against principal since GSS requires that
+        for(const auto& key: tsigKeys) {
+          if (inputname.match(key)) {
+            validKey = true;
+            break;
+          }
+        }
+      }
+      else
+#endif
+        {
+        for(const auto& key: tsigKeys) {
+          if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the name of the key matches with the domain given it is valid.
+            validKey=true;
+            break;
+          }
         }
       }
 

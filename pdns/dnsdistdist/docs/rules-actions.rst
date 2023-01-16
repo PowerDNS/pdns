@@ -1,9 +1,9 @@
 Packet Policies
 ===============
 
-dnsdist works in essence like any other loadbalancer:
+:program:`dnsdist` works in essence like any other loadbalancer:
 
-It receives packets on one or several addresses it listens on, and determines whether it will process this packet based on the :doc:`advanced/acl`. Should the packet be processed, dnsdist attempts to match any of the configured rules in order and when one matches, the associated action is performed.
+It receives packets on one or several addresses it listens on, and determines whether it will process this packet based on the :doc:`advanced/acl`. Should the packet be processed, :program:`dnsdist` attempts to match any of the configured rules in order and when one matches, the associated action is performed.
 
 These rule and action combinations are considered policies.
 
@@ -19,6 +19,7 @@ Each packet can be:
 - Be delayed
 
 This decision can be taken at different times during the forwarding process.
+All packets not handled by an explicit action are forwarded to a downstream server in the default pool.
 
 Examples
 ~~~~~~~~
@@ -353,6 +354,58 @@ Functions for manipulating Cache Hit Response Rules:
 
   Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
 
+Functions for manipulating Cache Inserted Response Rules:
+
+.. function:: addCacheInsertedResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 1.8.0
+
+  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
+
+.. function:: mvCacheInsertedResponseRule(from, to)
+
+  .. versionadded:: 1.8.0
+
+  Move cache inserted response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: mvCacheInsertedResponseRuleToTop()
+
+  .. versionadded:: 1.8.0
+
+  This function moves the last cache inserted response rule to the first position.
+
+.. function:: rmCacheInsertedResponseRule(id)
+
+  .. versionadded:: 1.8.0
+
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
+
+.. function:: showCacheInsertedResponseRules([options])
+
+  .. versionadded:: 1.8.0
+
+  Show all defined cache inserted response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
+
 Functions for manipulating Self-Answered Response Rules:
 
 .. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])
@@ -469,7 +522,11 @@ These ``DNSRule``\ s be one of the following items:
 
   .. versionadded:: 1.4.0
 
+  .. versionchanged:: 1.8.0
+     see ``keepIncomingHeaders`` on :func:`addDOHLocal`
+
   Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex``.
+  Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this rule.
 
   :param str name: The case-insensitive name of the HTTP header to match on
   :param str regex: A regular expression to match the content of the specified header
@@ -708,7 +765,7 @@ These ``DNSRule``\ s be one of the following items:
 
   For an example of usage, see :func:`RegexRule`.
 
-  :note: Only available when dnsdist was built with libre2 support.
+  :note: Only available when :program:`dnsdist` was built with libre2 support.
 
   :param str regex: The regular expression to match the QNAME.
 
@@ -738,8 +795,8 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
-  :param bool name: The name of the tag that has to be set
-  :param bool value: If set, the value the tag has to be set to. Default is unset
+  :param string name: The name of the tag that has to be set
+  :param string value: If set, the value the tag has to be set to. Default is unset
 
 .. function:: TCPRule(tcp)
 
@@ -826,6 +883,10 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
 - :func:`RemoteLogResponseAction`
+- :func:`SetMaxReturnedTTLResponseAction`
+- :func:`SetMaxReturnedTTLAction`
+- :func:`SetMinTTLResponseAction`
+- :func:`SetMaxTTLResponseAction`
 - :func:`SNMPTrapAction`
 - :func:`SNMPTrapResponseAction`
 - :func:`TeeAction`
@@ -1028,7 +1089,7 @@ The following actions exist.
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
 
-.. function:: LimitTTLResponseAction(min[, max])
+.. function:: LimitTTLResponseAction(min[, max [, types]])
 
   .. versionadded:: 1.8.0
 
@@ -1036,6 +1097,7 @@ The following actions exist.
 
   :param int min: The minimum allowed value
   :param int max: The maximum allowed value
+  :param list of int: The record types to cap the TTL for. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
@@ -1169,6 +1231,9 @@ The following actions exist.
 
   .. versionadded:: 1.6.0
 
+  .. versionchanged:: 1.8.0
+    Added the ``soaInAuthoritySection`` option.
+
   Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
   Note that this function was called :func:`SetNegativeAndSOAAction` before 1.6.0.
 
@@ -1189,6 +1254,7 @@ The following actions exist.
   * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``soaInAuthoritySection``: bool - Place the SOA record in the authority section for a complete NXDOMAIN/NODATA response that works as a cacheable negative response, rather than the RPZ-style response with a purely informational SOA in the additional section. Default is false (SOA in additional section).
 
 .. function:: NoneAction()
 
@@ -1372,6 +1438,22 @@ The following actions exist.
 
   :param int option: The EDNS0 option number
 
+.. function:: SetMaxReturnedTTLAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
+
+.. function:: SetMaxReturnedTTLResponseAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
+
 .. function:: SetMaxTTLResponseAction(max)
 
   .. versionadded:: 1.8.0
@@ -1432,6 +1514,16 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
   :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
+
+.. function:: SetReducedTTLResponseAction(percentage)
+
+  .. versionadded:: 1.8.0
+
+  Reduce the TTL of records in a response to a percentage of the original TTL. For example,
+  passing 50 means that the original TTL will be cut in half.
+  Subsequent rules are processed after this action.
+
+  :param int percentage: The percentage to use
 
 .. function:: SetSkipCacheAction()
 
@@ -1654,10 +1746,14 @@ The following actions exist.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
   prevent the TC bit from being set over TCP transports.
 
-.. function:: TeeAction(remote[, addECS])
+.. function:: TeeAction(remote[, addECS[, local]])
+
+  .. versionchanged:: 1.8.0
+    Added the optional parameter ``local``.
 
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
+  If ``local`` has provided a value like "192.0.2.53", :program:`dnsdist` will try binding that address as local address when sending the queries.
   Subsequent rules are processed after this action.
 
   :param string remote: An IP:PORT combination to send the copied queries to

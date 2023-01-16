@@ -73,12 +73,18 @@ void carbonDumpThread()
           time_t now=time(0);
           for(const auto& e : g_stats.entries) {
             str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
-            if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
+            if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
               str<<(*val)->load();
-            else if (const auto& dval = boost::get<double*>(&e.second))
+            }
+            else if(const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+              str<<(*adval)->load();
+            }
+            else if (const auto& dval = boost::get<double*>(&e.second)) {
               str<<**dval;
-            else
-              str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
+            }
+            else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
+              str<<(*func)(e.first);
+            }
             str<<' '<<now<<"\r\n";
           }
           auto states = g_dstates.getLocal();
@@ -105,6 +111,7 @@ void carbonDumpThread()
             str<<base<<"tlsresumptions" << ' '<< state->tlsResumptions.load() << " " << now << "\r\n";
             str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
             str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
+            str<<base<<"tcptoomanyconcurrentconnections" << ' '<< state->tcpTooManyConcurrentConnections.load() << " " << now << "\r\n";
           }
 
           std::map<std::string,uint64_t> frontendDuplicates;
@@ -182,6 +189,7 @@ void carbonDumpThread()
               str<<base<<"cache-lookup-collisions" << " " << cache->getLookupCollisions() << " " << now << "\r\n";
               str<<base<<"cache-insert-collisions" << " " << cache->getInsertCollisions() << " " << now << "\r\n";
               str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
+              str<<base<<"cache-cleanup-count" << " " << cache->getCleanupCount() << " " << now << "\r\n";
             }
           }
 

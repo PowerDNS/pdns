@@ -23,6 +23,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 
+#ifndef DISABLE_DYNBLOCKS
 uint64_t dnsdist_ffi_stat_node_get_queries_count(const dnsdist_ffi_stat_node_t* node)
 {
   return node->self.queries;
@@ -104,3 +105,4 @@ void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char
 {
   node->reason = std::string(reason, reasonSize);
 }
+#endif /* DISABLE_DYNBLOCKS */

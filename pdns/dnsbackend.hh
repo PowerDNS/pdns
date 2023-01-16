@@ -42,14 +42,20 @@ class DNSPacket;
 #include "dnsname.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
+#include "sha.hh"
+#include "auth-catalogzone.hh"
 
-class DNSBackend;  
+class DNSBackend;
+struct SOAData;
+
 struct DomainInfo
 {
   DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
+  DNSName catalog;
   time_t last_check;
+  string options;
   string account;
   vector<ComboAddress> masters; 
   DNSBackend *backend;
@@ -60,12 +66,22 @@ struct DomainInfo
   bool receivedNotify;
 
   uint32_t serial;
-  enum DomainKind : uint8_t { Master, Slave, Native } kind;
-  
+
   bool operator<(const DomainInfo& rhs) const
   {
     return zone < rhs.zone;
   }
+
+  // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
+  enum DomainKind : uint8_t
+  {
+    Master,
+    Slave,
+    Native,
+    Producer,
+    Consumer,
+    All
+  } kind;
 
   const char *getKindString() const
   {
@@ -74,7 +90,7 @@ struct DomainInfo
 
   static const char *getKindString(enum DomainKind kind)
   {
-    const char *kinds[]={"Master", "Slave", "Native"};
+    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
     return kinds[kind];
   }
 
@@ -82,11 +98,19 @@ struct DomainInfo
   {
     if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
       return DomainInfo::Slave;
-    else if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
+    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
       return DomainInfo::Master;
-    else
-      return DomainInfo::Native;
+    if (pdns_iequals(kind, "PRODUCER"))
+      return DomainInfo::Producer;
+    if (pdns_iequals(kind, "CONSUMER"))
+      return DomainInfo::Consumer;
+    // No "ALL" here please. Yes, I really mean it...
+    return DomainInfo::Native;
   }
+
+  bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
+  bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
   bool isMaster(const ComboAddress& ip) const
   {
@@ -205,10 +229,10 @@ public:
   virtual bool publishDomainKey(const DNSName& name, unsigned int id) { return false; }
   virtual bool unpublishDomainKey(const DNSName& name, unsigned int id) { return false; }
 
-  virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) { return false; }
   virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) { return false; }
+  virtual bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) { return false; }
+  virtual bool getTSIGKeys(std::vector<struct TSIGKey>& keys) { return false; }
   virtual bool deleteTSIGKey(const DNSName& name) { return false; }
-  virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
   {
@@ -315,11 +339,20 @@ public:
   //! get a list of IP addresses that should also be notified for a domain
   virtual void alsoNotifies(const DNSName &domain, set<string> *ips)
   {
+    std::vector<std::string> meta;
+    getDomainMetadata(domain, "ALSO-NOTIFY", meta);
+    ips->insert(meta.begin(), meta.end());
   }
 
   //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>* domains)
+  virtual void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
   {
+  }
+
+  //! get list of all members in a catalog
+  virtual bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+  {
+    return false;
   }
 
   //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness
@@ -345,6 +378,18 @@ public:
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
   virtual bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
+  //! Called when the options of a domain should be changed
+  virtual bool setOptions(const DNSName& domain, const string& options)
+  {
+    return false;
+  }
+
+  //! Called when the catalog of a domain should be changed
+  virtual bool setCatalog(const DNSName& domain, const DNSName& catalog)
   {
     return false;
   }
@@ -472,6 +517,26 @@ class DBException : public PDNSException
 {
 public:
   DBException(const string &reason_) : PDNSException(reason_){}
+};
+
+
+struct SOAData
+{
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), minimum(0), db(0), domain_id(-1) {};
+
+  DNSName qname;
+  DNSName nameserver;
+  DNSName hostmaster;
+  uint32_t ttl;
+  uint32_t serial;
+  uint32_t refresh;
+  uint32_t retry;
+  uint32_t expire;
+  uint32_t minimum;
+  DNSBackend *db;
+  int domain_id;
+
+  uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */

@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.152.74/32");
+    opt.source = Netmask("10.0.59.220/32");
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     pw1.addOpt(512, 0, 0, ednsOptions);
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.2.70.250/32");
+    opt.source = Netmask("10.0.167.48/32");
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     pw2.addOpt(512, 0, 0, ednsOptions);
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.34.159/32");
+    opt.source = Netmask("10.0.41.6/32");
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.0.179.58/32");
+    opt.source = Netmask("10.0.119.79/32");
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
     /* no EDNSOpts::DNSSECOK !! */

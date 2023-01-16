@@ -32,3 +32,6 @@ e.host			IN	A	1.1.1.1
 
 sub				IN NS ns1.test.dyndns.
 sub				IN NS ns2.test.dyndns.
+
+; unlike other records in this zone, the record below will actually disappear during the 1dyndns-update-add-delete-txt test
+xautosplit       IN TXT "They fixed up the corner store like it was a nightclub - It's permanently disco - Everyone is dressed so oddly I can't recognize them - I can't tell the staff from the customers - Baby check this out, I've got something to say - Man, it's so loud in here - When they stop the drum machine and I can think again - I'll remember what it was"

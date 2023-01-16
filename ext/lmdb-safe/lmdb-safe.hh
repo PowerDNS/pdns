@@ -1,4 +1,5 @@
 #pragma once
+#include <string_view>
 #include <lmdb.h>
 #include <iostream>
 #include <fstream>
@@ -17,14 +18,14 @@ using std::string_view;
 /* open issues:
  *
  * - missing convenience functions (string_view, string)
- */ 
+ */
 
 /*
 The error strategy. Anything that "should never happen" turns into an exception. But things like 'duplicate entry' or 'no such key' are for you to deal with.
  */
 
 /*
-  Thread safety: we are as safe as lmdb. You can talk to MDBEnv from as many threads as you want 
+  Thread safety: we are as safe as lmdb. You can talk to MDBEnv from as many threads as you want
 */
 
 /** MDBDbi is our only 'value type' object, as 1) a dbi is actually an integer
@@ -35,13 +36,13 @@ public:
   MDBDbi(): d_dbi(-1)
   {
   }
-  explicit MDBDbi(MDB_env* env, MDB_txn* txn, string_view dbname, int flags);  
+  explicit MDBDbi(MDB_env* env, MDB_txn* txn, string_view dbname, int flags);
 
   operator const MDB_dbi&() const
   {
     return d_dbi;
   }
-  
+
   MDB_dbi d_dbi;
 };
 
@@ -64,7 +65,7 @@ public:
   }
 
   MDBDbi openDB(const string_view dbname, int flags);
-  
+
   MDBRWTransaction getRWTransaction();
   MDBROTransaction getROTransaction();
 
@@ -106,7 +107,7 @@ struct MDBOutVal
     T ret;
     if(d_mdbval.mv_size != sizeof(T))
       throw std::runtime_error("MDB data has wrong length for type");
-    
+
     memcpy(&ret, d_mdbval.mv_data, sizeof(T));
     return ret;
   }
@@ -121,7 +122,7 @@ struct MDBOutVal
     T ret;
     if(d_mdbval.mv_size != sizeof(T))
       throw std::runtime_error("MDB data has wrong length for type");
-    
+
     memcpy(&ret, d_mdbval.mv_data, sizeof(T));
     return ret;
   }
@@ -131,11 +132,11 @@ struct MDBOutVal
   {
     if(d_mdbval.mv_size != sizeof(T))
       throw std::runtime_error("MDB data has wrong length for type");
-    
+
     return reinterpret_cast<const T*>(d_mdbval.mv_data);
   }
-  
-  
+
+
   MDB_val d_mdbval;
 };
 
@@ -159,7 +160,7 @@ public:
   template <class T,
             typename std::enable_if<std::is_arithmetic<T>::value,
                                     T>::type* = nullptr>
-  MDBInVal(T i) 
+  MDBInVal(T i)
   {
     memcpy(&d_memory[0], &i, sizeof(i));
     d_mdbval.mv_size = sizeof(T);
@@ -171,20 +172,20 @@ public:
     d_mdbval.mv_size = strlen(s);
     d_mdbval.mv_data = (void*)s;
   }
-  
-  MDBInVal(const string_view& v) 
+
+  MDBInVal(const string_view& v)
   {
     d_mdbval.mv_size = v.size();
     d_mdbval.mv_data = (void*)&v[0];
   }
 
-  MDBInVal(const std::string& v) 
+  MDBInVal(const std::string& v)
   {
     d_mdbval.mv_size = v.size();
     d_mdbval.mv_data = (void*)&v[0];
   }
 
-  
+
   template<typename T>
   static MDBInVal fromStruct(const T& t)
   {
@@ -193,7 +194,7 @@ public:
     ret.d_mdbval.mv_data = (void*)&t;
     return ret;
   }
-  
+
   operator MDB_val&()
   {
     return d_mdbval;
@@ -250,7 +251,7 @@ public:
                      const_cast<MDB_val*>(&val.d_mdbval));
     if(rc && rc != MDB_NOTFOUND)
       throw std::runtime_error("getting data: " + std::string(mdb_strerror(rc)));
-    
+
     return rc;
   }
 
@@ -263,7 +264,7 @@ public:
     return rc;
   }
 
-  
+
   // this is something you can do, readonly
   MDBDbi openDB(string_view dbname, int flags)
   {
@@ -272,7 +273,7 @@ public:
 
   MDBROCursor getCursor(const MDBDbi&);
   MDBROCursor getROCursor(const MDBDbi&);
-    
+
   operator MDB_txn*()
   {
     return d_txn;
@@ -288,8 +289,8 @@ public:
   }
 };
 
-/* 
-   A cursor in a read-only transaction must be closed explicitly, before or after its transaction ends. It can be reused with mdb_cursor_renew() before finally closing it. 
+/*
+   A cursor in a read-only transaction must be closed explicitly, before or after its transaction ends. It can be reused with mdb_cursor_renew() before finally closing it.
 
    "If the parent transaction commits, the cursor must not be used again."
 */
@@ -379,7 +380,7 @@ public:
        throw std::runtime_error("Unable to find from cursor: " + std::string(mdb_strerror(rc)));
     return rc;
   }
-  
+
   int lower_bound(const MDBInVal& in, MDBOutVal& key, MDBOutVal& data)
   {
     key.d_mdbval = in.d_mdbval;
@@ -390,7 +391,7 @@ public:
     return rc;
   }
 
-  
+
   int nextprev(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
     int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
@@ -499,12 +500,12 @@ public:
   MDBRWTransactionImpl &operator=(MDBRWTransactionImpl&& rhs) = delete;
 
   ~MDBRWTransactionImpl() override;
-  
+
   void commit() override;
   void abort() override;
 
   void clear(MDB_dbi dbi);
-  
+
   void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags=0)
   {
     if(!d_txn)
@@ -535,7 +536,7 @@ public:
     return rc;
   }
 
- 
+
   int get(MDBDbi& dbi, const MDBInVal& key, MDBOutVal& val)
   {
     if(!d_txn)
@@ -556,7 +557,7 @@ public:
       val = out.get<string_view>();
     return rc;
   }
-  
+
   MDBDbi openDB(string_view dbname, int flags)
   {
     return MDBDbi(environment().d_env, d_txn, dbname, flags);
@@ -569,7 +570,7 @@ public:
   MDBROTransaction getROTransaction();
 };
 
-/* "A cursor in a write-transaction can be closed before its transaction ends, and will otherwise be closed when its transaction ends" 
+/* "A cursor in a write-transaction can be closed before its transaction ends, and will otherwise be closed when its transaction ends"
    This is a problem for us since it may means we are closing the cursor twice, which is bad
 */
 class MDBRWCursor : public MDBGenCursor<MDBRWTransactionImpl, MDBRWCursor>
@@ -592,7 +593,7 @@ public:
       throw std::runtime_error("mdb_cursor_put: " + std::string(mdb_strerror(rc)));
   }
 
-  
+
   int put(const MDBOutVal& key, const MDBOutVal& data, int flags=0)
   {
     // XXX check errors
@@ -607,4 +608,3 @@ public:
   }
 
 };
-

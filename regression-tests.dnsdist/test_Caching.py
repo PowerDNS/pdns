@@ -849,6 +849,7 @@ class TestCachingHashingCookies(DNSDistTest):
 
 class TestTempFailureCacheTTLAction(DNSDistTest):
 
+    _extraStartupSleep = 1
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)

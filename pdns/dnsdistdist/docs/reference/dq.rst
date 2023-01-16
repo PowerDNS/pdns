@@ -66,6 +66,10 @@ This state can be modified from the various hooks.
 
     Whether to skip cache lookup / storing the answer for this question, settable.
 
+  .. attribute:: DNSQuestion.tempFailureTTL
+  
+    On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds, settable.
+
   .. attribute:: DNSQuestion.tcp
 
     Whether the query was received over TCP.
@@ -85,6 +89,12 @@ This state can be modified from the various hooks.
     :param int type: The type of the new value, ranging from 0 to 255 (both included)
     :param str value: The binary-safe value
 
+  .. method:: DNSQuestion:getContent() -> str
+
+    .. versionadded:: 1.8.0
+
+    Get the content of the DNS packet as a string
+
   .. method:: DNSQuestion:getDO() -> bool
 
     Get the value of the DNSSEC OK bit.
@@ -100,8 +110,11 @@ This state can be modified from the various hooks.
   .. method:: DNSQuestion:getHTTPHeaders() -> table
 
     .. versionadded:: 1.4.0
+    .. versionchanged:: 1.8.0
+       see ``keepIncomingHeaders`` on :func:`addDOHLocal`
 
     Return the HTTP headers for a DoH query, as a table whose keys are the header names and values the header values.
+    Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this method.
 
     :returns: A table of HTTP headers
 
@@ -160,6 +173,14 @@ This state can be modified from the various hooks.
 
     :returns: A table whose keys are types and values are binary-safe strings
 
+  .. method:: DNSQuestion:getQueryTime -> timespec
+
+    .. versionadded:: 1.8.0
+
+    Return the time at which the current query has been received, in whole seconds and nanoseconds since epoch, as a :ref:`timespec` object.
+
+    :returns: A :ref:`timespec` object
+
   .. method:: DNSQuestion:getServerNameIndication() -> string
 
     .. versionadded:: 1.4.0
@@ -195,6 +216,15 @@ This state can be modified from the various hooks.
     Send an SNMP trap.
 
     :param string reason: An optional string describing the reason why this trap was sent
+
+  .. method:: DNSQuestion:setEDNSOption(code, data)
+
+    .. versionadded:: 1.8.0
+
+    Add arbitrary EDNS option and data to the query. Any existing EDNS content with the same option code will be overwritten.
+
+    :param int code: The EDNS option code
+    :param string data: The EDNS option raw data
 
   .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
 

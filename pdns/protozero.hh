@@ -108,6 +108,7 @@ namespace pdns {
 
       void setTime(time_t sec, uint32_t usec)
       {
+        // coverity[store_truncates_time_t]
         add_uint32(d_message, Field::timeSec, sec);
         add_uint32(d_message, Field::timeUsec, usec);
       }

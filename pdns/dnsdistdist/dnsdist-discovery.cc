@@ -27,6 +27,7 @@
 #include "dnsparser.hh"
 #include "dolog.hh"
 #include "sstuff.hh"
+#include "threadname.hh"
 
 namespace dnsdist
 {
@@ -37,7 +38,7 @@ const uint16_t ServiceDiscovery::s_defaultDoHSVCKey{7};
 
 bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade)
 {
-  s_upgradeableBackends.lock()->push_back(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade});
+  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade}));
   return true;
 }
 
@@ -50,10 +51,6 @@ struct DesignatedResolvers
 
 static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, DesignatedResolvers>& resolvers)
 {
-  if (answer.size() <= sizeof(struct dnsheader)) {
-    throw std::runtime_error("Looking for SVC records in a packet smaller than a DNS header");
-  }
-
   std::map<DNSName, std::vector<ComboAddress>> hints;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
   PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
@@ -254,6 +251,13 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     Socket sock(addr.sin4.sin_family, SOCK_STREAM);
     sock.setNonBlocking();
+
+#ifdef SO_BINDTODEVICE
+    if (!backend->d_config.sourceItfName.empty()) {
+      setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
+    }
+#endif
+
     if (!IsAnyAddress(backend->d_config.sourceAddr)) {
       sock.setReuseAddr();
 #ifdef IP_BIND_ADDRESS_NO_PORT
@@ -261,12 +265,6 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
 #endif
-
-      if (!backend->d_config.sourceItfName.empty()) {
-#ifdef SO_BINDTODEVICE
-        setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
-#endif
-      }
       sock.bind(backend->d_config.sourceAddr);
     }
     sock.connect(addr, backend->d_config.tcpConnectTimeout);
@@ -337,10 +335,10 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     return handleSVCResult(packet, addr, upgradeableBackend.d_dohKey, config);
   }
   catch (const std::exception& e) {
-    errlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what());
+    warnlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what());
   }
   catch (...) {
-    errlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort());
+    warnlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort());
   }
 
   return false;
@@ -398,15 +396,18 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
   DownstreamState::Config config(backend.d_ds->d_config);
   config.remote = discoveredConfig.d_addr;
-  if (discoveredConfig.d_port != 0) {
-    config.remote.setPort(discoveredConfig.d_port);
-  }
-  else {
-    if (discoveredConfig.d_protocol == dnsdist::Protocol::DoT) {
-      config.remote.setPort(853);
+  config.remote.setPort(discoveredConfig.d_port);
+
+  if (backend.keepAfterUpgrade && config.availability == DownstreamState::Availability::Up) {
+    /* it's OK to keep the forced state if we replace the initial
+       backend, but if we are adding a new backend, it should not
+       inherit that setting, especially since DoX backends are much
+       more likely to fail (certificate errors, ...) */
+    if (config.d_upgradeToLazyHealthChecks) {
+      config.availability = DownstreamState::Availability::Lazy;
     }
-    else if (discoveredConfig.d_protocol == dnsdist::Protocol::DoH) {
-      config.remote.setPort(443);
+    else {
+      config.availability = DownstreamState::Availability::Auto;
     }
   }
 
@@ -496,6 +497,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
 void ServiceDiscovery::worker()
 {
+  setThreadName("dnsdist/discove");
   while (true) {
     time_t now = time(nullptr);
 
@@ -505,14 +507,14 @@ void ServiceDiscovery::worker()
     for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end();) {
       auto& backend = *backendIt;
       try {
-        if (backend.d_nextCheck > now) {
+        if (backend->d_nextCheck > now) {
           ++backendIt;
           continue;
         }
 
-        auto upgraded = tryToUpgradeBackend(backend);
+        auto upgraded = tryToUpgradeBackend(*backend);
         if (upgraded) {
-          upgradedBackends.insert(backend.d_ds);
+          upgradedBackends.insert(backend->d_ds);
           backendIt = upgradeables.erase(backendIt);
           continue;
         }
@@ -524,14 +526,14 @@ void ServiceDiscovery::worker()
         vinfolog("Exception in the Service Discovery thread");
       }
 
-      backend.d_nextCheck = now + backend.d_interval;
+      backend->d_nextCheck = now + backend->d_interval;
       ++backendIt;
     }
 
     {
       auto backends = s_upgradeableBackends.lock();
       for (auto it = backends->begin(); it != backends->end();) {
-        if (upgradedBackends.count(it->d_ds) != 0) {
+        if (upgradedBackends.count((*it)->d_ds) != 0) {
           it = backends->erase(it);
         }
         else {
@@ -555,6 +557,6 @@ bool ServiceDiscovery::run()
   return true;
 }
 
-LockGuarded<std::vector<ServiceDiscovery::UpgradeableBackend>> ServiceDiscovery::s_upgradeableBackends;
+LockGuarded<std::vector<std::shared_ptr<ServiceDiscovery::UpgradeableBackend>>> ServiceDiscovery::s_upgradeableBackends;
 std::thread ServiceDiscovery::s_thread;
 }

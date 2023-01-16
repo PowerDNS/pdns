@@ -4,7 +4,7 @@ Documentation=man:ixfrdist(1)
 Documentation=man:ixfrdist.yml(5)
 Documentation=https://doc.powerdns.com
 Wants=network-online.target
-After=network-online.target
+After=network-online.target time-sync.target
 
 [Service]
 Type=simple
@@ -34,6 +34,11 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
+ProtectProc=invisible
+PrivateIPC=true
+RemoveIPC=true
+DevicePolicy=closed
+MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-0	ttl.test.dyndns.	IN	A	3600	127.0.0.1
+0	ttl.test.dyndns.	3600	IN	A	127.0.0.1
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ttl.test.dyndns.', qtype=A
 Answer:
@@ -7,7 +7,7 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	ttl.test.dyndns.	IN	A	31337	127.0.0.1
+0	ttl.test.dyndns.	31337	IN	A	127.0.0.1
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ttl.test.dyndns.', qtype=A
 Answer:
@@ -16,6 +16,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	ttl.test.dyndns.	IN	A	3600	127.0.0.1
+0	ttl.test.dyndns.	3600	IN	A	127.0.0.1
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ttl.test.dyndns.', qtype=A

@@ -48,6 +48,12 @@ rec MODULE-IDENTITY
     REVISION "202201310000Z"
     DESCRIPTION "Added non-resolving NS name metric."
 
+    REVISION "202208220000Z"
+    DESCRIPTION "Added internal maintenance metrics."
+
+    REVISION "202209120000Z"
+    DESCRIPTION "Added metrics for answers from auths by rcode"
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -1062,6 +1068,151 @@ nonResolvingNameserverEntries OBJECT-TYPE
         "Number of entries in the non-resolving NS name cache"
     ::= { stats 126 }
 
+maintenanceUSec OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Time spent doing internal maintenance, including Lua maintenance"
+    ::= { stats 127 }
+
+maintenanceCount OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of times internal maintenance has been called, including Lua maintenance"
+    ::= { stats 128 }
+
+authrcode0Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 0 (noerror) answers received"
+    ::= { stats 129 }
+
+authrcode1Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 1 (formerr) answers received"
+    ::= { stats 130 }
+
+authrcode2Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 2 (servfail) answers received"
+    ::= { stats 131 }
+
+authrcode3Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 3 (nxdomain) answers received"
+    ::= { stats 132 }
+
+authrcode4Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 4 (notimp) answers received"
+    ::= { stats 133 }
+
+authrcode5Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 5 (refused) answers received"
+    ::= { stats 134 }
+
+authrcode6Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 6 (yxdomain) answers received"
+    ::= { stats 135 }
+
+authrcode7Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 7 (yxrrset) answers received"
+    ::= { stats 136 }
+
+authrcode8Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 8 (nxrrset) answers received"
+    ::= { stats 137 }
+
+authrcode9Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 9 (notauth) answers received"
+    ::= { stats 138 }
+
+authrcode10Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 10 answers received"
+    ::= { stats 139 }
+
+authrcode11Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 11 answers received"
+    ::= { stats 140 }
+
+authrcode12Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 12 answers received"
+    ::= { stats 141 }
+
+authrcode13Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 13 answers received"
+    ::= { stats 142 }
+
+authrcode14Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 14 answers received"
+    ::= { stats 143 }
+
+authrcode15Count OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of rcode 15 answers received"
+    ::= { stats 144 }
+
+
 ---
 --- Traps / Notifications
 ---
@@ -1235,7 +1386,25 @@ recGroup OBJECT-GROUP
         udp6InCsumErrors,
         sourceDisallowedNotify,
         zoneDisallowedNotify,
-        nonResolvingNameserverEntries
+        nonResolvingNameserverEntries,
+        maintenanceUSec,
+        maintenanceCalls,
+        authrcode0Count,
+        authrcode1Count,
+        authrcode2Count,
+        authrcode3Count,
+        authrcode4Count,
+        authrcode5Count,
+        authrcode6Count,
+        authrcode7Count,
+        authrcode8Count,
+        authrcode9Count,
+        authrcode10Count,
+        authrcode11Count,
+        authrcode12Count,
+        authrcode13Count,
+        authrcode14Count,
+        authrcode15Count
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

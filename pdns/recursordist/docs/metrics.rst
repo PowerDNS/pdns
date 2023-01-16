@@ -232,6 +232,13 @@ auth6-answers100-1000
 ^^^^^^^^^^^^^^^^^^^^^
 counts the number of queries answered by auth6s within 1 second (4.0)
 
+auth-xxx-answers
+^^^^^^^^^^^^^^^^
+where ``xxx`` is an rcode name (``noerror``, ``formerr``, ``servfail``, ``nxdomain``, ``notimp``, ``refused``, ``yxdomain``, ``yxrrset``, ``nxrrset``, ``notauth``, ``rcode10``, ``rcode11``, ``rcode2``, ``rcode13``, ``rcode14``, ``rcode15``).
+Counts the rcodes returned by authoritative servers.
+The corresponding Prometheus metrics consist of multiple entries of the form ``pdns_recursor_auth_rcode_answers{rcode="xxx"}``.
+
+
 auth-zone-queries
 ^^^^^^^^^^^^^^^^^
 counts the number of queries to locally hosted authoritative zones (:ref:`setting-auth-zones`) since starting
@@ -511,6 +518,14 @@ number of outgoing queries over IPv6
 ipv6-questions
 ^^^^^^^^^^^^^^
 counts all end-user initiated queries with the RD   bit set, received over IPv6 UDP
+
+maintenance-usec
+^^^^^^^^^^^^^^^^
+time spent doing internal maintenance, including Lua maintenance
+
+maintenance-calls
+^^^^^^^^^^^^^^^^^
+number of times internal maintenance has been called, including Lua maintenance
 
 malloc-bytes
 ^^^^^^^^^^^^

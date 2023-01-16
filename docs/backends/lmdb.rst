@@ -7,7 +7,7 @@ LMDB backend
 * Superslave: No
 * Case: All lower
 * DNSSEC: Yes
-* Disabled data: No
+* Disabled data: Yes
 * Comments: No
 * Multiple instances: No
 * Zone caching: Yes
@@ -81,7 +81,8 @@ PowerDNS Version  LMDB Schema version
 ================  ===================
 4.2.x             1
 4.3.x             2
-4.4.x and up      3
+4.4.x to 4.6.x    3
+4.7.x and up      4
 ================  ===================
 
 .. _settings-lmdb-random-ids:
@@ -91,8 +92,12 @@ PowerDNS Version  LMDB Schema version
 
   .. versionadded:: 4.7.0
 
+-  Boolean
+-  Default: no
+
 Numeric IDs inside the database are generated randomly instead of sequentially.
 If some external process is synchronising databases between systems, this will avoid conflicts when objects (domains, keys, etc.) get added.
+This will also improve the detection of recreated zones for :doc:`Catalog Zones <../catalog>` producers.
 
 .. _settings-lmdb-map-size:
 

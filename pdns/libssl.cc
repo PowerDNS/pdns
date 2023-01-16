@@ -20,9 +20,18 @@
 #include <openssl/ocsp.h>
 #endif /* DISABLE_OCSP_STAPLING */
 #include <openssl/pkcs12.h>
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/provider.h>
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <fcntl.h>
+
+#if OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
+#include <openssl/evp.h>
+#endif
 
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
@@ -81,13 +90,28 @@ void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
 #ifdef HAVE_OPENSSL_INIT_CRYPTO
+#ifndef DISABLE_OPENSSL_ERROR_STRINGS
+    uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG;
+    const uint64_t sslOpts = 0;
+#else /* DISABLE_OPENSSL_ERROR_STRINGS */
+    uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG|OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS;
+    const uint64_t sslOpts = OPENSSL_INIT_NO_LOAD_SSL_STRINGS;
+#endif /* DISABLE_OPENSSL_ERROR_STRINGS */
     /* load the default configuration file (or one specified via OPENSSL_CONF),
        which can then be used to load engines.
-       Do not load all ciphers and digests, we only need a few of them and these
+    */
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+    /* Since 661595ca0933fe631faeadd14a189acd5d4185e0 we can no longer rely on the ciphers and digests
+       required for TLS to be loaded by OPENSSL_init_ssl(), so let's give up and load everything */
+#else /* OPENSSL_VERSION_MAJOR >= 3 */
+    /* Do not load all ciphers and digests, we only need a few of them and these
        will be loaded by OPENSSL_init_ssl(). */
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG|OPENSSL_INIT_NO_ADD_ALL_CIPHERS|OPENSSL_INIT_NO_ADD_ALL_DIGESTS, nullptr);
-    OPENSSL_init_ssl(0, nullptr);
-#endif
+    cryptoOpts |= OPENSSL_INIT_NO_ADD_ALL_CIPHERS|OPENSSL_INIT_NO_ADD_ALL_DIGESTS;
+#endif /* OPENSSL_VERSION_MAJOR >= 3 */
+
+    OPENSSL_init_crypto(cryptoOpts, nullptr);
+    OPENSSL_init_ssl(sslOpts, nullptr);
+#endif /* HAVE_OPENSSL_INIT_CRYPTO */
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     /* load error strings for both libcrypto and libssl */
@@ -196,9 +220,13 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
   SSL_CTX_set_ex_data(ctx, s_ticketsKeyIndex, data);
 }
 
-int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+#if OPENSSL_VERSION_MAJOR >= 3
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+#else
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+#endif
 {
-  if (enc) {
+  if (enc != 0) {
     const auto key = keyring.getEncryptionKey();
     if (key == nullptr) {
       return -1;
@@ -215,7 +243,7 @@ int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsign
     return 0;
   }
 
-  if (key->decrypt(iv, ectx, hctx) == false) {
+  if (!key->decrypt(iv, ectx, hctx)) {
     return -1;
   }
 
@@ -677,7 +705,15 @@ bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_N
   return (memcmp(d_name, name, sizeof(d_name)) == 0);
 }
 
-int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+#if OPENSSL_VERSION_MAJOR >= 3
+static const std::string sha256KeyName{"sha256"};
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const
+#else
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
+#endif
 {
   memcpy(keyName, d_name, sizeof(d_name));
 
@@ -689,18 +725,74 @@ int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE
     return -1;
   }
 
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    return -1;
+  }
+
+  if (OSSL_PARAM_BLD_push_utf8_string(params_build.get(), OSSL_MAC_PARAM_DIGEST, sha256KeyName.c_str(), sha256KeyName.size()) == 0) {
+    return -1;
+  }
+
+  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  if (params == nullptr) {
+    return -1;
+  }
+
+  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+    return -1;
+  }
+
+  if (EVP_MAC_init(hctx, d_hmacKey, sizeof(d_hmacKey), nullptr) == 0) {
+    return -1;
+  }
+#else
   if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
     return -1;
   }
+#endif
 
   return 1;
 }
 
-bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+#if OPENSSL_VERSION_MAJOR >= 3
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const
+#else
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
+#endif
 {
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    return false;
+  }
+
+  if (OSSL_PARAM_BLD_push_utf8_string(params_build.get(), OSSL_MAC_PARAM_DIGEST, sha256KeyName.c_str(), sha256KeyName.size()) == 0) {
+    return false;
+  }
+
+  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  if (params == nullptr) {
+    return false;
+  }
+
+  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+    return false;
+  }
+
+  if (EVP_MAC_init(hctx, d_hmacKey, sizeof(d_hmacKey), nullptr) == 0) {
+    return false;
+  }
+#else
   if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
     return false;
   }
+#endif
 
   if (EVP_DecryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
     return false;
@@ -750,6 +842,10 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
 #endif
   }
+
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+  sslOptions |= SSL_OP_IGNORE_UNEXPECTED_EOF;
+#endif
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
   if (!libssl_set_min_tls_version(ctx, config.d_minTLSVersion)) {
@@ -809,10 +905,30 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
       EVP_PKEY *keyptr = nullptr;
       X509 *certptr = nullptr;
       STACK_OF(X509) *captr = nullptr;
-      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr))
-      {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        bool failed = true;
+        /* we might be opening a PKCS12 file that uses RC2 CBC or 3DES CBC which, since OpenSSL 3.0.0, requires loading the legacy provider */
+        auto libCtx = OSSL_LIB_CTX_get0_global_default();
+        /* check whether the legacy provider is already loaded */
+        if (!OSSL_PROVIDER_available(libCtx, "legacy")) {
+          /* it's not */
+          auto provider = OSSL_PROVIDER_load(libCtx, "legacy");
+          if (provider != nullptr) {
+            if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+              failed = false;
+            }
+            /* we do not want to keep that provider around after that */
+            OSSL_PROVIDER_unload(provider);
+          }
+        }
+        if (failed) {
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        }
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
       }
       auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
       auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);

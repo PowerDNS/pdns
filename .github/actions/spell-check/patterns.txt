@@ -64,3 +64,5 @@ DoH
 # Contributors with non-ascii characters in their name
 Hoffst[^[:ascii:]]+tte
 Gri[^[:ascii:]]
+Lundstr[^[:ascii:]]+m
+

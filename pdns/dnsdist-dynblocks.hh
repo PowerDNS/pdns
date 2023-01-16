@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#ifndef DISABLE_DYNBLOCKS
 #include <unordered_set>
 
 #include "dolog.hh"
@@ -435,3 +436,5 @@ private:
   static std::list<MetricsSnapshot> s_metricsData;
   static size_t s_topN;
 };
+
+#endif /* DISABLE_DYNBLOCKS */

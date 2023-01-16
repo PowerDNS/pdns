@@ -1,0 +1,6 @@
+# Statistic data-race not relevant right now
+# Due to performance issue of atomics
+# Discussion:
+# https://github.com/PowerDNS/pdns/issues/11814
+race:avg_latency
+race:send_latency

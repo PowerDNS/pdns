@@ -33,7 +33,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <limits.h>
+#include <climits>
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
@@ -110,7 +110,7 @@ bool ArgvMap::contains(const string &var, const string &val)
     return false;
   }
   vector<string> parts;
-  
+
   stringtok(parts, param->second, ", \t");
   for (const auto& part: parts) {
     if (part == val) {
@@ -125,7 +125,7 @@ string ArgvMap::helpstring(string prefix)
 {
   if(prefix=="no")
     prefix="";
-  
+
   string help;
 
   for (const auto& i: helpmap) {
@@ -134,7 +134,7 @@ string ArgvMap::helpstring(string prefix)
 
       help+="  --";
       help+=i.first;
-      
+
       string type=d_typeMap[i.first];
 
       if(type=="Parameter")
@@ -144,7 +144,7 @@ string ArgvMap::helpstring(string prefix)
           help+=" | --"+i.first+"=yes";
           help+=" | --"+i.first+"=no";
         }
-      
+
 
       help+="\n\t";
       help+=i.second;
@@ -230,7 +230,7 @@ const string & ArgvMap::operator[](const string &arg)
   return d_params[arg];
 }
 
-mode_t ArgvMap::asMode(const string &arg) 
+mode_t ArgvMap::asMode(const string &arg)
 {
   mode_t mode;
   const char *cptr_orig;
@@ -241,7 +241,7 @@ mode_t ArgvMap::asMode(const string &arg)
 
   cptr_orig = d_params[arg].c_str();
   mode = static_cast<mode_t>(strtol(cptr_orig, &cptr_ret, 8));
-  if (mode == 0 && cptr_ret == cptr_orig) 
+  if (mode == 0 && cptr_ret == cptr_orig)
     throw ArgException("'" + arg + string("' contains invalid octal mode"));
    return mode;
 }
@@ -309,7 +309,7 @@ int ArgvMap::asNum(const string &arg, int def)
   return retval;
 }
 
-bool ArgvMap::isEmpty(const string &arg) 
+bool ArgvMap::isEmpty(const string &arg)
 {
    if(!parmIsset(arg))
     return true;
@@ -330,7 +330,7 @@ double ArgvMap::asDouble(const string &arg)
 
   cptr_orig = d_params[arg].c_str();
   retval = strtod(cptr_orig, &cptr_ret);
- 
+
   if (retval == 0 && cptr_ret == cptr_orig)
    throw ArgException("'"+arg+string("' is not valid double"));
 
@@ -355,14 +355,17 @@ static const map<string,string> deprecateList = {
   { "stats-snmp-blacklist", "stats-snmp-disabled-list" },
   { "edns-subnet-whitelist", "edns-subnet-allow-list" },
   { "new-domain-whitelist", "new-domain-ignore-list" },
-  { "snmp-master-socket", "snmp-daemon-socket" }
+  { "snmp-master-socket", "snmp-daemon-socket" },
+  { "xpf-allow-from", "Proxy Protocol" },
+  { "xpf-rr-code", "Proxy Protocol" },
 };
 
-static void warnIfDeprecated(const string& var)
+void ArgvMap::warnIfDeprecated(const string& var)
 {
   const auto msg = deprecateList.find(var);
   if (msg != deprecateList.end()) {
-    g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl;
+    SLOG(g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl,
+         d_log->info(Logr::Warning, "Option is deprecated and will be removed in a future release", "deprecatedName", Logging::Loggable(var), "alternative", Logging::Loggable(msg->second)));
   }
 }
 
@@ -395,11 +398,13 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   }
   else // command
     d_cmds.push_back(arg);
- 
+
   boost::trim(var);
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
-    warnIfDeprecated(var);
+    if (!lax) {
+      warnIfDeprecated(var);
+    }
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
     if(pos && pos!=string::npos)
       val=val.substr(pos);
@@ -429,7 +434,8 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
       stringtok(parts, d_params["ignore-unknown-settings"], " ,\t\n\r");
       if (find(parts.begin(), parts.end(), var) != parts.end()) {
         d_unknownParams[var] = val;
-        g_log<<Logger::Warning<<"Ignoring unknown setting '"<<var<<"' as requested"<<endl;
+        SLOG(g_log<<Logger::Warning<<"Ignoring unknown setting '"<<var<<"' as requested"<<endl,
+             d_log->info(Logr::Warning, "Ignoring unknown setting as requested", "name", Logging::Loggable(var)));
         return;
       }
 
@@ -463,49 +469,53 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
-bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
+bool ArgvMap::parseFile(const char* fname, const string& arg, bool lax)
+{
   string line;
   string pline;
-  string::size_type pos;
 
-  ifstream f(fname);
-  if(!f)
+  std::ifstream configFileStream(fname);
+  if (!configFileStream) {
     return false;
+  }
 
-  while(getline(f,pline)) {
+  while (getline(configFileStream, pline)) {
     boost::trim_right(pline);
-    
-    if(!pline.empty() && pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
+
+    if (!pline.empty() && pline[pline.size() - 1] == '\\') {
+      line += pline.substr(0, pline.length() - 1);
       continue;
     }
-    else
-      line+=pline;
+
+    line += pline;
 
     // strip everything after a #
-    if((pos=line.find('#'))!=string::npos) {
+    string::size_type pos = line.find('#');
+    if (pos != string::npos) {
       // make sure it's either first char or has whitespace before
       // fixes issue #354
-      if (pos == 0 || std::isspace(line[pos-1]))
-        line=line.substr(0,pos);
+      if (pos == 0 || (std::isspace(line[pos - 1]) != 0)) {
+        line = line.substr(0, pos);
+      }
     }
 
     // strip trailing spaces
     boost::trim_right(line);
 
     // strip leading spaces
-    if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
-      line=line.substr(pos);
+    pos = line.find_first_not_of(" \t\r\n");
+    if (pos != string::npos) {
+      line = line.substr(pos);
+    }
 
     // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
 
-    parseOne( string("--") + line, arg, lax );
-    line="";
+    parseOne(string("--") + line, arg, lax);
+    line = "";
   }
 
   return true;
 }
-
 
 bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
 {
@@ -514,29 +524,32 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
   return parseFile(fname, arg, false);
 }
 
-bool ArgvMap::file(const char *fname, bool lax)
+bool ArgvMap::file(const char* fname, bool lax)
 {
-   return file(fname,lax,false);
+  return file(fname, lax, false);
 }
 
-bool ArgvMap::file(const char *fname, bool lax, bool included)
+bool ArgvMap::file(const char* fname, bool lax, bool included)
 {
-  if (!parmIsset("include-dir"))  // inject include-dir
-    set("include-dir","Directory to include configuration files from");
+  if (!parmIsset("include-dir")) { // inject include-dir
+    set("include-dir", "Directory to include configuration files from");
+  }
 
-  if(!parseFile(fname, "", lax)) {
-    g_log << Logger::Warning << "Unable to open " << fname << std::endl;
+  if (!parseFile(fname, "", lax)) {
+    SLOG(g_log << Logger::Warning << "Unable to open " << fname << std::endl,
+         d_log->error(Logr::Warning, "Unable to open file", "name", Logging::Loggable(fname)));
     return false;
   }
 
   // handle include here (avoid re-include)
   if (!included && !d_params["include-dir"].empty()) {
     std::vector<std::string> extraConfigs;
-    gatherIncludes(extraConfigs); 
-    for(const std::string& fn :  extraConfigs) {
-      if (!file(fn.c_str(), lax, true)) {
-        g_log << Logger::Error << fn << " could not be parsed" << std::endl;
-        throw ArgException(fn + " could not be parsed");
+    gatherIncludes(extraConfigs);
+    for (const std::string& filename : extraConfigs) {
+      if (!file(filename.c_str(), lax, true)) {
+        SLOG(g_log << Logger::Error << filename << " could not be parsed" << std::endl,
+             d_log->info(Logr::Error, "Unable to parse config file", "name", Logging::Loggable(filename)));
+        throw ArgException(filename + " could not be parsed");
       }
     }
   }
@@ -553,7 +566,8 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
   if (!(dir = opendir(d_params["include-dir"].c_str()))) {
     int err = errno;
     string msg = d_params["include-dir"] + " is not accessible: " + strerror(err);
-    g_log << Logger::Error << msg << std::endl;
+    SLOG(g_log << Logger::Error << msg << std::endl,
+         d_log->error(Logr::Error, err, "Directory is not accessible", "name", Logging::Loggable(d_params["include-dir"])));
     throw ArgException(msg);
   }
 
@@ -568,7 +582,8 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
       struct stat st;
       if (stat(name.c_str(), &st) || !S_ISREG(st.st_mode)) {
         string msg = name + " is not a regular file";
-        g_log << Logger::Error << msg << std::endl;
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(name)));
         closedir(dir);
         throw ArgException(msg);
       }

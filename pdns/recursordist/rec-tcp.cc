@@ -60,10 +60,12 @@ TCPConnection::~TCPConnection()
 {
   try {
     if (closesocket(d_fd) < 0)
-      g_log << Logger::Error << "Error closing socket for TCPConnection" << endl;
+      SLOG(g_log << Logger::Error << "Error closing socket for TCPConnection" << endl,
+           g_slogtcpin->info(Logr::Error, "Error closing socket for TCPConnection"));
   }
   catch (const PDNSException& e) {
-    g_log << Logger::Error << "Error closing TCPConnection socket: " << e.reason << endl;
+    SLOG(g_log << Logger::Error << "Error closing TCPConnection socket: " << e.reason << endl,
+         g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCPConnection socket", "exception", Logging::Loggable("PDNSException")));
   }
 
   if (t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
@@ -224,9 +226,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     ssize_t remaining = isProxyHeaderComplete(conn->data);
     if (remaining == 0) {
       if (g_logCommonErrors) {
-        g_log << Logger::Error << "Unable to consume proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
+        SLOG(g_log << Logger::Error << "Unable to consume proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+             g_slogtcpin->info(Logr::Error, "Unable to consume proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
       }
-      ++g_stats.proxyProtocolInvalidCount;
+      ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
       return;
     }
     else if (remaining < 0) {
@@ -244,16 +247,18 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
       if (used <= 0) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+               g_slogtcpin->info(Logr::Error, "Unable to parse proxy protocol header in packet from TCP client", "remote", Logging::Loggable(conn->d_remote)));
         }
-        ++g_stats.proxyProtocolInvalidCount;
+        ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
         return;
       }
       else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl;
+          SLOG(g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl,
+               g_slogtcpin->info(Logr::Error, "Proxy protocol header in packet from TCP client is larger than proxy-protocol-maximum-size", "remote", Logging::Loggable(conn->d_remote), "size", Logging::Loggable(used)));
         }
-        ++g_stats.proxyProtocolInvalidCount;
+        ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
         return;
       }
 
@@ -264,14 +269,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (t_proxyMapping) {
         if (auto it = t_proxyMapping->lookup(conn->d_source)) {
           conn->d_mappedSource = it->second.address;
+          ++it->second.stats.netmaskMatches;
         }
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
-          g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl;
+          SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl,
+               g_slogtcpin->info(Logr::Error, "Dropping TCP query, address not matched by allow-from", "remote", Logging::Loggable(conn->d_remote)));
         }
 
-        ++g_stats.unauthorizedTCP;
+        ++t_Counters.at(rec::Counter::unauthorizedTCP);
         return;
       }
 
@@ -307,7 +314,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if (bytes <= 0) {
       if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected after first byte" << endl;
+          SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected after first byte" << endl,
+               g_slogtcpin->info(Logr::Error, "TCP client disconnected after first byte", "remote", Logging::Loggable(conn->d_remote)));
         }
       }
       return;
@@ -319,14 +327,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if (bytes <= 0) {
       if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected while reading question body" << endl;
+          SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected while reading question body" << endl,
+               g_slogtcpin->info(Logr::Error, "TCP client disconnected while reading question body", "remote", Logging::Loggable(conn->d_remote)));
         }
       }
       return;
     }
     else if (bytes > std::numeric_limits<std::uint16_t>::max()) {
       if (g_logCommonErrors) {
-        g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " sent an invalid question size while reading question body" << endl;
+        SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " sent an invalid question size while reading question body" << endl,
+             g_slogtcpin->info(Logr::Error, "TCP client sent an invalid question size while reading question body", "remote", Logging::Loggable(conn->d_remote)));
       }
       return;
     }
@@ -338,16 +348,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
       }
       catch (const MOADNSException& mde) {
-        g_stats.clientParseError++;
+        t_Counters.at(rec::Counter::clientParseError)++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unable to parse packet from TCP client " << conn->d_remote.toStringWithPort() << endl;
-        }
-        return;
-      }
-      if (SyncRes::isUnsupported(dc->d_mdp.d_qtype)) {
-        g_stats.ignoredCount++;
-        if (g_logCommonErrors) {
-          g_log << Logger::Error << "Unsupported qtype " << dc->d_mdp.d_qtype << " from TCP client " << conn->d_remote.toStringWithPort() << endl;
+          SLOG(g_log << Logger::Error << "Unable to parse packet from TCP client " << conn->d_remote.toStringWithPort() << endl,
+               g_slogtcpin->info(Logr::Error, "Unable to parse packet from TCP client", "remte", Logging::Loggable(conn->d_remote)));
         }
         return;
       }
@@ -376,7 +380,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       uint16_t qtype = 0;
       uint16_t qclass = 0;
       bool needECS = false;
-      bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
       string deviceName;
@@ -389,23 +392,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
-      logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
-      dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
+      logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
+      dc->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-#ifdef HAVE_FSTRM
-      checkFrameStreamExport(luaconfsLocal);
-#endif
-
-      if (needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
+      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
 
         try {
           EDNSOptionViewMap ednsOptions;
-          bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
           getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
-                            xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
+                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
           qnameParsed = true;
 
           if (t_pdl) {
@@ -424,14 +421,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
             catch (const std::exception& e) {
               if (g_logCommonErrors) {
-                g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl;
+                SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
+                     g_slogtcpin->info(Logr::Warning, "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(conn->d_remote), "qname", Logging::Loggable(qname)));
               }
             }
           }
         }
         catch (const std::exception& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl;
+            SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
+                 g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
           }
         }
       }
@@ -443,14 +442,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       const dnsheader_aligned headerdata(conn->data.data());
       const struct dnsheader* dh = headerdata.get();
 
-      if (t_protobufServers || t_outgoingProtobufServers) {
+      if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
         dc->d_requestorId = requestorId;
         dc->d_deviceId = deviceId;
         dc->d_deviceName = deviceName;
         dc->d_uuid = getUniqueID();
       }
 
-      if (t_protobufServers) {
+      if (t_protobufServers.servers) {
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
@@ -459,7 +458,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         catch (const std::exception& e) {
           if (g_logCommonErrors) {
-            g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl;
+            SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
+                 g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
           }
         }
       }
@@ -468,33 +468,37 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh, dc->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
-            g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl;
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
+                 g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(dc->d_source)));
           }
-          g_stats.policyDrops++;
+          t_Counters.at(rec::Counter::policyDrops)++;
           return;
         }
       }
 
       if (dc->d_mdp.d_header.qr) {
-        g_stats.ignoredCount++;
+        t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(dc->getRemote())));
         }
         return;
       }
       if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
-        g_stats.ignoredCount++;
+        t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(dc->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(dc->d_mdp.d_header.opcode))));
         }
         sendErrorOverTCP(dc, RCode::NotImp);
         tcpGuard.keep();
         return;
       }
       else if (dh->qdcount == 0) {
-        g_stats.emptyQueriesCount++;
+        t_Counters.at(rec::Counter::emptyQueriesCount)++;
         if (g_logCommonErrors) {
-          g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl;
+          SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(dc->getRemote())));
         }
         sendErrorOverTCP(dc, RCode::NotImp);
         tcpGuard.keep();
@@ -502,25 +506,28 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else {
         // We have read a proper query
-        ++g_stats.qcounter;
-        ++g_stats.tcpqcounter;
+        //++t_Counters.at(rec::Counter::qcounter);
+        ++t_Counters.at(rec::Counter::qcounter);
+        ++t_Counters.at(rec::Counter::tcpqcounter);
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_mappedSource)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl;
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(dc->d_mappedSource)));
             }
 
-            g_stats.sourceDisallowedNotify++;
+            t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
             return;
           }
 
           if (!isAllowNotifyForZone(qname)) {
             if (!g_quiet) {
-              g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl;
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(dc->d_mappedSource), "zone", Logging::Loggable(qname)));
             }
 
-            g_stats.zoneDisallowedNotify++;
+            t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
             return;
           }
         }
@@ -533,12 +540,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
              but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
              as cacheable we would cache it with a wrong tag, so better safe than sorry. */
           dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
-          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
+          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source, dc->d_mappedSource);
           dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
           if (cacheHit) {
             if (!g_quiet) {
-              g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+              SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
+                   g_slogtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(dc->d_tag),
+                                     "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
+                                     "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
             }
 
             bool hadError = sendResponseOverTCP(dc, response);
@@ -546,10 +556,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             struct timeval now;
             Utility::gettimeofday(&now, nullptr);
             uint64_t spentUsec = uSec(now - start);
-            g_stats.cumulativeAnswers(spentUsec);
+            t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
             dc->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-            if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+            if (t_protobufServers.servers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
               struct timeval tv
               {
                 0, 0
@@ -558,16 +568,19 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
 
             if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-              g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
+              SLOG(g_log << Logger::Info << dc->d_eventTrace.toString() << endl,
+                   g_slogtcpin->info(Logr::Info, dc->d_eventTrace.toString())); // More fancy?
             }
             tcpGuard.keep();
+            t_Counters.updateSnap(g_regressionTestMode);
             return;
           } // cache hit
         } // query opcode
 
         if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
           if (!g_quiet) {
-            g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl;
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
+                 g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
           }
 
           requestWipeCaches(qname);
@@ -607,12 +620,13 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
   int newsock = accept(fd, (struct sockaddr*)&addr, &addrlen);
   if (newsock >= 0) {
     if (MT->numProcesses() > g_maxMThreads) {
-      g_stats.overCapacityDrops++;
+      t_Counters.at(rec::Counter::overCapacityDrops)++;
       try {
         closesocket(newsock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl,
+             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an over capacity drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
@@ -626,34 +640,39 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (auto it = t_proxyMapping->lookup(addr)) {
         mappedSource = it->second.address;
+        ++it->second.stats.netmaskMatches;
       }
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
       if (!g_quiet)
-        g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl;
+        SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
+             g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
 
-      g_stats.unauthorizedTCP++;
+      t_Counters.at(rec::Counter::unauthorizedTCP)++;
       try {
         closesocket(newsock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl,
+             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an ACL drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
 
     if (g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
-      g_stats.tcpClientOverflow++;
+      t_Counters.at(rec::Counter::tcpClientOverflow)++;
       try {
         closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl,
+             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an overflow drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
     }
 
     setNonBlocking(newsock);
+    setTCPNoDelay(newsock);
     std::shared_ptr<TCPConnection> tc = std::make_shared<TCPConnection>(newsock, addr);
     tc->d_source = addr;
     tc->d_destination.reset();
@@ -839,28 +858,32 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
   TCPIOHandlerStateChange(pid->lowState, newstate, pid);
 }
 
-void checkFastOpenSysctl(bool active)
+void checkFastOpenSysctl(bool active, Logr::log_t log)
 {
 #ifdef __linux__
   string line;
   if (readFileIfThere("/proc/sys/net/ipv4/tcp_fastopen", &line)) {
     int flag = std::stoi(line);
     if (active && !(flag & 1)) {
-      g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+      SLOG(g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl,
+           log->info(Logr::Error, "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it"));
     }
     if (!active && !(flag & 2)) {
-      g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+      SLOG(g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl,
+           log->info(Logr::Error, "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it"));
     }
   }
   else {
-    g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+    SLOG(g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl,
+         log->info(Logr::Notice, "Cannot determine if kernel settings allow fast-open"));
   }
 #else
-  g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+  SLOG(g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl,
+       log->info(Logr::Notice, "Cannot determine if kernel settings allow fast-open"));
 #endif
 }
 
-void checkTFOconnect()
+void checkTFOconnect(Logr::log_t log)
 {
   try {
     Socket s(AF_INET, SOCK_STREAM);
@@ -868,7 +891,8 @@ void checkTFOconnect()
     s.setFastOpenConnect();
   }
   catch (const NetworkError& e) {
-    g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "tcp-fast-open-connect enabled but returned error"));
   }
 }
 
@@ -994,67 +1018,65 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
+void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
 {
-  int fd;
-  vector<string> locals;
-  stringtok(locals, ::arg()["local-address"], " ,");
+  vector<string> localAddresses;
+  stringtok(localAddresses, ::arg()["local-address"], " ,");
 
-  if (locals.empty())
+  if (localAddresses.empty()) {
     throw PDNSException("No local address specified");
+  }
 
-  for (vector<string>::const_iterator i = locals.begin(); i != locals.end(); ++i) {
-    ServiceTuple st;
-    st.port = ::arg().asNum("local-port");
-    parseService(*i, st);
-
-    ComboAddress sin;
-
-    sin.reset();
-    sin.sin4.sin_family = AF_INET;
-    if (!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
-      sin.sin6.sin6_family = AF_INET6;
-      if (makeIPv6sockaddr(st.host, &sin.sin6) < 0)
-        throw PDNSException("Unable to resolve local address for TCP server on '" + st.host + "'");
+#ifdef TCP_DEFER_ACCEPT
+  auto first = true;
+#endif
+  const uint16_t defaultLocalPort = ::arg().asNum("local-port");
+  for (const auto& localAddress : localAddresses) {
+    ComboAddress address{localAddress, defaultLocalPort};
+    const int socketFd = socket(address.sin6.sin6_family, SOCK_STREAM, 0);
+    if (socketFd < 0) {
+      throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
     }
 
-    fd = socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
-    if (fd < 0)
-      throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
-
-    setCloseOnExec(fd);
+    setCloseOnExec(socketFd);
 
     int tmp = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
-      g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl;
+    if (setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
+      int err = errno;
+      SLOG(g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl,
+           log->error(Logr::Critical, err, "Setsockopt failed for TCP listening socket"));
       exit(1);
     }
-    if (sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
+    if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       int err = errno;
-      g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl;
+      SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
+           log->error(Logr::Error, err, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
     }
 
 #ifdef TCP_DEFER_ACCEPT
-    if (setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
-      if (i == locals.begin())
-        g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl;
+    if (setsockopt(socketFd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
+      if (first) {
+        SLOG(g_log << Logger::Info << "Enabled TCP data-ready filter for (slight) DoS protection" << endl,
+             log->info(Logr::Info, "Enabled TCP data-ready filter for (slight) DoS protection"));
+      }
     }
 #endif
 
-    if (::arg().mustDo("non-local-bind"))
-      Utility::setBindAny(AF_INET, fd);
+    if (::arg().mustDo("non-local-bind")) {
+      Utility::setBindAny(AF_INET, socketFd);
+    }
 
     if (g_reusePort) {
 #if defined(SO_REUSEPORT_LB)
       try {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, 1);
+        SSetsockopt(socketFd, SOL_SOCKET, SO_REUSEPORT_LB, 1);
       }
       catch (const std::exception& e) {
         throw PDNSException(std::string("SO_REUSEPORT_LB: ") + e.what());
       }
 #elif defined(SO_REUSEPORT)
       try {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+        SSetsockopt(socketFd, SOL_SOCKET, SO_REUSEPORT, 1);
       }
       catch (const std::exception& e) {
         throw PDNSException(std::string("SO_REUSEPORT: ") + e.what());
@@ -1063,39 +1085,44 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     }
 
     if (SyncRes::s_tcp_fast_open > 0) {
-      checkFastOpenSysctl(false);
+      checkFastOpenSysctl(false, log);
 #ifdef TCP_FASTOPEN
-      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
+      if (setsockopt(socketFd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
-        g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl;
+        SLOG(g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl,
+             log->error(Logr::Error, err, "Failed to enable TCP Fast Open for listening socket"));
       }
 #else
-      g_log << Logger::Warning << "TCP Fast Open configured but not supported for listening socket" << endl;
+      SLOG(g_log << Logger::Warning << "TCP Fast Open configured but not supported for listening socket" << endl,
+           log->info(Logr::Warning, "TCP Fast Open configured but not supported for listening socket"));
 #endif
     }
 
-    sin.sin4.sin_port = htons(st.port);
-    socklen_t socklen = sin.sin4.sin_family == AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
-    if (::bind(fd, (struct sockaddr*)&sin, socklen) < 0)
-      throw PDNSException("Binding TCP server socket for " + st.host + ": " + stringerror());
+    socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
+    if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
+      throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
+    }
 
-    setNonBlocking(fd);
+    setNonBlocking(socketFd);
     try {
-      setSocketSendBuffer(fd, 65000);
+      setSocketSendBuffer(socketFd, 65000);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << e.what() << endl;
+      SLOG(g_log << Logger::Error << e.what() << endl,
+           log->error(Logr::Error, e.what(), "Exception while setting socket send buffer"));
     }
 
-    listen(fd, 128);
-    deferredAdds.emplace_back(fd, handleNewTCPQuestion);
-    tcpSockets.insert(fd);
+    listen(socketFd, 128);
+    deferredAdds.emplace_back(socketFd, handleNewTCPQuestion);
+    tcpSockets.insert(socketFd);
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
-    if (sin.sin4.sin_family == AF_INET)
-      g_log << Logger::Info << "Listening for TCP queries on " << sin.toString() << ":" << st.port << endl;
-    else
-      g_log << Logger::Info << "Listening for TCP queries on [" << sin.toString() << "]:" << st.port << endl;
+    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << address.toStringWithPort() << endl,
+         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(address)));
+
+#ifdef TCP_DEFER_ACCEPT
+    first = false;
+#endif
   }
 }

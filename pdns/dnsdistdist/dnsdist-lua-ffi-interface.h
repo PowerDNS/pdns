@@ -122,6 +122,9 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
 // spoof raw response. will just replace qid to match question
 void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const char* rawresponse, size_t len) __attribute__ ((visibility ("default")));
 
+/* decrease the returned TTL but _after_ inserting the original response into the packet cache */
+void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max) __attribute__ ((visibility ("default")));
+
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
 typedef struct dnsdist_ffi_server_t dnsdist_ffi_server_t;
 
@@ -141,6 +144,8 @@ double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server) __attr
 void dnsdist_ffi_dnsresponse_set_min_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max) __attribute__ ((visibility ("default")));
+/* decrease the returned TTL but _after_ inserting the original response into the packet cache */
+void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype) __attribute__ ((visibility ("default")));
 
 typedef struct dnsdist_ffi_proxy_protocol_value {
@@ -151,3 +156,59 @@ typedef struct dnsdist_ffi_proxy_protocol_value {
 
 size_t dnsdist_ffi_generate_proxy_protocol_payload(size_t addrSize, const void* srcAddr, const void* dstAddr, uint16_t srcPort, uint16_t dstPort, bool tcp, size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, size_t outSize) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dq, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values, void* out, const size_t outSize) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_domain_list_t dnsdist_ffi_domain_list_t;
+typedef struct dnsdist_ffi_address_list_t dnsdist_ffi_address_list_t;
+
+const char* dnsdist_ffi_address_list_get(const dnsdist_ffi_address_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_address_list_free(dnsdist_ffi_address_list_t*) __attribute__ ((visibility ("default")));
+
+const char* dnsdist_ffi_domain_list_get(const dnsdist_ffi_domain_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_domain_list_free(dnsdist_ffi_domain_list_t*) __attribute__ ((visibility ("default")));
+
+size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, const char* addr, dnsdist_ffi_domain_list_t** out) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, const char* domain, dnsdist_ffi_address_list_t** out) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_ring_entry_list_t dnsdist_ffi_ring_entry_list_t;
+
+bool dnsdist_ffi_ring_entry_is_response(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+const char* dnsdist_ffi_ring_entry_get_name(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_ring_entry_get_type(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+const char* dnsdist_ffi_ring_entry_get_requestor(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+uint8_t dnsdist_ffi_ring_entry_get_protocol(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_ring_entry_get_size(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_ring_entry_has_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+const char* dnsdist_ffi_ring_entry_get_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
+
+void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t*) __attribute__ ((visibility ("default")));
+
+size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_entry_list_t** out) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_network_endpoint_t dnsdist_ffi_network_endpoint_t;
+
+bool dnsdist_ffi_network_endpoint_new(const char* path, size_t pathSize, dnsdist_ffi_network_endpoint_t** out) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_network_endpoint_is_valid(const dnsdist_ffi_network_endpoint_t* endpoint) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_network_endpoint_send(const dnsdist_ffi_network_endpoint_t* endpoint, const char* payload, size_t payloadSize) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_network_endpoint_free(dnsdist_ffi_network_endpoint_t* endpoint) __attribute__ ((visibility ("default")));
+
+typedef struct dnsdist_ffi_dnspacket_t dnsdist_ffi_dnspacket_t;
+
+bool dnsdist_ffi_dnspacket_parse(const char* packet, size_t packetSize, dnsdist_ffi_dnspacket_t** out) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_get_qname_raw(const dnsdist_ffi_dnspacket_t* packet, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_qtype(const dnsdist_ffi_dnspacket_t* packet) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_qclass(const dnsdist_ffi_dnspacket_t* packet) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_records_count_in_section(const dnsdist_ffi_dnspacket_t* packet, uint8_t section) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_get_record_name_raw(const dnsdist_ffi_dnspacket_t* packet, size_t idx, const char** name, size_t* nameSize) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_type(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_class(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t*) __attribute__ ((visibility ("default")));
+
+void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value) __attribute__ ((visibility ("default")));
+double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter) __attribute__ ((visibility ("default")));

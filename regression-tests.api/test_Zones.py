@@ -6,7 +6,7 @@ import unittest
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify, sdig
 
 
 def get_rrset(data, qname, qtype):
@@ -144,6 +144,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         soa_serial = int(get_first_rec(data, name, 'SOA')['content'].split(' ')[2])
         self.assertGreater(soa_serial, payload['serial'])
         self.assertEqual(soa_serial, data['serial'])
+
+    def test_create_zone_with_catalog(self):
+        # soa_edit_api wins over serial
+        name, payload, data = self.create_zone(catalog='catalog.invalid.', serial=10)
+        print(data)
+        for k in ('catalog', ):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEqual(data[k], payload[k])
 
     def test_create_zone_with_account(self):
         # soa_edit_api wins over serial
@@ -560,12 +569,31 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(data['nsec3param'], '')
 
+    def test_create_zone_without_dnssec_unset_nsec3parm(self):
+        """
+        Create a non dnssec zone and set an empty "nsec3param"
+        """
+        name, payload, data = self.create_zone(dnssec=False)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                             data=json.dumps({'nsec3param': ''}))
+
+        self.assertEqual(r.status_code, 204)
+
+    def test_create_zone_without_dnssec_set_nsec3parm(self):
+        """
+        Create a non dnssec zone and set "nsec3param"
+        """
+        name, payload, data = self.create_zone(dnssec=False)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                             data=json.dumps({'nsec3param': '1 0 1 ab'}))
+
+        self.assertEqual(r.status_code, 422)
+
     def test_create_zone_dnssec_serial(self):
         """
-        Create a zone set/unset "dnssec" and see if the serial was increased
+        Create a zone, then set and unset "dnssec", then check if the serial was increased
         after every step
         """
-        name = unique_zone_name()
         name, payload, data = self.create_zone()
 
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
@@ -678,6 +706,29 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['serial'], 0)
         self.assertEqual(data['rrsets'], [])
 
+    def test_create_consumer_zone(self):
+        # Test that nameservers can be absent for consumer zones.
+        name, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEqual(data[k], payload[k])
+        print("payload:", payload)
+        print("data:", data)
+        # Because consumer zones don't get a SOA, we need to test that they'll show up in the zone list.
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        zonelist = r.json()
+        print("zonelist:", zonelist)
+        self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
+        # Also test that fetching the zone works.
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        data = r.json()
+        print("zone (fetched):", data)
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEqual(data[k], payload[k])
+        self.assertEqual(data['serial'], 0)
+        self.assertEqual(data['rrsets'], [])
+
     def test_find_zone_by_name(self):
         name = 'foo/' + unique_zone_name()
         name, payload, data = self.create_zone(name=name)
@@ -688,6 +739,11 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_delete_slave_zone(self):
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        r.raise_for_status()
+
+    def test_delete_consumer_zone(self):
+        name, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data['id']))
         r.raise_for_status()
 
@@ -1053,6 +1109,7 @@ $ORIGIN %NAME%
         payload = {
             'kind': 'Master',
             'masters': ['192.0.2.1', '192.0.2.2'],
+            'catalog': 'catalog.invalid.',
             'soa_edit_api': 'EPOCH',
             'soa_edit': 'EPOCH'
         }
@@ -1068,6 +1125,7 @@ $ORIGIN %NAME%
         # update, back to Native and empty(off)
         payload = {
             'kind': 'Native',
+            'catalog': '',
             'soa_edit_api': '',
             'soa_edit': ''
         }
@@ -2046,9 +2104,8 @@ $ORIGIN %NAME%
         self.assertEqual(len(r.json()), 5)
 
     @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
-    def test_default_api_rectify(self):
+    def test_default_api_rectify_dnssec(self):
         name = unique_zone_name()
-        search = name.split('.')[0]
         rrsets = [
             {
                 "name": 'a.' + name,
@@ -2072,6 +2129,35 @@ $ORIGIN %NAME%
         self.create_zone(name=name, rrsets=rrsets, dnssec=True, nsec3param='1 0 1 ab')
         dbrecs = get_db_records(name, 'AAAA')
         self.assertIsNotNone(dbrecs[0]['ordername'])
+
+    def test_default_api_rectify_nodnssec(self):
+        """Without any DNSSEC settings, rectify should still add ENTs. Setup the zone
+        so ENTs are necessary, and check for their existence using sdig.
+        """
+        name = unique_zone_name()
+        rrsets = [
+            {
+                "name": 'a.sub.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::1",
+                    "disabled": False,
+                }],
+            },
+            {
+                "name": 'b.sub.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::2",
+                    "disabled": False,
+                }],
+            },
+        ]
+        self.create_zone(name=name, rrsets=rrsets)
+        # default-api-rectify is yes (by default). expect rectify to have happened.
+        assert 'Rcode: 0 ' in sdig('sub.' + name, 'TXT')
 
     @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_override_api_rectify(self):

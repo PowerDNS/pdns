@@ -1,5 +1,100 @@
 Changelogs for 4.6.X
 ====================
+
+.. changelog::
+  :version: 4.6.5
+  :released: 25th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12229
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12226
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache code."
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12191
+    :tickets: 12125
+
+    Timeout handling for IXFRs as a client.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12172
+    :tickets: 12066
+
+    Detect invalid bytes in makeBytesFromHex().
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12170
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12167
+    :tickets: 12038
+
+    When an expired NSEC3 entry is seen, move it to the front of the expiry queue.
+
+.. changelog::
+  :version: 4.6.4
+  :released: 20th of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11937
+    :tickets: 11904
+
+    For zones having many NS records, we are not interested in all so take a sample.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11941
+    :tickets: 11890
+
+    Failure to retrieve DNSKEYs of an Insecure zone should not be fatal.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11898
+    :tickets: 11848
+
+    Also check qperq limit if throttling happened, as it increases counters.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11775
+    :tickets: 11773
+
+    Resize answer length to actual received length in udpQueryResponse.
+
+.. changelog::
+  :version: 4.6.3
+  :released: 23th of August 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11876,11874
+
+    PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11633,11609
+
+    Fix API issue when asking config values for allow-from or allow-notify-from.
+
 .. changelog::
   :version: 4.6.2
   :released: 4th of April 2022

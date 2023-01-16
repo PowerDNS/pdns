@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test_cache_auth)
   /* check that we correctly cached only the answer entry, not the additional one */
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
@@ -150,19 +150,19 @@ BOOST_AUTO_TEST_CASE(test_extra_answers)
   // Also check the cache
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
   // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
 
   // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
@@ -221,19 +221,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
   // Also check the cache
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
   // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
 
   // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_opt_any)
@@ -408,7 +408,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   const ComboAddress who;
   vector<DNSRecord> cached;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), false, &cached, who, 0, boost::none, &signatures), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, boost::none, &signatures), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_special_types)

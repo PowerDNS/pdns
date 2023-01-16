@@ -1,16 +1,17 @@
 PowerDNS Recursor Settings
 ==========================
-Each setting can appear on the command line, prefixed by '--', or in the configuration file.
+Each setting can appear on the command line, prefixed by ``--``, or in the configuration file.
 The command line overrides the configuration file.
 
-**Note**: Settings marked as 'Boolean' can either be set to an empty value, which means on, or to 'no' or 'off' which means off.
-Anything else means on.
+.. note::
+   Settings marked as ``Boolean`` can either be set to an empty value, which means **on**, or to ``no`` or ``off`` which means **off**.
+   Anything else means **on**.
 
-As an example:
+   For example:
 
- - ``serve-rfc1918`` on its own means: do serve those zones.
- - ``serve-rfc1918=off`` or ``serve-rfc1918=no`` means: do not serve those zones.
- - Anything else means: do serve those zones.
+   - ``serve-rfc1918`` on its own means: do serve those zones.
+   - ``serve-rfc1918 = off`` or ``serve-rfc1918 = no`` means: do not serve those zones.
+   - Anything else means: do serve those zones.
 
 You can use ``+=`` syntax to set some variables incrementally, but this
 requires you to have at least one non-incremental setting for the
@@ -20,6 +21,14 @@ variable to act as base setting. This is mostly useful for
   forward-zones = foo.example.com=192.168.100.1;
   forward-zones += bar.example.com=[1234::abcde]:5353;
 
+When a list of **Netmasks** is mentioned, a list of subnets can be specified.
+A subnet that is not followed by ``/`` will be interpreted as a ``/32`` or ``/128`` subnet (a single address), depending on address family.
+For most settings, it is possible to exclude ranges by prefixing an item with the negation character ``!``.
+For example::
+
+  allow-from = 2001:DB8::/32, 128.66.0.0/16, !128.66.1.2
+
+In this case the address ``128.66.1.2`` is excluded from the addresses allowed access.
 
 .. _setting-aggressive-nsec-cache-size:
 
@@ -37,11 +46,12 @@ To use this, DNSSEC processing or validation must be enabled by setting `dnssec`
 
 ``allow-from``
 --------------
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10
 
 Netmasks (both IPv4 and IPv6) that are allowed to use the server.
 The default allows access only from :rfc:`1918` private IP addresses.
+An empty value means no checking is done, all clients are allowed.
 Due to the aggressive nature of the internet these days, it is highly recommended to not open up the recursor for the entire internet.
 Questions from IP addresses not listed here are ignored and do not get an answer.
 
@@ -91,7 +101,7 @@ NOTIFY-allowed zones can also be specified using `forward-zones-file`_.
 ---------------------
 .. versionadded:: 4.6.0
 
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: unset
 
 Netmasks (both IPv4 and IPv6) that are allowed to issue NOTIFY operations
@@ -361,7 +371,7 @@ Any servers' name suffix-matching the supplied names will never be throttled.
 ----------------------------
 .. versionadded:: 4.2.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation not supported
 -  Default: (empty)
 
 When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
@@ -521,7 +531,7 @@ Log every DNSSEC validation failure.
 
 ``dont-query``
 --------------
--  Netmasks, comma separated
+-  Netmasks, comma separated, negation supported
 -  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10, 0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32
 
 The DNS is a public database, but sometimes contains delegations to private IP addresses, like for example 127.0.0.1.
@@ -537,7 +547,7 @@ Queries for names in forward zones and to addresses as configured in any of the 
 ---------------
 .. versionadded:: 4.2.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation supported
 -  Default: 0.0.0.0/0, ::/0, !127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10
 
 List of requestor netmasks for which the requestor IP Address should be used as the :rfc:`EDNS Client Subnet <7871>` for outgoing queries. Outgoing queries for requestors that do not match this list will use the `ecs-scope-zero-address`_ instead.
@@ -685,10 +695,10 @@ Lower this if you experience timeouts.
 ---------------------
 .. versionadded:: 4.5.0
 
--  Comma separated list of netmasks
+-  Comma separated list of netmasks, negation supported
 -  Default: (none)
 
-List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
+List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
 
 .. _setting-edns-padding-mode:
 
@@ -701,6 +711,17 @@ List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP 
 
 Whether to add EDNS padding to all responses (``always``) or only to responses for queries containing the EDNS padding option (``padded-queries-only``, the default).
 In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources.
+
+.. _setting-edns-padding-out:
+
+``edns-padding-out``
+--------------------
+.. versionadded:: 4.8.0
+
+- Boolean
+- Default: yes
+
+Whether to add EDNS padding to outgoing DoT queries.
 
 .. _setting-edns-padding-tag:
 
@@ -727,7 +748,7 @@ effectively divides the packet cache in two when `edns-padding-from`_ is used. N
 --------------------------
 .. versionadded:: 4.5.0
 
--  Comma separated list of domain names and netmasks
+-  Comma separated list of domain names and netmasks, negation supported
 -  Default: (none)
 
 List of netmasks and domains that :rfc:`EDNS Client Subnet <7871>` should be enabled for in outgoing queries.
@@ -1089,7 +1110,7 @@ If the result of a probe is not yet available, the Recursor will contact the aut
 In that case no probe will be scheduled.
 
 
-Note::
+.. note::
   DoT probing is an experimental feature.
   Please test thoroughly to determine if it is suitable in your specific production environment before enabling.
 
@@ -1222,6 +1243,22 @@ NS records, the limit is further reduced for that zone by lowering
 it by the number of NS records found above the
 `max-ns-address-qperq`_ value. The limit wil not be reduced to a
 number lower than 5.
+
+.. _setting-max-ns-per-resolve:
+
+``max-ns-per-resolve``
+----------------------
+.. versionadded:: 4.8.0
+.. versionadded:: 4.7.3
+.. versionadded:: 4.6.4
+.. versionadded:: 4.5.11
+
+-  Integer
+-  Default: 13
+
+The maximum number of NS records that will be considered to select a nameserver to contact to resolve a name.
+If a zone has more than `max-ns-per-resolve`_ NS records, a random sample of this size will be used.
+If `max-ns-per-resolve`_ is zero, no limit applies.
 
 .. _setting-max-negative-ttl:
 
@@ -1575,7 +1612,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 -----------------------
 .. versionadded:: 4.4.0
 
--  IP addresses or netmasks, separated by commas
+-  IP addresses or netmasks, separated by commas, negation supported
 -  Default: empty
 
 Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
@@ -1658,6 +1695,30 @@ Disabled by default, which also disables outgoing IPv6 support.
 -  Default: yes
 
 Don't log queries.
+
+.. _setting-record-cache-locked-ttl-perc:
+
+``record-cache-locked-ttl-perc``
+--------------------------------
+.. versionadded:: 4.8.0
+
+- Integer
+- Default: 0
+
+Replace record sets in the record cache only after this percentage of the original TTL has passed.
+The PowerDNS Recursor already has several mechanisms to protect against spoofing attempts.
+This adds an extra layer of protection---as it limits the window of time cache updates are accepted---at the cost of a less efficient record cache.
+
+The default value of 0 means no extra locking occurs.
+When non-zero, record sets received (e.g. in the Additional Section) will not replace existing record sets in the record cache until the given percentage of the original TTL has expired.
+A value of 100 means only expired record sets will be replaced.
+
+There are a few cases where records will be replaced anyway:
+
+- Record sets that are expired will always be replaced.
+- Authoritative record sets will replace unauthoritative record sets unless DNSSEC validation of the new record set failed.
+- If the new record set belongs to a DNSSEC-secure zone and successfully passed validation it will replace an existing entry.
+- Record sets produced by :ref:`setting-refresh-on-ttl-perc` tasks will also replace existing record sets.
 
 .. _setting-record-cache-shards:
 
@@ -1763,6 +1824,21 @@ Setting this to an empty string disables secpoll.
 
 This makes the server authoritatively aware of: ``10.in-addr.arpa``, ``168.192.in-addr.arpa``, ``16-31.172.in-addr.arpa``, which saves load on the AS112 servers.
 Individual parts of these zones can still be loaded or forwarded.
+
+.. _setting-serve-stale-extensions:
+
+``serve-stale-extensions``
+--------------------------
+.. versionadded:: 4.8.0
+
+- Integer
+- Default: 0
+
+Maximum number of times an expired record's TTL is extended by 30s when serving stale.
+Extension only occurs if a record cannot be refreshed.
+A value of 0 means the ``Serve Stale`` mechanism is not used.
+To allow records becoming stale to be served for an hour, use a value of 200.
+See :ref:`serve-stale` for a description of the Serve Stale mechanism.
 
 .. _setting-server-down-max-fails:
 
@@ -2014,6 +2090,23 @@ A list of comma-separated statistic names, that are prevented from being exporte
 - Default: yes
 
 Prefer structured logging when both an old style and a structured log messages is available.
+
+.. _setting-structured-logging-backend:
+
+``structured-logging-backend``
+------------------------------
+.. versionadded:: 4.8.0
+
+- String
+- Default: "default"
+
+The backend used for structured logging output.
+This setting must be set on the command line (``--structured-logging-backend=...``) to be effective.
+Available backends are:
+
+- ``default``: use the traditional logging system to output structured logging information.
+- ``systemd-journal``: use systemd-journal.
+  When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
 
 .. _setting-tcp-fast-open:
 
@@ -2295,7 +2388,7 @@ IP address for the webserver to listen on.
 
 ``webserver-allow-from``
 ------------------------
--  IP addresses or netmasks, comma separated
+-  IP addresses or netmasks, comma separated, negation supported
 -  Default: 127.0.0.1,::1
 
 .. versionchanged:: 4.1.0
@@ -2394,13 +2487,17 @@ If a PID file should be written to `socket-dir`_
 ``xpf-allow-from``
 ------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
+
+.. versionchanged:: 4.8.0
+   This setting was removed.
 
 -  IP addresses or netmasks, separated by commas
 -  Default: empty
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
-  This is a deprecated feature that will be removed in the near future.
+  This deprecated feature was removed in version 4.8.0.
 
 The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
 and will adjust queries' source and destination accordingly. This is especially useful when the recursor
@@ -2413,13 +2510,17 @@ should be done on the proxy.
 ``xpf-rr-code``
 ---------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.7.0
+
+.. versionchanged:: 4.8.0
+   This setting was removed.
 
 -  Integer
 -  Default: 0
 
 .. note::
   This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
-  This is a deprecated feature that will be removed in the near future.
+  This deprecated feature was removed in version 4.8.0.
 
 This option sets the resource record code to use for XPF records, as long as an official code has not been assigned to it.
 0 means that XPF is disabled.

@@ -105,27 +105,23 @@ public:
 
   static uint32_t hashHeaderAndQName(const std::string& packet, size_t& pos)
   {
-    uint32_t currentHash = 0;
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
-    currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, currentHash); // rest of dnsheader, skip id
-    pos = sizeof(dnsheader);
+    // Quite some bits in the header are actually irrelevant for
+    // incoming queries.  If we ever change that and ignore them for
+    // hashing, don't forget to also adapt the `queryHeaderMatches`
+    // code, as it should be consistent with the hash function.
+    uint32_t currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, 0); // rest of dnsheader, skip id
 
-    for (; pos < packetSize; ) {
+    for (pos = sizeof(dnsheader); pos < packetSize; ) {
       const unsigned char labelLen = static_cast<unsigned char>(packet.at(pos));
-      currentHash = burtle(&labelLen, 1, currentHash);
       ++pos;
       if (labelLen == 0) {
         break;
       }
-
-      for (size_t idx = 0; idx < labelLen && pos < packetSize; ++idx, ++pos) {
-        const unsigned char l = dns_tolower(packet.at(pos));
-        currentHash = burtle(&l, 1, currentHash);
-      }
+      pos = std::min(pos + labelLen, packetSize);
     }
-
-    return currentHash;
+    return burtleCI(reinterpret_cast<const unsigned char*>(&packet.at(sizeof(dnsheader))), pos - sizeof(dnsheader), currentHash);
   }
 
   /* hash the packet from the beginning, including the qname. This skips:
@@ -137,9 +133,8 @@ public:
   {
     size_t pos = 0;
     uint32_t currentHash = hashHeaderAndQName(packet, pos);
-    size_t packetSize = packet.size();
 
-    if (pos >= packetSize) {
+    if (pos >= packet.size()) {
       return currentHash;
     }
 
@@ -175,7 +170,7 @@ public:
        = 15
     */
     const dnsheader_aligned dnsheaderdata(query.data());
-    const struct dnsheader* dh = dnsheaderdata.get();    
+    const struct dnsheader* dh = dnsheaderdata.get();
     if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) >= querySize || optionsToIgnore.empty()) {
       return cachedQuery.compare(pos, cachedQuerySize - pos, query, pos, querySize - pos) == 0;
     }

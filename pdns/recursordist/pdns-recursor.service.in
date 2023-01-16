@@ -4,7 +4,7 @@ Documentation=man:pdns_recursor(1) man:rec_control(1)
 Documentation=https://doc.powerdns.com
 Wants=network-online.target nss-lookup.target
 Before=nss-lookup.target
-After=network-online.target
+After=network-online.target time-sync.target
 
 [Service]
 ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog --log-timestamp=no
@@ -41,6 +41,12 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
+ProtectProc=invisible
+PrivateIPC=true
+RemoveIPC=true
+DevicePolicy=closed
+# Not enabled by default because it does not play well with LuaJIT
+# MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target

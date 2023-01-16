@@ -272,6 +272,22 @@ void setupLuaRules(LuaContext& luaCtx)
       mvRule(&g_cachehitrespruleactions, from, to);
     });
 
+  luaCtx.writeFunction("showCacheInsertedResponseRules", [](boost::optional<ruleparams_t> vars) {
+    showRules(&g_cacheInsertedRespRuleActions, vars);
+  });
+
+  luaCtx.writeFunction("rmCacheInsertedResponseRule", [](boost::variant<unsigned int, std::string> id) {
+    rmRule(&g_cacheInsertedRespRuleActions, id);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRuleToTop", []() {
+    moveRuleToTop(&g_cacheInsertedRespRuleActions);
+  });
+
+  luaCtx.writeFunction("mvCacheInsertedResponseRule", [](unsigned int from, unsigned int to) {
+    mvRule(&g_cacheInsertedRespRuleActions, from, to);
+  });
+
   luaCtx.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_selfansweredrespruleactions, vars);
     });
@@ -333,15 +349,27 @@ void setupLuaRules(LuaContext& luaCtx)
     return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
   });
 
-  luaCtx.writeFunction("getCacheHitResponseRules", [](boost::optional<unsigned int> top) {
+  luaCtx.writeFunction("getTopCacheHitResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
     return getTopRules(*rules, top.get_value_or(10));
   });
 
-  luaCtx.writeFunction("topCacheHitRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("topCacheHitResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
+
+  luaCtx.writeFunction("getTopCacheInsertedResponseRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_cacheInsertedRespRuleActions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topCacheInsertedResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_cacheInsertedRespRuleActions.getLocal();
     return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
   });
 
@@ -420,36 +448,37 @@ void setupLuaRules(LuaContext& luaCtx)
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
       struct item {
         PacketBuffer packet;
-        ComboAddress rem;
-        DNSName qname;
-        uint16_t qtype, qclass;
+        InternalQueryState ids;
       };
       vector<item> items;
       items.reserve(1000);
-      for(int n=0; n < 1000; ++n) {
+      for (int n = 0; n < 1000; ++n) {
         struct item i;
-        i.qname=DNSName(std::to_string(random()));
-        i.qname += suffix;
-        i.qtype = random() % 0xff;
-        i.qclass = 1;
-        i.rem=ComboAddress("127.0.0.1");
-        i.rem.sin4.sin_addr.s_addr = random();
-        GenericDNSPacketWriter<PacketBuffer> pw(i.packet, i.qname, i.qtype);
-        items.push_back(i);
+        i.ids.qname = DNSName(std::to_string(random()));
+        i.ids.qname += suffix;
+        i.ids.qtype = random() % 0xff;
+        i.ids.qclass = QClass::IN;
+        i.ids.protocol = dnsdist::Protocol::DoUDP;
+        i.ids.origRemote = ComboAddress("127.0.0.1");
+        i.ids.origRemote.sin4.sin_addr.s_addr = random();
+        i.ids.queryRealTime.start();
+        GenericDNSPacketWriter<PacketBuffer> pw(i.packet, i.ids.qname, i.ids.qtype);
+        items.push_back(std::move(i));
       }
 
-      int matches=0;
+      int matches = 0;
       ComboAddress dummy("127.0.0.1");
       StopWatch sw;
       sw.start();
-      for(unsigned int n=0; n < times; ++n) {
+      for (unsigned int n = 0; n < times; ++n) {
         item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, dnsdist::Protocol::DoUDP, &sw.d_start);
+        DNSQuestion dq(i.ids, i.packet);
+
         if (rule->matches(&dq)) {
           matches++;
         }
       }
-      double udiff=sw.udiff();
+      double udiff = sw.udiff();
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
 
     });

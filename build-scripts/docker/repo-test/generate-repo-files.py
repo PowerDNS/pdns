@@ -43,11 +43,11 @@ def init_argparser():
                                                  'test PowerDNS repositories.')
     parser.add_argument('release', metavar='RELEASE',
                         choices=[# Authoritative Server
-                                 'auth-43', 'auth-44', 'auth-45', 'auth-46',
-                                 'auth-47', 'auth-master',
+                                 'auth-44', 'auth-45', 'auth-46', 'auth-47',
+                                 'auth-master',
                                  # Recursor
-                                 'rec-43', 'rec-44', 'rec-45', 'rec-46',
-                                 'rec-47', 'rec-master',
+                                 'rec-45', 'rec-46', 'rec-47', 'rec-48',
+                                 'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
                                  'dnsdist-master'
@@ -140,46 +140,42 @@ def write_release_files (release):
     if g_verbose:
         print("Writing release files...")
 
-    if release in ['auth-43', 'auth-master']:
-        write_dockerfile('centos', '6', release)
-
-    if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
+    if release in ['auth-44', 'auth-45', 'auth-46', 'auth-47',
                    'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
+                   'rec-45', 'rec-46', 'rec-47', 'rec-48',
                    'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
-        write_dockerfile('centos', '7', release)
-        write_dockerfile('ubuntu', 'bionic', release)
-        write_list_file('ubuntu', 'bionic', release)
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
+                   'dnsdist-master']:
         write_pkg_pin_file(release)
-
-    if release in ['auth-43', 'rec-43', 'dnsdist-15']:
-        write_dockerfile('raspbian', 'buster', release)
-        write_list_file('raspbian', 'buster', release)
-
-    if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
-                   'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
-                   'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('centos', '7', release)
         write_dockerfile('el', '8', release)
         write_dockerfile('debian', 'buster', release)
         write_list_file('debian', 'buster', release)
-
-    if release in ['auth-43', 'auth-44', 'auth-45', 'auth-46', 'auth-47',
-                   'auth-master',
-                   'rec-43', 'rec-44', 'rec-45', 'rec-46', 'rec-47',
-                   'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('ubuntu', 'bionic', release)
+        write_list_file('ubuntu', 'bionic', release)
         write_dockerfile('ubuntu', 'focal', release)
         write_list_file('ubuntu', 'focal', release)
 
+    if release in ['dnsdist-15']:
+        write_dockerfile('raspbian', 'buster', release)
+        write_list_file('raspbian', 'buster', release)
+
     if release in ['auth-46', 'auth-47', 'auth-master',
-                   'rec-45', 'rec-46', 'rec-47', 'rec-master',
+                   'rec-45', 'rec-46', 'rec-47', 'rec-48', 'rec-master',
                    'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
+    if release in ['auth-46', 'auth-47', 'auth-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-master',
+                   'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('ubuntu', 'jammy', release)
+        write_list_file('ubuntu', 'jammy', release)
+
+    if release in ['auth-47', 'auth-master',
+                   'rec-47', 'rec-48', 'rec-master',
+                   'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('el', '9', release)
 
 # Test Release Functions
 

@@ -37,7 +37,7 @@
 #include <iostream>
 #include <sstream>
 #include <sys/types.h>
-#include <signal.h>
+#include <csignal>
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -214,14 +214,12 @@ string DynListener::getLine()
   vector<char> mesg;
   mesg.resize(1024000);
 
-  ssize_t len;
-
   ComboAddress remote;
   socklen_t remlen=remote.getSocklen();
 
   if(d_nonlocal) {
     for(;;) {
-      d_client=accept(d_s,(sockaddr*)&remote,&remlen);
+      d_client = accept(d_s, reinterpret_cast<sockaddr *>(&remote), &remlen);
       if(d_client<0) {
         if(errno!=EINTR)
           g_log<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<stringerror()<<endl;
@@ -237,12 +235,12 @@ string DynListener::getLine()
 
       std::shared_ptr<FILE> fp=std::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
       if(d_tcp) {
-        if(!fgets(&mesg[0], mesg.size(), fp.get())) {
+        if (fgets(mesg.data(), static_cast<int>(mesg.size()), fp.get()) == nullptr) {
           g_log<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<stringerror()<<endl;
           close(d_client);
           continue;
         }
-        string password(&mesg[0]);
+        string password(mesg.data());
         boost::trim(password);
         if(password.empty() || password!=arg()["tcp-control-secret"]) {
           g_log<<Logger::Error<<"Wrong password on TCP control socket"<<endl;
@@ -253,14 +251,15 @@ string DynListener::getLine()
         }
       }
       errno=0;
-      if(!fgets(&mesg[0], mesg.size(), fp.get())) {
-        if(errno)
+      if (fgets(mesg.data(), static_cast<int>(mesg.size()), fp.get()) == nullptr) {
+        if (errno) {
           g_log<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<stringerror()<<endl;
+        }
         close(d_client);
         continue;
       }
       
-      if(strlen(&mesg[0]) == mesg.size()) {
+      if (strlen(mesg.data()) == mesg.size()) {
         g_log<<Logger::Error<<"Line on controlsocket ("<<d_client<<") was too long"<<endl;
         close(d_client);
         continue;
@@ -269,21 +268,29 @@ string DynListener::getLine()
     }
   }
   else {
-    if(isatty(0))
-      if(write(1, "% ", 2) !=2)
-        throw PDNSException("Writing to console: "+stringerror());
-    if((len=read(0, &mesg[0], mesg.size())) < 0) 
-      throw PDNSException("Reading from the control pipe: "+stringerror());
-    else if(len==0)
+    if (isatty(0) != 0) {
+      if (write(1, "% ", 2) != 2) {
+        throw PDNSException("Writing to console: " + stringerror());
+      }
+    }
+
+    ssize_t len = read(0, mesg.data(), mesg.size());
+    if (len < 0) {
+      throw PDNSException("Reading from the control pipe: " + stringerror());
+    }
+
+    if (len == 0) {
       throw PDNSException("Guardian exited - going down as well");
+    }
 
-    if(static_cast<size_t>(len) == mesg.size())
+    if (static_cast<size_t>(len) == mesg.size()) {
       throw PDNSException("Line on control console was too long");
+    }
 
-    mesg[len]=0;
+    mesg[len] = 0;
   }
 
-  return &mesg[0];
+  return mesg.data();
 }
 
 void DynListener::sendlines(const string &l)

@@ -827,6 +827,83 @@ class TestDynBlockServFails(DynBlocksTest):
         name = 'servfailrate.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)
 
+class TestDynBlockServFailsCached(DynBlocksTest):
+
+    _dynBlockQPS = 10
+    _dynBlockPeriod = 2
+    _dynBlockDuration = 5
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_template = """
+    pc = newPacketCache(10000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
+    getPool(""):setCache(pc)
+    function maintenance()
+	    addDynBlocks(exceedServFails(%d, %d), "Exceeded servfail rate", %d)
+    end
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testDynBlocksServFailRateCached(self):
+        """
+        Dyn Blocks: Make sure cache hit responses also gets inserted into rings
+        """
+        name = 'servfailrate.dynblocks.tests.powerdns.com.'
+        rcode = dns.rcode.SERVFAIL
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(rcode)
+
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            print(method, "()")
+            sender = getattr(self, method)
+
+            # fill the cache
+            (receivedQuery, receivedResponse) = sender(query, expectedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+            # wait for the maintenance function to run
+            time.sleep(2)
+
+            # we should NOT be dropped!
+            (_, receivedResponse) = sender(query, response=None)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+            # now with rcode!
+            sent = 0
+            allowed = 0
+            for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+                (_, receivedResponse) = sender(query, expectedResponse)
+                sent = sent + 1
+                self.assertEqual(expectedResponse, receivedResponse)
+                allowed = allowed + 1
+            # we might be already blocked, but we should have been able to send
+            # at least self._dynBlockQPS queries
+            self.assertGreaterEqual(allowed, self._dynBlockQPS)
+
+            if allowed == sent:
+                # wait for the maintenance function to run
+                time.sleep(2)
+
+            # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, None)
+
+            # wait until we are not blocked anymore
+            time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
+
+            # this one should succeed
+            (receivedQuery, receivedResponse) = sender(query, response=None)
+            self.assertEqual(expectedResponse, receivedResponse)
+
 class TestDynBlockAllowlist(DynBlocksTest):
 
     _dynBlockQPS = 10

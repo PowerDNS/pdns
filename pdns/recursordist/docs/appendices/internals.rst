@@ -453,6 +453,30 @@ As experience shows, this configuration error is encountered in the
 wild often enough to warrant this workaround.
 See :ref:`setting-save-parent-ns-set`.
 
+.. _serve-stale:
+
+Serve Stale
+-----------
+
+Starting with version 4.8.0, the Recursor implements ``Serve Stale`` (:rfc:`8767`).
+This is a mechanism that allows records in the record cache that are expired
+but that cannot be refreshed (due to network or authoritative server issues) to be served anyway.
+
+The :ref:`setting-serve-stale-extensions` determines how many times the records lifetime can be extended.
+Each extension of the lifetime of a record lasts 30s.
+A value of 1440 means the maximum extra life time is 30 * 1440 seconds which is 12 hours.
+If the original TTL of a record was less than 30s, the original TTLs will be used as extension period.
+
+On each extension an asynchronous task to resolve the name will be created.
+If that task succeeds, the record will not be served stale anymore, as an up-to-date value is now available.
+
+
+If :ref:`setting-serve-stale-extensions` is not zero expired records will be kept in the record cache until the number of records becomes too large.
+Cache eviction will then be done on a least-recently-used basis.
+
+When dumping the cache using ``rec_control dump-cache`` the ``ss`` value shows the serve stale extension count.
+A value of 0 means the record is not being served stale, while
+a positive value shows the number of times the serve stale period has been extended.
 
  Some small things
 ------------------

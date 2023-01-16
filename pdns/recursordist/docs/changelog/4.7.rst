@@ -1,5 +1,152 @@
 Changelogs for 4.7.X
 ====================
+
+.. changelog::
+  :version: 4.7.4
+  :released: 25th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12231
+    :tickets: 12046
+
+    Fix compilation of the event ports multiplexer.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12230
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12227
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache code."
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12190
+    :tickets: 12125
+
+    Timeout handling for IXFRs as a client.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12173
+    :tickets: 12066
+
+    Detect invalid bytes in makeBytesFromHex().
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12171
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12168
+    :tickets: 12038
+
+    When an expired NSEC3 entry is seen, move it to the front of the expiry queue.
+
+.. changelog::
+  :version: 4.7.3
+  :released: 20th of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11936
+    :tickets: 11904
+
+    For zones having many NS records, we are not interested in all so take a sample.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11940
+    :tickets: 11890
+
+    Failure to retrieve DNSKEYs of an Insecure zone should not be fatal.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11897
+    :tickets: 11848
+
+    Also check qperq limit if throttling happened, as it increases counters.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11879
+    :tickets: 11850
+
+    Fix recursor not responsive after Lua config reload.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11847
+    :tickets: 11843
+
+    Clear the caches *after* loading authzones.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11774
+    :tickets: 11773
+
+    Resize answer length to actual received length in udpQueryResponse.
+
+.. changelog::
+  :version: 4.7.2
+  :released: 23th of August 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11877,11874
+
+    PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
+
+.. changelog::
+  :version: 4.7.1
+  :released: 8th of July 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11750
+    :tickets: 11726, 11724
+
+    Allow generic format while parsing zone files for ZoneToCache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11748
+    :tickets: 11692
+
+    Run tasks from housekeeping thread in the proper way, causing
+    queued DoT probes to run more promptly. Thanks to Jerry Lundström!
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11740
+    :tickets: 11735
+
+    Force gzip compression for debian packages (Zash).
+
+.. changelog::
+  :version: 4.7.0
+  :released: 30th of May 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11632
+    :tickets: 11609
+
+    Fix API issue when asking config values for allow-from or allow-notify-from.
+
 .. changelog::
   :version: 4.7.0-rc1
   :released: 6th of May 2022

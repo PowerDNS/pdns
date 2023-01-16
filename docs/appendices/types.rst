@@ -369,12 +369,16 @@ URI
 The URI record, specified in :rfc:`7553`, is used to publish
 mappings from hostnames to URIs.
 
+ZONEMD
+------
+
+The ZONEMD record, specified in :rfc:`8796`, is used to validate zones.
+
 Other types
 -----------
 
 The following, rarely used or obsolete record types, are also supported:
 
--  A6 (:rfc:`2874`, obsolete)
 -  DHCID (:rfc:`4701`)
 -  DLV (:rfc:`4431`)
 -  EUI48/EUI64 (:rfc:`7043`)
@@ -384,14 +388,10 @@ The following, rarely used or obsolete record types, are also supported:
 -  L32 (:rfc:`6742`)
 -  L64 (:rfc:`6742`)
 -  LP (:rfc:`6742`)
--  MAILA (:rfc:`1035`)
--  MAILB (:rfc:`1035`)
 -  MINFO (:rfc:`1035`)
 -  MR (:rfc:`1035`)
 -  NID (:rfc:`6742`)
 -  RKEY (`draft-reid-dnsext-rkey-00.txt <https://tools.ietf.org/html/draft-reid-dnsext-rkey-00>`__)
--  SIG (:rfc:`2535`, obsolete)
--  WKS (:rfc:`1035`)
 
 .. _types-unknown:
 

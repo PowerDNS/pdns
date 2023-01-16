@@ -42,7 +42,7 @@
 #include "dnsseckeeper.hh"
 #include <iomanip>
 #include "zoneparser-tng.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "auth-caches.hh"
 #include "auth-zonecache.hh"
 #include "threadname.hh"
@@ -240,7 +240,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<div class=\"header columns\"></div></div>";
   ret<<R"(<div class="row"><div class="all columns">)";
 
-  time_t passed=time(nullptr)-s_starttime;
+  time_t passed=time(nullptr)-g_starttime;
 
   ret<<"<p>Uptime: "<<
     humanDuration(passed)<<
@@ -319,18 +319,18 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
     masters.push_back(m.toStringWithPortExcept(53));
   }
 
-  auto obj = Json::object {
+  auto obj = Json::object{
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-    { "id", zoneId },
-    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
-    { "name", di.zone.toString() },
-    { "kind", di.getKindString() },
-    { "account", di.account },
-    { "masters", std::move(masters) },
-    { "serial", (double)di.serial },
-    { "notified_serial", (double)di.notified_serial },
-    { "last_check", (double)di.last_check }
-  };
+    {"id", zoneId},
+    {"url", "/api/v1/servers/localhost/zones/" + zoneId},
+    {"name", di.zone.toString()},
+    {"kind", di.getKindString()},
+    {"catalog", (!di.catalog.empty() ? di.catalog.toString() : "")},
+    {"account", di.account},
+    {"masters", std::move(masters)},
+    {"serial", (double)di.serial},
+    {"notified_serial", (double)di.notified_serial},
+    {"last_check", (double)di.last_check}};
   if (dk) {
     obj["dnssec"] = dk->isSecuredZone(di.zone);
     string soa_edit;
@@ -363,16 +363,21 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   string soa_edit;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
   doc["soa_edit"] = soa_edit;
+
   string nsec3param;
-  di.backend->getDomainMetadataOne(zonename, "NSEC3PARAM", nsec3param);
-  doc["nsec3param"] = nsec3param;
-  string nsec3narrow;
   bool nsec3narrowbool = false;
-  di.backend->getDomainMetadataOne(zonename, "NSEC3NARROW", nsec3narrow);
-  if (nsec3narrow == "1")
-    nsec3narrowbool = true;
+  bool is_secured = dk.isSecuredZone(zonename);
+  if (is_secured) { // ignore NSEC3PARAM and NSEC3NARROW metadata present in the db for unsigned zones
+    di.backend->getDomainMetadataOne(zonename, "NSEC3PARAM", nsec3param);
+    string nsec3narrow;
+    di.backend->getDomainMetadataOne(zonename, "NSEC3NARROW", nsec3narrow);
+    if (nsec3narrow == "1") {
+      nsec3narrowbool = true;
+    }
+  }
+  doc["nsec3param"] = nsec3param;
   doc["nsec3narrow"] = nsec3narrowbool;
-  doc["dnssec"] = dk.isSecuredZone(zonename);
+  doc["dnssec"] = is_secured;
 
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
@@ -511,7 +516,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(nullptr) - s_starttime);
+  out["uptime"] = std::to_string(time(nullptr) - g_starttime);
 }
 
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
@@ -612,8 +617,8 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
+{
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
@@ -636,6 +641,14 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
     masters = boost::none;
   }
 
+  if (document["catalog"].is_string()) {
+    string catstring = document["catalog"].string_value();
+    catalog = (!catstring.empty() ? DNSName(catstring) : DNSName());
+  }
+  else {
+    catalog = boost::none;
+  }
+
   if (document["account"].is_string()) {
     account = document["account"].string_value();
   } else {
@@ -643,18 +656,23 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
   }
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
+// Must be called within backend transaction.
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
+  boost::optional<DNSName> catalog;
   boost::optional<string> account;
 
-  extractDomainInfoFromDocument(document, kind, masters, account);
+  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
   if (kind) {
     di.backend->setKind(zonename, *kind);
   }
   if (masters) {
     di.backend->setMasters(zonename, *masters);
+  }
+  if (catalog) {
+    di.backend->setCatalog(zonename, *catalog);
   }
   if (account) {
     di.backend->setAccount(zonename, *account);
@@ -674,10 +692,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
 
   DNSSECKeeper dk(&B);
-  bool shouldRectify = false;
+  bool shouldRectify = zoneWasModified;
   bool dnssecInJSON = false;
   bool dnssecDocVal = false;
   bool nsec3paramInJSON = false;
+  bool updateNsec3Param = false;
   string nsec3paramDocVal;
 
   try {
@@ -727,6 +746,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
           throwUnableToSecure(zonename);
         }
         shouldRectify = true;
+        updateNsec3Param = true;
       }
     } else {
       // "dnssec": false in json
@@ -740,24 +760,24 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }
         shouldRectify = true;
+        updateNsec3Param = true;
       }
     }
   }
 
-  if (nsec3paramInJSON) {
+  if (nsec3paramInJSON || updateNsec3Param) {
     shouldRectify = true;
-    if (!isDNSSECZone) {
-      throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"', but zone is not DNSSEC secured.");
+    if (!isDNSSECZone && !nsec3paramDocVal.empty()) {
+      throw ApiException("NSEC3PARAM value provided for zone '" + zonename.toString() + "', but zone is not DNSSEC secured.");
     }
 
-    if (nsec3paramDocVal.length() == 0) {
+    if (nsec3paramDocVal.empty()) {
       // Switch to NSEC
       if (!dk.unsetNSEC3PARAM(zonename)) {
         throw ApiException("Unable to remove NSEC3PARAMs from zone '" + zonename.toString());
       }
     }
-
-    if (nsec3paramDocVal.length() > 0) {
+    else {
       // Set the NSEC3PARAMs
       NSEC3PARAMRecordContent ns3pr(nsec3paramDocVal);
       string error_msg = "";
@@ -783,7 +803,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     if (api_rectify == "1") {
       string info;
       string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, rectifyTransaction)) {
+      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
         throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
@@ -814,8 +834,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
-      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
-      if (keyAlgo.empty() || keyContent.empty()) {
+      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
         throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
       }
       metadata.push_back(keyname.toString());
@@ -830,8 +849,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
-      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
-      if (keyAlgo.empty() || keyContent.empty()) {
+      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
         throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
       }
       metadata.push_back(keyname.toString());
@@ -853,6 +871,8 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "NOTIFY-DNSUPDATE",
     "ALSO-NOTIFY",
     "AXFR-MASTER-TSIG",
+    "GSS-ALLOW-AXFR-PRINCIPAL",
+    "GSS-ACCEPTOR-PRINCIPAL",
     "IXFR",
     "LUA-AXFR-SCRIPT",
     "NSEC3NARROW",
@@ -1476,8 +1496,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& z
 static void checkTSIGKey(UeberBackend& B, const DNSName& keyname, const DNSName& algo, const string& content) {
   DNSName algoFromDB;
   string contentFromDB;
-  B.getTSIGKey(keyname, &algoFromDB, &contentFromDB);
-  if (!contentFromDB.empty() || !algoFromDB.empty()) {
+  if (B.getTSIGKey(keyname, algoFromDB, contentFromDB)) {
     throw HttpConflictException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
   }
 
@@ -1556,7 +1575,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName algo;
   string content;
 
-  if (!B.getTSIGKey(keyname, &algo, &content)) {
+  if (!B.getTSIGKey(keyname, algo, content)) {
     throw HttpNotFoundException("TSIG key with name '"+keyname.toLogString()+"' not found");
   }
 
@@ -1686,17 +1705,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("You cannot give rrsets AND zone data as text");
 
     auto nameservers = document["nameservers"];
-    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave)
+    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer)
       throw ApiException("Nameservers is not a list");
-
-    string soa_edit_api_kind;
-    if (document["soa_edit_api"].is_string()) {
-      soa_edit_api_kind = document["soa_edit_api"].string_value();
-    }
-    else {
-      soa_edit_api_kind = "DEFAULT";
-    }
-    string soa_edit_kind = document["soa_edit"].string_value();
 
     // if records/comments are given, load and check them
     bool have_soa = false;
@@ -1733,7 +1743,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
         have_soa = true;
-        increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
       if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
         have_zone_ns = true;
@@ -1746,7 +1755,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
-    if (!have_soa && zonekind != DomainInfo::Slave) {
+    if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
       // synthesize a SOA record so the zone "really" exists
       string soa = ::arg()["default-soa-content"];
       boost::replace_all(soa, "@", zonename.toStringNoDot());
@@ -1755,7 +1764,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       sd.serial=document["serial"].int_value();
       autorr.qtype = QType::SOA;
       autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
-      increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
+      // updateDomainSettingsFromDocument will apply SOA-EDIT-API as needed
       new_records.push_back(autorr);
     }
 
@@ -1795,22 +1804,21 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     boost::optional<DomainInfo::DomainKind> kind;
     boost::optional<vector<ComboAddress>> masters;
+    boost::optional<DNSName> catalog;
     boost::optional<string> account;
-    extractDomainInfoFromDocument(document, kind, masters, account);
+    extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
     // no going back after this
     if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
-      throw ApiException("Creating domain '"+zonename.toString()+"' failed");
+      throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
 
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
 
     di.backend->startTransaction(zonename, di.id);
 
-    // updateDomainSettingsFromDocument does NOT fill out the default we've established above.
-    if (!soa_edit_api_kind.empty()) {
-      di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
-    }
+    // will be overridden by updateDomainSettingsFromDocument, if given in document.
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
     for(auto rr : new_records) {
       rr.domain_id = di.id;
@@ -1821,7 +1829,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(B, di, zonename, document, false);
+    updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
 
     di.backend->commitTransaction();
 

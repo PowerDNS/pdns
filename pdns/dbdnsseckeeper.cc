@@ -336,7 +336,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
   }
 
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
-  if(ns3p) {
+  if(ns3p != nullptr) {
     *ns3p = NSEC3PARAMRecordContent(value);
     if (ns3p->d_iterations > maxNSEC3Iterations && !isPresigned(zname, useCache)) {
       ns3p->d_iterations = maxNSEC3Iterations;
@@ -347,7 +347,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
       ns3p->d_algorithm = 1;
     }
   }
-  if(narrow) {
+  if(narrow != nullptr) {
     if(useCache) {
       getFromMeta(zname, "NSEC3NARROW", value);
     }

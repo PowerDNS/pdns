@@ -55,3 +55,4 @@ PowerDNS-Recursor.pdf
 /*.pb.cc
 /*.pb.h
 /.cache
+/.clang-tidy

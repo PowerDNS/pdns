@@ -26,9 +26,10 @@ All of these functions are optional.
 If ``ipfilter`` returns ``true``, the query is dropped.
 If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send the result as constructed in the function to the client.
 If it returns ``false``, the Recursor will continue processing.
-For the other functions, the return value will indicate that an alteration has been made. In that case DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
+For the other functions, the return value will indicate that an alteration to the result has been made.
+In that case the potentially changed rcode, records and policy will be processed and DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
 At specific points the Recursor will check if policy handling should take place.
-These points are immediately after ``preresolve``, after resolving and after ``postresolve``.
+These points are immediately after ``preresolve``, after resolving and after ``nxdomain``, ``nodata`` and ``postresolve``.
 
 Interception Functions
 ----------------------
@@ -36,7 +37,7 @@ Interception Functions
 .. function:: ipfilter(remoteip, localip, dh) -> bool
 
     This hook gets queried immediately after consulting the packet cache, but before parsing the DNS packet.
-    If this hook returns something else than false, the packet is dropped.
+    If this hook returns something else than ``false``, the packet is dropped.
     However, because this check is after the packet cache, the IP address might still receive answers that require no packet parsing.
 
     With this hook, undesired traffic can be dropped rapidly before using precious CPU cycles for parsing.
@@ -90,7 +91,7 @@ Interception Functions
        If a routing tag is set and a record would be stored with an ENDS subnetmask in the record cache, it will be
        stored with the tag instead. New request using the same tag will be served by the record in the records cache,
        avoiding querying authoritative servers.
- 
+
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
     In the latter case, repeated queries will pass through the entire Lua script.
@@ -122,6 +123,7 @@ Interception Functions
 
   This hook is called before any filtering policy have been applied,  making it possible to completely disable filtering by setting  :attr:`dq.wantsRPZ <DNSQuestion.wantsRPZ>` to false.
   Using the :meth:`dq:discardPolicy() <DNSQuestion:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones, based on the content of the ``dq`` object.
+  Currently, the return value of this function is ignored.
 
   As an example, to disable the "malware" policy for example.com queries:
 
@@ -176,11 +178,22 @@ Interception Functions
 .. function:: preoutquery(dq) -> bool
 
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
-  When this hook sets the special result code -3, the whole DNS client query causing this outquery gets a `ServFail`.
+
+  When this hook sets the special result code ``-3``, the whole DNS client query causing this outgoing query gets a ``ServFail``.
 
   However, this function can also return records like :func:`preresolve`.
 
-  :param DNSQuestion dq: The DNS question to handle
+  :param DNSQuestion dq: The DNS question to handle.
+
+  In the case of :func:`preoutquery`, only a few attributes if the :class:`dq <DNSQuestion>` object are filled in:
+
+  - :attr:`dq.remoteaddr <DNSQuestion.remoteaddr>` containing the target nameserver address
+  - :attr:`dq.localaddr <DNSQuestion.localaddr>`
+  - :attr:`dq.qname <DNSQuestion.qname>`
+  - :attr:`dq.qtype <DNSQuestion.qtype>`
+  - :attr:`dq.isTcp <DNSQuestion.isTcp>`
+
+  Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
 .. function:: policyEventFilter(event) -> bool
 
@@ -223,11 +236,13 @@ Interception Functions
 
 Callback Semantics
 ^^^^^^^^^^^^^^^^^^
-The :func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing.
-When a function returns ``false``, the nameserver will process the query normally until a new function is called.
+The functions which modify or influence the query flow should all return ``true`` when they have performed an action which alters the rcode, result or applied policy. When a function returns ``false``, the nameserver will process the query normally until a new function is called.
 
-If a function has taken over a request, it should set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
+:func:`ipfilter` and :func:`preresolve` callbacks must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with processing.
+
+If a function has taken over a request, it can set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
 An interesting rcode is `NXDOMAIN` (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
+Instead of setting an rcode and records, it can also set fields in the applied policy to influence further processing.
 
 The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
 
@@ -342,7 +357,7 @@ This script requires PowerDNS Recursor 4.x or later.
         if(lethalgroup:match(dq.remoteaddr))
         then
             print("We matched the group "..lethalgroup:tostring().."! killing query dead from requestor "..dq.localaddr:toString())
-            dq.rcode = -3 -- "kill" 
+            dq.rcode = -3 -- "kill"
             return true
         end
         return false

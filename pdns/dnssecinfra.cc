@@ -44,6 +44,7 @@
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
 #endif
+#include "gss_context.hh"
 #include "misc.hh"
 
 using namespace boost::assign;
@@ -291,7 +292,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   cout<<"Testing algorithm "<<algo<<"("<<DNSSECKeeper::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
   if(algo <= 10)
-    bits=1024;
+    bits=2048;
   else if(algo == DNSSECKeeper::ECCGOST || algo == DNSSECKeeper::ECDSA256 || algo == DNSSECKeeper::ED25519)
     bits = 256;
   else if(algo == DNSSECKeeper::ECDSA384)
@@ -492,7 +493,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
     dsrc.d_digest = dpk->hash(toHash);
   }
   catch(const std::exception& e) {
-    throw std::runtime_error("Asked to create (C)DS record of unknown digest type " + std::to_string(digest));
+    throw std::runtime_error("Asked to create (C)DS record of unknown digest type " + std::to_string(digest) + ": " + e.what());
   }
 
   dsrc.d_algorithm = drc.d_algorithm;
@@ -518,6 +519,7 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
 
 uint32_t getStartOfWeek()
 {
+  // coverity[store_truncates_time_t]
   uint32_t now = time(nullptr);
   now -= (now % (7*86400));
   return now;
@@ -697,7 +699,9 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkey
   string toSign = makeTSIGPayload(tsigprevious, reinterpret_cast<const char*>(pw.getContent().data()), pw.getContent().size(), tsigkeyname, trc, timersonly);
 
   if (algo == TSIG_GSS) {
-    throw PDNSException(string("Unsupported TSIG GSS algorithm ") + trc.d_algoName.toLogString());
+    if (!gss_add_signature(tsigkeyname, toSign, trc.d_mac)) {
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toLogString()+string("'"));
+    }
   } else {
     trc.d_mac = calculateHMAC(tsigsecret, toSign, algo);
     //  trc.d_mac[0]++; // sabotage
@@ -732,7 +736,10 @@ bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& t
   tsigMsg = makeTSIGMessageFromTSIGPacket(packet, sigPos, tt.name, trc, previousMAC, timersOnly, dnsHeaderOffset);
 
   if (algo == TSIG_GSS) {
-    throw std::runtime_error("Unsupported TSIG GSS algorithm " + trc.d_algoName.toLogString());
+    GssContext gssctx(tt.name);
+    if (!gss_verify_signature(tt.name, tsigMsg, theirMAC)) {
+      throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' failed to validate");
+    }
   } else {
     string ourMac = calculateHMAC(tt.secret, tsigMsg, algo);
 

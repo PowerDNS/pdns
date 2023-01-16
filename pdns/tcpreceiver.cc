@@ -40,8 +40,8 @@
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
 
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #include "base64.hh"
 #include "ueberbackend.hh"
 #include "dnspacket.hh"
@@ -51,7 +51,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 
-#include "common_startup.hh"
+#include "auth-main.hh"
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "communicator.hh"
@@ -60,6 +60,8 @@
 #include "stubresolver.hh"
 #include "proxy-protocol.hh"
 #include "noinitvector.hh"
+#include "gss_context.hh"
+#include "pdnsexception.hh"
 extern AuthPacketCache PC;
 extern StatBag S;
 
@@ -171,9 +173,11 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
 
 void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last)
 {
+  uint16_t len=htons(p->getString(true).length());
+
+  // this also calls p->getString; call it after our explicit call so throwsOnTruncation=true is honoured
   g_rs.submitResponse(*p, false, last);
 
-  uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
   buffer.append(p->getString());
   writenWithTimeout(outsock, buffer.c_str(), buffer.length(), d_idleTimeout);
@@ -409,6 +413,11 @@ void TCPNameserver::doConnection(int fd)
         break;
 
       sendPacket(reply, fd);
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG) {
+        packet->cleanupGSS(reply->d.rcode);
+      }
+#endif
     }
   }
   catch(PDNSException &ae) {
@@ -455,9 +464,31 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
       return false;
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+#ifdef ENABLE_GSS_TSIG
+      if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
+#endif
     }
 
     DNSSECKeeper dk(packetHandler->getBackend());
+#ifdef ENABLE_GSS_TSIG
+    if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
+      vector<string> princs;
+      packetHandler->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
+      for(const std::string& princ :  princs) {
+        if (q->d_peer_principal == princ) {
+          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          return true;
+        }
+      }
+      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      return false;
+    }
+#endif
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
       g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
       return false;
@@ -579,7 +610,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       return 0;
     }
 
-    if(!(*packetHandler)->getBackend()->getSOAUncached(target, sd)) {
+    if (!(*packetHandler)->getBackend()->getSOAUncached(target, sd)) {
       g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
@@ -595,14 +626,23 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     return 0;
   }
 
-  DNSSECKeeper dk(&db);
-  DNSSECKeeper::clearCaches(target);
-  bool securedZone = dk.isSecuredZone(target);
-  bool presignedZone = dk.isPresigned(target);
+  bool securedZone = false;
+  bool presignedZone = false;
+  bool NSEC3Zone = false;
+  bool narrow = false;
+
+  DomainInfo di;
+  bool isCatalogZone = sd.db->getDomainInfo(target, di, false) && di.isCatalogType();
 
   NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-  bool NSEC3Zone=false;
+
+  DNSSECKeeper dk(&db);
+  DNSSECKeeper::clearCaches(target);
+  if (!isCatalogZone) {
+    securedZone = dk.isSecuredZone(target);
+    presignedZone = dk.isPresigned(target);
+  }
+
   if(securedZone && dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
@@ -621,17 +661,18 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
-    DNSName algorithm=trc.d_algoName; // FIXME400: check
+    DNSName algorithm=trc.d_algoName;
     if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
       algorithm = DNSName("hmac-md5");
-
-    if(!db.getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
-      g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
-      return 0;
-    }
-    if (B64Decode(tsig64, tsigsecret) == -1) {
-      g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
-      return 0;
+    if (algorithm != DNSName("gss-tsig")) {
+      if(!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
+        g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
+        return 0;
+      }
     }
   }
 
@@ -727,17 +768,45 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     zrrs.push_back(zrr);
   }
 
+  const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
+  set<DNSName> qnames, nsset, terms;
+
+  // Catalog zone start
+  if (di.kind == DomainInfo::Producer) {
+    // Ignore all records except NS at apex
+    sd.db->lookup(QType::NS, target, di.id);
+    while (sd.db->get(zrr)) {
+      zrrs.emplace_back(zrr);
+    }
+    if (zrrs.empty()) {
+      zrr.dr.d_name = target;
+      zrr.dr.d_ttl = 0;
+      zrr.dr.d_type = QType::NS;
+      zrr.dr.d_content = std::make_shared<NSRecordContent>("invalid.");
+      zrrs.emplace_back(zrr);
+    }
+
+    zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(target));
+
+    vector<CatalogInfo> members;
+    sd.db->getCatalogMembers(target, members, CatalogInfo::CatalogType::Producer);
+    for (const auto& ci : members) {
+      ci.toDNSZoneRecords(target, zrrs);
+    }
+    if (members.empty()) {
+      g_log << Logger::Warning << logPrefix << "catalog zone '" << target << "' has no members" << endl;
+    }
+    goto send;
+  }
+  // Catalog zone end
+
   // now start list zone
-  if(!(sd.db->list(target, sd.domain_id))) {
+  if (!sd.db->list(target, sd.domain_id, isCatalogZone)) {
     g_log<<Logger::Error<<logPrefix<<"backend signals error condition, aborting AXFR"<<endl;
     outpacket->setRcode(RCode::ServFail);
     sendPacket(outpacket,outsock);
     return 0;
   }
-
-
-  const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
-  set<DNSName> qnames, nsset, terms;
 
   while(sd.db->get(zrr)) {
     if (!presignedZone) {
@@ -905,6 +974,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
   }
 
+send:
 
   /* now write all other records */
 
@@ -1056,7 +1126,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     if(!outpacket->getRRS().empty()) {
       if(haveTSIGDetails && !tsigkeyname.empty())
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
-      sendPacket(outpacket, outsock, false);
+      try {
+        sendPacket(outpacket, outsock, false);
+      }
+      catch (PDNSException& pe) {
+        throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
+      }
       trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
@@ -1146,7 +1221,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
     DNSSECKeeper dk((*packetHandler)->getBackend());
     DNSSECKeeper::clearCaches(q->qdomain);
-    bool narrow;
+    bool narrow = false;
     securedZone = dk.isSecuredZone(q->qdomain);
     if(dk.getNSEC3PARAM(q->qdomain, nullptr, &narrow)) {
       if(narrow) {
@@ -1176,8 +1251,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
       if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
         algorithm = DNSName("hmac-md5");
-      if(!db.getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
-        g_log<<Logger::Error<<logPrefix<<"TSIG key '"<<tsigkeyname<<"' not found"<<endl;
+      if (!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
+        g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << target << "' not found" << endl;
         return 0;
       }
       if (B64Decode(tsig64, tsigsecret) == -1) {

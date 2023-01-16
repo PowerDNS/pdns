@@ -127,7 +127,7 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
 
   * ``logQueries=true``: bool - log outgoing queries
   * ``logResponses=true``: bool - log incoming responses
- 
+
   The following options apply to the settings of the framestream library. Refer to the documentation of that
   library for the default values, exact description and allowable values for these options.
   For all these options, absence or a zero value has the effect of using the library-provided default value.
@@ -139,3 +139,30 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``queueNotifyThreshold=0``: unsigned
   * ``reopenInterval=0``: unsigned
 
+.. function:: dnstapNODFrameStreamServer(servers [, options])
+
+  .. versionadded:: 4.8.0
+
+  Send dnstap formatted message for :ref:`Newly Observed Domain` and :ref:`Unique Domain Response`.
+  ``Message.type`` will be set to ``CLIENT_QUERY`` for NOD and ``RESOLVER_RESPONSE`` for UDR. The concerned domain name will be attached in the ``Message.query_zone`` field.
+  UDR notifications will get the reply attached to the ``response_message`` field.
+
+  :param servers: Either a pathname of a unix domain socket starting with a slash or the IP:port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
+
+  Options:
+
+  * ``logNODs=true``: bool - log NODs
+  * ``logUDRs=false``: bool - log UDRs
+
+  The following options apply to the settings of the framestream library. Refer to the documentation of that
+  library for the default values, exact description and allowable values for these options.
+  For all these options, absence or a zero value has the effect of using the library-provided default value.
+
+  * ``bufferHint=0``: unsigned
+  * ``flushTimeout=0``: unsigned
+  * ``inputQueueSize=0``: unsigned
+  * ``outputQueueSize=0``: unsigned
+  * ``queueNotifyThreshold=0``: unsigned
+  * ``reopenInterval=0``: unsigned

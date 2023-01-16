@@ -3,13 +3,16 @@ CREATE TABLE domains (
   name                  VARCHAR(255) NOT NULL,
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INT DEFAULT NULL,
-  type                  VARCHAR(6) NOT NULL,
+  type                  TEXT NOT NULL,
   notified_serial       BIGINT DEFAULT NULL,
   account               VARCHAR(40) DEFAULT NULL,
+  options               TEXT DEFAULT NULL,
+  catalog               TEXT DEFAULT NULL,
   CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
 );
 
 CREATE UNIQUE INDEX name_index ON domains(name);
+CREATE INDEX catalog_idx ON domains(catalog);
 
 
 CREATE TABLE records (

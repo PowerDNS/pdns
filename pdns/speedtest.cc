@@ -769,7 +769,33 @@ struct DNSNameRootTest
 
 };
 
+struct SuffixMatchNodeTest
+{
+  SuffixMatchNodeTest()
+  {
+    d_smn.add(d_exist);
+  }
 
+  string getName() const
+  {
+    return "SuffixMatchNode";
+  }
+
+  void operator()() const
+  {
+    if (!d_smn.check(d_exist)) {
+      throw std::runtime_error("Entry not found in SuffixMatchNodeTest");
+    }
+    if (d_smn.check(d_does_not_exist)) {
+      throw std::runtime_error("Non-existent entry found in SuffixMatchNodeTest");
+    }
+  }
+
+private:
+  const DNSName d_exist{"a.bb.ccc.ddd."};
+  const DNSName d_does_not_exist{"e.bb.ccc.ddd"};
+  SuffixMatchNode d_smn;
+};
 
 struct IEqualsTest
 {
@@ -1106,7 +1132,24 @@ struct BurtleHashTest
   void operator()() const
   {
     burtle(reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), 0);
+  }
 
+private:
+  const string d_name;
+};
+
+struct BurtleHashCITest
+{
+  explicit BurtleHashCITest(const string& str) : d_name(str) {}
+
+  string getName() const
+  {
+    return "BurtleHashCI";
+  }
+
+  void operator()() const
+  {
+    burtleCI(reinterpret_cast<const unsigned char*>(d_name.data()), d_name.length(), 0);
   }
 
 private:
@@ -1241,6 +1284,8 @@ try
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
 
+  doRun(SuffixMatchNodeTest());
+
   doRun(NetmaskTreeTest());
 
   doRun(UUIDGenTest());
@@ -1287,6 +1332,7 @@ try
 #endif
 
   doRun(BurtleHashTest("a string of chars"));
+  doRun(BurtleHashCITest("A String Of Chars"));
 #ifdef HAVE_LIBSODIUM
   doRun(SipHashTest("a string of chars"));
 #endif

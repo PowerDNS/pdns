@@ -27,7 +27,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <iostream>
-#include <errno.h>
+#include <cerrno>
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>
@@ -48,6 +48,7 @@
 
 #include "dns_random.hh"
 #include <poll.h>
+#include "gss_context.hh"
 #include "namespaces.hh"
 
 using pdns::resolver::parseResult;
@@ -203,7 +204,7 @@ namespace pdns {
         if(mdp.d_header.id != id)
           throw ResolverException("Remote nameserver replied with wrong id");
         if(mdp.d_header.qdcount != 1)
-          throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp.d_header.qdcount)+")");
+          throw ResolverException("resolver: received answer with wrong number of questions ("+std::to_string(mdp.d_header.qdcount)+")");
         if(mdp.d_qname != origQname)
           throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname.toLogString()+"!="+ origQname.toLogString()+".)");
       }

@@ -28,6 +28,24 @@ any-to-tcp=no
 zone-cache-refresh-interval=0
 __EOF__
 
+		# setup catalog zone
+
+		if ! $PDNSUTIL --config-dir=. --config-name=gmysql list-all-zones | grep '^.$' # detect root tests
+		then
+			for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+			do
+				$PDNSUTIL --config-dir=. --config-name=gmysql set-kind $zone master
+				$PDNSUTIL --config-dir=. --config-name=gmysql set-catalog $zone catalog.invalid
+			done
+
+			$PDNSUTIL --config-dir=. --config-name=gmysql load-zone catalog.invalid zones/catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-kind catalog.invalid producer
+
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-option test.com producer coo other-catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-option test.com producer unique 123
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-option tsig.com producer group pdns-group-x pdns-group-y
+		fi
+
 		gsql_master gmysql dyndns
 		;;
 

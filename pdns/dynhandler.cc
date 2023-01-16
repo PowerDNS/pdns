@@ -31,14 +31,14 @@
 #include "logger.hh"
 #include "dns.hh"
 #include "arguments.hh"
-#include <signal.h>
+#include <csignal>
 #include "misc.hh"
 #include "communicator.hh"
 #include "dnsseckeeper.hh"
 #include "nameserver.hh"
 #include "responsestats.hh"
 #include "ueberbackend.hh"
-#include "common_startup.hh"
+#include "auth-main.hh"
 
 extern ResponseStats g_rs;
 
@@ -124,7 +124,7 @@ string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream os;
-  os<<humanDuration(time(nullptr)-s_starttime);
+  os<<humanDuration(time(nullptr)-g_starttime);
   return os.str();
 }
 
@@ -175,6 +175,8 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     os<<i->second;
   }
+  if(!first) 
+    os<<", ";
   os<<"packets: "<<packetEntries;
 
   return os.str();
@@ -273,8 +275,8 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
     di.masters.push_back(master_ip);
   }
 
-  if(!override_master && (di.kind != DomainInfo::Slave || di.masters.empty()))
-    return "Zone '" + domain.toString() + "' is not a secondary zone (or has no primary defined)";
+  if (!override_master && (!di.isSecondaryType() || di.masters.empty()))
+    return "Zone '" + domain.toString() + "' is not a secondary/consumer zone (or has no primary defined)";
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
   const auto& master = di.masters.front();
@@ -328,7 +330,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     int total = 0;
     int notified = 0;
     for (const auto& di : domains) {
-      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // Primary and secondary if secondary-do-renotify is enabled
+      if (di.kind != DomainInfo::Native) { // Primary and secondary if secondary-do-renotify is enabled
         total++;
         if(Communicator.notifyDomain(di.zone, &B))
           notified++;
@@ -336,8 +338,8 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     }
 
     if (total != notified)
-      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER/SLAVE zones to queue";
+      return std::to_string(notified)+" out of "+std::to_string(total)+" zones added to queue - see log";
+    return "Added " + std::to_string(total) + " MASTER/SLAVE/PRODUCER/CONSUMER zones to queue";
   } else {
     DNSName domain;
     try {
@@ -382,28 +384,24 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, false, false);
   ostringstream ret;
-  int kindFilter = -1;
+  DomainInfo::DomainKind kind;
   if (parts.size() > 1) {
-    if (toUpper(parts[1]) == "PRIMARY" || toUpper(parts[1]) == "MASTER")
-      kindFilter = 0;
-    else if (toUpper(parts[1]) == "SECONDARY" || toUpper(parts[1]) == "SLAVE")
-      kindFilter = 1;
-    else if (toUpper(parts[1]) == "NATIVE")
-      kindFilter = 2;
+    kind = DomainInfo::stringToKind(parts.at(1));
+  }
+  else {
+    kind = DomainInfo::All;
   }
 
   int count = 0;
 
   for (const auto& di: domains) {
-    if (di.kind == kindFilter || kindFilter == -1) {
+    if (di.kind == kind || kind == DomainInfo::All) {
       ret<<di.zone.toString()<<endl;
       count++;
     }
   }
-  if (kindFilter != -1)
-    ret<<parts[1]<<" zonecount:"<<count;
-  else
-    ret<<"All zonecount:"<<count;
+
+  ret << DomainInfo::getKindString(kind) << " zonecount: " << count;
 
   return ret.str();
 }

@@ -58,6 +58,8 @@ namespace pdns
 class SHADigest
 {
 public:
+  SHADigest() :
+    SHADigest(256) {}
   SHADigest(unsigned int bits) :
 #if defined(HAVE_EVP_MD_CTX_NEW) && defined(HAVE_EVP_MD_CTX_FREE)
     mdctx(std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), EVP_MD_CTX_free))

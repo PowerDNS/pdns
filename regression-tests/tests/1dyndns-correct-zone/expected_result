@@ -1,5 +1,5 @@
 * Check that the name cannot be found
-1	sub.test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='occluded.sub.test.dyndns.', qtype=ANY
 * Create the occluded name in the parent zone
@@ -10,7 +10,7 @@ Answer:
 ;test.dyndns.			IN	SOA
 
 * Check that the name cannot be found
-1	sub.test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='occluded.sub.test.dyndns.', qtype=ANY
 * Create a record in the child zone
@@ -21,7 +21,7 @@ Answer:
 ;sub.test.dyndns.		IN	SOA
 
 * Check that the child zone record is visible
-0	occluded.sub.test.dyndns.	IN	CNAME	3600	child.
+0	occluded.sub.test.dyndns.	3600	IN	CNAME	child.
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='occluded.sub.test.dyndns.', qtype=A
 * Remove child record
@@ -32,7 +32,7 @@ Answer:
 ;sub.test.dyndns.		IN	SOA
 
 * Check that the occluded name is invisible again
-1	sub.test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='occluded.sub.test.dyndns.', qtype=ANY
 * Remove parent record

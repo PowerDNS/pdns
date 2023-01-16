@@ -1,12 +1,12 @@
 Statistics
 ==========
 
-dnsdist keeps statistics on the queries is receives and send out. They can be accessed in different ways:
+:program:`dnsdist` keeps statistics on the queries it receives and send out. They can be accessed in different ways:
 
 - via the console (see :ref:`Console`), using :func:`dumpStats` for the general ones,
   :func:`showServers()` for the ones related to the backends, :func:`showBinds()` for the frontends,
   `getPool("pool name"):getCache():printStats()` for the ones related to a specific cache and so on
-- via the internal webserver (see :doc:`../guides/webserver`)
+- via the internal webserver (see :doc:`../guides/webserver`) which includes a Prometheus endpoint
 - via Carbon / Graphite / Metronome export (see :doc:`../guides/carbon`)
 - via SNMP (see :doc:`../advanced/snmp`)
 
@@ -20,6 +20,12 @@ To make sense of the statistics, the following relation should hold:
 Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
 accounted for in the eBPF statistics, and do not show up in the metrics
 described on this page.
+
+Note that counters that come from ``/proc/net/`` are operating system specific counters.
+They do not reset on service restart and they are not only related to :program:`dnsdist`.
+For more information on these counters, refer to `Linux networking
+counter documentation <https://www.kernel.org/doc/html/latest/networking/snmp_counter.html>`_
+and the `RFC1213 <https://datatracker.ietf.org/doc/html/rfc1213>`_.
 
 acl-drops
 ---------
@@ -115,22 +121,70 @@ latency-avg1000000
 ------------------
 Average response latency in microseconds of the last 1000000 packets.
 
+latency-bucket
+--------------
+Histogram of response time latencies.
+
+latency-count
+-------------
+Number of queries contributing to response time histogram and latency sum.
+
+latency-doh-avg100
+------------------
+Average response latency, in microseconds, of the last 100 packets received over DoH.
+
+latency-doh-avg1000
+-------------------
+Average response latency, in microseconds, of the last 1000 packets received over DoH.
+
+latency-doh-avg10000
+--------------------
+Average response latency, in microseconds, of the last 10000 packets received over DoH.
+
+latency-doh-avg100000
+---------------------
+Average response latency, in microseconds, of the last 100000 packets received over DoH.
+
+latency-dot-avg100
+------------------
+Average response latency, in microseconds, of the last 100 packets received over DoT.
+
+latency-dot-avg1000
+-------------------
+Average response latency, in microseconds, of the last 1000 packets received over DoT.
+
+latency-dot-avg10000
+--------------------
+Average response latency, in microseconds, of the last 10000 packets received over DoT.
+
+latency-dot-avg1000000
+----------------------
+Average response latency, in microseconds, of the last 1000000 packets received over DoT.
+
 latency-slow
 ------------
 Number of queries answered in more than 1 second.
 
 latency-sum
 -----------
-Total response time of all queries combined in milliseconds since the start of dnsdist. Can be used to calculate the
+Total response time of all queries combined in milliseconds since the start of :program:`dnsdist`. Can be used to calculate the
 average response time over all queries.
 
-latency-count
--------------
-Number of queries contributing to response time histogram and latency sum.
+latency-tcp-avg100
+------------------
+Average response latency, in microseconds, of the last 100 packets received over TCP.
 
-latency-bucket
---------------
-Histogram of response time latencies.
+latency-tcp-avg1000
+-------------------
+Average response latency, in microseconds, of the last 1000 packets received over TCP.
+
+latency-tcp-avg10000
+--------------------
+Average response latency, in microseconds, of the last 10000 packets received over TCP.
+
+latency-tcp-avg1000000
+----------------------
+Average response latency, in microseconds, of the last 1000000 packets received over TCP.
 
 latency0-1
 ----------
@@ -163,6 +217,10 @@ Number of queries dropped as non-compliant.
 noncompliant-responses
 ----------------------
 Number of answers from a backend dropped as non-compliant.
+
+outgoing-doh-query-pipe-full
+----------------------------
+Number of outgoing DoH queries dropped because the internal pipe used to distribute queries was full.
 
 proxy-protocol-invalid
 ----------------------
@@ -227,11 +285,23 @@ servfail-responses
 ------------------
 Number of servfail answers received from backends.
 
+tcp-cross-protocol-query-pipe-full
+----------------------------------
+Number of TCP cross-protocol queries dropped because the internal pipe used to distribute queries was full.
+
+tcp-cross-protocol-response-pipe-full
+-------------------------------------
+Number of TCP cross-protocol responses dropped because the internal pipe used to distribute queries was full.
+
 tcp-listen-overflows
 --------------------
 .. versionadded:: 1.6.0
 
-From /proc/net/netstat ListenOverflows.
+From ``/proc/net/netstat`` ``ListenOverflows``.
+
+tcp-query-pipe-full
+-------------------
+Number of TCP queries dropped because the internal pipe used to distribute queries was full.
 
 trunc-failures
 --------------
@@ -241,62 +311,62 @@ udp-in-csum-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp InErrors.
+From ``/proc/net/snmp`` ``InErrors``.
 
 udp-in-errors
 -------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp InErrors.
+From ``/proc/net/snmp`` ``InErrors``.
 
 udp-noport-errors
 -----------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp NoPorts.
+From ``/proc/net/snmp`` ``NoPorts``.
 
 udp-recvbuf-errors
 ------------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp RcvbufErrors.
+From ``/proc/net/snmp`` ``RcvbufErrors``.
 
 udp-sndbuf-errors
 -----------------
 .. versionadded:: 1.5.0
 
-From /proc/net/snmp SndbufErrors.
+From ``/proc/net/snmp`` ``SndbufErrors``.
 
 udp6-in-csum-errors
 -------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 InErrors.
+From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-in-errors
 --------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 InErrors.
+From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-noport-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 NoPorts.
+From ``/proc/net/snmp6`` ``NoPorts``.
 
 udp6-recvbuf-errors
 -------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 RcvbufErrors.
+From ``/proc/net/snmp6`` ``RcvbufErrors``.
 
 udp6-sndbuf-errors
 ------------------
 .. versionadded:: 1.7.0
 
-From /proc/net/snmp6 SndbufErrors.
+From ``/proc/net/snmp6`` ``SndbufErrors``.
 
 uptime
 ------
-Uptime of the dnsdist process, in seconds.
+Uptime of the :program:`dnsdist` process, in seconds.

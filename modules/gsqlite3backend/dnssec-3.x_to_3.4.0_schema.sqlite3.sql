@@ -1,3 +1,5 @@
+.bail on
+
 CREATE TABLE comments (
   id                    INTEGER PRIMARY KEY,
   domain_id             INTEGER NOT NULL,

@@ -23,4 +23,12 @@
 
 #include <set>
 
-void dropCapabilities(std::set<std::string> capabilitiesToKeep = {});
+/* return true on success, false if support is not available or we don't
+   have enough capabilities to drop our capabilities (I know),
+   and throw on more unexpected errors.
+*/
+bool dropCapabilities(std::set<std::string> capabilitiesToKeep = {});
+/* drop capabilities on setuid()/setgid() */
+bool dropCapabilitiesAfterSwitchingIDs();
+/* retain capabilities on setuid()/setgid() */
+bool keepCapabilitiesAfterSwitchingIDs();

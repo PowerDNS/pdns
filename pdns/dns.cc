@@ -30,32 +30,45 @@
 #include <boost/assign/list_of.hpp>
 #include "dnsparser.hh"
 
-std::vector<std::string> RCode::rcodes_s = boost::assign::list_of 
-  ("No Error")
-  ("Form Error")
-  ("Server Failure")
-  ("Non-Existent domain")
-  ("Not Implemented")
-  ("Query Refused")
-  ("Name Exists when it should not")
-  ("RR Set Exists when it should not")
-  ("RR Set that should exist does not")
-  ("Server Not Authoritative for zone / Not Authorized")
-  ("Name not contained in zone")
-  ("Err#11")
-  ("Err#12")
-  ("Err#13")
-  ("Err#14")
-  ("Err#15")  // Last non-extended RCode
-  ("Bad OPT Version / TSIG Signature Failure")
-  ("Key not recognized")
-  ("Signature out of time window")
-  ("Bad TKEY Mode")
-  ("Duplicate key name")
-  ("Algorithm not supported")
-  ("Bad Truncation")
-  ("Bad/missing Server Cookie")
-;
+const std::array<std::string, 24> RCode::rcodes_s = {
+  "No Error",
+  "Form Error",
+  "Server Failure",
+  "Non-Existent domain",
+  "Not Implemented",
+  "Query Refused",
+  "Name Exists when it should not",
+  "RR Set Exists when it should not",
+  "RR Set that should exist does not",
+  "Server Not Authoritative for zone / Not Authorized",
+  "Name not contained in zone",
+  "Err#11",
+  "Err#12",
+  "Err#13",
+  "Err#14",
+  "Err#15",  // Last non-extended RCode
+  "Bad OPT Version / TSIG Signature Failure",
+  "Key not recognized",
+  "Signature out of time window",
+  "Bad TKEY Mode",
+  "Duplicate key name",
+  "Algorithm not supported",
+  "Bad Truncation",
+  "Bad/missing Server Cookie"
+};
+
+static const std::array<std::string, 10> rcodes_short_s =  {
+  "noerror",
+  "formerr",
+  "servfail",
+  "nxdomain",
+  "notimp",
+  "refused",
+  "yxdomain",
+  "yxrrset",
+  "nxrrset",
+  "notauth",
+};
 
 std::string RCode::to_s(uint8_t rcode) {
   if (rcode > 0xF)
@@ -63,14 +76,21 @@ std::string RCode::to_s(uint8_t rcode) {
   return ERCode::to_s(rcode);
 }
 
+std::string RCode::to_short_s(uint8_t rcode) {
+  if (rcode >= rcodes_short_s.size()) {
+    return "rcode" + std::to_string(rcode);
+  }
+  return rcodes_short_s.at(rcode);
+}
+
 std::string ERCode::to_s(uint8_t rcode) {
   if (rcode > RCode::rcodes_s.size()-1)
     return std::string("Err#")+std::to_string(rcode);
-  return RCode::rcodes_s[rcode];
+  return RCode::rcodes_s.at(rcode);
 }
 
 std::string Opcode::to_s(uint8_t opcode) {
-  static const std::vector<std::string> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
+  static const std::array<std::string, 6> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
 
   if (opcode >= s_opcodes.size()) {
     return std::to_string(opcode);

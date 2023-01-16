@@ -33,6 +33,7 @@
 #include <grp.h>
 
 #include "namespaces.hh"
+#include "logging.hh"
 
 typedef PDNSException ArgException;
 
@@ -54,15 +55,15 @@ typedef PDNSException ArgException;
     \code
 
     ArgvMap R;
-  
+
     R.set("port")="25";  // use this to specify default parameters
     R.file("./default.conf"); // parse configuration file
-    
+
     R.parse(argc, argv); // read the arguments from main()
-    
+
     cout<<"Will we be a daemon?: "<<R.isset("daemon")<<endl;
     cout<<"Our port will be "<<R["port"]<<endl;
-    
+
     map<string,string>::const_iterator i;
     cout<<"via iterator"<<endl;
     for(i=R.begin();i!=R.end();i++)
@@ -84,9 +85,9 @@ public:
   void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
-  bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
-  bool file(const char *fname, bool lax, bool included); 
-  bool laxFile(const char *fname) 
+  bool file(const char* fname, bool lax = false); //!< Parses a file with parameters
+  bool file(const char* fname, bool lax, bool included);
+  bool laxFile(const char *fname)
   {
     return file(fname,true);
   }
@@ -118,7 +119,14 @@ public:
   const string &operator[](const string &); //!< iterator semantics
   const vector<string>&getCommands();
   void gatherIncludes(std::vector<std::string> &extraConfigs);
+#ifdef RECURSOR
+  void setSLog(Logr::log_t log)
+  {
+    d_log = log;
+  }
+#endif
 private:
+  void warnIfDeprecated(const string& var);
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
   const string formatOne(bool running, bool full, const string &var, const string &help, const string& theDefault, const string& value);
   map<string,string> d_params;
@@ -128,6 +136,9 @@ private:
   map<string,string> d_typeMap;
   vector<string> d_cmds;
   std::set<string> d_cleared;
+#ifdef RECURSOR
+  std::shared_ptr<Logr::Logger> d_log;
+#endif
 };
 
 extern ArgvMap &arg();

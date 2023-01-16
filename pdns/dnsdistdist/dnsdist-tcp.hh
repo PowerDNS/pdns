@@ -78,7 +78,7 @@ struct InternalQuery
   {
   }
 
-  InternalQuery(PacketBuffer&& buffer, IDState&& state) :
+  InternalQuery(PacketBuffer&& buffer, InternalQueryState&& state) :
     d_idstate(std::move(state)), d_buffer(std::move(buffer))
   {
   }
@@ -94,10 +94,11 @@ struct InternalQuery
     return d_idstate.qtype == QType::AXFR || d_idstate.qtype == QType::IXFR;
   }
 
-  IDState d_idstate;
+  InternalQueryState d_idstate;
   std::string d_proxyProtocolPayload;
   PacketBuffer d_buffer;
   uint32_t d_proxyProtocolPayloadAddedSize{0};
+  uint32_t d_ixfrQuerySerial{0};
   uint32_t d_xfrMasterSerial{0};
   uint32_t d_xfrSerialCount{0};
   uint32_t d_downstreamFailures{0};
@@ -118,7 +119,7 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<ConnectionToBackend> conn) :
+  TCPResponse(PacketBuffer&& buffer, InternalQueryState&& state, std::shared_ptr<ConnectionToBackend> conn) :
     TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
@@ -140,7 +141,7 @@ public:
   virtual const ClientState* getClientState() const = 0;
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void handleXFRResponse(const struct timeval& now, TCPResponse&& response) = 0;
-  virtual void notifyIOError(IDState&& query, const struct timeval& now) = 0;
+  virtual void notifyIOError(InternalQueryState&& query, const struct timeval& now) = 0;
 
   /* whether the connection should be automatically released to the pool after handleResponse()
      has been called */
@@ -156,6 +157,10 @@ protected:
 struct CrossProtocolQuery
 {
   CrossProtocolQuery()
+  {
+  }
+  CrossProtocolQuery(InternalQuery&& query_, std::shared_ptr<DownstreamState>& downstream_) :
+    query(std::move(query_)), downstream(downstream_)
   {
   }
 
@@ -175,18 +180,7 @@ struct CrossProtocolQuery
 class TCPClientCollection
 {
 public:
-  TCPClientCollection(size_t maxThreads);
-
-  int getThread()
-  {
-    if (d_numthreads == 0) {
-      throw std::runtime_error("No TCP worker thread yet");
-    }
-
-    uint64_t pos = d_pos++;
-    ++d_queued;
-    return d_tcpclientthreads.at(pos % d_numthreads).d_newConnectionPipe.getHandle();
-  }
+  TCPClientCollection(size_t maxThreads, std::vector<ClientState*> tcpStates);
 
   bool passConnectionToThread(std::unique_ptr<ConnectionInfo>&& conn)
   {
@@ -198,13 +192,17 @@ public:
     auto pipe = d_tcpclientthreads.at(pos % d_numthreads).d_newConnectionPipe.getHandle();
     auto tmp = conn.release();
 
+    /* we need to increment this counter _before_ writing to the pipe,
+       otherwise there is a very real possiblity that the other end
+       decrement the counter before we can increment it, leading to an underflow */
+    ++d_queued;
     if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+      --d_queued;
       ++g_stats.tcpQueryPipeFull;
       delete tmp;
       tmp = nullptr;
       return false;
     }
-    ++d_queued;
     return true;
   }
 
@@ -249,7 +247,7 @@ public:
   }
 
 private:
-  void addTCPClientThread();
+  void addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates);
 
   struct TCPWorkerThread
   {

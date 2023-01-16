@@ -55,6 +55,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
 
 class TestResponseRuleERCode(DNSDistTest):
 
+    _extraStartupSleep = 1
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     addResponseAction(ERCodeRule(DNSRCode.BADVERS), DelayResponseAction(1000))
@@ -344,6 +345,39 @@ class TestResponseRuleLimitTTL(DNSDistTest):
             self.assertEqual(response, receivedResponse)
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._lowttl)
+
+class TestSetReducedTTL(DNSDistTest):
+
+    _percentage = 42
+    _initialTTL = 100
+    _config_params = ['_percentage', '_testServerPort']
+    _config_template = """
+    addResponseAction(AllRule(), SetReducedTTLResponseAction(%d))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testLimitTTL(self):
+        """
+        Responses: Reduce TTL to 42%
+        """
+        name = 'reduced-ttl.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    self._initialTTL,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+            self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+            self.assertEqual(receivedResponse.answer[0].ttl, self._percentage)
 
 class TestResponseLuaActionReturnSyntax(DNSDistTest):
 

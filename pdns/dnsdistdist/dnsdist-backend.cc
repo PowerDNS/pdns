@@ -45,6 +45,10 @@ bool DownstreamState::reconnect()
     return false;
   }
 
+  if (IsAnyAddress(d_config.remote)) {
+    return true;
+  }
+
   connected = false;
   for (auto& fd : sockets) {
     if (fd != -1) {
@@ -56,33 +60,38 @@ bool DownstreamState::reconnect()
       close(fd);
       fd = -1;
     }
-    if (!IsAnyAddress(d_config.remote)) {
-      fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
-      if (!IsAnyAddress(d_config.sourceAddr)) {
-        SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-        if (!d_config.sourceItfName.empty()) {
-#ifdef SO_BINDTODEVICE
-          int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
-          if (res != 0) {
-            infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
-          }
-#endif
-        }
+    fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
 
-        SBind(fd, d_config.sourceAddr);
+#ifdef SO_BINDTODEVICE
+    if (!d_config.sourceItfName.empty()) {
+      int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
+      if (res != 0) {
+        infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror());
       }
-      try {
-        SConnect(fd, d_config.remote);
-        if (sockets.size() > 1) {
-          (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
-        }
-        connected = true;
+    }
+#endif
+
+    if (!IsAnyAddress(d_config.sourceAddr)) {
+      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef IP_BIND_ADDRESS_NO_PORT
+      if (d_config.ipBindAddrNoPort) {
+        SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
-      catch(const std::runtime_error& error) {
-        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
-        connected = false;
-        break;
+#endif
+      SBind(fd, d_config.sourceAddr);
+    }
+
+    try {
+      SConnect(fd, d_config.remote);
+      if (sockets.size() > 1) {
+        (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
       }
+      connected = true;
+    }
+    catch (const std::runtime_error& error) {
+      infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      connected = false;
+      break;
     }
   }
 
@@ -188,6 +197,11 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 
   if (d_config.d_weight > 0) {
     setWeight(d_config.d_weight);
+  }
+
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
+    setUpStatus(true);
   }
 
   setName(d_config.name);
@@ -307,110 +321,97 @@ bool DownstreamState::s_randomizeSockets{false};
 bool DownstreamState::s_randomizeIDs{false};
 int DownstreamState::s_udpTimeout{2};
 
-static bool isIDSExpired(IDState& ids)
+static bool isIDSExpired(const IDState& ids)
 {
-  auto age = ids.age++;
+  auto age = ids.age.load();
   return age > DownstreamState::s_udpTimeout;
 }
 
-void DownstreamState::handleTimeout(IDState& ids)
+void DownstreamState::handleUDPTimeout(IDState& ids)
 {
-  /* We mark the state as unused as soon as possible
-     to limit the risk of racing with the
-     responder thread.
-  */
-  auto oldDU = ids.du;
-
-  ids.du = nullptr;
-  handleDOHTimeout(DOHUnitUniquePtr(oldDU, DOHUnit::release));
-  oldDU = nullptr;
   ids.age = 0;
+  ids.inUse = false;
+  handleDOHTimeout(std::move(ids.internal.du));
   reuseds++;
   --outstanding;
   ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
            d_config.remote.toStringWithPort(), getName(),
-           ids.qname.toLogString(), QType(ids.qtype).toString(), ids.origRemote.toStringWithPort());
+           ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort());
 
-  struct timespec ts;
-  gettime(&ts);
+  if (g_rings.shouldRecordResponses()) {
+    struct timespec ts;
+    gettime(&ts);
 
-  struct dnsheader fake;
-  memset(&fake, 0, sizeof(fake));
-  fake.id = ids.origID;
+    struct dnsheader fake;
+    memset(&fake, 0, sizeof(fake));
+    fake.id = ids.internal.origID;
 
-  g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+    g_rings.insertResponse(ts, ids.internal.origRemote, ids.internal.qname, ids.internal.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+  }
+
+  reportTimeoutOrError();
 }
 
-void DownstreamState::handleTimeouts()
+void DownstreamState::reportResponse(uint8_t rcode)
 {
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    bool failure = d_config.d_lazyHealthCheckMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
+  }
+}
+
+void DownstreamState::reportTimeoutOrError()
+{
+  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+    d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
+  }
+}
+
+void DownstreamState::handleUDPTimeouts()
+{
+  if (getProtocol() != dnsdist::Protocol::DoUDP) {
+    return;
+  }
+
   if (s_randomizeIDs) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
       auto& ids = it->second;
       if (isIDSExpired(ids)) {
-        handleTimeout(ids);
+        handleUDPTimeout(ids);
         it = map->erase(it);
         continue;
       }
+      ++ids.age;
       ++it;
     }
   }
   else {
     if (outstanding.load() > 0) {
       for (IDState& ids : idStates) {
-        int64_t usageIndicator = ids.usageIndicator;
-        if (IDState::isInUse(usageIndicator) && isIDSExpired(ids)) {
-          if (!ids.tryMarkUnused(usageIndicator)) {
-            /* this state has been altered in the meantime,
-               don't go anywhere near it */
-            continue;
-          }
-
-          handleTimeout(ids);
+        if (!ids.isInUse()) {
+          continue;
+        }
+        if (!isIDSExpired(ids)) {
+          ++ids.age;
+          continue;
+        }
+        auto guard = ids.acquire();
+        if (!guard) {
+          continue;
+        }
+        /* check again, now that we have locked this state */
+        if (ids.isInUse() && isIDSExpired(ids)) {
+          handleUDPTimeout(ids);
         }
       }
     }
   }
 }
 
-IDState* DownstreamState::getExistingState(unsigned int stateId)
+uint16_t DownstreamState::saveState(InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
-    auto map = d_idStatesMap.lock();
-    auto it = map->find(stateId);
-    if (it == map->end()) {
-      return nullptr;
-    }
-    return &it->second;
-  }
-  else {
-    if (stateId >= idStates.size()) {
-      return nullptr;
-    }
-    return &idStates[stateId];
-  }
-}
-
-void DownstreamState::releaseState(unsigned int stateId)
-{
-  if (s_randomizeIDs) {
-    auto map = d_idStatesMap.lock();
-    auto it = map->find(stateId);
-    if (it == map->end()) {
-      return;
-    }
-    if (it->second.isInUse()) {
-      return;
-    }
-    map->erase(it);
-  }
-}
-
-IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generation)
-{
-  DOHUnitUniquePtr du(nullptr, DOHUnit::release);
-  IDState* ids = nullptr;
   if (s_randomizeIDs) {
     /* if the state is already in use we will retry,
        up to 5 five times. The last selected one is used
@@ -418,80 +419,384 @@ IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generati
     size_t remainingAttempts = 5;
     auto map = d_idStatesMap.lock();
 
-    bool done = false;
     do {
-      selectedID = dnsdist::getRandomValue(std::numeric_limits<uint16_t>::max());
-      auto [it, inserted] = map->insert({selectedID, IDState()});
-      ids = &it->second;
-      if (inserted) {
-        done = true;
+      uint16_t selectedID = dnsdist::getRandomValue(std::numeric_limits<uint16_t>::max());
+      auto [it, inserted] = map->emplace(selectedID, IDState());
+
+      if (!inserted) {
+        remainingAttempts--;
+        if (remainingAttempts > 0) {
+          continue;
+        }
+
+        auto oldDU = std::move(it->second.internal.du);
+        ++reuseds;
+        ++g_stats.downstreamTimeouts;
+        handleDOHTimeout(std::move(oldDU));
       }
       else {
-        remainingAttempts--;
+        ++outstanding;
       }
+
+      it->second.internal = std::move(state);
+      it->second.age.store(0);
+
+      return it->first;
     }
-    while (!done && remainingAttempts > 0);
-  }
-  else {
-    selectedID = (idOffset++) % idStates.size();
-    ids = &idStates[selectedID];
+    while (true);
   }
 
-  ids->age = 0;
+  do {
+    uint16_t selectedID = (idOffset++) % idStates.size();
+    IDState& ids = idStates[selectedID];
+    auto guard = ids.acquire();
+    if (!guard) {
+      continue;
+    }
+    if (ids.isInUse()) {
+      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
+      auto oldDU = std::move(ids.internal.du);
+      ++reuseds;
+      ++g_stats.downstreamTimeouts;
+      handleDOHTimeout(std::move(oldDU));
+    }
+    else {
+      ++outstanding;
+    }
+    ids.internal = std::move(state);
+    ids.age.store(0);
+    ids.inUse = true;
+    return selectedID;
+  }
+  while (true);
+}
 
-  /* that means that the state was in use, possibly with an allocated
-     DOHUnit that we will need to handle, but we can't touch it before
-     confirming that we now own this state */
-  if (ids->isInUse()) {
-    du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
+void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
+{
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+
+    auto [it, inserted] = map->emplace(id, IDState());
+    if (!inserted) {
+      /* already used */
+      ++reuseds;
+      ++g_stats.downstreamTimeouts;
+      handleDOHTimeout(std::move(state.du));
+    }
+    else {
+      it->second.internal = std::move(state);
+      ++outstanding;
+    }
+    return;
   }
 
-  /* we atomically replace the value, we now own this state */
-  generation = ids->generation++;
-  if (!ids->markAsUsed(generation)) {
-    /* the state was not in use.
-       we reset 'du' because it might have still been in use when we read it. */
-    du.release();
-    ++outstanding;
-  }
-  else {
-    /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
-       to handle it because it's about to be overwritten. */
-    ids->du = nullptr;
+  auto& ids = idStates[id];
+  auto guard = ids.acquire();
+  if (!guard) {
+    /* already used */
     ++reuseds;
     ++g_stats.downstreamTimeouts;
-    handleDOHTimeout(std::move(du));
+    handleDOHTimeout(std::move(state.du));
+    return;
+  }
+  if (ids.isInUse()) {
+    /* already used */
+    ++reuseds;
+    ++g_stats.downstreamTimeouts;
+    handleDOHTimeout(std::move(state.du));
+    return;
+  }
+  ids.internal = std::move(state);
+  ids.inUse = true;
+  ++outstanding;
+}
+
+std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
+{
+  std::optional<InternalQueryState> result = std::nullopt;
+
+  if (s_randomizeIDs) {
+    auto map = d_idStatesMap.lock();
+
+    auto it = map->find(id);
+    if (it == map->end()) {
+      return result;
+    }
+
+    result = std::move(it->second.internal);
+    map->erase(it);
+    --outstanding;
+    return result;
   }
 
-  return ids;
+  if (id > idStates.size()) {
+    return result;
+  }
+
+  auto& ids = idStates[id];
+  auto guard = ids.acquire();
+  if (!guard) {
+    return result;
+  }
+
+  if (ids.isInUse()) {
+    result = std::move(ids.internal);
+    --outstanding;
+  }
+  ids.inUse = false;
+  return result;
+}
+
+bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
+{
+  if (d_config.availability == DownstreamState::Availability::Lazy) {
+    auto stats = d_lazyHealthCheckStats.lock();
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      vinfolog("Sending health-check query for %s which is still in the Potential Failure state", getNameWithAddr());
+      return true;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Failed) {
+      auto now = currentTime ? *currentTime : time(nullptr);
+      if (stats->d_nextCheck <= now) {
+        /* we update the next check time here because the check might time out,
+           and we do not want to send a second check during that time unless
+           the timer is actually very short */
+        vinfolog("Sending health-check query for %s which is still in the Failed state", getNameWithAddr());
+        updateNextLazyHealthCheck(*stats, true, now);
+        return true;
+      }
+      return false;
+    }
+    if (stats->d_status == LazyHealthCheckStats::LazyStatus::Healthy) {
+      auto& lastResults = stats->d_lastResults;
+      size_t totalCount = lastResults.size();
+      if (totalCount < d_config.d_lazyHealthCheckMinSampleCount) {
+        return false;
+      }
+
+      size_t failures = 0;
+      for (const auto& result : lastResults) {
+        if (result) {
+          ++failures;
+        }
+      }
+
+      const auto maxFailureRate = static_cast<float>(d_config.d_lazyHealthCheckThreshold);
+      auto current = (100.0 * failures) / totalCount;
+      if (current >= maxFailureRate) {
+        lastResults.clear();
+        vinfolog("Backend %s reached the lazy health-check threshold (%f%% out of %f%%, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
+        stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
+        /* we update the next check time here because the check might time out,
+           and we do not want to send a second check during that time unless
+           the timer is actually very short */
+        updateNextLazyHealthCheck(*stats, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+  else if (d_config.availability == DownstreamState::Availability::Auto) {
+
+    if (d_nextCheck > 1) {
+      --d_nextCheck;
+      return false;
+    }
+
+    d_nextCheck = d_config.checkInterval;
+    return true;
+  }
+
+  return false;
+}
+
+time_t DownstreamState::getNextLazyHealthCheck()
+{
+  auto stats = d_lazyHealthCheckStats.lock();
+  return stats->d_nextCheck;
+}
+
+void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime)
+{
+  auto now = currentTime ? * currentTime : time(nullptr);
+  if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
+    if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
+      /* we are still in the "up" state, we need to send the next query quickly to
+         determine if the backend is really down */
+      stats.d_nextCheck = now + d_config.checkInterval;
+      vinfolog("Backend %s is in potential failure state, next check in %d seconds", getNameWithAddr(), d_config.checkInterval);
+    }
+    else if (consecutiveSuccessfulChecks > 0) {
+      /* we are in 'Failed' state, but just had one (or more) successful check,
+         so we want the next one to happen quite quickly as the backend might
+         be available again. */
+      stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+      if (!checkScheduled) {
+        vinfolog("Backend %s is in failed state but had %d consecutive successful checks, next check in %d seconds", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks), d_config.d_lazyHealthCheckFailedInterval);
+      }
+    }
+    else {
+      uint16_t failedTests = currentCheckFailures;
+      if (checkScheduled) {
+        /* we are planning the check after that one, which will only
+           occur if there is a failure */
+        failedTests++;
+      }
+
+      time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
+      double backOffCoeffTmp = std::pow(2.0, failedTests);
+      if (backOffCoeffTmp != HUGE_VAL && static_cast<uint64_t>(backOffCoeffTmp) <= static_cast<uint64_t>(std::numeric_limits<time_t>::max())) {
+        time_t backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
+        if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
+          backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
+          if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
+            backOff = d_config.d_lazyHealthCheckMaxBackOff;
+          }
+        }
+      }
+
+      stats.d_nextCheck = now + backOff;
+      vinfolog("Backend %s is in failed state and has failed %d consecutive checks, next check in %d seconds", getNameWithAddr(), failedTests, backOff);
+    }
+  }
+  else {
+    stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
+    vinfolog("Backend %s is in %s state, next check in %d seconds", getNameWithAddr(), (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure ? "potential failure" : "failed"), d_config.d_lazyHealthCheckFailedInterval);
+  }
+}
+
+void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
+{
+  if (initial) {
+    /* if this is the initial health-check, at startup, we do not care
+       about the minimum number of failed/successful health-checks */
+    if (!IsAnyAddress(d_config.remote)) {
+      infolog("Marking downstream %s as '%s'", getNameWithAddr(), newResult ? "up" : "down");
+    }
+    setUpStatus(newResult);
+    if (newResult == false) {
+      currentCheckFailures++;
+      auto stats = d_lazyHealthCheckStats.lock();
+      stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+      updateNextLazyHealthCheck(*stats, false);
+    }
+    return;
+  }
+
+  bool newState = newResult;
+
+  if (newResult) {
+    /* check succeeded */
+    currentCheckFailures = 0;
+
+    if (!upStatus) {
+      /* we were previously marked as "down" and had a successful health-check,
+         let's see if this is enough to move to the "up" state or if we need
+         more successful health-checks for that */
+      consecutiveSuccessfulChecks++;
+      if (consecutiveSuccessfulChecks < d_config.minRiseSuccesses) {
+        /* we need more than one successful check to rise
+           and we didn't reach the threshold yet, let's stay down */
+        newState = false;
+
+        if (d_config.availability == DownstreamState::Availability::Lazy) {
+          auto stats = d_lazyHealthCheckStats.lock();
+          updateNextLazyHealthCheck(*stats, false);
+        }
+      }
+    }
+
+    if (newState) {
+      if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        vinfolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks));
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
+        stats->d_lastResults.clear();
+      }
+    }
+  }
+  else {
+    /* check failed */
+    consecutiveSuccessfulChecks = 0;
+
+    currentCheckFailures++;
+
+    if (upStatus) {
+      /* we were previously marked as "up" and failed a health-check,
+         let's see if this is enough to move to the "down" state or if
+         need more failed checks for that */
+      if (currentCheckFailures < d_config.maxCheckFailures) {
+        /* we need more than one failure to be marked as down,
+           and we did not reach the threshold yet, let's stay up */
+        newState = true;
+      }
+      else if (d_config.availability == DownstreamState::Availability::Lazy) {
+        auto stats = d_lazyHealthCheckStats.lock();
+        vinfolog("Backend %s failed its health-check, moving from Potential failure to Failed", getNameWithAddr());
+        stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
+        currentCheckFailures = 0;
+        updateNextLazyHealthCheck(*stats, false);
+      }
+    }
+  }
+
+  if (newState != upStatus) {
+    /* we are actually moving to a new state */
+    if (!IsAnyAddress(d_config.remote)) {
+      infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
+    }
+
+    if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
+      newState = reconnect();
+      start();
+    }
+
+    setUpStatus(newState);
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendBackendStatusChangeTrap(*this);
+    }
+  }
 }
 
 size_t ServerPool::countServers(bool upOnly)
 {
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t count = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     if (!upOnly || std::get<1>(server)->isUp() ) {
       count++;
     }
   }
+
   return count;
 }
 
 size_t ServerPool::poolLoad()
 {
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
+  {
+    auto lock = d_servers.read_lock();
+    servers = *lock;
+  }
+
   size_t load = 0;
-  auto servers = d_servers.read_lock();
-  for (const auto& server : **servers) {
+  for (const auto& server : *servers) {
     size_t serverOutstanding = std::get<1>(server)->outstanding.load();
     load += serverOutstanding;
   }
   return load;
 }
 
-const std::shared_ptr<ServerPolicy::NumberedServerVector> ServerPool::getServers()
+const std::shared_ptr<const ServerPolicy::NumberedServerVector> ServerPool::getServers()
 {
-  std::shared_ptr<ServerPolicy::NumberedServerVector> result;
+  std::shared_ptr<const ServerPolicy::NumberedServerVector> result;
   {
     result = *(d_servers.read_lock());
   }
@@ -504,18 +809,18 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
   /* we can't update the content of the shared pointer directly even when holding the lock,
      as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
   unsigned int count = static_cast<unsigned int>((*servers)->size());
-  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
-  newServers->emplace_back(++count, server);
+  auto newServers = ServerPolicy::NumberedServerVector(*(*servers));
+  newServers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(newServers->begin(), newServers->end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+  std::stable_sort(newServers.begin(), newServers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
       return a.second->d_config.order < b.second->d_config.order;
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
-  for (auto& serv : *newServers) {
+  for (auto& serv : newServers) {
     serv.first = idx++;
   }
-  *servers = std::move(newServers);
+  *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)

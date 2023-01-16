@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import copy
+import errno
 import os
 import socket
 import ssl
@@ -68,6 +69,25 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _checkConfigExpectedOutput = None
     _verboseMode = False
     _skipListeningOnCL = False
+    _backgroundThreads = {}
+    _UDPResponder = None
+    _TCPResponder = None
+    _extraStartupSleep = 0
+
+    @classmethod
+    def waitForTCPSocket(cls, ipaddress, port):
+        for try_number in range(0, 20):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1.0)
+                sock.connect((ipaddress, port))
+                sock.close()
+                return
+            except Exception as err:
+                if err.errno != errno.ECONNREFUSED:
+                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+            time.sleep(0.1)
+       # We assume the dnsdist instance does not listen. That's fine.
 
     @classmethod
     def startResponders(cls):
@@ -79,6 +99,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
+        cls.waitForTCPSocket("127.0.0.1", cls._testServerPort);
 
     @classmethod
     def startDNSDist(cls):
@@ -121,16 +142,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         with open(logFile, 'w') as fdLog:
           cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdLog, stderr=fdLog)
 
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.5
-        else:
-            delay = cls._dnsdistStartupDelay
-
-        time.sleep(delay)
+        cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort);
 
         if cls._dnsdist.poll() is not None:
-            cls._dnsdist.kill()
-            sys.exit(cls._dnsdist.returncode)
+            print(f"\n*** startDNSDist log for {logFile} ***")
+            with open(logFile, 'r') as fdLog:
+                print(fdLog.read())
+            print(f"*** End startDNSDist log for {logFile} ***")
+            raise AssertionError('%s failed (%d)' % (dnsdistcmd, cls._dnsdist.returncode))
+        time.sleep(cls._extraStartupSleep)
 
     @classmethod
     def setUpSockets(cls):
@@ -138,6 +158,29 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         cls._sock.settimeout(2.0)
         cls._sock.connect(("127.0.0.1", cls._dnsDistPort))
+
+    @classmethod
+    def killProcess(cls, p):
+        # Don't try to kill it if it's already dead
+        if p.poll() is not None:
+            return
+        try:
+            p.terminate()
+            for count in range(10):
+                x = p.poll()
+                if x is not None:
+                    break
+                time.sleep(0.1)
+            if x is None:
+                print("kill...", p, file=sys.stderr)
+                p.kill()
+                p.wait()
+        except OSError as e:
+            # There is a race-condition with the poll() and
+            # kill() statements, when the process is dead on the
+            # kill(), this is fine
+            if e.errno != errno.ESRCH:
+                raise
 
     @classmethod
     def setUpClass(cls):
@@ -150,17 +193,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if 'DNSDIST_FAST_TESTS' in os.environ:
-            delay = 0.1
-        else:
-            delay = 1.0
-        if cls._dnsdist:
-            cls._dnsdist.terminate()
-            if cls._dnsdist.poll() is None:
-                time.sleep(delay)
-                if cls._dnsdist.poll() is None:
-                    cls._dnsdist.kill()
-                cls._dnsdist.wait()
+        cls._sock.close()
+        # tell the background threads to stop, if any
+        for backgroundThread in cls._backgroundThreads:
+            cls._backgroundThreads[backgroundThread] = False
+        cls.killProcess(cls._dnsdist)
 
     @classmethod
     def _ResponderIncrementCounter(cls):
@@ -201,6 +238,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def UDPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, callback=None):
+        cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -210,8 +248,17 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("127.0.0.1", port))
+        sock.settimeout(0.5)
         while True:
-            data, addr = sock.recvfrom(4096)
+            try:
+              data, addr = sock.recvfrom(4096)
+            except socket.timeout:
+              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
+                del cls._backgroundThreads[threading.get_native_id()]
+                break
+              else:
+                continue
+
             forceRcode = None
             try:
                 request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
@@ -227,6 +274,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if callback:
               wire = callback(request)
             else:
+              if request.edns > 1:
+                forceRcode = dns.rcode.BADVERS
               response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
               if response:
                 wire = response.to_wire()
@@ -234,9 +283,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if not wire:
               continue
 
-            sock.settimeout(2.0)
             sock.sendto(wire, addr)
-            sock.settimeout(None)
+
         sock.close()
 
     @classmethod
@@ -262,6 +310,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       if callback:
         wire = callback(request)
       else:
+        if request.edns > 1:
+          forceRcode = dns.rcode.BADVERS
         response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
         if response:
           wire = response.to_wire(max_size=65535)
@@ -298,6 +348,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1'):
+        cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -313,6 +364,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sys.exit(1)
 
         sock.listen(100)
+        sock.settimeout(0.5)
         if tlsContext:
           sock = tlsContext.wrap_socket(sock, server_side=True)
 
@@ -323,6 +375,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
               continue
             except ConnectionResetError:
               continue
+            except socket.timeout:
+              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
+                 del cls._backgroundThreads[threading.get_native_id()]
+                 break
+              else:
+                continue
 
             conn.settimeout(5.0)
             if multipleConnections:
@@ -433,6 +491,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, useProxyProtocol=False):
+        cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -448,6 +507,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sys.exit(1)
 
         sock.listen(100)
+        sock.settimeout(0.5)
         if tlsContext:
             sock = tlsContext.wrap_socket(sock, server_side=True)
 
@@ -460,6 +520,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 continue
             except ConnectionResetError:
               continue
+            except socket.timeout:
+                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
+                    del cls._backgroundThreads[threading.get_native_id()]
+                    break
+                else:
+                    continue
 
             conn.settimeout(5.0)
             thread = threading.Thread(name='DoH Connection Handler',
@@ -712,6 +778,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         (responseLen,) = struct.unpack("!I", data)
         data = sock.recv(responseLen)
         response = cls._decryptConsole(data, readingNonce)
+        sock.close()
         return response
 
     def compareOptions(self, a, b):

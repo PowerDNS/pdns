@@ -188,9 +188,11 @@ bufsize
 bugfix
 bugfixes
 bugzilla
+builddeb
 bulc
 bulletinc
 burstable
+byteslimit
 bytestring
 bzero
 bzip
@@ -303,6 +305,7 @@ csync
 ctime
 ctor
 ctx
+custommetrics
 cve
 cvename
 cvs
@@ -363,6 +366,7 @@ DHCID
 DHCP
 dhcpd
 dhcpdupdate
+diffie
 diffs
 DIGESTALGOS
 Digitalus
@@ -403,6 +407,7 @@ dnsname
 dnsnameset
 dnsop
 dnspacket
+dnsparser
 dnspcap
 dnsquestion
 DNSR
@@ -456,6 +461,7 @@ dyndns
 dynhandler
 dynmodules
 eaa
+EACA
 eachother
 EAGAIN
 easydns
@@ -797,6 +803,7 @@ journald
 jpmens
 json
 jsonstat
+jsrender
 Juergen
 jumpbox
 Juraj
@@ -818,6 +825,7 @@ keyname
 keypair
 keypairgen
 keyroll
+keyroller
 keysearch
 keysize
 keytab
@@ -840,6 +848,7 @@ Krul
 ksk
 kskroll
 kskrollcdnskey
+KTNAME
 Kuehrer
 kvs
 Ladot
@@ -981,6 +990,7 @@ MBOXFW
 mbytes
 Meerwald
 Mekking
+memlock
 MEMLOCK
 Memusage
 menuselection
@@ -1105,17 +1115,20 @@ noerrors
 NOLOCK
 nometasync
 Nominet
+noncompliantqueries
+noncompliantresponses
 nonexist
 Nonnekes
 noout
 noping
 noport
+norve
 nosniff
 nostrip
 NOSUBDIR
 nosync
 Notaras
-NOTAUTH
+notauth
 NOTIFYs
 NOTPARALLEL
 notrack
@@ -1169,6 +1182,7 @@ openapi
 openbsd
 opendbx
 openpgpkey
+openports
 opensc
 openssl
 opensuse
@@ -1221,6 +1235,7 @@ pdnsldap
 pdnslog
 pdnsodbx
 pdnsrandom
+pdnsrec
 pdnssec
 pdnsutil
 Peeters
@@ -1241,7 +1256,9 @@ phishing
 phonedph
 php
 pickclosest
+pickhashed
 pickrandom
+pickrandomsample
 pickwhashed
 pickwrandom
 pid
@@ -1338,6 +1355,7 @@ qtype
 qtypelist
 querycache
 querycount
+querytime
 quickstart
 qytpe
 ragel
@@ -1672,8 +1690,14 @@ tbhandler
 tbody
 tcely
 tcp
+tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
+tcplatency
+tcpmaxconcurrentconnections
+tcpnewconnections
+tcpreusedconnections
+tcptoomanyconcurrentconnections
 tds
 teeaction
 Telenet
@@ -1709,6 +1733,7 @@ tinydnsbackend
 tisr
 tls
 tlsa
+tlsresumptions
 tmp
 tmpfs
 tobool
@@ -1773,6 +1798,7 @@ unitialized
 unixodbc
 unixtime
 unparseable
+UNPRIV
 Unprocessable
 unpublish
 unpublishdomainkey
@@ -1819,6 +1845,7 @@ Verschuren
 versionadded
 versionchanged
 versionmodified
+Viala
 viewcode
 virtualized
 visitedlinkcolor
@@ -1869,6 +1896,7 @@ Winfried
 wireformat
 wirelength
 Wisiol
+wmem
 Wmissing
 Wojas
 workaround
@@ -1916,7 +1944,7 @@ yubikey
 YYYYMMD
 YYYYMMDD
 YYYYMMDDSS
-wmem
+Zash
 Zealey
 zeha
 Zengers

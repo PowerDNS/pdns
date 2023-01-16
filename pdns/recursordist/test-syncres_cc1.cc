@@ -239,13 +239,13 @@ BOOST_AUTO_TEST_CASE(test_root_primed_ns_update)
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   ret.clear();
-  time_t cached = g_recCache->get(now.tv_sec, aroot, QType::A, false, &ret, ComboAddress());
+  time_t cached = g_recCache->get(now.tv_sec, aroot, QType::A, MemRecursorCache::None, &ret, ComboAddress());
   BOOST_CHECK(cached > 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress(newA));
 
   ret.clear();
-  cached = g_recCache->get(now.tv_sec, aroot, QType::AAAA, false, &ret, ComboAddress());
+  cached = g_recCache->get(now.tv_sec, aroot, QType::AAAA, MemRecursorCache::None, &ret, ComboAddress());
   BOOST_CHECK(cached > 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(getRR<AAAARecordContent>(ret[0])->getCA() == ComboAddress(newAAAA));
@@ -348,7 +348,7 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled)
   BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(queriesWithEDNS, 26U);
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0U);
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26U);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 0U);
   BOOST_CHECK_EQUAL(usedServers.size(), 26U);
   for (const auto& server : usedServers) {
     BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);

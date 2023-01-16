@@ -25,13 +25,19 @@ public:
   }
 
   /* whether the underlying socket has been closed under our feet, basically */
-  bool isUsable() const
+  bool isUsable()
   {
     if (!d_handler) {
+      d_connectionDied = true;
       return false;
     }
 
-    return d_handler->isUsable();
+    if (d_handler->isUsable()) {
+      return true;
+    }
+
+    d_connectionDied = true;
+    return false;
   }
 
   const std::shared_ptr<DownstreamState>& getDS() const
@@ -150,7 +156,7 @@ protected:
 
     struct timeval res = now;
     res.tv_sec += d_ds->d_config.checkTimeout / 1000; /* ms to s */
-    res.tv_usec += (d_ds->d_config.checkTimeout % 1000) / 1000; /* remaining ms to µs */
+    res.tv_usec += (d_ds->d_config.checkTimeout % 1000) * 1000; /* remaining ms to µs */
 
     return res;
   }
@@ -239,7 +245,7 @@ public:
 
   bool reachedMaxConcurrentQueries() const override
   {
-    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size();
+    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size() + (d_state == State::sendingQueryToBackend ? 1 : 0);
     if (concurrent > 0 && concurrent >= d_ds->d_config.d_maxInFlightQueriesPerConn) {
       return true;
     }

@@ -10,14 +10,14 @@ License: GPLv2
 URL: https://powerdns.com
 Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 
-Requires(post): systemd-sysv
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 
+BuildRequires: krb5-devel
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
 %if 0%{?rhel} < 8
@@ -141,7 +141,9 @@ Summary: Geo backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
 BuildRequires: yaml-cpp-devel
+%if 0%{?rhel} < 9
 BuildRequires: geoip-devel
+%endif
 BuildRequires: libmaxminddb-devel
 %global backends %{backends} geoip
 
@@ -208,6 +210,7 @@ export LDFLAGS=-L/usr/lib64/boost169
   --enable-unit-tests \
   --enable-lua-records \
   --enable-experimental-pkcs11 \
+  --enable-dns-over-tls \
   --enable-systemd
 
 make %{?_smp_mflags}
@@ -335,6 +338,7 @@ systemctl daemon-reload ||:
 %doc modules/gmysqlbackend/3.4.0_to_4.1.0_schema.mysql.sql
 %doc modules/gmysqlbackend/4.1.0_to_4.2.0_schema.mysql.sql
 %doc modules/gmysqlbackend/4.2.0_to_4.3.0_schema.mysql.sql
+%doc modules/gmysqlbackend/4.3.0_to_4.7.0_schema.mysql.sql
 %doc modules/gmysqlbackend/enable-foreign-keys.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
@@ -345,6 +349,7 @@ systemctl daemon-reload ||:
 %doc modules/gpgsqlbackend/3.4.0_to_4.1.0_schema.pgsql.sql
 %doc modules/gpgsqlbackend/4.1.0_to_4.2.0_schema.pgsql.sql
 %doc modules/gpgsqlbackend/4.2.0_to_4.3.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/4.3.0_to_4.7.0_schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
 
 %files backend-pipe
@@ -370,12 +375,14 @@ systemctl daemon-reload ||:
 %doc modules/gsqlite3backend/4.0.0_to_4.2.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/4.2.0_to_4.3.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/4.3.0_to_4.3.1_schema.sqlite3.sql
+%doc modules/gsqlite3backend/4.3.1_to_4.7.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
 
 %files backend-odbc
 %doc modules/godbcbackend/schema.mssql.sql
 %doc modules/godbcbackend/4.0.0_to_4.2.0_schema.mssql.sql
 %doc modules/godbcbackend/4.2.0_to_4.3.0_schema.mssql.sql
+%doc modules/godbcbackend/4.3.0_to_4.7.0_schema.mssql.sql
 %{_libdir}/%{name}/libgodbcbackend.so
 
 %files backend-geoip

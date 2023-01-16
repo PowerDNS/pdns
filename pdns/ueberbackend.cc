@@ -35,7 +35,7 @@
 #include <map>
 #include <sys/types.h>
 #include <sstream>
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <sstream>
 #include <functional>
@@ -173,6 +173,17 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
+bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
+{
+  bool ret;
+  meta.clear();
+  std::vector<string> tmp;
+  if ((ret = getDomainMetadata(name, kind, tmp)) && !tmp.empty()) {
+    meta = *tmp.begin();
+  }
+  return ret;
+}
+
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   for(DNSBackend* db :  backends) {
@@ -180,6 +191,15 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
       return true;
   }
   return false;
+}
+
+bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta)
+{
+  std::vector<string> tmp;
+  if (!meta.empty()) {
+    tmp.push_back(meta);
+  }
+  return setDomainMetadata(name, kind, tmp);
 }
 
 bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
@@ -229,41 +249,6 @@ bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
 }
 
 
-bool UeberBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
-{
-  for(DNSBackend* db :  backends) {
-    if(db->getTSIGKey(name, algorithm, content))
-      return true;
-  }
-  return false;
-}
-
-
-bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
-{
-  for(DNSBackend* db :  backends) {
-    if(db->setTSIGKey(name, algorithm, content))
-      return true;
-  }
-  return false;
-}
-
-bool UeberBackend::deleteTSIGKey(const DNSName& name)
-{
-  for(DNSBackend* db :  backends) {
-    if(db->deleteTSIGKey(name))
-      return true;
-  }
-  return false;
-}
-
-bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
-{
-  for(DNSBackend* db :  backends) {
-    db->getTSIGKeys(keys);
-  }
-  return true;
-}
 
 void UeberBackend::reload()
 {
@@ -314,13 +299,11 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   }  
 }
 
-
-
-void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void UeberBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   for (auto & backend : backends)
   {
-    backend->getUpdatedMasters( domains );
+    backend->getUpdatedMasters(domains, catalogs, catalogHashes);
   }
 }
 
@@ -739,6 +722,55 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   return false;
 }
 
+// TSIG
+//
+bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
+{
+  for (auto* b : backends) {
+    if (b->setTSIGKey(name, algorithm, content)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
+{
+  algorithm.clear();
+  content.clear();
+
+  for (auto* b : backends) {
+    if (b->getTSIGKey(name, algorithm, content)) {
+      break;
+    }
+  }
+  return (!algorithm.empty() && !content.empty());
+}
+
+bool UeberBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
+{
+  keys.clear();
+
+  for (auto* b : backends) {
+    if (b->getTSIGKeys(keys)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::deleteTSIGKey(const DNSName& name)
+{
+  for (auto* b : backends) {
+    if (b->deleteTSIGKey(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// API Search
+//
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
 {
   bool rc = false;

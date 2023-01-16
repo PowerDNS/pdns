@@ -6,7 +6,6 @@
 ./pdns/anadns.hh
 ./pdns/arguments.cc
 ./pdns/arguments.hh
-./pdns/ascii.hh
 ./pdns/auth-caches.cc
 ./pdns/auth-carbon.cc
 ./pdns/auth-packetcache.cc
@@ -30,8 +29,6 @@
 ./pdns/cdb.hh
 ./pdns/comfun.cc
 ./pdns/comment.hh
-./pdns/common_startup.cc
-./pdns/common_startup.hh
 ./pdns/communicator.cc
 ./pdns/communicator.hh
 ./pdns/dbdnsseckeeper.cc
@@ -157,8 +154,6 @@
 ./pdns/ednspadding.cc
 ./pdns/ednssubnet.cc
 ./pdns/ednssubnet.hh
-./pdns/filterpo.cc
-./pdns/filterpo.hh
 ./pdns/fstrm_logger.cc
 ./pdns/fstrm_logger.hh
 ./pdns/fuzz_dnsdistcache.cc
@@ -170,7 +165,6 @@
 ./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/ipcipher.cc
 ./pdns/iputils.cc
 ./pdns/iputils.hh
 ./pdns/ixfr.cc
@@ -186,7 +180,6 @@
 ./pdns/json.cc
 ./pdns/json.hh
 ./pdns/kvresp.cc
-./pdns/lazy_allocator.hh
 ./pdns/libssl.cc
 ./pdns/libssl.hh
 ./pdns/lock.hh
@@ -195,8 +188,6 @@
 ./pdns/lua-base4.cc
 ./pdns/lua-base4.hh
 ./pdns/lua-record.cc
-./pdns/lwres.cc
-./pdns/lwres.hh
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
 ./pdns/mastercommunicator.cc
@@ -206,14 +197,9 @@
 ./pdns/misc.hh
 ./pdns/mtasker.cc
 ./pdns/mtasker.hh
-./pdns/mtasker_context.hh
-./pdns/mtasker_fcontext.cc
-./pdns/mtasker_ucontext.cc
 ./pdns/nameserver.cc
 ./pdns/nameserver.hh
 ./pdns/namespaces.hh
-./pdns/nod.cc
-./pdns/nod.hh
 ./pdns/noinitvector.hh
 ./pdns/notify.cc
 ./pdns/nproxy.cc
@@ -238,17 +224,13 @@
 ./pdns/query-local-address.hh
 ./pdns/rcpgenerator.cc
 ./pdns/rcpgenerator.hh
-./pdns/receiver.cc
 ./pdns/remote_logger.cc
 ./pdns/remote_logger.hh
-./pdns/resolve-context.hh
 ./pdns/resolver.cc
 ./pdns/resolver.hh
 ./pdns/responsestats-auth.cc
 ./pdns/rfc2136handler.cc
-./pdns/root-addresses.hh
 ./pdns/root-dnssec.hh
-./pdns/rpzloader.cc
 ./pdns/saxfr.cc
 ./pdns/sdig.cc
 ./pdns/secpoll-auth.cc
@@ -281,8 +263,6 @@
 ./pdns/stubresolver.cc
 ./pdns/svc-records.cc
 ./pdns/svc-records.hh
-./pdns/syncres.cc
-./pdns/syncres.hh
 ./pdns/tcpiohandler.cc
 ./pdns/tcpiohandler.hh
 ./pdns/tcpreceiver.cc
@@ -303,7 +283,6 @@
 ./pdns/test-dnsrecordcontent.cc
 ./pdns/test-dnsrecords_cc.cc
 ./pdns/test-dnswriter_cc.cc
-./pdns/test-ipcrypt_cc.cc
 ./pdns/test-iputils_hh.cc
 ./pdns/test-ixfr_cc.cc
 ./pdns/test-lock_hh.cc
@@ -323,10 +302,8 @@
 ./pdns/test-tsig.cc
 ./pdns/test-ueberbackend_cc.cc
 ./pdns/test-zoneparser_tng_cc.cc
-./pdns/testrunner.cc
 ./pdns/threadname.cc
 ./pdns/tkey.cc
-./pdns/toysdig.cc
 ./pdns/trusted-notification-proxy.cc
 ./pdns/trusted-notification-proxy.hh
 ./pdns/tsig-tests.cc

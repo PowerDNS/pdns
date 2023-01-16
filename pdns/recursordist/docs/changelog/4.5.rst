@@ -2,6 +2,93 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.12
+  :released: 25th of November 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12228
+    :tickets: 12198
+
+    Correct skip record condition in processRecords.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12225
+    :tickets: 12189, 12199
+
+    Also consider recursive forward in the "forwarded DS should not end up in negCache code."
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12192
+    :tickets: 12125
+
+    Timeout handling for IXFRs as a client.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12169
+    :tickets: 12081
+
+    Log invalid RPZ content when obtained via IXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12166
+    :tickets: 12038
+
+    When an expired NSEC3 entry is seen, move it to the front of the expiry queue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12165
+    :tickets: 11337, 11338
+
+    QType ADDR is supposed to be used internally only.
+
+.. changelog::
+  :version: 4.5.11
+  :released: 20th of September 2022
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11939
+    :tickets: 11904
+
+    For zones having many NS records, we are not interested in all so take a sample.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11942
+    :tickets: 11890
+
+    Failure to retrieve DNSKEYs of an Insecure zone should not be fatal.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11899
+    :tickets: 11848
+
+    Also check qperq limit if throttling happened, as it increases counters.
+
+.. changelog::
+  :version: 4.5.10
+  :released: 23rd of August 2022
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11875,11874
+
+    PowerDNS Security Advisory 2022-02: incomplete exception handling related to protobuf message generation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11634,11609
+
+    Fix API issue when asking config values for allow-from or allow-notify-from.
+
+.. changelog::
   :version: 4.5.9
   :released: 4th of April 2022
 

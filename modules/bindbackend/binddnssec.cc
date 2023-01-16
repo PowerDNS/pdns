@@ -100,7 +100,7 @@ bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
-bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   return false;
 }
@@ -209,7 +209,7 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   if (!safeGetBBDomainInfo(name, &bbd))
     return false;
 
-  if (ns3p) {
+  if (ns3p != nullptr) {
     *ns3p = bbd.d_nsec3param;
   }
 
@@ -440,7 +440,7 @@ bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -449,12 +449,11 @@ bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* c
     d_getTSIGKeyQuery_stmt->bind("key_name", name)->execute();
 
     SSqlStatement::row_t row;
-    content->clear();
     while (d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
-      if (row.size() >= 2 && (algorithm->empty() || *algorithm == DNSName(row[0]))) {
-        *algorithm = DNSName(row[0]);
-        *content = row[1];
+      if (row.size() >= 2 && (algorithm.empty() || algorithm == DNSName(row[0]))) {
+        algorithm = DNSName(row[0]);
+        content = row[1];
       }
     }
 
@@ -463,7 +462,7 @@ bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* c
   catch (SSqlException& e) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, getTSIGKey(): " + e.txtReason());
   }
-  return !content->empty();
+  return true;
 }
 
 bool Bind2Backend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
@@ -517,7 +516,7 @@ bool Bind2Backend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
   catch (SSqlException& e) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, getTSIGKeys(): " + e.txtReason());
   }
-  return !keys.empty();
+  return true;
 }
 
 #endif

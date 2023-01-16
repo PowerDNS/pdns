@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <sys/types.h>
 #include <string>
-#include <errno.h>
+#include <cerrno>
 #include "dnsrecords.hh"
 
 const static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,

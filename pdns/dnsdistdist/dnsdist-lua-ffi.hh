@@ -46,17 +46,17 @@ struct dnsdist_ffi_dnsquestion_t
   }
 
   DNSQuestion* dq{nullptr};
-  std::vector<dnsdist_ffi_ednsoption_t> ednsOptionsVect;
-  std::vector<dnsdist_ffi_http_header_t> httpHeadersVect;
-  std::vector<dnsdist_ffi_tag_t> tagsVect;
-  std::unordered_map<std::string, std::string> httpHeaders;
-  std::string trailingData;
   ComboAddress maskedRemote;
+  std::string trailingData;
   boost::optional<std::string> result{boost::none};
   boost::optional<std::string> httpPath{boost::none};
   boost::optional<std::string> httpQueryString{boost::none};
   boost::optional<std::string> httpHost{boost::none};
   boost::optional<std::string> httpScheme{boost::none};
+  std::unique_ptr<std::vector<dnsdist_ffi_ednsoption_t>> ednsOptionsVect;
+  std::unique_ptr<std::vector<dnsdist_ffi_http_header_t>> httpHeadersVect;
+  std::unique_ptr<std::vector<dnsdist_ffi_tag_t>> tagsVect;
+  std::unique_ptr<std::unordered_map<std::string, std::string>> httpHeaders;
 };
 
 // dnsdist_ffi_dnsresponse_t is a lightuserdata

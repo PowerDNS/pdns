@@ -204,7 +204,7 @@ public:
   bool unpublishKey(const DNSName& zname, unsigned int id);
   bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
 
-  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0, bool useCache=true);
+  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=nullptr, bool* narrow=nullptr, bool useCache=true);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const DNSName& zname);
@@ -251,9 +251,9 @@ private:
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;
   
-    uint32_t getTTD() const
+    uint32_t isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     }
   
     DNSName d_domain;
@@ -263,9 +263,9 @@ private:
   
   struct METACacheEntry
   {
-    time_t getTTD() const
+    time_t isStale(time_t now) const
     {
-      return d_ttd;
+      return d_ttd < now;
     }
 
     DNSName d_domain;

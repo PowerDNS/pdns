@@ -161,8 +161,14 @@ get-tas
 get-parameter *KEY* [*KEY*]...
     Retrieves the specified configuration parameter(s).
 
+get-proxymapping-stats
+    Get the list of proxy-mapped subnets and associated counters.
+
 get-qtypelist
     Retrieves QType statistics. Queries from cache aren't being counted yet.
+
+get-remotelogger-stats
+    Retrieves the remote logger statistics, per type and address.
 
 hash-password [*WORK-FACTOR*]
     Asks for a password then returns the hashed and salted version,
@@ -198,8 +204,9 @@ reload-lua-config [*FILENAME*]
     (Re)loads Lua configuration *FILENAME*. If *FILENAME* is empty, attempt
     to reload the currently loaded file. Note that *FILENAME* will be fully
     executed, any settings changed at runtime that are not modified in this
-    file, will still be active. Reloading RPZ, especially by AXFR, can take
-    some time; during which the recursor will not answer questions.
+    file, will still be active. The effects of reloading do not always take
+    place immediately, as some subsystems reload and replace configuration
+    in an asynchronous way.
 
 reload-zones
     Reload authoritative and forward zones. Retains current configuration in

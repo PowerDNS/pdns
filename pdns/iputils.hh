@@ -283,6 +283,32 @@ union ComboAddress {
       return "invalid "+stringerror();
   }
 
+  [[nodiscard]] string toStringReversed() const
+  {
+    if (isIPv4()) {
+      const auto ip = ntohl(sin4.sin_addr.s_addr);
+      auto a = (ip >> 0) & 0xFF;
+      auto b = (ip >> 8) & 0xFF;
+      auto c = (ip >> 16) & 0xFF;
+      auto d = (ip >> 24) & 0xFF;
+      return std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." + std::to_string(d);
+    }
+    else {
+      const auto* addr = &sin6.sin6_addr;
+      std::stringstream res{};
+      res << std::hex;
+      for (int i = 15; i >= 0; i--) {
+        auto byte = addr->s6_addr[i];
+        res << ((byte >> 0) & 0xF) << ".";
+        res << ((byte >> 4) & 0xF);
+        if (i != 0) {
+          res << ".";
+        }
+      }
+      return res.str();
+    }
+  }
+
   string toStringWithPort() const
   {
     if(sin4.sin_family==AF_INET)
@@ -460,6 +486,16 @@ public:
     setBits(network.isIPv4() ? std::min(bits, static_cast<uint8_t>(32)) : std::min(bits, static_cast<uint8_t>(128)));
   }
 
+  Netmask(const sockaddr_in* network, uint8_t bits = 0xff): d_network(network)
+  {
+    d_network.sin4.sin_port = 0;
+    setBits(std::min(bits, static_cast<uint8_t>(32)));
+  }
+  Netmask(const sockaddr_in6* network, uint8_t bits = 0xff): d_network(network)
+  {
+    d_network.sin4.sin_port = 0;
+    setBits(std::min(bits, static_cast<uint8_t>(128)));
+  }
   void setBits(uint8_t value)
   {
     d_bits = value;
@@ -657,11 +693,27 @@ public:
     return d_network.getBit(bit);
   }
 
+  struct Hash {
+    size_t operator()(const Netmask& nm) const
+    {
+      return burtle(&nm.d_bits, 1, ComboAddress::addressOnlyHash()(nm.d_network));
+    }
+  };
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;
   uint8_t d_bits;
 };
+
+namespace std {
+  template<>
+  struct hash<Netmask> {
+    auto operator()(const Netmask& nm) const {
+      return Netmask::Hash{}(nm);
+    }
+  };
+}
 
 /** Binary tree map implementation with <Netmask,T> pair.
  *
@@ -1645,7 +1697,6 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fd, const struct msghdr *msgh);
-ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
 size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
 
 /* requires a non-blocking, connected TCP socket */
@@ -1656,6 +1707,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 
 std::set<std::string> getListOfNetworkInterfaces();
 std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf);
+std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf);
 
 /* These functions throw if the value was already set to a higher value,
    or on error */

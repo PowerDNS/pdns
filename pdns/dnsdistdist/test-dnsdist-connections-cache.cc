@@ -68,6 +68,10 @@ public:
   {
   }
 
+  void release()
+  {
+  }
+
   std::shared_ptr<DownstreamState> getDS() const
   {
     return d_ds;

@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <sstream>
 #include "iputils.hh"

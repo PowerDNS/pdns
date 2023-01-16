@@ -43,7 +43,7 @@ AC_DEFUN([AX_CHECK_SIGN], [
  AC_CACHE_CHECK([whether $1 is signed], ax_cv_decl_${typename}_signed, [
    AC_COMPILE_IFELSE(
      [AC_LANG_PROGRAM([[$4]],
-       [[ int foo @<:@ 1 - 2 * !((($1) -1) < 0) @:>@ ]])],
+       [[ int foo @<:@ 1 - 2 * !((($1) -1) < 0) @:>@ ; (void)foo[0] ]])],
      [ eval "ax_cv_decl_${typename}_signed=\"yes\"" ],
      [ eval "ax_cv_decl_${typename}_signed=\"no\"" ])
  ])

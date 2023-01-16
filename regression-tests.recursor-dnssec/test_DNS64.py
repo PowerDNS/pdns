@@ -5,11 +5,6 @@ from recursortests import RecursorTest
 
 class DNS64RecursorTest(RecursorTest):
 
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']}
-    }
-
     _confdir = 'DNS64'
     _config_template = """
     auth-zones=example.dns64=configs/%s/example.dns64.zone
@@ -18,6 +13,16 @@ class DNS64RecursorTest(RecursorTest):
 
     dns64-prefix=64:ff9b::/96
     """ % (_confdir, _confdir, _confdir)
+
+    _lua_dns_script_file = """
+      function nodata(dq)
+        if dq.qtype == pdns.AAAA and dq.qname:equal("formerr.example.dns64") then
+          dq.rcode = pdns.FORMERR
+          return true
+        end
+        return false
+       end
+    """
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -30,6 +35,7 @@ www 3600 IN TXT "does exist"
 aaaa 3600 IN AAAA 2001:db8::1
 cname 3600 IN CNAME cname2.example.dns64.
 cname2 3600 IN CNAME www.example.dns64.
+formerr 3600 IN A 192.0.2.43
 """.format(soa=cls._SOA))
 
         authzonepath = os.path.join(confdir, 'in-addr.arpa.zone')
@@ -115,6 +121,28 @@ cname2 3600 IN CNAME www.example.dns64.
     def testExistingAAAA(self):
         qname = 'aaaa.example.dns64.'
         expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1')
+
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    # If the AAAA is handled by Lua code, we should not get a dns64 result
+    def testFormerr(self):
+        qname = 'formerr.example.dns64'
+
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.FORMERR)
+
+    # If the AAAA times out, we still should get a dns64 result
+    def testTimeout(self):
+        qname = '8.delay1.example.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'AAAA', '64:ff9b::c000:264')
 
         query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
         for method in ("sendUDPQuery", "sendTCPQuery"):

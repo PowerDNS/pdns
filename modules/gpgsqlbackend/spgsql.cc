@@ -85,7 +85,13 @@ public:
           if (i != 0) {
             log_message << ", ";
           }
-          log_message << "$" << (i + 1) << " = '" << paramValues[i] << "'";
+          log_message << "$" << (i + 1) << " = ";
+          if (paramValues[i] == nullptr) {
+            log_message << "NULL";
+          }
+          else {
+            log_message << "'" << paramValues[i] << "'";
+          }
         }
         g_log << Logger::Warning << log_message.str() << endl;
       }

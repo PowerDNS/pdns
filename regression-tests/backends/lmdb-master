@@ -51,6 +51,23 @@ __EOF__
             fi
         done
 
+        # setup catalog zone
+
+        if ! $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones | grep '^.$' # detect root tests
+        then
+            for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
+            do
+                $PDNSUTIL --config-dir=. --config-name=lmdb set-kind $zone master
+                $PDNSUTIL --config-dir=. --config-name=lmdb set-catalog $zone catalog.invalid
+            done
+
+            $PDNSUTIL --config-dir=. --config-name=lmdb load-zone catalog.invalid zones/catalog.invalid
+            $PDNSUTIL --config-dir=. --config-name=lmdb set-kind catalog.invalid producer
+
+            $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json test.com '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
+            $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
+        fi
+
         $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
             --dnsupdate=no \

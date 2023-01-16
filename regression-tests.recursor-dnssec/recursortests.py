@@ -39,7 +39,6 @@ class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     _confdir = 'recursor'
 
-    _recursorStartupDelay = 2.0
     _recursorPort = 5300
 
     _recursor = None
@@ -163,6 +162,8 @@ secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
 secure.example.          3600 IN MX   10 mx1.secure.example.
 secure.example.          3600 IN MX   20 mx2.secure.example.
+sub.secure.example.      3600 IN MX   10 mx1.secure.example.
+sub.secure.example.      3600 IN MX   20 mx2.secure.example.
 
 naptr.secure.example.    60   IN NAPTR   10 10 "a" "X" "A" s1.secure.example.
 naptr.secure.example.    60   IN NAPTR   10 10 "s" "Y" "B" service1.secure.example.
@@ -299,7 +300,9 @@ node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
 delay1.example.                       3600 IN SOA  {soa}
 delay1.example.                       3600 IN NS n1.delay1.example.
 ns1.delay1.example.                   3600 IN A    {prefix}.16
+8.delay1.example.                     3600 IN A    192.0.2.100
 *.delay1.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
+*.delay1.example.                     0    LUA AAAA ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return '1::2'"
         """,
         
         'delay2.example': """
@@ -645,11 +648,11 @@ distributor-threads={threads}""".format(confdir=confdir,
             raise AssertionError('%s failed (%d)' % (recursorcmd, cls._recursor.returncode))
 
     @classmethod
-    def wipeRecursorCache(cls, confdir):
+    def wipeRecursorCache(cls, confdir, name='.$'):
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % confdir,
                           'wipe-cache',
-                          '.$']
+                          name]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:

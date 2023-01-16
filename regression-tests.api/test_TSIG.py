@@ -4,7 +4,7 @@ import time
 import unittest
 from copy import deepcopy
 from pprint import pprint
-from test_helper import ApiTestCase, unique_tsigkey_name, is_auth, is_auth_lmdb, is_recursor, get_db_tsigkeys
+from test_helper import ApiTestCase, unique_tsigkey_name, is_auth, is_recursor
 
 class AuthTSIGHelperMixin(object):
     def create_tsig_key(self, name=None, algorithm='hmac-md5', key=None):
@@ -76,10 +76,12 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         name, payload, data = self.create_tsig_key()
         r = self.session.delete(self.url("/api/v1/servers/localhost/tsigkeys/" + data['id']))
         self.assertEqual(r.status_code, 204)
-
-        if not is_auth_lmdb():
-            keys_from_db = get_db_tsigkeys(name)
-            self.assertListEqual(keys_from_db, [])
+        r = self.session.get(self.url(
+            "/api/v1/servers/localhost/tsigkeys"),
+            headers={'accept': 'application/json'})
+        self.assertEqual(r.status_code, 200)
+        keys = r.json()
+        self.assertEqual(len([key for key in keys if key['name'] == name]), 0)
 
     def test_put_key_change_name(self):
         """

@@ -40,7 +40,7 @@
 
 struct ZoneData
 {
-  ZoneData(shared_ptr<Logr::Logger>& log, const std::string& zone) :
+  ZoneData(Logr::log_t log, const std::string& zone) :
     d_log(log),
     d_zone(zone),
     d_now(time(nullptr)) {}
@@ -53,7 +53,7 @@ struct ZoneData
   // Maybe use a SuffixMatchTree?
   std::set<DNSName> d_delegations;
 
-  shared_ptr<Logr::Logger>& d_log;
+  Logr::log_t d_log;
   DNSName d_zone;
   time_t d_now;
 
@@ -215,7 +215,7 @@ static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
 pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const RecZoneToCache::Config& config, pdns::ZoneMD& zonemd)
 {
   DNSResourceRecord drr;
-  ZoneParserTNG zpt(lines, d_zone);
+  ZoneParserTNG zpt(lines, d_zone, true);
   zpt.setMaxGenerateSteps(1);
   zpt.setMaxIncludes(0);
 
@@ -430,7 +430,7 @@ void RecZoneToCache::maintainStates(const map<DNSName, Config>& configs, map<DNS
     }
   }
   // Reset states for which the config generation changed and create new states for new configs
-  for (auto config : configs) {
+  for (const auto& config : configs) {
     auto state = states.find(config.first);
     if (state != states.end()) {
       if (state->second.d_generation != mygeneration) {
@@ -462,13 +462,13 @@ void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneTo
     log->info("Loaded zone into cache", "refresh", Logging::Loggable(state.d_waittime));
   }
   catch (const PDNSException& e) {
-    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(state.d_waittime));
+    log->error(Logr::Error, e.reason, "Unable to load zone into cache, will retry", "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(state.d_waittime));
   }
   catch (const std::runtime_error& e) {
-    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable(e.what()), "refresh", Logging::Loggable(state.d_waittime));
+    log->error(Logr::Error, e.what(), "Unable to load zone into cache, will retry", "exception", Logging::Loggable("std::runtime_error"), "refresh", Logging::Loggable(state.d_waittime));
   }
   catch (...) {
-    log->info("Unable to load zone into cache, will retry", "exception", Logging::Loggable("unknown"), "refresh", Logging::Loggable(state.d_waittime));
+    log->info("Unable to load zone into cache, will retry", "refresh", Logging::Loggable(state.d_waittime));
   }
   state.d_lastrun = time(nullptr);
   return;

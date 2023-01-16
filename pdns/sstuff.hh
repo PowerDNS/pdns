@@ -24,7 +24,7 @@
 #include <sstream>
 #include <iostream>
 #include "iputils.hh"
-#include <errno.h>
+#include <cerrno>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>

@@ -1,6 +1,7 @@
 
 #include "tsigverifier.hh"
 #include "dnssecinfra.hh"
+#include "gss_context.hh"
 
 bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
 {

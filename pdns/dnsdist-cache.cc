@@ -192,17 +192,17 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging)
+bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
-  const auto& dnsQName = dq.qname->getStorage();
-  uint32_t key = getKey(dnsQName, dq.qname->wirelength(), dq.getData(), receivedOverUDP);
+  const auto& dnsQName = dq.ids.qname.getStorage();
+  uint32_t key = getKey(dnsQName, dq.ids.qname.wirelength(), dq.getData(), receivedOverUDP);
 
   if (keyOut) {
     *keyOut = key;
   }
 
   if (d_parseECS) {
-    getClientSubnet(dq.getData(), dq.qname->wirelength(), subnet);
+    getClientSubnet(dq.getData(), dq.ids.qname.wirelength(), subnet);
   }
 
   uint32_t shardIndex = getShardIndex(key);
@@ -220,14 +220,18 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
     std::unordered_map<uint32_t,CacheValue>::const_iterator it = map->find(key);
     if (it == map->end()) {
-      d_misses++;
+      if (recordMiss) {
+        d_misses++;
+      }
       return false;
     }
 
     const CacheValue& value = it->second;
     if (value.validity <= now) {
       if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
-        d_misses++;
+        if (recordMiss) {
+          d_misses++;
+        }
         return false;
       }
       else {
@@ -240,9 +244,17 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.getHeader())), *dq.qname, dq.qtype, dq.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.getHeader())), dq.ids.qname, dq.ids.qtype, dq.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
       d_lookupCollisions++;
       return false;
+    }
+
+    if (!truncatedOK) {
+      dnsheader dh;
+      memcpy(&dh, value.value.data(), sizeof(dh));
+      if (dh.tc != 0) {
+        return false;
+      }
     }
 
     response.resize(value.len);
@@ -275,6 +287,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
   if (!d_dontAge && !skipAging) {
     if (!stale) {
+      // coverity[store_truncates_time_t]
       ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age);
     }
     else {
@@ -298,6 +311,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
   size_t removed = 0;
 
+  d_cleanupCount++;
   for (auto& shard : d_shards) {
     auto map = shard.d_map.write_lock();
     if (map->size() <= maxPerShard) {
@@ -487,4 +501,115 @@ uint64_t DNSDistPacketCache::dump(int fd)
 void DNSDistPacketCache::setSkippedOptions(const std::unordered_set<uint16_t>& optionsToSkip)
 {
   d_optionsToSkip = optionsToSkip;
+}
+
+std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAddress& addr)
+{
+  std::set<DNSName> domains;
+
+  for (auto& shard : d_shards) {
+    auto map = shard.d_map.read_lock();
+
+    for (const auto& entry : *map) {
+      const CacheValue& value = entry.second;
+
+      try {
+        dnsheader dh;
+        if (value.len < sizeof(dnsheader)) {
+          continue;
+        }
+
+        memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
+          continue;
+        }
+
+        bool found = false;
+        bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
+
+          if (qtype == QType::A && qclass == QClass::IN && addr.isIPv4() && rdatalength == 4 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin4.sin_family = AF_INET;
+            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+            if (parsed == addr) {
+              found = true;
+              return true;
+            }
+          }
+          else if (qtype == QType::AAAA && qclass == QClass::IN && addr.isIPv6() && rdatalength == 16 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin6.sin6_family = AF_INET6;
+            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+            if (parsed == addr) {
+              found = true;
+              return true;
+            }
+          }
+
+          return false;
+        });
+
+        if (valid && found) {
+          domains.insert(value.qname);
+        }
+      }
+      catch (...) {
+        continue;
+      }
+    }
+  }
+
+  return domains;
+}
+
+std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& domain)
+{
+  std::set<ComboAddress> addresses;
+
+  for (auto& shard : d_shards) {
+    auto map = shard.d_map.read_lock();
+
+    for (const auto& entry : *map) {
+      const CacheValue& value = entry.second;
+
+      try {
+        if (value.qname != domain) {
+          continue;
+        }
+
+        dnsheader dh;
+        if (value.len < sizeof(dnsheader)) {
+          continue;
+        }
+
+        memcpy(&dh, value.value.data(), sizeof(dnsheader));
+        if (dh.rcode != RCode::NoError || (dh.ancount == 0 && dh.nscount == 0 && dh.arcount == 0)) {
+          continue;
+        }
+
+        visitDNSPacket(value.value, [&addresses](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
+
+          if (qtype == QType::A && qclass == QClass::IN && rdatalength == 4 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin4.sin_family = AF_INET;
+            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+            addresses.insert(parsed);
+          }
+          else if (qtype == QType::AAAA && qclass == QClass::IN && rdatalength == 16 && rdata != nullptr) {
+            ComboAddress parsed;
+            parsed.sin6.sin6_family = AF_INET6;
+            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+            addresses.insert(parsed);
+          }
+
+          return false;
+        });
+      }
+      catch (...) {
+        continue;
+      }
+    }
+  }
+
+  return addresses;
 }

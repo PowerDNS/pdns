@@ -95,7 +95,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
           }
         }
         if (vars->count("skipOptions")) {
-          for (auto option: boost::get<LuaArray<uint16_t>>(vars->at("skipOptions"))) {
+          for (const auto& option: boost::get<LuaArray<uint16_t>>(vars->at("skipOptions"))) {
             optionsToSkip.insert(option.second);
           }
         }
@@ -166,7 +166,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
                   qname = DNSName(boost::get<string>(dname));
                 }
                 if (cache) {
-                  g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(qname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
+                  g_outputBuffer+="Expunged " + std::to_string(cache->expungeByName(qname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
                 }
     });
   luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()const>("printStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
@@ -179,6 +179,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
+        g_outputBuffer+="Cleanup Count: " + std::to_string(cache->getCleanupCount()) + "\n";
       }
     });
   luaCtx.registerFunction<LuaAssociativeTable<uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()const>("getStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
@@ -193,9 +194,43 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         stats["lookupCollisions"] = cache->getLookupCollisions();
         stats["insertCollisions"] = cache->getInsertCollisions();
         stats["ttlTooShorts"] = cache->getTTLTooShorts();
+        stats["cleanupCount"] = cache->getCleanupCount();
       }
       return stats;
     });
+
+  luaCtx.registerFunction<LuaArray<DNSName>(std::shared_ptr<DNSDistPacketCache>::*)(const ComboAddress& addr)const>("getDomainListByAddress", [](const std::shared_ptr<DNSDistPacketCache>& cache, const ComboAddress& addr) {
+      LuaArray<DNSName> results;
+      if (!cache) {
+        return results;
+      }
+
+      int counter = 1;
+      auto domains = cache->getDomainsContainingRecords(addr);
+      results.reserve(domains.size());
+      for (auto& domain : domains) {
+        results.emplace_back(counter, std::move(domain));
+        counter++;
+      }
+      return results;
+    });
+
+  luaCtx.registerFunction<LuaArray<ComboAddress>(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& domain)const>("getAddressListByDomain", [](const std::shared_ptr<DNSDistPacketCache>& cache, const DNSName& domain) {
+      LuaArray<ComboAddress> results;
+      if (!cache) {
+        return results;
+      }
+
+      int counter = 1;
+      auto addresses = cache->getRecordsForDomain(domain);
+      results.reserve(addresses.size());
+      for (auto& address : addresses) {
+        results.emplace_back(counter, std::move(address));
+        counter++;
+      }
+      return results;
+    });
+
   luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname) {
       if (cache) {
 

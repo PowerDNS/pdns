@@ -54,7 +54,13 @@ typedef struct
 class NegCache : public boost::noncopyable
 {
 public:
-  NegCache(size_t mapsCount = 1024);
+  NegCache(size_t mapsCount = 128);
+
+  // For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
+  // The number of times a stale cache entry is extended
+  static uint16_t s_maxServedStaleExtensions;
+  // The time a stale cache entry is extended
+  static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
 
   struct NegCacheEntry
   {
@@ -63,23 +69,32 @@ public:
     DNSName d_name; // The denied name
     DNSName d_auth; // The denying name (aka auth)
     mutable time_t d_ttd; // Timestamp when this entry should die
+    uint32_t d_orig_ttl;
+    mutable uint16_t d_servedStale{0};
     mutable vState d_validationState{vState::Indeterminate};
     QType d_qtype; // The denied type
-    time_t getTTD() const
+
+    bool isStale(time_t now) const
     {
-      return d_ttd;
+      // We like to keep things in cache when we (potentially) should serve stale
+      if (s_maxServedStaleExtensions > 0) {
+        return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
+      }
+      else {
+        return d_ttd < now;
+      }
     };
   };
 
   void add(const NegCacheEntry& ne);
-  void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD);
-  bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false);
-  bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
+  void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, boost::optional<time_t> capTTD);
+  bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false, bool serverStale = false, bool refresh = false);
+  bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);
-  size_t count(const DNSName& qname, const QType qtype);
+  size_t count(const DNSName& qname, QType qtype);
   void prune(size_t maxEntries);
   void clear();
-  size_t dumpToFile(FILE* fd, const struct timeval& now);
+  size_t doDump(int fd, size_t maxCacheEntries);
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t size() const;
 
@@ -104,6 +119,8 @@ private:
       hashed_non_unique<tag<NegCacheEntry>,
                         member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
+
+  void updateStaleEntry(time_t now, negcache_t::iterator& entry, QType qtype);
 
   struct MapCombo
   {

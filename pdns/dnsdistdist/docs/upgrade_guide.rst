@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+1.7.x to 1.8.0
+--------------
+
+Cache-hits are now counted as responses in our metrics.
+
 1.7.0 to 1.7.1
 --------------
 
@@ -140,4 +145,4 @@ In 1.2.0, several configuration options have been changed:
 As the amount of possible settings for listen sockets is growing, all listen-related options must now be passed as a table as the second argument to both :func:`addLocal` and :func:`setLocal`.
 See the function's reference for more information.
 
-The ``BlockFilter`` function is removed, as :func:`addRule` combined with a :func:`DropAction` can do the same.
+The ``BlockFilter`` function is removed, as :func:`addAction` combined with a :func:`DropAction` can do the same.

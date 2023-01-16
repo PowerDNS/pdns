@@ -71,6 +71,13 @@ class TestCarbon(DNSDistTest):
         cls._CarbonResponder2.setDaemon(True)
         cls._CarbonResponder2.start()
 
+    def isfloat(self, num):
+        try:
+            float(num)
+            return True
+        except ValueError:
+            return False
+
     def testCarbon(self):
         """
         Carbon: send data to 2 carbon servers
@@ -94,7 +101,7 @@ class TestCarbon(DNSDistTest):
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
             self.assertEqual(len(parts), 3)
-            self.assertTrue(parts[1].isdigit())
+            self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
 
@@ -105,7 +112,7 @@ class TestCarbon(DNSDistTest):
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
             self.assertEqual(len(parts), 3)
-            self.assertTrue(parts[1].isdigit())
+            self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
 

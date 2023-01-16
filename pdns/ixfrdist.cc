@@ -717,23 +717,33 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
     return handleAXFR(fd, mdp);
   }
 
-  std::vector<std::vector<uint8_t>> packets;
-  for (const auto& diff : toSend) {
-    /* An IXFR packet's ANSWER section looks as follows:
-     * SOA new_serial
-     * SOA old_serial
-     * ... removed records ...
-     * SOA new_serial
-     * ... added records ...
-     * SOA new_serial
-     */
 
+  /* An IXFR packet's ANSWER section looks as follows:
+    * SOA latest_serial C
+
+    First set of changes:
+    * SOA requested_serial A
+    * ... removed records ...
+    * SOA intermediate_serial B
+    * ... added records ...
+
+    Next set of changes:
+    * SOA intermediate_serial B
+    * ... removed records ...
+    * SOA latest_serial C
+    * ... added records ...
+
+    * SOA latest_serial C
+    */
+
+  const auto latestSOAPacket = getSOAPacket(mdp, zoneInfo->soa, zoneInfo->soaTTL);
+  if (!sendPacketOverTCP(fd, latestSOAPacket)) {
+    return false;
+  }
+
+  for (const auto& diff : toSend) {
     const auto newSOAPacket = getSOAPacket(mdp, diff->newSOA, diff->newSOATTL);
     const auto oldSOAPacket = getSOAPacket(mdp, diff->oldSOA, diff->oldSOATTL);
-
-    if (!sendPacketOverTCP(fd, newSOAPacket)) {
-      return false;
-    }
 
     if (!sendPacketOverTCP(fd, oldSOAPacket)) {
       return false;
@@ -750,10 +760,10 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
     if (!sendRecordsOverTCP(fd, mdp, diff->additions)) {
       return false;
     }
+  }
 
-    if (!sendPacketOverTCP(fd, newSOAPacket)) {
-      return false;
-    }
+  if (!sendPacketOverTCP(fd, latestSOAPacket)) {
+    return false;
   }
 
   return true;

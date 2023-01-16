@@ -79,8 +79,12 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckOfZoneQuery=getArg("update-lastcheck-query");
+  d_UpdateOptionsOfZoneQuery = getArg("update-options-query");
+  d_UpdateCatalogOfZoneQuery = getArg("update-catalog-query");
   d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
+  d_InfoProducerMembersQuery = getArg("info-producer-members-query");
+  d_InfoConsumerMembersQuery = getArg("info-consumer-members-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_DeleteRRSetQuery=getArg("delete-rrset-query");
@@ -152,8 +156,12 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery_stmt = nullptr;
   d_UpdateSerialOfZoneQuery_stmt = nullptr;
   d_UpdateLastCheckOfZoneQuery_stmt = nullptr;
+  d_UpdateOptionsOfZoneQuery_stmt = nullptr;
+  d_UpdateCatalogOfZoneQuery_stmt = nullptr;
   d_UpdateAccountOfZoneQuery_stmt = nullptr;
   d_InfoOfAllMasterDomainsQuery_stmt = nullptr;
+  d_InfoProducerMembersQuery_stmt = nullptr;
+  d_InfoConsumerMembersQuery_stmt = nullptr;
   d_DeleteDomainQuery_stmt = nullptr;
   d_DeleteZoneQuery_stmt = nullptr;
   d_DeleteRRSetQuery_stmt = nullptr;
@@ -207,7 +215,7 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
       reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to refresh domain_id "+std::to_string(domain_id)+": "+e.txtReason());
   }
 }
 
@@ -219,7 +227,7 @@ void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
     d_UpdateLastCheckOfZoneQuery_stmt->bind("last_check", lastcheck)->bind("domain_id", domain_id)->execute()->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to update last_check for domain_id " + itoa(domain_id) + ": " + e.txtReason());
+    throw PDNSException("GSQLBackend unable to update last_check for domain_id " + std::to_string(domain_id) + ": " + e.txtReason());
   }
 }
 
@@ -275,6 +283,44 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
   return true;
 }
 
+bool GSQLBackend::setOptions(const DNSName& domain, const string& options)
+{
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_UpdateOptionsOfZoneQuery_stmt->
+      bind("options", options)->
+      bind("domain", domain)->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to set options of domain '" + domain.toLogString() + "' to '" + options + "': " + e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+{
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_UpdateCatalogOfZoneQuery_stmt->
+      bind("catalog", catalog)->
+      bind("domain", domain)->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to set catalog of domain '" + domain.toLogString() + "' to '" + catalog.toLogString() + "': " + e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 {
   try {
@@ -313,16 +359,18 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   if(!numanswers)
     return false;
 
-  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 7);
+  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 9);
 
   pdns::checked_stoi_into(di.id, d_result[0][0]);
   try {
     di.zone=DNSName(d_result[0][1]);
+    di.catalog = (!d_result[0][7].empty() ? DNSName(d_result[0][7]) : DNSName());
   } catch (...) {
     return false;
   }
   string type=d_result[0][5];
-  di.account=d_result[0][6];
+  di.options = d_result[0][6];
+  di.account = d_result[0][8];
   di.kind = DomainInfo::stringToKind(type);
 
   vector<string> masters;
@@ -352,142 +400,315 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 
 void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
-     id,name,master IP,serial */
+  /*
+    list all domains that need refreshing for which we are secondary, and insert into
+    unfreshDomains: id, name, master, serial
+  */
+
   try {
     reconnectIfNeeded();
 
+    // clang-format off
     d_InfoOfAllSlaveDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
+    // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of slave domains: " + e.txtReason());
   }
 
-  vector<DomainInfo> allSlaves;
+  SOAData sd;
+  DomainInfo di;
+  vector<string> masters;
 
-  bool loggedAssertRowColumns = false;
-  for(const auto& row : d_result) { // id,name,master,last_check
-    DomainInfo sd;
+  unfreshDomains->reserve(d_result.size());
+  for (const auto& row : d_result) { // id, name, type, master, last_check, catalog, content
+    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 6);
+
     try {
-      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
-    } catch(const PDNSException &e) {
-      if (!loggedAssertRowColumns) {
-        g_log<<Logger::Warning<<e.reason<<endl;
+      di.zone = DNSName(row[1]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    if (!row[5].empty()) {
+      try {
+        fillSOAData(row[5], sd);
       }
-      loggedAssertRowColumns = true;
-      continue;
+      catch (const std::exception& exp) {
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
+        continue;
+      }
+      catch (...) {
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl;
+        continue;
+      }
+
+      uint32_t last_check;
+      try {
+        pdns::checked_stoi_into(last_check, row[4]);
+      }
+      catch (const std::exception& e) {
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+        continue;
+      }
+
+      if (static_cast<time_t>(last_check + sd.refresh) > time(nullptr)) { // still fresh
+        continue;
+      }
+      di.serial = sd.serial;
     }
 
     try {
-      sd.zone = DNSName(row[1]);
-    } catch(const std::runtime_error &e) {
-      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.what()<<endl;
-      continue;
-    }
-
-    try {
-      pdns::checked_stoi_into(sd.id, row[0]);
+      pdns::checked_stoi_into(di.id, row[0]);
     } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
-    vector<string> masters;
-    stringtok(masters, row[2], ", \t");
+    di.masters.clear();
+    masters.clear();
+    stringtok(masters, row[3], ", \t");
     for(const auto& m : masters) {
       try {
-        sd.masters.emplace_back(m, 53);
+        di.masters.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<sd.zone<<"': "<<e.reason<<endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
       }
     }
-    if (sd.masters.empty()) {
-      g_log<<Logger::Warning<<"No masters for slave zone '"<<sd.zone<<"' found in the database"<<endl;
+    if (di.masters.empty()) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no masters for secondary zone '" << di.zone << "' found in the database" << endl;
       continue;
     }
 
-    try {
-      pdns::checked_stoi_into(sd.last_check, row[3]);
-    } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
-      continue;
+    if (pdns_iequals(row[2], "SLAVE")) {
+      di.kind = DomainInfo::Slave;
+    }
+    else if (pdns_iequals(row[2], "CONSUMER")) {
+      di.kind = DomainInfo::Consumer;
+    }
+    else {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << "type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
     }
 
-    sd.backend=this;
-    sd.kind=DomainInfo::Slave;
-    allSlaves.push_back(sd);
-  }
-
-  for (auto& slave : allSlaves) {
-    try {
-      SOAData sdata;
-      sdata.serial=0;
-      sdata.refresh=0;
-      getSOA(slave.zone, sdata);
-      if(static_cast<time_t>(slave.last_check + sdata.refresh) < time(nullptr)) {
-        slave.serial=sdata.serial;
-        unfreshDomains->push_back(slave);
-      }
-    }
-    catch(const std::exception& exp) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"': "<<exp.what()<<endl;
-      continue;
-    }
-    catch(...) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"', skipping"<<endl;
-      continue;
-    }
+    di.backend = this;
+    unfreshDomains->emplace_back(di);
   }
 }
 
-void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
+void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  /* list all domains that need notifications for which we are master, and insert into updatedDomains
-     id, name, notified_serial, serial */
+  /*
+    list all domains that need notifications for which we are promary, and insert into
+    updatedDomains: id, name, notified_serial, serial
+  */
+
   try {
     reconnectIfNeeded();
 
+    // clang-format off
     d_InfoOfAllMasterDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
+    // clang-format on
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of master domains: " + e.txtReason());
   }
 
-  size_t numanswers=d_result.size();
-  vector<string>parts;
+  SOAData sd;
   DomainInfo di;
+  CatalogInfo ci;
 
-  di.backend = this;
-  di.kind = DomainInfo::Master;
+  updatedDomains.reserve(d_result.size());
+  for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content
+    ASSERT_ROW_COLUMNS("info-all-master-query", row, 7);
 
-  for( size_t n = 0; n < numanswers; ++n ) { // id, name, notified_serial, content
-    ASSERT_ROW_COLUMNS( "info-all-master-query", d_result[n], 4 );
-
-    parts.clear();
-    stringtok( parts, d_result[n][3] );
+    di.backend = this;
 
     try {
-      uint32_t serial = parts.size() > 2 ? pdns::checked_stoi<uint32_t>(parts[2]) : 0;
-      auto notified_serial = pdns::checked_stoi<uint32_t>(d_result[n][2]);
-
-      if( serial != notified_serial ) {
-        pdns::checked_stoi_into(di.id, d_result[n][0]);
-        di.zone = DNSName( d_result[n][1] );
-        di.serial = serial;
-        di.notified_serial = notified_serial;
-
-        updatedDomains->emplace_back(di);
-      }
-    } catch ( ... ) {
+      pdns::checked_stoi_into(di.id, row[0]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
+
+    try {
+      di.zone = DNSName(row[1]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    try {
+      di.catalog = DNSName(row[5]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
+      continue;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    if (pdns_iequals(row[2], "PRODUCER")) {
+      catalogs.insert(di.zone);
+      catalogHashes[di.zone].process("\0");
+      continue; // Producer fresness check is performed elsewhere
+    }
+    else if (!pdns_iequals(row[2], "MASTER")) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
+    }
+
+    try {
+      if (!row[5].empty()) {
+        ci.fromJson(row[4], CatalogInfo::CatalogType::Producer);
+        ci.updateHash(catalogHashes, di);
+      }
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl;
+      continue;
+    }
+
+    try {
+      pdns::checked_stoi_into(di.notified_serial, row[3]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      continue;
+    }
+
+    try {
+      fillSOAData(row[6], sd);
+    }
+    catch (const std::exception& exp) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << "': " << exp.what() << endl;
+      continue;
+    }
+    catch (...) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << endl;
+      continue;
+    }
+
+    if (di.notified_serial != sd.serial) {
+      di.kind = DomainInfo::Master;
+      di.serial = sd.serial;
+      di.catalog.clear();
+
+      updatedDomains.emplace_back(di);
+    }
   }
+}
+
+bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+{
+  try {
+    reconnectIfNeeded();
+
+    if (type == CatalogInfo::CatalogType::Producer) {
+      // clang-format off
+      d_InfoProducerMembersQuery_stmt->
+        bind("catalog", catalog)->
+        execute()->
+        getResult(d_result)->
+        reset();
+      // clang-format on
+    }
+    else if (type == CatalogInfo::CatalogType::Consumer) {
+      // clang-format off
+      d_InfoConsumerMembersQuery_stmt->
+        bind("catalog", catalog)->
+        execute()->
+        getResult(d_result)->
+        reset();
+      // clang-format on
+    }
+    else {
+      PDNSException(std::string(__PRETTY_FUNCTION__) + " unknown type '" + CatalogInfo::getTypeString(type) + "'");
+    }
+  }
+  catch (SSqlException& e) {
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of member zones: " + e.txtReason());
+  }
+
+  members.reserve(d_result.size());
+  for (const auto& row : d_result) { // id, zone, options, [master]
+    if (type == CatalogInfo::CatalogType::Producer) {
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 3);
+    }
+    else {
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 4);
+    }
+
+    CatalogInfo ci;
+
+    try {
+      ci.d_zone = DNSName(row[1]);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      members.clear();
+      return false;
+    }
+    catch (PDNSException& ae) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      members.clear();
+      return false;
+    }
+
+    try {
+      pdns::checked_stoi_into(ci.d_id, row[0]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << ci.d_zone << "' into an integer: " << e.what() << endl;
+      members.clear();
+      return false;
+    }
+
+    try {
+      ci.fromJson(row[2], type);
+    }
+    catch (const std::runtime_error& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[2] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl;
+      members.clear();
+      return false;
+    }
+
+    if (row.size() >= 4) { // Consumer only
+      vector<string> masters;
+      stringtok(masters, row[3], ", \t");
+      for (const auto& m : masters) {
+        try {
+          ci.d_primaries.emplace_back(m, 53);
+        }
+        catch (const PDNSException& e) {
+          g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
+          members.clear();
+          return false;
+        }
+      }
+    }
+
+    members.emplace_back(ci);
+  }
+  return true;
 }
 
 bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
@@ -509,7 +730,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + " for domain_id "+itoa(domain_id)+", domain name '" + qname.toLogString() + "': "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + " for domain_id "+std::to_string(domain_id)+", domain name '" + qname.toLogString() + "': "+e.txtReason());
       }
     } else {
       try {
@@ -525,7 +746,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to update ordername and auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   } else {
@@ -541,7 +762,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     } else {
       try {
@@ -556,7 +777,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           reset();
       }
       catch(SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for " + qname.toLogString() + "|" + QType(qtype).toString() + " for domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   }
@@ -575,7 +796,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to delete empty non-terminal records from domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to delete empty non-terminal records from domain_id "+std::to_string(domain_id)+": "+e.txtReason());
     }
   }
   else
@@ -591,7 +812,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+std::to_string(domain_id)+": "+e.txtReason());
       }
     }
   }
@@ -609,7 +830,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+std::to_string(domain_id)+": "+e.txtReason());
     }
   }
 
@@ -645,7 +866,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     d_afterOrderQuery_stmt->reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() +"': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() +"': "+e.txtReason());
   }
 
   if(after.empty()) {
@@ -663,7 +884,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_firstOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + "': "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + "': "+e.txtReason());
     }
   }
 
@@ -690,7 +911,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_beforeOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
 
     if(! unhashed.empty())
@@ -718,7 +939,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_lastOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+std::to_string(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
   } else {
     before=qname;
@@ -880,7 +1101,7 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   try {
     reconnectIfNeeded();
@@ -891,14 +1112,13 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
 
     SSqlStatement::row_t row;
 
-    content->clear();
     while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-key-query", row, 2);
       try{
-        if(algorithm->empty() || *algorithm==DNSName(row[0])) {
-          *algorithm = DNSName(row[0]);
-          *content = row[1];
+        if (algorithm.empty() || algorithm == DNSName(row[0])) {
+          algorithm = DNSName(row[0]);
+          content = row[1];
         }
       } catch (...) {}
     }
@@ -909,7 +1129,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     throw PDNSException("GSQLBackend unable to retrieve TSIG key with name '" + name.toLogString() + "': "+e.txtReason());
   }
 
-  return !content->empty();
+  return true;
 }
 
 bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
@@ -976,7 +1196,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     throw PDNSException("GSQLBackend unable to retrieve TSIG keys: "+e.txtReason());
   }
 
-  return keys.empty();
+  return true;
 }
 
 bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
@@ -1014,15 +1234,6 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
   }
 
   return true;
-}
-
-void GSQLBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
-{
-  vector<string> meta;
-  getDomainMetadata(domain, "ALSO-NOTIFY", meta);
-  for(const auto& str: meta) {
-    ips->insert(str);
-  }
 }
 
 bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
@@ -1466,7 +1677,14 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
         di.kind = DomainInfo::Slave;
       } else if (pdns_iequals(row[3], "NATIVE")) {
         di.kind = DomainInfo::Native;
-      } else {
+      }
+      else if (pdns_iequals(row[3], "PRODUCER")) {
+        di.kind = DomainInfo::Producer;
+      }
+      else if (pdns_iequals(row[3], "CONSUMER")) {
+        di.kind = DomainInfo::Consumer;
+      }
+      else {
         g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
         di.kind = DomainInfo::Native;
       }
@@ -1528,7 +1746,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
         d_DeleteRRSetQuery_stmt->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
-          bind("qtype", "TYPE"+itoa(qt.getCode()))->
+          bind("qtype", "TYPE"+std::to_string(qt.getCode()))->
           execute()->
           reset();
       }

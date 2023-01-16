@@ -585,7 +585,11 @@ public:
 
     if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
       /* use our own ticket keys handler so we can rotate them */
+#if OPENSSL_VERSION_MAJOR >= 3
+      SSL_CTX_set_tlsext_ticket_key_evp_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+#else
       SSL_CTX_set_tlsext_ticket_key_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+#endif
       libssl_set_ticket_key_callback_data(d_feContext->d_tlsCtx.get(), d_feContext.get());
     }
 
@@ -625,6 +629,9 @@ public:
       SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
       SSL_OP_SINGLE_DH_USE |
       SSL_OP_SINGLE_ECDH_USE |
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+      SSL_OP_IGNORE_UNEXPECTED_EOF |
+#endif
       SSL_OP_CIPHER_SERVER_PREFERENCE;
     if (!params.d_enableRenegotiation) {
 #ifdef SSL_OP_NO_RENEGOTIATION
@@ -701,9 +708,13 @@ public:
     unregisterOpenSSLUser();
   }
 
-  static int ticketKeyCb(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+#if OPENSSL_VERSION_MAJOR >= 3
+  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+#else
+  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+#endif
   {
-    OpenSSLFrontendContext* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(s));
+    auto* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(s));
     if (ctx == nullptr) {
       return -1;
     }
@@ -711,8 +722,8 @@ public:
     int ret = libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
     if (enc == 0) {
       if (ret == 0 || ret == 2) {
-        OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
-        if (conn) {
+        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
+        if (conn != nullptr) {
           if (ret == 0) {
             conn->setUnknownTicketKey();
           }

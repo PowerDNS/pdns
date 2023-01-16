@@ -24,8 +24,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 #include <vector>
-#include <errno.h>
+#include <cerrno>
 // #include <netinet/in.h>
 #include "misc.hh"
 
@@ -289,16 +290,44 @@ protected:
 
 struct DNSRecord
 {
-  DNSRecord() : d_type(0), d_class(QClass::IN), d_ttl(0), d_clen(0), d_place(DNSResourceRecord::ANSWER)
+  DNSRecord() :
+    d_class(QClass::IN)
   {}
   explicit DNSRecord(const DNSResourceRecord& rr);
+  DNSRecord(const std::string& name,
+            std::shared_ptr<DNSRecordContent> content,
+            const uint16_t type,
+            const uint16_t qclass = QClass::IN,
+            const uint32_t ttl = 86400,
+            const uint16_t clen = 0,
+            const DNSResourceRecord::Place place = DNSResourceRecord::ANSWER) :
+    d_name(DNSName(name)),
+    d_content(std::move(content)),
+    d_type(type),
+    d_class(qclass),
+    d_ttl(ttl),
+    d_clen(clen),
+    d_place(place) {}
+
   DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
-  uint16_t d_type;
-  uint16_t d_class;
-  uint32_t d_ttl;
-  uint16_t d_clen;
-  DNSResourceRecord::Place d_place;
+  uint16_t d_type{};
+  uint16_t d_class{};
+  uint32_t d_ttl{};
+  uint16_t d_clen{};
+  DNSResourceRecord::Place d_place{DNSResourceRecord::ANSWER};
+
+  [[nodiscard]] std::string print(const std::string& indent = "") const
+  {
+    std::stringstream s;
+    s << indent << "Content = " << d_content->getZoneRepresentation() << std::endl;
+    s << indent << "Type = " << d_type << std::endl;
+    s << indent << "Class = " << d_class << std::endl;
+    s << indent << "TTL = " << d_ttl << std::endl;
+    s << indent << "clen = " << d_clen << std::endl;
+    s << indent << "Place = " << std::to_string(d_place) << std::endl;
+    return s.str();
+  }
 
   bool operator<(const DNSRecord& rhs) const
   {
@@ -336,18 +365,27 @@ struct DNSRecord
 
     string lzrp, rzrp;
     if(a.d_content)
-      lzrp=toLower(a.d_content->getZoneRepresentation());
+      lzrp = a.d_content->getZoneRepresentation();
     if(b.d_content)
-      rzrp=toLower(b.d_content->getZoneRepresentation());
+      rzrp = b.d_content->getZoneRepresentation();
 
-    return lzrp < rzrp;
+    switch (a.d_type) {
+    case QType::TXT:
+    case QType::SPF:
+#if !defined(RECURSOR)
+    case QType::LUA:
+#endif
+      return lzrp < rzrp;
+    default:
+      return toLower(lzrp) < toLower(rzrp);
+    }
   }
-
 
   bool operator==(const DNSRecord& rhs) const
   {
-    if(d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name)
+    if (d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name) {
       return false;
+    }
 
     return *d_content == *rhs.d_content;
   }
@@ -441,6 +479,9 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
 bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payloadSize, uint16_t* z);
+/* call the visitor for every records in the answer, authority and additional sections, passing the section, class, type, ttl, rdatalength and rdata
+   to the visitor. Stops whenever the visitor returns false or at the end of the packet */
+bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uint8_t, uint16_t, uint16_t, uint32_t, uint16_t, const char*)>& visitor);
 
 template<typename T>
 std::shared_ptr<T> getRR(const DNSRecord& dr)

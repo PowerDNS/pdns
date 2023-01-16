@@ -41,7 +41,7 @@ BUILT_SOURCES=htmlfiles.h \
 CLEANFILES = htmlfiles.h \
 	recursor.conf-dist
 
-htmlfiles.h: html/*
+htmlfiles.h: incfiles html/* html/js/*
 	./incfiles > $@
 
 SUBDIRS=ext
@@ -101,10 +101,11 @@ endif
 pdns_recursor_SOURCES = \
 	aggressive_nsec.cc aggressive_nsec.hh \
 	arguments.cc \
-	ascii.hh \
+	auth-catalogzone.hh \
 	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
+	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \
@@ -129,6 +130,7 @@ pdns_recursor_SOURCES = \
 	filterpo.cc filterpo.hh \
 	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
+	gss_context.cc gss_context.hh \
 	histogram.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
@@ -167,8 +169,10 @@ pdns_recursor_SOURCES = \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-main.hh rec-main.cc \
 	rec-protozero.cc rec-protozero.hh \
+	rec-responsestats.hh rec-responsestats.cc \
 	rec-snmp.hh rec-snmp.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
+	rec-tcounters.cc rec-tcounters.hh \
 	rec-tcp.cc \
 	rec-tcpout.cc rec-tcpout.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
@@ -176,11 +180,11 @@ pdns_recursor_SOURCES = \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
+	reczones-helpers.cc reczones-helpers.hh \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolve-context.hh \
 	resolver.hh resolver.cc \
-	responsestats.hh responsestats.cc \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
@@ -198,6 +202,7 @@ pdns_recursor_SOURCES = \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	taskqueue.cc taskqueue.hh \
+	tcounters.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
@@ -210,7 +215,6 @@ pdns_recursor_SOURCES = \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
-	xpf.cc xpf.hh \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -233,8 +237,6 @@ pdns_recursor_LDADD = \
 	$(PROBDS_LIBS) \
 	$(LIBCAP_LIBS)
 
-rec_control_LDADD = $(LIBCRYPTO_LIBS)
-
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_SYSTEM_LDFLAGS)
@@ -246,6 +248,11 @@ pdns_recursor_LDADD += \
 pdns_recursor_LDFLAGS += \
 	$(BOOST_FILESYSTEM_LDFLAGS)
 endif
+
+rec_control_LDADD = $(LIBCRYPTO_LIBS)
+
+rec_control_LDFLAGS = $(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
 
 testrunner_SOURCES = \
 	aggressive_nsec.cc aggressive_nsec.hh \
@@ -271,6 +278,7 @@ testrunner_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
 	gettime.cc gettime.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
@@ -287,12 +295,14 @@ testrunner_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
+	rec-responsestats.hh rec-responsestats.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
+	rec-tcounters.cc rec-tcounters.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
+	reczones-helpers.cc reczones-helpers.hh \
 	resolver.hh resolver.cc \
-	responsestats.cc \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
 	secpoll.cc \
@@ -327,9 +337,11 @@ testrunner_SOURCES = \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-rec-taskqueue.cc \
+	test-rec-tcounters_cc.cc \
 	test-rec-zonetocache.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-reczones-helpers.cc \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \
@@ -346,14 +358,12 @@ testrunner_SOURCES = \
 	test-syncres_cc8.cc \
 	test-syncres_cc9.cc \
 	test-tsig.cc \
-	test-xpf_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
-	xpf.cc xpf.hh \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -478,6 +488,7 @@ rec_control_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
 	logger.cc \
+	logging.cc \
 	misc.cc \
 	qtype.cc \
 	rec_channel.cc rec_channel.hh \
@@ -500,7 +511,7 @@ pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 sysconf_DATA = recursor.conf-dist
 
 recursor.conf-dist: pdns_recursor
-	$(AM_V_GEN)./pdns_recursor --config > $@
+	$(AM_V_GEN)./pdns_recursor --config=default > $@
 
 ## Manpages
 MANPAGES=pdns_recursor.1 \
@@ -613,6 +624,15 @@ if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
 endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_PROC
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectProc/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateIPC/' $@
+endif
+if !HAVE_SYSTEMD_REMOVE_IPC
+	$(AM_V_GEN)perl -ni -e 'print unless /^RemoveIPC/' $@
 endif
 
 pdns-recursor@.service: pdns-recursor.service

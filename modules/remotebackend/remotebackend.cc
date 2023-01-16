@@ -496,7 +496,7 @@ bool RemoteBackend::doesDNSSEC()
   return d_dnssec;
 }
 
-bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content)
+bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
 {
   // no point doing dnssec if it's not supported
   if (d_dnssec == false)
@@ -510,8 +510,8 @@ bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::str
   if (this->send(query) == false || this->recv(answer) == false)
     return false;
 
-  (*algorithm) = DNSName(stringFromJson(answer["result"], "algorithm"));
-  (*content) = stringFromJson(answer["result"], "content");
+  algorithm = DNSName(stringFromJson(answer["result"], "algorithm"));
+  content = stringFromJson(answer["result"], "content");
 
   return true;
 }
@@ -878,14 +878,7 @@ void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, b
   }
 }
 
-void RemoteBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
-{
-  std::vector<std::string> meta;
-  getDomainMetadata(domain, "ALSO-NOTIFY", meta);
-  ips->insert(meta.begin(), meta.end());
-}
-
-void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void RemoteBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   Json query = Json::object{
     {"method", "getUpdatedMasters"},
@@ -902,7 +895,7 @@ void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   for (const auto& row : answer["result"].array_items()) {
     DomainInfo di;
     this->parseDomainInfo(row, di);
-    domains->push_back(di);
+    domains.push_back(di);
   }
 }
 

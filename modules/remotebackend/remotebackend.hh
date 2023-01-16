@@ -171,7 +171,7 @@ public:
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override;
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content) override;
+  bool getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content) override;
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char>>& meta) override;
   bool removeDomainKey(const DNSName& name, unsigned int id) override;
@@ -199,8 +199,7 @@ public:
   bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string& pattern, int maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
-  void getUpdatedMasters(vector<DomainInfo>* domains) override;
-  void alsoNotifies(const DNSName& domain, set<string>* ips) override;
+  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;

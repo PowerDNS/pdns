@@ -15,6 +15,7 @@ class TestProxyProtocolLuaRecords(AuthTest):
 launch=bind
 any-to-tcp=no
 proxy-protocol-from=127.0.0.1
+enable-lua-records
 edns-subnet-processing=yes
 """
 

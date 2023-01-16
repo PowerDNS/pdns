@@ -562,7 +562,7 @@ void SMySQL::execute(const string& query)
 
   int err;
   if ((err = mysql_query(&d_db, query.c_str())))
-    throw sPerrorException("Failed to execute mysql_query '" + query + "' Err=" + itoa(err));
+    throw sPerrorException("Failed to execute mysql_query '" + query + "' Err=" + std::to_string(err));
 }
 
 void SMySQL::startTransaction()

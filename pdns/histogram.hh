@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <cassert>
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -35,9 +36,20 @@ namespace pdns
 // By convention, we are using microsecond units
 struct Bucket
 {
+  Bucket(std::string name, uint64_t boundary, uint64_t val) :
+    d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
   const std::string d_name;
-  const uint64_t d_boundary{0};
+  const uint64_t d_boundary;
   mutable uint64_t d_count{0};
+
+  Bucket(const Bucket&) = default;
+  Bucket& operator=(const Bucket& rhs)
+  {
+    assert(d_name == rhs.d_name);
+    assert(d_boundary == rhs.d_boundary);
+    d_count = rhs.d_count;
+    return *this;
+  }
 };
 
 struct AtomicBucket
@@ -147,9 +159,22 @@ public:
     d_sum += d;
   }
 
+  BaseHistogram& operator+=(const BaseHistogram& rhs)
+  {
+    assert(d_name == rhs.d_name);
+    assert(d_buckets.size() == rhs.d_buckets.size());
+    for (size_t bucket = 0; bucket < d_buckets.size(); ++bucket) {
+      assert(d_buckets[bucket].d_name == rhs.d_buckets[bucket].d_name);
+      assert(d_buckets[bucket].d_boundary == rhs.d_buckets[bucket].d_boundary);
+      d_buckets[bucket].d_count += rhs.d_buckets[bucket].d_count;
+    }
+    d_sum += rhs.d_sum;
+    return *this;
+  }
+
 private:
   std::vector<B> d_buckets;
-  const std::string d_name;
+  std::string d_name;
   mutable SumType d_sum{0};
 
   std::vector<uint64_t> to125(uint64_t start, int num)

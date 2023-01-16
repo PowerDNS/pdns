@@ -21,6 +21,13 @@
  */
 #pragma once
 
+#include <string>
+
+#include "iputils.hh"
+#include "noinitvector.hh"
+
+struct DNSQuestion;
+
 // root label (1), type (2), class (2), ttl (4) + rdlen (2)
 static const size_t optRecordMinimumSize = 11;
 
@@ -38,7 +45,7 @@ int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_
 bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
 bool addEDNS(PacketBuffer& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
 bool addEDNSToQueryTurnedResponse(DNSQuestion& dq);
-bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum);
+bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, bool soaInAuthoritySection);
 
 bool handleEDNSClientSubnet(DNSQuestion& dq, bool& ednsAdded, bool& ecsAdded);
 bool handleEDNSClientSubnet(PacketBuffer& packet, size_t maximumSize, size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption);
@@ -47,4 +54,6 @@ bool parseEDNSOptions(const DNSQuestion& dq);
 
 int getEDNSZ(const DNSQuestion& dq);
 bool queryHasEDNS(const DNSQuestion& dq);
-bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0);
+bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);
+
+bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& data);

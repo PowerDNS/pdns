@@ -1449,6 +1449,98 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
 
+
+class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
+
+    _selfGeneratedPayloadSize = 1232
+    _config_template = """
+    addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1, { soaInAuthoritySection=true }))
+    addAction("nodata.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5, { soaInAuthoritySection=true }))
+    setPayloadSizeOnSelfGeneratedAnswers(%d)
+    newServer{address="127.0.0.1:%s"}
+    """
+    _config_params = ['_selfGeneratedPayloadSize', '_testServerPort']
+
+
+    def testAdvancedNegativeAndSOANXD(self):
+        """
+        Advanced: NegativeAndSOAAction NXD
+        """
+        name = 'nxd.negativeandsoa.advanced.tests.powerdns.com.'
+        # no EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
+        soa = dns.rrset.from_text("auth.",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 5 4 3 2 1')
+        expectedResponse.authority.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageNoEDNS(expectedResponse, receivedResponse)
+
+        # withEDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
+        expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
+        soa = dns.rrset.from_text("auth.",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 5 4 3 2 1')
+        expectedResponse.authority.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
+
+    def testAdvancedNegativeAndSOANoData(self):
+        """
+        Advanced: NegativeAndSOAAction NoData
+        """
+        name = 'nodata.negativeandsoa.advanced.tests.powerdns.com.'
+        # no EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOERROR)
+        soa = dns.rrset.from_text("another-auth.",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 1 2 3 4 5')
+        expectedResponse.authority.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageNoEDNS(expectedResponse, receivedResponse)
+
+        # with EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
+        expectedResponse.set_rcode(dns.rcode.NOERROR)
+        soa = dns.rrset.from_text("another-auth.",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 1 2 3 4 5')
+        expectedResponse.authority.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
+
+
 class TestAdvancedLuaRule(DNSDistTest):
 
     _config_template = """
@@ -1564,3 +1656,82 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.assertEqual(expectedQuery, receivedQuery)
             self.checkResponseNoEDNS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
+
+    def testAdvancedSetEDNSOptionWithDOSet(self):
+        """
+        Advanced: Set EDNS Option (DO bit set)
+        """
+        # check that the DO bit is correctly handled, as we messed that up once
+        name = 'setednsoption-do.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True, payload=4096)
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco], want_dnssec=True)
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(response, receivedResponse)
+            self.checkQueryEDNS(expectedQuery, receivedQuery)
+
+class TestAdvancedLuaGetContent(DNSDistTest):
+
+    _config_template = """
+    function accessContentLua(dq)
+        local expectedSize = 57
+        local content = dq:getContent()
+        if content == nil or #content == 0 then
+            errlog('No content')
+            return DNSAction.Nxdomain, ""
+        end
+        if #content ~= expectedSize then
+            errlog('Invalid content size'..#content)
+            return DNSAction.Nxdomain, ""
+        end
+        -- the qname is right after the header, and we have only the qtype and qclass after that
+        local qname = string.sub(content, 13, -5)
+        local expectedQName = '\\011get-content\\008advanced\\005tests\\008powerdns\\003com\\000'
+        if qname ~= expectedQName then
+            errlog('Invalid qname '..qname..', expecting '..expectedQName)
+            return DNSAction.Nxdomain, ""
+        end
+        return DNSAction.None, ""
+    end
+    addAction(AllRule(), LuaAction(accessContentLua))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testGetContentViaLua(self):
+        """
+        Advanced: Test getContent() via Lua
+        """
+        name = 'get-content.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)

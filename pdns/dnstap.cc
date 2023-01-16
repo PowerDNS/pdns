@@ -31,7 +31,6 @@ DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType typ
   pbf.add_bytes(DnstapBaseFields::version, PACKAGE_STRING);
   pbf.add_enum(DnstapBaseFields::type, DnstapMessageTypes::message);
 
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
   protozero::pbf_writer pbf_message{pbf, DnstapBaseFields::message};
 
   pbf_message.add_enum(DnstapMessageFields::type, static_cast<protozero::pbf_tag_type>(type));
@@ -74,10 +73,13 @@ DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType typ
     pbf_message.add_fixed32(DnstapMessageFields::response_time_nsec, responseTime->tv_nsec);
   }
 
-  if (!dh->qr) {
-    pbf_message.add_bytes(DnstapMessageFields::query_message, packet, len);
-  } else {
-    pbf_message.add_bytes(DnstapMessageFields::response_message, packet, len);
+  if (packet != nullptr && len >= sizeof(dnsheader)) {
+    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+    if (!dh->qr) {
+      pbf_message.add_bytes(DnstapMessageFields::query_message, packet, len);
+    } else {
+      pbf_message.add_bytes(DnstapMessageFields::response_message, packet, len);
+    }
   }
 
   if (auth) {

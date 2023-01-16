@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string>
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -121,15 +121,15 @@ void CoProcess::checkStatus()
   int status;
   int ret = waitpid(d_pid, &status, WNOHANG);
   if (ret < 0)
-    throw PDNSException("Unable to ascertain status of coprocess " + itoa(d_pid) + " from " + itoa(getpid()) + ": " + string(strerror(errno)));
+    throw PDNSException("Unable to ascertain status of coprocess " + std::to_string(d_pid) + " from " + std::to_string(getpid()) + ": " + string(strerror(errno)));
   else if (ret) {
     if (WIFEXITED(status)) {
       int exitStatus = WEXITSTATUS(status);
-      throw PDNSException("Coprocess exited with code " + itoa(exitStatus));
+      throw PDNSException("Coprocess exited with code " + std::to_string(exitStatus));
     }
     if (WIFSIGNALED(status)) {
       int sig = WTERMSIG(status);
-      string reason = "CoProcess died on receiving signal " + itoa(sig);
+      string reason = "CoProcess died on receiving signal " + std::to_string(sig);
 #ifdef WCOREDUMP
       if (WCOREDUMP(status))
         reason += ". Dumped core";

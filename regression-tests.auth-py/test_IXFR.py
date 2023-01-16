@@ -148,19 +148,13 @@ negquery-cache-ttl=60
             answerPos = answerPos + 1
 
     def test_a_XFR(self):
-        print("x1")
         self.waitUntilCorrectSerialIsLoaded(1)
-        print("x2")
         self.checkFullZone(1)
-        print("x3")
 
         self.waitUntilCorrectSerialIsLoaded(2)
-        print("x4")
         self.checkFullZone(2)
-        print("x5")
 
         self.waitUntilCorrectSerialIsLoaded(3)
-        print("x7")
         self.checkFullZone(3, data=["""
 $ORIGIN example.""","""
 @        86400   SOA    foo bar 3 2 3 4 5
@@ -171,10 +165,8 @@ ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
 """])
-        print("x8")
 
         self.waitUntilCorrectSerialIsLoaded(5)
-        print("x7")
         self.checkFullZone(5, data=["""
 $ORIGIN example.""","""
 @        86400   SOA    foo bar 5 2 3 4 5
@@ -186,7 +178,6 @@ ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
 """])
-        print("x8")
 
 
     # _b_ because we expect post-XFR testing state
@@ -223,7 +214,6 @@ newrecord.example.        8484    A       192.0.2.42
 
     def test_d_XFR(self):
         self.waitUntilCorrectSerialIsLoaded(8)
-        print("x7")
         self.checkFullZone(7, data=["""
 $ORIGIN example.""","""
 @        86400   SOA    foo bar 8 2 3 4 5
@@ -235,7 +225,6 @@ ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
 """])
-        print("x8")
         ret = subprocess.check_output([os.environ['PDNSUTIL'],
                            '--config-dir=configs/auth',
                            'list-zone', 'example'], stderr=subprocess.STDOUT)

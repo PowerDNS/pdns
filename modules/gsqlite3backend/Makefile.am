@@ -1,5 +1,7 @@
 pkglib_LTLIBRARIES = libgsqlite3backend.la
 
+AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
+
 EXTRA_DIST = \
 	OBJECTFILES \
 	OBJECTLIBS
@@ -11,6 +13,7 @@ dist_doc_DATA = \
 	4.0.0_to_4.2.0_schema.sqlite3.sql \
 	4.2.0_to_4.3.0_schema.sqlite3.sql \
 	4.3.0_to_4.3.1_schema.sqlite3.sql \
+	4.3.1_to_4.7.0_schema.sqlite3.sql \
 	schema.sqlite3.sql
 
 libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh

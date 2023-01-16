@@ -135,7 +135,7 @@ const string QType::toString() const
   if (name != numbers.cend()) {
     return name->second;
   }
-  return "TYPE" + itoa(code);
+  return "TYPE" + std::to_string(code);
 }
 
 uint16_t QType::chartocode(const char *p)

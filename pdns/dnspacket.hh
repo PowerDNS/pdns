@@ -58,7 +58,7 @@ public:
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
   int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
-  const string& getString(); //!< for serialization - just passes the whole packet
+  const string& getString(bool throwsOnTruncation=false); //!< for serialization - just passes the whole packet. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
 
   // address & socket manipulation
   void setRemote(const ComboAddress*, std::optional<ComboAddress> = std::nullopt);
@@ -105,7 +105,7 @@ public:
   void setQuestion(int op, const DNSName &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (domain, type, class etc)
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
-  void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
+  void wrapup(bool throwsOnTruncation=false);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
   void spoofQuestion(const DNSPacket& qd); //!< paste in the exact right case of the question. Useful for PacketCache
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
   bool isEmpty(); //!< returns true if there are no rrs in the packet
@@ -173,6 +173,10 @@ public:
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
   EDNSSubnetOpts d_eso; //moved to pass along to stubDoResolve
+
+#ifdef ENABLE_GSS_TSIG
+  void cleanupGSS(int rcode);
+#endif
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies

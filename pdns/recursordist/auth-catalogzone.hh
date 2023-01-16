@@ -1,0 +1,1 @@
+../auth-catalogzone.hh

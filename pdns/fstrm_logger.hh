@@ -38,10 +38,30 @@ class FrameStreamLogger : public RemoteLoggerInterface, boost::noncopyable
 public:
   FrameStreamLogger(int family, const std::string& address, bool connect, const std::unordered_map<string,unsigned>& options = std::unordered_map<string,unsigned>());
   ~FrameStreamLogger();
-  void queueData(const std::string& data) override;
-  std::string toString() const override
+  [[nodiscard]] RemoteLoggerInterface::Result queueData(const std::string& data) override;
+
+  [[nodiscard]] std::string address() const override
+  {
+    return d_address;
+  }
+
+  [[nodiscard]] std::string name() const override
+  {
+    return "dnstap";
+  }
+  
+  [[nodiscard]] std::string toString() override
   {
     return "FrameStreamLogger to " + d_address + " (" + std::to_string(d_framesSent) + " frames sent, " + std::to_string(d_queueFullDrops) + " dropped, " + std::to_string(d_permanentFailures) + " permanent failures)";
+  }
+
+  [[nodiscard]] RemoteLoggerInterface::Stats getStats() override
+  {
+    return Stats{.d_queued = d_framesSent,
+                 .d_pipeFull = d_queueFullDrops,
+                 .d_tooLarge = 0,
+                 .d_otherError = d_permanentFailures
+    };
   }
 
 private:

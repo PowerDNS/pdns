@@ -73,7 +73,7 @@ public:
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   //Master mode operation
-  void getUpdatedMasters(vector<DomainInfo>* domains) override;
+  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 
 private:

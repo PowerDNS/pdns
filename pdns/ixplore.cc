@@ -32,6 +32,7 @@
 #include "dnssecinfra.hh"
 
 #include "dns_random.hh"
+#include "gss_context.hh"
 #include <boost/multi_index_container.hpp>
 #include "axfr-retriever.hh"
 #include <fstream>
@@ -186,7 +187,7 @@ int main(int argc, char** argv) {
       }
 
       cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-      auto deltas = getIXFRDeltas(master, zone, ourSoa, tt);
+      auto deltas = getIXFRDeltas(master, zone, ourSoa, 20, false, tt);
       cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
       for(const auto& delta : deltas) {

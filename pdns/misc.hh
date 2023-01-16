@@ -42,12 +42,14 @@
 #include <vector>
 
 #include "namespaces.hh"
-#include "dnsname.hh"
+
+class DNSName;
 
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 
 namespace pdns
 {
+#if defined(HAVE_LIBCRYPTO)
 /**
  * \brief Retrieves the errno-based error message in a reentrant way.
  *
@@ -60,6 +62,25 @@ namespace pdns
  * \return The `std::string` error message.
  */
 auto getMessageFromErrno(int errnum) -> std::string;
+
+namespace OpenSSL
+{
+  /**
+   * \brief Throws a `std::runtime_error` with the current OpenSSL error.
+   *
+   * \param[in] errorMessage The message to attach in addition to the OpenSSL error.
+   */
+  [[nodiscard]] auto error(const std::string& errorMessage) -> std::runtime_error;
+
+  /**
+   * \brief Throws a `std::runtime_error` with a name and the current OpenSSL error.
+   *
+   * \param[in] componentName The name of the component to mark the error message with.
+   * \param[in] errorMessage The message to attach in addition to the OpenSSL error.
+   */
+  [[nodiscard]] auto error(const std::string& componentName, const std::string& errorMessage) -> std::runtime_error;
+}
+#endif // HAVE_LIBCRYPTO
 }
 
 string nowTime();
@@ -67,7 +88,8 @@ const string unquotify(const string &item);
 string humanDuration(time_t passed);
 bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
-string getHostname();
+std::optional<string> getHostname();
+std::string getCarbonHostName();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
@@ -81,13 +103,6 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
-
-struct ServiceTuple
-{
-  string host;
-  uint16_t port;
-};
-void parseService(const string &descr, ServiceTuple &st);
 
 template<typename Container>
 void
@@ -166,10 +181,12 @@ const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
 string U32ToIP(uint32_t);
-string stringerror(int);
-string stringerror();
-string itoa(int i);
-string uitoa(unsigned int i);
+
+inline string stringerror(int err = errno)
+{
+  return pdns::getMessageFromErrno(err);
+}
+
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
@@ -557,7 +574,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cbuf, const ComboAddre
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
-uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t init);
 bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.
@@ -756,7 +772,6 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
 
 DNSName reverseNameFromIP(const ComboAddress& ip);
 
-std::string getCarbonHostName();
 size_t parseRFC1035CharString(const std::string &in, std::string &val); // from ragel
 size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, vector<std::string> &val); // from ragel
 size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);

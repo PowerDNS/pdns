@@ -121,6 +121,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/ednscookies.cc \
 	../../pdns/ednsoptions.cc ../../pdns/ednsoptions.hh \
 	../../pdns/ednssubnet.cc \
+	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
 	../../pdns/iputils.cc \
 	../../pdns/json.hh ../../pdns/json.cc \
 	../../pdns/logger.cc \
@@ -173,6 +174,13 @@ libtestremotebackend_la_LIBADD += \
 
 libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
+endif
+
+if GSS_TSIG
+libtestremotebackend_la_LIBADD += \
+	$(GSS_LIBS)
+libtestremotebackend_la_CPPFLAGS+= \
+	$(GSS_CFLAGS)
 endif
 
 remotebackend_http_test_SOURCES = \

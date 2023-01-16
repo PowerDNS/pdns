@@ -8,7 +8,6 @@
 #include "rec-taskqueue.hh"
 #include "test-syncres_cc.hh"
 
-RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
@@ -29,10 +28,6 @@ ArgvMap& arg()
   return theArg;
 }
 
-void primeRootNSZones(DNSSECMode, unsigned int)
-{
-}
-
 BaseLua4::~BaseLua4()
 {
 }
@@ -41,7 +36,7 @@ void BaseLua4::getFeatures(Features&)
 {
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et) const
+bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et, const struct timeval& tv) const
 {
   return false;
 }
@@ -144,6 +139,8 @@ void initSR(bool debug)
     g_log.toConsole(Logger::Error);
   }
 
+  MemRecursorCache::s_maxServedStaleExtensions = 0;
+  NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();
   g_negCache = std::make_unique<NegCache>();
 
@@ -182,6 +179,8 @@ void initSR(bool debug)
   SyncRes::s_nonresolvingnsthrottletime = 0;
   SyncRes::s_refresh_ttlperc = 0;
   SyncRes::s_save_parent_ns_set = true;
+  SyncRes::s_maxnsperresolve = 13;
+  SyncRes::s_locked_ttlperc = 0;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);

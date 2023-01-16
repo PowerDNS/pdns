@@ -135,6 +135,19 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
   struct timeval now;
   gettimeofday(&now, nullptr);
   try {
+    if (!d_healthCheckQuery) {
+      const double udiff = request.d_query.d_idstate.queryRealTime.udiff();
+      d_ds->updateTCPLatency(udiff);
+      if (request.d_buffer.size() >= sizeof(dnsheader)) {
+        dnsheader dh;
+        memcpy(&dh, request.d_buffer.data(), sizeof(dh));
+        d_ds->reportResponse(dh.rcode);
+      }
+      else {
+        d_ds->reportTimeoutOrError();
+      }
+    }
+
     request.d_sender->handleResponse(now, TCPResponse(std::move(request.d_buffer), std::move(request.d_query.d_idstate), shared_from_this()));
   }
   catch (const std::exception& e) {
@@ -145,6 +158,10 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 void DoHConnectionToBackend::handleResponseError(PendingRequest&& request, const struct timeval& now)
 {
   try {
+    if (!d_healthCheckQuery) {
+      d_ds->reportTimeoutOrError();
+    }
+
     request.d_sender->notifyIOError(std::move(request.d_query.d_idstate), now);
   }
   catch (const std::exception& e) {
@@ -461,14 +478,16 @@ void DoHConnectionToBackend::stopIO()
 {
   d_ioState->reset();
 
-  auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
-  if (!willBeReusable(false)) {
-    /* remove ourselves from the connection cache, this might mean that our
-       reference count drops to zero after that, so we need to be careful */
-    t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
-  }
-  else {
-    t_downstreamDoHConnectionsManager.moveToIdle(shared);
+  if (isIdle()) {
+    auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
+    if (!willBeReusable(false)) {
+      /* remove ourselves from the connection cache, this might mean that our
+         reference count drops to zero after that, so we need to be careful */
+      t_downstreamDoHConnectionsManager.removeDownstreamConnection(shared);
+    }
+    else {
+      t_downstreamDoHConnectionsManager.moveToIdle(shared);
+    }
   }
 }
 
@@ -890,7 +909,7 @@ static void dohClientThread(int crossProtocolPipeFD)
     time_t lastTimeoutScan = now.tv_sec;
 
     for (;;) {
-      data.mplexer->run(&now);
+      data.mplexer->run(&now, 1000);
 
       if (now.tv_sec > lastTimeoutScan) {
         lastTimeoutScan = now.tv_sec;

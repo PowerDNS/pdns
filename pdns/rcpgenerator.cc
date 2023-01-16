@@ -23,7 +23,6 @@
 #include "config.h"
 #endif
 #include "rcpgenerator.hh"
-#include "ascii.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
 #include "utility.hh"
@@ -124,6 +123,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
+  // coverity[store_truncates_time_t]
   val=(uint32_t)Utility::timegm(&tm);
 }
 

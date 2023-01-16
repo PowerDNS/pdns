@@ -120,6 +120,7 @@ Listen Sockets
 
   .. versionchanged:: 1.8.0
      ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
+     ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -160,6 +161,9 @@ Listen Sockets
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
+  * ``keepIncomingHeaders``: bool - Whether to retain the incoming headers in memory, to be able to use :func:`HTTPHeaderRule` or :meth:`DNSQuestion.getHTTPHeaders`. Default is false. Before 1.8.0 the headers were always kept in-memory.
+  * ``additionalAddresses``: list - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses.
+  * ``ignoreTLSConfigurationErrors=false``: bool - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -172,7 +176,8 @@ Listen Sockets
   .. versionchanged:: 1.8.0
     ``tlsAsyncMode`` option added.
   .. versionchanged:: 1.8.0
-     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
+     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`).
+     ``additionalAddresses`` and ``ignoreTLSConfigurationErrors`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -207,6 +212,8 @@ Listen Sockets
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled (OpenSSL only, the GnuTLS provider does not support it). Disabled by default since it increases the attack surface and is seldom used for DNS.
   * ``tlsAsyncMode=false``: bool - Whether to enable experimental asynchronous TLS I/O operations if OpenSSL is used as the TLS provider and an asynchronous capable SSL engine is loaded. See also :func:`loadTLSEngine` to load the engine.
+  * ``additionalAddresses``: list - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses.
+  * ``ignoreTLSConfigurationErrors=false``: bool - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 .. function:: setLocal(address[, options])
 
@@ -503,9 +510,26 @@ Ringbuffers
 
 .. function:: setRingBuffersLockRetries(num)
 
+  .. deprecated:: 1.8.0
+    Deprecated in 1.8.0 in favor of :func:`setRingBuffersOptions` which provides more options.
+
   Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available
 
   :param int num: The maximum number of attempts. Defaults to 5 if there is more than one shard, 0 otherwise.
+
+.. function:: setRingBuffersOptions(options)
+
+  .. versionadded:: 1.8.0
+
+  Set the rings buffers configuration
+
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``lockRetries``: int - Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise
+  * ``recordQueries``: boolean - Whether to record queries in the ring buffers. Default is true. Note that :func:`grepq`, several top* commands (:func:`topClients`, :func:`topQueries`, ...) and the :doc:`Dynamic Blocks <../guides/dynblocks>` require this to be enabled.
+  * ``recordResponses``: boolean - Whether to record responses in the ring buffers. Default is true. Note that :func:`grepq`, several top* commands (:func:`topResponses`, :func:`topSlow`, ...) and the :doc:`Dynamic Blocks <../guides/dynblocks>` require this to be enabled.
 
 .. function:: setRingBuffersSize(num [, numberOfShards])
 
@@ -537,7 +561,7 @@ Servers
     Added ``addXForwardedHeaders``, ``caStore``, ``checkTCP``, ``ciphers``, ``ciphers13``, ``dohPath``, ``enableRenegotiation``, ``releaseBuffers``, ``subjectName``, ``tcpOnly``, ``tls`` and ``validateCertificates`` to server_table.
 
   .. versionchanged:: 1.8.0
-    Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool`` and ``subjectAddr`` to server_table.
+    Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool``, ``maxConcurrentTCPConnections``, ``subjectAddr``, ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval``, ``lazyHealthCheckMode``, ``lazyHealthCheckUseExponentialBackOff``, ``lazyHealthCheckMaxBackOff``, ``lazyHealthCheckWhenUpgraded`` and ``healthCheckMode`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -548,61 +572,71 @@ Servers
   or a table::
 
     newServer({
-      address="IP:PORT",        -- IP and PORT of the backend server (mandatory)
-      id=STRING,                -- Use a pre-defined UUID instead of a random one
-      qps=NUM,                  -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,                -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
-      weight=NUM,               -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
-                                -- Supported values are a minimum of 1, and a maximum of 2147483647.
-      pool=STRING|{STRING},     -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
-      retries=NUM,              -- The number of TCP connection attempts to the backend, for a given query
-      tcpConnectTimeout=NUM,    -- The timeout (in seconds) of a TCP connection attempt
-      tcpSendTimeout=NUM,       -- The timeout (in seconds) of a TCP write attempt
-      tcpRecvTimeout=NUM,       -- The timeout (in seconds) of a TCP read attempt
-      tcpFastOpen=BOOL,         -- Whether to enable TCP Fast Open
-      ipBindAddrNoPort=BOOL,    -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
-      name=STRING,              -- The name associated to this backend, for display purpose
-      checkClass=NUM,           -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
-      checkName=STRING,         -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
-      checkType=STRING,         -- Use STRING as QTYPE in the health-check query, default: "A"
-      checkFunction=FUNCTION,   -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
-      checkTimeout=NUM,         -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
-      setCD=BOOL,               -- Set the CD (Checking Disabled) flag in the health-check query, default: false
-      maxCheckFailures=NUM,     -- Allow NUM check failures before declaring the backend down, default: 1
-      checkInterval=NUM         -- The time in seconds between health checks
-      mustResolve=BOOL,         -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
-      useClientSubnet=BOOL,     -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
-      source=STRING,            -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
-                                -- The following formats are supported:
-                                --   "address", e.g. "192.0.2.2"
-                                --   "interface name", e.g. "eth0"
-                                --   "address@interface", e.g. "192.0.2.2@eth0"
-      addXPF=NUM,               -- Add the client's IP address and port to the query, along with the original destination address and port,
-                                -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0). This is a deprecated feature that will be removed in the near future.
-      sockets=NUM,              -- Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`).
-      disableZeroScope=BOOL,    -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
-      rise=NUM,                 -- Require NUM consecutive successful checks before declaring the backend up, default: 1
-      useProxyProtocol=BOOL,    -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
-      reconnectOnUp=BOOL,       -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
-      maxInFlight=NUM,          -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
-      tcpOnly=BOOL,             -- Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false.
-      checkTCP=BOOL,            -- Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false.
-      tls=STRING,               -- Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
-      caStore=STRING,           -- Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set.
-      ciphers=STRING,           -- The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
-      ciphersTLS13=STRING,      -- The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
-      subjectName=STRING,       -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subjectAddr`` one.
-      subjectAddr=STRING,       -- The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
-      validateCertificates=BOOL,-- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
-      dohPath=STRING,           -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
-      addXForwardedHeaders=BOOL,-- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
-      releaseBuffers=BOOL,      -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
-      enableRenegotiation=BOOL, -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
-      autoUpgrade=BOOL,         -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend. Default to false.
-      autoUpgradeInterval=NUM,  -- If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds.
-      autoUpgradeKeep=BOOL,     -- If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one.
-      autoUpgradePool=STRING,   -- If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool.
-      autoUpgradeDoHKey=NUM     -- If ``autoUpgrade`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7.
+      address="IP:PORT",                         -- IP and PORT of the backend server (mandatory)
+      id=STRING,                                 -- Use a pre-defined UUID instead of a random one
+      qps=NUM,                                   -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
+      order=NUM,                                 -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
+      weight=NUM,                                -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
+                                                 -- Supported values are a minimum of 1, and a maximum of 2147483647.
+      pool=STRING|{STRING},                      -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
+      retries=NUM,                               -- The number of TCP connection attempts to the backend, for a given query
+      tcpConnectTimeout=NUM,                     -- The timeout (in seconds) of a TCP connection attempt
+      tcpSendTimeout=NUM,                        -- The timeout (in seconds) of a TCP write attempt
+      tcpRecvTimeout=NUM,                        -- The timeout (in seconds) of a TCP read attempt
+      tcpFastOpen=BOOL,                          -- Whether to enable TCP Fast Open
+      ipBindAddrNoPort=BOOL,                     -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
+      name=STRING,                               -- The name associated to this backend, for display purpose
+      checkClass=NUM,                            -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
+      checkName=STRING,                          -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
+      checkType=STRING,                          -- Use STRING as QTYPE in the health-check query, default: "A"
+      checkFunction=FUNCTION,                    -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+      checkTimeout=NUM,                          -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
+      setCD=BOOL,                                -- Set the CD (Checking Disabled) flag in the health-check query, default: false
+      maxCheckFailures=NUM,                      -- Allow NUM check failures before declaring the backend down, default: 1
+      checkInterval=NUM                          -- The time in seconds between health checks
+      mustResolve=BOOL,                          -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
+      useClientSubnet=BOOL,                      -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
+      source=STRING,                             -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
+                                                 -- The following formats are supported:
+                                                 --   "address", e.g. "192.0.2.2"
+                                                 --   "interface name", e.g. "eth0"
+                                                 --   "address@interface", e.g. "192.0.2.2@eth0"
+      addXPF=NUM,                                -- Add the client's IP address and port to the query, along with the original destination address and port,
+                                                 -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0). This is a deprecated feature that will be removed in the near future.
+      sockets=NUM,                               -- Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`).
+      disableZeroScope=BOOL,                     -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
+      rise=NUM,                                  -- Require NUM consecutive successful checks before declaring the backend up, default: 1
+      useProxyProtocol=BOOL,                     -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
+      reconnectOnUp=BOOL,                        -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
+      maxInFlight=NUM,                           -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
+      tcpOnly=BOOL,                              -- Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false.
+      checkTCP=BOOL,                             -- Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false.
+      tls=STRING,                                -- Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
+      caStore=STRING,                            -- Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set.
+      ciphers=STRING,                            -- The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+      ciphersTLS13=STRING,                       -- The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
+      subjectName=STRING,                        -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subjectAddr`` one.
+      subjectAddr=STRING,                        -- The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
+      validateCertificates=BOOL,                 -- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
+      dohPath=STRING,                            -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
+      addXForwardedHeaders=BOOL,                 -- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
+      releaseBuffers=BOOL,                       -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
+      enableRenegotiation=BOOL,                  -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
+      autoUpgrade=BOOL,                          -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend. Default to false.
+      autoUpgradeInterval=NUM,                   -- If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds.
+      autoUpgradeKeep=BOOL,                      -- If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one.
+      autoUpgradePool=STRING,                    -- If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool.
+      autoUpgradeDoHKey=NUM,                     -- If ``autoUpgrade`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7.
+      maxConcurrentTCPConnections=NUM,           -- Maximum number of TCP connections to that backend. When that limit is reached, queries routed to that backend that cannot be forwarded over an existing connection will be dropped. Default is 0 which means no limit.
+      healthCheckMode=STRING                    -- The health-check mode to use: 'auto' which sends health-check queries every ``checkInterval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval`` and ``lazyHealthCheckMode`` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation.
+      lazyHealthCheckFailedInterval=NUM,         -- The interval, in seconds, between health-check queries in 'lazy' mode. Note that when ``lazyHealthCheckUseExponentialBackOff`` is set to true, the interval doubles between every queries. These queries are only sent when a threshold of failing regular queries has been reached, and until the backend is available again. Default is 30 seconds.
+      lazyHealthCheckMinSampleCount=NUM,         -- The minimum amount of regular queries that should have been recorded before the ``lazyHealthCheckThreshold`` threshold can be applied. Default is 1 which means only one query is needed.
+      lazyHealthCheckMode=STRING,                -- The 'lazy' health-check mode: 'TimeoutOnly' means that only timeout and I/O errors of regular queries will be considered for the ``lazyHealthCheckThreshold``, while 'TimeoutOrServFail' will also consider 'Server Failure' answers. Default is 'TimeoutOrServFail'.
+      lazyHealthCheckSampleSize=NUM,             -- The maximum size of the sample of queries to record and consider for the ``lazyHealthCheckThreshold``. Default is 100, which means the result (failure or success) of the last 100 queries will be considered.
+      lazyHealthCheckThreshold=NUM,              -- The threshold, as a percentage, of queries that should fail for the 'lazy' health-check to be triggered when ``healthCheckMode`` is set to ``lazy``. The default is 20 which means 20% of the last ``lazyHealthCheckSampleSize`` queries should fail for a health-check to be triggered.
+      lazyHealthCheckUseExponentialBackOff=BOOL, -- Whether the 'lazy' health-check should use an exponential back-off instead of a fixed value, between health-check probes. The default is false which means that after a backend has been moved to the 'down' state health-check probes are sent every ``lazyHealthCheckFailedInterval`` seconds. When set to true, the delay between each probe starts at ``lazyHealthCheckFailedInterval`` seconds and double between every probe, capped at ``lazyHealthCheckMaxBackOff`` seconds.
+      lazyHealthCheckMaxBackOff=NUM,             -- This value, in seconds, caps the time between two health-check queries when ``lazyHealthCheckUseExponentialBackOff`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries.
+      lazyHealthCheckWhenUpgraded=BOOL           -- Whether the auto-upgraded version of this backend (see ``autoUpgrade``) should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode.
     })
 
   :param str server_string: A simple IP:PORT string.
@@ -701,16 +735,26 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
+  .. method:: Server:setDown()
+
+    Set the server in a ``DOWN`` state.
+    The server will not receive queries and the health checks are disabled.
+
+  .. method:: Server:setLazyAuto([status])
+
+    .. versionadded:: 1.8.0
+
+    Set the server in the 'lazy' health-check mode.
+    This will enable health check queries, but only after a configurable threshold of failing regular queries has been reached and
+    only for a short time. See :ref:`Healthcheck` for a more detailed explanation.
+
+    :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
+
   .. method:: Server:setQPS(limit)
 
     Limit the queries per second for this server.
 
     :param int limit: The maximum number of queries per second
-
-  .. method:: Server:setDown()
-
-    Set the server in an ``DOWN`` state.
-    The server will not receive queries and the health checks are disabled
 
   .. method:: Server:setUp()
 
@@ -753,6 +797,12 @@ Servers that are not assigned to a specific pool get assigned to the default poo
   Returns a list of :class:`Server`\ s or nil.
 
   :param string name: The name of the pool
+
+.. function:: getPoolNames() -> [ table of names]
+
+  .. versionadded:: 1.8.0
+
+  Returns a table of all pool names
 
 .. function:: showPools()
 
@@ -839,8 +889,8 @@ See :doc:`../guides/cache` for a how to.
   * ``parseECS=false``: bool - Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default. Enabling this option is required for the 'zero scope' option to work
   * ``staleTTL=60``: int - When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned.
   * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..
-  * ``cookieHashing=false``: bool - Whether EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie.
-  * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will already be added to this list).
+  * ``cookieHashing=false``: bool - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie.
+  * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will be added to this list internally).
 
 .. class:: PacketCache
 
@@ -868,6 +918,22 @@ See :doc:`../guides/cache` for a how to.
     :param DNSName name: The name to expunge
     :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove all entries under ``name``
+
+  .. method:: PacketCache:getAddressListByDomain(domain)
+
+    .. versionadded:: 1.8.0
+
+    This method looks up the answers present in the cache for the supplied domain, and returns the list of addresses present in the answer section of these answers (in A records for IPv4 addresses, and AAAA records for IPv6 ones). The addresses are returned as a list of :class:`ComboAddress` objects.
+
+    :param DNSName domain: The domain to look for
+
+  .. method:: PacketCache:getDomainListByAddress(addr)
+
+    .. versionadded:: 1.8.0
+
+    Return a list of domains, as :class:`DNSName` objects, for which an answer is present in the cache and has a corresponding A record (for IPv4 addresses) or AAAA record (for IPv6 addresses) in the answer section.
+
+    :param ComboAddress addr: The address to look for
 
   .. method:: PacketCache:getStats()
 
@@ -987,8 +1053,27 @@ Status, Statistics and More
 
   .. versionadded:: 1.8.0
 
-  Return the list of network interfaces configured on the system, as strings
+  Return the list of network interfaces configured on the system, as strings.
   This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
+
+.. function:: getListOfRangesOfNetworkInterface(itf)
+
+  .. versionadded:: 1.8.0
+
+  Return the list of network ranges configured on a given network interface, as strings.
+  This function requires support for ``getifaddrs``, which is known to be present on FreeBSD, Linux, and OpenBSD at least.
+
+  :param str itf: The name of the network interface
+
+.. function:: getMACAddress(ip) -> str
+
+  .. versionadded:: 1.8.0
+
+  Return the link-level address (MAC) corresponding to the supplied neighbour IP address, if known by the kernel.
+  The link-level address is returned as a raw binary string. An empty string is returned if no matching entry has been found.
+  This function is only implemented on Linux.
+
+  :param str ip: The IP address, IPv4 or IPv6, to look up the corresponding link-level address for.
 
 .. function:: getOutgoingTLSSessionCacheSize()
 
@@ -1016,7 +1101,15 @@ Status, Statistics and More
 
   Return the cache-hit response rules that matched the most.
 
-  :param int top: How many response rules to return.
+  :param int top: How many response rules to return. Default is 10.
+
+.. function:: getTopCacheInsertedResponseRules([top])
+
+  .. versionadded:: 1.8.0
+
+  Return the cache-inserted response rules that matched the most.
+
+  :param int top: How many response rules to return. Default is 10.
 
 .. function:: getTopResponseRules([top])
 
@@ -1024,7 +1117,7 @@ Status, Statistics and More
 
   Return the response rules that matched the most.
 
-  :param int top: How many response rules to return.
+  :param int top: How many response rules to return. Default is 10.
 
 .. function:: getTopRules([top])
 
@@ -1032,7 +1125,7 @@ Status, Statistics and More
 
   Return the rules that matched the most.
 
-  :param int top: How many rules to return.
+  :param int top: How many rules to return. Default is 10.
 
 .. function:: getTopSelfAnsweredRules([top])
 
@@ -1040,7 +1133,7 @@ Status, Statistics and More
 
   Return the self-answered rules that matched the most.
 
-  :param int top: How many rules to return.
+  :param int top: How many rules to return. Default is 10.
 
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
@@ -1067,11 +1160,28 @@ Status, Statistics and More
 
   :param bool verbose: Set to true if you want to enable verbose logging
 
+.. function:: getVerbose()
+
+  .. versionadded:: 1.8.0
+
+  Get whether log messages issued at the verbose level should be logged. This is turned off by default.
+
 .. function:: setVerboseHealthChecks(verbose)
 
   Set whether health check errors should be logged. This is turned off by default.
 
   :param bool verbose: Set to true if you want to enable health check errors logging
+
+.. function:: setVerboseLogDestination(dest)
+
+  .. versionadded:: 1.8.0
+
+  Set a destination file to write the 'verbose' log messages to, instead of sending them to syslog and/or the standard output which is the default.
+  Note that these messages will no longer be sent to syslog or the standard output once this option has been set.
+  There is no rotation or file size limit.
+  Only use this feature for debugging under active operator control.
+
+  :param str dest: The destination file
 
 .. function:: showBinds()
 
@@ -1150,6 +1260,19 @@ Status, Statistics and More
   .. versionadded:: 1.6.0
 
   This function shows the cache-hit response rules that matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+
+.. function:: topCacheInsertedResponseRules([top [, options]])
+
+  .. versionadded:: 1.8.0
+
+  This function shows the cache-inserted response rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
@@ -1563,6 +1686,20 @@ If you are looking for exact name matching, your might want to consider using a 
     :param string name: The suffix to add to the set.
     :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
 
+  .. method:: SuffixMatchNode:check(name) -> bool
+
+    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
+
+    :param DNSName name: The name to test against the set.
+
+  .. method:: SuffixMatchNode:getBestMatch(name) -> DNSName
+
+    .. versionadded:: 1.8.0
+
+    Returns the best match for the supplied name, or nil if there was no match.
+
+    :param DNSName name: The name to look up.
+
   .. method:: SuffixMatchNode:remove(name)
 
     .. versionadded:: 1.5.0
@@ -1572,12 +1709,6 @@ If you are looking for exact name matching, your might want to consider using a 
     :param DNSName name: The suffix to remove from the set.
     :param string name: The suffix to remove from the set.
     :param table name: The suffixes to remove from the set. Elements of the table should be of the same type, either DNSName or string.
-
-  .. method:: SuffixMatchNode:check(name) -> bool
-
-    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
-
-    :param DNSName name: The name to test against the set.
 
 Outgoing TLS tickets cache management
 -------------------------------------
@@ -1612,6 +1743,22 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: getCurrentTime -> timespec
+
+  .. versionadded:: 1.8.0
+
+  Return the current time, in whole seconds and nanoseconds since epoch.
+
+  :returns: A timespec object, see :ref:`timespec`
+
+.. function:: getResolvers(path)
+
+  .. versionadded:: 1.8.0
+
+  This function can be used to get a Lua table of name servers from a file in the resolv.conf format.
+
+  :param str path: The path to the file, usually /etc/resolv.conf
+
 .. function:: maintenance()
 
   If this function exists, it is called every second to do regular tasks.
@@ -1619,13 +1766,13 @@ Other functions
 
 .. function:: threadmessage(cmd, dict)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   This function, if it exists, is called when a separate thread (made with :func:`newThread`) calls :func:`submitToMainThread`.
 
 .. function:: newThread(code)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
@@ -1633,7 +1780,7 @@ Other functions
 
 .. function:: submitToMainThread(cmd, dict)
 
-  .. versionadded:: 1.7.0
+  .. versionadded:: 1.8.0
 
   Must be called from a separate thread (made with :func:`newThread`), submits data to the main thread by calling :func:`threadmessage` in it.
   If no ``threadmessage`` receiver is present in the main thread, ``submitToMainThread`` logs an error but returns normally.
@@ -1690,6 +1837,12 @@ Other functions
   :param string outputFile: Path to a file where the resulting OCSP response will be written to.
   :param int numberOfDaysOfValidity: Number of days this OCSP response should be valid.
   :param int numberOfMinutesOfValidity: Number of minutes this OCSP response should be valid, in addition to the number of days.
+
+.. function:: getRingEntries()
+
+  .. versionadded:: 1.8.0
+
+  Return a list of all the entries, queries and responses alike, that are present in the in-memory ring buffers, as :class:`LuaRingEntry` objects.
 
 .. function:: loadTLSEngine(engineName [, defaultString])
 
@@ -1781,6 +1934,78 @@ DOHFrontend
   :param int status: The HTTP code to answer with.
   :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
   :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
+
+LuaRingEntry
+~~~~~~~~~~~~
+
+.. class:: LuaRingEntry
+
+  .. versionadded:: 1.8.0
+
+  This object represents an entry from the in-memory ring buffers, query or response.
+
+  .. attribute:: LuaRingEntry.backend
+
+    If this entry is a response, the backend from which it has been received as a :ref:`ComboAddress`.
+
+.. attribute:: LuaRingEntry.dnsheader
+
+    The :ref:`DNSHeader` of this entry.
+
+  .. attribute:: LuaRingEntry.isResponse
+
+    Whether this entry is a response (true) or a request (false).
+
+  .. attribute:: LuaRingEntry.macAddress
+
+    The MAC address of the client as a string, if available.
+
+  .. attribute:: LuaRingEntry.protocol
+
+    The protocol (Do53 UDP, Do53 TCP, DoT, DoH, ...) over which this entry was received, as a string.
+
+  .. attribute:: LuaRingEntry.qname
+
+    The qname of this entry as a :ref:`DNSName`.
+
+  .. attribute:: LuaRingEntry.qtype
+
+    The qtype of this entry as an integer.
+
+  .. attribute:: LuaRingEntry.requestor
+
+    The requestor (client IP) of this entry as a :ref:`ComboAddress`.
+
+  .. attribute:: LuaRingEntry.size
+
+    The size of the DNS payload of that entry, in bytes.
+
+.. attribute:: LuaRingEntry.usec
+
+    The response time (elapsed time between the request was received and the response sent) in milliseconds.
+
+.. attribute:: LuaRingEntry.when
+
+    The timestamp of this entry, as a :ref:`timespec`.
+
+.. _timespec:
+
+timespec
+~~~~~~~~
+
+.. class:: timespec
+
+  .. versionadded:: 1.8.0
+
+  This object represents a timestamp in the timespec format.
+
+  .. attribute:: timespec.tv_sec
+
+    Number of seconds elapsed since Unix epoch.
+
+  .. attribute:: timespec.tv_nsec
+
+    Number of remaining nanoseconds elapsed since Unix epoch after subtracting the seconds from the `tv_sec` field.
 
 TLSContext
 ~~~~~~~~~~

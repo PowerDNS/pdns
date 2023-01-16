@@ -118,6 +118,7 @@ struct DOHFrontend
   /* whether we require tue query path to exactly match one of configured ones,
      or accept everything below these paths. */
   bool d_exactPathMatching{true};
+  bool d_keepIncomingHeaders{false};
 
   time_t getTicketsKeyRotationDelay() const
   {
@@ -176,9 +177,19 @@ struct DOHFrontend
 #ifndef HAVE_DNS_OVER_HTTPS
 struct DOHUnit
 {
-  static void release(DOHUnit* ptr)
+  static void release(DOHUnit*)
   {
   }
+
+  void get()
+  {
+  }
+
+  void release()
+  {
+  }
+  size_t proxyProtocolPayloadSize{0};
+  uint16_t status_code{200};
 };
 
 #else /* HAVE_DNS_OVER_HTTPS */
@@ -191,10 +202,11 @@ struct DownstreamState;
 
 struct DOHUnit
 {
-  DOHUnit()
+  DOHUnit(PacketBuffer&& q, std::string&& p, std::string&& h): path(std::move(p)), host(std::move(h)), query(std::move(q))
   {
     ids.ednsAdded = false;
   }
+
   DOHUnit(const DOHUnit&) = delete;
   DOHUnit& operator=(const DOHUnit&) = delete;
 
@@ -221,16 +233,16 @@ struct DOHUnit
     }
   }
 
-  IDState ids;
+  InternalQueryState ids;
   std::string sni;
   std::string path;
   std::string scheme;
   std::string host;
   std::string contentType;
-  std::unordered_map<std::string, std::string> headers;
   PacketBuffer query;
   PacketBuffer response;
   std::shared_ptr<DownstreamState> downstream{nullptr};
+  std::unique_ptr<std::unordered_map<std::string, std::string>> headers;
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};
@@ -259,7 +271,7 @@ struct DOHUnit
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="");
 };
 
-void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, IDState&& state);
+void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, InternalQueryState&& state);
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
 

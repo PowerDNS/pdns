@@ -32,6 +32,7 @@
 #include "lock.hh"
 #include "stat_t.hh"
 #include "dnsdist-protocols.hh"
+#include "dnsdist-mac-address.hh"
 
 struct Rings {
   struct Query
@@ -45,7 +46,7 @@ struct Rings {
     // incoming protocol
     dnsdist::Protocol protocol;
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-    char macaddress[6];
+    dnsdist::MacAddress macaddress;
     bool hasmac{false};
 #endif
   };
@@ -82,6 +83,8 @@ struct Rings {
   void init();
 
   void setNumberOfLockRetries(size_t retries);
+  void setRecordQueries(bool);
+  void setRecordResponses(bool);
 
   size_t getNumberOfShards() const
   {
@@ -101,9 +104,9 @@ struct Rings {
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-    char macaddress[6];
+    dnsdist::MacAddress macaddress;
     bool hasmac{false};
-    if (getMACAddress(requestor, macaddress, sizeof(macaddress)) == 0) {
+    if (dnsdist::MacAddressesCache::get(requestor, macaddress.data(), macaddress.size()) == 0) {
       hasmac = true;
     }
 #endif
@@ -112,7 +115,7 @@ struct Rings {
       auto lock = shard->queryRing.try_lock();
       if (lock.owns_lock()) {
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, sizeof(macaddress), hasmac);
+        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, hasmac);
 #else
         insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
 #endif
@@ -130,7 +133,7 @@ struct Rings {
     auto& shard = getOneShard();
     auto lock = shard->queryRing.lock();
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, sizeof(macaddress), hasmac);
+    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol, macaddress, hasmac);
 #else
     insertQueryLocked(*lock, when, requestor, name, qtype, size, dh, protocol);
 #endif
@@ -186,6 +189,16 @@ struct Rings {
      only useful for debugging purposes */
   size_t loadFromFile(const std::string& filepath, const struct timespec& now);
 
+  bool shouldRecordQueries() const
+  {
+    return d_recordQueries;
+  }
+
+  bool shouldRecordResponses() const
+  {
+    return d_recordResponses;
+  }
+
   std::vector<std::unique_ptr<Shard> > d_shards;
   pdns::stat_t d_blockingQueryInserts;
   pdns::stat_t d_blockingResponseInserts;
@@ -204,7 +217,7 @@ private:
   }
 
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol, const char* macaddress, size_t maclen, const bool hasmac)
+  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol, const dnsdist::MacAddress& macaddress, const bool hasmac)
 #else
   void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
 #endif
@@ -213,9 +226,9 @@ private:
       d_nbQueryEntries++;
     }
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-    Rings::Query query{requestor, name, when, dh, size, qtype, protocol, "", hasmac};
+    Rings::Query query{requestor, name, when, dh, size, qtype, protocol, dnsdist::MacAddress{""}, hasmac};
     if (hasmac) {
-      memcpy(query.macaddress, macaddress, maclen);
+      memcpy(query.macaddress.data(), macaddress.data(), macaddress.size());
     }
     ring.push_back(std::move(query));
 #else
@@ -240,6 +253,8 @@ private:
   size_t d_numberOfShards;
   size_t d_nbLockTries = 5;
   bool d_keepLockingStats{false};
+  bool d_recordQueries{true};
+  bool d_recordResponses{true};
 };
 
 extern Rings g_rings;

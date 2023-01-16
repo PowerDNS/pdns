@@ -595,8 +595,7 @@ namespace cxx17
 
   namespace test_constexpr_lambdas
   {
-
-    constexpr int foo = [](){return 42;}();
+    [[maybe_unused]] constexpr int foo = [](){return 42;}();
 
   }
 

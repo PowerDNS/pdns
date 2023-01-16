@@ -48,7 +48,7 @@ PDNS_WITH_SERVICE_USER([dnsdist])
 
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r])
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r getrandom])
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
@@ -135,6 +135,9 @@ LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 CFLAGS="$SANITIZER_FLAGS $PIE_CFLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $PIE_CFLAGS $CXXFLAGS"
 
+CCVERSION=`$CC --version | head -1`
+CXXVERSION=`$CXX --version | head -1`
+
 PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 AC_SUBST([PROGRAM_LDFLAGS])
 
@@ -164,8 +167,8 @@ AS_IF([test "x$ac_configure_args" != "x"],
 )
 AC_MSG_NOTICE([dnsdist configured with: $summary_conf_opts])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([CC: $CC])
-AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([CC: $CC ($CCVERSION)])
+AC_MSG_NOTICE([CXX: $CXX ($CXXVERSION)])
 AC_MSG_NOTICE([LD: $LD])
 AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])

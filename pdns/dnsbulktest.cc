@@ -57,7 +57,7 @@ struct DNSResult
 {
   vector<ComboAddress> ips;
   int rcode;
-  bool seenauthsoa;
+  bool seenauthsoa{false};
 };
 
 struct TypedQuery
@@ -159,7 +159,7 @@ struct SendReceive
         if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
           dr.ips.push_back(ComboAddress(i->first.d_content->getZoneRepresentation()));
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
-          dr.seenauthsoa = 1;
+          dr.seenauthsoa = true;
         }
         if(!g_quiet)
         {

@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKey)
   DNSName algorithm;
   std::string content;
   BOOST_TEST_MESSAGE("Testing getTSIGKey method");
-  be->getTSIGKey(DNSName("unit.test."), &algorithm, &content);
+  be->getTSIGKey(DNSName("unit.test."), algorithm, content);
   BOOST_CHECK_EQUAL(algorithm.toString(), "hmac-md5.");
   BOOST_CHECK_EQUAL(content, "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=");
 }
@@ -255,7 +255,8 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
 
   be->getAllDomains(&result, true, true);
 
-  di = result[0];
+  BOOST_REQUIRE(!result.empty());
+  di = result.at(0);
   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);
@@ -370,12 +371,14 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
   DomainInfo di;
   BOOST_TEST_MESSAGE("Testing getUpdatedMasters method");
   vector<DomainInfo> result;
+  std::unordered_set<DNSName> catalogs;
+  CatalogHashMap hashes;
 
-  be->getUpdatedMasters(&result);
+  be->getUpdatedMasters(result, catalogs, hashes);
 
-  BOOST_CHECK(result.size() > 0);
+  BOOST_REQUIRE(result.size() > 0);
 
-  di = result[0];
+  di = result.at(0);
   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
   BOOST_CHECK_EQUAL(di.serial, 2);
   BOOST_CHECK_EQUAL(di.notified_serial, 2);

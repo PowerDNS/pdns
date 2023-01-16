@@ -27,7 +27,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <libgen.h>
-#include <errno.h>
+#include <cerrno>
 #include "iputils.hh"
 #include "pdnsexception.hh"
 

@@ -4,7 +4,7 @@ AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
 AM_SILENT_RULES([yes])
-AC_CONFIG_SRCDIR([pdns/receiver.cc])
+AC_CONFIG_SRCDIR([pdns/auth-main.cc])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_USE_SYSTEM_EXTENSIONS
@@ -164,6 +164,7 @@ AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_ENABLE_PKCS11
+PDNS_ENABLE_GSS_TSIG
 
 AC_SUBST([socketdir])
 socketdir="/var/run"
@@ -324,6 +325,9 @@ AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 CFLAGS="$SANITIZER_FLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
+CCVERSION=`$CC --version | head -1`
+CXXVERSION=`$CXX --version | head -1`
+
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
 AS_IF([test "x$PACKAGEVERSION" != "x"],
   [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
@@ -364,8 +368,8 @@ AC_MSG_NOTICE([=====================])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configured with: $pdns_configure_args])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([CC: $CC])
-AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([CC: $CC ($CCVERSION)])
+AC_MSG_NOTICE([CXX: $CXX ($CXXVERSION)])
 AC_MSG_NOTICE([LD: $LD])
 AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
@@ -414,6 +418,9 @@ AS_IF([test "x$LUAPC" != "x"],
 ])
 AS_IF([test "x$enable_experimental_pkcs11" = "xyes"],
   [AC_MSG_NOTICE([PKCS-11: yes])]
+)
+AS_IF([test "x$enable_experimental_gss_tsig" = "xyes"],
+  [AC_MSG_NOTICE([GSS-TSIG: yes])]
 )
 AS_IF([test "x$enable_lua_records" = "xyes"],
   [AC_MSG_NOTICE([LUA records: yes])]

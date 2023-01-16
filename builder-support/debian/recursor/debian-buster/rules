@@ -38,7 +38,7 @@ override_dh_auto_configure:
 		--with-libsodium \
 		--enable-dns-over-tls \
 		--enable-dnstap \
-		--without-net-snmp \
+		--with-net-snmp \
 		--disable-silent-rules \
 		--with-service-user=pdns \
 		--with-service-group=pdns \
@@ -75,3 +75,6 @@ override_dh_fixperms:
 	dh_fixperms
 # these files often contain passwords. 640 as it is chowned to root:pdns
 	chmod 0640 debian/pdns-recursor/etc/powerdns/recursor.conf
+
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
