@@ -473,7 +473,7 @@ static void addRecordToRRSet(time_t now, const DNSName& owner, const QType& type
       *std::get<Logger*>(log->v) << Logger::Warning << log->prefix << x; \
     }                                                                   \
     else if (std::holds_alternative<ostringstream*>(log->v)) {          \
-      *std::get<ostringstream*>(log->v) << x;                          \
+      *std::get<ostringstream*>(log->v) << x << log->prefix;            \
     }                                                                   \
   }
 
