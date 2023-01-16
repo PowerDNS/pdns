@@ -422,7 +422,6 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       eo.source = *srcmask;
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
-      //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
       opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
       weWantEDNSSubnet = true;
     }
@@ -472,7 +471,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       t_Counters.at(rec::Counter::ipv6queries)++;
     }
 
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, weWantEDNSSubnet, &queryfd);
 
     if (ret != LWResult::Result::Success) {
       return ret;
@@ -595,7 +594,6 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
             if (getEDNSSubnetOptsFromString(opt.second, &reso)) {
-              //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
               /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                  so we might want to still pass the information along to be able to differentiate between
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
