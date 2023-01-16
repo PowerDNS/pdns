@@ -23,6 +23,7 @@
 
 #include <boost/multi_index_container.hpp>
 
+#include <cmath>
 #include "dnsname.hh"
 #include "lock.hh"
 
