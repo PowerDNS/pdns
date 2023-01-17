@@ -120,5 +120,3 @@ html-docs:
 	@echo "You need Python 3 and the 'venv' module to generate the HTML docs"
 	exit 1
 endif
-
-
