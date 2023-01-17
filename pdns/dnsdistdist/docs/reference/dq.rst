@@ -227,7 +227,17 @@ This state can be modified from the various hooks.
 
     .. versionadded:: 1.8.0
 
-    Replace the DNS payload of the query with the supplied data, and adjusts the ID in the DNS header to the existing query.
+    Replace the whole DNS payload of the query with the supplied data. The new DNS payload must include the DNS header, whose ID will be adjusted to match the one of the existing query.
+    For example, this replaces the whole DNS payload of queries for custom.async.tests.powerdns.com and type A, turning it them into ``FORMERR`` responses, including EDNS with the ``DNSSECOK`` bit set and a UDP payload size of 1232:
+
+    .. code-block:: Lua
+
+      function replaceQueryPayload(dq)
+        local raw = '\000\000\128\129\000\001\000\000\000\000\000\001\006custom\005async\005tests\008powerdns\003com\000\000\001\000\001\000\000\041\002\000\000\000\128\000\000\\000'
+        dq:setContent(raw)
+        return DNSAction.Allow
+      end
+      addAction(AndRule({QTypeRule(DNSQType.A), makeRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
 
     :param string data: The raw DNS payload
 
