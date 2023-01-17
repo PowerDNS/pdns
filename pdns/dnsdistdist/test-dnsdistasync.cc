@@ -84,7 +84,8 @@ BOOST_AUTO_TEST_CASE(test_Basic)
     struct timeval ttd;
     gettimeofday(&ttd, nullptr);
     // timeout in 100 ms
-    ttd.tv_usec += 100000;
+    const timeval sub{0, 100000};
+    timersub(&ttd, &sub, &ttd);
 
     holder->push(asyncID, queryID, ttd, std::make_unique<DummyCrossProtocolQuery>());
     BOOST_CHECK(!holder->empty());
