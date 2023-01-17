@@ -165,6 +165,7 @@ public:
   {
     s_lm = lm;
   }
+
   OptLog LogObject(const string& prefix);
 
   static uint64_t doEDNSDump(int fd);

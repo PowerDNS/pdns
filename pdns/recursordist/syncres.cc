@@ -479,14 +479,14 @@ bool SyncRes::s_addExtendedResolutionDNSErrors;
 
 OptLog SyncRes::LogObject(const string& prefix)
 {
-    OptLog ret;
-    if (d_lm == Log) {
-      ret = {prefix, &g_log};
-    }
-    else if(d_lm == Store) {
-      ret = {prefix, &d_trace};
-    }
-    return ret;
+  OptLog ret;
+  if (d_lm == Log) {
+    ret = {prefix, &g_log};
+  }
+  else if(d_lm == Store) {
+    ret = {prefix, &d_trace};
+  }
+  return ret;
 }
 
 // A helper function to print a double with specific printf format.
