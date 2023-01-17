@@ -469,12 +469,12 @@ bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
 
-#define LOG(x)                                  \
-  if (d_lm == Log) {                            \
-    g_log << Logger::Warning << x;              \
-  }                                             \
-  else if (d_lm == Store) {                     \
-    d_trace << x;                               \
+#define LOG(x)                     \
+  if (d_lm == Log) {               \
+    g_log << Logger::Warning << x; \
+  }                                \
+  else if (d_lm == Store) {        \
+    d_trace << x;                  \
   }
 
 OptLog SyncRes::LogObject(const string& prefix)
@@ -483,7 +483,7 @@ OptLog SyncRes::LogObject(const string& prefix)
   if (d_lm == Log) {
     ret = {prefix, &g_log};
   }
-  else if(d_lm == Store) {
+  else if (d_lm == Store) {
     ret = {prefix, &d_trace};
   }
   return ret;
