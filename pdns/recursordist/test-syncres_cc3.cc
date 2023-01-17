@@ -762,7 +762,10 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord)
   ad.d_servers.push_back(forwardedNS);
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
-  sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    ++queriesCount;
     if (ip == forwardedNS) {
       BOOST_CHECK_EQUAL(sendRDQuery, false);
 
@@ -774,13 +777,33 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord)
     return LWResult::Result::Timeout;
   });
 
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
   /* simulate a no-RD query */
   sr->setCacheOnly();
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
+
+  /* simulate a RD query */
+  sr->setCacheOnly(false);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  /* simulate a no-RD query */
+  sr->setCacheOnly();
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_rd)
@@ -849,9 +872,12 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord)
   ad.d_servers.push_back(forwardedNS);
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
-  sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    ++queriesCount;
     if (ip == forwardedNS) {
-      BOOST_CHECK_EQUAL(sendRDQuery, false);
+      BOOST_CHECK_EQUAL(sendRDQuery, true);
 
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, domain, QType::A, "192.0.2.42");
@@ -861,13 +887,33 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord)
     return LWResult::Result::Timeout;
   });
 
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
   /* simulate a no-RD query */
   sr->setCacheOnly();
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
+
+  /* simulate a RD query */
+  sr->setCacheOnly(false);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  /* simulate a no-RD query */
+  sr->setCacheOnly();
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd)

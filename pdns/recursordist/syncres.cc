@@ -1655,8 +1655,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   bool fromCache = false;
   // For cache peeking, we tell doResolveNoQNameMinimization not to consider the (non-recursive) forward case.
   // Otherwise all queries in a forward domain will be forwarded, while we want to consult the cache.
-  // The out-of-band cases for doResolveNoQNameMinimization() should be reconsidered and redone some day.
-  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, context, &fromCache, nullptr, false);
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, context, &fromCache, nullptr);
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
@@ -1805,7 +1804,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache, StopAtDelegation* stopAtDelegation, bool considerforwards)
+int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache, StopAtDelegation* stopAtDelegation)
 {
   string prefix;
   if (doLog()) {
@@ -1815,7 +1814,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
 
   LOG(prefix << qname << ": Wants " << (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, " << (d_requireAuthData ? "" : "NO ") << "auth data in query for " << qtype << endl);
 
-  if (s_maxdepth && depth > s_maxdepth) {
+  if (s_maxdepth > 0 && depth > s_maxdepth) {
     string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
     LOG(prefix << qname << ": " << msg << endl);
     throw ImmediateServFailException(msg);
@@ -1835,63 +1834,34 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
     try {
       // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
       if (!(d_updatingRootNS && qtype.getCode() == QType::NS && qname.isRoot())) {
-        if (d_cacheonly) { // very limited OOB support
-          LWResult lwr;
-          LOG(prefix << qname << ": cache only lookup for '" << qname << "|" << qtype << "', first peeking at auth/forward zones" << endl);
-          DNSName authname(qname);
-          domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+        DNSName authname(qname);
+        const auto iter = getBestAuthZone(&authname);
+
+        if (d_cacheonly) {
           if (iter != t_sstorage.domainmap->end()) {
             if (iter->second.isAuth()) {
+              LOG(prefix << qname << ": cache only lookup for '" << qname << "|" << qtype << "', in auth zone" << endl);
               ret.clear();
               d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, res);
-              if (fromCache)
+              if (fromCache != nullptr) {
                 *fromCache = d_wasOutOfBand;
+              }
               return res;
-            }
-            else if (considerforwards) {
-              const vector<ComboAddress>& servers = iter->second.d_servers;
-              const ComboAddress remoteIP = servers.front();
-              LOG(prefix << qname << ": forwarding query to hardcoded nameserver '" << remoteIP.toStringWithPort() << "' for zone '" << authname << "'" << endl);
-
-              boost::optional<Netmask> nm;
-              bool chained = false;
-              // forwardes are "anonymous", so plug in an empty name; some day we might have a fancier config language...
-              auto resolveRet = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained, DNSName());
-
-              d_totUsec += lwr.d_usec;
-              accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-              ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
-              if (fromCache)
-                *fromCache = true;
-
-              // filter out the good stuff from lwr.result()
-              if (resolveRet == LWResult::Result::Success) {
-                for (const auto& rec : lwr.d_records) {
-                  if (rec.d_place == DNSResourceRecord::ANSWER)
-                    ret.push_back(rec);
-                }
-                return 0;
-              }
-              else {
-                return RCode::ServFail;
-              }
             }
           }
         }
 
-        DNSName authname(qname);
         bool wasForwardedOrAuthZone = false;
         bool wasAuthZone = false;
         bool wasForwardRecurse = false;
-        domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+
         if (iter != t_sstorage.domainmap->end()) {
-          const auto& domain = iter->second;
           wasForwardedOrAuthZone = true;
 
-          if (domain.isAuth()) {
+          if (iter->second.isAuth()) {
             wasAuthZone = true;
           }
-          else if (domain.shouldRecurse()) {
+          else if (iter->second.shouldRecurse()) {
             wasForwardRecurse = true;
           }
         }
