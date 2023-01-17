@@ -208,7 +208,6 @@ void initSR(bool debug)
   g_luaconfs.setState(luaconfsCopy);
 
   g_dnssecmode = DNSSECMode::Off;
-  g_dnssecLOG = debug;
   g_maxNSEC3Iterations = 2500;
 
   g_aggressiveNSECCache.reset();

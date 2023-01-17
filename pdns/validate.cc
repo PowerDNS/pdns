@@ -5,12 +5,13 @@
 #include "rec-lua-conf.hh"
 #include "base32.hh"
 #include "logger.hh"
-bool g_dnssecLOG{false};
+
 time_t g_signatureInceptionSkew{0};
 uint16_t g_maxNSEC3Iterations{0};
 
 #ifndef RECURSOR
-#define LOG(x) if(g_dnssecLOG) { g_log <<Logger::Warning << x; }
+// Originally there was a flag but is was never set from !RECURSOR
+#define LOG(x) if (false) g_log <<Logger::Warning << x
 #else
 #define LOG(x)                                                          \
   if (log) {                                                            \

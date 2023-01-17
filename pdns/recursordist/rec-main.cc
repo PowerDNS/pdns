@@ -1498,7 +1498,6 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
     SyncRes::setDefaultLogMode(SyncRes::Log);
     ::arg().set("quiet") = "no";
     g_quiet = false;
-    g_dnssecLOG = true;
   }
   auto myHostname = getHostname();
   if (!myHostname.has_value()) {
