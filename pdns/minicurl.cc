@@ -51,7 +51,7 @@ MiniCurl::MiniCurl(const string& useragent)
 
 MiniCurl::~MiniCurl()
 {
-  // NEEDS TO CLEAN HOSTLIST
+  clearHostlist();
   curl_easy_cleanup(d_curl);
 }
 
@@ -78,7 +78,8 @@ static string extractHostFromURL(const std::string& url)
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify)
 {
   if(rem) {
-    struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
+    clearHostlist();
+    struct curl_slist *hostlist = nullptr;
 
     // url = http://hostname.enzo/url
     string host4=extractHostFromURL(str);
@@ -98,7 +99,8 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
       hostlist = curl_slist_append(hostlist, hcode.c_str());
     }
 
-    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
+    d_host_list = hostlist;
+    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, d_host_list);
   }
   if(src) {
     curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
@@ -166,6 +168,15 @@ void MiniCurl::clearHeaders()
       curl_slist_free_all(d_header_list);
       d_header_list = nullptr;
     }
+  }
+}
+
+void MiniCurl::clearHostlist()
+{
+  if (d_curl && d_host_list) {
+    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, NULL);
+    curl_slist_free_all(d_host_list);
+    d_host_list = nullptr;
   }
 }
 
