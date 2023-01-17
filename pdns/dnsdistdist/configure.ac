@@ -119,6 +119,8 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
+PDNS_INIT_AUTO_VARS
+
 PDNS_ENABLE_SANITIZERS
 
 PDNS_CHECK_PYTHON_VENV
