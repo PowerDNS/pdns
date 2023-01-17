@@ -1360,7 +1360,7 @@ public:
       dq->ecs = std::make_unique<Netmask>(dq->ids.origRemote.isIPv4() ? d_v4 : d_v6);
     }
     else {
-      dq->ecs = std::make_unique<Netmask>(d_v4);;
+      dq->ecs = std::make_unique<Netmask>(d_v4);
     }
 
     return Action::None;

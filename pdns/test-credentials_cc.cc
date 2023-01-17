@@ -44,6 +44,13 @@ BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
     BOOST_CHECK(verifyPassword(customParams, plaintext));
   }
 
+  {
+    // hash password with invalid parameters
+    BOOST_CHECK_THROW(hashPassword(plaintext, 0, 2, 16), std::runtime_error);
+    BOOST_CHECK_THROW(hashPassword(plaintext, 512, 0, 16), std::runtime_error);
+    BOOST_CHECK_THROW(hashPassword(plaintext, 512, 2, 0), std::runtime_error);
+  }
+
   // empty
   BOOST_CHECK(!isPasswordHashed(""));
   // missing leading $
@@ -79,6 +86,12 @@ BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
   BOOST_CHECK_THROW(verifyPassword("$scrypt$ln=A,p=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
   // invalid p
   BOOST_CHECK_THROW(verifyPassword("$scrypt$ln=10,p=p,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
+  // missing ln
+  BOOST_CHECK_THROW(verifyPassword("$scrypt$la=10,p=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
+  // missing p
+  BOOST_CHECK_THROW(verifyPassword("$scrypt$ln=10,q=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
+  // missing r
+  BOOST_CHECK_THROW(verifyPassword("$scrypt$l,ln=10,q=1,s=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
   // work factor is too large
   BOOST_CHECK_THROW(verifyPassword("$scrypt$ln=16,p=1,r=8$1GZ10YdmSGtTmKK9jTH85Q==$JHeICW1mUCnTC+nnULDr7QFQ3kRrZ7u12djruJdrPhI=", plaintext), std::runtime_error);
   // salt is too long
@@ -119,6 +132,21 @@ BOOST_AUTO_TEST_CASE(test_CredentialsHolder)
 #else
   BOOST_CHECK(!CredentialsHolder::isHashingAvailable());
 #endif
+}
+
+BOOST_AUTO_TEST_CASE(test_SensitiveData)
+{
+  size_t bytes = 16;
+  SensitiveData data(bytes);
+  BOOST_CHECK_EQUAL(data.getString().size(), bytes);
+
+  SensitiveData data2("test");
+  data2 = std::move(data);
+  BOOST_CHECK_EQUAL(data2.getString().size(), bytes);
+  BOOST_CHECK_EQUAL(data.getString().size(), 0U);
+
+  data2.clear();
+  BOOST_CHECK_EQUAL(data2.getString().size(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
