@@ -398,7 +398,8 @@ DNSResponse object
 
     .. versionadded:: 1.8.0
 
-    Discard the received response and restart the processing of the query, for example after selecting a different pool of servers:
+    Discard the received response and restart the processing of the query. For this function to be usable, the query should have been made restartable first, via :func:`DNSQuestion:setRestartable`.
+    For example, to restart the processing after selecting a different pool of servers:
 
     .. code-block:: Lua
 
@@ -420,8 +421,6 @@ DNSResponse object
       end
       addAction(AllRule(), LuaAction(makeQueryRestartable))
       addResponseAction(AllRule(), LuaResponseAction(restartOnServFail))
-
-    For this function to be usable, the query should have been made restartable first, via :func:`DNSQuestion:setRestartable`.
 
 .. _DNSHeader:
 
