@@ -90,7 +90,7 @@ uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t*
     return 0;
   }
 
-  return dq->dq->ids.queryRealTime.udiff();
+  return static_cast<uint64_t>(std::round(dq->dq->ids.queryRealTime.udiff()));
 }
 
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
