@@ -64,7 +64,7 @@ rec_bulk_deps = [
     'libsystemd0',
     'moreutils',
     'pdns-tools',
-    'unzip'
+    'unzip',
 ]
 dnsdist_build_deps = [
     'libcap-dev',
@@ -114,7 +114,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'softhsm2',
     'unbound-host',
     'unixodbc',
-    'wget'
+    'wget',
 ]
 
 @task
