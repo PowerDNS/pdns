@@ -169,7 +169,7 @@ Logger& getLogger();
 
 // The types below are used by rec, which can log to g_log (general logging) or a string stream
 // (trace-regexp). We feed an OptLog object to the code that should not know anything about this
-// That code shold then log using VLOG
+// That code should then log using VLOG
 
 struct LogVariant
 {
@@ -182,7 +182,7 @@ using OptLog = std::optional<LogVariant>;
 
 #ifndef RECURSOR
 // Originally there was a flag but is was never set from !RECURSOR
-#define VLOG(log, x) #error VLOG only works in recursor
+#define VLOG(log, x) VLOG only works in recursor
 #else
 #define VLOG(log, x)                                                       \
   if (log) {                                                               \
