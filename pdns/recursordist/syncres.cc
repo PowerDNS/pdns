@@ -3716,7 +3716,7 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool wouldBeValid, bool
 
       bool foundCut = false;
       dsmap_t results;
-      vState dsState = getDSRecords(ds, results, false, depth, d_prefix, false, &foundCut);
+      vState dsState = getDSRecords(ds, results, false, depth, prefix, false, &foundCut);
 
       if (foundCut) {
         LOG(prefix << ": - Found cut at " << ds << endl);
@@ -3764,7 +3764,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   DNSName signer = getSigner(signatures);
 
   if (!signer.empty() && zone.isPartOf(signer)) {
-    vState state = getDSRecords(signer, ds, false, depth, d_prefix);
+    vState state = getDSRecords(signer, ds, false, depth, prefix);
 
     if (state != vState::Secure) {
       return state;
@@ -3799,7 +3799,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
 
   LOG(prefix << ": trying to validate " << std::to_string(tentativeKeys.size()) << " DNSKEYs with " << std::to_string(ds.size()) << " DS" << endl);
   skeyset_t validatedKeys;
-  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys, LogObject(d_prefix));
+  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys, LogObject(prefix));
 
   LOG(prefix << ": we now have " << std::to_string(validatedKeys.size()) << " DNSKEYs" << endl);
 
@@ -3910,7 +3910,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
              In that case let's see if the DS does exist, and if it does let's go Bogus
           */
           dsmap_t results;
-          vState dsState = getDSRecords(signer, results, false, depth, d_prefix, true);
+          vState dsState = getDSRecords(signer, results, false, depth, prefix, true);
           if (vStateIsBogus(dsState) || dsState == vState::Insecure) {
             state = dsState;
             if (vStateIsBogus(dsState)) {
@@ -3965,7 +3965,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
   }
 
   LOG(prefix << "Going to validate " << recordcontents.size() << " record contents with " << signatures.size() << " sigs and " << keys.size() << " keys for " << name << "|" << type.toString() << endl);
-  vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, LogObject(d_prefix), false);
+  vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, LogObject(prefix), false);
   if (state == vState::Secure) {
     LOG(prefix << "Secure!" << endl);
     return vState::Secure;
