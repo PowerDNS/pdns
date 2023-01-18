@@ -2,6 +2,16 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.1
+  :released: 20th of January 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12442
+
+    Avoid unbounded recursion when retrieving DS records from some misconfigured domains. CVE-2023-22617.
+
+.. changelog::
   :version: 4.8.0
   :released: 12th of December 2022
 
