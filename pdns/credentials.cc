@@ -62,6 +62,7 @@ uint64_t const CredentialsHolder::s_defaultBlockSize{8U}; /* r */
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
+  data.clear();
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(d_data.data(), d_data.size());
 #endif
@@ -70,6 +71,7 @@ SensitiveData::SensitiveData(std::string&& data) :
 SensitiveData& SensitiveData::operator=(SensitiveData&& rhs)
 {
   d_data = std::move(rhs.d_data);
+  rhs.clear();
   return *this;
 }
 
