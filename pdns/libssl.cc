@@ -806,6 +806,11 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
+  if (!ctx) {
+    ERR_print_errors_fp(stderr);
+    throw std::runtime_error("Error creating an OpenSSL server context");
+  }
+
   int sslOptions =
     SSL_OP_NO_SSLv2 |
     SSL_OP_NO_SSLv3 |
