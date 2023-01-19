@@ -134,7 +134,7 @@ To set the directory where the unit files should be installed, use ``--with-syst
    If you want systemd support, you will need to install the corresponding development package. On Debian and Ubuntu, this means `apt install libsystemd-dev`.
 
 Documentation
-=============
+-------------
 After compiling, run `pdns\_recursor --config` to view the configuration options
 and a short description. The full documentation is online at
 https://doc.powerdns.com/recursor/
