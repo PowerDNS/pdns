@@ -1,0 +1,2 @@
+#!/bin/sh
+dnsperf -T 3 -d ${testsdir}/nxdomain/queries -D -n 100000 -p $port -s $nameserver >&2

@@ -37,6 +37,6 @@
 		--retrieval-threads=1  --config-name=bind-slave \
 		--dnsupdate=yes \
 		--cache-ttl=$cachettl --no-config --dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 \
-		--module-dir=./modules &
+		--module-dir=./modules $lua_prequery &
 	echo 'waiting for zones to be loaded'
 	bindwait bind-slave
