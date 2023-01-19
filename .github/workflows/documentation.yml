@@ -3,7 +3,7 @@ name: 'Documentation'
 
 on:
   push:
-    branches: [master]
+    branches: [master, gh-actions-docs-test]
   pull_request:
     branches: [master]
 
@@ -20,7 +20,7 @@ jobs:
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade  # this runs apt update
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
 
       - id: setup-ssh
         run: |-
@@ -29,7 +29,8 @@ jobs:
         env:
           SSH_KEY: ${{secrets.WEB1_DOCS_SECRET}}
           HOST_KEY: ${{vars.WEB1_HOSTKEY}}
-        if: ${{github.ref_name == 'master' && env.SSH_KEY != ''}}
+        # if: ${{github.ref_name == 'master' && env.SSH_KEY != ''}}
+        if: ${{env.SSH_KEY != ''}}
 
       # Auth
       - run: inv ci-docs-build
@@ -40,10 +41,10 @@ jobs:
           name: authoritative-html-docs
           path: ./docs/_build/html-docs
       - run: tar cjf html-docs.tar.bz2 html-docs
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
         working-directory: ./docs/_build
       - run: inv ci-docs-build-pdf
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
       - uses: actions/upload-artifact@v3
         with:
           name: PowerDNS-Authoritative.pdf
@@ -53,7 +54,8 @@ jobs:
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
           AUTH_DOCS_DIR: $ {{vars.AUTH_DOCS_DIR}}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        # if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        if: ${{steps.setup-ssh.outputs.have_ssh_key != ''}}
 
       # Rec
       - run: inv ci-docs-build
@@ -65,10 +67,10 @@ jobs:
           name: recursor-html-docs
           path: ./pdns/recursordist/docs/_build/html-docs
       - run: tar cjf html-docs.tar.bz2 html-docs
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
         working-directory: ./pdns/recursordist/docs/_build
       - run: inv ci-docs-build-pdf
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
         working-directory: ./pdns/recursordist
       - uses: actions/upload-artifact@v3
         with:
@@ -79,7 +81,8 @@ jobs:
         env:
           DOCS_HOST: ${{ vars.DOCS_HOST }}
           REC_DOCS_DIR: $ {{ vars.REC_DOCS_DIR }}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        # if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        if: ${{steps.setup-ssh.outputs.have_ssh_key != ''}}
         working-directory: ./pdns/recursordist
 
       # DNSdist
@@ -92,10 +95,10 @@ jobs:
           name: dnsdist-html-docs
           path: ./pdns/dnsdistdist/docs/_build/html-docs
       - run: tar cjf html-docs.tar.bz2 html-docs
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
         working-directory: ./pdns/dnsdistdist/docs/_build
       - run: inv ci-docs-build-pdf
-        if: ${{github.ref_name == 'master'}}
+        # if: ${{github.ref_name == 'master'}}
         working-directory: ./pdns/dnsdistdist
       - uses: actions/upload-artifact@v3
         with:
@@ -105,5 +108,6 @@ jobs:
       - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org"
         env:
           DOCS_HOST: ${{ vars.DOCS_HOST }}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        # if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        if: ${{steps.setup-ssh.outputs.have_ssh_key != ''}}
         working-directory: ./pdns/dnsdistdist
