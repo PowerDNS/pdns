@@ -145,9 +145,7 @@ vector<string> CDB::findall(string &key)
     throw std::runtime_error("Error looking up key '" + key + "' from CDB database: " + std::to_string(res));
   }
 
-  int x=0;
   while(cdb_findnext(&cdbf) > 0) {
-    x++;
     unsigned int vpos = cdb_datapos(&d_cdb);
     unsigned int vlen = cdb_datalen(&d_cdb);
     std::string val;
