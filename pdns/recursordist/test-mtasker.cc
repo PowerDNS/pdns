@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(test_Simple)
 }
 
 static const size_t stackSize = 8 * 1024;
-static const size_t headroom = 256; // Decrease to hit stackoverflow
+static const size_t headroom = 512; // Decrease to hit stackoverflow
 
 static void doAlmostStackoverflow(void* arg)
 {
