@@ -64,7 +64,7 @@ rec_bulk_deps = [
     'libsystemd0',
     'moreutils',
     'pdns-tools',
-    'unzip'
+    'unzip',
 ]
 dnsdist_build_deps = [
     'libcap-dev',
@@ -114,7 +114,31 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'softhsm2',
     'unbound-host',
     'unixodbc',
-    'wget'
+    'wget',
+]
+doc_deps = [
+    'autoconf',
+    'automake',
+    'bison',
+    'curl',
+    'flex',
+    'g++',
+    'git',
+    'latexmk',
+    'libboost-all-dev',
+    'libedit-dev',
+    'libluajit-5.1-dev',
+    'libssl-dev',
+    'make',
+    'pkg-config',
+    'python3-venv',
+    'ragel',
+    'rsync',
+]
+doc_deps_pdf = [
+    'texlive-binaries',
+    'texlive-formats-extra',
+    'texlive-latex-extra',
 ]
 
 @task
@@ -149,6 +173,14 @@ def install_libdecaf(c, product):
         c.run('sudo make -C build install')
     c.sudo(f'mkdir -p /opt/{product}/libdecaf')
     c.sudo(f'cp /usr/local/lib/libdecaf.so* /opt/{product}/libdecaf/.')
+
+@task
+def install_doc_deps(c):
+    c.sudo('apt-get install -qq -y ' + ' '.join(doc_deps))
+
+@task
+def install_doc_deps_pdf(c):
+    c.sudo('apt-get install -qq -y ' + ' '.join(doc_deps_pdf))
 
 @task
 def install_auth_build_deps(c):
@@ -253,6 +285,27 @@ def install_dnsdist_build_deps(c):
 @task
 def ci_autoconf(c):
     c.run('BUILDER_VERSION=0.0.0-git1 autoreconf -vfi')
+
+@task
+def ci_docs_build(c):
+    c.run('make -f Makefile.sphinx -C docs html')
+
+@task
+def ci_docs_build_pdf(c):
+    c.run('make -f Makefile.sphinx -C docs latexpdf')
+
+@task
+def ci_docs_upload_master(c, docs_host, pdf, username, directory=""):
+    c.run(f"rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/html-docs/ {username}@{docs_host}:{directory}")
+    c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/html-docs.tar.bz2 {username}@{docs_host}:{directory}")
+    c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/latex/{pdf} {username}@{docs_host}:{directory}")
+
+@task
+def ci_docs_add_ssh(c, ssh_key, host_key):
+    c.run('mkdir -m 700 -p ~/.ssh')
+    c.run(f'echo "{ssh_key}" > ~/.ssh/id_ed25519')
+    c.run('chmod 600 ~/.ssh/id_ed25519')
+    c.run(f'echo "{host_key}" > ~/.ssh/known_hosts')
 
 @task
 def ci_auth_configure(c):
