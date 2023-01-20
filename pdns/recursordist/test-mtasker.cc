@@ -47,7 +47,7 @@ static const size_t headroom = 256; // Decrease to hit stackoverflow
 static void doAlmostStackoverflow(void* arg)
 {
   auto* mt = reinterpret_cast<MTasker<>*>(arg);
-  int localvar[stackSize / sizeof(int) - headroom]; // expermimentally derived headroom
+  int localvar[stackSize / sizeof(int) - headroom]; // experimentally derived headroom
   localvar[0] = 0;
   localvar[sizeof(localvar) / sizeof(localvar[0]) - 1] = 12;
   if (mt->waitEvent(localvar[sizeof(localvar) / sizeof(localvar[0]) - 1], &localvar[0]) == 1) {
