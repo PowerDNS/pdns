@@ -111,18 +111,18 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
 #endif
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters);
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, TLSErrorCounters* counters);
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, LibsslTLSVersion version);
 
 /* return the created context, and a list of warning messages for issues not severe enough
    to trigger raising an exception, like failing to load an OCSP response file */
-std::pair<std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
+std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
                                                                                                             std::map<int, std::string>& ocspResponses);
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
+std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile);
 
 /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
 void libssl_set_npn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg);
