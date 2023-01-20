@@ -314,23 +314,6 @@ getfd(int s)
   return FDWrapper(fd);
 }
 
-static uint64_t dumpNegCache(int fd)
-{
-  int newfd = dup(fd);
-  if (newfd == -1) {
-    return 0;
-  }
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
-  if (!fp) {
-    return 0;
-  }
-  fprintf(fp.get(), "; negcache dump follows\n;\n");
-
-  struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
-  return g_negCache->dumpToFile(fp.get(), now);
-}
-
 static uint64_t dumpAggressiveNSECCache(int fd)
 {
   if (!g_aggressiveNSECCache) {
@@ -434,7 +417,7 @@ static RecursorControlChannel::Answer doDumpCache(int s)
   uint64_t total = 0;
   try {
     int fd = fdw;
-    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([fd] { return pleaseDump(fd); }) + dumpAggressiveNSECCache(fd);
+    total = g_recCache->doDump(fd, g_maxCacheEntries.load()) + g_negCache->doDump(fd, g_maxCacheEntries.load() / 8) + broadcastAccFunction<uint64_t>([fd] { return pleaseDump(fd); }) + dumpAggressiveNSECCache(fd);
   }
   catch (...) {
   }

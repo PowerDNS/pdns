@@ -518,10 +518,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   records.clear();
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
-  /* the one for power2 having been inserted
-     more recently should be removed last */
-  /* we ask that only entry remains in the cache */
-  MRC.doPrune(1);
+  /* the one for power2 having been inserted more recently should be removed last */
+  /* we ask that 10 entries remain in the cache, this is larger than
+     the cache size (2), so 1 entry will be looked at as the code
+     rounds up the 10% of entries per shard to look at */
+  MRC.doPrune(10);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power2, but to get it
@@ -551,8 +552,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* power2 should have been moved to the front of the expunge
      queue, and should this time be removed first */
-  /* we ask that only entry remains in the cache */
-  MRC.doPrune(1);
+  /* we ask that 10 entries remain in the cache, this is larger than
+     the cache size (2), so 1 entry will be looked at as the code
+     rounds up the 10% of entries per shard to look at */
+  MRC.doPrune(10);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1, but to get it

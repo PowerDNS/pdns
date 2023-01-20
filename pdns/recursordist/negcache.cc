@@ -31,7 +31,7 @@
 uint16_t NegCache::s_maxServedStaleExtensions;
 
 NegCache::NegCache(size_t mapsCount) :
-  d_maps(mapsCount)
+  d_maps(mapsCount == 0 ? 1 : mapsCount)
 {
 }
 
@@ -266,30 +266,53 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::dumpToFile(FILE* fp, const struct timeval& now)
+size_t NegCache::doDump(int fd, size_t maxCacheEntries)
 {
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
+  fprintf(fp.get(), "; negcache dump follows\n;\n");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, nullptr);
+
   size_t ret = 0;
 
+  size_t shard = 0;
+  size_t min = std::numeric_limits<size_t>::max();
+  size_t max = 0;
   for (auto& mc : d_maps) {
     auto m = mc.lock();
+    const auto shardSize = m->d_map.size();
+    fprintf(fp.get(), "; negcache shard %zu; size %zu\n", shard, shardSize);
+    min = std::min(min, shardSize);
+    max = std::max(max, shardSize);
+    shard++;
     auto& sidx = m->d_map.get<SequenceTag>();
     for (const NegCacheEntry& ne : sidx) {
       ret++;
       int64_t ttl = ne.d_ttd - now.tv_sec;
-      fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
+      fprintf(fp.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
       for (const auto& rec : ne.authoritySOA.records) {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.authoritySOA.signatures) {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
       }
       for (const auto& rec : ne.DNSSECRecords.records) {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.DNSSECRecords.signatures) {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
       }
     }
   }
+  fprintf(fp.get(), "; negcache size: %zu/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), maxCacheEntries, d_maps.size(), min, max);
   return ret;
 }
