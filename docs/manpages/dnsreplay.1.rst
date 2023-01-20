@@ -29,27 +29,27 @@ ADDRESS
 PORT
     if omitted, 53 will be used.
 
---help, -h                Show summary of options.
---ecs-mask <VAL>          When EDNS forwarding an IP address, mask out first octet with this value
---ecs-stamp <FLAG>        Add original IP address as EDNS Client Subnet Option when 
-                          forwarding to reference server
---packet-limit <NUM>      Stop after replaying *NUM* packets. Default for *NUM* is 0, which
-                          means no limit.
---pcap-dns-port <VAL>     Look at packets from or to this port in the PCAP. Default is 53.
---quiet <FLAG>            If *FLAG* is set to 1. dnsreplay will not be very noisy with its
-                          output. This is the default.
---recursive <FLAG>        If *FLAG* is set to 1. dnsreplay will only replay queries with
-                          recursion desired flag set. This is the default.
---source-from-pcap <FLAG> If *FLAG* is set to 1. dnsreplay will send the replayed queries from the
-                          source IP address and port present in the PCAP file. This requires
-                          IP_TRANSPARENT support. Default is 0 which means replayed queries will be
-                          sent from a local address.
---source-ip <VAL>         Send the replayed queries from the source IP specified in *VAL*. Default
-                          is to send send them from a local address.
---source-port <VAL>       Send the replayed queries from the source port specified in *VAL*.
-                          Default is to send from a random port selected by the kernel.
---speedup <FACTOR>        Replay queries with this speedup *FACTOR*. Default is 1.
---timeout-msec <MSEC>     Wait at least *MSEC* milliseconds for a reply. Default is 500.
+--help, -h                 Show summary of options.
+--ecs-mask <VAL>           When EDNS forwarding an IP address, mask out first octet with this value
+--ecs-stamp <FLAG>         Add original IP address as EDNS Client Subnet Option when 
+                           forwarding to reference server
+--packet-limit <NUM>       Stop after replaying *NUM* packets. Default for *NUM* is 0, which
+                           means no limit.
+--pcap-dns-port <VAL>      Look at packets from or to this port in the PCAP. Default is 53.
+--quiet <FLAG>             If *FLAG* is set to 1. dnsreplay will not be very noisy with its
+                           output. This is the default.
+--recursive <FLAG>         If *FLAG* is set to 1. dnsreplay will only replay queries with
+                           recursion desired flag set. This is the default.
+--source-from-pcap <FLAG>  If *FLAG* is set to 1. dnsreplay will send the replayed queries from the
+                           source IP address and port present in the PCAP file. This requires
+                           IP_TRANSPARENT support. Default is 0 which means replayed queries will be
+                           sent from a local address.
+--source-ip <VAL>          Send the replayed queries from the source IP specified in *VAL*. Default
+                           is to send send them from a local address.
+--source-port <VAL>        Send the replayed queries from the source port specified in *VAL*.
+                           Default is to send from a random port selected by the kernel.
+--speedup <FACTOR>         Replay queries with this speedup *FACTOR*. Default is 1.
+--timeout-msec <MSEC>      Wait at least *MSEC* milliseconds for a reply. Default is 500.
 
 Bugs
 ----
