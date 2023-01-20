@@ -120,6 +120,7 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 ])
 
 PDNS_ENABLE_SANITIZERS
+PDNS_ENABLE_LTO
 
 PDNS_CHECK_PYTHON_VENV
 
