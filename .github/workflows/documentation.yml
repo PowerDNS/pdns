@@ -21,6 +21,9 @@ jobs:
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
 
+      - id: get-version
+        run: echo "pdns_version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - id: setup-ssh
         run: |-
           inv ci-docs-add-ssh --ssh-key="$SSH_KEY" --host-key="$HOST_KEY"
@@ -38,7 +41,7 @@ jobs:
         working-directory: ./docs/_build
       - uses: actions/upload-artifact@v3
         with:
-          name: authoritative-html-docs
+          name: authoritative-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./docs/_build/auth-html-docs.tar
       - run: bzip2 auth-html-docs.tar
         if: ${{github.ref_name == 'master'}}
@@ -46,7 +49,7 @@ jobs:
       - run: inv ci-docs-build-pdf
       - uses: actions/upload-artifact@v3
         with:
-          name: PowerDNS-Authoritative.pdf
+          name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
       - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" product="auth" --directory="/${AUTH_DOCS_DIR}/"
         env:
@@ -63,7 +66,7 @@ jobs:
         working-directory: ./pdns/recursordist/docs/_build
       - uses: actions/upload-artifact@v3
         with:
-          name: recursor-html-docs
+          name: recursor-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/recursordist/docs/_build/rec-html-docs.tar
       - run: bzip2 rec-html-docs.tar
         if: ${{github.ref_name == 'master'}}
@@ -72,7 +75,7 @@ jobs:
         working-directory: ./pdns/recursordist
       - uses: actions/upload-artifact@v3
         with:
-          name: PowerDNS-Recursor.pdf
+          name: PowerDNS-Recursor-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf
       - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
         env:
@@ -90,7 +93,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist/docs/_build
       - uses: actions/upload-artifact@v3
         with:
-          name: dnsdist-html-docs
+          name: dnsdist-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs.tar
       - run: bzip2 dnsdist-html-docs.tar
         if: ${{github.ref_name == 'master'}}
@@ -99,7 +102,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist
       - uses: actions/upload-artifact@v3
         with:
-          name: dnsdist.pdf
+          name: dnsdist-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf
       - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist"
         env:
