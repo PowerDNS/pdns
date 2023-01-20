@@ -4639,7 +4639,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
-        // served, as negcache entries are checked before record cache entries
+        // be served, as negcache entries are checked before record cache entries
         if (NegCache::s_maxServedStaleExtensions > 0) {
           g_negCache->wipe(i->first.name, i->first.type);
         }
