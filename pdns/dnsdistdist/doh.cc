@@ -1425,7 +1425,10 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
     tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS;
   }
 
-  auto ctx = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
+  auto [ctx, warnings] = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
+  for (const auto& warning : warnings) {
+    warnlog("%s", warning);
+  }
 
   if (tlsConfig.d_enableTickets && tlsConfig.d_numberOfTicketsKeys > 0) {
     acceptCtx.d_ticketKeys = std::make_unique<OpenSSLTLSTicketKeysRing>(tlsConfig.d_numberOfTicketsKeys);

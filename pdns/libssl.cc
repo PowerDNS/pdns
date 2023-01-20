@@ -317,7 +317,7 @@ static void libssl_info_callback(const SSL *ssl, int where, int ret)
   }
 }
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters)
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, TLSErrorCounters* counters)
 {
   SSL_CTX_set_ex_data(ctx.get(), s_countersIndex, counters);
   SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
@@ -396,7 +396,7 @@ static bool libssl_validate_ocsp_response(const std::string& response)
   return true;
 }
 
-std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes)
+static std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes, std::vector<std::string>& warnings)
 {
   std::map<int, std::string> ocspResponses;
 
@@ -408,12 +408,13 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   for (const auto& filename : ocspFiles) {
     std::ifstream file(filename, std::ios::binary);
     std::string content;
-    while(file) {
+    while (file) {
       char buffer[4096];
       file.read(buffer, sizeof(buffer));
       if (file.bad()) {
         file.close();
-        throw std::runtime_error("Unable to load OCSP response from '" + filename + "'");
+        warnings.push_back("Unable to load OCSP response from " + filename);
+        continue;
       }
       content.append(buffer, file.gcount());
     }
@@ -424,7 +425,8 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
       ocspResponses.insert({keyTypes.at(count), std::move(content)});
     }
     catch (const std::exception& e) {
-      throw std::runtime_error("Error checking the validity of OCSP response from '" + filename + "': " + e.what());
+      warnings.push_back("Error checking the validity of OCSP response from '" + filename + "': " + e.what());
+      continue;
     }
     ++count;
   }
@@ -480,7 +482,7 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 #endif /* HAVE_OCSP_BASIC_SIGN */
 #endif /* DISABLE_OCSP_STAPLING */
 
-static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
+static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx)
 {
 #ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
   auto pkey = SSL_CTX_get0_privatekey(ctx.get());
@@ -532,7 +534,7 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
   return it->second;
 }
 
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, LibsslTLSVersion version)
 {
 #if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
   /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
@@ -801,9 +803,10 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
   return true;
 }
 
-std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
-                                                                       std::map<int, std::string>& ocspResponses)
+std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
+                                                                                                                  std::map<int, std::string>& ocspResponses)
 {
+  std::vector<std::string> warnings;
   auto ctx = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
   if (!ctx) {
@@ -881,7 +884,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 #ifdef SSL_MODE_ASYNC
     mode |= SSL_MODE_ASYNC;
 #else
-    cerr<<"Warning: TLS async mode requested but not supported"<<endl;
+    warnings.push_back("Warning: TLS async mode requested but not supported");
 #endif
   }
 
@@ -970,7 +973,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 #ifndef DISABLE_OCSP_STAPLING
   if (!config.d_ocspFiles.empty()) {
     try {
-      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes);
+      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes, warnings);
     }
     catch(const std::exception& e) {
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
@@ -988,7 +991,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
-  return ctx;
+  return std::make_pair(std::move(ctx), std::move(warnings));
 }
 
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
@@ -1009,7 +1012,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
+std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
