@@ -469,7 +469,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       g_stats.ipv6queries++;
     }
 
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, weWantEDNSSubnet, &queryfd);
 
     if (ret != LWResult::Result::Success) {
       return ret;
