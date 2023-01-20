@@ -4809,7 +4809,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       */
       if (newtarget.empty() && putInNegCache) {
         g_negCache->add(ne);
-        // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that and old record might be found if
+        // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that an old record might be found if
         // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
         if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
           g_recCache->doWipeCache(qname, false, qtype);
