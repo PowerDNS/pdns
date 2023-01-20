@@ -317,7 +317,7 @@ static void libssl_info_callback(const SSL *ssl, int where, int ret)
   }
 }
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters)
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, TLSErrorCounters* counters)
 {
   SSL_CTX_set_ex_data(ctx.get(), s_countersIndex, counters);
   SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
@@ -482,7 +482,7 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 #endif /* HAVE_OCSP_BASIC_SIGN */
 #endif /* DISABLE_OCSP_STAPLING */
 
-static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
+static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx)
 {
 #ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
   auto pkey = SSL_CTX_get0_privatekey(ctx.get());
@@ -534,7 +534,7 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
   return it->second;
 }
 
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, LibsslTLSVersion version)
 {
 #if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
   /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
@@ -803,8 +803,8 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
   return true;
 }
 
-std::pair<std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
-                                                                                                            std::map<int, std::string>& ocspResponses)
+std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
+                                                                                                                  std::map<int, std::string>& ocspResponses)
 {
   std::vector<std::string> warnings;
   auto ctx = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
@@ -1012,7 +1012,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
+std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
