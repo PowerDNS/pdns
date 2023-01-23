@@ -37,6 +37,17 @@ If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to 
 .. versionadded:: 4.2.0
    The :ref:`setting-distributor-threads` parameter can be used to run more than one distributor thread.
 
+MTasker and MThreads
+--------------------
+
+PowerDNS Recursor uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
+
+The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
+
+When a ``MThread`` is started, a new stack is dynamically allocated for it on the heap. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
+
+To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting. The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
+
 Performance tips
 ----------------
 
