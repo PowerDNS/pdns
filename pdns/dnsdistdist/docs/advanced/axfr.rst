@@ -65,5 +65,5 @@ check to :program:`dnsdist`'s side::
 
   .. code-block:: lua
 
-    -- this rule will disable caching for NOTIFY responses
-    addAction(AndRule({OpcodeRule(DNSOpcode.Notify), QTypeRule(DNSQType.SOA)}), SetSkipCacheAction())
+    -- this rule will disable the caching of responses for NOTIFY queries
+    addAction(OpcodeRule(DNSOpcode.Notify), SetSkipCacheAction())
