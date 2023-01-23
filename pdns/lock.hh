@@ -22,6 +22,7 @@
 #pragma once
 #include <mutex>
 #include <shared_mutex>
+#include <stdexcept>
 
 /*
   This file provides several features around locks:
