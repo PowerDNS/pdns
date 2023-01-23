@@ -331,6 +331,7 @@ def ci_auth_configure(c):
                       --prefix=/opt/pdns-auth \
                       --enable-ixfrdist \
                       --enable-fortify-source=auto \
+                      --enable-auto-var-init=pattern \
                       --enable-asan \
                       --enable-ubsan''', warn=True)
     if res.exited != 0:
