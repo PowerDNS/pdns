@@ -2596,7 +2596,7 @@ int main(int argc, char** argv)
   try {
 #if HAVE_FIBER_SANITIZER
     // Asan needs more stack
-    ::arg().set("stack-size", "stack size per mthread") = "400000";
+    ::arg().set("stack-size", "stack size per mthread") = "600000";
 #else
     ::arg().set("stack-size", "stack size per mthread") = "200000";
 #endif

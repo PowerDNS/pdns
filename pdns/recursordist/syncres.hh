@@ -348,6 +348,18 @@ public:
     return old;
   }
 
+  bool setQMFallbackMode(bool state = true)
+  {
+    auto old = d_qNameMinimizationFallbackMode;
+    d_qNameMinimizationFallbackMode = state;
+    return old;
+  }
+
+  bool getQMFallbackMode() const
+  {
+    return d_qNameMinimizationFallbackMode;
+  }
+
   void setDoEDNS0(bool state = true)
   {
     d_doEDNS0 = state;
@@ -678,6 +690,7 @@ private:
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
   bool d_qNameMinimization{false};
+  bool d_qNameMinimizationFallbackMode{false};
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
   bool d_refresh{false};
