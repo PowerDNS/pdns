@@ -1601,7 +1601,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_CHECK(task.d_qname == DNSName("cname.powerdns.com"));
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 
-  // Now simulate a succeeding task execution and NxDomain on expliit CNAME result becomes available
+  // Now simulate a succeeding task execution and NxDomain on explicit CNAME result becomes available
   cnameOK = false;
   sr->setNow(timeval{now + 3 * (theTTL + 1), 0});
   downServers.clear();
