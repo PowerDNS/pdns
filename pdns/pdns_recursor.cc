@@ -2744,7 +2744,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     catch (std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
       SLOG(g_log << Logger::Warning << "Error in packet from remote nameserver " << fromaddr.toStringWithPort() << ": " << e.what() << endl,
-           g_slogudpin->error(Logr::Warning, "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr)));
+           g_slogudpin->error(Logr::Warning, e.what(), "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr)));
       return;
     }
   }
