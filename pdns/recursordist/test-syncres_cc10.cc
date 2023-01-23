@@ -928,16 +928,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_loop)
   auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey key;
-  key.d_flags = 257;
-  key.setKey(std::move(dcke));
+  key.setKey(std::move(dcke), 257);
   DSRecordContent drc = makeDSFromDNSKey(DNSName("powerdns.com."), key.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   testkeysset_t wrongKeys;
   auto wrongDcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   wrongDcke->create(wrongDcke->getBits());
   DNSSECPrivateKey wrongKey;
-  wrongKey.d_flags = 256;
-  wrongKey.setKey(std::move(wrongDcke));
+  wrongKey.setKey(std::move(wrongDcke), 256);
   DSRecordContent uselessdrc = makeDSFromDNSKey(DNSName("powerdns.com."), wrongKey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   wrongKeys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(wrongKey, uselessdrc);

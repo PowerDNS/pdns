@@ -463,8 +463,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(algo));
   dcke->create((algo <= 10) ? 2048 : dcke->getBits());
   DNSSECPrivateKey dpk;
-  dpk.d_flags = 256;
-  dpk.setKey(dcke);
+  dpk.setKey(dcke, 256);
   DSRecordContent ds = makeDSFromDNSKey(name, dpk.getDNSKEY(), digest);
   keys[name] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, ds);
 }

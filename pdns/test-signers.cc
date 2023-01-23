@@ -29,7 +29,6 @@ struct SignerParams
   std::string name;
   std::string rfcMsgDump;
   std::string rfcB64Signature;
-  std::string pubKeyHash;
   int bits;
   uint16_t flags;
   uint16_t rfcFlags;
@@ -78,7 +77,6 @@ static const SignerParams rsaSha256SignerParams = SignerParams{
 
   .rfcMsgDump = "",
   .rfcB64Signature = "",
-  .pubKeyHash = "QH+uURzTHkYZ5MrwNvOrn+BtnL4=",
 
   .bits = 512,
   .flags = 256,
@@ -133,7 +131,6 @@ static const SignerParams ecdsaSha256 = SignerParams{
 
   .rfcMsgDump = "",
   .rfcB64Signature = "",
-  .pubKeyHash = "aIQTEsTXwMDIOXPY9e6W1G1AnAk=",
 
   .bits = 256,
   .flags = 256,
@@ -191,7 +188,6 @@ static const SignerParams ed25519 = SignerParams{
   // https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
   .rfcB64Signature = "oL9krJun7xfBOIWcGHi7mag5/hdZrKWw15jPGrHpjQeR"
                      "AvTdszaPD+QLs3fx8A4M3e23mRZ9VrbpMngwcrqNAg==",
-  .pubKeyHash = "l02Woi0iS8Aa25FQkUd9RMzZHJpBoRQwAQEX1SxZJA4=",
 
   .bits = 256,
   .flags = 256,
@@ -253,8 +249,6 @@ static const SignerParams ed448 = SignerParams{
   .rfcB64Signature = "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEA"
                      "IJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07"
                      "+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA",
-  .pubKeyHash = "3kgROaDjrh0H2iuixWBrc8g2EpBBLCdGzHmn+G2MpTPhpj/"
-                "OiBVHHSfPodx1FYYUcJKm1MDpJtIA",
 
   .bits = 456,
   .flags = 256,
@@ -311,12 +305,11 @@ static void checkRR(const SignerParams& signer)
   DNSKEYRecordContent drc;
   auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
   DNSSECPrivateKey dpk;
-  dpk.setKey(dcke);
-  dpk.d_flags = signer.rfcFlags;
+  dpk.setKey(dcke, signer.rfcFlags);
 
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
-  DNSName qname(dpk.d_algorithm == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
+  DNSName qname(dpk.getAlgorithm() == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
 
   reportBasicTypes();
 
@@ -324,7 +317,7 @@ static void checkRR(const SignerParams& signer)
   uint32_t expire = 1440021600;
   uint32_t inception = 1438207200;
 
-  if (dpk.d_algorithm == DNSSECKeeper::ECCGOST) {
+  if (dpk.getAlgorithm() == DNSSECKeeper::ECCGOST) {
     rrc.d_signer = DNSName("example.net.");
     inception = 946684800;
     expire = 1893456000;
@@ -341,7 +334,7 @@ static void checkRR(const SignerParams& signer)
   rrc.d_type = (*rrs.cbegin())->getType();
   rrc.d_labels = qname.countLabels();
   rrc.d_tag = dpk.getTag();
-  rrc.d_algorithm = dpk.d_algorithm;
+  rrc.d_algorithm = dpk.getAlgorithm();
 
   string msg = getMessageForRRSET(qname, rrc, rrs, false);
 
@@ -381,8 +374,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 
   DNSSECPrivateKey dpk;
-  dpk.setKey(dcke);
-  dpk.d_flags = signer.flags;
+  dpk.setKey(dcke, signer.flags);
   drc = dpk.getDNSKEY();
 
   BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
@@ -425,8 +417,6 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   if (!signer.rfcMsgDump.empty() && !signer.rfcB64Signature.empty()) {
     checkRR(signer);
   }
-
-  BOOST_CHECK_EQUAL(Base64Encode(dcke->getPubKeyHash()), signer.pubKeyHash);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.

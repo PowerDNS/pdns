@@ -65,7 +65,6 @@ class DNSCryptoKeyEngine
 
     [[nodiscard]] virtual bool verify(const std::string& msg, const std::string& signature) const =0;
 
-    [[nodiscard]] virtual std::string getPubKeyHash()const =0;
     [[nodiscard]] virtual std::string getPublicKeyString()const =0;
     [[nodiscard]] virtual int getBits() const =0;
     [[nodiscard]] virtual unsigned int getAlgorithm() const
@@ -149,25 +148,43 @@ struct DNSSECPrivateKey
     return d_key;
   }
 
-  void setKey(std::shared_ptr<DNSCryptoKeyEngine>& key)
+  // be aware that calling setKey() will also set the algorithm
+  void setKey(std::shared_ptr<DNSCryptoKeyEngine>& key, uint16_t flags, std::optional<uint8_t> algorithm = std::nullopt)
   {
     d_key = key;
-    d_algorithm = d_key->getAlgorithm();
+    d_flags = flags;
+    d_algorithm = algorithm ? *algorithm : d_key->getAlgorithm();
+    computeDNSKEY();
   }
 
-  void setKey(std::unique_ptr<DNSCryptoKeyEngine>&& key)
+  // be aware that calling setKey() will also set the algorithm
+  void setKey(std::unique_ptr<DNSCryptoKeyEngine>&& key, uint16_t flags, std::optional<uint8_t> algorithm = std::nullopt)
   {
     d_key = std::move(key);
-    d_algorithm = d_key->getAlgorithm();
+    d_flags = flags;
+    d_algorithm = algorithm ? *algorithm : d_key->getAlgorithm();
+    computeDNSKEY();
   }
 
-  DNSKEYRecordContent getDNSKEY() const;
+  const DNSKEYRecordContent& getDNSKEY() const;
 
-  uint16_t d_flags;
-  uint8_t d_algorithm;
+  uint16_t getFlags() const
+  {
+    return d_flags;
+  }
+
+  uint8_t getAlgorithm() const
+  {
+    return d_algorithm;
+  }
 
 private:
+  void computeDNSKEY();
+
+  DNSKEYRecordContent d_dnskey;
   std::shared_ptr<DNSCryptoKeyEngine> d_key;
+  uint16_t d_flags;
+  uint8_t d_algorithm;
 };
 
 

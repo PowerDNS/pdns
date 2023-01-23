@@ -1013,7 +1013,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
       cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
     }
 
-    string algname = DNSSECKeeper::algorithm2name(key.first.d_algorithm);
+    string algname = DNSSECKeeper::algorithm2name(key.first.getAlgorithm());
     spacelen = (algname.length() >= 16) ? 1 : 16 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
@@ -2161,7 +2161,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
     }
 
     for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
-      string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
+      string algname = DNSSECKeeper::algorithm2name(value.first.getAlgorithm());
       if (!exportDS) {
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       }
@@ -2170,9 +2170,9 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         continue;
       }
       if (!exportDS) {
-        cout<<", flags = "<<std::to_string(value.first.d_flags);
+        cout<<", flags = "<<std::to_string(value.first.getFlags());
         cout<<", tag = "<<value.first.getDNSKEY().getTag();
-        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
+        cout<<", algo = "<<(int)value.first.getAlgorithm()<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
       }
 
       if (!exportDS) {
@@ -3488,21 +3488,22 @@ try
     }
 
     DNSSECPrivateKey dpk;
-    dpk.setKey(key);
 
-    pdns::checked_stoi_into(dpk.d_algorithm, cmds.at(3));
-    if (dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
+    uint8_t algo = 0;
+    pdns::checked_stoi_into(algo, cmds.at(3));
+    if (algo == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+      algo = DNSSECKeeper::RSASHA1;
     }
 
-    cerr << (int)dpk.d_algorithm << endl;
+    cerr << std::to_string(algo) << endl;
 
+    uint16_t flags = 0;
     if (cmds.size() > 4) {
       if (pdns_iequals(cmds.at(4), "ZSK")) {
-        dpk.d_flags = 256;
+        flags = 256;
       }
       else if (pdns_iequals(cmds.at(4), "KSK")) {
-        dpk.d_flags = 257;
+        flags = 257;
       }
       else {
         cerr << "Unknown key flag '" << cmds.at(4) << "'" << endl;
@@ -3510,8 +3511,9 @@ try
       }
     }
     else {
-      dpk.d_flags = 257; // ksk
+      flags = 257; // ksk
     }
+    dpk.setKey(key, flags, algo);
 
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id)) {
@@ -3536,24 +3538,18 @@ try
     }
     string zone = cmds.at(1);
     string fname = cmds.at(2);
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(drc, fname.c_str()));
-    dpk.setKey(key);
-    dpk.d_algorithm = drc.d_algorithm;
 
-    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
-      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
-
-    dpk.d_flags = 257;
+    uint16_t flags = 257;
     bool active=true;
     bool published=true;
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if (pdns_iequals(cmds.at(n), "ZSK"))
-        dpk.d_flags = 256;
+        flags = 256;
       else if (pdns_iequals(cmds.at(n), "KSK"))
-        dpk.d_flags = 257;
+        flags = 257;
       else if (pdns_iequals(cmds.at(n), "active"))
         active = true;
       else if (pdns_iequals(cmds.at(n), "passive") || pdns_iequals(cmds.at(n), "inactive")) // passive eventually needs to be removed
@@ -3567,6 +3563,14 @@ try
         return 1;
       }
     }
+
+    DNSSECPrivateKey dpk;
+    uint8_t algo = key->getAlgorithm();
+    if (algo == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+      algo = DNSSECKeeper::RSASHA1;
+    }
+    dpk.setKey(key, flags, algo);
+
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
@@ -3627,7 +3631,6 @@ try
     if(bits)
       cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
 
-    DNSSECPrivateKey dspk;
     shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
     if(!bits) {
       if(algorithm <= 10)
@@ -3645,12 +3648,11 @@ try
       }
     }
     dpk->create(bits);
-    dspk.setKey(dpk);
-    dspk.d_algorithm = algorithm;
-    dspk.d_flags = keyOrZone ? 257 : 256;
+    DNSSECPrivateKey dspk;
+    dspk.setKey(dpk, keyOrZone ? 257 : 256, algorithm);
 
     // print key to stdout
-    cout << "Flags: " << dspk.d_flags << endl <<
+    cout << "Flags: " << dspk.getFlags() << endl <<
              dspk.getKey()->convertToISC() << endl;
   }
   else if (cmds.at(0) == "generate-tsig-key") {
@@ -3921,15 +3923,14 @@ try
         "PubLabel: " << pub_label << std::endl;
 
       DNSKEYRecordContent drc;
-      DNSSECPrivateKey dpk;
-      dpk.d_flags = (keyOrZone ? 257 : 256);
 
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str()));
       if(!dke->checkKey()) {
         cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
         return 1;
       }
-      dpk.setKey(dke);
+      DNSSECPrivateKey dpk;
+      dpk.setKey(dke, keyOrZone ? 257 : 256);
 
       // make sure this key isn't being reused.
       B.getDomainKeys(zone, keys);

@@ -103,16 +103,14 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
       }
     }
   }
-  DNSSECPrivateKey dspk;
   shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
   try{
     dpk->create(bits);
   } catch (const std::runtime_error& error){
     throw runtime_error("The algorithm does not support the given bit size.");
   }
-  dspk.setKey(dpk);
-  dspk.d_algorithm = algorithm;
-  dspk.d_flags = setSEPBit ? 257 : 256;
+  DNSSECPrivateKey dspk;
+  dspk.setKey(dpk, setSEPBit ? 257 : 256, algorithm);
   return addKey(name, dspk, id, active, published) && clearKeyCache(name);
 }
 
@@ -145,7 +143,7 @@ void DNSSECKeeper::clearCaches(const DNSName& name)
 bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
 {
   DNSBackend::KeyData kd;
-  kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
+  kd.flags = dpk.getFlags(); // the dpk doesn't get stored, only they key part
   kd.active = active;
   kd.published = published;
   kd.content = dpk.getKey()->convertToISC();
@@ -168,12 +166,10 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
     if(kd.id != id) 
       continue;
     
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
-    dpk.setKey(key);
-    dpk.d_flags = kd.flags;
-    dpk.d_algorithm = dkrc.d_algorithm;
+    DNSSECPrivateKey dpk;
+    dpk.setKey(key, kd.flags, dkrc.d_algorithm);
     
     return dpk;    
   }
@@ -565,10 +561,10 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   set<uint8_t> algoSEP, algoNoSEP;
   vector<uint8_t> algoHasSeparateKSK;
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
-    dpk.setKey(key);
+    DNSSECPrivateKey dpk;
+    dpk.setKey(key, dkrc.d_algorithm);
 
     if(keydata.active) {
       if(keydata.flags == 257)
@@ -582,13 +578,10 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 
   for(DNSBackend::KeyData& kd : dbkeyset)
   {
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
-    dpk.setKey(key);
-
-    dpk.d_flags = kd.flags;
-    dpk.d_algorithm = dkrc.d_algorithm;
+    DNSSECPrivateKey dpk;
+    dpk.setKey(key, kd.flags, dkrc.d_algorithm);
 
     KeyMetaData kmd;
 
@@ -597,7 +590,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     kmd.hasSEPBit = (kd.flags == 257);
     kmd.id = kd.id;
 
-    if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.d_algorithm) == algoHasSeparateKSK.end())
+    if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.getAlgorithm()) == algoHasSeparateKSK.end())
       kmd.keyType = CSK;
     else if(kmd.hasSEPBit)
       kmd.keyType = KSK;

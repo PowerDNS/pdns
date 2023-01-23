@@ -222,7 +222,6 @@ public:
   std::string hash(const std::string& hash) const override;
   std::string sign(const std::string& hash) const override;
   bool verify(const std::string& hash, const std::string& signature) const override;
-  std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
   std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
@@ -409,43 +408,6 @@ bool OpenSSLRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::str
 
   return (ret == 1);
 }
-
-
-std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
-{
-  const BIGNUM *n, *e, *d;
-  RSA_get0_key(d_key.get(), &n, &e, &d);
-  std::vector<unsigned char> tmp;
-  tmp.resize(std::max(BN_num_bytes(e), BN_num_bytes(n)));
-  unsigned char l_hash[SHA_DIGEST_LENGTH];
-  SHA_CTX ctx;
-
-  int res = SHA1_Init(&ctx);
-
-  if (res != 1) {
-    throw runtime_error(getName()+" failed to init hash context for generating the public key hash");
-  }
-
-  int len = BN_bn2bin(e, tmp.data());
-  res = SHA1_Update(&ctx, tmp.data(), len);
-  if (res != 1) {
-    throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
-  }
-
-  len = BN_bn2bin(n, tmp.data());
-  res = SHA1_Update(&ctx, tmp.data(), len);
-  if (res != 1) {
-    throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
-  }
-
-  res = SHA1_Final(l_hash, &ctx);
-  if (res != 1) {
-    throw runtime_error(getName()+" failed to finish hash context for generating the public key hash");
-  }
-
-  return string((char*)l_hash, sizeof(l_hash));
-}
-
 
 std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 {
@@ -673,7 +635,6 @@ public:
   std::string hash(const std::string& hash) const override;
   std::string sign(const std::string& hash) const override;
   bool verify(const std::string& hash, const std::string& signature) const override;
-  std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
@@ -855,14 +816,6 @@ bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   return (ret == 1);
 }
 
-std::string OpenSSLECDSADNSCryptoKeyEngine::getPubKeyHash() const
-{
-  string pubKey = getPublicKeyString();
-  unsigned char l_hash[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char*) pubKey.c_str(), pubKey.length(), l_hash);
-  return string((char*) l_hash, sizeof(l_hash));
-}
-
 std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   std::string binaryPoint;
@@ -1036,7 +989,6 @@ public:
   storvector_t convertToISCVector() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
-  std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
@@ -1169,11 +1121,6 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   }
 
   return (r == 1);
-}
-
-std::string OpenSSLEDDSADNSCryptoKeyEngine::getPubKeyHash() const
-{
-  return this->getPublicKeyString();
 }
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const

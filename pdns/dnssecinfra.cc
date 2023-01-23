@@ -595,9 +595,14 @@ void decrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
   }
 }
 
-DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
+const DNSKEYRecordContent& DNSSECPrivateKey::getDNSKEY() const
 {
-  return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
+  return d_dnskey;
+}
+
+void DNSSECPrivateKey::computeDNSKEY()
+{
+  d_dnskey = makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
 }
 
 static string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {

@@ -56,7 +56,6 @@ public:
 #endif
 
   storvector_t convertToISCVector() const override;
-  std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPublicKeyString() const override;
@@ -167,11 +166,6 @@ void DecafED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
   pub.serialize_into(d_pubkey);
 }
 
-std::string DecafED25519DNSCryptoKeyEngine::getPubKeyHash() const
-{
-  return this->getPublicKeyString();
-}
-
 std::string DecafED25519DNSCryptoKeyEngine::getPublicKeyString() const
 {
   return string((char*)d_pubkey, DECAF_EDDSA_25519_PUBLIC_BYTES);
@@ -260,7 +254,6 @@ public:
 #endif
 
   storvector_t convertToISCVector() const override;
-  std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPublicKeyString() const override;
@@ -369,11 +362,6 @@ void DecafED448DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
 
   priv.serialize_into(d_seckey);
   pub.serialize_into(d_pubkey);
-}
-
-std::string DecafED448DNSCryptoKeyEngine::getPubKeyHash() const
-{
-  return this->getPublicKeyString();
 }
 
 std::string DecafED448DNSCryptoKeyEngine::getPublicKeyString() const

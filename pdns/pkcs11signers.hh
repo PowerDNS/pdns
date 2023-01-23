@@ -52,8 +52,6 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     bool verify(const std::string& msg, const std::string& signature) const override;
 
-    std::string getPubKeyHash() const override;
-
     std::string getPublicKeyString() const override;
     int getBits() const override;
 
