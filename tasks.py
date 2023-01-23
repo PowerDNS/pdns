@@ -355,6 +355,7 @@ def ci_rec_configure(c):
               --with-libcap \
               --with-net-snmp \
               --enable-fortify-source=auto \
+              --enable-auto-var-init=pattern \
               --enable-dns-over-tls ''' + sanitizers, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
