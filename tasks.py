@@ -330,6 +330,7 @@ def ci_auth_configure(c):
                       --with-libdecaf \
                       --prefix=/opt/pdns-auth \
                       --enable-ixfrdist \
+                      --enable-fortify-source=auto \
                       --enable-asan \
                       --enable-ubsan''', warn=True)
     if res.exited != 0:
@@ -352,6 +353,7 @@ def ci_rec_configure(c):
               --with-lua=luajit \
               --with-libcap \
               --with-net-snmp \
+              --enable-fortify-source=auto \
               --enable-dns-over-tls ''' + sanitizers, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
@@ -427,6 +429,7 @@ def ci_dnsdist_configure(c, features):
                      CXX='clang++-12' \
                      --enable-option-checking=fatal \
                      --enable-unit-tests \
+                     --enable-fortify-source=auto \
                      --prefix=/opt/dnsdist %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
