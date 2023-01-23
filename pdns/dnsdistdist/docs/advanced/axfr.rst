@@ -39,7 +39,7 @@ to do that are described in :doc:`Passing the source address to the backend <pas
   .. code-block:: lua
 
     -- this rule will not stop the processing, but disable caching for AXFR and IXFR responses
-    addAction(ORRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), SetSkipCacheAction())
+    addAction(OrRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), SetSkipCacheAction())
     -- this rule will route SOA, AXFR and IXFR queries to a specific pool of servers
     addAction(OrRule({QTypeRule(DNSQType.SOA), QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), PoolAction("primary"))
 
