@@ -433,6 +433,7 @@ def ci_dnsdist_configure(c, features):
                      --enable-unit-tests \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
+                     --enable-lto=thin \
                      --prefix=/opt/dnsdist %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
