@@ -4,6 +4,8 @@ Upgrade Guide
 1.7.x to 1.8.0
 --------------
 
+Responses to AXFR and IXFR queries are no longer cached.
+
 Cache-hits are now counted as responses in our metrics.
 
 1.7.0 to 1.7.1
