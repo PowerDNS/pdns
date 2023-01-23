@@ -122,6 +122,9 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   if (response.size() < sizeof(dnsheader)) {
     return;
   }
+  if (qtype == QType::AXFR || qtype == QType::IXFR) {
+    return;
+  }
 
   uint32_t minTTL;
 
@@ -194,6 +197,11 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 
 bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
+  if (dq.ids.qtype == QType::AXFR || dq.ids.qtype == QType::IXFR) {
+    d_misses++;
+    return false;
+  }
+
   const auto& dnsQName = dq.ids.qname.getStorage();
   uint32_t key = getKey(dnsQName, dq.ids.qname.wirelength(), dq.getData(), receivedOverUDP);
 

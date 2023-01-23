@@ -43,6 +43,9 @@ to do that are described in :doc:`Passing the source address to the backend <pas
     -- this rule will route SOA, AXFR and IXFR queries to a specific pool of servers
     addAction(OrRule({QTypeRule(DNSQType.SOA), QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), PoolAction("primary"))
 
+.. versionchanged:: 1.8.0
+  Since 1.8.0, dnsdist will no longer cache responses to AXFR and IXFR queries.
+
 In front of secondaries
 -----------------------
 

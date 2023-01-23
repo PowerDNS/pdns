@@ -233,6 +233,80 @@ class TestCaching(DNSDistTest):
             value = self._responsesCounter[key]
             self.assertEqual(value, numberOfQueries)
 
+    def testAXFRResponse(self):
+        """
+        Cache: AXFR should not be cached
+
+        dnsdist should not cache responses to AXFR queries.
+        """
+        name = 'axfr.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AXFR', 'IN')
+        response = dns.message.make_response(query)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.answer.append(soa)
+        response.answer.append(dns.rrset.from_text(name,
+                                                   60,
+                                                   dns.rdataclass.IN,
+                                                   dns.rdatatype.A,
+                                                   '192.0.2.1'))
+        response.answer.append(soa)
+        numberOfQueries = 5
+
+        for _ in range(numberOfQueries):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (receivedQuery, receivedResponse) = sender(query, response)
+                self.assertTrue(receivedQuery)
+                self.assertTrue(receivedResponse)
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(receivedResponse, response)
+
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
+            self.assertEqual(value, numberOfQueries)
+
+    def testIXFRResponse(self):
+        """
+        Cache: IXFR should not be cached
+
+        dnsdist should not cache responses to IXFR queries.
+        """
+        name = 'ixfr.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'IXFR', 'IN')
+        response = dns.message.make_response(query)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.answer.append(soa)
+        response.answer.append(dns.rrset.from_text(name,
+                                                   60,
+                                                   dns.rdataclass.IN,
+                                                   dns.rdatatype.A,
+                                                   '192.0.2.1'))
+        response.answer.append(soa)
+        numberOfQueries = 5
+
+        for _ in range(numberOfQueries):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (receivedQuery, receivedResponse) = sender(query, response)
+                self.assertTrue(receivedQuery)
+                self.assertTrue(receivedResponse)
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(receivedResponse, response)
+
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
+            self.assertEqual(value, numberOfQueries)
+
     def testCacheExpiration(self):
         """
         Cache: Cache expiration
