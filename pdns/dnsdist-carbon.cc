@@ -264,13 +264,13 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
   return true;
 }
 
-static void carbonHandler(Carbon::Endpoint endpoint)
+static void carbonHandler(Carbon::Endpoint&& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
 
   try {
-    size_t consecutiveFailures = 0;
+    uint8_t consecutiveFailures = 0;
     do {
       DTime dt;
       dt.set();
@@ -289,14 +289,16 @@ static void carbonHandler(Carbon::Endpoint endpoint)
         /* maximum interval between two attempts is 10 minutes */
         const time_t maxBackOff = 10 * 60;
         time_t backOff = 1;
-        double backOffTmp = std::pow(2.0, consecutiveFailures);
+        double backOffTmp = std::pow(2.0, static_cast<double>(consecutiveFailures));
         if (backOffTmp != HUGE_VAL && static_cast<uint64_t>(backOffTmp) <= static_cast<uint64_t>(std::numeric_limits<time_t>::max())) {
           backOff = static_cast<time_t>(backOffTmp);
           if (backOff > maxBackOff) {
             backOff = maxBackOff;
           }
         }
-        consecutiveFailures++;
+        if (consecutiveFailures < std::numeric_limits<decltype(consecutiveFailures)>::max()) {
+          consecutiveFailures++;
+        }
         vinfolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.ourname, backOff);
         sleep(backOff);
       }
@@ -324,7 +326,7 @@ bool Carbon::addEndpoint(Carbon::Endpoint&& endpoint)
   auto config = s_config.lock();
   if (config->d_running) {
     // we already started the threads, let's just spawn a new one
-    std::thread newHandler(carbonHandler, endpoint);
+    std::thread newHandler(carbonHandler, std::move(endpoint));
     newHandler.detach();
   }
   else {
@@ -339,10 +341,11 @@ void Carbon::run()
   if (config->d_running) {
     throw std::runtime_error("The carbon threads are already running");
   }
-  for (const auto& endpoint : config->d_endpoints) {
-    std::thread newHandler(carbonHandler, endpoint);
+  for (auto& endpoint : config->d_endpoints) {
+    std::thread newHandler(carbonHandler, std::move(endpoint));
     newHandler.detach();
   }
+  config->d_endpoints.clear();
   config->d_running = true;
 }
 
