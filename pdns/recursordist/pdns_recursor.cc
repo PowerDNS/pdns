@@ -838,11 +838,15 @@ static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<F
 }
 #endif // HAVE_FSTRM
 
-static void dumpTrace(const string& trace)
+const char* timestamp(const struct timeval& tv, char* buf, size_t sz);
+
+static void dumpTrace(const string& trace, const timeval& timev)
 {
   if (trace.empty()) {
     return;
   }
+  timeval now{};
+  Utility::gettimeofday(&now);
   int traceFd = dup(t_tracefd);
   if (traceFd == -1) {
     int err = errno;
@@ -858,14 +862,12 @@ static void dumpTrace(const string& trace)
     close(traceFd);
     return;
   }
-  vector<string> lines;
-  boost::split(lines, trace, boost::is_any_of("\n"));
-  int count = 0;
-  for (const string& line : lines) {
-    if (!line.empty())
-      fprintf(filep.get(), "%04d %s\n", ++count, line.c_str());
-  }
-  fprintf(filep.get(), "\n");
+  std::array<char, 64> timebuf;
+  timestamp(timev, timebuf.data(), timebuf.size());
+  fprintf(filep.get(), " us === START OF TRACE %s ===\n", timebuf.data());
+  fprintf(filep.get(), "%s", trace.c_str());
+  timestamp(now, timebuf.data(), timebuf.size());
+  fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
   // fclose by unique_ptr does implicit flush
 }
 
@@ -1092,7 +1094,6 @@ void startDoResolve(void* p)
     if (t_traceRegex && t_traceRegex->match(dc->d_mdp.d_qname.toString())) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery = true;
-      sr.setId("T");
     }
 
     if (!g_quiet || tracedQuery) {
@@ -1313,7 +1314,7 @@ void startDoResolve(void* p)
 
   haveAnswer:;
     if (tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail) {
-      dumpTrace(sr.getTrace());
+      dumpTrace(sr.getTrace(), sr.d_fixednow);
     }
 
     if (res == -1) {

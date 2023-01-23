@@ -469,22 +469,23 @@ bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
 
-#define LOG(x)                     \
-  if (d_lm == Log) {               \
-    g_log << Logger::Warning << x; \
-  }                                \
-  else if (d_lm == Store) {        \
-    d_trace << x;                  \
+#define LOG(x)                                  \
+  if (d_lm == Log) {                            \
+    g_log << Logger::Warning << x;              \
+  }                                             \
+  else if (d_lm == Store) {                     \
+    addTraceTS(d_fixednow, d_trace);            \
+    d_trace << x;                               \
   }
 
 OptLog SyncRes::LogObject(const string& prefix)
 {
   OptLog ret;
   if (d_lm == Log) {
-    ret = {prefix, &g_log};
+    ret = {prefix, d_fixednow, &g_log};
   }
   else if (d_lm == Store) {
-    ret = {prefix, &d_trace};
+    ret = {prefix, d_now, &d_trace};
   }
   return ret;
 }
@@ -517,7 +518,8 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 SyncRes::SyncRes(const struct timeval& now) :
-  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_totUsec(0), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
+  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_totUsec(0), d_fixednow(now), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
+
 {
 }
 
@@ -1042,8 +1044,7 @@ bool SyncRes::isForwardOrAuth(const DNSName& qname) const
   return iter != t_sstorage.domainmap->end();
 }
 
-// Will be needed in the future
-static const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
+const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
   struct tm tm;

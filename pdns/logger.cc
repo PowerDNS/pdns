@@ -202,3 +202,17 @@ Logger& Logger::operator<<(const ComboAddress& ca)
   *this << ca.toLogString();
   return *this;
 }
+
+#ifdef RECURSOR
+void addTraceTS(const timeval& start, ostringstream& str)
+{
+  const auto & content = str.str();
+  if (content.empty() || content.at(content.size() - 1) == '\n') {
+    timeval time{};
+    gettimeofday(&time, nullptr);
+    auto elapsed = time - start;
+    auto diff = elapsed.tv_sec * 1000000 + static_cast<time_t>(elapsed.tv_usec);
+    str << diff << ' ';
+  }
+}
+#endif

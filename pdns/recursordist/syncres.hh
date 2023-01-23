@@ -568,6 +568,7 @@ public:
   unsigned int d_timeouts;
   unsigned int d_unreachables;
   unsigned int d_totUsec;
+  const struct timeval d_fixednow;
 
 private:
   ComboAddress d_requestor;
