@@ -2215,7 +2215,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, doSetCarbonServer(begin, end)};
   }
   if (cmd == "trace-regex") {
-    return {0, doTraceRegex(begin, end)};
+    return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(s), begin, end)};
   }
   if (cmd == "unload-lua-script") {
     vector<string> empty;

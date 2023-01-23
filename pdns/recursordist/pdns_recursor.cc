@@ -42,6 +42,7 @@
 
 thread_local std::shared_ptr<RecursorLua4> t_pdl;
 thread_local std::shared_ptr<Regex> t_traceRegex;
+thread_local int t_tracefd = -1;
 thread_local ProtobufServersInfo t_protobufServers;
 thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
@@ -837,6 +838,37 @@ static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<F
 }
 #endif // HAVE_FSTRM
 
+static void dumpTrace(const string& trace)
+{
+  if (trace.empty()) {
+    return;
+  }
+  int traceFd = dup(t_tracefd);
+  if (traceFd == -1) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Could not dup trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Could not dup trace file"));
+    return;
+  }
+  auto filep = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(traceFd, "a"), &fclose);
+  if (!filep) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Could not write to trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Could not write to trace file"));
+    close(traceFd);
+    return;
+  }
+  vector<string> lines;
+  boost::split(lines, trace, boost::is_any_of("\n"));
+  int count = 0;
+  for (const string& line : lines) {
+    if (!line.empty())
+      fprintf(filep.get(), "%04d %s\n", ++count, line.c_str());
+  }
+  fprintf(filep.get(), "\n");
+  // fclose by unique_ptr does implicit flush
+}
+
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1281,15 +1313,7 @@ void startDoResolve(void* p)
 
   haveAnswer:;
     if (tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail) {
-      string trace(sr.getTrace());
-      if (!trace.empty()) {
-        vector<string> lines;
-        boost::split(lines, trace, boost::is_any_of("\n"));
-        for (const string& line : lines) {
-          if (!line.empty())
-            g_log << Logger::Warning << line << endl;
-        }
-      }
+      dumpTrace(sr.getTrace());
     }
 
     if (res == -1) {
