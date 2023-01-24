@@ -83,7 +83,8 @@ public:
   static FDMultiplexer* getMultiplexerSilent(unsigned int maxEventsHint = s_maxevents);
 
   /* tv will be updated to 'now' before run returns */
-  /* timeout is in ms */
+  /* timeout is in ms, 0 will return immediately, -1 will block until at
+     least one descriptor is ready */
   /* returns 0 on timeout, -1 in case of error (but all implementations
      actually throw in that case) and the number of ready events otherwise.
      Note that We might have two events (read AND write) for the same descriptor */

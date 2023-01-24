@@ -72,7 +72,8 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
     BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
     BOOST_CHECK_EQUAL(readyFDs.at(0), pipes[1]);
 
-    ready = mplexer->run(&now, 100);
+    /* wait until we have at least one descriptor ready */
+    ready = mplexer->run(&now, -1);
     BOOST_CHECK_EQUAL(ready, 1);
     BOOST_CHECK_EQUAL(writeCBCalled, true);
 
