@@ -745,7 +745,7 @@ void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(
   }
 }
 
-static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::set<QType>& qtypes)
+static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::unordered_set<QType>& qtypes)
 {
   auto length = packet.size();
   if (length < sizeof(dnsheader)) {
@@ -781,9 +781,9 @@ static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::
   return false;
 }
 
-static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::set<QType>& qtypes)
+static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::unordered_set<QType>& qtypes)
 {
-  static const std::set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
+  static const std::unordered_set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
 
   if (initialPacket.size() < sizeof(dnsheader)) {
     return EINVAL;
@@ -895,12 +895,12 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
   return 0;
 }
 
-void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes)
+void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::unordered_set<QType>& qtypes)
 {
   return clearDNSPacketRecordTypes(reinterpret_cast<PacketBuffer&>(packet), qtypes);
 }
 
-void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
+void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::unordered_set<QType>& qtypes)
 {
   if (!checkIfPacketContainsRecords(packet, qtypes)) {
     return;

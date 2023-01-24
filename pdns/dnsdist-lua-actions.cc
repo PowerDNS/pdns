@@ -1762,7 +1762,7 @@ private:
 class ClearRecordTypesResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  ClearRecordTypesResponseAction(const std::set<QType>& qtypes) : d_qtypes(qtypes)
+  ClearRecordTypesResponseAction(const std::unordered_set<QType>& qtypes) : d_qtypes(qtypes)
   {
   }
 
@@ -1780,7 +1780,7 @@ public:
   }
 
 private:
-  std::set<QType> d_qtypes{};
+  std::unordered_set<QType> d_qtypes{};
 };
 
 class ContinueAction : public DNSAction
@@ -2386,7 +2386,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("ClearRecordTypesResponseAction", [](LuaTypeOrArrayOf<int> types) {
-      std::set<QType> qtypes{};
+      std::unordered_set<QType> qtypes{};
       if (types.type() == typeid(int)) {
         qtypes.insert(boost::get<int>(types));
       } else if (types.type() == typeid(LuaArray<int>)) {

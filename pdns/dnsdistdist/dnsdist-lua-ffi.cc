@@ -697,7 +697,7 @@ void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr,
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype)
 {
   if (dr != nullptr && dr->dr != nullptr) {
-    clearDNSPacketRecordTypes(dr->dr->getMutableData(), std::set<QType>{qtype});
+    clearDNSPacketRecordTypes(dr->dr->getMutableData(), std::unordered_set<QType>{qtype});
   }
 }
 
