@@ -334,10 +334,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     gettimeofday(&data->d_ttd, nullptr);
     data->d_ttd.tv_sec += ds->d_config.checkTimeout / 1000; /* ms to seconds */
     data->d_ttd.tv_usec += (ds->d_config.checkTimeout % 1000) * 1000; /* remaining ms to us */
-    if (data->d_ttd.tv_usec > 1000000) {
-      ++data->d_ttd.tv_sec;
-      data->d_ttd.tv_usec -= 1000000;
-    }
+    normalizeTV(data->d_ttd);
 
     if (!ds->doHealthcheckOverTCP()) {
       sock.connect(ds->d_config.remote);

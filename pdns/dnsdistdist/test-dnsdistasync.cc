@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_Basic)
     gettimeofday(&ttd, nullptr);
     // timeout in 100 ms
     const timeval add{0, 100000};
-    timeradd(&ttd, &add, &ttd);
+    ttd = ttd + add;
 
     holder->push(asyncID, queryID, ttd, std::make_unique<DummyCrossProtocolQuery>());
     BOOST_CHECK(!holder->empty());
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
   gettimeofday(&ttd, nullptr);
   // timeout in 10 ms
   const timeval add{0, 10000};
-  timeradd(&ttd, &add, &ttd);
+  ttd = ttd + add;
 
   std::shared_ptr<DummyQuerySender> sender{nullptr};
   {
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_AddingExpiredEvent)
   gettimeofday(&ttd, nullptr);
   // timeout was 10 ms ago, for some reason (long processing time, CPU starvation...)
   const timeval sub{0, 10000};
-  timersub(&ttd, &sub, &ttd);
+  ttd = ttd - sub;
 
   std::shared_ptr<DummyQuerySender> sender{nullptr};
   {

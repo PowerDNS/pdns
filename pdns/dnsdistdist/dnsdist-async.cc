@@ -387,10 +387,7 @@ bool suspendQuery(DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t 
   struct timeval ttd = now;
   ttd.tv_sec += timeoutMs / 1000;
   ttd.tv_usec += (timeoutMs % 1000) * 1000;
-  if (ttd.tv_usec >= 1000000) {
-    ttd.tv_sec++;
-    ttd.tv_usec -= 1000000;
-  }
+  normalizeTV(ttd);
 
   vinfolog("Suspending asynchronous query %d at %d.%d until %d.%d", queryID, now.tv_sec, now.tv_usec, ttd.tv_sec, ttd.tv_usec);
   auto query = getInternalQueryFromDQ(dq, false);
@@ -410,10 +407,7 @@ bool suspendResponse(DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32
   struct timeval ttd = now;
   ttd.tv_sec += timeoutMs / 1000;
   ttd.tv_usec += (timeoutMs % 1000) * 1000;
-  if (ttd.tv_usec >= 1000000) {
-    ttd.tv_sec++;
-    ttd.tv_usec -= 1000000;
-  }
+  normalizeTV(ttd);
 
   vinfolog("Suspending asynchronous response %d at %d.%d until %d.%d", queryID, now.tv_sec, now.tv_usec, ttd.tv_sec, ttd.tv_usec);
   auto query = getInternalQueryFromDQ(dr, true);
