@@ -20,11 +20,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <inttypes.h>
+#include <cinttypes>
 #include <cstring>
 #include <cstdio>
 #include <regex.h>
-#include <limits.h>
+#include <climits>
 #include <type_traits>
 
 #include <boost/algorithm/string.hpp>
@@ -34,19 +34,19 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <time.h>
+#include <ctime>
 #include <syslog.h>
 #include <stdexcept>
 #include <string>
-#include <ctype.h>
+#include <cctype>
 #include <vector>
 
 #include "namespaces.hh"
 
 class DNSName;
 
+// Do not change to "using TSIGHashEnum ..." until you know CodeQL does not choke on it
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
-
 namespace pdns
 {
 #if defined(HAVE_LIBCRYPTO)
@@ -84,21 +84,17 @@ namespace OpenSSL
 }
 
 string nowTime();
-const string unquotify(const string &item);
+string unquotify(const string &item);
 string humanDuration(time_t passed);
 bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
 std::optional<string> getHostname();
 std::string getCarbonHostName();
 string urlEncode(const string &text);
-int waitForData(int fd, int seconds, int useconds=0);
+int waitForData(int fileDesc, int seconds, int useconds = 0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
 int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd);
-int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error=nullptr, bool* disconnected=nullptr);
-uint16_t getShort(const unsigned char *p);
-uint16_t getShort(const char *p);
-uint32_t getLong(const unsigned char *p);
-uint32_t getLong(const char *p);
+int waitForRWData(int fileDesc, bool waitForRead, int seconds, int useconds, bool* error = nullptr, bool* disconnected = nullptr);
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
@@ -334,8 +330,9 @@ string makeHexDump(const string& str);
 string makeBytesFromHex(const string &in);
 
 void normalizeTV(struct timeval& tv);
-const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
-const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
+struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
+struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
+
 inline float makeFloat(const struct timeval& tv)
 {
   return tv.tv_sec + tv.tv_usec/1000000.0f;
@@ -585,7 +582,7 @@ bool setTCPNoDelay(int sock);
 bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
 bool setReceiveSocketErrors(int sock, int af);
-int closesocket(int fd);
+int closesocket(int socket);
 bool setCloseOnExec(int sock);
 
 size_t getPipeBufferSize(int fd);
@@ -785,13 +782,11 @@ struct NodeOrLocatorID { uint8_t content[8]; };
 
 struct FDWrapper
 {
-  FDWrapper()
-  {
-  }
+  FDWrapper() = default;
+  FDWrapper(int desc): d_fd(desc) {}
+  FDWrapper(const FDWrapper&) = delete;
+  FDWrapper& operator=(const FDWrapper& rhs) = delete;
 
-  FDWrapper(int desc): d_fd(desc)
-  {
-  }
 
   ~FDWrapper()
   {
@@ -801,12 +796,12 @@ struct FDWrapper
     }
   }
 
-  FDWrapper(FDWrapper&& rhs): d_fd(rhs.d_fd)
+  FDWrapper(FDWrapper&& rhs) noexcept : d_fd(rhs.d_fd)
   {
     rhs.d_fd = -1;
   }
 
-  FDWrapper& operator=(FDWrapper&& rhs)
+  FDWrapper& operator=(FDWrapper&& rhs) noexcept
   {
     if (d_fd != -1) {
       close(d_fd);
@@ -816,7 +811,7 @@ struct FDWrapper
     return *this;
   }
 
-  int getHandle() const
+  [[nodiscard]] int getHandle() const
   {
     return d_fd;
   }
