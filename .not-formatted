@@ -48,7 +48,6 @@
 ./pdns/dnsdemog.cc
 ./pdns/dnsdist-cache.cc
 ./pdns/dnsdist-cache.hh
-./pdns/dnsdist-carbon.cc
 ./pdns/dnsdist-console.cc
 ./pdns/dnsdist-console.hh
 ./pdns/dnsdist-dynblocks.hh
