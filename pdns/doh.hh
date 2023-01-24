@@ -188,6 +188,7 @@ struct DOHUnit
   void release()
   {
   }
+
   size_t proxyProtocolPayloadSize{0};
   uint16_t status_code{200};
 };
@@ -272,6 +273,11 @@ struct DOHUnit
 };
 
 void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, InternalQueryState&& state);
+
+struct CrossProtocolQuery;
+struct DNSQuestion;
+
+std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
 

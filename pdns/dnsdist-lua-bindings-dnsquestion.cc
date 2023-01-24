@@ -20,7 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-async.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-internal-queries.hh"
 #include "dnsdist-lua.hh"
 #include "dnsparser.hh"
 
@@ -41,6 +43,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerMember<uint8_t (DNSQuestion::*)>("opcode", [](const DNSQuestion& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSQuestion& dq, uint8_t newOpcode) { (void) newOpcode; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.overTCP(); }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.ids.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+  luaCtx.registerMember<std::string (DNSQuestion::*)>("pool", [](const DNSQuestion& dq) -> std::string { return dq.ids.poolName; }, [](DNSQuestion& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
   luaCtx.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
   luaCtx.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
@@ -57,6 +60,13 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     });
   luaCtx.registerFunction<std::string(DNSQuestion::*)()const>("getContent", [](const DNSQuestion& dq) {
     return std::string(reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
+  });
+  luaCtx.registerFunction<void(DNSQuestion::*)(const std::string&)>("setContent", [](DNSQuestion& dq, const std::string& raw) {
+    uint16_t oldID = dq.getHeader()->id;
+    auto& buffer = dq.getMutableData();
+    buffer.clear();
+    buffer.insert(buffer.begin(), raw.begin(), raw.end());
+    reinterpret_cast<dnsheader*>(buffer.data())->id = oldID;
   });
   luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView>(DNSQuestion::*)()const>("getEDNSOptions", [](const DNSQuestion& dq) {
       if (dq.ednsOptions == nullptr) {
@@ -188,6 +198,91 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     setEDNSOption(dq, code, data);
   });
 
+  luaCtx.registerFunction<bool(DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
+    dq.asynchronous = true;
+    return dnsdist::suspendQuery(dq, asyncID, queryID, timeoutMs);
+  });
+
+  luaCtx.registerFunction<bool(DNSQuestion::*)()>("setRestartable", [](DNSQuestion& dq) {
+    dq.ids.d_packet = std::make_unique<PacketBuffer>(dq.getData());
+    return true;
+  });
+
+class AsynchronousObject
+{
+public:
+  AsynchronousObject(std::unique_ptr<CrossProtocolQuery>&& obj_): object(std::move(obj_))
+  {
+  }
+
+  DNSQuestion getDQ() const
+  {
+    return object->getDQ();
+  }
+
+  DNSResponse getDR() const
+  {
+    return object->getDR();
+  }
+
+  bool resume()
+  {
+    return dnsdist::queueQueryResumptionEvent(std::move(object));
+  }
+
+  bool drop()
+  {
+    auto sender = object->getTCPQuerySender();
+    if (!sender) {
+      return false;
+    }
+
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    sender->notifyIOError(std::move(object->query.d_idstate), now);
+    return true;
+  }
+
+  bool setRCode(uint8_t rcode, bool clearAnswers)
+  {
+    return dnsdist::setInternalQueryRCode(object->query.d_idstate, object->query.d_buffer, rcode, clearAnswers);
+  }
+
+private:
+  std::unique_ptr<CrossProtocolQuery> object;
+};
+
+  luaCtx.registerFunction<DNSQuestion(AsynchronousObject::*)(void) const>("getDQ", [](const AsynchronousObject& obj) {
+      return obj.getDQ();
+    });
+
+  luaCtx.registerFunction<DNSQuestion(AsynchronousObject::*)(void) const>("getDR", [](const AsynchronousObject& obj) {
+      return obj.getDR();
+    });
+
+  luaCtx.registerFunction<bool(AsynchronousObject::*)(void)>("resume", [](AsynchronousObject& obj) {
+      return obj.resume();
+    });
+
+  luaCtx.registerFunction<bool(AsynchronousObject::*)(void)>("drop", [](AsynchronousObject& obj) {
+      return obj.drop();
+    });
+
+  luaCtx.registerFunction<bool(AsynchronousObject::*)(uint8_t, bool)>("setRCode", [](AsynchronousObject& obj, uint8_t rcode, bool clearAnswers) {
+    return obj.setRCode(rcode, clearAnswers);
+  });
+
+  luaCtx.writeFunction("getAsynchronousObject", [](uint16_t asyncID, uint16_t queryID) -> AsynchronousObject {
+    if (!dnsdist::g_asyncHolder) {
+      throw std::runtime_error("Unable to resume, no asynchronous holder");
+    }
+    auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
+    if (!query) {
+      throw std::runtime_error("Unable to find asynchronous object");
+    }
+    return AsynchronousObject(std::move(query));
+  });
+
   /* LuaWrapper doesn't support inheritance */
   luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return dq.ids.origDest; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
   luaCtx.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return dq.ids.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });
@@ -200,6 +295,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerMember<uint8_t (DNSResponse::*)>("opcode", [](const DNSResponse& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void) newOpcode; });
   luaCtx.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.overTCP(); }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
   luaCtx.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.ids.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+  luaCtx.registerMember<std::string (DNSResponse::*)>("pool", [](const DNSResponse& dq) -> std::string { return dq.ids.poolName; }, [](DNSResponse& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
   luaCtx.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
     editDNSPacketTTL(reinterpret_cast<char *>(dr.getMutableData().data()), dr.getData().size(), editFunc);
       });
@@ -209,6 +305,14 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerFunction<std::string(DNSResponse::*)()const>("getContent", [](const DNSResponse& dq) {
     return std::string(reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
   });
+  luaCtx.registerFunction<void(DNSResponse::*)(const std::string&)>("setContent", [](DNSResponse& dr, const std::string& raw) {
+    uint16_t oldID = dr.getHeader()->id;
+    auto& buffer = dr.getMutableData();
+    buffer.clear();
+    buffer.insert(buffer.begin(), raw.begin(), raw.end());
+    reinterpret_cast<dnsheader*>(buffer.data())->id = oldID;
+  });
+
   luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView>(DNSResponse::*)()const>("getEDNSOptions", [](const DNSResponse& dq) {
       if (dq.ednsOptions == nullptr) {
         parseEDNSOptions(dq);
@@ -325,5 +429,20 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
       return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
     });
+
+  luaCtx.registerFunction<bool(DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
+    dr.asynchronous = true;
+    return dnsdist::suspendResponse(dr, asyncID, queryID, timeoutMs);
+  });
+
+  luaCtx.registerFunction<bool(DNSResponse::*)()>("restart", [](DNSResponse& dr) {
+    if (!dr.ids.d_packet) {
+      return false;
+    }
+    dr.asynchronous = true;
+    dr.getMutableData() = *dr.ids.d_packet;
+    auto query = dnsdist::getInternalQueryFromDQ(dr, false);
+    return dnsdist::queueQueryResumptionEvent(std::move(query));
+  });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }

@@ -145,7 +145,7 @@ void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
   ts.tv_sec = timeout / 1000;
   ts.tv_nsec = (timeout % 1000) * 1000000;
 
-  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), d_kevents.size(), &ts);
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), d_kevents.size(), timeout != -1 ? &ts : nullptr);
 
   if (ret < 0 && errno != EINTR) {
     throw FDMultiplexerException("kqueue returned error: " + stringerror());
@@ -174,7 +174,7 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
   ts.tv_sec = timeout / 1000;
   ts.tv_nsec = (timeout % 1000) * 1000000;
 
-  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), d_kevents.size(), &ts);
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.data(), d_kevents.size(), timeout != -1 ? &ts : nullptr);
   gettimeofday(now, nullptr); // MANDATORY!
 
   if (ret < 0 && errno != EINTR) {

@@ -35,6 +35,12 @@ This state can be modified from the various hooks.
 
     Integer describing the OPCODE of the packet. Can be matched against :ref:`DNSOpcode`.
 
+  .. attribute:: DNSQuestion.pool
+
+    .. versionadded:: 1.8.0
+
+    The pool of servers to which this query will be routed.
+
   .. attribute:: DNSQuestion.qclass
 
     QClass (as an unsigned integer) of this question.
@@ -217,6 +223,24 @@ This state can be modified from the various hooks.
 
     :param string reason: An optional string describing the reason why this trap was sent
 
+  .. method:: DNSQuestion:setContent(data)
+
+    .. versionadded:: 1.8.0
+
+    Replace the whole DNS payload of the query with the supplied data. The new DNS payload must include the DNS header, whose ID will be adjusted to match the one of the existing query.
+    For example, this replaces the whole DNS payload of queries for custom.async.tests.powerdns.com and type A, turning it them into ``FORMERR`` responses, including EDNS with the ``DNSSECOK`` bit set and a UDP payload size of 1232:
+
+    .. code-block:: Lua
+
+      function replaceQueryPayload(dq)
+        local raw = '\000\000\128\129\000\001\000\000\000\000\000\001\006custom\005async\005tests\008powerdns\003com\000\000\001\000\001\000\000\041\002\000\000\000\128\000\000\\000'
+        dq:setContent(raw)
+        return DNSAction.Allow
+      end
+      addAction(AndRule({QTypeRule(DNSQType.A), makeRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
+
+    :param string data: The raw DNS payload
+
   .. method:: DNSQuestion:setEDNSOption(code, data)
 
     .. versionadded:: 1.8.0
@@ -264,6 +288,14 @@ This state can be modified from the various hooks.
 
     :param table values: A table of types and values to send, for example: ``{ [0x00] = "foo", [0x42] = "bar" }``. Note that the type must be an integer. Try to avoid these values: 0x01 - 0x05, 0x20 - 0x25, 0x30 as those are predefined in https://www.haproxy.org/download/2.3/doc/proxy-protocol.txt (search for `PP2_TYPE_ALPN`)
 
+  .. method:: DNSQuestion:setRestartable()
+
+    .. versionadded:: 1.8.0
+
+    Make it possible to restart that query after receiving the response, for example to try a different pool of servers after receiving a SERVFAIL or a REFUSED response.
+    Under the hood, this tells dnsdist to keep a copy of the initial query around so that we can send it a second time if needed. Copying the initial DNS payload has a small memory and CPU cost and thus is not done by default.
+    See also :func:`DNSResponse:restart`.
+
   .. method:: DNSQuestion:setTag(key, value)
 
     .. versionchanged:: 1.7.0
@@ -302,6 +334,18 @@ This state can be modified from the various hooks.
     :param table ComboAddresses ips: The `ComboAddress`es to be spoofed, e.g. `{ newCA("192.0.2.1"), newCA("192.0.2.2") }`.
     :param string raw: The raw string to be spoofed, e.g. `"\\192\\000\\002\\001"`.
     :param table raws: The raw strings to be spoofed, e.g. `{ "\\192\\000\\002\\001", "\\192\\000\\002\\002" }`.
+
+  .. method:: DNSQuestion:suspend(asyncID, queryID, timeoutMS) -> bool
+
+    .. versionadded:: 1.8.0
+
+    Suspend the processing for the current query, making it asynchronous. The query is then placed into memory, in a map called the Asynchronous Holder, until it is either resumed or the supplied timeout kicks in. The object is stored under a key composed of the tuple (`asyncID`, `queryID`) which is needed to retrieve it later, which can be done via :func:`getAsynchronousObject`.
+    Note that the DNSQuestion object should NOT be accessed after successfully calling this method.
+    Returns true on success and false on failure, indicating that the query has not been suspended and the normal processing will continue.
+
+    :param int asyncID: A numeric identifier used to identify the suspended query for later retrieval. Valid values range from 0 to 65535, both included.
+    :param int queryID: A numeric identifier used to identify the suspended query for later retrieval. This ID does not have to match the query ID present in the initial DNS header. A given (asyncID, queryID) tuple should be unique at a given time. Valid values range from 0 to 65535, both included.
+    :param int timeoutMS: The maximum duration this query will be kept in the asynchronous holder before being automatically resumed,  in milliseconds.
 
 .. _DNSResponse:
 
@@ -350,6 +394,34 @@ DNSResponse object
 
     :param string func: The function to call to edit TTLs.
 
+  .. method:: DNSResponse:restart()
+
+    .. versionadded:: 1.8.0
+
+    Discard the received response and restart the processing of the query. For this function to be usable, the query should have been made restartable first, via :func:`DNSQuestion:setRestartable`.
+    For example, to restart the processing after selecting a different pool of servers:
+
+    .. code-block:: Lua
+
+      function makeQueryRestartable(dq)
+        -- make it possible to restart that query later
+        -- by keeping a copy of the initial DNS payload around
+        dq:setRestartable()
+        return DNSAction.None
+      end
+      function restartOnServFail(dr)
+        if dr.rcode == DNSRCode.SERVFAIL then
+          -- assign this query to a new pool
+          dr.pool = 'restarted'
+          -- discard the received response and
+          -- restart the processing of the query
+          dr:restart()
+        end
+        return DNSResponseAction.None
+      end
+      addAction(AllRule(), LuaAction(makeQueryRestartable))
+      addResponseAction(AllRule(), LuaResponseAction(restartOnServFail))
+
 .. _DNSHeader:
 
 DNSHeader (``dh``) object
@@ -370,6 +442,12 @@ DNSHeader (``dh``) object
   .. method:: DNSHeader:getCD() -> bool
 
     Get checking disabled flag.
+
+  .. method:: DNSHeader:getID() -> int
+
+    .. versionadded:: 1.8.0
+
+    Get the ID.
 
   .. method:: DNSHeader:getRA() -> bool
 
@@ -438,3 +516,57 @@ EDNSOptionView object
   .. method:: EDNSOptionView:getValues()
 
     Return a table of NULL-safe strings values for this EDNS option.
+
+.. _AsynchronousObject:
+
+AsynchronousObject object
+=========================
+
+.. class:: AsynchronousObject
+
+  .. versionadded:: 1.8.0
+
+  This object holds a representation of a DNS query or response that has been suspended.
+
+  .. method:: AsynchronousObject:drop() -> bool
+
+    Drop that object immediately, without resuming it.
+    Returns true on success, false on failure.
+
+  .. method:: AsynchronousObject:getDQ() -> DNSQuestion
+
+    Return a DNSQuestion object for the suspended object.
+
+  .. method:: AsynchronousObject:getDR() -> DNSResponse
+
+    Return a DNSResponse object for the suspended object.
+
+  .. method:: AsynchronousObject:resume() -> bool
+
+    Resume the processing of the suspended object.
+    For a question, it means first checking whether it was turned into a response,
+    and sending the response out it it was. Otherwise do a cache-lookup: on a
+    cache-hit, the response will be sent immediately. On a cache-miss,
+    it means dnsdist will select a backend and send the query to the backend.
+    For a response, it means inserting into the cache if needed and sending the
+    response to the backend.
+    Note that the AsynchronousObject object should NOT be accessed after successfully calling this method.
+    Returns true on success, false on failure.
+
+  .. method:: AsynchronousObject:setRCode(rcode, clearRecords) -> bool
+
+    Set the response code in the DNS header of the current object to the supplied value,
+    optionally removing all records from the existing payload, if any.
+    Returns true on success, false on failure.
+
+    :param int code: The response code to set
+    :param bool clearRecords: Whether to clear all records from the existing payload, if any
+
+.. function:: getAsynchronousObject(asyncID, queryID) -> AsynchronousObject
+
+  .. versionadded:: 1.8.0
+
+  Retrieves an asynchronous object stored into the Asynchronous holder.
+
+    :param int asyncID: A numeric identifier used to identify the query when it was suspended
+    :param int queryID: A numeric identifier used to identify the query when it was suspended

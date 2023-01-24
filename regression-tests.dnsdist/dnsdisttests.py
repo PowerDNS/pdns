@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import base64
 import copy
 import errno
 import os
@@ -23,6 +24,9 @@ import libnacl.utils
 import h2.connection
 import h2.events
 import h2.config
+
+import pycurl
+from io import BytesIO
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 from proxyprotocol import ProxyProtocol
@@ -630,6 +634,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return message
 
     @classmethod
+    def sendDOTQuery(cls, port, serverName, query, response, caFile, useQueue=True):
+        conn = cls.openTLSConnection(port, serverName, caFile)
+        cls.sendTCPQueryOverConnection(conn, query, response=response)
+        if useQueue:
+          return cls.recvTCPResponseOverConnection(conn, useQueue=useQueue)
+        return None, cls.recvTCPResponseOverConnection(conn, useQueue=useQueue)
+
+    @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
         message = None
         if useQueue:
@@ -910,3 +922,107 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         proxy.values.sort()
         values.sort()
         self.assertEqual(proxy.values, values)
+
+    @classmethod
+    def getDOHGetURL(cls, baseurl, query, rawQuery=False):
+        if rawQuery:
+            wire = query
+        else:
+            wire = query.to_wire()
+        param = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        return baseurl + "?dns=" + param
+
+    @classmethod
+    def openDOHConnection(cls, port, caFile, timeout=2.0):
+        conn = pycurl.Curl()
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2)
+
+        conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message",
+                                         "Accept: application/dns-message"])
+        return conn
+
+    @classmethod
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True, fromQueue=None, toQueue=None):
+        url = cls.getDOHGetURL(baseurl, query, rawQuery)
+        conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
+        #conn.setopt(pycurl.VERBOSE, True)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+        if useHTTPS:
+            conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+            conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+            if caFile:
+                conn.setopt(pycurl.CAINFO, caFile)
+
+        conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
+
+        if response:
+            if toQueue:
+                toQueue.put(response, True, timeout)
+            else:
+                cls._toResponderQueue.put(response, True, timeout)
+
+        receivedQuery = None
+        message = None
+        cls._response_headers = ''
+        data = conn.perform_rb()
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
+            message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
+
+        if useQueue:
+            if fromQueue:
+                if not fromQueue.empty():
+                    receivedQuery = fromQueue.get(True, timeout)
+            else:
+                if not cls._fromResponderQueue.empty():
+                    receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        cls._response_headers = response_headers.getvalue()
+        return (receivedQuery, message)
+
+    @classmethod
+    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True):
+        url = baseurl
+        conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
+        #conn.setopt(pycurl.VERBOSE, True)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+        if useHTTPS:
+            conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+            conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+            if caFile:
+                conn.setopt(pycurl.CAINFO, caFile)
+
+        conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
+        conn.setopt(pycurl.POST, True)
+        data = query
+        if not rawQuery:
+            data = data.to_wire()
+
+        conn.setopt(pycurl.POSTFIELDS, data)
+
+        if response:
+            cls._toResponderQueue.put(response, True, timeout)
+
+        receivedQuery = None
+        message = None
+        cls._response_headers = ''
+        data = conn.perform_rb()
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
+            message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
+
+        if useQueue and not cls._fromResponderQueue.empty():
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        cls._response_headers = response_headers.getvalue()
+        return (receivedQuery, message)

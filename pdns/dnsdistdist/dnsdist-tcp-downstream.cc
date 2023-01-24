@@ -38,7 +38,7 @@ ConnectionToBackend::~ConnectionToBackend()
 bool ConnectionToBackend::reconnect()
 {
   std::unique_ptr<TLSSession> tlsSession{nullptr};
-  if (d_handler) { 
+  if (d_handler) {
     DEBUGLOG("closing socket "<<d_handler->getDescriptor());
     if (d_handler->isTLS()) {
       if (d_handler->hasTLSSessionBeenResumed()) {
@@ -73,18 +73,18 @@ bool ConnectionToBackend::reconnect()
     DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
     ++d_ds->tcpNewConnections;
     try {
-      auto socket = std::make_unique<Socket>(d_ds->d_config.remote.sin4.sin_family, SOCK_STREAM, 0);
-      DEBUGLOG("result of socket() is "<<socket->getHandle());
+      auto socket = Socket(d_ds->d_config.remote.sin4.sin_family, SOCK_STREAM, 0);
+      DEBUGLOG("result of socket() is "<<socket.getHandle());
 
       /* disable NAGLE, which does not play nicely with delayed ACKs.
          In theory we could be wasting up to 500 milliseconds waiting for
          the other end to acknowledge our initial packet before we could
          send the rest. */
-      setTCPNoDelay(socket->getHandle());
+      setTCPNoDelay(socket.getHandle());
 
 #ifdef SO_BINDTODEVICE
       if (!d_ds->d_config.sourceItfName.empty()) {
-        int res = setsockopt(socket->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
+        int res = setsockopt(socket.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
         if (res != 0) {
           vinfolog("Error setting up the interface on backend TCP socket '%s': %s", d_ds->getNameWithAddr(), stringerror());
         }
@@ -92,19 +92,18 @@ bool ConnectionToBackend::reconnect()
 #endif
 
       if (!IsAnyAddress(d_ds->d_config.sourceAddr)) {
-        SSetsockopt(socket->getHandle(), SOL_SOCKET, SO_REUSEADDR, 1);
+        SSetsockopt(socket.getHandle(), SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
         if (d_ds->d_config.ipBindAddrNoPort) {
-          SSetsockopt(socket->getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+          SSetsockopt(socket.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
         }
 #endif
-        socket->bind(d_ds->d_config.sourceAddr, false);
+        socket.bind(d_ds->d_config.sourceAddr, false);
       }
-
-      socket->setNonBlocking();
+      socket.setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
-      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_config.d_tlsSubjectName, d_ds->d_config.d_tlsSubjectIsAddr, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
+      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_config.d_tlsSubjectName, d_ds->d_config.d_tlsSubjectIsAddr, socket.releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
       if (!tlsSession && d_ds->d_tlsCtx) {
         tlsSession = g_sessionCache.getSession(d_ds->getID(), d_connectionStartTime.tv_sec);
       }
@@ -591,15 +590,13 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   auto pendingResponses = std::move(d_pendingResponses);
   d_pendingResponses.clear();
 
-  auto increaseCounters = [reason](std::shared_ptr<TCPQuerySender>& sender) {
+  auto increaseCounters = [reason](const ClientState* cs) {
     if (reason == FailureReason::timeout) {
-      const ClientState* cs = sender->getClientState();
       if (cs) {
         ++cs->tcpDownstreamTimeouts;
       }
     }
     else if (reason == FailureReason::gaveUp) {
-      const ClientState* cs = sender->getClientState();
       if (cs) {
         ++cs->tcpGaveUp;
       }
@@ -608,25 +605,25 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
   try {
     if (d_state == State::sendingQueryToBackend) {
+      increaseCounters(d_currentQuery.d_query.d_idstate.cs);
       auto sender = d_currentQuery.d_sender;
       if (sender->active()) {
-        increaseCounters(sender);
         sender->notifyIOError(std::move(d_currentQuery.d_query.d_idstate), now);
       }
     }
 
     for (auto& query : pendingQueries) {
+      increaseCounters(query.d_query.d_idstate.cs);
       auto sender = query.d_sender;
       if (sender->active()) {
-        increaseCounters(sender);
         sender->notifyIOError(std::move(query.d_query.d_idstate), now);
       }
     }
 
     for (auto& response : pendingResponses) {
+      increaseCounters(response.second.d_query.d_idstate.cs);
       auto sender = response.second.d_sender;
       if (sender->active()) {
-        increaseCounters(sender);
         sender->notifyIOError(std::move(response.second.d_query.d_idstate), now);
       }
     }
@@ -672,6 +669,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     TCPResponse response;
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
+    response.d_ds = conn->d_ds;
     /* we don't move the whole IDS because we will need for the responses to come */
     response.d_idstate.qtype = it->second.d_query.d_idstate.qtype;
     response.d_idstate.qname = it->second.d_query.d_idstate.qname;
@@ -728,7 +726,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   if (sender->active()) {
     DEBUGLOG("passing response to client connection for "<<ids.qname);
     // make sure that we still exist after calling handleResponse()
-    sender->handleResponse(now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
+    sender->handleResponse(now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn, conn->d_ds));
   }
 
   if (!d_pendingQueries.empty()) {

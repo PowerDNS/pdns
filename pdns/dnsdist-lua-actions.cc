@@ -22,6 +22,7 @@
 #include "config.h"
 #include "threadname.hh"
 #include "dnsdist.hh"
+#include "dnsdist-async.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
@@ -492,19 +493,24 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    auto lock = g_lua.lock();
     try {
-      auto ret = d_func(dq);
-      if (ruleresult) {
-        if (boost::optional<std::string> rule = std::get<1>(ret)) {
-          *ruleresult = *rule;
+      DNSAction::Action result;
+      {
+        auto lock = g_lua.lock();
+        auto ret = d_func(dq);
+        if (ruleresult) {
+          if (boost::optional<std::string> rule = std::get<1>(ret)) {
+            *ruleresult = *rule;
+          }
+          else {
+            // default to empty string
+            ruleresult->clear();
+          }
         }
-        else {
-          // default to empty string
-          ruleresult->clear();
-        }
+        result = static_cast<Action>(std::get<0>(ret));
       }
-      return static_cast<Action>(std::get<0>(ret));
+      dnsdist::handleQueuedAsynchronousEvents();
+      return result;
     } catch (const std::exception &e) {
       warnlog("LuaAction failed inside Lua, returning ServFail: %s", e.what());
     } catch (...) {
@@ -529,19 +535,24 @@ public:
   {}
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    auto lock = g_lua.lock();
     try {
-      auto ret = d_func(dr);
-      if (ruleresult) {
-        if (boost::optional<std::string> rule = std::get<1>(ret)) {
-          *ruleresult = *rule;
+      DNSResponseAction::Action result;
+      {
+        auto lock = g_lua.lock();
+        auto ret = d_func(dr);
+        if (ruleresult) {
+          if (boost::optional<std::string> rule = std::get<1>(ret)) {
+            *ruleresult = *rule;
+          }
+          else {
+            // default to empty string
+            ruleresult->clear();
+          }
         }
-        else {
-          // default to empty string
-          ruleresult->clear();
-        }
+        result = static_cast<Action>(std::get<0>(ret));
       }
-      return static_cast<Action>(std::get<0>(ret));
+      dnsdist::handleQueuedAsynchronousEvents();
+      return result;
     } catch (const std::exception &e) {
       warnlog("LuaResponseAction failed inside Lua, returning ServFail: %s", e.what());
     } catch (...) {
@@ -571,18 +582,23 @@ public:
   {
     dnsdist_ffi_dnsquestion_t dqffi(dq);
     try {
-      auto lock = g_lua.lock();
-      auto ret = d_func(&dqffi);
-      if (ruleresult) {
-        if (dqffi.result) {
-          *ruleresult = *dqffi.result;
+      DNSAction::Action result;
+      {
+        auto lock = g_lua.lock();
+        auto ret = d_func(&dqffi);
+        if (ruleresult) {
+          if (dqffi.result) {
+            *ruleresult = *dqffi.result;
+          }
+          else {
+            // default to empty string
+            ruleresult->clear();
+          }
         }
-        else {
-          // default to empty string
-          ruleresult->clear();
-        }
+        result = static_cast<DNSAction::Action>(ret);
       }
-      return static_cast<DNSAction::Action>(ret);
+      dnsdist::handleQueuedAsynchronousEvents();
+      return result;
     } catch (const std::exception &e) {
       warnlog("LuaFFIAction failed inside Lua, returning ServFail: %s", e.what());
     } catch (...) {
@@ -636,6 +652,7 @@ public:
           ruleresult->clear();
         }
       }
+      dnsdist::handleQueuedAsynchronousEvents();
       return static_cast<DNSAction::Action>(ret);
     }
     catch (const std::exception &e) {
@@ -681,18 +698,23 @@ public:
   {
     dnsdist_ffi_dnsresponse_t drffi(dr);
     try {
-      auto lock = g_lua.lock();
-      auto ret = d_func(&drffi);
-      if (ruleresult) {
-        if (drffi.result) {
-          *ruleresult = *drffi.result;
+      DNSResponseAction::Action result;
+      {
+        auto lock = g_lua.lock();
+        auto ret = d_func(&drffi);
+        if (ruleresult) {
+          if (drffi.result) {
+            *ruleresult = *drffi.result;
+          }
+          else {
+            // default to empty string
+            ruleresult->clear();
+          }
         }
-        else {
-          // default to empty string
-          ruleresult->clear();
-        }
+        result = static_cast<DNSResponseAction::Action>(ret);
       }
-      return static_cast<DNSResponseAction::Action>(ret);
+      dnsdist::handleQueuedAsynchronousEvents();
+      return result;
     } catch (const std::exception &e) {
       warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: %s", e.what());
     } catch (...) {
@@ -746,6 +768,7 @@ public:
           ruleresult->clear();
         }
       }
+      dnsdist::handleQueuedAsynchronousEvents();
       return static_cast<DNSResponseAction::Action>(ret);
     }
     catch (const std::exception &e) {

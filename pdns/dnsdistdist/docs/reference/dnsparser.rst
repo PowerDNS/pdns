@@ -42,6 +42,11 @@ and then to create a :class:`DNSPacketOverlay` object:
 
   :param str packet: The DNS payload
 
+.. _DNSPacketOverlay:
+
+DNSPacketOverlay
+----------------
+
 .. class:: DNSPacketOverlay
 
   .. versionadded:: 1.8.0
