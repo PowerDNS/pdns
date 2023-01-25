@@ -350,6 +350,11 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
       return true;
     }
   }
+  if (req.method == "DELETE") {
+    if (req.url.path == "/api/v1/cache") {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -1458,6 +1463,91 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
 }
 #endif /* DISABLE_WEB_CONFIG */
 
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
+static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& resp)
+{
+  handleCORS(req, resp);
+
+  resp.headers["Content-Type"] = "application/json";
+  resp.status = 200;
+
+  if (req.method != "DELETE") {
+    resp.status = 400;
+    Json::object obj{
+      { "status", "denied" },
+      { "error", "invalid method" }
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  const auto poolName = req.getvars.find("pool");
+  const auto expungeName = req.getvars.find("name");
+  const auto expungeType = req.getvars.find("type");
+  const auto suffix = req.getvars.find("suffix");
+  if (poolName == req.getvars.end() || expungeName == req.getvars.end()) {
+    resp.status = 400;
+    Json::object obj{
+      { "status", "denied" },
+      { "error", "missing 'pool' or 'name' parameter" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  DNSName name;
+  QType type(QType::ANY);
+  try {
+    name = DNSName(expungeName->second);
+  }
+  catch (const std::exception& e) {
+    resp.status = 404;
+    Json::object obj{
+      { "status", "error" },
+      { "error", "unable to parse the requested name" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+  if (expungeType != req.getvars.end()) {
+    type = QType::chartocode(expungeType->second.c_str());
+  }
+
+  std::shared_ptr<ServerPool> pool;
+  try {
+    pool = getPool(g_pools.getCopy(), poolName->second);
+  }
+  catch (const std::exception& e) {
+    resp.status = 404;
+    Json::object obj{
+      { "status", "not found" },
+      { "error", "the requested pool does not exist" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  auto cache = pool->getCache();
+  if (cache == nullptr) {
+    resp.status = 404;
+    Json::object obj{
+      { "status", "not found" },
+      { "error", "there is no cache associated to the requested pool" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  auto removed = cache->expungeByName(name, type.getCode(), suffix != req.getvars.end());
+
+  Json::object obj{
+      { "status", "purged" },
+      { "count", std::to_string(removed) }
+    };
+  resp.body = Json(obj).dump();
+}
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
+
 static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
 
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler);
@@ -1526,6 +1616,9 @@ void registerBuiltInWebHandlers()
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
 #endif /* DISABLE_WEB_CONFIG */
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
+  registerWebHandler("/api/v1/cache", handleCacheManagement);
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
 #ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/", redirectToIndex);
 
