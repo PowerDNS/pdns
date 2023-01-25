@@ -87,11 +87,11 @@ public:
   };
 
   void add(const NegCacheEntry& ne);
-  void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD);
-  bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false, bool serverStale = false, bool refresh = false);
+  void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, boost::optional<time_t> capTTD);
+  bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false, bool serverStale = false, bool refresh = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);
-  size_t count(const DNSName& qname, const QType qtype);
+  size_t count(const DNSName& qname, QType qtype);
   void prune(size_t maxEntries);
   void clear();
   size_t doDump(int fd, size_t maxCacheEntries);
@@ -120,7 +120,7 @@ private:
                         member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
 
-  void updateStaleEntry(time_t now, negcache_t::iterator& entry);
+  void updateStaleEntry(time_t now, negcache_t::iterator& entry, QType qtype);
 
   struct MapCombo
   {
