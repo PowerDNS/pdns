@@ -71,24 +71,24 @@
 #include <openssl/err.h>
 #endif // HAVE_LIBCRYPTO
 
-size_t writen2(int fd, const void *buf, size_t count)
+size_t writen2(int fileDesc, const void *buf, size_t count)
 {
-  const char *ptr = reinterpret_cast<const char*>(buf);
+  const char *ptr = static_cast<const char*>(buf);
   const char *eptr = ptr + count;
 
-  ssize_t res;
-  while(ptr != eptr) {
-    res = ::write(fd, ptr, eptr - ptr);
-    if(res < 0) {
-      if (errno == EAGAIN)
+  while (ptr != eptr) {
+    auto res = ::write(fileDesc, ptr, eptr - ptr);
+    if (res < 0) {
+      if (errno == EAGAIN) {
         throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
-      else
-        unixDie("failed in writen2");
+      }
+      unixDie("failed in writen2");
     }
-    else if (res == 0)
+    else if (res == 0) {
       throw std::runtime_error("could not write all bytes, got eof in writen2");
+    }
 
-    ptr += (size_t) res;
+    ptr += res;
   }
 
   return count;
@@ -293,67 +293,56 @@ auto pdns::OpenSSL::error(const std::string& componentName, const std::string& e
 string nowTime()
 {
   time_t now = time(nullptr);
-  struct tm tm;
-  localtime_r(&now, &tm);
-  char buffer[30];
+  struct tm theTime{};
+  localtime_r(&now, &theTime);
+  std::array<char, 30> buffer{};
   // YYYY-mm-dd HH:MM:SS TZOFF
-  size_t ret = strftime(buffer, sizeof(buffer), "%F %T %z", &tm);
+  size_t ret = strftime(buffer.data(), buffer.size(), "%F %T %z", &theTime);
   if (ret == 0) {
     buffer[0] = '\0';
   }
-  return string(buffer);
+  return {buffer.data()};
 }
 
-uint16_t getShort(const unsigned char *p)
+static bool ciEqual(const string& lhs, const string& rhs)
 {
-  return p[0] * 256 + p[1];
-}
-
-
-uint16_t getShort(const char *p)
-{
-  return getShort((const unsigned char *)p);
-}
-
-uint32_t getLong(const unsigned char* p)
-{
-  return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3];
-}
-
-uint32_t getLong(const char* p)
-{
-  return getLong(reinterpret_cast<const unsigned char *>(p));
-}
-
-static bool ciEqual(const string& a, const string& b)
-{
-  if(a.size()!=b.size())
+  if (lhs.size() != rhs.size()) {
     return false;
+  }
 
-  string::size_type pos=0, epos=a.size();
-  for(;pos < epos; ++pos)
-    if(dns_tolower(a[pos])!=dns_tolower(b[pos]))
+  string::size_type pos = 0;
+  const string::size_type epos = lhs.size();
+  for (; pos < epos; ++pos) {
+    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
       return false;
+    }
+  }
   return true;
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 static bool endsOn(const string &domain, const string &suffix)
 {
-  if( suffix.empty() || ciEqual(domain, suffix) )
+  if( suffix.empty() || ciEqual(domain, suffix) ) {
     return true;
+  }
 
-  if(domain.size()<=suffix.size())
+  if(domain.size() <= suffix.size()) {
     return false;
+  }
 
-  string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
+  string::size_type dpos = domain.size() - suffix.size() - 1;
+  string::size_type spos = 0;
 
-  if(domain[dpos++]!='.')
+  if (domain[dpos++] != '.') {
     return false;
+  }
 
-  for(; dpos < domain.size(); ++dpos, ++spos)
-    if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
+  for(; dpos < domain.size(); ++dpos, ++spos) {
+    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
       return false;
+    }
+  }
 
   return true;
 }
@@ -361,45 +350,48 @@ static bool endsOn(const string &domain, const string &suffix)
 /** strips a domain suffix from a domain, returns true if it stripped */
 bool stripDomainSuffix(string *qname, const string &domain)
 {
-  if(!endsOn(*qname, domain))
+  if (!endsOn(*qname, domain)) {
     return false;
+  }
 
-  if(toLower(*qname)==toLower(domain))
+  if (toLower(*qname) == toLower(domain)) {
     *qname="@";
+  }
   else {
-    if((*qname)[qname->size()-domain.size()-1]!='.')
+    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
       return false;
+    }
 
-    qname->resize(qname->size()-domain.size()-1);
+    qname->resize(qname->size() - domain.size()-1);
   }
   return true;
 }
 
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitForData(int fd, int seconds, int useconds)
+int waitForData(int fileDesc, int seconds, int useconds)
 {
-  return waitForRWData(fd, true, seconds, useconds);
+  return waitForRWData(fileDesc, true, seconds, useconds);
 }
 
-int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error, bool* disconnected)
+int waitForRWData(int fileDesc, bool waitForRead, int seconds, int useconds, bool* error, bool* disconnected)
 {
-  int ret;
-
-  struct pollfd pfd;
+  struct pollfd pfd{};
   memset(&pfd, 0, sizeof(pfd));
-  pfd.fd = fd;
+  pfd.fd = fileDesc;
 
-  if(waitForRead)
-    pfd.events=POLLIN;
-  else
-    pfd.events=POLLOUT;
+  if (waitForRead) {
+    pfd.events = POLLIN;
+  }
+  else {
+    pfd.events = POLLOUT;
+  }
 
-  ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
+  int ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
   if (ret > 0) {
-    if (error && (pfd.revents & POLLERR)) {
+    if ((error != nullptr) && (pfd.revents & POLLERR) != 0) {
       *error = true;
     }
-    if (disconnected && (pfd.revents & POLLHUP)) {
+    if ((disconnected != nullptr) && (pfd.revents & POLLHUP) != 0) {
       *disconnected = true;
     }
   }
@@ -497,7 +489,7 @@ string humanDuration(time_t passed)
   return ret.str();
 }
 
-const string unquotify(const string &item)
+string unquotify(const string &item)
 {
   if(item.size()<2)
     return item;
@@ -666,7 +658,7 @@ void normalizeTV(struct timeval& tv)
   }
 }
 
-const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
+struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
 {
   struct timeval ret;
   ret.tv_sec=lhs.tv_sec + rhs.tv_sec;
@@ -675,7 +667,7 @@ const struct timeval operator+(const struct timeval& lhs, const struct timeval& 
   return ret;
 }
 
-const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs)
+struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs)
 {
   struct timeval ret;
   ret.tv_sec=lhs.tv_sec - rhs.tv_sec;
@@ -1464,14 +1456,14 @@ uint64_t getCPUTimeSystem(const std::string&)
 
 double DiffTime(const struct timespec& first, const struct timespec& second)
 {
-  int seconds=second.tv_sec - first.tv_sec;
-  int nseconds=second.tv_nsec - first.tv_nsec;
+  auto seconds = second.tv_sec - first.tv_sec;
+  auto nseconds = second.tv_nsec - first.tv_nsec;
 
-  if(nseconds < 0) {
-    seconds-=1;
-    nseconds+=1000000000;
+  if (nseconds < 0) {
+    seconds -= 1;
+    nseconds += 1000000000;
   }
-  return seconds + nseconds/1000000000.0;
+  return static_cast<double>(seconds) + static_cast<double>(nseconds) / 1000000000.0;
 }
 
 double DiffTime(const struct timeval& first, const struct timeval& second)
@@ -1607,7 +1599,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
     if (boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
       vector<string> parts;
       stringtok(parts, line, " \t,"); // be REALLY nice
-      for(vector<string>::const_iterator iter = parts.begin() + 1; iter != parts.end(); ++iter) {
+      for (auto iter = parts.begin() + 1; iter != parts.end(); ++iter) {
         try {
           results.emplace_back(*iter, 53);
         }
