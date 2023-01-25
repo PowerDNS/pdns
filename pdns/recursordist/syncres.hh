@@ -624,8 +624,8 @@ private:
   void getBestNSFromCache(const DNSName& qname, QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain = boost::none);
   DNSName getBestNSNamesFromCache(const DNSName& qname, QType qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere);
 
-  inline vector<std::pair<DNSName, float>> shuffleInSpeedOrder(NsSet& nameservers, const string& prefix);
-  inline vector<ComboAddress> shuffleForwardSpeed(const vector<ComboAddress>& rnameservers, const string& prefix, const bool wasRd);
+  vector<std::pair<DNSName, float>> shuffleInSpeedOrder(const DNSName& qname, NsSet& nameservers, const string& prefix);
+  vector<ComboAddress> shuffleForwardSpeed(const DNSName& qname, const vector<ComboAddress>& rnameservers, const string& prefix, const bool wasRd);
   bool moreSpecificThan(const DNSName& a, const DNSName& b) const;
   vector<ComboAddress> getAddrs(const DNSName& qname, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS);
 
@@ -652,12 +652,12 @@ private:
 
   bool validationEnabled() const;
   uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs) const;
-  void updateValidationState(vState& state, const vState stateUpdate, const string& prefix);
+  void updateValidationState(const DNSName& qname, vState& state, const vState stateUpdate, const string& prefix);
   vState validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, const QType qtype, const DNSName& name, const QType type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures);
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, unsigned int depth, const string& prefix);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFailOccurred, unsigned int depth, const string& prefix);
   dState getDenialValidationState(const NegCache::NegCacheEntry& ne, const dState expectedState, bool referralToUnsigned, const string& prefix);
-  void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool isDS, unsigned int depth, const string& prefix);
+  void updateDenialValidationState(const DNSName& qname, vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool isDS, unsigned int depth, const string& prefix);
   void computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, QType qtype, const int res, vState& state, unsigned int depth, const string& prefix);
   vState getTA(const DNSName& zone, dsmap_t& ds, const string& prefix);
   vState getValidationStatus(const DNSName& subdomain, bool wouldBeValid, bool typeIsDS, unsigned int depth, const string& prefix);

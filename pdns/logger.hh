@@ -193,7 +193,7 @@ void addTraceTS(const timeval& start, ostringstream& str);
 
 #define VLOG(log, x)                                                    \
   if (log) {                                                            \
-    if (std::holds_alternative<Logger*>((log)->v)) {                      \
+    if (std::holds_alternative<Logger*>((log)->v)) {                    \
       *std::get<Logger*>(log->v) << Logger::Warning << (log)->prefix << x; \
     }                                                                   \
     else if (std::holds_alternative<ostringstream*>((log)->v)) {        \
@@ -201,4 +201,16 @@ void addTraceTS(const timeval& start, ostringstream& str);
       *std::get<ostringstream*>((log)->v) << (log)->prefix << x;        \
     }                                                                   \
   }
+
+#define VLOG_NO_PREFIX(log, x)                                          \
+  if (log) {                                                            \
+      if (std::holds_alternative<Logger*>((log)->v)) {                  \
+      *std::get<Logger*>(log->v) << Logger::Warning << x;               \
+    }                                                                   \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {        \
+      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v));    \
+      *std::get<ostringstream*>((log)->v) << x;                         \
+    }                                                                   \
+  }
+
 #endif
