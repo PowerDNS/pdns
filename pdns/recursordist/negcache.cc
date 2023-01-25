@@ -242,6 +242,26 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   return ret;
 }
 
+size_t NegCache::wipe(const DNSName& qname, QType qtype)
+{
+  size_t ret = 0;
+  auto& map = getMap(qname);
+  auto content = map.lock();
+  auto range = content->d_map.equal_range(std::tie(qname));
+  auto i = range.first;
+  while (i != range.second) {
+    if (i->d_qtype == QType::ENT || i->d_qtype == qtype) {
+      i = content->d_map.erase(i);
+      ++ret;
+      --map.d_entriesCount;
+    }
+    else {
+      ++i;
+    }
+  }
+  return ret;
+}
+
 /*!
  * Clear the negative cache
  */
