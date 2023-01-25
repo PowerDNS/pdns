@@ -33,3 +33,83 @@ jobs:
 
     - name: Check if Debian is about to toss us off a balcony
       run: ./build-scripts/check-debian-autoremovals.py
+
+  coverity-auth:
+    name: coverity scan of the auth
+    runs-on: ubuntu-20.04
+    env:
+      FUZZING_TARGETS: no
+      SANITIZERS:
+      UNIT_TESTS: no
+    steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v3.1.0
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang
+      - run: inv install-auth-build-deps
+      - run: inv install-coverity-tools ${{ secrets.coverity_auth_token }} PowerDNS
+      - run: inv coverity-clang-configure
+      - run: inv ci-autoconf
+      - run: inv ci-auth-configure
+      - run: inv coverity-make
+      - run: inv coverity-tarball auth.tar.bz2
+      - run: inv coverity-upload ${{ secrets.coverity_auth_token }} ${{ secrets.coverity_email }} PowerDNS auth.tar.bz2
+
+  coverity-dnsdist:
+    name: coverity scan of dnsdist
+    runs-on: ubuntu-20.04
+    env:
+      SANITIZERS:
+      UNIT_TESTS: no
+    steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v3.1.0
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang
+      - run: inv install-dnsdist-build-deps
+      - run: inv install-coverity-tools ${{ secrets.coverity_dnsdist_token }} dnsdist
+      - run: inv coverity-clang-configure
+      - run: inv ci-autoconf
+        working-directory: ./pdns/dnsdistdist/
+      - run: inv ci-dnsdist-configure full
+        working-directory: ./pdns/dnsdistdist/
+      - run: inv coverity-make
+        working-directory: ./pdns/dnsdistdist/
+      - run: inv coverity-tarball dnsdist.tar.bz2
+        working-directory: ./pdns/dnsdistdist/
+      - run: inv coverity-upload ${{ secrets.coverity_dnsdist_token }} ${{ secrets.coverity_email }} dnsdist dnsdist.tar.bz2
+        working-directory: ./pdns/dnsdistdist/
+
+  coverity-rec:
+    name: coverity scan of the rec
+    runs-on: ubuntu-20.04
+    env:
+      SANITIZERS:
+      UNIT_TESTS: no
+    steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v3.1.0
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv install-clang
+      - run: inv install-rec-build-deps
+      - run: inv install-coverity-tools ${{ secrets.coverity_rec_token }} 'PowerDNS+Recursor'
+      - run: inv coverity-clang-configure
+      - run: inv ci-autoconf
+        working-directory: ./pdns/recursordist/
+      - run: inv ci-rec-configure
+        working-directory: ./pdns/recursordist/
+      - run: inv coverity-make
+        working-directory: ./pdns/recursordist/
+      - run: inv coverity-tarball recursor.tar.bz2
+        working-directory: ./pdns/recursordist/
+      - run: inv coverity-upload ${{ secrets.coverity_rec_token }} ${{ secrets.coverity_email }} 'PowerDNS+Recursor' recursor.tar.bz2
+        working-directory: ./pdns/recursordist/
