@@ -24,7 +24,9 @@
 #include <string>
 #include <ctime>
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <variant>
 #include <syslog.h>
 
 #include "namespaces.hh"
@@ -168,7 +170,7 @@ Logger& getLogger();
 #endif
 
 // The types below are used by rec, which can log to g_log (general logging) or a string stream
-// (trace-regexp). We feed an OptLog object to the code that should not know anything about this
+// (trace-regexp). We pass an OptLog object to the code that should not know anything about this
 // That code should then log using VLOG
 
 struct LogVariant
@@ -181,7 +183,7 @@ struct LogVariant
 using OptLog = std::optional<LogVariant>;
 
 #ifndef RECURSOR
-// Originally there was a flag but is was never set from !RECURSOR
+// Originally there was a flag but it was never set from !RECURSOR
 #define VLOG(log, x) VLOG only works in recursor
 #else
 #define VLOG(log, x)                                                       \

@@ -77,9 +77,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
 bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next);
 bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash);
 bool isCoveredByNSEC3Hash(const DNSName& h, const DNSName& beginHash, const DNSName& nextHash);
-void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const skeyset_t& keys, const OptLog& log);
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
-vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset);
 bool getTrustAnchor(const map<DNSName,dsmap_t>& anchors, const DNSName& zone, dsmap_t &res);
 bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const DNSName& zone, std::string& reason);
 vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog&);
