@@ -284,10 +284,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_ds_denial_from_child)
   denialMap[std::pair(DNSName("example.org."), QType::NSEC)] = pair;
 
   /* check that this NSEC from the child zone can deny a AAAA at the apex */
-  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::AAAA, false, true, true), dState::NXQTYPE);
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::AAAA, false, true, std::nullopt, true), dState::NXQTYPE);
 
   /* but not that the DS does not exist, since we need the parent for that */
-  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::DS, false, true, true), dState::NODENIAL);
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("example.org."), QType::DS, false, true, std::nullopt, true), dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
@@ -555,7 +555,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
 
   /* This is an expanded wildcard proof, meaning that it does prove that the exact name
      does not exist so the wildcard can apply */
-  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType(0).getCode(), false, false, false, /* normally retrieved from the RRSIG's d_labels */ 2);
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType(0).getCode(), false, false, std::nullopt, false, /* normally retrieved from the RRSIG's d_labels */ 2);
   BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 }
 

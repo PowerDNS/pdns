@@ -24,7 +24,9 @@
 #include <string>
 #include <ctime>
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <variant>
 #include <syslog.h>
 
 #include "namespaces.hh"
@@ -165,4 +167,32 @@ Logger& getLogger();
 #define DLOG(x) x
 #else
 #define DLOG(x) ((void)0)
+#endif
+
+// The types below are used by rec, which can log to g_log (general logging) or a string stream
+// (trace-regexp). We pass an OptLog object to the code that should not know anything about this
+// That code should then log using VLOG
+
+struct LogVariant
+{
+  string prefix;
+  // variant cannot hold references
+  std::variant<Logger*, ostringstream*> v;
+};
+
+using OptLog = std::optional<LogVariant>;
+
+#ifndef RECURSOR
+// Originally there was a flag but it was never set from !RECURSOR
+#define VLOG(log, x) VLOG only works in recursor
+#else
+#define VLOG(log, x)                                                       \
+  if (log) {                                                               \
+    if (std::holds_alternative<Logger*>((log)->v)) {                       \
+      *std::get<Logger*>(log->v) << Logger::Warning << (log)->prefix << x; \
+    }                                                                      \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {           \
+      *std::get<ostringstream*>((log)->v) << (log)->prefix << x;           \
+    }                                                                      \
+  }
 #endif

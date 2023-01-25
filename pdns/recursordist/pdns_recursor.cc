@@ -1060,6 +1060,7 @@ void startDoResolve(void* p)
     if (t_traceRegex && t_traceRegex->match(dc->d_mdp.d_qname.toString())) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery = true;
+      sr.setId("T");
     }
 
     if (!g_quiet || tracedQuery) {
