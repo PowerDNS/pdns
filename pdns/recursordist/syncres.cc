@@ -494,10 +494,10 @@ OptLog SyncRes::LogObject(const string& prefix)
 // into locale handling code according to tsan.
 // This allocates a string, but that's nothing compared to what
 // boost::format is doing and may even be optimized away anyway.
-static inline std::string fmtfloat(const char* fmt, double f)
+static inline std::string fmtfloat(double f)
 {
   char buf[20];
-  int ret = snprintf(buf, sizeof(buf), fmt, f);
+  int ret = snprintf(buf, sizeof(buf), "%0.2f", f);
   if (ret < 0 || ret >= static_cast<int>(sizeof(buf))) {
     return "?";
   }
@@ -2188,7 +2188,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
       else {
         LOG(", ");
       }
-      LOG((addr.toString()) << "(" << fmtfloat("%0.2f", speeds[addr] / 1000.0) << "ms)");
+      LOG((addr.toString()) << "(" << fmtfloat(speeds[addr] / 1000.0) << "ms)");
     }
     LOG(endl);
   }
@@ -3011,7 +3011,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
               << prefix << "             ");
         }
       }
-      LOG(i->first.toLogString() << "(" << fmtfloat("%0.2f", i->second / 1000.0) << "ms)");
+      LOG(i->first.toLogString() << "(" << fmtfloat(i->second / 1000.0) << "ms)");
     }
     LOG(endl);
   }
@@ -3042,7 +3042,7 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddre
               << prefix << "             ");
         }
       }
-      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() << "(" << fmtfloat("%0.2f", speeds[*i] / 1000.0) << "ms)");
+      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() << "(" << fmtfloat(speeds[*i] / 1000.0) << "ms)");
     }
     LOG(endl);
   }
