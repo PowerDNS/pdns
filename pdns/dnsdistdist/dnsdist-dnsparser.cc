@@ -110,18 +110,14 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
   pw.getHeader()->rcode = dh.rcode;
 
   /* consume remaining qd if any, but do not copy it */
-  if (qdcount > 1) {
-    for (idx = 1; idx < qdcount; idx++) {
-      rrname = pr.getName();
-      rrtype = pr.get16BitInt();
-      rrclass = pr.get16BitInt();
-      (void)rrtype;
-      (void)rrclass;
-    }
+  for (idx = 1; idx < qdcount; idx++) {
+    rrname = pr.getName();
+    (void)pr.get16BitInt();
+    (void)pr.get16BitInt();
   }
 
-  const std::unordered_set<QType> nameOnlyTypes{QType::NS, QType::PTR, QType::CNAME, QType::DNAME};
-  const std::unordered_set<QType> noNameTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::NSEC, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
+  static const std::unordered_set<QType> nameOnlyTypes{QType::NS, QType::PTR, QType::CNAME, QType::DNAME};
+  static const std::unordered_set<QType> noNameTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::NSEC, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
 
   /* copy AN, NS and AR */
   for (idx = 0; idx < recordsCount; idx++) {
