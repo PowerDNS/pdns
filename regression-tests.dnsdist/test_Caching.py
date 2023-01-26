@@ -2845,6 +2845,10 @@ class TestAPICache(DNSDistTest):
         r = requests.delete(url + '?pool=pool-without-cache&type=AAAA', headers=headers, timeout=self._webTimeout)
         self.assertEqual(r.status_code, 400)
 
+        # invalid name (label is too long)
+        r = requests.delete(url + '?pool=&name=' + 'a'*65, headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 400)
+
         # different name
         r = requests.delete(url + '?pool=&name=not-cache-api.cache.tests.powerdns.com.', headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
