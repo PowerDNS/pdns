@@ -1047,7 +1047,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheXFR) {
   const std::set<QType> xfrTypes = { QType::AXFR, QType::IXFR };
   for (const auto& type : xfrTypes) {
     bool dnssecOK = false;
-    const time_t now = time(nullptr);
     InternalQueryState ids;
     ids.qtype = type;
     ids.qclass = QClass::IN;
