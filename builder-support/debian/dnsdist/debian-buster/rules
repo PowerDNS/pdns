@@ -74,7 +74,7 @@ else
 endif
 
 override_dh_installexamples:
-	cp dnsdistconf.lua dnsdist.conf
+	cp dnsdist.conf-dist dnsdist.conf
 	dh_installexamples
 	rm -f dnsdist.conf
 

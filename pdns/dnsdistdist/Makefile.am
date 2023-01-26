@@ -21,6 +21,8 @@ CLEANFILES = \
 	htmlfiles.h \
 	dnsdist-lua-ffi-interface.inc
 
+sysconf_DATA = dnsdist.conf-dist
+
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
@@ -84,7 +86,7 @@ endif
 
 EXTRA_DIST=COPYING \
 	   dnslabeltext.rl \
-	   dnsdistconf.lua \
+	   dnsdist.conf-dist \
 	   dnsmessage.proto \
 	   dnstap.proto \
 	   README.md \
