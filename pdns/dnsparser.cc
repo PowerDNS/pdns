@@ -345,40 +345,46 @@ bool MOADNSParser::hasEDNS() const
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
-  unsigned int n;
-  unsigned char *p=reinterpret_cast<unsigned char*>(&ah);
+  unsigned char *p = reinterpret_cast<unsigned char*>(&ah);
 
-  for(n=0; n < sizeof(dnsrecordheader); ++n)
-    p[n]=d_content.at(d_pos++);
+  for(unsigned int n = 0; n < sizeof(dnsrecordheader); ++n) {
+    p[n] = d_content.at(d_pos++);
+  }
 
-  ah.d_type=ntohs(ah.d_type);
-  ah.d_class=ntohs(ah.d_class);
-  ah.d_clen=ntohs(ah.d_clen);
-  ah.d_ttl=ntohl(ah.d_ttl);
+  ah.d_type = ntohs(ah.d_type);
+  ah.d_class = ntohs(ah.d_class);
+  ah.d_clen = ntohs(ah.d_clen);
+  ah.d_ttl = ntohl(ah.d_ttl);
 
-  d_startrecordpos=d_pos; // needed for getBlob later on
-  d_recordlen=ah.d_clen;
+  d_startrecordpos = d_pos; // needed for getBlob later on
+  d_recordlen = ah.d_clen;
 }
 
 
 void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 {
-  dest.resize(len);
-  if(!len)
+  if (len == 0) {
     return;
+  }
+  if ((d_pos + len) > d_content.size()) {
+    throw std::out_of_range("Attempt to copy outside of packet");
+  }
 
-  for(uint16_t n=0;n<len;++n) {
-    dest.at(n)=d_content.at(d_pos++);
+  dest.resize(len);
+
+  for (uint16_t n = 0; n < len; ++n) {
+    dest.at(n) = d_content.at(d_pos++);
   }
 }
 
 void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
 {
-  if(d_pos + len > d_content.size())
+  if (d_pos + len > d_content.size()) {
     throw std::out_of_range("Attempt to copy outside of packet");
+  }
 
   memcpy(dest, &d_content.at(d_pos), len);
-  d_pos+=len;
+  d_pos += len;
 }
 
 void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
