@@ -53,6 +53,7 @@ struct WebserverConfig
   std::unique_ptr<CredentialsHolder> apiKey;
   boost::optional<std::unordered_map<std::string, std::string> > customHeaders;
   bool apiRequiresAuthentication{true};
+  bool dashboardRequiresAuthentication{true};
   bool statsRequireAuthentication{true};
 };
 
@@ -81,6 +82,7 @@ std::string getWebserverConfig()
       out << "None" << endl;
     }
     out << "API requires authentication: " << (config->apiRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Dashboard requires authentication: " << (config->dashboardRequiresAuthentication ? "yes" : "no") << endl;
     out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
     out << "Password: " << (config->password ? "set" : "unset") << endl;
     out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
@@ -275,8 +277,12 @@ static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<Creden
   return false;
 }
 
-static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password)
+static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password, bool dashboardRequiresAuthentication)
 {
+  if (!dashboardRequiresAuthentication) {
+    return true;
+  }
+
   static const char basicStr[] = "basic ";
 
   const auto header = req.headers.find("authorization");
@@ -323,7 +329,7 @@ static bool handleAuthorization(const YaHTTP::Request& req)
   if (isAStatsRequest(req)) {
     if (config->statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password);
+      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
     }
     return true;
   }
@@ -334,10 +340,10 @@ static bool handleAuthorization(const YaHTTP::Request& req)
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
   }
 
-  return checkWebPassword(req, config->password);
+  return checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -1586,7 +1592,7 @@ static void connectionThread(WebClientConnection&& conn)
     else if (!handleAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end()) {
-        errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
+        vinfolog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
       }
       resp.status = 401;
       resp.body = "<h1>Unauthorized</h1>";
@@ -1660,6 +1666,11 @@ void setWebserverAPIRequiresAuthentication(bool require)
   g_webserverConfig.lock()->apiRequiresAuthentication = require;
 }
 
+void setWebserverDashboardRequiresAuthentication(bool require)
+{
+  g_webserverConfig.lock()->dashboardRequiresAuthentication = require;
+}
+
 void setWebserverMaxConcurrentConnections(size_t max)
 {
   s_connManager.setMaxConcurrentConnections(max);
@@ -1668,13 +1679,16 @@ void setWebserverMaxConcurrentConnections(size_t max)
 void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
-  warnlog("Webserver launched on %s", local.toStringWithPort());
+  infolog("Webserver launched on %s", local.toStringWithPort());
 
-  if (!g_webserverConfig.lock()->password) {
-    warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+  {
+    auto config = g_webserverConfig.lock();
+    if (!config->password && config->dashboardRequiresAuthentication) {
+      warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+    }
   }
 
-  for(;;) {
+  for (;;) {
     try {
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);

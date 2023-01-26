@@ -677,6 +677,30 @@ class TestAPIWithoutAuthentication(APITestsBase):
             self.assertTrue(r)
             self.assertEqual(r.status_code, 200)
 
+class TestDashboardWithoutAuthentication(APITestsBase):
+    __test__ = True
+    _basicPath = '/'
+    _config_params = ['_testServerPort', '_webServerPort']
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer({address="127.0.0.1:%d"})
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({ dashboardRequiresAuthentication=false })
+    """
+    _verboseMode=True
+
+    def testDashboard(self):
+        """
+        API: Dashboard do not require authentication
+        """
+
+        for path in [self._basicPath]:
+            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+
+            r = requests.get(url, timeout=self._webTimeout)
+            self.assertTrue(r)
+            self.assertEqual(r.status_code, 200)
+
 class TestCustomLuaEndpoint(APITestsBase):
     __test__ = True
     _config_template = """

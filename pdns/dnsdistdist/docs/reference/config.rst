@@ -365,8 +365,8 @@ Webserver configuration
     The optional ``password`` and ``apiKey`` parameters now accept hashed passwords.
     The optional ``hashPlaintextCredentials`` parameter has been added.
 
-  .. versionchanged:: 1.6.0
-    ``apiRequiresAuthentication`` optional parameters added.
+  .. versionchanged:: 1.8.0
+    ``apiRequiresAuthentication``, ``dashboardRequiresAuthentication`` optional parameters added.
 
   Setup webserver configuration. See :func:`webserver`.
 
@@ -379,6 +379,7 @@ Webserver configuration
   * ``customHeaders={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``apiRequiresAuthentication``: bool - Whether access to the API (/api endpoints) require a valid API key. Defaults to true.
+  * ``dashboardRequiresAuthentication``: bool - Whether access to the internal dashboard requires a valid password. Defaults to true.
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
   * ``hashPlaintextCredentials``: bool - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials. Defaults to false.
