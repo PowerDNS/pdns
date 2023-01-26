@@ -930,15 +930,15 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 }
 
 /* can only be called from the main DoH thread */
-static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, pdns_string_view& value)
+static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, std::string_view& value)
 {
   bool found = false;
   /* early versions of boost::string_ref didn't have the ability to compare to string */
-  pdns_string_view headerNameView(headerName);
+  std::string_view headerNameView(headerName);
 
   for (size_t i = 0; i < req->headers.size; ++i) {
-    if (pdns_string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
-      value = pdns_string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+    if (std::string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
+      value = std::string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
       /* don't stop there, we might have more than one header with the same name, and we want the last one */
       found = true;
     }
@@ -951,12 +951,12 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
 static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote)
 {
   static const std::string headerName = "x-forwarded-for";
-  pdns_string_view value;
+  std::string_view value;
 
   if (getHTTPHeaderValue(req, headerName, value)) {
     try {
       auto pos = value.rfind(',');
-      if (pos != pdns_string_view::npos) {
+      if (pos != std::string_view::npos) {
         ++pos;
         for (; pos < value.size() && value[pos] == ' '; ++pos)
         {
@@ -1050,7 +1050,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       }
     }
 
-    // would be nice to be able to use a pdns_string_view there,
+    // would be nice to be able to use a std::string_view there,
     // but regex (called by matches() internally) requires a null-terminated string
     string path(req->path.base, req->path.len);
     /* the responses map can be updated at runtime, so we need to take a copy of

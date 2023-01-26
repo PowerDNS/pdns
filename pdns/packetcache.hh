@@ -33,7 +33,7 @@ public:
      - EDNS Cookie options, if any ;
      - Any given option code present in optionsToSkip
   */
-  static uint32_t hashAfterQname(const pdns_string_view& packet, uint32_t currentHash, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE})
+  static uint32_t hashAfterQname(const std::string_view& packet, uint32_t currentHash, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE})
   {
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));

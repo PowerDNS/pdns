@@ -213,7 +213,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   return rr;
 }
 
-void MOADNSParser::init(bool query, const pdns_string_view& packet)
+void MOADNSParser::init(bool query, const std::string_view& packet)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -793,7 +793,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
 
     if (ntohs(dh->qdcount) == 0)
       return ENOENT;
-    auto packetView = pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
+    auto packetView = std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
 
     PacketReader pr(packetView);
 

@@ -53,7 +53,7 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
 {
   std::map<DNSName, std::vector<ComboAddress>> hints;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
   uint16_t qdcount = ntohs(dh->qdcount);
   uint16_t ancount = ntohs(dh->ancount);
   uint16_t nscount = ntohs(dh->nscount);

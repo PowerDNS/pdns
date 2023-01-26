@@ -35,7 +35,7 @@ DNSPacketOverlay::DNSPacketOverlay(const std::string_view& packet)
   d_records.reserve(numRecords);
 
   try {
-    PacketReader reader(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
+    PacketReader reader(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
     for (uint16_t n = 0; n < ntohs(d_header.qdcount); ++n) {
       reader.xfrName(d_qname);
@@ -70,7 +70,7 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
     return false;
   }
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   dnsheader dh;
   memcpy(&dh, initialPacket.data(), sizeof(dh));

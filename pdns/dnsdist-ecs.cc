@@ -52,7 +52,7 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -165,7 +165,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   optionAdded = false;
   ednsAdded = true;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -329,7 +329,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * op
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -760,7 +760,7 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
