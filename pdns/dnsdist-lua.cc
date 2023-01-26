@@ -196,7 +196,8 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
     if (numberOfStoredSessions < 0) {
       errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", numberOfStoredSessions, context);
       g_outputBuffer = "Invalid value '" +  std::to_string(numberOfStoredSessions) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
-    } else {
+    }
+    else {
       config.d_maxStoredSessions = numberOfStoredSessions;
     }
   }
@@ -366,7 +367,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                          std::string valueStr;
+                         std::string valueStr;
                          if (getOptionalValue<std::string>(vars, "sockets", valueStr) > 0) {
                            config.d_numberOfSockets = std::stoul(valueStr);
                            if (config.d_numberOfSockets == 0) {
@@ -511,7 +512,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
 
-
                          if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
                            const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckMaxBackOff", value);
@@ -541,7 +541,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (getOptionalValue<std::string>(vars, "addXPF", valueStr) > 0) {
                            try {
                              config.xpfRRCode = std::stoi(valueStr);
-                           } catch (std::exception& e) {
+                           }
+                           catch (const std::exception& e) {
                              warnlog("addXPF must be integer, not '%s' - ignoring", valueStr);
                            }
                          }
@@ -549,7 +550,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (getOptionalValue<std::string>(vars, "maxCheckFailures", valueStr) > 0) {
                            try {
                              config.maxCheckFailures = std::stoi(valueStr);
-                           } catch (std::exception& e) {
+                           }
+                           catch (const std::exception& e) {
                              warnlog("maxCheckFailures must be integer, not '%s' - ignoring", valueStr);
                            }
                          }
@@ -557,7 +559,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (getOptionalValue<std::string>(vars, "rise", valueStr) > 0) {
                            try {
                              config.minRiseSuccesses = std::stoi(valueStr);
-                           } catch (std::exception& e) {
+                           }
+                           catch (const std::exception& e) {
                              warnlog("rise must be integer, not '%s' - ignoring", valueStr);
                            }
                          }
@@ -2468,7 +2471,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       LuaAssociativeTable<std::string> customResponseHeaders;
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
         for (auto const& headerMap : customResponseHeaders) {
-          std::pair<std::string,std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
+          std::pair<std::string, std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
           frontend->d_customResponseHeaders.insert(headerResponse);
         }
       }
