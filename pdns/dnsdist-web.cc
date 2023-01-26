@@ -350,11 +350,13 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
       return true;
     }
   }
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
   if (req.method == "DELETE") {
     if (req.url.path == "/api/v1/cache") {
       return true;
     }
   }
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
   return false;
 }
 
@@ -1501,7 +1503,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
     name = DNSName(expungeName->second);
   }
   catch (const std::exception& e) {
-    resp.status = 404;
+    resp.status = 400;
     Json::object obj{
       { "status", "error" },
       { "error", "unable to parse the requested name" },
