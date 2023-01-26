@@ -519,7 +519,7 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketRecordTypes) {
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::AAAA), 1);
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::A), 1);
 
-    std::set<QType> toremove{QType::AAAA};
+    std::unordered_set<QType> toremove{QType::AAAA};
     clearDNSPacketRecordTypes(packet, toremove);
 
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 1, QType::A), 1);
@@ -591,7 +591,7 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketUnsafeRecordTypes) {
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::A), 1);
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::MX), 1);
 
-    std::set<QType> toremove{QType::AAAA};
+    std::unordered_set<QType> toremove{QType::AAAA};
     clearDNSPacketRecordTypes(packet, toremove);
 
     // nothing should have been removed as an "unsafe" MX RR is in the packet
