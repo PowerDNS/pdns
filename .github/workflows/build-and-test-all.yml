@@ -345,7 +345,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan]
+        sanitizers: [ubsan+asan, tsan]
         threads: [1, 2, 3, 4, 8]
         mthreads: [2048]
         shards: [1, 2, 1024]
