@@ -2,6 +2,73 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.2
+  :released: 31th of January 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12475
+    :tickets: 12467
+
+    Do not use "message" as key, it has a special meaning to systemd-journal.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12457
+    :tickets: 12395
+
+    When using serve-stale, wrong data can be returned from negative cache and record cache (zjs604381586).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12456
+    :tickets: 12368
+
+    Add the 'parse packet from auth' error message to structured logging.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12455
+    :tickets: 12352
+
+    Refresh of negcache stale entry might use wrong qtype (zjs604381586).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12418
+    :tickets: 12374
+
+    Make cache cleaning of record an negative cache more fair when under pressure.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12408
+    :tickets: 12407
+
+    Do not chain ECS enabled queries, ity can cause the wrong scope to be used for outgoing queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12346
+    :tickets: 12317
+
+    Fix compilation on FreeBSD. Reported by HellSpawn.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12345
+    :tickets: 12333
+
+    Do not report "not decreasing socket buf size" as an error.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12344
+    :tickets: 12260
+
+    Properly encode json string containing binary data.
+
+.. changelog::
   :version: 4.8.1
   :released: 20th of January 2023
 
