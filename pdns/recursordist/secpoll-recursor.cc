@@ -85,7 +85,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
 
   g_security_message = security_message;
 
-  auto rlog = vlog->withValues("message", Logging::Loggable(g_security_message), "status", Logging::Loggable(security_status));
+  auto rlog = vlog->withValues("securitymessage", Logging::Loggable(g_security_message), "status", Logging::Loggable(security_status));
   if (g_security_status != 1 && security_status == 1) {
     SLOG(g_log << Logger::Warning << "Polled security status of version " << pkgv << ", no known issues reported: " << g_security_message << endl,
          rlog->info(Logr::Notice, "Polled security status of version, no known issues reported"));
