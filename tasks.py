@@ -616,8 +616,9 @@ def swagger_syntax_check(c):
     c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
 
 @task
-def install_coverity_tools(c, token, project):
-    c.sudo(f'curl -s https://scan.coverity.com/download/linux64 --data "token={token}&project={project}" | gunzip | sudo tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local')
+def install_coverity_tools(c, project):
+    token = os.getenv('COVERITY_TOKEN')
+    c.run(f'curl -s https://scan.coverity.com/download/linux64 --data "token={token}&project={project}" | gunzip | sudo tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local', hide=True)
 
 @task
 def coverity_clang_configure(c):
@@ -632,13 +633,14 @@ def coverity_tarball(c, tarball):
     c.run(f'tar caf {tarball} cov-int')
 
 @task
-def coverity_upload(c, token, email, project, tarball):
+def coverity_upload(c, email, project, tarball):
+    token = os.getenv('COVERITY_TOKEN')
     c.run(f'curl --form token={token} \
             --form email="{email}" \
             --form file=@{tarball} \
             --form version="$(./builder-support/gen-version)" \
             --form description="master build" \
-            https://scan.coverity.com/builds?project={project}')
+            https://scan.coverity.com/builds?project={project}', hide=True)
 
 # this is run always
 def setup():
