@@ -37,6 +37,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-carbon.hh"
+#include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-discovery.hh"
@@ -1442,7 +1443,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setMaxTCPConnectionsPerClient", [](uint64_t max) {
     if (!g_configurationDone) {
-      g_maxTCPConnectionsPerClient = max;
+      dnsdist::IncomingConcurrentTCPConnectionsManager::setMaxTCPConnectionsPerClient(max);
     }
     else {
       g_outputBuffer = "The maximum number of TCP connection per client cannot be altered at runtime!\n";

@@ -24,6 +24,7 @@
 #include "misc.hh"
 #include "dns.hh"
 #include "dolog.hh"
+#include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rules.hh"
@@ -304,6 +305,7 @@ static void on_socketclose(void *data)
     }
 
     t_conns.erase(conn->d_desc);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(conn->d_remote);
   }
 }
 
@@ -1007,13 +1009,6 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         ++dsc->cs->tlsResumptions;
       }
 
-      if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&conn.d_remote)) == 0) {
-        /* getpeername failed, likely because the connection has already been closed,
-           but anyway that means we can't get the remote address, which could allow an ACL bypass */
-        h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
-        return 0;
-      }
-
       h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&conn.d_local));
     }
 
@@ -1401,6 +1396,19 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
+  ComboAddress remote;
+  if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
+    vinfolog("Dropping DoH connection because we could not retrieve the remote host");
+    h2o_socket_close(sock);
+    return;
+  }
+
+  if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
+    vinfolog("Dropping DoH connection from %s because we have too many from this client already", remote.toStringWithPort());
+    h2o_socket_close(sock);
+    return;
+  }
+
   auto concurrentConnections = ++dsc->cs->tcpCurrentConnections;
   if (dsc->cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > dsc->cs->d_tcpConcurrentConnectionsLimit) {
     --dsc->cs->tcpCurrentConnections;
@@ -1418,6 +1426,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   conn.d_nbQueries = 0;
   conn.d_acceptCtx = std::atomic_load_explicit(&dsc->accept_ctx, std::memory_order_acquire);
   conn.d_desc = descriptor;
+  conn.d_remote = remote;
 
   sock->on_close.cb = on_socketclose;
   sock->on_close.data = &conn;
