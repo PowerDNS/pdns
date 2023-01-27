@@ -309,6 +309,9 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
 
 @task
 def ci_auth_configure(c):
+    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
+    unittests = ' --enable-unit-tests --enable-backend-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
+    fuzzingtargets = ' --enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
     res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
                    CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
                    ./configure \
@@ -319,8 +322,6 @@ def ci_auth_configure(c):
                       --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
                       --enable-systemd \
                       --enable-tools \
-                      --enable-unit-tests \
-                      --enable-backend-unit-tests \
                       --enable-fuzz-targets \
                       --enable-experimental-pkcs11 \
                       --enable-experimental-gss-tsig \
@@ -331,22 +332,20 @@ def ci_auth_configure(c):
                       --prefix=/opt/pdns-auth \
                       --enable-ixfrdist \
                       --enable-fortify-source=auto \
-                      --enable-auto-var-init=pattern \
-                      --enable-asan \
-                      --enable-ubsan''', warn=True)
+                      --enable-auto-var-init=pattern ''' + sanitizers + unittests + fuzzingtargets, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
 @task
 def ci_rec_configure(c):
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
+    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
+    unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
     res = c.run('''            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               CC='clang-12' \
               CXX='clang++-12' \
               --enable-option-checking=fatal \
-              --enable-unit-tests \
               --enable-nod \
               --enable-systemd \
               --prefix=/opt/pdns-recursor \
@@ -356,7 +355,7 @@ def ci_rec_configure(c):
               --with-net-snmp \
               --enable-fortify-source=auto \
               --enable-auto-var-init=pattern \
-              --enable-dns-over-tls ''' + sanitizers, warn=True)
+              --enable-dns-over-tls ''' + sanitizers + unittests, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
@@ -422,7 +421,8 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_HASHED_CREDENTIALS \
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+'))
+    unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
+    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
     cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
     cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
     res = c.run('''CFLAGS="%s" \
@@ -433,11 +433,10 @@ def ci_dnsdist_configure(c, features):
                      CC='clang-12' \
                      CXX='clang++-12' \
                      --enable-option-checking=fatal \
-                     --enable-unit-tests \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
                      --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
+                     --prefix=/opt/dnsdist %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
@@ -615,6 +614,33 @@ def install_swagger_tools(c):
 @task
 def swagger_syntax_check(c):
     c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
+
+@task
+def install_coverity_tools(c, project):
+    token = os.getenv('COVERITY_TOKEN')
+    c.run(f'curl -s https://scan.coverity.com/download/linux64 --data "token={token}&project={project}" | gunzip | sudo tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local', hide=True)
+
+@task
+def coverity_clang_configure(c):
+    c.sudo('/usr/local/bin/cov-configure --template --comptype clangcc --compiler clang++-12')
+
+@task
+def coverity_make(c):
+    c.run('/usr/local/bin/cov-build --dir cov-int make -j8 -k')
+
+@task
+def coverity_tarball(c, tarball):
+    c.run(f'tar caf {tarball} cov-int')
+
+@task
+def coverity_upload(c, email, project, tarball):
+    token = os.getenv('COVERITY_TOKEN')
+    c.run(f'curl --form token={token} \
+            --form email="{email}" \
+            --form file=@{tarball} \
+            --form version="$(./builder-support/gen-version)" \
+            --form description="master build" \
+            https://scan.coverity.com/builds?project={project}', hide=True)
 
 # this is run always
 def setup():
