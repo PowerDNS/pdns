@@ -853,7 +853,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
         continue;
       }
 
-      serFromString(d_currentVal.get<string>(), d_currentrrset);
+      serFromString(d_currentVal.get<string_view>(), d_currentrrset);
       d_currentrrsetpos = 0;
     }
     else {
