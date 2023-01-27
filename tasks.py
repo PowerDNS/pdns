@@ -426,6 +426,8 @@ def ci_dnsdist_configure(c, features):
     cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
     res = c.run('''CFLAGS="%s" \
                    CXXFLAGS="%s" \
+                   AR=llvm-ar-12 \
+                   RANLIB=llvm-ranlib-12 \
                    ./configure \
                      CC='clang-12' \
                      CXX='clang++-12' \
@@ -433,6 +435,7 @@ def ci_dnsdist_configure(c, features):
                      --enable-unit-tests \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
+                     --enable-lto=thin \
                      --prefix=/opt/dnsdist %s %s''' % (cflags, cxxflags, features_set, sanitizers), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
