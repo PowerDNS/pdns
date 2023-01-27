@@ -635,6 +635,45 @@ URL Endpoints
         username: dontcare
         password: yoursecret
 
+.. http:delete:: /api/v1/cache?pool=<pool-name>&name=<dns-name>[&type=<dns-type>][&suffix=]
+
+  .. versionadded:: 1.8.0
+
+  Allows removing entries from a cache. The pool to which the cache is associated should be specified in the ``pool`` parameter, and the name to remove in the ``name`` parameter.
+  By default only entries matching the exact name will be removed, but it is possible to remove all entries below that name by passing the ``suffix`` parameter set to any value.
+  By default entries for all types for the name are removed, but it is possible to only remove entries for a specific type by passing the ``type`` parameter set to the requested type. Supported values are DNS type names as a strings (``AAAA``), or numerical values (as either ``#64`` or ``TYPE64``).
+
+  **Example request**:
+
+   .. sourcecode:: http
+
+      DELETE /api/v1/cache?pool=&name=free.fr HTTP/1.1
+      Accept: */*
+      Accept-Encoding: gzip, deflate
+      Connection: keep-alive
+      Content-Length: 0
+      Host: localhost:8080
+      X-API-Key: supersecretAPIkey
+
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Connection: close
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: application/json
+      Transfer-Encoding: chunked
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      {
+          "count": "1",
+          "status": "purged"
+      }
+
 .. http:get:: /api/v1/servers/localhost
 
   Get a quick overview of several parameters.

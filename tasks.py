@@ -413,6 +413,7 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_DNSNAME_BINDINGS \
                           -DDISABLE_DNSHEADER_BINDINGS \
                           -DDISABLE_RECVMMSG \
+                          -DDISABLE_WEB_CACHE_MANAGEMENT \
                           -DDISABLE_WEB_CONFIG \
                           -DDISABLE_RULES_ALTERING_QUERIES \
                           -DDISABLE_ECS_ACTIONS \

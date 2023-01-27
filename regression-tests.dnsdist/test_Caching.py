@@ -4,6 +4,7 @@ import time
 import dns
 import clientsubnetoption
 import cookiesoption
+import requests
 from dnsdisttests import DNSDistTest
 
 class TestCaching(DNSDistTest):
@@ -2781,3 +2782,137 @@ class TestCachingBackendSettingRD(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestAPICache(DNSDistTest):
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
+    pc = newPacketCache(100)
+    getPool(""):setCache(pc)
+    getPool("pool-with-cache"):setCache(pc)
+    getPool("pool-without-cache")
+    """
+
+    def testCacheClearingViaAPI(self):
+        """
+        Cache: Clear cache via API
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/cache'
+        name = 'cache-api.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        # second query should be a hit
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # GET should on the cache API should yield a 400
+        r = requests.get(url + '?pool=pool-without-cache&name=cache-api.cache.tests.powerdns.com.&type=AAAA', headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 400)
+
+        # different pool
+        r = requests.delete(url + '?pool=pool-without-cache&name=cache-api.cache.tests.powerdns.com.&type=AAAA', headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 404)
+
+        # no 'pool'
+        r = requests.delete(url + '?name=cache-api.cache.tests.powerdns.com.&type=AAAA', headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 400)
+
+        # no 'name'
+        r = requests.delete(url + '?pool=pool-without-cache&type=AAAA', headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 400)
+
+        # invalid name (label is too long)
+        r = requests.delete(url + '?pool=&name=' + 'a'*65, headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 400)
+
+        # different name
+        r = requests.delete(url + '?pool=&name=not-cache-api.cache.tests.powerdns.com.', headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        content = r.json()
+        self.assertIn('count', content)
+        self.assertEqual(int(content['count']), 0)
+
+        # different type
+        r = requests.delete(url + '?pool=&name=cache-api.cache.tests.powerdns.com.&type=A', headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        content = r.json()
+        self.assertIn('count', content)
+        self.assertEqual(int(content['count']), 0)
+
+        # should still be a hit
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # remove
+        r = requests.delete(url + '?pool=&name=cache-api.cache.tests.powerdns.com.&type=AAAA', headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        content = r.json()
+        self.assertIn('count', content)
+        self.assertEqual(int(content['count']), 1)
+
+        # should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        # remove all types
+        r = requests.delete(url + '?pool=&name=cache-api.cache.tests.powerdns.com.', headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        content = r.json()
+        self.assertIn('count', content)
+        self.assertEqual(int(content['count']), 1)
+
+        # should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        # suffix removal
+        r = requests.delete(url + '?pool=&name=cache.tests.powerdns.com.&suffix=true', headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        content = r.json()
+        self.assertIn('count', content)
+        self.assertEqual(int(content['count']), 1)
+
+        # should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
