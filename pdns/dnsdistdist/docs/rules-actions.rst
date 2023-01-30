@@ -1316,39 +1316,64 @@ The following actions exist.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
-.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
+.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options [, metas]]])
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
+  .. versionchanged:: 1.8.0
+    ``metas`` optional parameter added.
+
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. For each entry in the list, a new value named ``name``
+  will be added to the message with the value corresponding to the ``key``. Available keys are:
+
+  * ``doh-header:<HEADER>``: the content of the corresponding ``<HEADER>`` HTTP header for DoH queries, empty otherwise
+  * ``doh-host``: the ``Host`` header for DoH queries, empty otherwise
+  * ``doh-path``: the HTTP path for DoH queries, empty otherwise
+  * ``doh-query-string``: the HTTP query string for DoH queries, empty otherwise
+  * ``doh-scheme``: the HTTP scheme for DoH queries, empty otherwise
+  * ``pool``: the currently selected pool of servers
+  * ``proxy-protocol-value:<TYPE>``: the content of the proxy protocol value of type ``<TYPE>``, if any
+  * ``proxy-protocol-values``: the content of all proxy protocol values as a "<type1>:<value1>,...,<typeN>:<valueN>" string
+  * ``b64-content``: the base64-encoded DNS payload of the current query
+  * ``sni``: the Server Name Indication value for queries received over DoT or DoH. Empty otherwise.
+  * ``tag:<TAG>``: the content of the corresponding ``<TAG>`` if any
+  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>,...,<keyN>:<valueN>" string
+
   Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param table options: A table with key: value pairs.
+  :param table metas: A list of name: key pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
-.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
+.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas]]]])
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
+
+  .. versionchanged:: 1.8.0
+    ``metas`` optional parameter added.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records.
+  Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. See :func:`RemoteLogAction` for the list of available keys.
   Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
   :param table options: A table with key: value pairs.
+  :param table metas: A list of name: key pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 

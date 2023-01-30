@@ -285,7 +285,7 @@ extern "C"
 }
 #endif
 
-bool checkConfigurationTime(const std::string& name)
+static bool checkConfigurationTime(const std::string& name)
 {
   if (!g_configurationDone) {
     return true;

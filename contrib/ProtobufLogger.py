@@ -242,7 +242,7 @@ class PDNSPBConnHandler(object):
             requestorId = msg.requestorId
 
         nod = 0
-        if (msg.HasField('newlyObservedDomain')):
+        if msg.HasField('newlyObservedDomain'):
             nod = msg.newlyObservedDomain
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
@@ -263,6 +263,15 @@ class PDNSPBConnHandler(object):
                                                     deviceName,
                                                     serveridstr,
                                                     nod))
+
+        for mt in msg.meta:
+            values = ''
+            for entry in mt.value.stringVal:
+                values = ', '.join([values, entry]) if values != '' else entry
+            for entry in mt.value.intVal:
+                values = ', '.join([values, entry]) if values != '' else entry
+
+            print('- %s -> %s' % (mt.key, values))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
