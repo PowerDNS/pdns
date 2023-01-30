@@ -427,12 +427,12 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   /* check if the type is denied */
   if (name == owner) {
     if (!isTypeDenied(nsec, QType(qtype))) {
-      VLOG_NO_PREFIX(log, "Does _not_ deny existence of type "<<QType(qtype)<<endl);
+      VLOG_NO_PREFIX(log, "does _not_ deny existence of type "<<QType(qtype)<<endl);
       return dState::NODENIAL;
     }
 
     if (qtype == QType::DS && signer == name) {
-      VLOG_NO_PREFIX(log, "The NSEC comes from the child zone and cannot be used to deny a DS"<<endl);
+      VLOG_NO_PREFIX(log, "the NSEC comes from the child zone and cannot be used to deny a DS"<<endl);
       return dState::NODENIAL;
     }
 
@@ -450,7 +450,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
        asserted, then DNAME substitution should have been done, but the
        substitution has not been done as specified.
     */
-    VLOG(log, "The DNAME bit is set and the query name is a subdomain of that NSEC");
+    VLOG(log, "the DNAME bit is set and the query name is a subdomain of that NSEC");
     return dState::NODENIAL;
   }
 
@@ -458,7 +458,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
     VLOG_NO_PREFIX(log, name << ": is covered by ("<<owner<<" to "<<nsec->d_next<<")");
 
     if (nsecProvesENT(name, owner, nsec->d_next)) {
-      VLOG_NO_PREFIX(log, " Denies existence of type "<<name<<"/"<<QType(qtype)<<" by proving that "<<name<<" is an ENT"<<endl);
+      VLOG_NO_PREFIX(log, " denies existence of type "<<name<<"/"<<QType(qtype)<<" by proving that "<<name<<" is an ENT"<<endl);
       return dState::NXQTYPE;
     }
 

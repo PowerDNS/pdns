@@ -1574,8 +1574,6 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   return ret;
 }
 
-#define QLOG(x) LOG(prefix << " child=" << child << ": " << x << endl)
-
 /* The parameters from rfc9156. */
 /* maximum number of QNAME minimisation iterations */
 static const unsigned int s_max_minimise_count = 10;
@@ -1640,9 +1638,9 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   // moves to three labels per iteration after three iterations.
 
   DNSName child;
-  prefix.append(string("QM ") + qname.toString() + "|" + qtype.toString());
+  prefix.append(string("QM "));
 
-  QLOG("doResolve");
+  LOG(prefix << qname << ": doResolve" << endl);
 
   // Look in cache only
   vector<DNSRecord> retq;
@@ -1653,7 +1651,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, context, &fromCache, nullptr);
   setCacheOnly(old);
   if (fromCache) {
-    QLOG("Step0 Found in cache");
+    LOG(prefix << qname << ": Step0 Found in cache" << endl);
     if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NXDOMAIN || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NODATA)) {
       ret.clear();
     }
@@ -1661,14 +1659,14 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
 
     return res;
   }
-  QLOG("Step0 Not cached");
+  LOG(prefix << qname << ": Step0 Not cached" << endl);
 
   const unsigned int qnamelen = qname.countLabels();
 
   DNSName fwdomain(qname);
   const bool forwarded = getBestAuthZone(&fwdomain) != t_sstorage.domainmap->end();
   if (forwarded) {
-    QLOG("Step0 qname is in a forwarded domain " << fwdomain);
+    LOG(prefix << qname << ": Step0 qname is in a forwarded domain " << fwdomain << endl);
   }
 
   for (unsigned int i = 0; i <= qnamelen;) {
@@ -1693,16 +1691,16 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     if (bestns.size() == 0) {
       if (!forwarded) {
         // Something terrible is wrong
-        QLOG("Step1 No ancestor found return ServFail");
+        LOG(prefix << qname << ": Step1 No ancestor found return ServFail" << endl);
         return RCode::ServFail;
       }
       child = fwdomain;
     }
     else {
-      QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
+      LOG(prefix << qname << ": Step1 Ancestor from cache is " << bestns[0].d_name << endl);
       if (forwarded) {
         child = bestns[0].d_name.isPartOf(fwdomain) ? bestns[0].d_name : fwdomain;
-        QLOG("Step1 Final Ancestor (using forwarding info) is " << child);
+        LOG(prefix << qname << ": Step1 Final Ancestor (using forwarding info) is " << child << endl);
       }
       else {
         child = bestns[0].d_name;
@@ -1727,13 +1725,13 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         labels++;
       }
 
-      QLOG("Step2 New child");
+      LOG(prefix << qname << ": Step2 New child " << child << endl);
 
       // Step 3 resolve
       if (child == qname) {
-        QLOG("Step3 Going to do final resolve");
+        LOG(prefix << qname << ": Step3 Going to do final resolve" << endl);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context);
-        QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size());
+        LOG(prefix << qname << ": Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
         return res;
       }
 
@@ -1746,27 +1744,27 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         }
       }
       if (skipStep4) {
-        QLOG("Step4 Being skipped as visited this child name already");
+        LOG(prefix << ": Step4 Being skipped as visited this child name already" << endl);
         continue;
       }
 
       // Step 4
-      QLOG("Step4 Resolve A for child");
+      LOG(prefix << qname << ": Step4 Resolve A for child " << child << endl);
       bool oldFollowCNAME = d_followCNAME;
       d_followCNAME = false;
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
       res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, context, nullptr, &stopAtDelegation);
       d_followCNAME = oldFollowCNAME;
-      QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
+      LOG(prefix << qname << ": Step4 Resolve " << child << "|A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation << endl);
       if (stopAtDelegation == Stopped) {
-        QLOG("Delegation seen, continue at step 1");
+        LOG(prefix << qname << ": Delegation seen, continue at step 1" << endl);
         break;
       }
 
       if (res != RCode::NoError) {
         // Case 5: unexpected answer
-        QLOG("Step5: other rcode, last effort final resolve");
+        LOG(prefix << qname << ": Step5: other rcode, last effort final resolve" << endl);
         setQNameMinimization(false);
         setQMFallbackMode(true);
 
@@ -1779,14 +1777,14 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
           t_Counters.at(rec::Counter::qnameminfallbacksuccess)++;
         }
 
-        QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size());
+        LOG(prefix << qname << ": Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
         return res;
       }
     }
   }
 
   // Should not be reached
-  QLOG("Max iterations reached, return ServFail");
+  LOG(prefix << qname << ": Max iterations reached, return ServFail" << endl);
   return RCode::ServFail;
 }
 
@@ -3821,7 +3819,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFai
 {
   std::vector<DNSRecord> records;
   std::set<GetBestNSAnswer> beenthere;
-  LOG(prefix << signer << ": Retrieving DNSKeys" << endl);
+  LOG(prefix << signer << ": Retrieving DNSKEYs" << endl);
 
   Context context;
 
@@ -3927,7 +3925,6 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
     }
     bool servFailOccurred = false;
     if (state == vState::Secure) {
-      LOG(prefix << signer << ": Retrieving the DNSKEYs" << endl);
       state = getDNSKeys(signer, keys, servFailOccurred, depth, prefix);
     }
 

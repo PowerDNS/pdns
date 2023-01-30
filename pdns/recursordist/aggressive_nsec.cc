@@ -790,7 +790,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
   auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures, log);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
-    VLOG_NO_PREFIX(log, " but it does no cover us" << endl);
+    VLOG_NO_PREFIX(log, " but it does not cover us" << endl);
     return false;
   }
   else if (denial == dState::NXQTYPE) {
