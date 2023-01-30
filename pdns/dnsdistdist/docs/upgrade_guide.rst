@@ -10,6 +10,8 @@ Cache-hits are now counted as responses in our metrics.
 
 The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS over HTTPS connections, in addition to DNS over TCP and DNS over TLS ones.
 
+The configuration check will now fail if the configuration file does not exist. For this reason we now create a default configuration file, based on the file previously called ``dnsdistconf.lua``, which contains commented-out examples of how to set up dnsdist.
+
 1.7.0 to 1.7.1
 --------------
 

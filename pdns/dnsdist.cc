@@ -2604,7 +2604,7 @@ int main(int argc, char** argv)
     ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
 
     g_policy.setState(leastOutstandingPol);
-    if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
+    if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
       setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
       if (clientAddress != ComboAddress())
         g_serverControl = clientAddress;

@@ -1192,8 +1192,6 @@ struct LocalHolders
   LocalStateHolder<pools_t> pools;
 };
 
-vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
-
 void tcpAcceptorThread(std::vector<ClientState*> states);
 
 #ifdef HAVE_DNS_OVER_HTTPS

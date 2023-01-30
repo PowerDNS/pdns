@@ -99,7 +99,6 @@ export LDFLAGS=-L/usr/lib64/boost169
 %endif
 
 make %{?_smp_mflags}
-mv dnsdistconf.lua dnsdist.conf.sample
 
 %check
 make %{?_smp_mflags} check || (cat test-suite.log && false)
@@ -107,6 +106,8 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
+%{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
+chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist.service
 sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist@.service
 
@@ -149,4 +150,5 @@ systemctl daemon-reload ||:
 %{_bindir}/*
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
+%config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
 /lib/systemd/system/dnsdist*
