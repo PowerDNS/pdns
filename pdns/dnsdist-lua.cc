@@ -320,6 +320,16 @@ extern "C"
 }
 #endif
 
+bool checkConfigurationTime(const std::string& name)
+{
+  if (!g_configurationDone) {
+    return true;
+  }
+  g_outputBuffer = name + " cannot be used at runtime!\n";
+  errlog("%s cannot be used at runtime!", name);
+  return false;
+}
+
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, DownstreamState::checkfunc_t>> newserver_t;
@@ -833,12 +843,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
     setLuaSideEffect();
-    if (client)
-      return;
-    if (g_configurationDone) {
-      g_outputBuffer = "setLocal cannot be used at runtime!\n";
+    if (client) {
       return;
     }
+
+    if (!checkConfigurationTime("setLocal")) {
+      return;
+    }
+
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
@@ -885,8 +897,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
     if (client)
       return;
-    if (g_configurationDone) {
-      g_outputBuffer = "addLocal cannot be used at runtime!\n";
+
+    if (!checkConfigurationTime("addLocal")) {
       return;
     }
     bool reusePort = false;
@@ -1405,58 +1417,47 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setUDPTimeout", [](int timeout) { DownstreamState::s_udpTimeout = timeout; });
 
   luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
-    if (!g_configurationDone) {
-      checkParameterBound("setMaxUDPOutstanding", max);
-      g_maxOutstanding = max;
+    if (!checkConfigurationTime("setMaxUDPOutstanding")) {
+      return;
     }
-    else {
-      g_outputBuffer = "Max UDP outstanding cannot be altered at runtime!\n";
-    }
+
+    checkParameterBound("setMaxUDPOutstanding", max);
+    g_maxOutstanding = max;
   });
 
   luaCtx.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
-    if (!g_configurationDone) {
-      g_maxTCPClientThreads = max;
+    if (!checkConfigurationTime("setMaxTCPClientThreads")) {
+      return;
     }
-    else {
-      g_outputBuffer = "Maximum TCP client threads count cannot be altered at runtime!\n";
-    }
+    g_maxTCPClientThreads = max;
   });
 
   luaCtx.writeFunction("setMaxTCPQueuedConnections", [](uint64_t max) {
-    if (!g_configurationDone) {
-      g_maxTCPQueuedConnections = max;
+    if (!checkConfigurationTime("setMaxTCPQueuedConnections")) {
+      return;
     }
-    else {
-      g_outputBuffer = "The maximum number of queued TCP connections cannot be altered at runtime!\n";
-    }
+    g_maxTCPQueuedConnections = max;
   });
 
   luaCtx.writeFunction("setMaxTCPQueriesPerConnection", [](uint64_t max) {
-    if (!g_configurationDone) {
-      g_maxTCPQueriesPerConn = max;
+    if (!checkConfigurationTime("setMaxTCPQueriesPerConnection")) {
+      return;
     }
-    else {
-      g_outputBuffer = "The maximum number of queries per TCP connection cannot be altered at runtime!\n";
-    }
+    g_maxTCPQueriesPerConn = max;
   });
 
   luaCtx.writeFunction("setMaxTCPConnectionsPerClient", [](uint64_t max) {
-    if (!g_configurationDone) {
-      dnsdist::IncomingConcurrentTCPConnectionsManager::setMaxTCPConnectionsPerClient(max);
+    if (!checkConfigurationTime("setMaxTCPConnectionsPerClient")) {
+      return;
     }
-    else {
-      g_outputBuffer = "The maximum number of TCP connection per client cannot be altered at runtime!\n";
-    }
+    dnsdist::IncomingConcurrentTCPConnectionsManager::setMaxTCPConnectionsPerClient(max);
   });
 
   luaCtx.writeFunction("setMaxTCPConnectionDuration", [](uint64_t max) {
-    if (!g_configurationDone) {
-      g_maxTCPConnectionDuration = max;
+    if (!checkConfigurationTime("setMaxTCPConnectionDuration")) {
+      return;
     }
-    else {
-      g_outputBuffer = "The maximum duration of a TCP connection cannot be altered at runtime!\n";
-    }
+    g_maxTCPConnectionDuration = max;
   });
 
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](uint64_t max) {
@@ -1468,33 +1469,28 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
-    if (!g_configurationDone) {
-      g_outgoingDoHWorkerThreads = workers;
+    if (!checkConfigurationTime("setOutgoingDoHWorkerThreads")) {
+      return;
     }
-    else {
-      g_outputBuffer = "The amount of outgoing DoH worker threads cannot be altered at runtime!\n";
-    }
+    g_outgoingDoHWorkerThreads = workers;
   });
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint64_t max) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketsPerBackend() cannot be called at runtime!\n";
+    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheMaxTicketsPerBackend")) {
       return;
     }
     TLSSessionCache::setMaxTicketsPerBackend(max);
   });
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheCleanupDelay", [](time_t delay) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setOutgoingTLSSessionsCacheCleanupDelay() cannot be called at runtime!\n";
+    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheCleanupDelay")) {
       return;
     }
     TLSSessionCache::setCleanupDelay(delay);
   });
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketValidity", [](time_t validity) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketValidity() cannot be called at runtime!\n";
+    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheMaxTicketValidity")) {
       return;
     }
     TLSSessionCache::setSessionValidity(validity);
@@ -1640,17 +1636,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        });
 
   luaCtx.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
-    if (!g_configurationDone) {
-      if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Nxdomain || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate || action == DNSAction::Action::NoRecurse) {
-        g_dynBlockAction = action;
-      }
-      else {
-        errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
-        g_outputBuffer = "Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!\n";
-      }
+    if (!checkConfigurationTime("setDynBlocksAction")) {
+      return;
+    }
+    if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Nxdomain || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate || action == DNSAction::Action::NoRecurse) {
+      g_dynBlockAction = action;
     }
     else {
-      g_outputBuffer = "Dynamic blocks action cannot be altered at runtime!\n";
+      errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
+      g_outputBuffer = "Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!\n";
     }
   });
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
@@ -1662,8 +1656,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifdef HAVE_DNSCRYPT
   luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, LuaTypeOrArrayOf<std::string> certFiles, LuaTypeOrArrayOf<std::string> keyFiles, boost::optional<localbind_t> vars) {
-    if (g_configurationDone) {
-      g_outputBuffer = "addDNSCryptBind cannot be used at runtime!\n";
+    if (!checkConfigurationTime("addDNSCryptBind")) {
       return;
     }
     bool reusePort = false;
@@ -1835,8 +1828,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("getVerbose", []() { return g_verbose; });
   luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
   luaCtx.writeFunction("setVerboseLogDestination", [](const std::string& dest) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setVerboseLogDestination() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setVerboseLogDestination")) {
       return;
     }
     try {
@@ -1914,8 +1906,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifdef HAVE_EBPF
   luaCtx.writeFunction("setDefaultBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setDefaultBPFFilter() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setDefaultBPFFilter")) {
       return;
     }
     g_defaultBPFFilter = bpf;
@@ -1972,12 +1963,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("includeDirectory", [&luaCtx](const std::string& dirname) {
-    if (g_configurationDone) {
-      errlog("includeDirectory() cannot be used at runtime!");
-      g_outputBuffer = "includeDirectory() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("includeDirectory")) {
       return;
     }
-
     if (g_included) {
       errlog("includeDirectory() cannot be used recursively!");
       g_outputBuffer = "includeDirectory() cannot be used recursively!\n";
@@ -2101,9 +2089,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setRingBuffersSize", [client](uint64_t capacity, boost::optional<uint64_t> numberOfShards) {
     setLuaSideEffect();
-    if (g_configurationDone) {
-      errlog("setRingBuffersSize() cannot be used at runtime!");
-      g_outputBuffer = "setRingBuffersSize() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setRingBuffersSize")) {
       return;
     }
     if (!client) {
@@ -2121,9 +2107,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setRingBuffersOptions", [](const LuaAssociativeTable<boost::variant<bool, uint64_t>>& options) {
     setLuaSideEffect();
-    if (g_configurationDone) {
-      errlog("setRingBuffersOptions() cannot be used at runtime!");
-      g_outputBuffer = "setRingBuffersOptions() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setRingBuffersOptions")) {
       return;
     }
     if (options.count("lockRetries") > 0) {
@@ -2163,14 +2147,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifdef HAVE_NET_SNMP
   luaCtx.writeFunction("snmpAgent", [client, configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
-    if (client || configCheck)
-      return;
-    if (g_configurationDone) {
-      errlog("snmpAgent() cannot be used at runtime!");
-      g_outputBuffer = "snmpAgent() cannot be used at runtime!\n";
+    if (client || configCheck) {
       return;
     }
-
+    if (!checkConfigurationTime("snmpAgent")) {
+      return;
+    }
     if (g_snmpEnabled) {
       errlog("snmpAgent() cannot be used twice!");
       g_outputBuffer = "snmpAgent() cannot be used twice!\n";
@@ -2292,9 +2274,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setProxyProtocolACL", [](LuaTypeOrArrayOf<std::string> inp) {
-    if (g_configurationDone) {
-      errlog("setProxyProtocolACL() cannot be used at runtime!");
-      g_outputBuffer = "setProxyProtocolACL() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setProxyProtocolACL")) {
       return;
     }
     setLuaSideEffect();
@@ -2311,9 +2291,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setProxyProtocolApplyACLToProxiedClients", [](bool apply) {
-    if (g_configurationDone) {
-      errlog("setProxyProtocolApplyACLToProxiedClients() cannot be used at runtime!");
-      g_outputBuffer = "setProxyProtocolApplyACLToProxiedClients() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setProxyProtocolApplyACLToProxiedClients")) {
       return;
     }
     setLuaSideEffect();
@@ -2321,9 +2299,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setProxyProtocolMaximumPayloadSize", [](uint64_t size) {
-    if (g_configurationDone) {
-      errlog("setProxyProtocolMaximumPayloadSize() cannot be used at runtime!");
-      g_outputBuffer = "setProxyProtocolMaximumPayloadSize() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setProxyProtocolMaximumPayloadSize")) {
       return;
     }
     setLuaSideEffect();
@@ -2332,9 +2308,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifndef DISABLE_RECVMMSG
   luaCtx.writeFunction("setUDPMultipleMessagesVectorSize", [](uint64_t vSize) {
-    if (g_configurationDone) {
-      errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");
-      g_outputBuffer = "setUDPMultipleMessagesVectorSize() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setUDPMultipleMessagesVectorSize")) {
       return;
     }
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
@@ -2372,11 +2346,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
-    if (g_configurationDone) {
-      g_outputBuffer = "setSecurityPollSuffix() cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setSecurityPollSuffix")) {
       return;
     }
-
     g_secPollSuffix = suffix;
   });
 
@@ -2391,11 +2363,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* DISABLE_SECPOLL */
 
   luaCtx.writeFunction("setSyslogFacility", [](boost::variant<int, std::string> facility) {
-    setLuaSideEffect();
-    if (g_configurationDone) {
-      g_outputBuffer = "setSyslogFacility cannot be used at runtime!\n";
+    if (!checkConfigurationTime("setSyslogFacility")) {
       return;
     }
+    setLuaSideEffect();
     if (facility.type() == typeid(std::string)) {
       static std::map<std::string, int> const facilities = {
         {"local0", LOG_LOCAL0},
@@ -2480,13 +2451,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 #ifdef HAVE_DNS_OVER_HTTPS
-    setLuaSideEffect();
-    if (g_configurationDone) {
-      g_outputBuffer = "addDOHLocal cannot be used at runtime!\n";
+    if (!checkConfigurationTime("addDOHLocal")) {
       return;
     }
-    auto frontend = std::make_shared<DOHFrontend>();
+    setLuaSideEffect();
 
+    auto frontend = std::make_shared<DOHFrontend>();
     if (certFiles && !certFiles->empty()) {
       if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
         return;
@@ -2748,13 +2718,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 #ifdef HAVE_DNS_OVER_TLS
-    setLuaSideEffect();
-    if (g_configurationDone) {
-      g_outputBuffer = "addTLSLocal cannot be used at runtime!\n";
+    if (!checkConfigurationTime("addTLSLocal")) {
       return;
     }
-    shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
+    setLuaSideEffect();
 
+    shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
     if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
@@ -3015,11 +2984,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN && !DISABLE_OCSP_STAPLING */
 
   luaCtx.writeFunction("addCapabilitiesToRetain", [](LuaTypeOrArrayOf<std::string> caps) {
-    setLuaSideEffect();
-    if (g_configurationDone) {
-      g_outputBuffer = "addCapabilitiesToRetain cannot be used at runtime!\n";
+    if (!checkConfigurationTime("addCapabilitiesToRetain")) {
       return;
     }
+    setLuaSideEffect();
     if (caps.type() == typeid(std::string)) {
       g_capabilitiesToRetain.insert(boost::get<std::string>(caps));
     }
@@ -3034,14 +3002,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client) {
       return;
     }
+    if (!checkConfigurationTime("setUDPSocketBufferSizes")) {
+      return;
+    }
     checkParameterBound("setUDPSocketBufferSizes", recv, std::numeric_limits<uint32_t>::max());
     checkParameterBound("setUDPSocketBufferSizes", snd, std::numeric_limits<uint32_t>::max());
     setLuaSideEffect();
-
-    if (g_configurationDone) {
-      g_outputBuffer = "setUDPSocketBufferSizes cannot be used at runtime!\n";
-      return;
-    }
 
     g_socketUDPSendBuffer = snd;
     g_socketUDPRecvBuffer = recv;
@@ -3079,8 +3045,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description) {
-    if (g_configurationDone) {
-      g_outputBuffer = "declareMetric cannot be used at runtime!\n";
+    if (!checkConfigurationTime("declareMetric")) {
       return false;
     }
     if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
