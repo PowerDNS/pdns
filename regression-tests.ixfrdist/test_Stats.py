@@ -1,6 +1,7 @@
 from ixfrdisttests import IXFRDistTest
 import time
 import requests
+import subprocess
 
 xfrServerPort = 4244
 
@@ -29,11 +30,11 @@ webserver-address: %s
     _config_domains = {'example': '127.0.0.1:' + str(xfrServerPort)}
 
     metric_prog_stats = ["ixfrdist_uptime_seconds", "ixfrdist_domains"]
-    metric_domain_stats = ["ixfrdist_soa_serial", "ixfrdist_soa_checks",
-                           "ixfrdist_soa_checks_failed",
-                           "ixfrdist_soa_inqueries",
-                           "ixfrdist_axfr_inqueries", "ixfrdist_axfr_failures",
-                           "ixfrdist_ixfr_inqueries", "ixfrdist_ixfr_failures"]
+    metric_domain_stats = ["ixfrdist_soa_serial", "ixfrdist_soa_checks_total",
+                           "ixfrdist_soa_checks_failed_total",
+                           "ixfrdist_soa_inqueries_total",
+                           "ixfrdist_axfr_inqueries_total", "ixfrdist_axfr_failures_total",
+                           "ixfrdist_ixfr_inqueries_total", "ixfrdist_ixfr_failures_total"]
 
     @classmethod
     def setUpClass(cls):
@@ -45,6 +46,24 @@ webserver-address: %s
     def tearDownClass(cls):
         cls.tearDownIXFRDist()
 
+    def checkPrometheusContentPromtool(self, content):
+        output = None
+        try:
+            testcmd = ['promtool', 'check', 'metrics']
+            process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input=content)
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
+
+        # commented out because promtool returns 3 because of the "_total" suffix warnings
+        #if process.returncode != 0:
+        #    raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+
+        for line in output[0].splitlines():
+            if line.endswith(b"should have \"_total\" suffix"):
+                continue
+            raise AssertionError('%s returned an unexpected output. Faulty line is "%s", complete content is "%s"' % (testcmd, line, output))
+
     def test_program_stats_exist(self):
         res = requests.get('http://{}/metrics'.format(self.webserver_address))
         self.assertEqual(res.status_code, 200)
@@ -55,6 +74,7 @@ webserver-address: %s
                 continue
             self.assertIn(line.split(" ")[0],
                           self.metric_prog_stats + self.metric_domain_stats)
+        self.checkPrometheusContentPromtool(res.content)
 
     def test_registered(self):
         res = requests.get('http://{}/metrics'.format(self.webserver_address))
@@ -67,7 +87,7 @@ webserver-address: %s
                 continue
             if "{" not in line:
                 continue
-            self.assertIn('{domain=example}', line)
+            self.assertIn('{domain="example"}', line)
             self.assertIn(line.split("{")[0], self.metric_domain_stats)
 
     def test_metrics_have_help(self):
