@@ -45,7 +45,7 @@ Changelogs for 4.8.X
     :pullreq: 12408
     :tickets: 12407
 
-    Do not chain ECS enabled queries, ity can cause the wrong scope to be used for outgoing queries.
+    Do not chain ECS enabled queries, it can cause the wrong scope to be used for outgoing queries.
 
   .. change::
     :tags: Bug Fixes
