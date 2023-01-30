@@ -838,8 +838,6 @@ static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<F
 }
 #endif // HAVE_FSTRM
 
-const char* timestamp(const struct timeval& tv, char* buf, size_t sz);
-
 static void dumpTrace(const string& trace, const timeval& timev)
 {
   if (trace.empty()) {

@@ -922,6 +922,7 @@ uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
+const char* timestamp(const struct timeval& tv, char* buf, size_t sz);
 
 struct WipeCacheResult
 {
