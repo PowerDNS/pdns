@@ -1159,7 +1159,6 @@ extern boost::optional<uint64_t> g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
 extern size_t g_maxTCPQueriesPerConn;
 extern size_t g_maxTCPConnectionDuration;
-extern size_t g_maxTCPConnectionsPerClient;
 extern size_t g_tcpInternalPipeBufferSize;
 extern pdns::stat16_t g_cacheCleaningDelay;
 extern pdns::stat16_t g_cacheCleaningPercentage;

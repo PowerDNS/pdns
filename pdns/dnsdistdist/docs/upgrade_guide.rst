@@ -8,6 +8,8 @@ Responses to AXFR and IXFR queries are no longer cached.
 
 Cache-hits are now counted as responses in our metrics.
 
+The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS over HTTPS connections, in addition to DNS over TCP and DNS over TLS ones.
+
 1.7.0 to 1.7.1
 --------------
 

@@ -25,6 +25,7 @@
 #include <queue>
 
 #include "dnsdist.hh"
+#include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
@@ -57,11 +58,9 @@
    Let's start naively.
 */
 
-static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_tcpClientsCount;
-
 size_t g_maxTCPQueriesPerConn{0};
 size_t g_maxTCPConnectionDuration{0};
-size_t g_maxTCPConnectionsPerClient{0};
+
 #ifdef __linux__
 // On Linux this gives us 128k pending queries (default is 8192 queries),
 // which should be enough to deal with huge spikes
@@ -76,20 +75,12 @@ int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
-static void decrementTCPClientCount(const ComboAddress& client)
-{
-  if (g_maxTCPConnectionsPerClient) {
-    auto tcpClientsCount = s_tcpClientsCount.lock();
-    tcpClientsCount->at(client)--;
-    if (tcpClientsCount->at(client) == 0) {
-      tcpClientsCount->erase(client);
-    }
-  }
-}
+LockGuarded<std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan>> dnsdist::IncomingConcurrentTCPConnectionsManager::s_tcpClientsConcurrentConnectionsCount;
+size_t dnsdist::IncomingConcurrentTCPConnectionsManager::s_maxTCPConnectionsPerClient = 0;
 
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
-  decrementTCPClientCount(d_ci.remote);
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_ci.remote);
 
   if (d_ci.cs != nullptr) {
     struct timeval now;
@@ -1462,16 +1453,11 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       return;
     }
 
-    if (g_maxTCPConnectionsPerClient) {
-      auto tcpClientsCount = s_tcpClientsCount.lock();
-
-      if ((*tcpClientsCount)[remote] >= g_maxTCPConnectionsPerClient) {
-        vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
-        return;
-      }
-      (*tcpClientsCount)[remote]++;
-      tcpClientCountIncremented = true;
+    if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
+      vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
+      return;
     }
+    tcpClientCountIncremented = true;
 
     vinfolog("Got TCP connection from %s", remote.toStringWithPort());
 
@@ -1479,7 +1465,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     if (threadData == nullptr) {
       if (!g_tcpclientthreads->passConnectionToThread(std::make_unique<ConnectionInfo>(std::move(ci)))) {
         if (tcpClientCountIncremented) {
-          decrementTCPClientCount(remote);
+          dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(remote);
         }
       }
     }
@@ -1493,7 +1479,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
   catch (const std::exception& e) {
     errlog("While reading a TCP question: %s", e.what());
     if (tcpClientCountIncremented) {
-      decrementTCPClientCount(remote);
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(remote);
     }
   }
   catch (...){}
