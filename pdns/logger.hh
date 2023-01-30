@@ -183,7 +183,6 @@ struct LogVariant
 
 using OptLog = std::optional<LogVariant>;
 
-
 #ifndef RECURSOR
 // Originally there was a flag but it was never set from !RECURSOR
 #define VLOG(log, x) VLOG only works in recursor
@@ -191,26 +190,26 @@ using OptLog = std::optional<LogVariant>;
 
 void addTraceTS(const timeval& start, ostringstream& str);
 
-#define VLOG(log, x)                                                    \
-  if (log) {                                                            \
-    if (std::holds_alternative<Logger*>((log)->v)) {                    \
+#define VLOG(log, x)                                                       \
+  if (log) {                                                               \
+    if (std::holds_alternative<Logger*>((log)->v)) {                       \
       *std::get<Logger*>(log->v) << Logger::Warning << (log)->prefix << x; \
-    }                                                                   \
-    else if (std::holds_alternative<ostringstream*>((log)->v)) {        \
-      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v));    \
-      *std::get<ostringstream*>((log)->v) << (log)->prefix << x;        \
-    }                                                                   \
+    }                                                                      \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {           \
+      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v));       \
+      *std::get<ostringstream*>((log)->v) << (log)->prefix << x;           \
+    }                                                                      \
   }
 
-#define VLOG_NO_PREFIX(log, x)                                          \
-  if (log) {                                                            \
-      if (std::holds_alternative<Logger*>((log)->v)) {                  \
-      *std::get<Logger*>(log->v) << Logger::Warning << x;               \
-    }                                                                   \
-    else if (std::holds_alternative<ostringstream*>((log)->v)) {        \
-      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v));    \
-      *std::get<ostringstream*>((log)->v) << x;                         \
-    }                                                                   \
+#define VLOG_NO_PREFIX(log, x)                                       \
+  if (log) {                                                         \
+    if (std::holds_alternative<Logger*>((log)->v)) {                 \
+      *std::get<Logger*>(log->v) << Logger::Warning << x;            \
+    }                                                                \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {     \
+      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v)); \
+      *std::get<ostringstream*>((log)->v) << x;                      \
+    }                                                                \
   }
 
 #endif

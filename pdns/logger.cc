@@ -206,7 +206,7 @@ Logger& Logger::operator<<(const ComboAddress& ca)
 #ifdef RECURSOR
 void addTraceTS(const timeval& start, ostringstream& str)
 {
-  const auto & content = str.str();
+  const auto& content = str.str();
   if (content.empty() || content.at(content.size() - 1) == '\n') {
     timeval time{};
     gettimeofday(&time, nullptr);

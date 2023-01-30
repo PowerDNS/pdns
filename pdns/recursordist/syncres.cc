@@ -469,13 +469,13 @@ bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
 
-#define LOG(x)                                  \
-  if (d_lm == Log) {                            \
-    g_log << Logger::Warning << x;              \
-  }                                             \
-  else if (d_lm == Store) {                     \
-    addTraceTS(d_fixednow, d_trace);            \
-    d_trace << x;                               \
+#define LOG(x)                       \
+  if (d_lm == Log) {                 \
+    g_log << Logger::Warning << x;   \
+  }                                  \
+  else if (d_lm == Store) {          \
+    addTraceTS(d_fixednow, d_trace); \
+    d_trace << x;                    \
   }
 
 OptLog SyncRes::LogObject(const string& prefix)
@@ -485,7 +485,7 @@ OptLog SyncRes::LogObject(const string& prefix)
     ret = {prefix, d_fixednow, &g_log};
   }
   else if (d_lm == Store) {
-    ret = {prefix, d_now, &d_trace};
+    ret = {prefix, d_fixednow, &d_trace};
   }
   return ret;
 }
@@ -3010,7 +3010,7 @@ std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(const DNSNam
   return rnameservers;
 }
 
-vector<ComboAddress> SyncRes::shuffleForwardSpeed(const DNSName &qname, const vector<ComboAddress>& rnameservers, const string& prefix, const bool wasRd)
+vector<ComboAddress> SyncRes::shuffleForwardSpeed(const DNSName& qname, const vector<ComboAddress>& rnameservers, const string& prefix, const bool wasRd)
 {
   vector<ComboAddress> nameservers = rnameservers;
   map<ComboAddress, float> speeds;
