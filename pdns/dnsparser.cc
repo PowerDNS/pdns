@@ -116,7 +116,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   dr.d_type = qtype;
   dr.d_name = qname;
   dr.d_clen = serialized.size();
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
   /* needed to get the record boundaries right */
   pr.getDnsrecordheader(drh);
   auto content = DNSRecordContent::mastermake(dr, pr, Opcode::Query);
