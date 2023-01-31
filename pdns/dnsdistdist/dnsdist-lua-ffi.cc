@@ -701,6 +701,31 @@ void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, u
   }
 }
 
+bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dr, const char* initialName, size_t initialNameSize)
+{
+  if (dr == nullptr || dr->dr == nullptr || initialName == nullptr || initialNameSize == 0) {
+    return false;
+  }
+
+  try {
+    DNSName parsed(initialName, initialNameSize, 0, false);
+
+    if (!dnsdist::changeNameInDNSPacket(dr->dr->getMutableData(), dr->dr->ids.qname, parsed)) {
+      return false;
+    }
+
+    // set qname to new one
+    dr->dr->ids.qname = parsed;
+    dr->dr->ids.skipCache = true;
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+    return false;
+  }
+
+  return true;
+}
+
 bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
   try {
@@ -782,6 +807,72 @@ bool dnsdist_ffi_set_rcode_from_async(uint16_t asyncID, uint16_t queryID, uint8_
 
   query->query.d_idstate.skipCache = true;
 
+  return dnsdist::queueQueryResumptionEvent(std::move(query));
+}
+
+bool dnsdist_ffi_resume_from_async_with_alternate_name(uint16_t asyncID, uint16_t queryID, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize)
+{
+  if (!dnsdist::g_asyncHolder) {
+    return false;
+  }
+
+  auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
+  if (!query) {
+    vinfolog("Unable to resume with an alternate name, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    return false;
+  }
+
+  auto& ids = query->query.d_idstate;
+  DNSName originalName = ids.qname;
+
+  try {
+    DNSName parsed(alternateName, alternateNameSize, 0, false);
+
+    PacketBuffer initialPacket;
+    if (query->d_isResponse) {
+      if (!ids.d_packet) {
+        return false;
+      }
+      initialPacket = std::move(*ids.d_packet);
+    }
+    else {
+      initialPacket = std::move(query->query.d_buffer);
+    }
+
+    // edit qname in query packet
+    if (!dnsdist::changeNameInDNSPacket(initialPacket, originalName, parsed)) {
+      return false;
+    }
+    if (query->d_isResponse) {
+      query->d_isResponse = false;
+    }
+    query->query.d_buffer = std::move(initialPacket);
+    // set qname to new one
+    ids.qname = std::move(parsed);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+    return false;
+  }
+
+  // save existing qname in tag
+  if (formerNameTagName != nullptr && formerNameTagSize > 0) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    (*ids.qTag)[std::string(formerNameTagName, formerNameTagSize)] = originalName.getStorage();
+  }
+
+  if (tag != nullptr && tagSize > 0) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    (*ids.qTag)[std::string(tag, tagSize)] = std::string(tagValue, tagValueSize);
+  }
+
+  ids.skipCache = true;
+
+  // resume as query
   return dnsdist::queueQueryResumptionEvent(std::move(query));
 }
 
@@ -1448,6 +1539,26 @@ uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspa
     return 0;
   }
   return packet->overlay.d_records.at(idx).d_contentOffset;
+}
+
+size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t packetSize, size_t offset, char* name, size_t nameSize)
+{
+  if (packet == nullptr || name == nullptr || nameSize == 0 || offset >= packetSize) {
+    return 0;
+  }
+  try {
+    DNSName parsed(packet, packetSize, offset, true);
+    const auto& storage = parsed.getStorage();
+    if (nameSize < storage.size()) {
+      return 0;
+    }
+    memcpy(name, storage.data(), storage.size());
+    return storage.size();
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error parsing DNSName via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", e.what());
+  }
+  return 0;
 }
 
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)

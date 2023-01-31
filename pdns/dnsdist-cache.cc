@@ -444,7 +444,7 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
   if (packet.size() > ((sizeof(dnsheader) + qnameWireLength))) {
     if (!d_optionsToSkip.empty()) {
       /* skip EDNS options if any */
-      result = PacketCache::hashAfterQname(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_optionsToSkip);
+      result = PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_optionsToSkip);
     }
     else {
       result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);

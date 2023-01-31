@@ -67,7 +67,7 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const pdns_string_view& content, uint16_t initialPos=sizeof(dnsheader))
+  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader))
     : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
@@ -185,7 +185,7 @@ private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
   uint16_t not_used; // Aligns the whole class on 8-byte boundaries
-  const pdns_string_view d_content;
+  const std::string_view d_content;
 };
 
 struct DNSRecord;
@@ -446,7 +446,7 @@ public:
   //! Parse from a pointer and length
   MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(query, pdns_string_view(packet, len));
+    init(query, std::string_view(packet, len));
   }
 
   DNSName d_qname;
@@ -467,7 +467,7 @@ public:
   bool hasEDNS() const;
 
 private:
-  void init(bool query, const pdns_string_view& packet);
+  void init(bool query, const std::string_view& packet);
   uint16_t d_tsigPos;
 };
 

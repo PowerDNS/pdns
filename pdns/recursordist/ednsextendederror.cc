@@ -23,7 +23,7 @@
 
 #include "ednsextendederror.hh"
 
-static bool getEDNSExtendedErrorOptFromStringView(const pdns_string_view& option, EDNSExtendedError& eee)
+static bool getEDNSExtendedErrorOptFromStringView(const std::string_view& option, EDNSExtendedError& eee)
 {
   if (option.size() < sizeof(uint16_t)) {
     return false;
@@ -39,12 +39,12 @@ static bool getEDNSExtendedErrorOptFromStringView(const pdns_string_view& option
 
 bool getEDNSExtendedErrorOptFromString(const string& option, EDNSExtendedError& eee)
 {
-  return getEDNSExtendedErrorOptFromStringView(pdns_string_view(option), eee);
+  return getEDNSExtendedErrorOptFromStringView(std::string_view(option), eee);
 }
 
 bool getEDNSExtendedErrorOptFromString(const char* option, unsigned int len, EDNSExtendedError& eee)
 {
-  return getEDNSExtendedErrorOptFromStringView(pdns_string_view(option, len), eee);
+  return getEDNSExtendedErrorOptFromStringView(std::string_view(option, len), eee);
 }
 
 string makeEDNSExtendedErrorOptString(const EDNSExtendedError& eee)

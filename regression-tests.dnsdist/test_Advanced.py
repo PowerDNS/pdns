@@ -589,3 +589,76 @@ class TestDNSQuestionTime(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
+
+class TestChangeName(DNSDistTest):
+    _config_template = """
+    local tagName = 'initial-name'
+    function luaChangeNamequery(dq)
+      dq:setTag(tagName, dq.qname:toString())
+      if not dq:changeName(newDNSName('changeName.advanced.tests.dnsdist.org')) then
+        errlog('Error rebasing the query')
+        return DNSAction.Drop
+      end
+      return DNSAction.None
+    end
+
+    function luaChangeNameresponse(dr)
+      local initialName = dr:getTag(tagName)
+      if not dr:changeName(newDNSName(initialName)) then
+        errlog('Error rebasing the response')
+        return DNSAction.Drop
+      end
+      return DNSAction.None
+    end
+
+    addAction('changeName.advanced.tests.powerdns.com', LuaAction(luaChangeNamequery))
+    addResponseAction('changeName.advanced.tests.dnsdist.org', LuaResponseAction(luaChangeNameresponse))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testChangeName(self):
+        """
+        Advanced: ChangeName the query name
+        """
+        name = 'changeName.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        changedName = 'changeName.advanced.tests.dnsdist.org.'
+        changedQuery = dns.message.make_query(changedName, 'A', 'IN')
+        changedQuery.id = query.id
+
+        response = dns.message.make_response(changedQuery)
+        rrset = dns.rrset.from_text(changedName,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '4.3.2.1')
+        response.answer.append(rrset)
+        rrset = dns.rrset.from_text('sub.sub2.changeName.advanced.tests.dnsdist.org.',
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    'This text contains sub.sub2.changeName.advanced.tests.dnsdist.org.')
+        response.additional.append(rrset)
+
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '4.3.2.1')
+        expectedResponse.answer.append(rrset)
+        # we only rewrite records if the owner name matches the new target, nothing else
+        rrset = dns.rrset.from_text('sub.sub2.changeName.advanced.tests.dnsdist.org.',
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    'This text contains sub.sub2.changeName.advanced.tests.dnsdist.org.')
+        expectedResponse.additional.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, changedQuery)
+            self.assertEqual(receivedResponse, expectedResponse)

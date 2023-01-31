@@ -47,4 +47,11 @@ public:
   uint16_t d_qclass;
   dnsheader d_header;
 };
+
+/* Rewrite, if they are exactly equal to 'from', the qname and owner name of any record
+ * to 'to'. Since that might break DNS name pointers, the whole payload is rewritten,
+ * and the operation may fail if there is at least one unsupported record in the payload,
+ * because it could contain pointers that would not be rewritten.
+ */
+bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, const DNSName& to);
 }
