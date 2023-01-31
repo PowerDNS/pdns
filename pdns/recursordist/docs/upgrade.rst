@@ -8,12 +8,24 @@ When upgrading several versions, please read **all** notes applying to the upgra
 ---------------
 
 Metrics
--------
+^^^^^^^
 The way metrics are collected has been changed to increase performance, especially when many thread are used.
 This allows for solving a long standing issue that some statistics were not updated on packet cache hits.
 This is now resolved, but has the consequence that some metrics (in particular response related ones) changed behaviour as they now also reflect packet cache hits, while they did not before.
 This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
+
+
+4.8.1 to 4.8.2
+--------------
+
+Cache eviction policy
+^^^^^^^^^^^^^^^^^^^^^
+The cache eviction policy for the record and the negative caches has been improved to reduce inbalance between shards.
+The maximum size of the negative cache is now 1/8th of the size of the record cache and its number of shards is 1/8th of the :ref:`setting-record-cache-shards` setting.
+Previously the size was 1/10th of the record cache size and the number of shards was equal to the
+number of shards of the record cache.
+The ``rec_control dump-cache`` command now prints more information about shards.
 
 
 4.7.0 to 4.8.0
