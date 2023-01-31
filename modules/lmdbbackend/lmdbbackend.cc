@@ -813,13 +813,13 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   if (d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
     if (d_dolog) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " usec to execute (found nothing)" << endl;
+      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
     }
     return;
   }
 
   if (d_dolog) {
-    g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " usec to execute" << endl;
+    g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
   }
 
   d_lookupdomain = hunt;
