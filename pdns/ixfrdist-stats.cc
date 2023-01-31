@@ -97,5 +97,9 @@ std::string ixfrdistStats::getStats() {
     helpAdded = true;
   }
 
+  stats<<"# HELP "<<prefix<<"unknown_domain_inqueries_total Number of queries received for domains unknown to us"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"unknown_domain_inqueries_total counter"<<std::endl;
+  stats<<prefix<<"unknown_domain_inqueries_total "<<progStats.unknownDomainInQueries<<std::endl;
+
   return stats.str();
 }

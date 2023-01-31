@@ -808,6 +808,7 @@ static void handleUDPRequest(int fd, boost::any&) {
     g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
     makeSOAPacket(mdp, packet);
   } else {
+    g_stats.incrementUnknownDomainInQueries(mdp.d_qname);
     makeRefusedPacket(mdp, packet);
   }
 
