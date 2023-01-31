@@ -21,7 +21,7 @@ Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``R
 
 Cache eviction policy
 ^^^^^^^^^^^^^^^^^^^^^
-The cache eviction policy for the record and the negative caches has been improved to reduce inbalance between shards.
+The cache eviction policy for the record and the negative caches has been improved to reduce imbalance between shards.
 The maximum size of the negative cache is now 1/8th of the size of the record cache and its number of shards is 1/8th of the :ref:`setting-record-cache-shards` setting.
 Previously the size was 1/10th of the record cache size and the number of shards was equal to the
 number of shards of the record cache.
