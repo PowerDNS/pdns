@@ -21,6 +21,7 @@
  */
 
 #include "ixfrdist-stats.hh"
+#include "misc.hh"
 
 std::string ixfrdistStats::getStats() {
   std::stringstream stats;
@@ -29,6 +30,10 @@ std::string ixfrdistStats::getStats() {
   stats<<"# HELP "<<prefix<<"uptime_seconds The uptime of the process"<<std::endl;
   stats<<"# TYPE "<<prefix<<"uptime_seconds gauge"<<std::endl;
   stats<<prefix<<"uptime_seconds "<<time(nullptr) - progStats.startTime<<std::endl;
+
+  stats<<"# HELP "<<prefix<<"fd_usage Number of open file descriptors"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"fd_usage gauge"<<std::endl;
+  stats<<prefix<<"fd_usage "<<getOpenFileDescriptors("")<<std::endl;
 
   stats<<"# HELP "<<prefix<<"domains The amount of configured domains"<<std::endl;
   stats<<"# TYPE "<<prefix<<"domains gauge"<<std::endl;
