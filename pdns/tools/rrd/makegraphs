@@ -78,8 +78,8 @@ function makeGraphs()
         LINE1:alloutqueries#00ff00:"outqueries/s"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/qa-latency-$2.png -w $WSIZE -h $HSIZE -l 0 \
-	-t "Questions/answer latency in milliseconds" \
-	-v "msec" \
+	-t "Questions/answer latency in ms" \
+	-v "ms" \
 	DEF:qalatency=pdns_recursor.rrd:qa-latency:AVERAGE  \
 	CDEF:mqalatency=qalatency,1000,/ \
         LINE1:mqalatency#ff0000:"questions/s"

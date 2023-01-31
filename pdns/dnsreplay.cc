@@ -306,9 +306,9 @@ static void emitFlightTimes()
   cout.precision(2);
   for(unsigned int i =0 ; i < sizeof(limits)/sizeof(limits[0]); ++i) {
     if(limits[i]!=flightTimes.size())
-      cout<<"Within "<<limits[i]<<" msec: ";
+      cout<<"Within "<<limits[i]<<" ms: ";
     else
-      cout<<"Beyond "<<limits[i]-2<<" msec: ";
+      cout<<"Beyond "<<limits[i]-2<<" ms: ";
     uint64_t here = countLessThan(limits[i]);
     cout<<100.0*here/totals<<"% ("<<100.0*(here-sofar)/totals<<"%)"<<endl;
     sofar=here;

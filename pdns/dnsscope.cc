@@ -480,7 +480,7 @@ try
         if(j->first < 1024)
           cout<< perc <<"% of questions answered within " << j->first << " usec (";
         else
-          cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+          cout<< perc <<"% of questions answered within " << j->first/1000.0 << " ms (";
 
         cout<<perc-lastperc<<"%)\n";
         lastperc=sum*100.0/totpairs;
@@ -496,7 +496,7 @@ try
       if(j->first < 1024)
         cout<< perc <<"% of questions answered within " << j->first << " usec (";
       else
-        cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+        cout<< perc <<"% of questions answered within " << j->first/1000.0 << " ms (";
 
       cout<<perc-lastperc<<"%)\n";
       lastperc=sum*100.0/totpairs;

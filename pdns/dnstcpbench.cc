@@ -247,7 +247,7 @@ try
   if(g_verbose) {
     cout<<"Sending queries to: "<<g_dest.toStringWithPort()<<endl;
     cout<<"Attempting UDP first: " << (g_onlyTCP ? "no" : "yes") <<endl;
-    cout<<"Timeout: "<< g_timeoutMsec<<"msec"<<endl;
+    cout<<"Timeout: "<< g_timeoutMsec<<" ms"<<endl;
     cout << "Using TCP_NODELAY: "<<g_tcpNoDelay<<endl;
   }
 

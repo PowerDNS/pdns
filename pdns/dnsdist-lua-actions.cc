@@ -118,7 +118,7 @@ public:
   }
   std::string toString() const override
   {
-    return "delay by "+std::to_string(d_msec)+ " msec";
+    return "delay by "+std::to_string(d_msec)+ " ms";
   }
 private:
   int d_msec;
@@ -1755,7 +1755,7 @@ public:
   }
   std::string toString() const override
   {
-    return "delay by "+std::to_string(d_msec)+ " msec";
+    return "delay by "+std::to_string(d_msec)+ " ms";
   }
 private:
   int d_msec;

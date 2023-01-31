@@ -589,14 +589,14 @@ void setupLuaInspection(LuaContext& luaCtx)
         return;
       }
 
-      g_outputBuffer = (boost::format("Average response latency: %.02f msec\n") % (0.001*totlat/size)).str();
+      g_outputBuffer = (boost::format("Average response latency: %.02f ms\n") % (0.001*totlat/size)).str();
       double highest=0;
 
       for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
 	highest=std::max(highest, iter->second*1.0);
       }
       boost::format fmt("%7.2f\t%s\n");
-      g_outputBuffer += (fmt % "msec" % "").str();
+      g_outputBuffer += (fmt % "ms" % "").str();
 
       for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
 	int stars = (70.0 * iter->second/highest);

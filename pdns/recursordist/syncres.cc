@@ -5110,7 +5110,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (s_addExtendedResolutionDNSErrors) {
       extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NoReachableAuthority), "Timeout waiting for answer(s)"};
     }
-    throw ImmediateServFailException("Too much time waiting for " + qname.toLogString() + "|" + qtype.toString() + ", timeouts: " + std::to_string(d_timeouts) + ", throttles: " + std::to_string(d_throttledqueries) + ", queries: " + std::to_string(d_outqueries) + ", " + std::to_string(d_totUsec / 1000) + "msec");
+    throw ImmediateServFailException("Too much time waiting for " + qname.toLogString() + "|" + qtype.toString() + ", timeouts: " + std::to_string(d_timeouts) + ", throttles: " + std::to_string(d_throttledqueries) + ", queries: " + std::to_string(d_outqueries) + ", " + std::to_string(d_totUsec / 1000) + " ms");
   }
 
   if (doTCP) {
@@ -5172,7 +5172,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if (resolveret == LWResult::Result::Timeout) {
       /* Time out */
 
-      LOG(prefix << qname << ": Timeout resolving after " << lwr.d_usec / 1000.0 << "msec " << (doTCP ? "over TCP" : "") << endl);
+      LOG(prefix << qname << ": Timeout resolving after " << lwr.d_usec / 1000.0 << " ms " << (doTCP ? "over TCP" : "") << endl);
       d_timeouts++;
       t_Counters.at(rec::Counter::outgoingtimeouts)++;
 
@@ -5661,7 +5661,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
               if(remoteIP->sin4.sin_family==AF_INET6)
               lwr.d_usec/=3;
           */
-          //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
+          //        cout<<"ms: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
           s_nsSpeeds.lock()->find_or_enter(tns->first.empty() ? DNSName(remoteIP->toStringWithPort()) : tns->first, d_now).submit(*remoteIP, lwr.d_usec, d_now);
 
