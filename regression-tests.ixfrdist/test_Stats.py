@@ -29,7 +29,7 @@ webserver-address: %s
 
     _config_domains = {'example': '127.0.0.1:' + str(xfrServerPort)}
 
-    metric_prog_stats = ["ixfrdist_uptime_seconds", "ixfrdist_domains"]
+    metric_prog_stats = ["ixfrdist_uptime_seconds", "ixfrdist_domains", "ixfrdist_unknown_domain_inqueries_total"]
     metric_domain_stats = ["ixfrdist_soa_serial", "ixfrdist_soa_checks_total",
                            "ixfrdist_soa_checks_failed_total",
                            "ixfrdist_soa_inqueries_total",
