@@ -325,8 +325,8 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
       // headers.first=toCanonic("", headers.first);
       if (n == 0) {
         ad.d_rdForward = false;
-        SLOG(g_log << Logger::Error << "Parsing authoritative data for zone '" << headers.first << "' from file '" << headers.second << "'" << endl,
-             log->info(Logr::Error, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file", Logging::Loggable(headers.second)));
+        SLOG(g_log << Logger::Info << "Parsing authoritative data for zone '" << headers.first << "' from file '" << headers.second << "'" << endl,
+             log->info(Logr::Info, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file", Logging::Loggable(headers.second)));
         ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
         zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
