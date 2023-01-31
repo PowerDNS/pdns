@@ -203,7 +203,6 @@ Logger& Logger::operator<<(const ComboAddress& ca)
   return *this;
 }
 
-#ifdef RECURSOR
 void addTraceTS(const timeval& start, ostringstream& str)
 {
   const auto& content = str.str();
@@ -215,4 +214,3 @@ void addTraceTS(const timeval& start, ostringstream& str)
     str << diff << ' ';
   }
 }
-#endif

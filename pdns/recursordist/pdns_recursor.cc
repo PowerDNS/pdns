@@ -42,7 +42,7 @@
 
 thread_local std::shared_ptr<RecursorLua4> t_pdl;
 thread_local std::shared_ptr<Regex> t_traceRegex;
-thread_local int t_tracefd = -1;
+thread_local FDWrapper t_tracefd = -1;
 thread_local ProtobufServersInfo t_protobufServers;
 thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
@@ -861,10 +861,10 @@ static void dumpTrace(const string& trace, const timeval& timev)
     return;
   }
   std::array<char, 64> timebuf;
-  timestamp(timev, timebuf.data(), timebuf.size());
+  isoDateTimeMillis(timev, timebuf.data(), timebuf.size());
   fprintf(filep.get(), " us === START OF TRACE %s ===\n", timebuf.data());
   fprintf(filep.get(), "%s", trace.c_str());
-  timestamp(now, timebuf.data(), timebuf.size());
+  isoDateTimeMillis(now, timebuf.data(), timebuf.size());
   fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
   // fclose by unique_ptr does implicit flush
 }

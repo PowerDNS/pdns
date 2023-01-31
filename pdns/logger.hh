@@ -183,11 +183,6 @@ struct LogVariant
 
 using OptLog = std::optional<LogVariant>;
 
-#ifndef RECURSOR
-// Originally there was a flag but it was never set from !RECURSOR
-#define VLOG(log, x) VLOG only works in recursor
-#else
-
 void addTraceTS(const timeval& start, ostringstream& str);
 
 #define VLOG(log, x)                                                       \
@@ -211,5 +206,3 @@ void addTraceTS(const timeval& start, ostringstream& str);
       *std::get<ostringstream*>((log)->v) << x;                      \
     }                                                                \
   }
-
-#endif

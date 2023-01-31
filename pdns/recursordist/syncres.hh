@@ -568,6 +568,7 @@ public:
   unsigned int d_timeouts;
   unsigned int d_unreachables;
   unsigned int d_totUsec;
+  // Initialized ony once, as opposed to d_now which gets updated after outgoing requests
   const struct timeval d_fixednow;
 
 private:
@@ -692,6 +693,7 @@ private:
   std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers;
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
   asyncresolve_t d_asyncResolve{nullptr};
+  // d_now is initialized in the constructor and updates after outgoing requests in lwres.cc:asyncresolve
   struct timeval d_now;
   /* if the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
      and we might not have it if we picked up the proof from a delegation */
@@ -922,7 +924,7 @@ uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
-const char* timestamp(const struct timeval& tv, char* buf, size_t sz);
+const char* isoDateTimeMillis(const struct timeval& tv, char* buf, size_t sz);
 
 struct WipeCacheResult
 {

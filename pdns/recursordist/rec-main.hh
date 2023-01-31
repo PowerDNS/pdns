@@ -227,7 +227,7 @@ extern std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to 
 extern std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
 extern std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 extern thread_local std::shared_ptr<Regex> t_traceRegex;
-extern thread_local int t_tracefd;
+extern thread_local FDWrapper t_tracefd;
 extern string g_programname;
 extern string g_pidfname;
 extern RecursorControlChannel g_rcc; // only active in the handler thread

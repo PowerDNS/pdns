@@ -3096,21 +3096,17 @@ static string* pleaseUseNewTraceRegex(const std::string& newRegex, int file)
   try {
     if (newRegex.empty()) {
       t_traceRegex.reset();
-      close(t_tracefd);
-      t_tracefd = -1;
+      t_tracefd = FDWrapper();
       return new string("unset\n");
     }
     if (file == -1) {
       return new string("could not dup file\n");
     }
-    if (t_tracefd != -1) {
-      close(t_tracefd);
-    }
     t_traceRegex = std::make_shared<Regex>(newRegex);
     t_tracefd = file;
     return new string("ok\n");
   }
-  catch (PDNSException& ae) {
+  catch (const PDNSException& ae) {
     return new string(ae.reason + "\n");
   }
 }

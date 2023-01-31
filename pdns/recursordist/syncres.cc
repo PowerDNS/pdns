@@ -1035,7 +1035,7 @@ bool SyncRes::isForwardOrAuth(const DNSName& qname) const
   return iter != t_sstorage.domainmap->end();
 }
 
-const char* timestamp(const struct timeval& tv, char* buf, size_t sz)
+const char* isoDateTimeMillis(const struct timeval& tv, char* buf, size_t sz)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
   struct tm tm;
@@ -1200,7 +1200,7 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
 
     // an <empty> can appear hear in case of authoritative (hosted) zones
     char tmp[26];
-    fprintf(fp.get(), "%s\t%s\t", i.d_name.toLogString().c_str(), timestamp(i.d_lastget, tmp, sizeof(tmp)));
+    fprintf(fp.get(), "%s\t%s\t", i.d_name.toLogString().c_str(), isoDateTimeMillis(i.d_lastget, tmp, sizeof(tmp)));
     bool first = true;
     for (const auto& j : i.d_collection) {
       fprintf(fp.get(), "%s%s/%.3f/%.3f", first ? "" : "\t", j.first.toStringWithPortExcept(53).c_str(), j.second.peek() / 1000.0f, j.second.last() / 1000.0f);
