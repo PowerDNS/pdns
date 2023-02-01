@@ -35,12 +35,24 @@
 extern int g_argc;
 extern char** g_argv;
 
+static void putIntoCache(time_t now, QType qtype, vState state, const ComboAddress& from, const set<DNSName>& seen, const std::multimap<DNSName, DNSRecord>& allRecords)
+{
+  for (const auto& name : seen) {
+    auto records = allRecords.equal_range(name);
+    vector<DNSRecord> aset;
+    for (auto elem = records.first; elem != records.second; ++elem) {
+      aset.push_back(elem->second);
+    }
+    g_recCache->replace(now, name, qtype, aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, state, from); // auth, etc see above
+  }
+}
+
 bool primeHints(time_t ignored)
 {
   // prime root cache
   const vState validationState = vState::Insecure;
   const ComboAddress from("255.255.255.255");
-  vector<DNSRecord> nsset;
+  vector<DNSRecord> nsvec;
 
   time_t now = time(nullptr);
 
@@ -90,7 +102,7 @@ bool primeHints(time_t ignored)
         g_recCache->replace(now, DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from);
       }
 
-      nsset.push_back(nsrr);
+      nsvec.push_back(nsrr);
     }
   }
   else {
@@ -102,37 +114,41 @@ bool primeHints(time_t ignored)
     set<DNSName> seenA;
     set<DNSName> seenAAAA;
 
+    std::multimap<DNSName, DNSRecord> aRecords;
+    std::multimap<DNSName, DNSRecord> aaaaRecords;
+
     while (zpt.get(rr)) {
       rr.ttl += now;
-      if (rr.qtype.getCode() == QType::A) {
+      switch (rr.qtype) {
+      case QType::A:
         seenA.insert(rr.qname);
-        vector<DNSRecord> aset;
-        aset.push_back(DNSRecord(rr));
-        g_recCache->replace(now, rr.qname, QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, etc see above
-      }
-      else if (rr.qtype.getCode() == QType::AAAA) {
+        aRecords.insert({rr.qname, DNSRecord(rr)});
+        break;
+      case QType::AAAA:
         seenAAAA.insert(rr.qname);
-        vector<DNSRecord> aaaaset;
-        aaaaset.push_back(DNSRecord(rr));
-        g_recCache->replace(now, rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from);
-      }
-      else if (rr.qtype.getCode() == QType::NS) {
+        aaaaRecords.insert({rr.qname, DNSRecord(rr)});
+        break;
+      case QType::NS:
         seenNS.insert(DNSName(rr.content));
         rr.content = toLower(rr.content);
-        nsset.push_back(DNSRecord(rr));
+        nsvec.emplace_back(rr);
+        break;
       }
     }
 
-    // Check reachability of A and AAAA records
-    bool reachableA = false, reachableAAAA = false;
-    for (auto const& r : seenA) {
-      if (seenNS.count(r)) {
+    putIntoCache(now, QType::A, validationState, from, seenA, aRecords);
+    putIntoCache(now, QType::AAAA, validationState, from, seenAAAA, aaaaRecords);
+
+    bool reachableA = false;
+    for (auto const& record : seenA) {
+      if (seenNS.count(record) != 0) {
         reachableA = true;
         break;
       }
     }
-    for (auto const& r : seenAAAA) {
-      if (seenNS.count(r)) {
+    bool reachableAAAA = false;
+    for (auto const& record : seenAAAA) {
+      if (seenNS.count(record) != 0) {
         reachableAAAA = true;
         break;
       }
@@ -155,7 +171,7 @@ bool primeHints(time_t ignored)
   }
 
   g_recCache->doWipeCache(g_rootdnsname, false, QType::NS);
-  g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // and stuff in the cache
+  g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsvec, {}, {}, false, g_rootdnsname, boost::none, boost::none, validationState, from); // and stuff in the cache
   return true;
 }
 
