@@ -256,10 +256,9 @@ static size_t computeCommonPrefix(const string& one, const string& two)
 
 // If the NSEC3 hashes have a long common prefix, they deny only a small subset of all possible hashes
 // So don't take the trouble to store those.
-static bool isSmallCoveringNSEC3(const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec)
+bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash)
 {
   std::string ownerHash(fromBase32Hex(owner.getRawLabel(0)));
-  const std::string& nextHash = nsec->d_nexthash;
   auto commonPrefix = computeCommonPrefix(ownerHash, nextHash);
   return commonPrefix > AggressiveNSECCache::s_maxNSEC3CommonPrefix;
 }
@@ -314,7 +313,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
-      if (isSmallCoveringNSEC3(owner, content)) {
+      if (isSmallCoveringNSEC3(owner, content->d_nexthash)) {
         /* not accepting small covering answers since they only deny a small subset */
         return;
       }
