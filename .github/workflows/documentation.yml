@@ -51,7 +51,7 @@ jobs:
         with:
           name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
-      - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" product="auth" --directory="/${AUTH_DOCS_DIR}/"
+      - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" --product="auth" --directory="/${AUTH_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
           AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
