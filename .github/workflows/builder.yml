@@ -11,6 +11,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build:
     name: build.sh
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:
