@@ -13,6 +13,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build-auth:
     name: build auth
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     env:
       ASAN_OPTIONS: detect_leaks=0
@@ -56,6 +57,7 @@ jobs:
 
   build-recursor:
     name: build recursor
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -104,6 +106,7 @@ jobs:
 
   build-dnsdist:
     name: build dnsdist
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -404,6 +407,7 @@ jobs:
       - run: inv test-dnsdist
 
   swagger-syntax-check:
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
