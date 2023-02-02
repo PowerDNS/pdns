@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     size_t bufferSize = 0;
     dnsdist_ffi_dnsquestion_get_remoteaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize);
     BOOST_REQUIRE(buffer != nullptr);
-    BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origDest.sin4.sin_addr.s_addr));
+    BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin4.sin_addr.s_addr));
     BOOST_CHECK(memcmp(buffer, &ids.origRemote.sin4.sin_addr.s_addr, sizeof(ids.origRemote.sin4.sin_addr.s_addr)) == 0);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_remote_port(&lightDQ), 4242U);
   }
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     size_t bufferSize = 0;
     dnsdist_ffi_dnsquestion_get_remoteaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize);
     BOOST_REQUIRE(buffer != nullptr);
-    BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origDest.sin6.sin6_addr.s6_addr));
+    BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin6.sin6_addr.s6_addr));
     BOOST_CHECK(memcmp(buffer, &ids.origRemote.sin6.sin6_addr.s6_addr, sizeof(ids.origRemote.sin6.sin6_addr.s6_addr)) == 0);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_remote_port(&lightDQ), 65535U);
   }
