@@ -1540,7 +1540,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
     resp.status = 404;
     Json::object obj{
       { "status", "not found" },
-      { "error", "there is no cache associated to the requested pool" },
+      { "error", "there is no cache associated with the requested pool" },
     };
     resp.body = Json(obj).dump();
     return;
