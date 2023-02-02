@@ -34,67 +34,38 @@ std::string ixfrdistStats::getStats() {
   stats<<"# TYPE "<<prefix<<"domains gauge"<<std::endl;
   stats<<prefix<<"domains "<<domainStats.size()<<std::endl;
 
-  uint64_t numSOAChecks{0}, numSOAChecksFailed{0}, numSOAinQueries{0}, numIXFRinQueries{0}, numAXFRinQueries{0}, numAXFRFailures{0}, numIXFRFailures{0};
-  bool helpAdded{false};
+  if (!domainStats.empty()) {
+    stats<<"# HELP "<<prefix<<"soa_serial The SOA serial number of a domain"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"soa_serial gauge"<<std::endl;
+    stats<<"# HELP "<<prefix<<"soa_checks_total Number of times a SOA check at the master was attempted"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"soa_checks_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"soa_checks_failed_total Number of times a SOA check at the master failed"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"soa_checks_failed_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"soa_inqueries_total Number of times a SOA query was received"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"soa_inqueries_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"axfr_inqueries_total Number of times an AXFR query was received"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"axfr_inqueries_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"axfr_failures_total Number of times an AXFR query was not properly answered"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"axfr_failures_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"ixfr_inqueries_total Number of times an IXFR query was received"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"ixfr_inqueries_total counter"<<std::endl;
+    stats<<"# HELP "<<prefix<<"ixfr_failures_total Number of times an IXFR query was not properly answered"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"ixfr_failures_total counter"<<std::endl;
+  }
+
   for (auto const &d : domainStats) {
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"soa_serial The SOA serial number of a domain"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"soa_serial gauge"<<std::endl;
-    }
     if(d.second.haveZone)
       stats<<prefix<<"soa_serial{domain=\""<<d.first<<"\"} "<<d.second.currentSOA<<std::endl;
     else
       stats<<prefix<<"soa_serial{domain=\""<<d.first<<"\"} NaN"<<std::endl;
 
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"soa_checks_total Number of times a SOA check at the master was attempted"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"soa_checks_total counter"<<std::endl;
-    }
     stats<<prefix<<"soa_checks_total{domain=\""<<d.first<<"\"} "<<d.second.numSOAChecks<<std::endl;
-    numSOAChecks += d.second.numSOAChecks;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"soa_checks_failed_total Number of times a SOA check at the master failed"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"soa_checks_failed_total counter"<<std::endl;
-    }
     stats<<prefix<<"soa_checks_failed_total{domain=\""<<d.first<<"\"} "<<d.second.numSOAChecksFailed<<std::endl;
-    numSOAChecksFailed += d.second.numSOAChecksFailed;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"soa_inqueries_total Number of times a SOA query was received"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"soa_inqueries_total counter"<<std::endl;
-    }
     stats<<prefix<<"soa_inqueries_total{domain=\""<<d.first<<"\"} "<<d.second.numSOAinQueries<<std::endl;
-    numSOAinQueries += d.second.numSOAinQueries;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"axfr_inqueries_total Number of times an AXFR query was received"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"axfr_inqueries_total counter"<<std::endl;
-    }
     stats<<prefix<<"axfr_inqueries_total{domain=\""<<d.first<<"\"} "<<d.second.numAXFRinQueries<<std::endl;
-    numAXFRinQueries += d.second.numAXFRinQueries;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"axfr_failures_total Number of times an AXFR query was not properly answered"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"axfr_failures_total counter"<<std::endl;
-    }
     stats<<prefix<<"axfr_failures_total{domain=\""<<d.first<<"\"} "<<d.second.numAXFRFailures<<std::endl;
-    numAXFRFailures += d.second.numAXFRFailures;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"ixfr_inqueries_total Number of times an IXFR query was received"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"ixfr_inqueries_total counter"<<std::endl;
-    }
     stats<<prefix<<"ixfr_inqueries_total{domain=\""<<d.first<<"\"} "<<d.second.numIXFRinQueries<<std::endl;
-    numIXFRinQueries += d.second.numIXFRinQueries;
-
-    if (!helpAdded) {
-      stats<<"# HELP "<<prefix<<"ixfr_failures_total Number of times an IXFR query was not properly answered"<<std::endl;
-      stats<<"# TYPE "<<prefix<<"ixfr_failures_total counter"<<std::endl;
-    }
     stats<<prefix<<"ixfr_failures_total{domain=\""<<d.first<<"\"} "<<d.second.numIXFRFailures<<std::endl;
-    numIXFRFailures += d.second.numIXFRFailures;
-    helpAdded = true;
   }
 
   stats<<"# HELP "<<prefix<<"unknown_domain_inqueries_total Number of queries received for domains unknown to us"<<std::endl;
