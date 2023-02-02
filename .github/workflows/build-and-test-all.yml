@@ -13,6 +13,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build-dnsdist:
     name: build dnsdist
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
