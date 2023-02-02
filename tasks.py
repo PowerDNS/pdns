@@ -297,7 +297,7 @@ def ci_docs_build_pdf(c):
 
 @task
 def ci_docs_upload_master(c, docs_host, pdf, username, product, directory=""):
-    c.run(f"rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/html-docs/ {username}@{docs_host}:{directory}")
+    c.run(f"rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/{product}-html-docs/ {username}@{docs_host}:{directory}")
     c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/{product}-html-docs.tar.bz2 {username}@{docs_host}:{directory}/html-docs.tar.bz2")
     c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/latex/{pdf} {username}@{docs_host}:{directory}")
 
