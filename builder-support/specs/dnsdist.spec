@@ -145,7 +145,6 @@ systemctl daemon-reload ||:
 
 %files
 %{!?_licensedir:%global license %%doc}
-%doc dnsdist.conf.sample
 %doc README.md
 %{_bindir}/*
 %{_mandir}/man1/*
