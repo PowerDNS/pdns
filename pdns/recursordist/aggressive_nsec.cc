@@ -265,6 +265,9 @@ bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::
 
 void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3)
 {
+  if (nsec3 && nsec3Disabled()) {
+    return;
+  }
   if (signatures.empty()) {
     return;
   }

@@ -48,6 +48,11 @@ public:
   {
   }
 
+  static bool nsec3Disabled()
+  {
+    return s_maxNSEC3CommonPrefix == 0;
+  }
+
   void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3);
   bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC, const OptLog& log = std::nullopt);
 
