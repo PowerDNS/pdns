@@ -28,19 +28,7 @@
 
 using json11::Json;
 
-int intFromJson(const Json& container, const std::string& key)
-{
-  auto val = container[key];
-  if (val.is_number()) {
-    return val.int_value();
-  } else if (val.is_string()) {
-    return std::stoi(val.string_value());
-  } else {
-    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
-  }
-}
-
-int intFromJson(const Json& container, const std::string& key, const int default_value)
+static inline int intFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const int default_value)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -49,15 +37,46 @@ int intFromJson(const Json& container, const std::string& key, const int default
     try {
       return std::stoi(val.string_value());
     } catch (std::out_of_range&) {
-      throw JsonException("Value for key '" + string(key) + "' is out of range");
+      throw JsonException("Key '" + string(key) + "' is out of range");
     }
   } else {
-    // TODO: check if value really isn't present
-    return default_value;
+    if (have_default) {
+      return default_value;
+    }
+    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
 }
 
-double doubleFromJson(const Json& container, const std::string& key)
+int intFromJson(const Json& container, const std::string& key)
+{
+  return intFromJsonInternal(container, key, false, 0);
+}
+
+int intFromJson(const Json& container, const std::string& key, const int default_value)
+{
+  return intFromJsonInternal(container, key, true, default_value);
+}
+
+static inline unsigned int uintFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const unsigned int default_value)
+{
+  int intval = intFromJsonInternal(container, key, have_default, static_cast<int>(default_value));
+  if (intval >= 0) {
+    return intval;
+  }
+  throw JsonException("Key '" + string(key) + "' is not a positive Integer");
+}
+
+unsigned int uintFromJson(const Json& container, const std::string& key)
+{
+  return uintFromJsonInternal(container, key, false, 0);
+}
+
+unsigned int uintFromJson(const Json& container, const std::string& key, const unsigned int default_value)
+{
+  return uintFromJsonInternal(container, key, true, default_value);
+}
+
+static inline double doubleFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const double default_value)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -69,21 +88,21 @@ double doubleFromJson(const Json& container, const std::string& key)
       throw JsonException("Value for key '" + string(key) + "' is out of range");
     }
   } else {
+    if (have_default) {
+      return default_value;
+    }
     throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
 }
 
+double doubleFromJson(const Json& container, const std::string& key)
+{
+  return doubleFromJsonInternal(container, key, false, 0);
+}
+
 double doubleFromJson(const Json& container, const std::string& key, const double default_value)
 {
-  auto val = container[key];
-  if (val.is_number()) {
-    return val.number_value();
-  } else if (val.is_string()) {
-    return std::stod(val.string_value());
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
+  return doubleFromJsonInternal(container, key, true, default_value);
 }
 
 string stringFromJson(const Json& container, const std::string &key)
@@ -96,20 +115,24 @@ string stringFromJson(const Json& container, const std::string &key)
   }
 }
 
-bool boolFromJson(const Json& container, const std::string& key)
+static inline bool boolFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const bool default_value)
 {
   auto val = container[key];
   if (val.is_bool()) {
     return val.bool_value();
+  }
+  if (have_default) {
+    return default_value;
   }
   throw JsonException("Key '" + string(key) + "' not present or not a Bool");
 }
 
+bool boolFromJson(const Json& container, const std::string& key)
+{
+  return boolFromJsonInternal(container, key, false, false);
+}
+
 bool boolFromJson(const Json& container, const std::string& key, const bool default_value)
 {
-  auto val = container[key];
-  if (val.is_bool()) {
-    return val.bool_value();
-  }
-  return default_value;
+  return boolFromJsonInternal(container, key, true, default_value);
 }

@@ -1945,7 +1945,7 @@ $ORIGIN %NAME%
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn("Value for key 'modified_at' is out of range", r.json()['error'])
+        self.assertIn("Key 'modified_at' is out of range", r.json()['error'])
 
     @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
@@ -2372,6 +2372,12 @@ $ORIGIN %NAME%
         name, _, _ = self.create_zone(kind='Secondary', nameservers=None, masters=['127.0.0.2'])
         self.put_zone(name, {'rrsets': []}, expect_error='Must give SOA record for zone when replacing all RR sets')
 
+    def test_zone_replace_rrsets_negative_ttl(self):
+        name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')
+        rrsets = [
+            {'name': name, 'type': 'SOA', 'ttl': -1, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+        ]
+        self.put_zone(name, {'rrsets': rrsets}, expect_error="Key 'ttl' is not a positive Integer")
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):

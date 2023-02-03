@@ -583,8 +583,8 @@ static void gatherComments(const Json& container, const DNSName& qname, const QT
 
   time_t now = time(nullptr);
   for (const auto& comment : container["comments"].array_items()) {
-    // FIXME this is converting to a *signed* int, 2036 issue
-    c.modified_at = intFromJson(comment, "modified_at", now);
+    // FIXME 2036 issue internally in uintFromJson
+    c.modified_at = uintFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
     new_comments.push_back(c);
@@ -1718,25 +1718,30 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
 
-    if (rrsets.is_array()) {
-      for (const auto& rrset : rrsets.array_items()) {
-        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-        apiCheckQNameAllowedCharacters(qname.toString());
-        QType qtype;
-        qtype = stringFromJson(rrset, "type");
-        if (qtype.getCode() == 0) {
-          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+    try {
+      if (rrsets.is_array()) {
+        for (const auto& rrset : rrsets.array_items()) {
+          DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+          apiCheckQNameAllowedCharacters(qname.toString());
+          QType qtype;
+          qtype = stringFromJson(rrset, "type");
+          if (qtype.getCode() == 0) {
+            throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+          }
+          if (rrset["records"].is_array()) {
+            int ttl = uintFromJson(rrset, "ttl");
+            gatherRecords(rrset, qname, qtype, ttl, new_records);
+          }
+          if (rrset["comments"].is_array()) {
+            gatherComments(rrset, qname, qtype, new_comments);
+          }
         }
-        if (rrset["records"].is_array()) {
-          int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(rrset, qname, qtype, ttl, new_records);
-        }
-        if (rrset["comments"].is_array()) {
-          gatherComments(rrset, qname, qtype, new_comments);
-        }
+      } else if (zonestring != "") {
+        gatherRecordsFromZone(zonestring, new_records, zonename);
       }
-    } else if (zonestring != "") {
-      gatherRecordsFromZone(zonestring, new_records, zonename);
+    }
+    catch (const JsonException& e) {
+      throw ApiException("New RRsets are invalid: " + string(e.what()));
     }
 
     for(auto& rr : new_records) {
@@ -1916,21 +1921,26 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
       vector<DNSResourceRecord> new_records;
       vector<Comment> new_comments;
 
-      for (const auto& rrset : rrsets.array_items()) {
-        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-        apiCheckQNameAllowedCharacters(qname.toString());
-        QType qtype;
-        qtype = stringFromJson(rrset, "type");
-        if (qtype.getCode() == 0) {
-          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+      try {
+        for (const auto& rrset : rrsets.array_items()) {
+          DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+          apiCheckQNameAllowedCharacters(qname.toString());
+          QType qtype;
+          qtype = stringFromJson(rrset, "type");
+          if (qtype.getCode() == 0) {
+            throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+          }
+          if (rrset["records"].is_array()) {
+            int ttl = uintFromJson(rrset, "ttl");
+            gatherRecords(rrset, qname, qtype, ttl, new_records);
+          }
+          if (rrset["comments"].is_array()) {
+            gatherComments(rrset, qname, qtype, new_comments);
+          }
         }
-        if (rrset["records"].is_array()) {
-          int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(rrset, qname, qtype, ttl, new_records);
-        }
-        if (rrset["comments"].is_array()) {
-          gatherComments(rrset, qname, qtype, new_comments);
-        }
+      }
+      catch (const JsonException& e) {
+        throw ApiException("New RRsets are invalid: " + string(e.what()));
       }
 
       for(auto& rr : new_records) {
@@ -2177,27 +2187,31 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
         new_records.clear();
         new_comments.clear();
 
-        if (replace_records) {
-          // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
-          int ttl = intFromJson(rrset, "ttl");
+        try {
+          if (replace_records) {
+            // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
+            int ttl = uintFromJson(rrset, "ttl");
+            gatherRecords(rrset, qname, qtype, ttl, new_records);
 
-          gatherRecords(rrset, qname, qtype, ttl, new_records);
+            for(DNSResourceRecord& rr : new_records) {
+              rr.domain_id = di.id;
+              if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+                soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
+              }
+            }
+            checkNewRecords(new_records, zonename);
+          }
 
-          for(DNSResourceRecord& rr : new_records) {
-            rr.domain_id = di.id;
-            if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
-              soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
+          if (replace_comments) {
+            gatherComments(rrset, qname, qtype, new_comments);
+
+            for(Comment& c : new_comments) {
+              c.domain_id = di.id;
             }
           }
-          checkNewRecords(new_records, zonename);
         }
-
-        if (replace_comments) {
-          gatherComments(rrset, qname, qtype, new_comments);
-
-          for(Comment& c : new_comments) {
-            c.domain_id = di.id;
-          }
+        catch (const JsonException& e) {
+          throw ApiException("New RRsets are invalid: " + string(e.what()));
         }
 
         if (replace_records) {

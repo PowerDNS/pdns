@@ -27,6 +27,8 @@
 
 int intFromJson(const json11::Json& container, const std::string& key);
 int intFromJson(const json11::Json& container, const std::string& key, const int default_value);
+unsigned int uintFromJson(const json11::Json& container, const std::string& key);
+unsigned int uintFromJson(const json11::Json& container, const std::string& key, const unsigned int default_value);
 double doubleFromJson(const json11::Json& container, const std::string& key);
 double doubleFromJson(const json11::Json& container, const std::string& key, const double default_value);
 std::string stringFromJson(const json11::Json& container, const std::string &key);
