@@ -184,7 +184,7 @@ void DNSPacket::addRecord(DNSZoneRecord&& rr)
     }
     d_dedup.insert(hash);
   }
-
+  //cerr<<"adding zone record with name "<<rr.dr.d_name<<" and scopmask "<<std::to_string(rr.scopeMask)<<endl;
   d_rrs.push_back(std::move(rr));
 }
 
@@ -350,9 +350,9 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     try {
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
-        // cerr<<"during wrapup, content=["<<pos->content<<"]"<<endl;
+        // cerr<<"during wrapup, scopeMask=["<<std::to_string(pos->scopeMask)<<"]"<<endl;
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
-        
+
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
         pos->dr.d_content->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
@@ -374,6 +374,8 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
+        // use the scopeMask from the resolver, if it is greater - issue #5496
+        maxScopeMask = max(maxScopeMask, eso.scope.getBits());
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     
         string opt = makeEDNSSubnetOptsString(eso);
@@ -598,7 +600,7 @@ try
     */
     d_ednsRawPacketSizeLimit=edo.d_packetsize;
     d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
-//    cerr<<edo.d_extFlags<<endl;
+    //cerr<<edo.d_extFlags<<endl;
     if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 

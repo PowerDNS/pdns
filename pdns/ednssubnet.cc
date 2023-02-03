@@ -74,7 +74,6 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   }
   else
     return false;
-  //cerr<<"Source address: "<<address.toString()<<", mask: "<<(int)esow.sourceMask<<endl;
   eso->source = Netmask(address, esow.sourceMask);
   /* 'address' has more bits set (potentially) than scopeMask. This leads to odd looking netmasks that promise
      more precision than they have. For this reason we truncate the address to scopeMask bits */

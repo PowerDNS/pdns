@@ -96,11 +96,11 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   bool pass_ecs = false;
   string ECSOptionStr = "";
 
-  DLOG(g_log<<"dnsproxy::completePacket: Parsed edns source: "<<r->d_eso.source.toString()<<", scope: "<<r->d_eso.scope.toString()<<", family = "<<r->d_eso.scope.getNetwork().sin4.sin_family<<endl);
   if (r->hasEDNSSubnet())
   {
+    DLOG(g_log<<"dnsproxy::completePacket: Parsed edns source: "<<r->d_eso.source.toString()<<", scope: "<<r->d_eso.scope.toString()<<", family = "<<r->d_eso.scope.getNetwork().sin4.sin_family<<endl);
     ECSOptionStr = makeEDNSSubnetOptsString(r->d_eso);
-    DLOG(g_log<<"from dnsproxy::completePacket: adding edns options "<<makeHexDump(ECSOptionStr)<<endl);
+    DLOG(g_log<<"from dnsproxy::completePacket: Creating ECS option string "<<makeHexDump(ECSOptionStr)<<endl);
     pass_ecs = true;
   }
 
@@ -167,7 +167,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   // Add EDNS Subnet if the client sent one - issue #5469
   if (pass_ecs)
   {
-    DLOG(g_log<<"from dnsproxy::completePacket: adding ECS option "<<makeHexDump(ECSOptionStr)<<endl);
+    DLOG(g_log<<"from dnsproxy::completePacket: adding ECS option string to packet options "<<makeHexDump(ECSOptionStr)<<endl);
     DNSPacketWriter::optvect_t opts;
     opts.emplace_back(EDNSOptionCode::ECS, ECSOptionStr);
     pw.addOpt(512, 0, 0, opts);
@@ -260,7 +260,7 @@ void DNSProxy::mainloop()
 
         DNSPacket p(false),q(false);
         p.parse(buffer,(size_t)len);
-        q.parse(buffer,(size_t)len);
+        //q.parse(buffer,(size_t)len); // removed.  never used?
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           g_log<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
@@ -272,10 +272,16 @@ void DNSProxy::mainloop()
         memset(&msgh, 0, sizeof(struct msghdr));
         string reply; // needs to be alive at time of sendmsg!
         MOADNSParser mdp(false, p.getString());
-        //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+     	  //cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+        if (p.d_eso.scope.isValid()){
+          // update the EDNS options with info from the resolver - issue #5469
+          i->second.complete->d_eso = p.d_eso;
+          DLOG(g_log<<"from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: "<<i->second.complete->d_eso.source.toString()<<" EDNS scope: "<<i->second.complete->d_eso.scope.toString()<<endl);
+        }
+
         if (mdp.d_header.rcode == RCode::NoError) {
           for(const auto & answer : mdp.d_answers) {        
-            //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
+            //cerr<<"comp: "<<(int)answer.first.d_place-1<<" "<<answer.first.d_name<<" " << DNSRecordContent::NumberToType(answer.first.d_type)<<" "<<answer.first.d_content->getZoneRepresentation()<<endl;
             if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
               if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
@@ -289,6 +295,7 @@ void DNSProxy::mainloop()
               }
             }
           }
+
           i->second.complete->setRcode(mdp.d_header.rcode);
         } else {
           g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).toString()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;

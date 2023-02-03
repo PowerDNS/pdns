@@ -261,6 +261,16 @@ union ComboAddress {
     return ret;
   }
 
+  bool isValid() const
+  {
+    char host[1024];
+    int retval = 0;
+    if(sin4.sin_family && !(retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
+      return true;
+    else
+      return false;
+  }
+
   string toString() const
   {
     char host[1024];
@@ -590,6 +600,11 @@ public:
     return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr));
   }
 
+  bool isValid()
+  {
+    return d_network.isValid();
+  }
+  
   string toString() const
   {
     return d_network.toStringNoInterface()+"/"+std::to_string((unsigned int)d_bits);
