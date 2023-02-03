@@ -228,17 +228,20 @@ static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<
   return true;
 }
 
-static size_t computeCommonPrefix(const string& one, const string& two)
+static bool commonPrefixIsLong(const string& one, const string& two, size_t bound)
 {
   size_t length = 0;
-  const auto bound = std::min(one.length(), two.length());
+  const auto minLength = std::min(one.length(), two.length());
 
-  for (size_t i = 0; i < bound; i++) {
+  for (size_t i = 0; i < minLength; i++) {
     const auto byte1 = one.at(i);
     const auto byte2 = two.at(i);
     // shortcut
     if (byte1 == byte2) {
       length += CHAR_BIT;
+      if (length > bound) {
+        return true;
+      }
       continue;
     }
     // bytes differ, lets look at the bits
@@ -246,12 +249,15 @@ static size_t computeCommonPrefix(const string& one, const string& two)
       const auto bit1 = byte1 & (1 << j);
       const auto bit2 = byte2 & (1 << j);
       if (bit1 != bit2) {
-        return length;
+        return length > bound;
       }
       length++;
+      if (length > bound) {
+        return true;
+      }
     }
   }
-  return length;
+  return length > bound;
 }
 
 // If the NSEC3 hashes have a long common prefix, they deny only a small subset of all possible hashes
@@ -259,8 +265,7 @@ static size_t computeCommonPrefix(const string& one, const string& two)
 bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash)
 {
   std::string ownerHash(fromBase32Hex(owner.getRawLabel(0)));
-  auto commonPrefix = computeCommonPrefix(ownerHash, nextHash);
-  return commonPrefix > AggressiveNSECCache::s_maxNSEC3CommonPrefix;
+  return commonPrefixIsLong(ownerHash, nextHash, AggressiveNSECCache::s_maxNSEC3CommonPrefix);
 }
 
 void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3)
