@@ -350,9 +350,9 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan]
-        threads: [1, 2, 3, 4, 8, 16]
-        mthreads: [2048, 4096]
+        sanitizers: [ubsan+asan, tsan]
+        threads: [1, 2, 3, 4, 8]
+        mthreads: [2048]
         shards: [1, 2, 1024]
     env:
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'

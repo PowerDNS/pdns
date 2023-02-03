@@ -44,9 +44,10 @@ fi
 echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
-echo
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
+
+sleep 5
 
 # rerun 1 with hot cache
 echo
@@ -54,6 +55,8 @@ echo === Second run with limit=$limit threads=$threads mthreads=$mthreads shards
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
+
+sleep 5
 
 # rerun 2 with hot cache
 echo
