@@ -10,17 +10,17 @@ BOOST_AUTO_TEST_CASE(test_small_coverering_nsec3)
 {
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = 1;
 
-  const std::tuple<string, string, uint8_t, bool> table[] = {
-    { "gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 157, true},
-    { "gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 158, false},
-    { "0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "vujhshp2lhmnpoo9qde4blg4gq3hgl9a", 0, false},
-    { "0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, true},
-    { "0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 2, false},
-    { "0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "fujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
-    { "0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
+  const std::vector<std::tuple<string, string, uint8_t, bool>> table = {
+    {"gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 157, true},
+    {"gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 158, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "vujhshp2lhmnpoo9qde4blg4gq3hgl9a", 0, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, true},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 2, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "fujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
   };
 
-  for (const auto& [owner, next, boundary, result]: table) {
+  for (const auto& [owner, next, boundary, result] : table) {
     AggressiveNSECCache::s_maxNSEC3CommonPrefix = boundary;
     BOOST_CHECK_EQUAL(AggressiveNSECCache::isSmallCoveringNSEC3(DNSName(owner), fromBase32Hex(next)), result);
   }
