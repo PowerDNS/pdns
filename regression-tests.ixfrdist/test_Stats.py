@@ -72,8 +72,12 @@ webserver-address: %s
                 continue
             if "{" in line:
                 continue
-            self.assertIn(line.split(" ")[0],
+            tokens = line.split(" ")
+            self.assertIn(tokens[0],
                           self.metric_prog_stats + self.metric_domain_stats)
+            if tokens[0] == 'ixfrdist_unknown_domain_inqueries_total':
+                self.assertEqual(int(tokens[1]), 0)
+
         self.checkPrometheusContentPromtool(res.content)
 
     def test_registered(self):
