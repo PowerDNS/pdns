@@ -21,7 +21,10 @@
  */
 #pragma once
 
-static const char* const rootIps4[] = {
+#include <array>
+#include <string>
+
+const std::array<const std::string, 13> rootIps4 = {
   "198.41.0.4", // a.root-servers.net.
   "199.9.14.201", // b.root-servers.net.
   "192.33.4.12", // c.root-servers.net.
@@ -36,9 +39,8 @@ static const char* const rootIps4[] = {
   "199.7.83.42", // l.root-servers.net.
   "202.12.27.33" // m.root-servers.net.
 };
-static size_t const rootIps4Count = sizeof(rootIps4) / sizeof(*rootIps4);
 
-static const char* const rootIps6[] = {
+const std::array<const std::string, 13> rootIps6 = {
   "2001:503:ba3e::2:30", // a.root-servers.net.
   "2001:500:200::b", // b.root-servers.net.
   "2001:500:2::c", // c.root-servers.net.
@@ -53,4 +55,3 @@ static const char* const rootIps6[] = {
   "2001:500:9f::42", // l.root-servers.net.
   "2001:dc3::35" // m.root-servers.net.
 };
-static size_t const rootIps6Count = sizeof(rootIps6) / sizeof(*rootIps6);

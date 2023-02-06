@@ -101,7 +101,7 @@ bool primeHints(time_t now)
     vector<DNSRecord> aset;
     aset.push_back(arr);
     g_recCache->replace(now, DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname);
-    if (rootIps6[c - 'a'] != NULL) {
+    if (!rootIps6[c - 'a'].empty()) {
       aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c - 'a'])));
 
       vector<DNSRecord> aaaaset;
@@ -273,14 +273,14 @@ void addRecordToLW(LWResult* res, const std::string& name, uint16_t type, const 
 bool isRootServer(const ComboAddress& ip)
 {
   if (ip.isIPv4()) {
-    for (size_t idx = 0; idx < rootIps4Count; idx++) {
+    for (size_t idx = 0; idx < rootIps4.size(); idx++) {
       if (ip.toString() == rootIps4[idx]) {
         return true;
       }
     }
   }
   else {
-    for (size_t idx = 0; idx < rootIps6Count; idx++) {
+    for (size_t idx = 0; idx < rootIps6.size(); idx++) {
       if (ip.toString() == rootIps6[idx]) {
         return true;
       }
