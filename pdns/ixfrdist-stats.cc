@@ -21,14 +21,31 @@
  */
 
 #include "ixfrdist-stats.hh"
+#include "misc.hh"
 
 std::string ixfrdistStats::getStats() {
   std::stringstream stats;
   const std::string prefix = "ixfrdist_";
 
-  stats<<"# HELP "<<prefix<<"uptime_seconds The uptime of the process"<<std::endl;
-  stats<<"# TYPE "<<prefix<<"uptime_seconds gauge"<<std::endl;
+  stats<<"# HELP "<<prefix<<"uptime_seconds The uptime of the process (in seconds)"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"uptime_seconds counter"<<std::endl;
   stats<<prefix<<"uptime_seconds "<<time(nullptr) - progStats.startTime<<std::endl;
+
+  stats<<"# HELP "<<prefix<<"sys_msec Number of msec spent in system time"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"sys_msec counter"<<std::endl;
+  stats<<prefix<<"sys_msec "<<getCPUTimeSystem("")<<std::endl;
+
+  stats<<"# HELP "<<prefix<<"user_msec Number of msec spent in user time"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"user_msec counter"<<std::endl;
+  stats<<prefix<<"user_msec "<<getCPUTimeUser("")<<std::endl;
+
+  stats<<"# HELP "<<prefix<<"fd_usage Number of open file descriptors"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"fd_usage gauge"<<std::endl;
+  stats<<prefix<<"fd_usage "<<getOpenFileDescriptors("")<<std::endl;
+
+  stats<<"# HELP "<<prefix<<"real_memory_usage Actual unique use of memory in bytes (approx)"<<std::endl;
+  stats<<"# TYPE "<<prefix<<"real_memory_usage gauge"<<std::endl;
+  stats<<prefix<<"real_memory_usage "<<getRealMemoryUsage("")<<std::endl;
 
   stats<<"# HELP "<<prefix<<"domains The amount of configured domains"<<std::endl;
   stats<<"# TYPE "<<prefix<<"domains gauge"<<std::endl;
