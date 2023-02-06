@@ -2,7 +2,7 @@ name: 'choose Ubuntu mirror for PowerDNS builds in Github Actions'
 runs:
   using: "composite"
   steps:
-    - run: echo not changing mirror, using default Azure mirror
-      shell: bash
-    #- run: sudo sed -i 's/azure\.archive\.ubuntu\.com/mirror.leaseweb.net/' /etc/apt/sources.list
+    #- run: echo not changing mirror, using default Azure mirror
     #  shell: bash
+    - run: sudo sed -i 's/azure\.archive\.ubuntu\.com/mirror.leaseweb.net/' /etc/apt/sources.list
+      shell: bash
