@@ -114,7 +114,8 @@ static const SignerParams rsaSha256SignerParams = SignerParams
 /* ECDSA-P256-SHA256 from
  * https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h
  */
-static const SignerParams ecdsaSha256 = SignerParams{
+static const SignerParams ecdsaSha256 = SignerParams
+{
   .iscMap = "Algorithm: 13\n"
             "PrivateKey: iyLIPdk3DOIxVmmSYlmTstbtUPiVlEyDX46psyCwNVQ=\n",
 
@@ -155,11 +156,21 @@ static const SignerParams ecdsaSha256 = SignerParams{
   .algorithm = DNSSECKeeper::ECDSA256,
   .isDeterministic = false,
 
+#if OPENSSL_VERSION_MAJOR >= 3
+  // OpenSSL 3.0.0 uses a generic key interface which stores the key PKCS#8-encoded.
+  .pem = "-----BEGIN PRIVATE KEY-----\n"
+         "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgiyLIPdk3DOIxVmmS\n"
+         "YlmTstbtUPiVlEyDX46psyCwNVShRANCAATy4PsLhMdMz/Du6GvJFJOh4T+MpPvz\n"
+         "+nzndFfQvkTCtmtIsG5ss+IHDuBu9Q/pKwiBrllDgJIDE2ZgD+Bmy5fM\n"
+         "-----END PRIVATE KEY-----\n"
+#else
   .pem = "-----BEGIN EC PRIVATE KEY-----\n"
          "MHcCAQEEIIsiyD3ZNwziMVZpkmJZk7LW7VD4lZRMg1+OqbMgsDVUoAoGCCqGSM49\n"
          "AwEHoUQDQgAE8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZrSLBubLPi\n"
          "Bw7gbvUP6SsIga5ZQ4CSAxNmYA/gZsuXzA==\n"
-         "-----END EC PRIVATE KEY-----\n"};
+         "-----END EC PRIVATE KEY-----\n"
+#endif
+};
 
 /* Ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
  * also from rfc8080 section 6.1
