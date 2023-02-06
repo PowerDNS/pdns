@@ -255,7 +255,7 @@ void doClient(ComboAddress server, const std::string& command)
 
   if (!command.empty()) {
     sendMessageToServer(fd.getHandle(), command, readingNonce, writingNonce, false);
-    return; 
+    return;
   }
 
 #ifdef HAVE_LIBEDIT
@@ -284,7 +284,7 @@ void doClient(ComboAddress server, const std::string& command)
     }
     lastline = line;
     free(sline);
-    
+
     if (line == "quit") {
       break;
     }
@@ -382,7 +382,7 @@ void doConsole()
         auto ret = lua->executeCode<
           boost::optional<
             boost::variant<
-              string, 
+              string,
               shared_ptr<DownstreamState>,
               ClientState*,
               std::unordered_map<string, double>
@@ -454,7 +454,7 @@ void doConsole()
       }
     }
     catch (const std::exception& e) {
-      std::cerr << e.what() << std::endl;      
+      std::cerr << e.what() << std::endl;
     }
   }
 }
@@ -881,13 +881,13 @@ static void controlClientThread(ConsoleConnection&& conn)
       retry:;
         try {
           auto lua = g_lua.lock();
-        
+
           g_outputBuffer.clear();
           resetLuaSideEffect();
           auto ret = lua->executeCode<
             boost::optional<
               boost::variant<
-                string, 
+                string,
                 shared_ptr<DownstreamState>,
                 ClientState*,
                 std::unordered_map<string, double>
