@@ -231,6 +231,8 @@ class ClientSubnetOption(dns.edns.Option):
             return False
         if self.mask != other.mask:
             return False
+        if self.scope != other.scope:
+            return False
         if self.family != other.family:
             return False
         return True
