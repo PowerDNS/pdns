@@ -29,6 +29,7 @@
 
 #if OPENSSL_VERSION_MAJOR >= 3
 #include <openssl/param_build.h>
+#include <openssl/core.h>
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
 #endif
@@ -79,9 +80,15 @@ static void openssl_thread_cleanup()
 #endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL) */
 
 static std::atomic<uint64_t> s_users;
+
+#if OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+static LockGuarded<std::unordered_map<std::string, std::unique_ptr<OSSL_PROVIDER, decltype(&OSSL_PROVIDER_unload)>>> s_providers;
+#else
 #ifndef OPENSSL_NO_ENGINE
 static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, int(*)(ENGINE*)>>> s_engines;
 #endif
+#endif
+
 static int s_ticketsKeyIndex{-1};
 static int s_countersIndex{-1};
 static int s_keyLogIndex{-1};
@@ -143,12 +150,14 @@ void registerOpenSSLUser()
 void unregisterOpenSSLUser()
 {
   if (s_users.fetch_sub(1) == 1) {
+#if OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS)
 #ifndef OPENSSL_NO_ENGINE
     for (auto& [name, engine] : *s_engines.lock()) {
       ENGINE_finish(engine.get());
       engine.reset();
     }
     s_engines.lock()->clear();
+#endif
 #endif
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     ERR_free_strings();
@@ -165,6 +174,32 @@ void unregisterOpenSSLUser()
   }
 }
 
+#if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+std::pair<bool, std::string> libssl_load_provider(const std::string& providerName)
+{
+  if (s_users.load() == 0) {
+    /* We need to make sure that OpenSSL has been properly initialized before loading an engine.
+       This messes up our accounting a bit, so some memory might not be properly released when
+       the program exits when engines are in use. */
+    registerOpenSSLUser();
+  }
+
+  auto providers = s_providers.lock();
+  if (providers->count(providerName) > 0) {
+    return { false, "TLS provider already loaded" };
+  }
+
+  auto provider = std::unique_ptr<OSSL_PROVIDER, decltype(&OSSL_PROVIDER_unload)>(OSSL_PROVIDER_load(nullptr, providerName.c_str()), OSSL_PROVIDER_unload);
+  if (provider == nullptr) {
+    return { false, "unable to load TLS provider '" + providerName + "'" };
+  }
+
+  providers->insert({providerName, std::move(provider)});
+  return { true, "" };
+}
+#endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
+
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
 std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString)
 {
 #ifdef OPENSSL_NO_ENGINE
@@ -204,6 +239,7 @@ std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, c
   return { true, "" };
 #endif
 }
+#endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
 
 void* libssl_get_ticket_key_callback_data(SSL* s)
 {

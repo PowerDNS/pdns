@@ -562,7 +562,12 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "KeyValueStoreLookupRule", true, "kvs, lookupKey", "matches queries if the key is found in the specified Key Value store" },
   { "KeyValueStoreRangeLookupRule", true, "kvs, lookupKey", "matches queries if the key is found in the specified Key Value store" },
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
   { "loadTLSEngine", true, "engineName [, defaultString]", "Load the OpenSSL engine named 'engineName', setting the engine default string to 'defaultString' if supplied"},
+#endif
+#if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+  { "loadTLSProvider", true, "providerName", "Load the OpenSSL provider named 'providerName'"},
+#endif
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LogResponseAction", true, "[filename], [append], [buffered]", "Log a line for each response, to the specified file if any, to the console (require verbose) otherwise. The `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LuaAction", true, "function", "Invoke a Lua function that accepts a DNSQuestion" },
@@ -777,7 +782,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "TCPRule", true, "[tcp]", "Matches question received over TCP if tcp is true, over UDP otherwise" },
   { "TeeAction", true, "remote [, addECS [, local]]", "send copy of query to remote, optionally adding ECS info, optionally set local address" },
   { "testCrypto", true, "", "test of the crypto all works" },
-  { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"}, 
+  { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"},
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },
   { "topCacheHitResponseRules", true, "[top][, vars]", "show `top` cache-hit response rules" },
   { "topCacheInsertedResponseRules", true, "[top][, vars]", "show `top` cache-inserted response rules" },

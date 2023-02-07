@@ -3051,7 +3051,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     DownstreamState::s_randomizeIDs = randomized;
   });
 
-#if defined(HAVE_LIBSSL)
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
   luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
     if (client) {
       return;
@@ -3063,7 +3063,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       errlog("Error while trying to load TLS engine '%s': %s", engineName, error);
     }
   });
-#endif /* HAVE_LIBSSL */
+#endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
+
+#if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+  luaCtx.writeFunction("loadTLSProvider", [client](const std::string& providerName) {
+    if (client) {
+      return;
+    }
+
+    auto [success, error] = libssl_load_provider(providerName);
+    if (!success) {
+      g_outputBuffer = "Error while trying to load TLS provider '" + providerName + "': " + error + "\n";
+      errlog("Error while trying to load TLS provider '%s': %s", providerName, error);
+    }
+  });
+#endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
 
   luaCtx.writeFunction("newThread", [client, configCheck](const std::string& code) {
     if (client || configCheck) {
