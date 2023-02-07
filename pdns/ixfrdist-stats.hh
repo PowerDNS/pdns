@@ -71,22 +71,22 @@ class ixfrdistStats {
     class perDomainStat {
       public:
         bool                  haveZone;
-        std::atomic<uint32_t> currentSOA; // NOTE: this will wrongly be zero for unavailable zones
+        std::atomic<uint32_t> currentSOA{0}; // NOTE: this will wrongly be zero for unavailable zones
 
-        std::atomic<uint32_t> numSOAChecks;
-        std::atomic<uint32_t> numSOAChecksFailed;
+        std::atomic<uint32_t> numSOAChecks{0};
+        std::atomic<uint32_t> numSOAChecksFailed{0};
 
-        std::atomic<uint64_t> numSOAinQueries;
-        std::atomic<uint64_t> numAXFRinQueries;
-        std::atomic<uint64_t> numIXFRinQueries;
+        std::atomic<uint64_t> numSOAinQueries{0};
+        std::atomic<uint64_t> numAXFRinQueries{0};
+        std::atomic<uint64_t> numIXFRinQueries{0};
 
-        std::atomic<uint64_t> numAXFRFailures;
-        std::atomic<uint64_t> numIXFRFailures;
+        std::atomic<uint64_t> numAXFRFailures{0};
+        std::atomic<uint64_t> numIXFRFailures{0};
     };
     class programStats {
       public:
         time_t startTime;
-        std::atomic<uint32_t> unknownDomainInQueries;
+        std::atomic<uint32_t> unknownDomainInQueries{0};
     };
 
     std::map<DNSName, perDomainStat> domainStats;
