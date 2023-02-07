@@ -179,32 +179,33 @@ class AliasUDPResponder(DatagramProtocol):
         response.use_edns(edns=False)
         response.flags |= dns.flags.RA
 
-        if request.question[0].name == dns.name.from_text(
-                'noerror.example.com.'):
+        question = request.question[0]
+        name = question.name
+        name_text = name.to_text()
+
+        if name_text == 'noerror.example.com.':
             response.set_rcode(dns.rcode.NOERROR)
-            if request.question[0].rdtype in [dns.rdatatype.A,
+            if question.rdtype in [dns.rdatatype.A,
                                               dns.rdatatype.ANY]:
                 response.answer.append(
                     dns.rrset.from_text(
-                        request.question[0].name,
+                        name,
                         0, dns.rdataclass.IN, 'A', '192.0.2.1'))
 
-            if request.question[0].rdtype in [dns.rdatatype.AAAA,
+            if question.rdtype in [dns.rdatatype.AAAA,
                                               dns.rdatatype.ANY]:
                 response.answer.append(
-                    dns.rrset.from_text(request.question[0].name,
+                    dns.rrset.from_text(name,
                                         0, dns.rdataclass.IN, 'AAAA',
                                         '2001:DB8::1'))
-        if request.question[0].name == dns.name.from_text(
-                'nxd.example.com.'):
+        if name_text == 'nxd.example.com.':
             response.set_rcode(dns.rcode.NXDOMAIN)
             response.authority.append(
                 dns.rrset.from_text(
                     'example.com.',
                     0, dns.rdataclass.IN, 'SOA', 'ns1.example.com. hostmaster.example.com. 2018062101 1 2 3 4'))
 
-        if request.question[0].name == dns.name.from_text(
-                'servfail.example.com.'):
+        if name_text == 'servfail.example.com.':
             response.set_rcode(dns.rcode.SERVFAIL)
 
         self.transport.write(response.to_wire(max_size=65535), address)
