@@ -190,7 +190,7 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx);
  * returns: -1 if type wasn't compatible, 0 if not found or number of element(s) found
  */
 template<class G, class T, class V>
-static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value) {
+static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value, bool warnOnWrongType = true) {
   /* nothing found, nothing to return */
   if (!vars) {
     return 0;
@@ -201,10 +201,30 @@ static inline int getOptionalValue(boost::optional<V>& vars, const std::string& 
       value = boost::get<G>((*vars)[key]);
     } catch (const boost::bad_get& e) {
       /* key is there but isn't compatible */
+      if (warnOnWrongType) {
+        warnlog("Invalid type for key '%s' - ignored", key);
+        vars->erase(key);
+      }
       return -1;
     }
   }
   return vars->erase(key);
+}
+
+template<class T, class V>
+static inline int getOptionalIntegerValue(const std::string& func, boost::optional<V>& vars, const std::string& key, T& value) {
+  std::string valueStr;
+  auto ret = getOptionalValue<std::string>(vars, key, valueStr, true);
+  if (ret == 1) {
+    try {
+      value = std::stoi(valueStr);
+    }
+    catch (const std::exception& e) {
+      warnlog("Parameter '%s' of '%s' must be integer, not '%s' - ignoring", func, key, valueStr);
+      return -1;
+    }
+  }
+  return ret;
 }
 
 template<class V>

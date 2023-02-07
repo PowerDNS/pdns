@@ -178,8 +178,9 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #ifdef HAVE_LIBSSL
   std::string minVersion;
-  if (getOptionalValue<std::string>(vars, "minTLSVersion", minVersion) > 0)
+  if (getOptionalValue<std::string>(vars, "minTLSVersion", minVersion) > 0) {
     config.d_minTLSVersion = libssl_tls_version_from_string(minVersion);
+  }
 #else /* HAVE_LIBSSL */
   if (vars->erase("minTLSVersion") > 0)
     warnlog("minTLSVersion has no effect with chosen TLS library");
@@ -218,17 +219,9 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 #endif
   }
 
-  if (vars->count("releaseBuffers")) {
-    config.d_releaseBuffers = boost::get<bool>((*vars)["releaseBuffers"]);
-  }
-
-  if (vars->count("enableRenegotiation")) {
-    config.d_enableRenegotiation = boost::get<bool>((*vars)["enableRenegotiation"]);
-  }
-
-  if (vars->count("tlsAsyncMode")) {
-    config.d_asyncMode = boost::get<bool>((*vars).at("tlsAsyncMode"));
-  }
+  getOptionalValue<bool>(vars, "releaseBuffers", config.d_releaseBuffers);
+  getOptionalValue<bool>(vars, "enableRenegotiation", config.d_enableRenegotiation);
+  getOptionalValue<bool>(vars, "tlsAsyncMode", config.d_asyncMode);
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -376,48 +369,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (getOptionalValue<std::string>(vars, "qps", valueStr) > 0) {
-                           config.d_qpsLimit = std::stoi(valueStr);
+                         getOptionalIntegerValue("newServer", vars, "qps", config.d_qpsLimit);
+                         getOptionalIntegerValue("newServer", vars, "order", config.order);
+                         getOptionalIntegerValue("newServer", vars, "weight", config.d_weight);
+                         if (config.d_weight < 1) {
+                           errlog("Error creating new server: downstream weight value must be greater than 0.");
+                           return std::shared_ptr<DownstreamState>();
                          }
 
-                         if (getOptionalValue<std::string>(vars, "order", valueStr) > 0) {
-                           config.order = std::stoi(valueStr);
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "weight", valueStr) > 0) {
-                           try {
-                             config.d_weight = std::stoi(valueStr);
-
-                             if (config.d_weight < 1) {
-                               errlog("Error creating new server: downstream weight value must be greater than 0.");
-                               return std::shared_ptr<DownstreamState>();
-                             }
-                           }
-                           catch (const std::exception& e) {
-                             // std::stoi will throw an exception if the string isn't in a value int range
-                             errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
-                             return std::shared_ptr<DownstreamState>();
-                           }
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "retries", valueStr) > 0) {
-                           config.d_retries = std::stoi(valueStr);
-                         }
+                         getOptionalIntegerValue("newServer", vars, "retries", config.d_retries);
+                         getOptionalIntegerValue("newServer", vars, "tcpConnectTimeout", config.tcpConnectTimeout);
+                         getOptionalIntegerValue("newServer", vars, "tcpSendTimeout", config.tcpSendTimeout);
+                         getOptionalIntegerValue("newServer", vars, "tcpRecvTimeout", config.tcpRecvTimeout);
 
                          if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
                            config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "tcpConnectTimeout", valueStr) > 0) {
-                           config.tcpConnectTimeout = std::stoi(boost::get<string>(valueStr));
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "tcpSendTimeout", valueStr) > 0) {
-                           config.tcpSendTimeout = std::stoi(valueStr);
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "tcpRecvTimeout", valueStr) > 0) {
-                           config.tcpRecvTimeout = std::stoi(valueStr);
                          }
 
                          bool fastOpen{false};
@@ -431,17 +397,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (getOptionalValue<std::string>(vars, "maxInFlight", valueStr) > 0) {
-                           config.d_maxInFlightQueriesPerConn = std::stoi(valueStr);
-                         }
+                         getOptionalIntegerValue("newServer", vars, "maxInFlight", config.d_maxInFlightQueriesPerConn);
+                         getOptionalIntegerValue("newServer", vars, "maxConcurrentTCPConnections", config.d_tcpConcurrentConnectionsLimit);
 
-                         if (getOptionalValue<std::string>(vars, "maxConcurrentTCPConnections", valueStr) > 0) {
-                           config.d_tcpConcurrentConnectionsLimit = std::stoi(valueStr);
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "name", valueStr) > 0) {
-                           config.name = valueStr;
-                         }
+                         getOptionalValue<std::string>(vars, "name", config.name);
 
                          if (getOptionalValue<std::string>(vars, "id", valueStr) > 0) {
                            config.id = boost::uuids::string_generator()(valueStr);
@@ -471,17 +430,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          getOptionalValue<std::string>(vars, "checkType", config.checkType);
-
-                         if (getOptionalValue<std::string>(vars, "checkClass", valueStr) > 0) {
-                           config.checkClass = std::stoi(valueStr);
-                         }
-
+                         getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
                          getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
-
-                         if (getOptionalValue<std::string>(vars, "checkTimeout", valueStr) > 0) {
-                           config.checkTimeout = std::stoi(valueStr);
-                         }
-
+                         getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
                          getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
                          getOptionalValue<bool>(vars, "setCD", config.setCD);
                          getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
@@ -538,32 +489,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "disableZeroScoping", config.disableZeroScope);
                          getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
 
-                         if (getOptionalValue<std::string>(vars, "addXPF", valueStr) > 0) {
-                           try {
-                             config.xpfRRCode = std::stoi(valueStr);
-                           }
-                           catch (const std::exception& e) {
-                             warnlog("addXPF must be integer, not '%s' - ignoring", valueStr);
-                           }
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "maxCheckFailures", valueStr) > 0) {
-                           try {
-                             config.maxCheckFailures = std::stoi(valueStr);
-                           }
-                           catch (const std::exception& e) {
-                             warnlog("maxCheckFailures must be integer, not '%s' - ignoring", valueStr);
-                           }
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "rise", valueStr) > 0) {
-                           try {
-                             config.minRiseSuccesses = std::stoi(valueStr);
-                           }
-                           catch (const std::exception& e) {
-                             warnlog("rise must be integer, not '%s' - ignoring", valueStr);
-                           }
-                         }
+                         getOptionalIntegerValue("newServer", vars, "addXPF", config.xpfRRCode);
+                         getOptionalIntegerValue("newServer", vars, "maxCheckFailures", config.maxCheckFailures);
+                         getOptionalIntegerValue("newServer", vars, "rise", config.minRiseSuccesses);
 
                          getOptionalValue<bool>(vars, "reconnectOnUp", config.reconnectOnUp);
 
@@ -637,7 +565,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          LuaArray<std::string> pools;
-                         if (getOptionalValue<std::string>(vars, "pool", valueStr) > 0) {
+                         if (getOptionalValue<std::string>(vars, "pool", valueStr, false) > 0) {
                            config.pools.insert(valueStr);
                          }
                          else if (getOptionalValue<decltype(pools)>(vars, "pool", pools) > 0) {
@@ -1083,9 +1011,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     bool hashPlaintextCredentials = false;
-    if (vars->count("hashPlaintextCredentials")) {
-      hashPlaintextCredentials = boost::get<bool>(vars->at("hashPlaintextCredentials"));
-    }
+    getOptionalValue<bool>(vars, "hashPlaintextCredentials", hashPlaintextCredentials);
 
     std::string password;
     std::string apiKey;
@@ -1094,7 +1020,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool statsRequireAuthentication{true};
     bool apiRequiresAuthentication{true};
     bool dashboardRequiresAuthentication{true};
-    std::string maxConcurrentConnections;
+    int maxConcurrentConnections = 0;
 
     if (getOptionalValue<std::string>(vars, "password", password) > 0) {
       auto holder = make_unique<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
@@ -1134,8 +1060,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       setWebserverDashboardRequiresAuthentication(dashboardRequiresAuthentication);
     }
 
-    if (getOptionalValue<std::string>(vars, "maxConcurrentConnections", maxConcurrentConnections) > 0) {
-      setWebserverMaxConcurrentConnections(std::stoi(maxConcurrentConnections));
+    if (getOptionalIntegerValue("setWebserverConfig", vars, "maxConcurrentConnections", maxConcurrentConnections) > 0) {
+      setWebserverMaxConcurrentConnections(maxConcurrentConnections);
     }
   });
 
