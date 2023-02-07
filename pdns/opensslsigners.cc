@@ -57,21 +57,22 @@
 #include "lock.hh"
 static std::vector<std::mutex> openssllocks;
 
-extern "C" {
-static void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
+extern "C"
 {
-  if (mode & CRYPTO_LOCK) {
-    openssllocks.at(type).lock();
-
-  } else {
-    openssllocks.at(type).unlock();
+  static void openssl_pthreads_locking_callback(int mode, int type, const char* file, int line)
+  {
+    if (mode & CRYPTO_LOCK) {
+      openssllocks.at(type).lock();
+    }
+    else {
+      openssllocks.at(type).unlock();
+    }
   }
-}
 
-static unsigned long openssl_pthreads_id_callback(void)
-{
-  return (unsigned long)pthread_self();
-}
+  static unsigned long openssl_pthreads_id_callback(void)
+  {
+    return (unsigned long)pthread_self();
+  }
 }
 
 void openssl_thread_setup()
@@ -171,17 +172,15 @@ void openssl_thread_setup() {}
 void openssl_thread_cleanup() {}
 #endif
 
-
 /* seeding PRNG */
-
 void openssl_seed()
 {
   std::string entropy;
   entropy.reserve(1024);
 
   unsigned int r;
-  for(int i=0; i<1024; i+=4) {
-    r=dns_random(0xffffffff);
+  for (int i = 0; i < 1024; i += 4) {
+    r = dns_random(0xffffffff);
     entropy.append((const char*)&r, 4);
   }
 
@@ -355,7 +354,7 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
     throw pdns::OpenSSL::error(getName(), "Could not initialize keygen");
   }
 
-  if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx.get(), (int) bits) <= 0) {
+  if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx.get(), (int)bits) <= 0) {
     throw pdns::OpenSSL::error(getName(), "Could not set keygen bits to " + std::to_string(bits));
   }
 
@@ -2040,25 +2039,26 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
 }
 #endif // HAVE_LIBCRYPTO_EDDSA
 
-namespace {
-  const struct LoaderStruct
+namespace
+{
+const struct LoaderStruct
+{
+  LoaderStruct()
   {
-    LoaderStruct()
-    {
-      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1NSEC3SHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA256, &OpenSSLRSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA512, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1NSEC3SHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA256, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA512, &OpenSSLRSADNSCryptoKeyEngine::maker);
 #ifdef HAVE_LIBCRYPTO_ECDSA
-      DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA256, &OpenSSLECDSADNSCryptoKeyEngine::maker);
-      DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA384, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA256, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA384, &OpenSSLECDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-      DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-      DNSCryptoKeyEngine::report(DNSSECKeeper::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSECKeeper::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
-    }
-  } loaderOpenSSL;
+  }
+} loaderOpenSSL;
 }

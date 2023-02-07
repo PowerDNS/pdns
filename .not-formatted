@@ -204,7 +204,6 @@
 ./pdns/nproxy.cc
 ./pdns/nsec3dig.cc
 ./pdns/nsecrecords.cc
-./pdns/opensslsigners.cc
 ./pdns/packetcache.hh
 ./pdns/packethandler.cc
 ./pdns/packethandler.hh
