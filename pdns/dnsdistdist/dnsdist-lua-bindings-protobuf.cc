@@ -32,7 +32,7 @@
 #include "remote_logger.hh"
 
 #ifdef HAVE_FSTRM
-static void parseFSTRMOptions(const boost::optional<LuaAssociativeTable<unsigned int>>& params, LuaAssociativeTable<unsigned int>& options)
+static void parseFSTRMOptions(boost::optional<LuaAssociativeTable<unsigned int>>& params, LuaAssociativeTable<unsigned int>& options)
 {
   if (!params) {
     return;
@@ -41,9 +41,7 @@ static void parseFSTRMOptions(const boost::optional<LuaAssociativeTable<unsigned
   static std::vector<std::string> const potentialOptions = { "bufferHint", "flushTimeout", "inputQueueSize", "outputQueueSize", "queueNotifyThreshold", "reopenInterval" };
 
   for (const auto& potentialOption : potentialOptions) {
-    if (params->count(potentialOption)) {
-      options[potentialOption] = boost::get<unsigned int>(params->at(potentialOption));
-    }
+    getOptionalValue<unsigned int>(params, potentialOption, options[potentialOption]);
   }
 }
 #endif /* HAVE_FSTRM */
@@ -138,6 +136,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
       LuaAssociativeTable<unsigned int> options;
       parseFSTRMOptions(params, options);
+      checkAllParametersConsumed("newRemoteLogger", params);
       return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client, options));
 #else
       throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
@@ -152,6 +151,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
       LuaAssociativeTable<unsigned int> options;
       parseFSTRMOptions(params, options);
+      checkAllParametersConsumed("newFrameStreamTcpLogger", params);
       return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client, options));
 #else
       throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");

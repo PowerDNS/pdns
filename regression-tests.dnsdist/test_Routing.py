@@ -735,30 +735,3 @@ class TestRoutingHighValueWRandom(DNSDistTest):
             self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
         if 'TCP Responder 2' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
-
-class TestRoutingBadWeightWRandom(DNSDistTest):
-
-    _testServer2Port = 5351
-    _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_testServer2Port']
-    _config_template = """
-    setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    setServerPolicy(wrandom)
-    s1 = newServer{address="127.0.0.1:%s", weight=-1}
-    s2 = newServer{address="127.0.0.1:%s", weight=2147483648}
-    """
-    _checkConfigExpectedOutput = b"""Error creating new server: downstream weight value must be greater than 0.
-Error creating new server: downstream weight value must be between 1 and 2147483647
-Configuration 'configs/dnsdist_TestRoutingBadWeightWRandom.conf' OK!
-"""
-
-    def testBadWeightWRandom(self):
-        """
-        Routing: WRandom
-
-        Test that downstreams cannot be added with invalid weights.
-        """
-        # There should be no downstreams
-        self.assertTrue(self.sendConsoleCommand("getServer(0)").startswith("Error"))
