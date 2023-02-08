@@ -1142,10 +1142,8 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   BOOST_CHECK_EQUAL(downCount, 4U);
   BOOST_CHECK_EQUAL(lookupCount, 1U);
 
-  BOOST_REQUIRE_EQUAL(getTaskSize(), 1U);
-  auto task = taskQueuePop();
-  BOOST_CHECK(task.d_qname == target);
-  BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
+  // First time, no task pushed
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 0U);
 
   // Again, no lookup as the record is marked stale
   ret.clear();
@@ -1156,6 +1154,9 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(downCount, 4U);
   BOOST_CHECK_EQUAL(lookupCount, 1U);
+
+  // No task pushed, time is not there yet
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 0U);
 
   // Again, no lookup as the record is marked stale but as the TTL has passed a task should have been pushed
   sr->setNow(timeval{now + 2 * (theTTL + 1), 0});
@@ -1169,7 +1170,7 @@ BOOST_AUTO_TEST_CASE(test_servestale)
   BOOST_CHECK_EQUAL(lookupCount, 1U);
 
   BOOST_REQUIRE_EQUAL(getTaskSize(), 1U);
-  task = taskQueuePop();
+  auto task = taskQueuePop();
   BOOST_CHECK(task.d_qname == target);
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 

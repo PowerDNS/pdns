@@ -192,19 +192,21 @@ time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursor
   return ttd;
 }
 
-static void pushRefreshTask(const DNSName& qname, QType qtype, time_t deadline, const Netmask& netmask)
+static void pushRefreshTask(const DNSName& qname, QType qtype, time_t now, time_t deadline, const Netmask& netmask)
 {
   if (qtype == QType::ADDR) {
-    pushAlmostExpiredTask(qname, QType::A, deadline, netmask);
-    pushAlmostExpiredTask(qname, QType::AAAA, deadline, netmask);
+    pushAlmostExpiredTask(qname, QType::A, now, deadline, netmask);
+    pushAlmostExpiredTask(qname, QType::AAAA, now, deadline, netmask);
   }
   else {
-    pushAlmostExpiredTask(qname, qtype, deadline, netmask);
+    pushAlmostExpiredTask(qname, qtype, now, deadline, netmask);
   }
 }
 
 void MemRecursorCache::updateStaleEntry(time_t now, MemRecursorCache::OrderedTagIterator_t& entry)
 {
+  const bool firstTime = entry->d_servedStale == 0U;
+
   // We need to take care a infrequently access stale item cannot be extended past
   // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
   // We look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
@@ -213,7 +215,9 @@ void MemRecursorCache::updateStaleEntry(time_t now, MemRecursorCache::OrderedTag
   entry->d_servedStale = std::min(entry->d_servedStale + 1 + howlong / extension, static_cast<time_t>(s_maxServedStaleExtensions));
   entry->d_ttd = now + extension;
 
-  pushRefreshTask(entry->d_qname, entry->d_qtype, entry->d_ttd, entry->d_netmask);
+  if (!firstTime) {
+    pushRefreshTask(entry->d_qname, entry->d_qtype, now, entry->d_ttd, entry->d_netmask);
+  }
 }
 
 // If we are serving this record stale (or *should*) and the ttd has
@@ -336,7 +340,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
       }
       else {
         if (!entry->d_submitted) {
-          pushRefreshTask(qname, qtype, entry->d_ttd, entry->d_netmask);
+          pushRefreshTask(qname, qtype, now, entry->d_ttd, entry->d_netmask);
           entry->d_submitted = true;
         }
       }
@@ -607,6 +611,10 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
        prior to calling this function, so the TTL actually holds a TTD. */
     ce.d_ttd = min(maxTTD, static_cast<time_t>(i.d_ttl)); // XXX this does weird things if TTLs differ in the set
     ce.d_orig_ttl = ce.d_ttd - now;
+    // Hack, now can be later than the time d_ttd was set
+    if (ce.d_orig_ttl > SyncRes::s_maxcachettl) {
+      ce.d_orig_ttl = 30;
+    }
     ce.d_records.push_back(i.d_content);
   }
 

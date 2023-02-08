@@ -100,7 +100,7 @@ void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry, QType q
     qtype = QType::A;
   }
 
-  pushAlmostExpiredTask(entry->d_name, qtype, entry->d_ttd, Netmask());
+  pushAlmostExpiredTask(entry->d_name, qtype, now, entry->d_ttd, Netmask());
 }
 
 /*!

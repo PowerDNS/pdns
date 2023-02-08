@@ -98,7 +98,7 @@ private:
 struct Queue
 {
   pdns::TaskQueue queue;
-  TimedSet rateLimitSet{60};
+  TimedSet rateLimitSet{30};
 };
 static LockGuarded<Queue> s_taskQueue;
 
@@ -232,7 +232,7 @@ bool runTaskOnce(bool logErrors)
   return true;
 }
 
-void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask)
+void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline, const Netmask& netmask)
 {
   if (SyncRes::isUnsupported(qtype)) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()), "netmask", Logging::Loggable(netmask.empty() ? "" : netmask.toString()));
@@ -240,8 +240,12 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
     return;
   }
   pdns::ResolveTask task{qname, qtype, deadline, true, resolve, {}, {}, netmask};
-  if (s_taskQueue.lock()->queue.push(std::move(task))) {
-    ++s_almost_expired_tasks.pushed;
+  auto lock = s_taskQueue.lock();
+  bool inserted = lock->rateLimitSet.insert(now, task);
+  if (inserted) {
+    if (lock->queue.push(std::move(task))) {
+      ++s_almost_expired_tasks.pushed;
+    }
   }
 }
 

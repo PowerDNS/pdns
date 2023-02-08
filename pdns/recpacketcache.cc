@@ -65,7 +65,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
         const bool almostExpired = ttl <= deadline;
         if (almostExpired) {
           iter->d_submitted = true;
-          pushAlmostExpiredTask(qname, qtype, iter->d_ttd, Netmask());
+          pushAlmostExpiredTask(qname, qtype, now, iter->d_ttd, Netmask());
         }
       }
       *responsePacket = iter->d_packet;

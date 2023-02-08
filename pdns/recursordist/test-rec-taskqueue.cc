@@ -14,16 +14,16 @@ BOOST_AUTO_TEST_SUITE(rec_taskqueue)
 BOOST_AUTO_TEST_CASE(test_almostexpired_queue_no_dups)
 {
   taskQueueClear();
-  pushAlmostExpiredTask(DNSName("foo"), QType::AAAA, 0, Netmask());
-  pushAlmostExpiredTask(DNSName("foo"), QType::AAAA, 0, Netmask());
-  pushAlmostExpiredTask(DNSName("foo"), QType::A, 0, Netmask());
+  pushAlmostExpiredTask(DNSName("foo"), QType::AAAA, 0, 0, Netmask());
+  pushAlmostExpiredTask(DNSName("foo"), QType::AAAA, 0, 0, Netmask());
+  pushAlmostExpiredTask(DNSName("foo"), QType::A, 0, 0, Netmask());
 
   BOOST_CHECK_EQUAL(getTaskSize(), 2U);
   taskQueuePop();
   taskQueuePop();
   BOOST_CHECK_EQUAL(getTaskSize(), 0U);
-  // AE queue is not rate limited
-  pushAlmostExpiredTask(DNSName("foo"), QType::A, 0, Netmask());
+  // AE queue is rate limited, but time has passed
+  pushAlmostExpiredTask(DNSName("foo"), QType::A, 61, 62, Netmask());
   BOOST_CHECK_EQUAL(getTaskSize(), 1U);
 }
 
