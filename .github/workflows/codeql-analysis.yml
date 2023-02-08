@@ -12,6 +12,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   analyze:
     name: Analyze
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
 
     permissions:

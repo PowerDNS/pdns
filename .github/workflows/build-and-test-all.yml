@@ -13,6 +13,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build-auth:
     name: build auth
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     env:
       ASAN_OPTIONS: detect_leaks=0
@@ -56,6 +57,7 @@ jobs:
 
   build-recursor:
     name: build recursor
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -104,6 +106,7 @@ jobs:
 
   build-dnsdist:
     name: build dnsdist
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -156,6 +159,7 @@ jobs:
 
   test-auth-api:
     needs: build-auth
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
@@ -206,6 +210,7 @@ jobs:
 
   test-auth-backend:
     needs: build-auth
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
@@ -270,6 +275,7 @@ jobs:
 
   test-ixfrdist:
     needs: build-auth
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
@@ -292,6 +298,7 @@ jobs:
 
   test-recursor-api:
     needs: build-recursor
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -346,6 +353,7 @@ jobs:
 
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     needs: build-recursor
     runs-on: ubuntu-20.04
     strategy:
@@ -376,6 +384,7 @@ jobs:
 
   test-dnsdist-regression:
     needs: build-dnsdist
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -404,6 +413,7 @@ jobs:
       - run: inv test-dnsdist
 
   swagger-syntax-check:
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
@@ -428,6 +438,7 @@ jobs:
       - test-recursor-api
       - test-recursor-regression
       - test-recursor-bulk
+    if: ${{ !github.event.schedule || vars.RUN_SCHEDULED_FLOWS == 'yes' }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3.1.0
