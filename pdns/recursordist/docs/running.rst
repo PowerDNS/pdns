@@ -84,7 +84,7 @@ To investigate failures with resolving certain domain names, the PowerDNS :progr
 This infrastructure will log every step the :program:`Recursor` takes to resolve a name and will log all DNSSEC related information as well.
 
 To enable tracing for all queries, enable the :ref:`setting-trace` setting.
-Trace infomration will be written to the log.
+Trace information will be written to the log.
 
 .. warning::
 
