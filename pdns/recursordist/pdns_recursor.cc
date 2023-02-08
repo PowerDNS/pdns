@@ -852,6 +852,7 @@ static void dumpTrace(const string& trace, const timeval& timev)
          g_slog->withName("trace")->error(Logr::Error, err, "Could not dup trace file"));
     return;
   }
+  setNonBlocking(traceFd);
   auto filep = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(traceFd, "a"), &fclose);
   if (!filep) {
     int err = errno;
@@ -866,6 +867,11 @@ static void dumpTrace(const string& trace, const timeval& timev)
   fprintf(filep.get(), "%s", trace.c_str());
   isoDateTimeMillis(now, timebuf.data(), timebuf.size());
   fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
+  if (ferror(filep.get())) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Problems writing to trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Problems writing to trace file"));
+  }
   // fclose by unique_ptr does implicit flush
 }
 
