@@ -37,6 +37,7 @@ struct SignerParams
   std::string pem;
 };
 
+// clang-format off
 static const SignerParams rsaSha256SignerParams = SignerParams
 {
   .iscMap = "Algorithm: 8\n"
@@ -59,7 +60,6 @@ static const SignerParams rsaSha256SignerParams = SignerParams
               "22ea940600dc2d9a98b1126c26ac0dc5c91b31eb50fe784b"
               "36ad675e9eecfe6573c1f85c53b6bc94580f3ac443d13c4c",
 
-  // clang-format off
   /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
   .signature = {
     0x93, 0x93, 0x5f, 0xd8, 0xa1, 0x2b, 0x4c, 0x0b, 0xf3, 0x67, 0x42, 0x13, 0x52,
@@ -68,7 +68,6 @@ static const SignerParams rsaSha256SignerParams = SignerParams
     0x63, 0x44, 0x85, 0x06, 0x13, 0xaa, 0x01, 0x3c, 0x58, 0x52, 0xa3, 0x98, 0x20,
     0x65, 0x03, 0xd0, 0x40, 0xc8, 0xa0, 0xe9, 0xd2, 0xc0, 0x03, 0x5a, 0xab
   },
-  // clang-format on
 
   .zoneRepresentation = "256 3 8 "
                         "AwEAAarbp0oh52KuF0SwXoSgMNRpcW/uPKCKQAu8NyYaY+"
@@ -110,10 +109,12 @@ static const SignerParams rsaSha256SignerParams = SignerParams
          "-----END RSA PRIVATE KEY-----\n"
 #endif
 };
+// clang-format on
 
 /* ECDSA-P256-SHA256 from
  * https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h
  */
+// clang-format off
 static const SignerParams ecdsaSha256 = SignerParams
 {
   .iscMap = "Algorithm: 13\n"
@@ -129,7 +130,6 @@ static const SignerParams ecdsaSha256 = SignerParams
               "a0ac6790483872be72a258314200a88ab75cdd70f66a18a0"
               "9f0f414c074df0989fdb1df0e67d82d4312cda67b93a76c1",
 
-  // clang-format off
   /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
   .signature = {
     0xa2, 0x95, 0x76, 0xb5, 0xf5, 0x7e, 0xbd, 0xdd, 0xf5, 0x62, 0xa2, 0xc3, 0xa4,
@@ -138,7 +138,6 @@ static const SignerParams ecdsaSha256 = SignerParams
     0xd3, 0x8c, 0x88, 0xc3, 0xee, 0x12, 0x0e, 0x69, 0x70, 0x55, 0x99, 0xec, 0xd5,
     0xf6, 0x4f, 0x4b, 0xe2, 0x41, 0xd9, 0x10, 0x7e, 0x67, 0xe5, 0xad, 0x2f
   },
-  // clang-format on
 
   .zoneRepresentation = "256 3 13 "
                         "8uD7C4THTM/w7uhryRSToeE/jKT78/p853RX0L5EwrZ"
@@ -171,10 +170,12 @@ static const SignerParams ecdsaSha256 = SignerParams
          "-----END EC PRIVATE KEY-----\n"
 #endif
 };
+// clang-format on
 
 /* Ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
  * also from rfc8080 section 6.1
  */
+// clang-format off
 static const SignerParams ed25519 = SignerParams{
   .iscMap = "Algorithm: 15\n"
             "PrivateKey: ODIyNjAzODQ2MjgwODAxMjI2NDUxOTAyMDQxNDIyNjI=\n",
@@ -189,7 +190,6 @@ static const SignerParams ed25519 = SignerParams{
               "d11831153af4985efbd0ae792c967eb4aff3c35488db95f7"
               "e2f85dcec74ae8f59f9a72641798c91c67c675db1d710c18",
 
-  // clang-format off
   /* from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sign.c */
   .signature = {
     0x0a, 0x9e, 0x51, 0x5f, 0x16, 0x89, 0x49, 0x27, 0x0e, 0x98, 0x34, 0xd3, 0x48,
@@ -198,7 +198,6 @@ static const SignerParams ed25519 = SignerParams{
     0x1f, 0x1d, 0x08, 0x10, 0x20, 0x1c, 0x01, 0x77, 0x1b, 0x5a, 0x48, 0xd6, 0xe5,
     0x1c, 0xf9, 0xe3, 0xe0, 0x70, 0x34, 0x5e, 0x02, 0x49, 0xfb, 0x9e, 0x05
   },
-  // clang-format on
 
   .zoneRepresentation = "256 3 15 l02Woi0iS8Aa25FQkUd9RMzZHJpBoRQwAQEX1SxZJA4=",
 
@@ -225,10 +224,13 @@ static const SignerParams ed25519 = SignerParams{
 
   .pem = "-----BEGIN PRIVATE KEY-----\n"
          "MC4CAQAwBQYDK2VwBCIEIDgyMjYwMzg0NjI4MDgwMTIyNjQ1MTkwMjA0MTQyMjYy\n"
-         "-----END PRIVATE KEY-----\n"};
+         "-----END PRIVATE KEY-----\n"
+};
+// clang-format on
 
 /* Ed448.
  */
+// clang-format off
 static const SignerParams ed448 = SignerParams{
   .iscMap = "Private-key-format: v1.2\n"
             "Algorithm: 16 (ED448)\n"
@@ -244,7 +246,6 @@ static const SignerParams ed448 = SignerParams{
               "3876e5d892d3f31725f9964a332f9b9afd791171833480f2"
               "e71af78efb985cde9900ba95315287123a5908ca8f334369",
 
-  // clang-format off
   .signature = {
     0xb5, 0xcc, 0x21, 0x5a, 0x52, 0x21, 0x60, 0xa3, 0xb8, 0xd9, 0x3a, 0xd7, 0x05,
     0xdd, 0x4a, 0x32, 0x96, 0xce, 0x08, 0xde, 0x74, 0x5f, 0xdb, 0xde, 0x54, 0x95,
@@ -256,7 +257,6 @@ static const SignerParams ed448 = SignerParams{
     0x0f, 0x43, 0x72, 0x77, 0x86, 0xec, 0x88, 0x1a, 0x96, 0x95, 0x4a, 0x01, 0xfe,
     0xf2, 0xe6, 0x77, 0x4a, 0x2e, 0x43, 0xdd, 0x60, 0x29, 0x00,
   },
-  // clang-format on
 
   .zoneRepresentation = "256 3 16 "
                         "3kgROaDjrh0H2iuixWBrc8g2EpBBLCdGzHmn+"
@@ -287,7 +287,9 @@ static const SignerParams ed448 = SignerParams{
   .pem = "-----BEGIN PRIVATE KEY-----\n"
          "MEcCAQAwBQYDK2VxBDsEOcWfuQoJuOt8boLZGOQdCcenqxU16dd62HoLLdKkbTbD\n"
          "mJ2laTMdGf3ORIgPcfMFmww3Lf1NxYWFgA==\n"
-         "-----END PRIVATE KEY-----\n"};
+         "-----END PRIVATE KEY-----\n"
+};
+// clang-format on
 
 struct Fixture
 {
