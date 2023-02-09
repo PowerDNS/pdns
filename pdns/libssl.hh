@@ -163,6 +163,12 @@ bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>
 
 std::string libssl_get_error_string();
 
+#if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+std::pair<bool, std::string> libssl_load_provider(const std::string& engineName);
+#endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
+
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
 std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString);
+#endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
 
 #endif /* HAVE_LIBSSL */
