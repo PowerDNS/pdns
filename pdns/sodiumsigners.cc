@@ -45,11 +45,11 @@ public:
    * Receives an open file handle and writes this key's contents to the
    * file.
    *
-   * \param[in] fp An open file handle for writing.
+   * \param[in] outputFile An open file handle for writing.
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& fp) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 #endif
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
@@ -106,14 +106,14 @@ void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc
   memcpy(d_seckey + secKeyLen, d_pubkey, pubKeyLen);
 }
 
-void SodiumED25519DNSCryptoKeyEngine::convertToPEM(std::FILE& fp) const
+void SodiumED25519DNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
   auto key = std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)>(EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, nullptr, d_seckey, crypto_sign_ed25519_SEEDBYTES), EVP_PKEY_free);
   if (key == nullptr) {
     throw runtime_error(getName() + ": Could not create private key from buffer");
   }
 
-  auto ret = PEM_write_PrivateKey(&fp, key.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  auto ret = PEM_write_PrivateKey(&outputFile, key.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {
     throw runtime_error(getName() + ": Could not convert private key to PEM");
   }

@@ -51,7 +51,7 @@ class DNSCryptoKeyEngine
     [[nodiscard]] virtual storvector_t convertToISCVector() const =0;
     [[nodiscard]] std::string convertToISC() const ;
 
-    virtual void convertToPEM(std::FILE& fp) const
+    virtual void convertToPEMFile(std::FILE& /* outputFile */) const
     {
       throw std::runtime_error(getName() + ": Conversion to PEM not supported");
     };

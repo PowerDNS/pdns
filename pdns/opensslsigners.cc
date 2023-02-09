@@ -239,7 +239,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
 
@@ -401,7 +401,7 @@ void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, c
 #endif
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLRSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   if (PEM_write_PrivateKey(&outputFile, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr) == 0) {
@@ -1025,7 +1025,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
   [[nodiscard]] std::string hash(const std::string& message) const override;
@@ -1198,7 +1198,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc,
 #endif
 }
 
-void OpenSSLECDSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLECDSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   if (PEM_write_PrivateKey(&outputFile, d_eckey.get(), nullptr, nullptr, 0, nullptr, nullptr) == 0) {
@@ -1780,7 +1780,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
   [[nodiscard]] std::string sign(const std::string& msg) const override;
@@ -1903,7 +1903,7 @@ void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc,
   }
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
   auto ret = PEM_write_PrivateKey(&outputFile, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {

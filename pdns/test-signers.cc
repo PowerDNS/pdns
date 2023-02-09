@@ -472,7 +472,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     std::string dckePEMOutput{};
     dckePEMOutput.resize(buflen);
     unique_ptr<std::FILE, decltype(&std::fclose)> dckePEMOutputFp{fmemopen(static_cast<void*>(dckePEMOutput.data()), dckePEMOutput.length() - 1, "w"), &std::fclose};
-    dcke->convertToPEM(*dckePEMOutputFp);
+    dcke->convertToPEMFile(*dckePEMOutputFp);
     std::fflush(dckePEMOutputFp.get());
     dckePEMOutput.resize(std::ftell(dckePEMOutputFp.get()));
 
@@ -481,7 +481,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     std::string pemKeyOutput{};
     pemKeyOutput.resize(buflen);
     unique_ptr<std::FILE, decltype(&std::fclose)> pemKeyOutputFp{fmemopen(static_cast<void*>(pemKeyOutput.data()), pemKeyOutput.length() - 1, "w"), &std::fclose};
-    pemKey->convertToPEM(*pemKeyOutputFp);
+    pemKey->convertToPEMFile(*pemKeyOutputFp);
     std::fflush(pemKeyOutputFp.get());
     pemKeyOutput.resize(std::ftell(pemKeyOutputFp.get()));
 
