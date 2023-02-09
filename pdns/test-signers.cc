@@ -305,18 +305,18 @@ struct Fixture
 
     addSignerParams(DNSSECKeeper::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
 
-    #ifdef HAVE_LIBCRYPTO_ECDSA
+#ifdef HAVE_LIBCRYPTO_ECDSA
     addSignerParams(DNSSECKeeper::ECDSA256, "ECDSA SHA256", ecdsaSha256);
-    #endif
+#endif
 
-    // We need to have HAVE_LIBCRYPTO_ED25519 for the PEM reader/writer.
-    #if defined(HAVE_LIBCRYPTO_ED25519)
+// We need to have HAVE_LIBCRYPTO_ED25519 for the PEM reader/writer.
+#if defined(HAVE_LIBCRYPTO_ED25519)
     addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
-    #endif
+#endif
 
-    #if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
     addSignerParams(DNSSECKeeper::ED448, "ED448", ed448);
-    #endif
+#endif
   }
 
   void addSignerParams(const uint8_t algorithm, const std::string& name, const SignerParams& params)
@@ -492,24 +492,25 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-identifier-length): Boost stuff.
-BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
+BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt)
+{
   {
     // rfc5155 appendix A
-    const unsigned char salt[] = { 0xaa, 0xbb, 0xcc, 0xdd };
+    const unsigned char salt[] = {0xaa, 0xbb, 0xcc, 0xdd};
     const unsigned int iterations{12};
     const std::vector<std::pair<std::string, std::string>> namesToHashes = {
-      { "example", "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom" },
-      { "a.example", "35mthgpgcu1qg68fab165klnsnk3dpvl" },
-      { "ai.example", "gjeqe526plbf1g8mklp59enfd789njgi" },
-      { "ns1.example", "2t7b4g4vsa5smi47k61mv5bv1a22bojr" },
-      { "ns2.example", "q04jkcevqvmu85r014c7dkba38o0ji5r" },
-      { "w.example", "k8udemvp1j2f7eg6jebps17vp3n8i58h" },
-      { "*.w.example", "r53bq7cc2uvmubfu5ocmm6pers9tk9en" },
-      { "x.w.example", "b4um86eghhds6nea196smvmlo4ors995" },
-      { "y.w.example", "ji6neoaepv8b5o6k4ev33abha8ht9fgc" },
-      { "x.y.w.example", "2vptu5timamqttgl4luu9kg21e0aor3s" },
-      { "xx.example", "t644ebqk9bibcna874givr6joj62mlhv" },
-      { "2t7b4g4vsa5smi47k61mv5bv1a22bojr.example", "kohar7mbb8dc2ce8a9qvl8hon4k53uhi" },
+      {"example", "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom"},
+      {"a.example", "35mthgpgcu1qg68fab165klnsnk3dpvl"},
+      {"ai.example", "gjeqe526plbf1g8mklp59enfd789njgi"},
+      {"ns1.example", "2t7b4g4vsa5smi47k61mv5bv1a22bojr"},
+      {"ns2.example", "q04jkcevqvmu85r014c7dkba38o0ji5r"},
+      {"w.example", "k8udemvp1j2f7eg6jebps17vp3n8i58h"},
+      {"*.w.example", "r53bq7cc2uvmubfu5ocmm6pers9tk9en"},
+      {"x.w.example", "b4um86eghhds6nea196smvmlo4ors995"},
+      {"y.w.example", "ji6neoaepv8b5o6k4ev33abha8ht9fgc"},
+      {"x.y.w.example", "2vptu5timamqttgl4luu9kg21e0aor3s"},
+      {"xx.example", "t644ebqk9bibcna874givr6joj62mlhv"},
+      {"2t7b4g4vsa5smi47k61mv5bv1a22bojr.example", "kohar7mbb8dc2ce8a9qvl8hon4k53uhi"},
     };
 
     for (const auto& [name, expectedHash] : namesToHashes) {
@@ -520,10 +521,10 @@ BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
 
   {
     /* no additional iterations, very short salt */
-    const unsigned char salt[] = { 0xFF };
+    const unsigned char salt[] = {0xFF};
     const unsigned int iterations{0};
     const std::vector<std::pair<std::string, std::string>> namesToHashes = {
-      { "example", "s9dp8o2l6jgqgg26ecobtjooe7p019cs" },
+      {"example", "s9dp8o2l6jgqgg26ecobtjooe7p019cs"},
     };
 
     for (const auto& [name, expectedHash] : namesToHashes) {
@@ -534,10 +535,10 @@ BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
 
   {
     /* only one iteration */
-    const unsigned char salt[] = { 0xaa, 0xbb, 0xcc, 0xdd };
+    const unsigned char salt[] = {0xaa, 0xbb, 0xcc, 0xdd};
     const unsigned int iterations{1};
     const std::vector<std::pair<std::string, std::string>> namesToHashes = {
-      { "example", "ulddquehrj5jpf50ga76vgqr1oq40133" },
+      {"example", "ulddquehrj5jpf50ga76vgqr1oq40133"},
     };
 
     for (const auto& [name, expectedHash] : namesToHashes) {
@@ -554,7 +555,7 @@ BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
     };
     const unsigned int iterations{65535};
     const std::vector<std::pair<std::string, std::string>> namesToHashes = {
-      { "example", "no95j4cfile8avstr7bn4aj9he18trri" },
+      {"example", "no95j4cfile8avstr7bn4aj9he18trri"},
     };
 
     for (const auto& [name, expectedHash] : namesToHashes) {

@@ -292,7 +292,6 @@
 ./pdns/test-rcpgenerator_cc.cc
 ./pdns/test-sha_hh.cc
 ./pdns/test-sholder_hh.cc
-./pdns/test-signers.cc
 ./pdns/test-statbag_cc.cc
 ./pdns/test-svc_records_cc.cc
 ./pdns/test-trusted-notification-proxy_cc.cc
