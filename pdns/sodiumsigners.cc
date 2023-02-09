@@ -31,13 +31,13 @@ public:
    * \param[in] filename Only used for providing filename information in
    * error messages.
    *
-   * \param[in] fp An open file handle to a file containing ED25519 PEM
+   * \param[in] inputFile An open file handle to a file containing ED25519 PEM
    * contents.
    *
    * \return An ED25519 key engine populated with the contents of the
    * PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -52,11 +52,11 @@ public:
   void convertToPEM(std::FILE& fp) const override;
 #endif
 
-  storvector_t convertToISCVector() const override;
-  std::string sign(const std::string& msg) const override;
-  bool verify(const std::string& msg, const std::string& signature) const override;
-  std::string getPublicKeyString() const override;
-  int getBits() const override;
+  [[nodiscard]] storvector_t convertToISCVector() const override;
+  [[nodiscard]] std::string sign(const std::string& msg) const override;
+  [[nodiscard]] bool verify(const std::string& msg, const std::string& signature) const override;
+  [[nodiscard]] std::string getPublicKeyString() const override;
+  [[nodiscard]] int getBits() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
 
@@ -79,10 +79,10 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
 }
 
 #if defined(HAVE_LIBCRYPTO_ED25519)
-void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& fp)
+void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
 {
   drc.d_algorithm = d_algorithm;
-  auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&fp, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
   if (key == nullptr) {
     throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
   }
