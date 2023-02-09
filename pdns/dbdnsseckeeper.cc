@@ -614,7 +614,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   return retkeyset;
 }
 
-bool DNSSECKeeper::checkKeys(const DNSName& zone, vector<string>* errorMessages)
+bool DNSSECKeeper::checkKeys(const DNSName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages)
 {
   vector<DNSBackend::KeyData> dbkeyset;
   d_keymetadb->getDomainKeys(zone, dbkeyset);

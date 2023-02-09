@@ -251,7 +251,7 @@ public:
 
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string>* errorMessages) const override;
+  [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -872,20 +872,20 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
 #endif
 }
 
-bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
+bool OpenSSLRSADNSCryptoKeyEngine::checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
 {
   bool retval = true;
   // When changing the bitsizes, also edit them in ::create
   if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1 || d_algorithm == DNSSECKeeper::RSASHA256) && (getBits() < 512 || getBits() > 4096)) {
     retval = false;
-    if (errorMessages != nullptr) {
-      errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 512 and 4096");
+    if (errorMessages.has_value()) {
+      errorMessages->get().push_back("key is " + std::to_string(getBits()) + " bytes, should be between 512 and 4096");
     }
   }
   if (d_algorithm == DNSSECKeeper::RSASHA512 && (getBits() < 1024 || getBits() > 4096)) {
     retval = false;
-    if (errorMessages != nullptr) {
-      errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 1024 and 4096");
+    if (errorMessages.has_value()) {
+      errorMessages->get().push_back("key is " + std::to_string(getBits()) + " bytes, should be between 1024 and 4096");
     }
   }
 
@@ -900,12 +900,12 @@ bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
   if (RSA_check_key(d_key.get()) != 1) {
 #endif
     retval = false;
-    if (errorMessages != nullptr) {
+    if (errorMessages.has_value()) {
       const auto* errmsg = ERR_error_string(ERR_get_error(), nullptr);
       if (errmsg == nullptr) {
         errmsg = "Unknown OpenSSL error";
       }
-      errorMessages->push_back(errmsg);
+      errorMessages->get().emplace_back(errmsg);
     }
   }
   return retval;
@@ -1034,7 +1034,7 @@ public:
   [[nodiscard]] std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string>* errorMessages) const override;
+  [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
 
   // TODO Fred: hashSize() and hasher() can probably be completely removed along with
   // hash(). See #12464.
@@ -1635,7 +1635,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 #endif
 }
 
-bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
+bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   auto ctx = KeyContext{EVP_PKEY_CTX_new_from_pkey(nullptr, d_eckey.get(), nullptr), EVP_PKEY_CTX_free};
@@ -1650,13 +1650,13 @@ bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) con
     if (errorCode != 1 && errorCode != -2) {
       retval = false;
 
-      if (errorMessages != nullptr) {
+      if (errorMessages.has_value()) {
         const auto* errorMessage = ERR_reason_error_string(ERR_get_error());
         if (errorMessage == nullptr) {
-          errorMessages->push_back(defaultErrorMessage);
+          errorMessages->get().push_back(defaultErrorMessage);
         }
         else {
-          errorMessages->push_back(errorMessage);
+          errorMessages->get().emplace_back(errorMessage);
         }
       }
     }
@@ -1672,12 +1672,12 @@ bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) con
   bool retval = true;
   if (EC_KEY_check_key(d_eckey.get()) != 1) {
     retval = false;
-    if (errorMessages != nullptr) {
+    if (errorMessages.has_value()) {
       const auto* errmsg = ERR_reason_error_string(ERR_get_error());
       if (errmsg == nullptr) {
         errmsg = "Unknown OpenSSL error";
       }
-      errorMessages->push_back(errmsg);
+      errorMessages->get().push_back(errmsg);
     }
   }
   return retval;
@@ -1788,7 +1788,7 @@ public:
   [[nodiscard]] std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey(vector<string>* errorMessages) const override;
+  [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
 
   static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -1837,7 +1837,7 @@ int OpenSSLEDDSADNSCryptoKeyEngine::getBits() const
   return (int)d_len << 3;
 }
 
-bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) const
+bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   auto ctx = KeyContext{EVP_PKEY_CTX_new_from_pkey(nullptr, d_edkey.get(), nullptr), EVP_PKEY_CTX_free};
@@ -1852,13 +1852,13 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string>* errorMessages) con
     if (errorCode != 1 && errorCode != -2) {
       retval = false;
 
-      if (errorMessages != nullptr) {
+      if (errorMessages.has_value()) {
         const auto* errorMessage = ERR_reason_error_string(ERR_get_error());
         if (errorMessage == nullptr) {
-          errorMessages->push_back(defaultErrorMessage);
+          errorMessages->get().push_back(defaultErrorMessage);
         }
         else {
-          errorMessages->push_back(errorMessage);
+          errorMessages->get().emplace_back(errorMessage);
         }
       }
     }

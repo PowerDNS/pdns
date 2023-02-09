@@ -202,7 +202,7 @@ public:
   bool deactivateKey(const DNSName& zname, unsigned int id);
   bool publishKey(const DNSName& zname, unsigned int id);
   bool unpublishKey(const DNSName& zname, unsigned int id);
-  bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
+  bool checkKeys(const DNSName& zname, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=nullptr, bool* narrow=nullptr, bool useCache=true);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);

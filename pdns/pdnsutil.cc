@@ -299,7 +299,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
   vector<string> checkKeyErrors;
-  bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
+  bool validKeys=dk.checkKeys(zone, checkKeyErrors);
 
   if (haveNSEC3) {
     if(isSecure && zone.wirelength() > 222) {
