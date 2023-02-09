@@ -171,13 +171,13 @@ private:
 public:
   DNSSECKeeper() : d_keymetadb( new UeberBackend("key-only")), d_ourDB(true)
   {
-    
+
   }
-  
+
   DNSSECKeeper(UeberBackend* db) : d_keymetadb(db), d_ourDB(false)
   {
   }
-  
+
   ~DNSSECKeeper()
   {
     if(d_ourDB)
@@ -221,17 +221,17 @@ public:
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
   bool getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname);
-  
+
   void startTransaction(const DNSName& zone, int zone_id)
   {
     (*d_keymetadb->backends.begin())->startTransaction(zone, zone_id);
   }
-  
+
   void commitTransaction()
   {
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
-  
+
   void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
   bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value, bool useCache=true);
@@ -250,17 +250,17 @@ private:
   struct KeyCacheEntry
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;
-  
+
     uint32_t isStale(time_t now) const
     {
       return d_ttd < now;
     }
-  
+
     DNSName d_domain;
     mutable keys_t d_keys;
     unsigned int d_ttd;
   };
-  
+
   struct METACacheEntry
   {
     time_t isStale(time_t now) const
@@ -272,11 +272,11 @@ private:
     mutable METAValues d_value;
     time_t d_ttd;
   };
-  
+
   struct KeyCacheTag{};
   struct CompositeTag{};
   struct SequencedTag{};
-  
+
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<

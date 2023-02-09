@@ -58,7 +58,7 @@ bool DNSSECKeeper::doesDNSSEC()
   return d_keymetadb->doesDNSSEC();
 }
 
-bool DNSSECKeeper::isSecuredZone(const DNSName& zone, bool useCache) 
+bool DNSSECKeeper::isSecuredZone(const DNSName& zone, bool useCache)
 {
   if(isPresigned(zone, useCache))
     return true;
@@ -159,19 +159,19 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 }
 
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
-{  
+{
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, keys);
   for(const DNSBackend::KeyData& kd :  keys) {
-    if(kd.id != id) 
+    if(kd.id != id)
       continue;
-    
+
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
     DNSSECPrivateKey dpk;
     dpk.setKey(key, kd.flags, dkrc.d_algorithm);
-    
-    return dpk;    
+
+    return dpk;
   }
   throw runtime_error("Can't find a key with id "+std::to_string(id)+" for zone '"+zname.toLogString()+"'");
 }
@@ -396,10 +396,10 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
   meta.push_back(descr);
   if (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta)) {
     meta.clear();
-    
+
     if(narrow)
       meta.push_back("1");
-    
+
     return d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta) && clearMetaCache(zname);
   }
   return false;
@@ -658,9 +658,9 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
 bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
 {
   vector<string> allowed;
-  
+
   d_keymetadb->getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
-  
+
   for(const string& dbkey :  allowed) {
     if(DNSName(dbkey)==keyname)
       return true;
@@ -673,7 +673,7 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& mas
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
   keyname->trimToLabels(0);
-  
+
   // XXX FIXME this should check for a specific master!
   for(const string& dbkey :  keynames) {
     *keyname=DNSName(dbkey);
