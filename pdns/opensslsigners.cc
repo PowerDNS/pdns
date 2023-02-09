@@ -287,7 +287,6 @@ private:
   using MessageDigest = std::unique_ptr<EVP_MD, decltype(&EVP_MD_free)>;
 #else
   using Key = std::unique_ptr<RSA, decltype(&RSA_free)>;
-  using MessageDigest = std::unique_ptr<EVP_MD, decltype(&EVP_MD_meth_free)>;
 #endif
 
   Key d_key;
@@ -1058,12 +1057,12 @@ private:
 
 #if OPENSSL_VERSION_MAJOR >= 3
   using Key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+  using MessageDigestContext = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
 #else
   using Key = std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)>;
 #endif
 
   using KeyContext = std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>;
-  using MessageDigestContext = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
   using Group = std::unique_ptr<EC_GROUP, decltype(&EC_GROUP_free)>;
   using Point = std::unique_ptr<EC_POINT, decltype(&EC_POINT_free)>;
   using Signature = std::unique_ptr<ECDSA_SIG, decltype(&ECDSA_SIG_free)>;
