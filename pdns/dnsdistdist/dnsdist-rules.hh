@@ -136,7 +136,7 @@ public:
   }
 
 private:
-  struct OrderedTag {};
+  struct HashedTag {};
   struct SequencedTag {};
   struct Entry
   {
@@ -150,7 +150,7 @@ private:
   typedef multi_index_container<
     Entry,
     indexed_by <
-      ordered_unique<tag<OrderedTag>, member<Entry,ComboAddress,&Entry::d_addr>, ComboAddress::addressOnlyLessThan >,
+      hashed_unique<tag<HashedTag>, member<Entry,ComboAddress,&Entry::d_addr>, ComboAddress::addressOnlyHash >,
       sequenced<tag<SequencedTag> >
       >
   > qpsContainer_t;
