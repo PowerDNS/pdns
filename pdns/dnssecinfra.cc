@@ -173,7 +173,7 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMFile(DNSKEYRecordContent& drc, const uint8_t algorithm, std::FILE& inputFile, const std::string& filename)
 {
   auto maker = DNSCryptoKeyEngine::make(algorithm);
-  maker->createFromPEMFile(drc, filename, inputFile);
+  maker->createFromPEMFile(drc, inputFile, filename);
   return maker;
 }
 

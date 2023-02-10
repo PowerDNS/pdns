@@ -40,7 +40,7 @@ public:
    * \return An ED25519 key engine populated with the contents of the
    * PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -89,7 +89,7 @@ void DecafED25519DNSCryptoKeyEngine::create(unsigned int bits)
 }
 
 #if defined(HAVE_LIBCRYPTO_ED25519)
-void DecafED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void DecafED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const string& filename)
 {
   drc.d_algorithm = d_algorithm;
   auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
@@ -238,7 +238,7 @@ public:
    * \return An ED448 key engine populated with the contents of the PEM
    * file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -287,7 +287,7 @@ void DecafED448DNSCryptoKeyEngine::create(unsigned int bits)
 }
 
 #if defined(HAVE_LIBCRYPTO_ED448)
-void DecafED448DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void DecafED448DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const string& filename)
 {
   drc.d_algorithm = d_algorithm;
   auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);

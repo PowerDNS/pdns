@@ -227,7 +227,7 @@ public:
    *
    * \return An RSA key engine populated with the contents of the PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -382,7 +382,7 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 #endif
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile)
+void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename)
 {
   drc.d_algorithm = d_algorithm;
 
@@ -1013,7 +1013,7 @@ public:
    * \return An ECDSA key engine populated with the contents of the PEM
    * file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -1154,7 +1154,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
 #endif
 }
 
-void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const string& filename)
 {
   drc.d_algorithm = d_algorithm;
 
@@ -1768,7 +1768,7 @@ public:
    * \return An EDDSA key engine populated with the contents of the PEM
    * file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -1894,7 +1894,7 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */)
   d_edkey.reset(newKey);
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const string& filename)
 {
   drc.d_algorithm = d_algorithm;
   d_edkey = Key(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
