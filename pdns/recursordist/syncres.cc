@@ -489,10 +489,10 @@ OptLog SyncRes::LogObject(const string& prefix)
 {
   OptLog ret;
   if (d_lm == Log) {
-    ret = {prefix, d_fixednow, &g_log};
+    ret = {prefix, d_fixednow, g_log};
   }
   else if (d_lm == Store) {
-    ret = {prefix, d_fixednow, &d_trace};
+    ret = {prefix, d_fixednow, d_trace};
   }
   return ret;
 }
