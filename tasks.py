@@ -108,6 +108,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libsystemd0',
     'libyaml-cpp0.6',
     'libzmq3-dev',
+    'lmdb-utils',
     'prometheus',
     'ruby-bundler',
     'ruby-dev',
