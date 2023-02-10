@@ -244,7 +244,7 @@ static bool commonPrefixIsLong(const string& one, const string& two, size_t boun
       }
       continue;
     }
-    // bytes differ, lets look at the bits
+    // bytes differ, let's look at the bits
     for (ssize_t j = CHAR_BIT - 1; j >= 0; j--) {
       const auto bit1 = byte1 & (1 << j);
       const auto bit2 = byte2 & (1 << j);
