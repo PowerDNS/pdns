@@ -215,15 +215,13 @@ public:
   /**
    * \brief Creates an RSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an RSA key
-   * engine.
+   * Receives an open file handle with PEM contents and creates an RSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in error
-   * messages.
-   *
    * \param[in] inputFile An open file handle to a file containing RSA PEM contents.
+   *
+   * \param[in] filename Only used for providing filename information in error messages.
    *
    * \return An RSA key engine populated with the contents of the PEM file.
    */
@@ -999,19 +997,15 @@ public:
   /**
    * \brief Creates an ECDSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an ECDSA
-   * key engine.
+   * Receives an open file handle with PEM contents and creates an ECDSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information
-   * in error messages.
+   * \param[in] inputFile An open file handle to a file containing ECDSA PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing ECDSA PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An ECDSA key engine populated with the contents of the PEM
-   * file.
+   * \return An ECDSA key engine populated with the contents of the PEM file.
    */
   void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
@@ -1754,19 +1748,15 @@ public:
   /**
    * \brief Creates an EDDSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an EDDSA
-   * key engine.
+   * Receives an open file handle with PEM contents and creates an EDDSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in
-   * error messages.
+   * \param[in] inputFile An open file handle to a file containing EDDSA PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing EDDSA PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An EDDSA key engine populated with the contents of the PEM
-   * file.
+   * \return An EDDSA key engine populated with the contents of the PEM file.
    */
   void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 

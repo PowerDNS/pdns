@@ -26,19 +26,15 @@ public:
   /**
    * \brief Creates an ED25519 key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an
-   * ED25519 key engine.
+   * Receives an open file handle with PEM contents and creates an ED25519 key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in
-   * error messages.
+   * \param[in] inputFile An open file handle to a file containing ED25519 PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing ED25519 PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An ED25519 key engine populated with the contents of the
-   * PEM file.
+   * \return An ED25519 key engine populated with the contents of the PEM file.
    */
   void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
@@ -224,19 +220,15 @@ public:
   /**
    * \brief Creates an ED448 key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an ED448
-   * key engine.
+   * Receives an open file handle with PEM contents and creates an ED448 key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in
-   * error messages.
+   * \param[in] inputFile An open file handle to a file containing ED448 PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing ED448 PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An ED448 key engine populated with the contents of the PEM
-   * file.
+   * \return An ED448 key engine populated with the contents of the PEM file.
    */
   void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
 
