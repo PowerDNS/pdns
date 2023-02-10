@@ -6,6 +6,11 @@
 #include <string.h>
 #include <map>
 
+#ifndef DNSDIST
+#include <lmdb.h>
+#include "../../pdns/gettime.hh"
+#endif
+
 using std::string;
 using std::runtime_error;
 using std::tuple;
@@ -15,6 +20,56 @@ static string MDBError(int rc)
 {
   return mdb_strerror(rc);
 }
+
+#ifndef DNSDIST
+
+namespace LMDBLS {
+  // this also returns a pointer to the string's data. Do not hold on to it too long!
+  LSheader* LSassertFixedHeaderSize(std::string_view val) {
+    // cerr<<"val.size()="<<val.size()<<endl;
+    if (val.size() < LS_MIN_HEADER_SIZE) {
+      throw std::runtime_error("LSheader too short");
+    }
+
+    return (LSheader*)val.data();
+  }
+
+  size_t LScheckHeaderAndGetSize(std::string_view val, size_t datasize) {
+    LSheader* lsh = LSassertFixedHeaderSize(val);
+
+    if (lsh->d_version != 0) {
+      throw std::runtime_error("LSheader has wrong version (not zero)");
+    }
+
+    size_t headersize = LS_MIN_HEADER_SIZE;
+
+    headersize += ntohs(lsh->d_numextra) * LS_BLOCK_SIZE;
+
+    if (val.size() < headersize) {
+      throw std::runtime_error("LSheader too short for promised extra data");
+    }
+
+    if (datasize && val.size() < (headersize+datasize)) {
+      throw std::runtime_error("Trailing data after LSheader has wrong size");
+    }
+
+    return headersize;
+  }
+
+  size_t LScheckHeaderAndGetSize(const MDBOutVal *val, size_t datasize) {
+    return LScheckHeaderAndGetSize(val->getNoStripHeader<string_view>(), datasize);
+  }
+
+  bool LSisDeleted(std::string_view val) {
+    LSheader* lsh = LSassertFixedHeaderSize(val);
+
+    return (lsh->d_flags & LS_FLAG_DELETED) != 0;
+  }
+
+  bool s_flag_deleted{false};
+}
+
+#endif /* #ifndef DNSDIST */
 
 MDBDbi::MDBDbi(MDB_env* env, MDB_txn* txn, const string_view dbname, int flags)
 {
@@ -184,6 +239,13 @@ MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, i
 MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv* parent, int flags):
   MDBRWTransactionImpl(parent, openRWTransaction(parent, nullptr, flags))
 {
+#ifndef DNSDIST
+  struct timespec tp;
+
+  gettime(&tp, true);
+
+  d_txtime = tp.tv_sec * 1E9 + tp.tv_nsec;
+#endif
 }
 
 MDBRWTransactionImpl::~MDBRWTransactionImpl()
@@ -301,9 +363,10 @@ MDBRWCursor MDBRWTransactionImpl::getRWCursor(const MDBDbi& dbi)
   MDB_cursor *cursor;
   int rc= mdb_cursor_open(d_txn, dbi, &cursor);
   if(rc) {
-    throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+    throw std::runtime_error("Error creating RW cursor: "+std::string(mdb_strerror(rc)));
   }
-  return MDBRWCursor(d_rw_cursors, cursor);
+
+  return MDBRWCursor(d_rw_cursors, cursor, d_txn, d_txtime);
 }
 
 MDBRWCursor MDBRWTransactionImpl::getCursor(const MDBDbi &dbi)

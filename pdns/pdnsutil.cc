@@ -1,4 +1,5 @@
 
+#include "modules/lmdbbackend/lmdbbackend.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1517,6 +1518,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     return EXIT_FAILURE;
   }
 
+  cerr<<"di.id="<<di.id<<endl;
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
@@ -2649,6 +2651,20 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
+  if (cmds.at(0) == "lmdb-get-schema-version") {
+    // FIXME: add command to help
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnsutil lmdb-get-schema-version /path/to/pdns.lmdb"<<endl;
+      return 0;
+    }
+
+    auto res = LMDBBackend::getSchemaVersionAndShards(cmds.at(1));
+    cerr << "schemaversion: "<<res.first<<endl;
+    cerr << "shards: "<<res.second<<endl;
+    cout << res.first <<endl;
+
+    return 0;
+  }
   if (cmds.at(0) == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;

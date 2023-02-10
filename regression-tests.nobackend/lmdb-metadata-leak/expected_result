@@ -1,0 +1,32 @@
+=== random=no
+== creating zone
+Set 'example.com' meta FOO = BAR
+	FOO	BAR
+FOO
+Set 'example.com' meta FOO2 = BAR2
+	FOO	BAR
+	FOO2	BAR2
+FOO
+FOO2
+Set 'example.com' meta FOO2 = BAR2
+	FOO	BAR
+	FOO2	BAR2
+FOO
+FOO2
+== deleting zone
+=== random=yes
+== creating zone
+Set 'example.com' meta FOO = BAR
+	FOO	BAR
+FOO
+Set 'example.com' meta FOO2 = BAR2
+	FOO	BAR
+	FOO2	BAR2
+FOO
+FOO2
+Set 'example.com' meta FOO2 = BAR2
+	FOO	BAR
+	FOO2	BAR2
+FOO
+FOO2
+== deleting zone

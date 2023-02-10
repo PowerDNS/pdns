@@ -7,7 +7,7 @@ unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi)
   MDBOutVal maxidval, maxcontent;
   unsigned int maxid{0};
   if(!cursor.get(maxidval, maxcontent, MDB_LAST)) {
-    maxid = maxidval.get<unsigned int>();
+    maxid = maxidval.getNoStripHeader<unsigned int>();
   }
   return maxid;
 }
@@ -28,5 +28,3 @@ unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi)
   }
   throw std::runtime_error("MDBGetRandomID() could not assign an unused random ID");
 }
-
-
