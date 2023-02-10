@@ -1,6 +1,6 @@
 clean-certs:
 	rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp
-clean-config:
+clean-configs:
 	rm -rf configs/*
 certs:
 	# Generate a new CA
