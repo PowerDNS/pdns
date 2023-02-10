@@ -42,6 +42,24 @@ In this case the address ``128.66.1.2`` is excluded from the addresses allowed a
 The number of records to cache in the aggressive cache. If set to a value greater than 0, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in :rfc:`8198`.
 To use this, DNSSEC processing or validation must be enabled by setting `dnssec`_ to ``process``, ``log-fail`` or ``validate``.
 
+.. _setting-aggressive-cache-max-nsec3-hit-ratio:
+
+``aggressive-cache-min-nsec3-hit-ratio``
+----------------------------------------
+
+.. versionadded: 4.9.0
+
+- Integer
+- Default: 2000
+
+The limit for which to put NSEC3 records into the aggressive cache.
+A value of ``n`` means that an NSEC3 record is only put into the aggressive cache if the estimated probability of a random name hitting the NSEC3 record is higher than ``1/n``.
+A higher ``n`` will cause more records to be put into the aggressive cache, e.g. a value of 4000 will cause records to be put in the aggressive cache even if the estimated probability of hitting them is twice as low as would be the case for ``n=2000``.
+A value of 0 means no NSEC3 records will be put into the aggressive cache.
+
+For large zones the effectiveness of the NSEC3 cache is reduced since each NSEC3 record only covers a randomly distributed subset of all possible names.
+This setting avoids doing unneccessary work for such large zones.
+
 .. _setting-allow-from:
 
 ``allow-from``

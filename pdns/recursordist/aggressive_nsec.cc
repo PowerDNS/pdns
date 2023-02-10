@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <cinttypes>
+#include <climits>
 
 #include "aggressive_nsec.hh"
 #include "cachecleaner.hh"
@@ -28,6 +29,7 @@
 #include "validate.hh"
 
 std::unique_ptr<AggressiveNSECCache> g_aggressiveNSECCache{nullptr};
+uint8_t AggressiveNSECCache::s_maxNSEC3CommonPrefix = AggressiveNSECCache::s_default_maxNSEC3CommonPrefix;
 
 /* this is defined in syncres.hh and we are not importing that here */
 extern std::unique_ptr<MemRecursorCache> g_recCache;
@@ -226,25 +228,51 @@ static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<
   return true;
 }
 
-// This function name is somewhat misleading. It only returns true if the nextHash is ownerHash+2, as is common
-// in minimally covering NXDOMAINs (i.e. the NSEC3 covers hash[deniedname]-1 .. hash[deniedname]+2.
-// Minimally covering NSEC3s for NODATA tend to be ownerHash+1, because they need to prove the name, so they
-// can tell us what types are in the bitmap for that name. For those names, this function returns false.
-// This is on purpose because NODATA denials actually do contain useful information we can reuse later -
-// specifically, the type bitmap for a name that does exist.
-static bool isMinimallyCoveringNSEC3(const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec)
+static bool commonPrefixIsLong(const string& one, const string& two, size_t bound)
 {
-  std::string ownerHash(owner.getStorage().c_str(), owner.getStorage().size());
-  const std::string& nextHash = nsec->d_nexthash;
+  size_t length = 0;
+  const auto minLength = std::min(one.length(), two.length());
 
-  incrementHash(ownerHash);
-  incrementHash(ownerHash);
+  for (size_t i = 0; i < minLength; i++) {
+    const auto byte1 = one.at(i);
+    const auto byte2 = two.at(i);
+    // shortcut
+    if (byte1 == byte2) {
+      length += CHAR_BIT;
+      if (length > bound) {
+        return true;
+      }
+      continue;
+    }
+    // bytes differ, let's look at the bits
+    for (ssize_t j = CHAR_BIT - 1; j >= 0; j--) {
+      const auto bit1 = byte1 & (1 << j);
+      const auto bit2 = byte2 & (1 << j);
+      if (bit1 != bit2) {
+        return length > bound;
+      }
+      length++;
+      if (length > bound) {
+        return true;
+      }
+    }
+  }
+  return length > bound;
+}
 
-  return ownerHash == nextHash;
+// If the NSEC3 hashes have a long common prefix, they deny only a small subset of all possible hashes
+// So don't take the trouble to store those.
+bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash)
+{
+  std::string ownerHash(fromBase32Hex(owner.getRawLabel(0)));
+  return commonPrefixIsLong(ownerHash, nextHash, AggressiveNSECCache::s_maxNSEC3CommonPrefix);
 }
 
 void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3)
 {
+  if (nsec3 && nsec3Disabled()) {
+    return;
+  }
   if (signatures.empty()) {
     return;
   }
@@ -293,8 +321,8 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
-      if (isMinimallyCoveringNSEC3(owner, content)) {
-        /* not accepting minimally covering answers since they only deny one name */
+      if (isSmallCoveringNSEC3(owner, content->d_nexthash)) {
+        /* not accepting small covering answers since they only deny a small subset */
         return;
       }
 

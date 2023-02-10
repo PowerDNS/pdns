@@ -40,9 +40,17 @@ using namespace ::boost::multi_index;
 class AggressiveNSECCache
 {
 public:
+  static const uint8_t s_default_maxNSEC3CommonPrefix = 10;
+  static uint8_t s_maxNSEC3CommonPrefix;
+
   AggressiveNSECCache(uint64_t entries) :
     d_maxEntries(entries)
   {
+  }
+
+  static bool nsec3Disabled()
+  {
+    return s_maxNSEC3CommonPrefix == 0;
   }
 
   void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3);
@@ -74,6 +82,9 @@ public:
   {
     return d_nsec3WildcardHits;
   }
+
+  // exported for unit test purposes
+  static bool isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash);
 
   void prune(time_t now);
   size_t dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp, const struct timeval& now);

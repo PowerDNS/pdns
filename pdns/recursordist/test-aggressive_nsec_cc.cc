@@ -6,6 +6,26 @@
 
 BOOST_AUTO_TEST_SUITE(aggressive_nsec_cc)
 
+BOOST_AUTO_TEST_CASE(test_small_coverering_nsec3)
+{
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 1;
+
+  const std::vector<std::tuple<string, string, uint8_t, bool>> table = {
+    {"gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 157, true},
+    {"gujhshp2lhmnpoo9qde4blg4gq3hgl99", "gujhshp2lhmnpoo9qde4blg4gq3hgl9a", 158, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "vujhshp2lhmnpoo9qde4blg4gq3hgl9a", 0, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, true},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 2, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "fujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
+    {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
+  };
+
+  for (const auto& [owner, next, boundary, result] : table) {
+    AggressiveNSECCache::s_maxNSEC3CommonPrefix = boundary;
+    BOOST_CHECK_EQUAL(AggressiveNSECCache::isSmallCoveringNSEC3(DNSName(owner), fromBase32Hex(next)), result);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
@@ -514,6 +534,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -706,6 +727,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -1222,6 +1244,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 {
   /* test that we don't compare a hash using the wrong (former) salt or iterations count in case of a rollover,
      or when different servers use different parameters */
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   auto cache = make_unique<AggressiveNSECCache>(10000);
   g_recCache = std::make_unique<MemRecursorCache>();
 
@@ -1524,6 +1547,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
 {
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
   auto cache = make_unique<AggressiveNSECCache>(10000);
   g_recCache = std::make_unique<MemRecursorCache>();
 
