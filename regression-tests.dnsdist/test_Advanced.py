@@ -662,3 +662,70 @@ class TestChangeName(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, changedQuery)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestFlagsOnTimeout(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    -- this server is not going to answer, resulting in a timeout
+    newServer{address="192.0.2.1:%s"}:setUp()
+    """
+
+    def testFlags(self):
+        """
+        Advanced: Test that we record the correct incoming flags on a timeout
+        """
+        name = 'timeout-flags.advanced.tests.powerdns.com.'
+
+        # first with RD=1
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 42
+        query.flags |= dns.flags.RD
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertFalse(receivedResponse)
+
+        # then with RD=0
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 84
+        query.flags &= ~dns.flags.RD
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertFalse(receivedResponse)
+
+        # make sure that the timeouts have been detected and recorded
+        for _ in range(3):
+            content = self.sendConsoleCommand("grepq('')")
+            lines = content.splitlines()
+            if len(lines) == 5:
+                break
+            # and otherwise sleep for a short while
+            time.sleep(1)
+
+        print(lines)
+        self.assertEqual(len(lines), 5)
+        # header line
+        self.assertIn('TC RD AA', lines[0])
+
+        queries = {}
+        timeouts = {}
+
+        for line in lines[1:]:
+            self.assertIn('DoUDP', line)
+            if 'T.O' in line:
+                queryID = int(line.split()[4])
+                timeouts[queryID] = line
+            else:
+                queryID = int(line.split()[3])
+                queries[queryID] = line
+            if queryID == 42:
+                self.assertIn('RD', line)
+            else:
+                self.assertNotIn('RD', line)
+
+        self.assertEqual(len(timeouts), 2)
+        self.assertEqual(len(queries), 2)

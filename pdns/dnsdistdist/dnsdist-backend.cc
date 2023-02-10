@@ -346,6 +346,8 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
     struct dnsheader fake;
     memset(&fake, 0, sizeof(fake));
     fake.id = ids.internal.origID;
+    uint16_t* flags = getFlagsFromDNSHeader(&fake);
+    *flags = ids.internal.origFlags;
 
     g_rings.insertResponse(ts, ids.internal.origRemote, ids.internal.qname, ids.internal.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
   }
