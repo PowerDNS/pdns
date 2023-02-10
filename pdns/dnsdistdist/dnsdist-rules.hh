@@ -40,6 +40,7 @@ public:
   MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10):
     d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
   {
+    d_cleaningUp.clear();
     gettime(&d_lastCleanup, true);
   }
 
@@ -83,13 +84,23 @@ public:
       cutOff.tv_sec += d_cleanupDelay;
 
       if (cutOff < now) {
-        /* the QPS Limiter doesn't use realtime, be careful! */
-        gettime(&cutOff, false);
-        cutOff.tv_sec -= d_expiration;
+        try {
+          if (d_cleaningUp.test_and_set()) {
+            return;
+          }
 
-        cleanup(cutOff);
+          d_lastCleanup = now;
+          /* the QPS Limiter doesn't use realtime, be careful! */
+          gettime(&cutOff, false);
+          cutOff.tv_sec -= d_expiration;
 
-        d_lastCleanup = now;
+          cleanup(cutOff);
+          d_cleaningUp.clear();
+        }
+        catch (...) {
+          d_cleaningUp.clear();
+          throw;
+        }
       }
     }
   }
@@ -148,6 +159,7 @@ private:
   mutable struct timespec d_lastCleanup;
   unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
   unsigned int d_scanFraction{10};
+  mutable std::atomic_flag d_cleaningUp;
 };
 
 class MaxQPSRule : public DNSRule
