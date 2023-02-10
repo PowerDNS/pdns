@@ -463,7 +463,7 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     BOOST_REQUIRE(inputFile.get() != nullptr);
 
     DNSKEYRecordContent pemDRC;
-    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, "<buffer>", *inputFile, signer.algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, signer.algorithm, *inputFile, "<buffer>")};
 
     BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 

@@ -3481,7 +3481,7 @@ try
     }
 
     DNSKEYRecordContent drc;
-    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, filename, *fp, algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, algorithm, *fp, filename)};
     if (!key) {
       cerr << "Could not convert key from PEM to internal format" << endl;
       return 1;

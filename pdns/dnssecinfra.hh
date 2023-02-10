@@ -86,24 +86,22 @@ class DNSCryptoKeyEngine
     /**
      * \brief Creates a key engine from a PEM file.
      *
-     * Receives an open file handle with PEM contents and creates a key
-     * engine corresponding to the algorithm requested.
+     * Receives an open file handle with PEM contents and creates a key engine
+     * corresponding to the algorithm requested.
      *
      * \param[in] drc Key record contents to be populated.
-     *
-     * \param[in] filename Only used for providing filename information
-     * in error messages.
-     *
-     * \param[in] fp An open file handle to a file containing PEM
-     * contents.
      *
      * \param[in] algorithm Which algorithm to use. See
      * https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
      *
-     * \return A key engine corresponding to the requested algorithm and
-     * populated with the contents of the PEM file.
+     * \param[in] fp An open file handle to a file containing PEM contents.
+     *
+     * \param[in] filename Only used for providing filename information in error messages.
+     *
+     * \return A key engine corresponding to the requested algorithm and populated with
+     * the contents of the PEM file.
      */
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile, uint8_t algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, uint8_t algorithm, std::FILE& inputFile, const std::string& filename);
 
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
