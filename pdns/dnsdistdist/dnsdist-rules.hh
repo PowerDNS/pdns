@@ -37,8 +37,8 @@
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10):
-    d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
+  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10, size_t shardsCount=10):
+    d_shards(shardsCount), d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
   {
     d_cleaningUp.clear();
     gettime(&d_lastCleanup, true);
@@ -46,32 +46,40 @@ public:
 
   void clear()
   {
-    d_limits.lock()->clear();
+    for (auto& shard : d_shards) {
+      shard.lock()->clear();
+    }
   }
 
   size_t cleanup(const struct timespec& cutOff, size_t* scannedCount=nullptr) const
   {
-    auto limits = d_limits.lock();
-    size_t toLook = limits->size() / d_scanFraction + 1;
-    size_t lookedAt = 0;
-
     size_t removed = 0;
-    auto& sequence = limits->get<SequencedTag>();
-    for (auto entry = sequence.begin(); entry != sequence.end() && lookedAt < toLook; lookedAt++) {
-      if (entry->d_limiter.seenSince(cutOff)) {
-        /* entries are ordered from least recently seen to more recently
-           seen, as soon as we see one that has not expired yet, we are
-           done */
-        lookedAt++;
-        break;
-      }
-
-      entry = sequence.erase(entry);
-      removed++;
+    if (scannedCount != nullptr) {
+      *scannedCount = 0;
     }
 
-    if (scannedCount != nullptr) {
-      *scannedCount = lookedAt;
+    for (auto& shard : d_shards) {
+      auto limits = shard.lock();
+      const size_t toLook = std::round((1.0 * limits->size()) / d_scanFraction)+ 1;
+      size_t lookedAt = 0;
+
+      auto& sequence = limits->get<SequencedTag>();
+      for (auto entry = sequence.begin(); entry != sequence.end() && lookedAt < toLook; lookedAt++) {
+        if (entry->d_limiter.seenSince(cutOff)) {
+          /* entries are ordered from least recently seen to more recently
+             seen, as soon as we see one that has not expired yet, we are
+             done */
+          lookedAt++;
+          break;
+        }
+
+        entry = sequence.erase(entry);
+        removed++;
+      }
+
+      if (scannedCount != nullptr) {
+        *scannedCount += lookedAt;
+      }
     }
 
     return removed;
@@ -112,8 +120,10 @@ public:
     ComboAddress zeroport(dq->ids.origRemote);
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
+    auto hash = ComboAddress::addressOnlyHash()(zeroport);
+    auto& shard = d_shards[hash % d_shards.size()];
     {
-      auto limits = d_limits.lock();
+      auto limits = shard.lock();
       auto iter = limits->find(zeroport);
       if (iter == limits->end()) {
         Entry e(zeroport, QPSLimiter(d_qps, d_burst));
@@ -132,7 +142,16 @@ public:
 
   size_t getEntriesCount() const
   {
-    return d_limits.lock()->size();
+    size_t count = 0;
+    for (auto& shard : d_shards) {
+      count += shard.lock()->size();
+    }
+    return count;
+  }
+
+  size_t getNumberOfShards() const
+  {
+    return d_shards.size();
   }
 
 private:
@@ -155,10 +174,10 @@ private:
       >
   > qpsContainer_t;
 
-  mutable LockGuarded<qpsContainer_t> d_limits;
+  mutable std::vector<LockGuarded<qpsContainer_t>> d_shards;
   mutable struct timespec d_lastCleanup;
-  unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
-  unsigned int d_scanFraction{10};
+  const unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
+  const unsigned int d_scanFraction{10};
   mutable std::atomic_flag d_cleaningUp;
 };
 
