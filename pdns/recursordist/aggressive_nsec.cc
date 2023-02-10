@@ -468,7 +468,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   std::vector<std::shared_ptr<RRSIGRecordContent>> wcSignatures;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
-    VLOG(log, "Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
+    VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
 
@@ -477,7 +477,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   addRecordToRRSet(now, nextCloser.d_owner, QType::NSEC3, nextCloser.d_ttd - now, nextCloser.d_record, nextCloser.d_signatures, doDNSSEC, ret);
   /* and of course we won't deny the wildcard either */
 
-  VLOG(log, "Synthesized valid answer from NSEC3s and wildcard!" << endl);
+  VLOG(log, name << ": Synthesized valid answer from NSEC3s and wildcard!" << endl);
   ++d_nsec3WildcardHits;
   return true;
 }
@@ -490,14 +490,14 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   std::vector<std::shared_ptr<RRSIGRecordContent>> wcSignatures;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
-    VLOG(log, "Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
+    VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
 
   addToRRSet(now, wcSet, wcSignatures, name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
   addRecordToRRSet(now, nsec.d_owner, QType::NSEC, nsec.d_ttd - now, nsec.d_record, nsec.d_signatures, doDNSSEC, ret);
 
-  VLOG(log, "Synthesized valid answer from NSECs and wildcard!" << endl);
+  VLOG(log, name << ": Synthesized valid answer from NSECs and wildcard!" << endl);
   ++d_nsecWildcardHits;
   return true;
 }
@@ -522,15 +522,15 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
 
   ZoneEntry::CacheEntry exactNSEC3;
   if (getNSEC3(now, zoneEntry, nameHash, exactNSEC3)) {
-    VLOG(log, "Found a direct NSEC3 match for " << nameHash);
+    VLOG(log, name << ": Found a direct NSEC3 match for " << nameHash);
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(exactNSEC3.d_record);
     if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
-      VLOG(log, " but the content is not valid, or has a different salt or iterations count" << endl);
+      VLOG_NO_PREFIX(log, " but the content is not valid, or has a different salt or iterations count" << endl);
       return false;
     }
 
     if (!isTypeDenied(nsec3, type)) {
-      VLOG(log, " but the requested type (" << type.toString() << ") does exist" << endl);
+      VLOG_NO_PREFIX(log, " but the requested type (" << type.toString() << ") does exist" << endl);
       return false;
     }
 
@@ -544,12 +544,12 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
          that (original) owner name other than DS RRs, and all RRs below that
          owner name regardless of type.
       */
-      VLOG(log, " but this is an ancestor delegation NSEC3" << endl);
+      VLOG_NO_PREFIX(log, " but this is an ancestor delegation NSEC3" << endl);
       return false;
     }
 
     if (type == QType::DS && !name.isRoot() && signer == name) {
-      VLOG(log, " but this NSEC3 comes from the child zone and cannot be used to deny a DS");
+      VLOG_NO_PREFIX(log, " but this NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
 
@@ -561,7 +561,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     return true;
   }
 
-  VLOG(log, "No direct NSEC3 match found for " << nameHash << ", looking for closest encloser" << endl);
+  VLOG(log, name << ": No direct NSEC3 match found for " << nameHash << ", looking for closest encloser" << endl);
   DNSName closestEncloser(name);
   bool found = false;
   ZoneEntry::CacheEntry closestNSEC3;
@@ -569,11 +569,11 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     auto closestHash = DNSName(toBase32Hex(hashQNameWithSalt(salt, iterations, closestEncloser))) + zone;
 
     if (getNSEC3(now, zoneEntry, closestHash, closestNSEC3)) {
-      VLOG(log, "Found closest encloser at " << closestEncloser << " (" << closestHash << ")" << endl);
+      VLOG(log, name << ": Found closest encloser at " << closestEncloser << " (" << closestHash << ")" << endl);
 
       auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(closestNSEC3.d_record);
       if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
-        VLOG(log, " but the content is not valid, or has a different salt or iterations count" << endl);
+        VLOG_NO_PREFIX(log, " but the content is not valid, or has a different salt or iterations count" << endl);
         break;
       }
 
@@ -587,12 +587,12 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
            that (original) owner name other than DS RRs, and all RRs below that
            owner name regardless of type.
         */
-        VLOG(log, " but this is an ancestor delegation NSEC3" << endl);
+        VLOG_NO_PREFIX(log, " but this is an ancestor delegation NSEC3" << endl);
         break;
       }
 
       if (type == QType::DS && !name.isRoot() && signer == name) {
-        VLOG(log, " but this NSEC3 comes from the child zone and cannot be used to deny a DS");
+        VLOG_NO_PREFIX(log, " but this NSEC3 comes from the child zone and cannot be used to deny a DS");
         return false;
       }
 
@@ -602,7 +602,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
   }
 
   if (!found) {
-    VLOG(log, "Nothing found for the closest encloser in NSEC3 aggressive cache either" << endl);
+    VLOG(log, name << ": Nothing found for the closest encloser in NSEC3 aggressive cache either" << endl);
     return false;
   }
 
@@ -615,22 +615,22 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
   DNSName nextCloser(closestEncloser);
   nextCloser.prependRawLabel(name.getRawLabel(labelIdx - 1));
   auto nextCloserHash = toBase32Hex(hashQNameWithSalt(salt, iterations, nextCloser));
-  VLOG(log, "Looking for a NSEC3 covering the next closer " << nextCloser << " (" << nextCloserHash << ")" << endl);
+  VLOG(log, name << ": Looking for a NSEC3 covering the next closer " << nextCloser << " (" << nextCloserHash << ")" << endl);
 
   ZoneEntry::CacheEntry nextCloserEntry;
   if (!getNSECBefore(now, zoneEntry, DNSName(nextCloserHash) + zone, nextCloserEntry)) {
-    VLOG(log, "Nothing found for the next closer in NSEC3 aggressive cache" << endl);
+    VLOG(log, name << ": Nothing found for the next closer in NSEC3 aggressive cache" << endl);
     return false;
   }
 
   if (!isCoveredByNSEC3Hash(DNSName(nextCloserHash) + zone, nextCloserEntry.d_owner, nextCloserEntry.d_next)) {
-    VLOG(log, "No covering record found for the next closer in NSEC3 aggressive cache" << endl);
+    VLOG(log, name << ": No covering record found for the next closer in NSEC3 aggressive cache" << endl);
     return false;
   }
 
   auto nextCloserNsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(nextCloserEntry.d_record);
   if (!nextCloserNsec3 || nextCloserNsec3->d_iterations != iterations || nextCloserNsec3->d_salt != salt) {
-    VLOG(log, "The NSEC3 covering the next closer is not valid, or has a different salt or iterations count, bailing out" << endl);
+    VLOG(log, name << ": The NSEC3 covering the next closer is not valid, or has a different salt or iterations count, bailing out" << endl);
     return false;
   }
 
@@ -644,20 +644,20 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
      name (we don't insert opt-out NSEC3s into the cache). */
   DNSName wildcard(g_wildcarddnsname + closestEncloser);
   auto wcHash = toBase32Hex(hashQNameWithSalt(salt, iterations, wildcard));
-  VLOG(log, "Looking for a NSEC3 covering the wildcard " << wildcard << " (" << wcHash << ")" << endl);
+  VLOG(log, name << ": Looking for a NSEC3 covering the wildcard " << wildcard << " (" << wcHash << ")" << endl);
 
   ZoneEntry::CacheEntry wcEntry;
   if (!getNSECBefore(now, zoneEntry, DNSName(wcHash) + zone, wcEntry)) {
-    VLOG(log, "Nothing found for the wildcard in NSEC3 aggressive cache" << endl);
+    VLOG(log, name << ": Nothing found for the wildcard in NSEC3 aggressive cache" << endl);
     return false;
   }
 
   if ((DNSName(wcHash) + zone) == wcEntry.d_owner) {
-    VLOG(log, "Found an exact match for the wildcard");
+    VLOG(log, name << ": Found an exact match for the wildcard");
 
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(wcEntry.d_record);
     if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
-      VLOG(log, " but the content is not valid, or has a different salt or iterations count" << endl);
+      VLOG_NO_PREFIX(log, " but the content is not valid, or has a different salt or iterations count" << endl);
       return false;
     }
 
@@ -671,17 +671,17 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
          that (original) owner name other than DS RRs, and all RRs below that
          owner name regardless of type.
       */
-      VLOG(log, " but the NSEC3 covering the wildcard is an ancestor delegation NSEC3, bailing out" << endl);
+      VLOG_NO_PREFIX(log, " but the NSEC3 covering the wildcard is an ancestor delegation NSEC3, bailing out" << endl);
       return false;
     }
 
     if (type == QType::DS && !name.isRoot() && wcSigner == name) {
-      VLOG(log, " but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
+      VLOG_NO_PREFIX(log, " but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
 
     if (!isTypeDenied(nsec3, type)) {
-      VLOG(log, " but the requested type (" << type.toString() << ") does exist" << endl);
+      VLOG_NO_PREFIX(log, " but the requested type (" << type.toString() << ") does exist" << endl);
       return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard, log);
     }
 
@@ -690,19 +690,19 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
   }
   else {
     if (!isCoveredByNSEC3Hash(DNSName(wcHash) + zone, wcEntry.d_owner, wcEntry.d_next)) {
-      VLOG(log, "No covering record found for the wildcard in aggressive cache" << endl);
+      VLOG(log, name << ": No covering record found for the wildcard in aggressive cache" << endl);
       return false;
     }
 
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(wcEntry.d_record);
     if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
-      VLOG(log, "The content of the NSEC3 covering the wildcard is not valid, or has a different salt or iterations count" << endl);
+      VLOG(log, name << ": The content of the NSEC3 covering the wildcard is not valid, or has a different salt or iterations count" << endl);
       return false;
     }
 
     const DNSName wcSigner = getSigner(wcEntry.d_signatures);
     if (type == QType::DS && !name.isRoot() && wcSigner == name) {
-      VLOG(log, " but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
+      VLOG_NO_PREFIX(log, " but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
 
@@ -722,7 +722,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     addRecordToRRSet(now, wcEntry.d_owner, QType::NSEC3, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
   }
 
-  VLOG(log, "Found valid NSEC3s covering the requested name and type!" << endl);
+  VLOG(log, name << ": Found valid NSEC3s covering the requested name and type!" << endl);
   ++d_nsec3Hits;
   return true;
 }
@@ -762,7 +762,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   std::vector<std::shared_ptr<RRSIGRecordContent>> soaSignatures;
   /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
   if (g_recCache->get(now, zone, QType::SOA, MemRecursorCache::RequireAuth, &soaSet, who, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
-    VLOG(log, "No valid SOA found for " << zone << ", which is the best match for " << name << endl);
+    VLOG(log, name << ": No valid SOA found for " << zone << ", which is the best match for " << name << endl);
     return false;
   }
 
@@ -775,9 +775,9 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   bool covered = false;
   bool needWildcard = false;
 
-  VLOG(log, "Looking for a NSEC before " << name);
+  VLOG(log, name << ": Looking for a NSEC before " << name);
   if (!getNSECBefore(now, zoneEntry, name, entry)) {
-    VLOG(log, ": nothing found in the aggressive cache" << endl);
+    VLOG_NO_PREFIX(log, ": nothing found in the aggressive cache" << endl);
     return false;
   }
 
@@ -786,30 +786,30 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     return false;
   }
 
-  VLOG(log, ": found a possible NSEC at " << entry.d_owner << " ");
+  VLOG_NO_PREFIX(log, ": found a possible NSEC at " << entry.d_owner << " ");
   // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
   auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures, log);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
-    VLOG(log, " but it does no cover us" << endl);
+    VLOG_NO_PREFIX(log, " but it does not cover us" << endl);
     return false;
   }
   else if (denial == dState::NXQTYPE) {
     covered = true;
-    VLOG(log, " and it proves that the type does not exist" << endl);
+    VLOG_NO_PREFIX(log, " and it proves that the type does not exist" << endl);
     res = RCode::NoError;
   }
   else if (denial == dState::NXDOMAIN) {
-    VLOG(log, " and it proves that the name does not exist" << endl);
+    VLOG_NO_PREFIX(log, " and it proves that the name does not exist" << endl);
     DNSName closestEncloser = getClosestEncloserFromNSEC(name, entry.d_owner, entry.d_next);
     DNSName wc = g_wildcarddnsname + closestEncloser;
 
-    VLOG(log, "Now looking for a NSEC before the wildcard " << wc);
+    VLOG(log, name << ": Now looking for a NSEC before the wildcard " << wc);
     if (!getNSECBefore(now, zoneEntry, wc, wcEntry)) {
-      VLOG(log, ": nothing found in the aggressive cache" << endl);
+      VLOG_NO_PREFIX(log, ": nothing found in the aggressive cache" << endl);
       return false;
     }
 
-    VLOG(log, ": found a possible NSEC at " << wcEntry.d_owner << " ");
+    VLOG_NO_PREFIX(log, ": found a possible NSEC at " << wcEntry.d_owner << " ");
 
     auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(wcEntry.d_record);
 
@@ -817,21 +817,21 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
 
       if (wcEntry.d_owner == wc) {
-        VLOG(log, " proving that the wildcard does exist" << endl);
+        VLOG_NO_PREFIX(log, " proving that the wildcard does exist" << endl);
         return synthesizeFromNSECWildcard(now, name, type, ret, res, doDNSSEC, entry, wc, log);
       }
 
-      VLOG(log, " but it does no cover us" << endl);
+      VLOG_NO_PREFIX(log, " but it does no cover us" << endl);
 
       return false;
     }
     else if (denial == dState::NXQTYPE) {
-      VLOG(log, " and it proves that there is a matching wildcard, but the type does not exist" << endl);
+      VLOG_NO_PREFIX(log, " and it proves that there is a matching wildcard, but the type does not exist" << endl);
       covered = true;
       res = RCode::NoError;
     }
     else if (denial == dState::NXDOMAIN) {
-      VLOG(log, " and it proves that there is no matching wildcard" << endl);
+      VLOG_NO_PREFIX(log, " and it proves that there is no matching wildcard" << endl);
       covered = true;
       res = RCode::NXDomain;
     }
@@ -854,7 +854,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     addRecordToRRSet(now, wcEntry.d_owner, QType::NSEC, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
   }
 
-  VLOG(log, "Found valid NSECs covering the requested name and type!" << endl);
+  VLOG(log, name << ": Found valid NSECs covering the requested name and type!" << endl);
   ++d_nsecHits;
   return true;
 }

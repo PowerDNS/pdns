@@ -98,6 +98,7 @@ int main(int argc, char** argv)
     "dump-non-resolving",
     "dump-saved-parent-ns-sets",
     "dump-dot-probe-map",
+    "trace-regex",
   };
   try {
     initArguments(argc, argv);
@@ -145,16 +146,22 @@ int main(int argc, char** argv)
         command += " ";
       }
       command += commands[i];
-      if (fileCommands.count(commands[i]) > 0) {
+
+      // special case: trace-regex with no arguments is clear regex
+      auto traceregexClear = command == "trace-regex" && commands.size() == 1;
+
+      if (fileCommands.count(commands[i]) > 0 && !traceregexClear) {
         if (i + 1 < commands.size()) {
           // dump-rpz is different, it also has a zonename as argument
-          if (commands[i] == "dump-rpz") {
+          // trace-regex is different, it also has a regexp as argument
+          if (commands[i] == "dump-rpz" || commands[i] == "trace-regex") {
             if (i + 2 < commands.size()) {
               ++i;
-              command += " " + commands[i]; // add rpzname and continue with filename
+              command += " ";
+              command += commands[i]; // add rpzname/regex and continue with filename
             }
             else {
-              throw PDNSException("Command needs a zone and file argument");
+              throw PDNSException("Command needs two arguments");
             }
           }
           ++i;

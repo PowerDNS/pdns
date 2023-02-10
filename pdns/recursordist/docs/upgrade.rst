@@ -15,6 +15,10 @@ This is now resolved, but has the consequence that some metrics (in particular r
 This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
 
+:program:`rec_control`
+^^^^^^^^^^^^^^^^^^^^^^
+The ``trace_regex`` subcommand has been changed to take a file argument.
+Refer to :doc:`rec_control trace-regex <manpages/rec_control.1>` and :ref:`tracing` for details and example use.
 
 4.8.1 to 4.8.2
 --------------

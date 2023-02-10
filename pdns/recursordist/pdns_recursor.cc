@@ -42,6 +42,7 @@
 
 thread_local std::shared_ptr<RecursorLua4> t_pdl;
 thread_local std::shared_ptr<Regex> t_traceRegex;
+thread_local FDWrapper t_tracefd = -1;
 thread_local ProtobufServersInfo t_protobufServers;
 thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
@@ -837,6 +838,43 @@ static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<F
 }
 #endif // HAVE_FSTRM
 
+static void dumpTrace(const string& trace, const timeval& timev)
+{
+  if (trace.empty()) {
+    return;
+  }
+  timeval now{};
+  Utility::gettimeofday(&now);
+  int traceFd = dup(t_tracefd);
+  if (traceFd == -1) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Could not dup trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Could not dup trace file"));
+    return;
+  }
+  setNonBlocking(traceFd);
+  auto filep = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(traceFd, "a"), &fclose);
+  if (!filep) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Could not write to trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Could not write to trace file"));
+    close(traceFd);
+    return;
+  }
+  std::array<char, 64> timebuf;
+  isoDateTimeMillis(timev, timebuf.data(), timebuf.size());
+  fprintf(filep.get(), " us === START OF TRACE %s ===\n", timebuf.data());
+  fprintf(filep.get(), "%s", trace.c_str());
+  isoDateTimeMillis(now, timebuf.data(), timebuf.size());
+  fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
+  if (ferror(filep.get())) {
+    int err = errno;
+    SLOG(g_log << Logger::Error << "Problems writing to trace file: " << stringerror(err) << endl,
+         g_slog->withName("trace")->error(Logr::Error, err, "Problems writing to trace file"));
+  }
+  // fclose by unique_ptr does implicit flush
+}
+
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1060,7 +1098,6 @@ void startDoResolve(void* p)
     if (t_traceRegex && t_traceRegex->match(dc->d_mdp.d_qname.toString())) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery = true;
-      sr.setId("T");
     }
 
     if (!g_quiet || tracedQuery) {
@@ -1281,15 +1318,7 @@ void startDoResolve(void* p)
 
   haveAnswer:;
     if (tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail) {
-      string trace(sr.getTrace());
-      if (!trace.empty()) {
-        vector<string> lines;
-        boost::split(lines, trace, boost::is_any_of("\n"));
-        for (const string& line : lines) {
-          if (!line.empty())
-            g_log << Logger::Warning << line << endl;
-        }
-      }
+      dumpTrace(sr.getTrace(), sr.d_fixednow);
     }
 
     if (res == -1) {

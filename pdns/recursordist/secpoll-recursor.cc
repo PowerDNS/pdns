@@ -35,6 +35,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
     sr.setDoDNSSEC(true);
     sr.setDNSSECValidationRequested(true);
   }
+  sr.setId("SecPoll");
 
   vector<DNSRecord> ret;
 

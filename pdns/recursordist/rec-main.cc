@@ -3091,24 +3091,31 @@ RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iter
   return broadcastAccFunction<RecursorControlChannel::Answer>(doReloadLuaScript);
 }
 
-static string* pleaseUseNewTraceRegex(const std::string& newRegex)
-try {
-  if (newRegex.empty()) {
-    t_traceRegex.reset();
-    return new string("unset\n");
-  }
-  else {
+static string* pleaseUseNewTraceRegex(const std::string& newRegex, int file)
+{
+  try {
+    if (newRegex.empty()) {
+      t_traceRegex.reset();
+      t_tracefd = FDWrapper();
+      return new string("unset\n");
+    }
+    if (file == -1) {
+      return new string("could not dup file\n");
+    }
     t_traceRegex = std::make_shared<Regex>(newRegex);
+    t_tracefd = file;
     return new string("ok\n");
   }
-}
-catch (PDNSException& ae) {
-  return new string(ae.reason + "\n");
+  catch (const PDNSException& ae) {
+    return new string(ae.reason + "\n");
+  }
 }
 
-string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end)
+string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector<string>::const_iterator end)
 {
-  return broadcastAccFunction<string>([=] { return pleaseUseNewTraceRegex(begin != end ? *begin : ""); });
+  int fileno = dup(file);
+  // Potential dup failure handled in pleaseUseNewTraceRegex()
+  return broadcastAccFunction<string>([=] { return pleaseUseNewTraceRegex(begin != end ? *begin : "", fileno); });
 }
 
 static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)

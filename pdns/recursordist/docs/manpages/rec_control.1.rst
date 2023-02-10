@@ -286,8 +286,12 @@ top-timeouts
     Shows the top-20 most active downstream timeout destinations.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
-trace-regex *REGEX*
-    Emit resolution trace for matching queries. Empty regex to disable trace.
+trace-regex *REGEX* *FILE*
+    Emit resolution trace for matching queries. No arguments disables tracing.
+    Before version 4.9.0, there was no *FILE* argument, traces were always
+    written to the log. Starting with version 4.9.0, trace information is
+    written to the file specified, which may be ``-`` for the standard out
+    stream.
 
     Queries matching this regular expression will generate voluminous tracing
     output. Be aware that matches from the packet cache will still not generate
