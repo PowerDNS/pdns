@@ -1890,6 +1890,8 @@ static void healthChecksThread()
             struct dnsheader fake;
             memset(&fake, 0, sizeof(fake));
             fake.id = ids.origID;
+            uint16_t* flags = getFlagsFromDNSHeader(&fake);
+            *flags = ids.origFlags;
 
             g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
           }
