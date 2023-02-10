@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <functional>
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -63,11 +64,11 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRe
   fp.reset();
 
   auto dke = makeFromISCString(drc, isc);
-  vector<string> checkKeyErrors;
+  auto checkKeyErrors = std::vector<std::string>{};
 
-  if(!dke->checkKey(&checkKeyErrors)) {
+  if(!dke->checkKey(checkKeyErrors)) {
     string reason;
-    if(checkKeyErrors.size()) {
+    if(!checkKeyErrors.empty()) {
       reason = " ("+boost::algorithm::join(checkKeyErrors, ", ")+")";
     }
     throw runtime_error("Invalid DNS Private Key in file '"+string(fname)+"'"+reason);

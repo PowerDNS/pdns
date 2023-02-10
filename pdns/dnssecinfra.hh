@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 #include <map>
 #include "misc.hh"
 
@@ -75,7 +76,7 @@ class DNSCryptoKeyEngine
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) = 0;
     virtual void fromPublicKeyString(const std::string& content) = 0;
 
-    virtual bool checkKey(vector<string>* errorMessages = nullptr) const
+    [[nodiscard]] virtual bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> /* errorMessages */ = std::nullopt) const
     {
       return true;
     }

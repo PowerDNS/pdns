@@ -390,7 +390,7 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);
 
   vector<string> errorMessages{};
-  BOOST_CHECK_EQUAL(dcke->checkKey(&errorMessages), true);
+  BOOST_CHECK_EQUAL(dcke->checkKey(errorMessages), true);
   if (!errorMessages.empty()) {
     BOOST_TEST_MESSAGE("Errors from " + dcke->getName() + " checkKey()");
     for (auto& errorMessage : errorMessages) {
