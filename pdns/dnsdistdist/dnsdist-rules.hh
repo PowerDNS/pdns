@@ -426,10 +426,11 @@ public:
 class AndRule : public DNSRule
 {
 public:
-  AndRule(const vector<pair<int, shared_ptr<DNSRule> > >& rules)
+  AndRule(const std::vector<pair<int, std::shared_ptr<DNSRule> > >& rules)
   {
-    for(const auto& r : rules)
+    for (const auto& r : rules) {
       d_rules.push_back(r.second);
+    }
   }
 
   bool matches(const DNSQuestion* dq) const override
@@ -445,27 +446,27 @@ public:
   string toString() const override
   {
     string ret;
-    for(const auto& rule : d_rules) {
-      if(!ret.empty())
+    for (const auto& rule : d_rules) {
+      if (!ret.empty()) {
         ret+= " && ";
+      }
       ret += "("+ rule->toString()+")";
     }
     return ret;
   }
 private:
-
-  vector<std::shared_ptr<DNSRule> > d_rules;
-
+  std::vector<std::shared_ptr<DNSRule> > d_rules;
 };
 
 
 class OrRule : public DNSRule
 {
 public:
-  OrRule(const vector<pair<int, shared_ptr<DNSRule> > >& rules)
+  OrRule(const std::vector<pair<int, std::shared_ptr<DNSRule> > >& rules)
   {
-    for(const auto& r : rules)
+    for (const auto& r : rules) {
       d_rules.push_back(r.second);
+    }
   }
 
   bool matches(const DNSQuestion* dq) const override
@@ -481,17 +482,16 @@ public:
   string toString() const override
   {
     string ret;
-    for(const auto& rule : d_rules) {
-      if(!ret.empty())
+    for (const auto& rule : d_rules) {
+      if (!ret.empty()) {
         ret+= " || ";
+      }
       ret += "("+ rule->toString()+")";
     }
     return ret;
   }
 private:
-
-  vector<std::shared_ptr<DNSRule> > d_rules;
-
+  std::vector<std::shared_ptr<DNSRule> > d_rules;
 };
 
 
@@ -746,7 +746,7 @@ private:
 class NotRule : public DNSRule
 {
 public:
-  NotRule(shared_ptr<DNSRule>& rule): d_rule(rule)
+  NotRule(const std::shared_ptr<DNSRule>& rule): d_rule(rule)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -758,7 +758,7 @@ public:
     return "!("+ d_rule->toString()+")";
   }
 private:
-  shared_ptr<DNSRule> d_rule;
+  std::shared_ptr<DNSRule> d_rule;
 };
 
 class RecordsCountRule : public DNSRule

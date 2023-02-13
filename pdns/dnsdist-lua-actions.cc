@@ -1098,10 +1098,10 @@ public:
       }
       else {
         if (d_includeTimestamp) {
-          fprintf(fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %d\n", static_cast<unsigned long long>(dq->getQueryRealTime().tv_sec), static_cast<unsigned long>(dq->getQueryRealTime().tv_nsec), dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "[%llu.%lu] Packet from %s for %s %s with id %u\n", static_cast<unsigned long long>(dq->getQueryRealTime().tv_sec), static_cast<unsigned long>(dq->getQueryRealTime().tv_nsec), dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
         }
         else {
-          fprintf(fp.get(), "Packet from %s for %s %s with id %d\n", dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
+          fprintf(fp.get(), "Packet from %s for %s %s with id %u\n", dq->ids.origRemote.toStringWithPort().c_str(), dq->ids.qname.toString().c_str(), QType(dq->ids.qtype).toString().c_str(), dq->getHeader()->id);
         }
       }
     }
@@ -1179,19 +1179,19 @@ public:
     if (!fp) {
       if (!d_verboseOnly || g_verbose) {
         if (d_includeTimestamp) {
-          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %d", static_cast<unsigned long long>(dr->getQueryRealTime().tv_sec), static_cast<unsigned long>(dr->getQueryRealTime().tv_nsec), dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
+          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %u", static_cast<unsigned long long>(dr->getQueryRealTime().tv_sec), static_cast<unsigned long>(dr->getQueryRealTime().tv_nsec), dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
         }
         else {
-          infolog("Answer to %s for %s %s (%s) with id %d", dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
+          infolog("Answer to %s for %s %s (%s) with id %u", dr->ids.origRemote.toStringWithPort(), dr->ids.qname.toString(), QType(dr->ids.qtype).toString(), RCode::to_s(dr->getHeader()->rcode), dr->getHeader()->id);
         }
       }
     }
     else {
       if (d_includeTimestamp) {
-        fprintf(fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->getQueryRealTime().tv_sec), static_cast<unsigned long>(dr->getQueryRealTime().tv_nsec), dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %u\n", static_cast<unsigned long long>(dr->getQueryRealTime().tv_sec), static_cast<unsigned long>(dr->getQueryRealTime().tv_nsec), dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
       else {
-        fprintf(fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
+        fprintf(fp.get(), "Answer to %s for %s %s (%s) with id %u\n", dr->ids.origRemote.toStringWithPort().c_str(), dr->ids.qname.toString().c_str(), QType(dr->ids.qtype).toString().c_str(), RCode::to_s(dr->getHeader()->rcode).c_str(), dr->getHeader()->id);
       }
     }
     return Action::None;
@@ -2225,7 +2225,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new LuaFFIAction(func));
     });
 
-  luaCtx.writeFunction("LuaFFIPerThreadAction", [](std::string code) {
+  luaCtx.writeFunction("LuaFFIPerThreadAction", [](const std::string& code) {
       setLuaSideEffect();
       return std::shared_ptr<DNSAction>(new LuaFFIPerThreadAction(code));
     });
@@ -2442,7 +2442,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(func));
     });
 
-  luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](std::string code) {
+  luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](const std::string& code) {
       setLuaSideEffect();
       return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
     });
@@ -2516,7 +2516,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new SetDisableECSAction());
     });
 
-  luaCtx.writeFunction("SetECSAction", [](const std::string v4, boost::optional<std::string> v6) {
+  luaCtx.writeFunction("SetECSAction", [](const std::string& v4, boost::optional<std::string> v6) {
       if (v6) {
         return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4), Netmask(*v6)));
       }
@@ -2533,11 +2533,11 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 #endif /* HAVE_NET_SNMP */
 
-  luaCtx.writeFunction("SetTagAction", [](std::string tag, std::string value) {
+  luaCtx.writeFunction("SetTagAction", [](const std::string& tag, const std::string& value) {
       return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
     });
 
-  luaCtx.writeFunction("SetTagResponseAction", [](std::string tag, std::string value) {
+  luaCtx.writeFunction("SetTagResponseAction", [](const std::string& tag, const std::string& value) {
       return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
     });
 

@@ -131,13 +131,13 @@ template <typename Container> void GenericDNSPacketWriter<Container>::addOpt(con
 
 template <typename Container> void GenericDNSPacketWriter<Container>::xfr48BitInt(uint64_t val)
 {
-  unsigned char bytes[6];
+  std::array<unsigned char, 6> bytes;
   uint16_t theLeft = htons((val >> 32)&0xffffU);
   uint32_t theRight = htonl(val & 0xffffffffU);
-  memcpy(bytes, (void*)&theLeft, sizeof(theLeft));
-  memcpy(bytes+2, (void*)&theRight, sizeof(theRight));
+  memcpy(&bytes[0], (void*)&theLeft, sizeof(theLeft));
+  memcpy(&bytes[2], (void*)&theRight, sizeof(theRight));
 
-  d_content.insert(d_content.end(), bytes, bytes + sizeof(bytes));
+  d_content.insert(d_content.end(), bytes.begin(), bytes.end());
 }
 
 template <typename Container> void GenericDNSPacketWriter<Container>::xfrNodeOrLocatorID(const NodeOrLocatorID& val)

@@ -332,7 +332,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   ids.age = 0;
   ids.inUse = false;
   handleDOHTimeout(std::move(ids.internal.du));
-  reuseds++;
+  ++reuseds;
   --outstanding;
   ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
