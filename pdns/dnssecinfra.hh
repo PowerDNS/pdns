@@ -78,6 +78,25 @@ class DNSCryptoKeyEngine
       throw std::runtime_error(getName() + ": Conversion to PEM not supported");
     };
 
+    /**
+     * \brief Converts the key into a PEM string.
+     *
+     * \return A string containing the key's PEM contents.
+     */
+    [[nodiscard]] auto convertToPEMString() const -> std::string
+    {
+      const size_t buflen = 4096;
+
+      std::string output{};
+      output.resize(buflen);
+      unique_ptr<std::FILE, decltype(&std::fclose)> outputFile{fmemopen(output.data(), output.length() - 1, "w"), &std::fclose};
+      convertToPEMFile(*outputFile);
+      std::fflush(outputFile.get());
+      output.resize(std::ftell(outputFile.get()));
+
+      return output;
+    };
+
     [[nodiscard]] virtual std::string sign(const std::string& msg) const =0;
 
     [[nodiscard]] virtual std::string hash(const std::string& msg) const

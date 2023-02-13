@@ -465,24 +465,10 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
 
     test_generic_signer(pemKey, pemDRC, signer, message);
 
-    const size_t buflen = 4096;
-
-    std::string dckePEMOutput{};
-    dckePEMOutput.resize(buflen);
-    unique_ptr<std::FILE, decltype(&std::fclose)> dckePEMOutputFp{fmemopen(static_cast<void*>(dckePEMOutput.data()), dckePEMOutput.length() - 1, "w"), &std::fclose};
-    dcke->convertToPEMFile(*dckePEMOutputFp);
-    std::fflush(dckePEMOutputFp.get());
-    dckePEMOutput.resize(std::ftell(dckePEMOutputFp.get()));
-
+    auto dckePEMOutput = dcke->convertToPEMString();
     BOOST_CHECK_EQUAL(dckePEMOutput, signer.pem);
 
-    std::string pemKeyOutput{};
-    pemKeyOutput.resize(buflen);
-    unique_ptr<std::FILE, decltype(&std::fclose)> pemKeyOutputFp{fmemopen(static_cast<void*>(pemKeyOutput.data()), pemKeyOutput.length() - 1, "w"), &std::fclose};
-    pemKey->convertToPEMFile(*pemKeyOutputFp);
-    std::fflush(pemKeyOutputFp.get());
-    pemKeyOutput.resize(std::ftell(pemKeyOutputFp.get()));
-
+    auto pemKeyOutput = pemKey->convertToPEMString();
     BOOST_CHECK_EQUAL(pemKeyOutput, signer.pem);
   }
 }
