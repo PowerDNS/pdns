@@ -1347,7 +1347,7 @@ The following actions exist.
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param table options: A table with key: value pairs.
-  :param table metas: A list of name: key pairs, for meta-data to be added to Protocol Buffer message.
+  :param table metas: A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 
@@ -1373,7 +1373,7 @@ The following actions exist.
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
   :param table options: A table with key: value pairs.
-  :param table metas: A list of name: key pairs, for meta-data to be added to Protocol Buffer message.
+  :param table metas: A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 
