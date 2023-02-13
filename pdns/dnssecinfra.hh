@@ -43,9 +43,13 @@ class DNSCryptoKeyEngine
     using storvector_t = std::vector<std::pair<std::string, std::string>>;
     virtual void create(unsigned int bits)=0;
 
-    virtual void createFromPEMFile(DNSKEYRecordContent& /* drc */, std::FILE& /* inputFile */, const std::string& /* filename */)
+    virtual void createFromPEMFile(DNSKEYRecordContent& /* drc */, std::FILE& /* inputFile */, const std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt)
     {
-      throw std::runtime_error("Can't create key from PEM file");
+      if (filename.has_value()) {
+        throw std::runtime_error("Can't create key from PEM file `" + filename->get() + "`");
+      }
+
+      throw std::runtime_error("Can't create key from PEM contents");
     }
 
     [[nodiscard]] virtual storvector_t convertToISCVector() const =0;

@@ -33,7 +33,7 @@ public:
    *
    * \return An ED25519 key engine populated with the contents of the PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::string& filename) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -75,12 +75,16 @@ void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
 }
 
 #if defined(HAVE_LIBCRYPTO_ED25519)
-void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const string& filename)
+void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename)
 {
   drc.d_algorithm = d_algorithm;
   auto key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
   if (key == nullptr) {
-    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw runtime_error(getName() + ": Failed to read private key from PEM contents");
   }
 
   // The secret key is 64 bytes according to libsodium. But OpenSSL returns 32 in
@@ -88,13 +92,21 @@ void SodiumED25519DNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc
   std::size_t secKeyLen = crypto_sign_ed25519_SECRETKEYBYTES;
   int ret = EVP_PKEY_get_raw_private_key(key.get(), d_seckey, &secKeyLen);
   if (ret == 0) {
-    throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename + "`");
+    if (filename.has_value()) {
+      throw runtime_error(getName() + ": Failed to get private key from PEM file contents `" + filename->get() + "`");
+    }
+
+    throw runtime_error(getName() + ": Failed to get private key from PEM contents");
   }
 
   std::size_t pubKeyLen = crypto_sign_ed25519_PUBLICKEYBYTES;
   ret = EVP_PKEY_get_raw_public_key(key.get(), d_pubkey, &pubKeyLen);
   if (ret == 0) {
-    throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename + "`");
+    if (filename.has_value()) {
+      throw runtime_error(getName() + ": Failed to get public key from PEM file contents `" + filename->get() + "`");
+    }
+
+    throw runtime_error(getName() + ": Failed to get public key from PEM contents");
   }
 
   // It looks like libsodium expects the public key to be appended to the private key,
