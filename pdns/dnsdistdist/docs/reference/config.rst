@@ -83,7 +83,7 @@ Listen Sockets
   .. versionchanged:: 1.6.0
     Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
 
-  Add to the list of listen addresses.
+  Add to the list of listen addresses. Note that for IPv6 link-local addresses, it might be necessary to specify the interface to use: ``fe80::1%eth0``. On recent Linux versions specifying the interface via the ``interface`` parameter should work as well.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 53.
