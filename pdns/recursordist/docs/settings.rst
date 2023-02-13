@@ -58,7 +58,7 @@ A higher ``n`` will cause more records to be put into the aggressive cache, e.g.
 A value of 0 means no NSEC3 records will be put into the aggressive cache.
 
 For large zones the effectiveness of the NSEC3 cache is reduced since each NSEC3 record only covers a randomly distributed subset of all possible names.
-This setting avoids doing unneccessary work for such large zones.
+This setting avoids doing unnecessary work for such large zones.
 
 .. _setting-allow-from:
 
