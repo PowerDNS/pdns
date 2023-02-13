@@ -52,6 +52,24 @@ class DNSCryptoKeyEngine
       throw std::runtime_error("Can't create key from PEM contents");
     }
 
+    /**
+     * \brief Creates a key engine from a PEM string.
+     *
+     * Receives PEM contents and creates a key engine.
+     *
+     * \param[in] drc Key record contents to be populated.
+     *
+     * \param[in] contents The PEM string contents.
+     *
+     * \return A key engine populated with the contents of the PEM string.
+     */
+    void createFromPEMString(DNSKEYRecordContent& drc, const std::string& contents)
+    {
+      // NOLINTNEXTLINE(*-cast): POSIX APIs.
+      unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen(const_cast<char*>(contents.data()), contents.length(), "r"), &std::fclose};
+      createFromPEMFile(drc, *inputFile);
+    }
+
     [[nodiscard]] virtual storvector_t convertToISCVector() const =0;
     [[nodiscard]] std::string convertToISC() const ;
 
@@ -106,6 +124,24 @@ class DNSCryptoKeyEngine
      * the contents of the PEM file.
      */
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, uint8_t algorithm, std::FILE& inputFile, const std::string& filename);
+
+    /**
+     * \brief Creates a key engine from a PEM string.
+     *
+     * Receives PEM contents and creates a key engine corresponding to the algorithm
+     * requested.
+     *
+     * \param[in] drc Key record contents to be populated.
+     *
+     * \param[in] algorithm Which algorithm to use. See
+     * https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+     *
+     * \param[in] contents The PEM contents.
+     *
+     * \return A key engine corresponding to the requested algorithm and populated with
+     * the contents of the PEM string.
+     */
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, uint8_t algorithm, const std::string& contents);
 
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);

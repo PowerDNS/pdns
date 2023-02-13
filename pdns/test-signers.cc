@@ -458,12 +458,8 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
     test_generic_signer(dcke, drc, signer, message);
 
-    unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen((void*)signer.pem.c_str(), signer.pem.length(), "r"), &std::fclose};
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): Boost stuff.
-    BOOST_REQUIRE(inputFile.get() != nullptr);
-
     DNSKEYRecordContent pemDRC;
-    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMFile(pemDRC, signer.algorithm, *inputFile, "<buffer>")};
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMString(pemDRC, signer.algorithm, signer.pem)};
 
     BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 
