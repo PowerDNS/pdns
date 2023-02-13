@@ -249,7 +249,7 @@ void setupLuaInspection(LuaContext& luaCtx)
 #ifndef DISABLE_TOP_N_BINDINGS
   luaCtx.writeFunction("topClients", [](boost::optional<uint64_t> top_) {
       setLuaNoSideEffect();
-      auto top = top_.get_value_or(10);
+      uint64_t top = top_ ? *top_ : 10U;
       map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
       {

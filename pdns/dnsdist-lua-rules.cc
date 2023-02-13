@@ -329,61 +329,61 @@ void setupLuaRules(LuaContext& luaCtx)
   luaCtx.writeFunction("getTopRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_ruleactions.getLocal();
-    return getTopRules(*rules, top.get_value_or(10));
+    return getTopRules(*rules, (top ? *top : 10));
   });
 
   luaCtx.writeFunction("topRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_ruleactions.getLocal();
-    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
   });
 
   luaCtx.writeFunction("getTopCacheHitResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
-    return getTopRules(*rules, top.get_value_or(10));
+    return getTopRules(*rules, (top ? *top : 10));
   });
 
   luaCtx.writeFunction("topCacheHitResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_cachehitrespruleactions.getLocal();
-    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
   });
 
   luaCtx.writeFunction("getTopCacheInsertedResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_cacheInsertedRespRuleActions.getLocal();
-    return getTopRules(*rules, top.get_value_or(10));
+    return getTopRules(*rules, (top ? *top : 10));
   });
 
   luaCtx.writeFunction("topCacheInsertedResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_cacheInsertedRespRuleActions.getLocal();
-    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
   });
 
   luaCtx.writeFunction("getTopResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_respruleactions.getLocal();
-    return getTopRules(*rules, top.get_value_or(10));
+    return getTopRules(*rules, (top ? *top : 10));
   });
 
   luaCtx.writeFunction("topResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_respruleactions.getLocal();
-    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
   });
 
   luaCtx.writeFunction("getTopSelfAnsweredResponseRules", [](boost::optional<unsigned int> top) {
     setLuaNoSideEffect();
     auto rules = g_selfansweredrespruleactions.getLocal();
-    return getTopRules(*rules, top.get_value_or(10));
+    return getTopRules(*rules, (top ? *top : 10));
   });
 
   luaCtx.writeFunction("topSelfAnsweredResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
     setLuaNoSideEffect();
     auto rules = g_selfansweredrespruleactions.getLocal();
-    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
   });
 
   luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<unsigned int> ipv4trunc, boost::optional<unsigned int> ipv6trunc, boost::optional<unsigned int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
@@ -433,8 +433,8 @@ void setupLuaRules(LuaContext& luaCtx)
 
   luaCtx.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<unsigned int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();
-      unsigned int times = times_.get_value_or(100000);
-      DNSName suffix(suffix_.get_value_or("powerdns.com"));
+      unsigned int times = times_ ? *times_ : 100000;
+      DNSName suffix(suffix_ ? *suffix_ : "powerdns.com");
       struct item {
         PacketBuffer packet;
         InternalQueryState ids;

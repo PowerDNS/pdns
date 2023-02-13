@@ -2243,7 +2243,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("PoolAction", [](const std::string& a, boost::optional<bool> stopProcessing) {
-      return std::shared_ptr<DNSAction>(new PoolAction(a, stopProcessing.get_value_or(true)));
+      return std::shared_ptr<DNSAction>(new PoolAction(a, stopProcessing ? *stopProcessing : true));
     });
 
   luaCtx.writeFunction("QPSAction", [](int limit) {
@@ -2251,7 +2251,7 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("QPSPoolAction", [](int limit, const std::string& a, boost::optional<bool> stopProcessing) {
-      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a, stopProcessing.get_value_or(true)));
+      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a, stopProcessing ? *stopProcessing : true));
     });
 
   luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
