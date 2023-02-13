@@ -599,6 +599,8 @@ URL Endpoints
       # TYPE dnsdist_pool_cache_insert_collisions counter
       # HELP dnsdist_pool_cache_ttl_too_shorts Number of insertions into that cache skipped because the TTL of the answer was not long enough
       # TYPE dnsdist_pool_cache_ttl_too_shorts counter
+      # HELP dnsdist_pool_cache_cleanup_count_total Number of times the cache has been scanned to remove expired entries, if any
+      # TYPE dnsdist_pool_cache_cleanup_count_total counter
       dnsdist_pool_servers{pool="_default_"} 1
       dnsdist_pool_active_servers{pool="_default_"} 1
       dnsdist_pool_cache_size{pool="_default_"} 100
@@ -610,7 +612,7 @@ URL Endpoints
       dnsdist_pool_cache_lookup_collisions{pool="_default_"} 0
       dnsdist_pool_cache_insert_collisions{pool="_default_"} 0
       dnsdist_pool_cache_ttl_too_shorts{pool="_default_"} 0
-      dnsdist_pool_cache_cleanup_count{pool="_default_"} 0
+      dnsdist_pool_cache_cleanup_count_total{pool="_default_"} 0
       # HELP dnsdist_rule_hits Number of hits of that rule
       # TYPE dnsdist_rule_hits counter
       # HELP dnsdist_dynblocks_nmg_top_offenders_hits_per_second Number of hits per second blocked by Dynamic Blocks (netmasks) for the top offenders, averaged over the last 60s
