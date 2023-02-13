@@ -2593,7 +2593,7 @@ int main(int argc, char** argv)
     argv += optind;
     (void) argc;
 
-    for(auto p = argv; *p; ++p) {
+    for (auto p = argv; *p; ++p) {
       if(g_cmdLine.beClient) {
         clientAddress = ComboAddress(*p, 5199);
       } else {
@@ -2642,6 +2642,8 @@ int main(int argc, char** argv)
 #endif
     }
 
+    infolog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
     auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
@@ -2684,7 +2686,7 @@ int main(int argc, char** argv)
         }
       }
 
-      for(const auto& loc : g_cmdLine.locals) {
+      for (const auto& loc : g_cmdLine.locals) {
         /* UDP */
         g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), false, false, 0, "", {})));
         /* TCP */
@@ -2713,8 +2715,6 @@ int main(int argc, char** argv)
         ++tcpBindsCount;
       }
     }
-
-    infolog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
 
     vector<string> vec;
     std::string acls;
