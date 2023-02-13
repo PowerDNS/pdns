@@ -69,6 +69,9 @@ export CPPFLAGS=-I/usr/include/boost169
 export LDFLAGS=-L/usr/lib64/boost169
 %endif
 
+export AR=gcc-ar
+export RANLIB=gcc-ranlib
+
 %configure \
   --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
