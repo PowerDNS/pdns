@@ -159,17 +159,17 @@ struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Ty
 /** nop index, so we can fill our N indexes, even if you don't use them all */
 struct nullindex_t
 {
-  template<typename Class>
-  void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
-  {}
-  template<typename Class>
-  void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
+  template <typename Class>
+  void put(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */, int /* flags */ = 0)
   {}
 
-  void openDB(std::shared_ptr<MDBEnv>& env, string_view str, int flags)
-  {
+  template <typename Class>
+  void del(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */)
+  {}
 
-  }
+  void openDB(std::shared_ptr<MDBEnv>& /* env */, string_view /* str */, int /* flags */)
+  {}
+
   typedef uint32_t type; // dummy
 };
 
@@ -330,12 +330,12 @@ public:
         d_cursor.del();
       }
 
-      bool operator!=(const eiter_t& rhs) const
+      bool operator!=(const eiter_t& /* rhs */) const
       {
         return !d_end;
       }
 
-      bool operator==(const eiter_t& rhs) const
+      bool operator==(const eiter_t& /* rhs */) const
       {
         return d_end;
       }
