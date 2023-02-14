@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <algorithm>
 class DNSPacket;
 
 #include "utility.hh"
@@ -36,7 +37,6 @@ class DNSPacket;
 #include "misc.hh"
 #include "qtype.hh"
 #include "dns.hh"
-#include <vector>
 #include "namespaces.hh"
 #include "comment.hh"
 #include "dnsname.hh"
@@ -54,18 +54,18 @@ struct DomainInfo
 
   DNSName zone;
   DNSName catalog;
-  time_t last_check;
+  time_t last_check{};
   string options;
   string account;
-  vector<ComboAddress> masters; 
-  DNSBackend *backend;
+  vector<ComboAddress> masters;
+  DNSBackend *backend{};
 
-  uint32_t id;
-  uint32_t notified_serial;
+  uint32_t id{};
+  uint32_t notified_serial{};
 
-  bool receivedNotify;
+  bool receivedNotify{};
 
-  uint32_t serial;
+  uint32_t serial{};
 
   bool operator<(const DomainInfo& rhs) const
   {
@@ -83,7 +83,7 @@ struct DomainInfo
     All
   } kind;
 
-  const char *getKindString() const
+  [[nodiscard]] const char *getKindString() const
   {
     return DomainInfo::getKindString(kind);
   }
@@ -96,31 +96,30 @@ struct DomainInfo
 
   static DomainKind stringToKind(const string& kind)
   {
-    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
+    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE")) {
       return DomainInfo::Slave;
-    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
+    }
+    if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER")) {
       return DomainInfo::Master;
-    if (pdns_iequals(kind, "PRODUCER"))
+    }
+    if (pdns_iequals(kind, "PRODUCER")) {
       return DomainInfo::Producer;
-    if (pdns_iequals(kind, "CONSUMER"))
+    }
+    if (pdns_iequals(kind, "CONSUMER")) {
       return DomainInfo::Consumer;
+    }
     // No "ALL" here please. Yes, I really mean it...
     return DomainInfo::Native;
   }
 
-  bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
-  bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
-  bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
+  [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
+  [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  [[nodiscard]] bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
-  bool isMaster(const ComboAddress& ip) const
+  [[nodiscard]] bool isMaster(const ComboAddress& ipAddress) const
   {
-    for( const auto& master: masters) {
-      if(ComboAddress::addressOnlyEqual()(ip, master))
-        return true;
-    }
-    return false;
+    return std::any_of(masters.begin(), masters.end(), [ipAddress](auto master) { return ComboAddress::addressOnlyEqual()(ipAddress, master); });
   }
-
 };
 
 struct TSIGKey {
@@ -130,11 +129,8 @@ struct TSIGKey {
 };
 
 struct AutoPrimary {
-   AutoPrimary(const string& new_ip, const string& new_nameserver, const string& new_account) {
-      this->ip = new_ip;
-      this->nameserver = new_nameserver;
-      this->account = new_account;
-   };
+   AutoPrimary(const string& new_ip, const string& new_nameserver, const string& new_account) :
+     ip(new_ip), nameserver(new_nameserver), account(new_account){};
    std::string ip;
    std::string nameserver;
    std::string account;
@@ -184,7 +180,8 @@ public:
   }
 
   // the DNSSEC related (getDomainMetadata has broader uses too)
-  bool isDnssecDomainMetadata (const string& name) {
+  static bool isDnssecDomainMetadata(const string& name)
+  {
     return (name == "PRESIGNED" || name == "NSEC3PARAM" || name == "NSEC3NARROW");
   }
   virtual bool getAllDomainMetadata(const DNSName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */) { return false; };
@@ -193,7 +190,7 @@ public:
   {
     std::vector<std::string> meta;
     if (getDomainMetadata(name, kind, meta)) {
-      if(!meta.empty()) {
+      if (!meta.empty()) {
         value = *meta.begin();
         return true;
       }
@@ -499,13 +496,13 @@ public:
   void launch(const string &instr);
   vector<DNSBackend *> all(bool skipBIND=false);
   void load(const string &module);
-  size_t numLauncheable() const;
+  [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();
   void clear();
 
 private:
   void load_all();
-  typedef map<string,BackendFactory *>d_repository_t;
+  using d_repository_t = map<string, BackendFactory *>;
   d_repository_t d_repository;
   vector<pair<string,string> >d_instances;
 };
@@ -522,21 +519,21 @@ public:
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), minimum(0), db(0), domain_id(-1) {};
+  SOAData() : domain_id(-1) {};
 
   DNSName qname;
   DNSName nameserver;
   DNSName hostmaster;
-  uint32_t ttl;
-  uint32_t serial;
-  uint32_t refresh;
-  uint32_t retry;
-  uint32_t expire;
-  uint32_t minimum;
-  DNSBackend *db;
-  int domain_id;
+  uint32_t ttl{};
+  uint32_t serial{};
+  uint32_t refresh{};
+  uint32_t retry{};
+  uint32_t expire{};
+  uint32_t minimum{};
+  DNSBackend *db{};
+  int domain_id{};
 
-  uint32_t getNegativeTTL() const { return min(ttl, minimum); }
+  [[nodiscard]] uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
