@@ -1034,14 +1034,14 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
 }
 
 
-#define boilerplate_conv(RNAME, CONV)                             \
-boilerplate(RNAME)                                                \
-template<class Convertor>                                         \
-void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
-{                                                                 \
-  CONV;                                                           \
+#define boilerplate_conv(RNAME, CONV)                                   \
+boilerplate(RNAME)                                                      \
+template<class Convertor>                                               \
+void RNAME##RecordContent::xfrPacket(Convertor& conv, bool /* noDot */) \
+{                                                                       \
+  CONV;                                                                 \
   if (conv.eof() == false) throw MOADNSException("When parsing " #RNAME " trailing data was not parsed: '" + conv.getRemaining() + "'"); \
-}                                                                 \
+}                                                                       \
 
 struct EDNSOpts
 {

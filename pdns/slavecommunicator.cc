@@ -421,8 +421,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl,
-                                 ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& /* pdl */, ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   string logPrefix="IXFR-in zone '"+domain.toLogString()+"', primary '"+remote.toString()+"', ";
 
@@ -1045,7 +1044,7 @@ struct SlaveSenderReceiver
   {
   }
 
-  void deliverTimeout(const Identifier& i)
+  void deliverTimeout(const Identifier& /* i */)
   {
   }
 
@@ -1073,7 +1072,7 @@ struct SlaveSenderReceiver
     return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
   }
 
-  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
+  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
   {
     d_freshness[dni.di.id]=a;
   }

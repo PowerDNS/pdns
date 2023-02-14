@@ -53,7 +53,7 @@ using namespace json11;
 StatBag S;
 static int g_numRecords;
 
-static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
+static Json::object emitRecord(const string& /* zoneName */, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
 {
   int prio=0;
   string retval;

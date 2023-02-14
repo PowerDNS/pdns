@@ -275,7 +275,7 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3)
+bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */)
 {
   if (d_transaction_id < 1) {
     throw DBException("Bind2Backend::feedRecord() called outside of transaction");
@@ -318,7 +318,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordern
   return true;
 }
 
-void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
 {
   vector<DomainInfo> consider;
   {
@@ -362,7 +362,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::un
   }
 }
 
-void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
+void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool /* include_disabled */)
 {
   SOAData soadata;
 
@@ -562,7 +562,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   records->insert(std::move(bdr));
 }
 
-string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid)
+string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   ostringstream ret;
 
@@ -587,7 +587,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
   return ret.str();
 }
 
-string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid)
+string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   ostringstream ret;
 
@@ -649,7 +649,7 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << "\t Last notified: " << info.d_lastnotified << std::endl;
 }
 
-string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid)
+string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   ostringstream ret;
 
@@ -678,7 +678,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
   return ret.str();
 }
 
-string Bind2Backend::DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid)
+string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */)
 {
   ostringstream ret;
   auto rstate = s_state.read_lock();
@@ -689,7 +689,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>& parts, Utility::
   return ret.str();
 }
 
-string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid)
+string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   if (parts.size() < 3)
     return "ERROR: Domain name and zone filename are required";
@@ -1075,7 +1075,7 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   }
 }
 
-bool Bind2Backend::findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& /* unhashed */, DNSName& before, DNSName& after)
 {
   // for(const auto& record: *records)
   //   cerr<<record.qname<<"\t"<<makeHexDump(record.qname.toDNSString())<<endl;
@@ -1145,7 +1145,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   }
 }
 
-void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* /* pkt_p */)
 {
   d_handle.reset();
 
@@ -1287,7 +1287,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord& r)
   return true;
 }
 
-bool Bind2Backend::list(const DNSName& target, int id, bool include_disabled)
+bool Bind2Backend::list(const DNSName& /* target */, int id, bool /* include_disabled */)
 {
   BB2DomainInfo bbd;
 
@@ -1351,7 +1351,7 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool Bind2Backend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db)
+bool Bind2Backend::superMasterBackend(const string& ip, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* account, DNSBackend** db)
 {
   // Check whether we have a configfile available.
   if (getArg("supermaster-config").empty())
@@ -1410,7 +1410,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
 {
   string filename = getArg("supermaster-destdir") + '/' + domain.toStringNoDot();
 

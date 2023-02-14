@@ -135,10 +135,9 @@ public:
     val=get8BitInt();
   }
 
-
-  void xfrName(DNSName &name, bool compress=false, bool noDot=false)
+  void xfrName(DNSName& name, bool /* compress */ = false, bool /* noDot */ = false)
   {
-    name=getName();
+    name = getName();
   }
 
   void xfrText(string &text, bool multi=false, bool lenField=true)

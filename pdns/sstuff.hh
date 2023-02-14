@@ -184,7 +184,7 @@ public:
     dgram.assign(d_buffer, 0, static_cast<size_t>(bytes));
   }
 
-  bool recvFromAsync(string &dgram, ComboAddress &ep)
+  bool recvFromAsync(string &dgram, ComboAddress& /* ep */)
   {
     struct sockaddr_in remote;
     socklen_t remlen = sizeof(remote);

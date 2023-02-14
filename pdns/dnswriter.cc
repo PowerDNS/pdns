@@ -392,7 +392,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrBlobNoS
   xfrBlob(blob);
 }
 
-template <typename Container> void GenericDNSPacketWriter<Container>::xfrHexBlob(const string& blob, bool keepReading)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrHexBlob(const string& blob, bool /* keepReading */)
 {
   xfrBlob(blob);
 }

@@ -28,7 +28,7 @@ FDMultiplexer* FDMultiplexer::getMultiplexerSilent(unsigned int maxEventsHint)
 class PollFDMultiplexer : public FDMultiplexer
 {
 public:
-  PollFDMultiplexer(unsigned int maxEventsHint)
+  PollFDMultiplexer(unsigned int /* maxEventsHint */)
   {}
   ~PollFDMultiplexer()
   {

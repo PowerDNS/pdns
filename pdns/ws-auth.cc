@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(UeberBackend& /* B */, const string& /* logprefix */, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -2397,7 +2397,7 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
   resp->status = 200;
 }
 
-void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::cssfunction(HttpRequest* /* req */, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
   resp->headers["Content-Type"] = "text/css";

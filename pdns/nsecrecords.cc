@@ -192,7 +192,7 @@ void NSECRecordContent::toPacket(DNSPacketWriter& pw)
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(const DNSRecord & /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSECRecordContent>();
   pr.xfrName(ret->d_next);
@@ -202,7 +202,7 @@ std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(con
   return ret;
 }
 
-string NSECRecordContent::getZoneRepresentation(bool noDot) const
+string NSECRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -254,7 +254,7 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSEC3RecordContent>();
   pr.xfr8BitInt(ret->d_algorithm);
@@ -271,7 +271,7 @@ std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(c
   return ret;
 }
 
-string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
+string NSEC3RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -316,7 +316,7 @@ void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw)
   pw.xfrBlob(d_salt);
 }
 
-std::shared_ptr<NSEC3PARAMRecordContent::DNSRecordContent> NSEC3PARAMRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSEC3PARAMRecordContent::DNSRecordContent> NSEC3PARAMRecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSEC3PARAMRecordContent>();
   pr.xfr8BitInt(ret->d_algorithm);
@@ -328,7 +328,7 @@ std::shared_ptr<NSEC3PARAMRecordContent::DNSRecordContent> NSEC3PARAMRecordConte
   return ret;
 }
 
-string NSEC3PARAMRecordContent::getZoneRepresentation(bool noDot) const
+string NSEC3PARAMRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -374,7 +374,7 @@ void CSYNCRecordContent::toPacket(DNSPacketWriter& pw)
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<CSYNCRecordContent>();
   pr.xfr32BitInt(ret->d_serial);
@@ -384,7 +384,7 @@ std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(c
   return ret;
 }
 
-string CSYNCRecordContent::getZoneRepresentation(bool noDot) const
+string CSYNCRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);

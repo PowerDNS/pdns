@@ -334,7 +334,7 @@ static void declareArguments()
 }
 
 static time_t s_start = time(nullptr);
-static uint64_t uptimeOfProcess(const std::string& str)
+static uint64_t uptimeOfProcess(const std::string& /* str */)
 {
   return time(nullptr) - s_start;
 }
@@ -351,12 +351,12 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
     return (ru.ru_utime.tv_sec * 1000ULL + ru.ru_utime.tv_usec / 1000);
 }
 
-static uint64_t getTCPConnectionCount(const std::string& str)
+static uint64_t getTCPConnectionCount(const std::string& /* str */)
 {
   return s_tcpNameserver->numTCPConnections();
 }
 
-static uint64_t getQCount(const std::string& str)
+static uint64_t getQCount(const std::string& /* str */)
 try {
   int totcount = 0;
   for (const auto& d : s_distributors) {
@@ -375,27 +375,27 @@ catch (PDNSException& e) {
   return 0;
 }
 
-static uint64_t getLatency(const std::string& str)
+static uint64_t getLatency(const std::string& /* str */)
 {
   return round(avg_latency);
 }
 
-static uint64_t getReceiveLatency(const std::string& str)
+static uint64_t getReceiveLatency(const std::string& /* str */)
 {
   return round(receive_latency);
 }
 
-static uint64_t getCacheLatency(const std::string& str)
+static uint64_t getCacheLatency(const std::string& /* str */)
 {
   return round(cache_latency);
 }
 
-static uint64_t getBackendLatency(const std::string& str)
+static uint64_t getBackendLatency(const std::string& /* str */)
 {
   return round(backend_latency);
 }
 
-static uint64_t getSendLatency(const std::string& str)
+static uint64_t getSendLatency(const std::string& /* str */)
 {
   return round(send_latency);
 }
@@ -925,7 +925,7 @@ static void daemonize()
 }
 
 static int cpid;
-static void takedown(int i)
+static void takedown(int /* i */)
 {
   if (cpid) {
     g_log << Logger::Error << "Guardian is killed, taking down children with us" << endl;
@@ -963,7 +963,7 @@ static FILE* g_fp;
 static std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
-static string DLCycleHandler(const vector<string>& parts, pid_t ppid)
+static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */)
 {
   kill(cpid, SIGKILL); // why?
   kill(cpid, SIGKILL); // why?
@@ -971,7 +971,7 @@ static string DLCycleHandler(const vector<string>& parts, pid_t ppid)
   return "ok";
 }
 
-static string DLRestHandler(const vector<string>& parts, pid_t ppid)
+static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */)
 {
   string line;
 

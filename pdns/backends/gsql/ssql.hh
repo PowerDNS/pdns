@@ -81,7 +81,7 @@ public:
   virtual void startTransaction()=0;
   virtual void rollback()=0;
   virtual void commit()=0;
-  virtual void setLog(bool state){}
+  virtual void setLog(bool /* state */){}
   virtual bool isConnectionUsable()
   {
     return true;

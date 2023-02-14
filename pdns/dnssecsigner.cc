@@ -176,7 +176,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
   toSign.clear();
 }
 
-uint64_t signatureCacheSize(const std::string& str)
+uint64_t signatureCacheSize(const std::string& /* str */)
 {
   return g_signatures.read_lock()->size();
 }

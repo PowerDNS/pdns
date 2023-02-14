@@ -1120,7 +1120,7 @@ static int read1char(){
     return c;
 }
 
-static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
+static int clearZone(DNSSECKeeper& /* dk */, const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
 
@@ -1785,7 +1785,7 @@ static bool testAlgorithms()
   return DNSCryptoKeyEngine::testAll();
 }
 
-static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int cores)
+static void testSpeed(DNSSECKeeper& /* dk */, const DNSName& zone, const string& /* remote */, int cores)
 {
   DNSResourceRecord rr;
   rr.qname=DNSName("blah")+zone;

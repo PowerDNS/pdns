@@ -827,12 +827,12 @@ void GeoIPBackend::reload()
   }
 }
 
-void GeoIPBackend::rediscover(string* status)
+void GeoIPBackend::rediscover(string* /* status */)
 {
   reload();
 }
 
-bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
 {
   ReadLock rl(&s_state_lock);
 
@@ -851,7 +851,7 @@ bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool get
   return false;
 }
 
-void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
+void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */)
 {
   ReadLock rl(&s_state_lock);
 
@@ -1094,12 +1094,12 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
-bool GeoIPBackend::publishDomainKey(const DNSName& name, unsigned int id)
+bool GeoIPBackend::publishDomainKey(const DNSName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool GeoIPBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool GeoIPBackend::unpublishDomainKey(const DNSName& /* name */, unsigned int /* id */)
 {
   return false;
 }

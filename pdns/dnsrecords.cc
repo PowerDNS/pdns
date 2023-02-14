@@ -476,7 +476,8 @@ void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui48, d_eui48+6);
     pw.xfrBlob(blob);
 }
-string EUI48RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI48RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[18];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x",
@@ -520,7 +521,8 @@ void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui64, d_eui64+8);
     pw.xfrBlob(blob);
 }
-string EUI64RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI64RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[24];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
@@ -703,7 +705,7 @@ void APLRecordContent::toPacket(DNSPacketWriter& pw) {
 }
 
 // Decode record into string
-string APLRecordContent::getZoneRepresentation(bool noDot) const {
+string APLRecordContent::getZoneRepresentation(bool /* noDot */) const {
   string s_n, s_family, output;
   ComboAddress ca;
   Netmask nm;
@@ -886,7 +888,7 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
   return false;
 }
 
-DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags)
+DNSRecord makeOpt(const uint16_t udpsize, const uint16_t /* extRCode */, const uint16_t extFlags)
 {
   EDNS0Record stuff;
   stuff.extRCode=0;

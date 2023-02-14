@@ -110,7 +110,7 @@ private:
     CacheShard()
     {
     }
-    CacheShard(const CacheShard& old)
+    CacheShard(const CacheShard& /* old */)
     {
     }
 

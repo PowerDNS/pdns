@@ -89,7 +89,7 @@ public:
 
   vector<ODBCParam> d_req_bind;
 
-  SSqlStatement* bind(const string& name, ODBCParam& p)
+  SSqlStatement* bind(const string& /* name */, ODBCParam& p)
   {
     prepareStatement();
     d_req_bind.push_back(p);

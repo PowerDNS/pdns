@@ -972,7 +972,7 @@ static void setupLuaRecords(LuaContext& lua)
       lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
   }
 
-  lua.writeFunction("report", [](string event, boost::optional<string> line){
+  lua.writeFunction("report", [](string /* event */, boost::optional<string> /* line */){
       throw std::runtime_error("Script took too long");
     });
 

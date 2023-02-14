@@ -80,7 +80,7 @@ size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *user
 }
 
 #if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
-size_t MiniCurl::progress_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+size_t MiniCurl::progress_callback(void *clientp, curl_off_t /* dltotal */, curl_off_t dlnow, curl_off_t /* ultotal */, curl_off_t /* ulnow */)
 {
   if (clientp != nullptr) {
     MiniCurl* us = static_cast<MiniCurl*>(clientp);

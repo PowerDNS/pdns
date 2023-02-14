@@ -299,8 +299,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
       ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age);
     }
     else {
-      editDNSPacketTTL(reinterpret_cast<char *>(&response[0]), response.size(),
-        [staleTTL = d_staleTTL](uint8_t section, uint16_t class_, uint16_t type, uint32_t ttl) { return staleTTL; });
+      editDNSPacketTTL(reinterpret_cast<char*>(&response[0]), response.size(),
+                       [staleTTL = d_staleTTL](uint8_t /* section */, uint16_t /* class_ */, uint16_t /* type */, uint32_t /* ttl */) { return staleTTL; });
     }
   }
 
@@ -533,8 +533,7 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
         }
 
         bool found = false;
-        bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
-
+        bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
           if (qtype == QType::A && qclass == QClass::IN && addr.isIPv4() && rdatalength == 4 && rdata != nullptr) {
             ComboAddress parsed;
             parsed.sin4.sin_family = AF_INET;
@@ -595,8 +594,7 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
           continue;
         }
 
-        visitDNSPacket(value.value, [&addresses](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl, uint16_t rdatalength, const char* rdata) {
-
+        visitDNSPacket(value.value, [&addresses](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
           if (qtype == QType::A && qclass == QClass::IN && rdatalength == 4 && rdata != nullptr) {
             ComboAddress parsed;
             parsed.sin4.sin_family = AF_INET;

@@ -444,7 +444,7 @@ SensitiveData CredentialsHolder::readFromTerminal()
   struct sigaction sa;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-  sa.sa_handler = [](int s) {};
+  sa.sa_handler = [](int /* s */) {};
   sigaction(SIGALRM, &sa, &signals[SIGALRM]);
   sigaction(SIGHUP, &sa, &signals[SIGHUP]);
   sigaction(SIGINT, &sa, &signals[SIGINT]);

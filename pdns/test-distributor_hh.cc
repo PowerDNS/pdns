@@ -36,7 +36,7 @@ struct Backend
 };
 
 static std::atomic<int> g_receivedAnswers;
-static void report(std::unique_ptr<DNSPacket>& A, int B)
+static void report(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
 {
   g_receivedAnswers++;
 }
@@ -70,7 +70,7 @@ struct BackendSlow
 };
 
 static std::atomic<int> g_receivedAnswers1;
-static void report1(std::unique_ptr<DNSPacket>& A, int B)
+static void report1(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
 {
   g_receivedAnswers1++;
 }
@@ -104,7 +104,7 @@ struct BackendDies
   ~BackendDies()
   {
   }
-  std::unique_ptr<DNSPacket> question(Question& q)
+  std::unique_ptr<DNSPacket> question(Question& /* q */)
   {
     //  cout<<"Q: "<<q->qdomain<<endl;
     if(!d_ourcount && ++d_count == 10) {
@@ -122,7 +122,7 @@ std::atomic<int> BackendDies::s_count;
 
 std::atomic<int> g_receivedAnswers2;
 
-static void report2(std::unique_ptr<DNSPacket>& A, int B)
+static void report2(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
 {
   g_receivedAnswers2++;
 }
