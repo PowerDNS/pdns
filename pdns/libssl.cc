@@ -864,6 +864,12 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
   }
 
+  if (config.d_ktls) {
+#ifdef SSL_OP_ENABLE_KTLS
+    sslOptions |= SSL_OP_ENABLE_KTLS;
+#endif /* SSL_OP_ENABLE_KTLS */
+  }
+
   if (config.d_sessionTimeout > 0) {
     SSL_CTX_set_timeout(ctx.get(), config.d_sessionTimeout);
   }

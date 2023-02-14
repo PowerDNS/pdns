@@ -51,6 +51,8 @@ public:
   bool d_enableRenegotiation{false};
   /* enable TLS async mode, if supported by any engine */
   bool d_asyncMode{false};
+  /* enable kTLS mode, if supported */
+  bool d_ktls{false};
 };
 
 struct TLSErrorCounters

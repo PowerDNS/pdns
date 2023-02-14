@@ -111,6 +111,12 @@ For incoming and outgoing DNS over TLS support, the choice of the TLS provider (
 
 Since 1.8.0, incoming DNS over TLS might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` for more information.
 
+Incoming and outgoing DNS over TLS, as well as outgoing DNS over HTTPS, might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
+
+ * supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
+ * as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
+
+
 Rules and Lua
 -------------
 

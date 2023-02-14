@@ -577,6 +577,7 @@ struct TLSContextParameters
   bool d_validateCertificates{true};
   bool d_releaseBuffers{true};
   bool d_enableRenegotiation{false};
+  bool d_ktls{false};
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
