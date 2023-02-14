@@ -1340,7 +1340,7 @@ The following actions exist.
   * ``b64-content``: the base64-encoded DNS payload of the current query
   * ``sni``: the Server Name Indication value for queries received over DoT or DoH. Empty otherwise.
   * ``tag:<TAG>``: the content of the corresponding ``<TAG>`` if any
-  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>", ..., "<keyN>:<valueN>" strings
+  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>", ..., "<keyN>:<valueN>" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:".
 
   Subsequent rules are processed after this action.
 

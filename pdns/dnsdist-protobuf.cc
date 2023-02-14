@@ -333,7 +333,13 @@ const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
       return result;
     }
     for (const auto& [key, value] : *dq.ids.qTag) {
-      result.push_back(key + ":" + value);
+      if (value.empty()) {
+        /* avoids a spurious ':' when the value is empty */
+        result.push_back(key);
+      }
+      else {
+        result.push_back(key + ":" + value);
+      }
     }
     return result;
   } },

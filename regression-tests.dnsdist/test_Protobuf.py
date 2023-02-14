@@ -418,6 +418,7 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
     rl = newRemoteLogger('127.0.0.1:%d')
 
     addAction(AllRule(), SetTagAction('my-tag-key', 'my-tag-value'))
+    addAction(AllRule(), SetTagAction('my-empty-key', ''))
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}, {b64='b64-content', ['my-tag-export-name']='tag:my-tag-key'}))
     addResponseAction(AllRule(), SetTagResponseAction('my-tag-key2', 'my-tag-value2'))
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}, {['my-tag-export-name']='tags'}))
@@ -468,9 +469,11 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
         self.assertEqual(len(msg.meta), 1)
         self.assertEqual(msg.meta[0].key, 'my-tag-export-name')
-        self.assertEqual(len(msg.meta[0].value.stringVal), 2)
+        self.assertEqual(len(msg.meta[0].value.stringVal), 3)
         self.assertIn('my-tag-key:my-tag-value', msg.meta[0].value.stringVal)
         self.assertIn('my-tag-key2:my-tag-value2', msg.meta[0].value.stringVal)
+        # no ':' when the value is empty
+        self.assertIn('my-empty-key', msg.meta[0].value.stringVal)
 
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
