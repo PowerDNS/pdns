@@ -9,6 +9,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 jobs:
   el7-devtoolset:
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
 
     steps:
@@ -24,6 +25,7 @@ jobs:
         fi
 
   check-debian-autoremovals:
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3.1.0
@@ -36,6 +38,7 @@ jobs:
 
   coverity-auth:
     name: coverity scan of the auth
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-20.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_auth_token }}
@@ -61,6 +64,7 @@ jobs:
 
   coverity-dnsdist:
     name: coverity scan of dnsdist
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-20.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_dnsdist_token }}
@@ -90,6 +94,7 @@ jobs:
 
   coverity-rec:
     name: coverity scan of the rec
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-20.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_rec_token }}
