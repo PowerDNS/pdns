@@ -173,7 +173,6 @@ struct nullindex_t
   typedef uint32_t type; // dummy
 };
 
-
 /** The main class. Templatized only on the indexes and typename right now */
 template<typename T, class I1=nullindex_t, class I2=nullindex_t, class I3 = nullindex_t, class I4 = nullindex_t>
 class TypedDBI

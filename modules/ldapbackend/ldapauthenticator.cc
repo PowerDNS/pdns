@@ -22,9 +22,9 @@
 #include "ldaputils.hh"
 
 /*****************************
- * 
+ *
  * LdapSimpleAuthenticator
- * 
+ *
  ****************************/
 
 LdapSimpleAuthenticator::LdapSimpleAuthenticator(const std::string& dn, const std::string& pw, int tmout) :
@@ -69,9 +69,9 @@ void LdapSimpleAuthenticator::fillLastError(LDAP* conn, int code)
 }
 
 /*****************************
- * 
+ *
  * LdapGssapiAuthenticator
- * 
+ *
  ****************************/
 
 static int ldapGssapiAuthenticatorSaslInteractCallback(LDAP* conn, unsigned flags, void* defaults, void* in)

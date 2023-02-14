@@ -27,13 +27,13 @@
 #include "../../namespaces.hh"
 #include "../../misc.hh"
 
-class SSqlException 
+class SSqlException
 {
-public: 
+public:
   SSqlException(const string &reason) : d_reason(reason)
   {
   }
-  
+
   string txtReason()
   {
     return d_reason;
@@ -41,7 +41,7 @@ public:
 private:
   string d_reason;
 };
- 
+
 class SSqlStatement
 {
 public:

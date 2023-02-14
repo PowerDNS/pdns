@@ -350,11 +350,11 @@ static T pickWeightedRandom(const vector< pair<int, T> >& items)
     sum += i.first;
     pick.emplace_back(sum, i.second);
   }
-  
+
   if (sum == 0) {
     throw std::invalid_argument("The sum of items cannot be zero");
   }
-  
+
   int r = dns_random(sum);
   auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
@@ -374,7 +374,7 @@ static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >&
     sum += i.first;
     pick.push_back({sum, i.second});
   }
-  
+
   if (sum == 0) {
     throw std::invalid_argument("The sum of items cannot be zero");
   }
@@ -386,27 +386,27 @@ static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >&
 }
 
 template <typename T>
-static vector<T> pickRandomSample(int n, const vector<T>& items) 
+static vector<T> pickRandomSample(int n, const vector<T>& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
   }
-  
+
   vector<T> pick;
   pick.reserve(items.size());
-  
+
   for(auto& item : items) {
     pick.push_back(item);
   }
-  
+
   int count = std::min(std::max<size_t>(0, n), items.size());
 
   if (count == 0) {
     return vector<T>();
-  }  
+  }
 
   std::shuffle(pick.begin(), pick.end(), pdns::dns_random_engine());
-  
+
   vector<T> result = {pick.begin(), pick.begin() + count};
   return result;
 }
@@ -637,9 +637,9 @@ static void setupLuaRecords(LuaContext& lua)
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
           return std::string("unknown");
-        
+
         vector<ComboAddress> candidates;
-        
+
         // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
         // e["1.2.3.4"]="bert.powerdns.com" then provides an exception
         if(e) {
@@ -652,7 +652,7 @@ static void setupLuaRecords(LuaContext& lua)
         boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
         fmt % labels[3] % labels[2] % labels[1] % labels[0];
-        
+
         fmt % (labels[3]+"-"+labels[2]+"-"+labels[1]+"-"+labels[0]);
 
         boost::format fmt2("%02x%02x%02x%02x");
@@ -1070,7 +1070,7 @@ static void setupLuaRecords(LuaContext& lua)
   lua.writeFunction("all", [](const vector< pair<int,string> >& ips) {
       vector<string> result;
 	  result.reserve(ips.size());
-	  
+
       for(const auto& ip : ips) {
           result.emplace_back(ip.second);
       }
@@ -1117,7 +1117,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   s_lua_record_ctx->qname = query;
   s_lua_record_ctx->zone = zone;
   s_lua_record_ctx->zoneid = zoneid;
-  
+
   lua.writeVariable("qname", query);
   lua.writeVariable("zone", zone);
   lua.writeVariable("zoneid", zoneid);

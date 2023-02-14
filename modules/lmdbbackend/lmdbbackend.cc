@@ -373,8 +373,8 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
 }
 
 /* Here's the complicated story. Other backends have just one transaction, which is either
-   on or not. 
-   
+   on or not.
+
    You can't call feedRecord without a transaction started with startTransaction.
 
    However, other functions can be called after startTransaction() or without startTransaction()

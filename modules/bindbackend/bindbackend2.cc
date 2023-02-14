@@ -56,7 +56,7 @@
 #include "pdns/auth-zonecache.hh"
 #include "pdns/auth-caches.hh"
 
-/* 
+/*
    All instances of this backend share one s_state, which is indexed by zone name and zone id.
    The s_state is protected by a read/write lock, and the goal it to only interact with it briefly.
    When a query comes in, we take a read lock and COPY the best zone to answer from s_state (BB2DomainInfo object)

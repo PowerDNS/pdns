@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
   int n;
   for(n=0; n < 100; ++n)  {
     Question q;
-    q.d_dt.set(); 
+    q.d_dt.set();
     d->question(q, report);
   }
   sleep(1);
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
     // bound should be higher than max-queue-length
     for(n=0; n < 2000; ++n)  {
       Question q;
-      q.d_dt.set(); 
+      q.d_dt.set();
       d->question(q, report1);
     }
     }, DistributorFatal, [](DistributorFatal) { return true; });
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
   try {
     for(int n=0; n < 100; ++n)  {
       Question q;
-      q.d_dt.set(); 
+      q.d_dt.set();
       q.qdomain=DNSName(std::to_string(n));
       q.qtype = QType(QType::A);
       d->question(q, report2);
