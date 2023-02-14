@@ -47,7 +47,7 @@ public:
   void setEDNSSubnet(const Netmask& nm);
 
   void addTag(const std::string& strValue);
-  void addMeta(const std::string& key, std::string&& value);
+  void addMeta(const std::string& key, std::vector<std::string>&& values);
   void addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
 
   void serialize(std::string& data) const;
@@ -76,7 +76,7 @@ private:
 
   std::vector<PBRecord> d_additionalRRs;
   std::vector<std::string> d_additionalTags;
-  std::vector<std::pair<std::string, std::string>> d_metaTags;
+  std::unordered_map<std::string, std::unordered_set<std::string>> d_metaTags;
 
   const DNSQuestion& d_dq;
   const DNSResponse* d_dr{nullptr};
@@ -104,7 +104,7 @@ class ProtoBufMetaKey
   {
     const std::string d_name;
     const Type d_type;
-    const std::function<std::string(const DNSQuestion&, const std::string&, uint8_t)> d_func;
+    const std::function<std::vector<std::string>(const DNSQuestion&, const std::string&, uint8_t)> d_func;
     bool d_prefix{false};
     bool d_caseSensitive{true};
     bool d_numeric{false};
@@ -127,7 +127,7 @@ public:
   ProtoBufMetaKey(const std::string& key);
 
   const std::string& getName() const;
-  std::string getValue(const DNSQuestion& dq) const;
+  std::vector<std::string> getValues(const DNSQuestion& dq) const;
 private:
   std::string d_subKey;
   uint8_t d_numericSubKey{0};

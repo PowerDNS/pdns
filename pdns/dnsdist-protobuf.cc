@@ -104,9 +104,12 @@ void DNSDistProtoBufMessage::addTag(const std::string& strValue)
   d_additionalTags.push_back(strValue);
 }
 
-void DNSDistProtoBufMessage::addMeta(const std::string& key, std::string&& value)
+void DNSDistProtoBufMessage::addMeta(const std::string& key, std::vector<std::string>&& values)
 {
-  d_metaTags.push_back({key, std::move(value)});
+  auto& entry = d_metaTags[key];
+  for (auto& value : values) {
+    entry.insert(std::move(value));
+  }
 }
 
 void DNSDistProtoBufMessage::addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)
@@ -193,8 +196,8 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   m.commitResponse();
 
-  for (const auto& [key, value] : d_metaTags) {
-    m.setMeta(key, {value}, {});
+  for (const auto& [key, values] : d_metaTags) {
+    m.setMeta(key, values, {});
   }
 }
 
@@ -233,12 +236,12 @@ ProtoBufMetaKey::ProtoBufMetaKey(const std::string& key)
   throw std::runtime_error("Invalid ProtoBuf key '" + key + "'");
 }
 
-std::string ProtoBufMetaKey::getValue(const DNSQuestion& dq) const
+std::vector<std::string> ProtoBufMetaKey::getValues(const DNSQuestion& dq) const
 {
   auto& idx = s_types.get<TypeTag>();
   auto it = idx.find(d_type);
   if (it == idx.end()) {
-    throw std::runtime_error("Trying to get the value of an unsupported type: " + std::to_string(static_cast<uint8_t>(d_type)));
+    throw std::runtime_error("Trying to get the values of an unsupported type: " + std::to_string(static_cast<uint8_t>(d_type)));
   }
   return (it->d_func)(dq, d_subKey, d_numericSubKey);
 }
@@ -254,69 +257,83 @@ const std::string& ProtoBufMetaKey::getName() const
 }
 
 const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
-  ProtoBufMetaKey::KeyTypeDescription{ "sni", Type::SNI, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::string { return dq.sni; }, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "pool", Type::Pool, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::string { return dq.ids.poolName; }, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "b64-content", Type::B64Content, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::string { const auto& data = dq.getData(); return Base64Encode(std::string(data.begin(), data.end())); }, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "doh-header", Type::DoHHeader, [](const DNSQuestion& dq , const std::string& name, uint8_t) {
+  ProtoBufMetaKey::KeyTypeDescription{ "sni", Type::SNI, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { return {dq.sni}; }, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "pool", Type::Pool, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { return {dq.ids.poolName}; }, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "b64-content", Type::B64Content, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { const auto& data = dq.getData(); return {Base64Encode(std::string(data.begin(), data.end()))}; }, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "doh-header", Type::DoHHeader, [](const DNSQuestion& dq , const std::string& name, uint8_t) -> std::vector<std::string> {
     if (!dq.ids.du) {
-      return std::string();
+      return {};
     }
     auto headers = dq.ids.du->getHTTPHeaders();
     auto it = headers.find(name);
     if (it != headers.end()) {
-      return it->second;
+      return {it->second};
     }
-    return std::string();
+    return {};
   }, true, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "doh-host", Type::DoHHost, [](const DNSQuestion& dq, const std::string&, uint8_t) { return (dq.ids.du ? dq.ids.du->getHTTPHost() : ""); }, true, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "doh-path", Type::DoHPath, [](const DNSQuestion& dq, const std::string&, uint8_t) { return (dq.ids.du ? dq.ids.du->getHTTPPath() : ""); }, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "doh-query-string", Type::DoHQueryString, [](const DNSQuestion& dq, const std::string&, uint8_t) { return (dq.ids.du ? dq.ids.du->getHTTPQueryString() : ""); }, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "doh-scheme", Type::DoHScheme, [](const DNSQuestion& dq, const std::string&, uint8_t) { return (dq.ids.du ? dq.ids.du->getHTTPScheme() : ""); }, false, false },
-  ProtoBufMetaKey::KeyTypeDescription{ "proxy-protocol-value", Type::ProxyProtocolValue, [](const DNSQuestion& dq, const std::string&, uint8_t numericSubKey) {
+  ProtoBufMetaKey::KeyTypeDescription{ "doh-host", Type::DoHHost, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    if (dq.ids.du) {
+      return {dq.ids.du->getHTTPHost()};
+    }
+    return {};
+  }, true, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "doh-path", Type::DoHPath, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    if (dq.ids.du) {
+      return {dq.ids.du->getHTTPPath()};
+    }
+    return {};
+    }, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "doh-query-string", Type::DoHQueryString, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    if (dq.ids.du) {
+      return {dq.ids.du->getHTTPQueryString()};
+    }
+    return {};
+    }, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "doh-scheme", Type::DoHScheme, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    if (dq.ids.du) {
+      return {dq.ids.du->getHTTPScheme()};
+    }
+    return {};
+    }, false, false },
+  ProtoBufMetaKey::KeyTypeDescription{ "proxy-protocol-value", Type::ProxyProtocolValue, [](const DNSQuestion& dq, const std::string&, uint8_t numericSubKey) -> std::vector<std::string> {
     if (!dq.proxyProtocolValues) {
-      return std::string();
+      return {};
     }
     for (const auto& value : *dq.proxyProtocolValues) {
       if (value.type == numericSubKey) {
-        return value.content;
+        return {value.content};
       }
     }
-    return std::string();
+    return {};
   }, true, false, true },
-  ProtoBufMetaKey::KeyTypeDescription{ "proxy-protocol-values", Type::ProxyProtocolValues, [](const DNSQuestion& dq, const std::string&, uint8_t) {
+  ProtoBufMetaKey::KeyTypeDescription{ "proxy-protocol-values", Type::ProxyProtocolValues, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    std::vector<std::string> result;
     if (!dq.proxyProtocolValues) {
-      return std::string();
+      return result;
     }
-    std::string result;
     for (const auto& value : *dq.proxyProtocolValues) {
-      if (!result.empty()) {
-        result += ", ";
-      }
-      result += std::to_string(value.type) + ":" + value.content;
+      result.push_back(std::to_string(value.type) + ":" + value.content);
     }
     return result;
   } },
-  ProtoBufMetaKey::KeyTypeDescription{ "tag", Type::Tag, [](const DNSQuestion& dq, const std::string& subKey, uint8_t) {
+  ProtoBufMetaKey::KeyTypeDescription{ "tag", Type::Tag, [](const DNSQuestion& dq, const std::string& subKey, uint8_t) -> std::vector<std::string> {
     if (!dq.ids.qTag) {
-      return std::string();
+      return {};
     }
     for (const auto& [key, value] : *dq.ids.qTag) {
       if (key == subKey) {
-        return value;
+        return {value};
       }
     }
-    return std::string();
+    return {};
   }, true, true },
-  ProtoBufMetaKey::KeyTypeDescription{ "tags", Type::Tags, [](const DNSQuestion& dq, const std::string&, uint8_t) {
+  ProtoBufMetaKey::KeyTypeDescription{ "tags", Type::Tags, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> {
+    std::vector<std::string> result;
     if (!dq.ids.qTag) {
-      return std::string();
+      return result;
     }
-    std::string result;
     for (const auto& [key, value] : *dq.ids.qTag) {
-      if (!result.empty()) {
-        result += ", ";
-      }
-      result += key + ":" + value;
+      result.push_back(key + ":" + value);
     }
     return result;
   } },

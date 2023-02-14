@@ -1336,11 +1336,11 @@ The following actions exist.
   * ``doh-scheme``: the HTTP scheme for DoH queries, empty otherwise
   * ``pool``: the currently selected pool of servers
   * ``proxy-protocol-value:<TYPE>``: the content of the proxy protocol value of type ``<TYPE>``, if any
-  * ``proxy-protocol-values``: the content of all proxy protocol values as a "<type1>:<value1>,...,<typeN>:<valueN>" string
+  * ``proxy-protocol-values``: the content of all proxy protocol values as a "<type1>:<value1>", ..., "<typeN>:<valueN>" strings
   * ``b64-content``: the base64-encoded DNS payload of the current query
   * ``sni``: the Server Name Indication value for queries received over DoT or DoH. Empty otherwise.
   * ``tag:<TAG>``: the content of the corresponding ``<TAG>`` if any
-  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>,...,<keyN>:<valueN>" string
+  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>", ..., "<keyN>:<valueN>" strings
 
   Subsequent rules are processed after this action.
 

@@ -452,18 +452,25 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
 
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
         self.assertEqual(len(msg.meta), 2)
-        self.assertEqual(msg.meta[0].key, 'b64')
+        tags = {}
+        for entry in msg.meta:
+            tags[entry.key] = entry.value.stringVal
+
+        self.assertIn('b64', tags)
+        self.assertIn('my-tag-export-name', tags)
+
         b64EncodedQuery = base64.b64encode(query.to_wire()).decode('ascii')
-        self.assertEqual(msg.meta[0].value.stringVal[0], b64EncodedQuery)
-        self.assertEqual(msg.meta[1].key, 'my-tag-export-name')
-        self.assertEqual(msg.meta[1].value.stringVal[0], 'my-tag-value')
+        self.assertEqual(tags['b64'], [b64EncodedQuery])
+        self.assertEqual(tags['my-tag-export-name'], ['my-tag-value'])
 
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
         self.assertEqual(len(msg.meta), 1)
         self.assertEqual(msg.meta[0].key, 'my-tag-export-name')
-        self.assertEqual(msg.meta[0].value.stringVal[0], 'my-tag-key2:my-tag-value2, my-tag-key:my-tag-value')
+        self.assertEqual(len(msg.meta[0].value.stringVal), 2)
+        self.assertIn('my-tag-key:my-tag-value', msg.meta[0].value.stringVal)
+        self.assertIn('my-tag-key2:my-tag-value2', msg.meta[0].value.stringVal)
 
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
@@ -602,13 +609,14 @@ class TestProtobufMetaProxy(DNSDistProtobufTest):
         self.assertEqual(len(msg.meta), 2)
         tags = {}
         for entry in msg.meta:
-            self.assertEqual(len(entry.value.stringVal), 1)
-            tags[entry.key] = entry.value.stringVal[0]
+            tags[entry.key] = entry.value.stringVal
 
         self.assertIn('pp42', tags)
-        self.assertEqual(tags['pp42'], 'proxy')
+        self.assertEqual(tags['pp42'], ['proxy'])
         self.assertIn('pp', tags)
-        self.assertEqual(tags['pp'], '2:foo, 42:proxy')
+        self.assertEqual(len(tags['pp']), 2)
+        self.assertIn('2:foo', tags['pp'])
+        self.assertIn('42:proxy', tags['pp'])
 
 class TestProtobufIPCipher(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']

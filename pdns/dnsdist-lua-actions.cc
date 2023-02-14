@@ -1485,7 +1485,7 @@ private:
 static void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas)
 {
   for (const auto& [name, meta] : metas) {
-    message.addMeta(name, meta.getValue(dq));
+    message.addMeta(name, meta.getValues(dq));
   }
 }
 
