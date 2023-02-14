@@ -241,6 +241,10 @@ jobs:
             image: coscale/docker-sleep
           - backend: authpy
             image: coscale/docker-sleep
+          - backend: godbc_sqlite3
+            image: coscale/docker-sleep
+          - backend: godbc_mssql
+            image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
       fail-fast: false
     services:
       database:
@@ -249,9 +253,12 @@ jobs:
           POSTGRES_USER: runner
           POSTGRES_HOST_AUTH_METHOD: trust
           MYSQL_ALLOW_EMPTY_PASSWORD: 1
+          ACCEPT_EULA: Y
+          SA_PASSWORD: 'SAsa12%%'
         ports:
           - 3306:3306
           - 5432:5432
+          - 1433:1433
         # FIXME: this works around dist-upgrade stopping all docker containers. dist-upgrade is huge on these images anyway. Perhaps we do want to run our tasks in a Docker container too.
         options: >-
           --restart always
