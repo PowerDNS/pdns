@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#remove
 from __future__ import print_function
 
 import threading
