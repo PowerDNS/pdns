@@ -43,15 +43,15 @@ using std::move;
  * it may not be orderable.
  */
 struct NullStruct {
-    bool operator==(NullStruct) const { return true; }
-    bool operator<(NullStruct) const { return false; }
+    bool operator==(NullStruct /*unused*/) const { return true; }
+    bool operator<(NullStruct /*unused*/) const { return false; }
 };
 
 /* * * * * * * * * * * * * * * * * * * *
  * Serialization
  */
 
-static void dump(NullStruct, string &out) {
+static void dump(NullStruct /*unused*/, string &out) {
     out += "null";
 }
 
