@@ -698,7 +698,7 @@ class TestFlagsOnTimeout(DNSDistTest):
         self.assertFalse(receivedResponse)
 
         # make sure that the timeouts have been detected and recorded
-        for _ in range(3):
+        for _ in range(6):
             content = self.sendConsoleCommand("grepq('')")
             lines = content.splitlines()
             if len(lines) == 5:
