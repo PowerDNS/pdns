@@ -813,6 +813,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE dnsdist_pool_cache_insert_collisions " << "counter" << "\n";
   output << "# HELP dnsdist_pool_cache_ttl_too_shorts " << "Number of insertions into that cache skipped because the TTL of the answer was not long enough" << "\n";
   output << "# TYPE dnsdist_pool_cache_ttl_too_shorts " << "counter" << "\n";
+  output << "# HELP dnsdist_pool_cache_cleanup_count_total " << "Number of times the cache has been scanned to remove expired entries, if any" << "\n";
+  output << "# TYPE dnsdist_pool_cache_cleanup_count_total " << "counter" << "\n";
 
   for (const auto& entry : *localPools) {
     string poolName = entry.first;
@@ -837,7 +839,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << cachebase << "cache_lookup_collisions" <<label << " " << cache->getLookupCollisions() << "\n";
       output << cachebase << "cache_insert_collisions" <<label << " " << cache->getInsertCollisions() << "\n";
       output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
-      output << cachebase << "cache_cleanup_count"     <<label << " " << cache->getCleanupCount()     << "\n";
+      output << cachebase << "cache_cleanup_count_total"     <<label << " " << cache->getCleanupCount()     << "\n";
     }
   }
 
