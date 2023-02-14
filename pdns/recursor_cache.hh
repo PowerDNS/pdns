@@ -93,7 +93,7 @@ private:
     bool isStale(time_t now) const
     {
       // We like to keep things in cache when we (potentially) should serve stale
-      if (s_maxServedStaleExtensions > 0) {
+      if (false && s_maxServedStaleExtensions > 0) {
         return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
       }
       else {
