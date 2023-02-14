@@ -156,7 +156,7 @@ private:
   bool d_addECS{false};
 };
 
-TeeAction::TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS) 
+TeeAction::TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS)
   : d_remote(rca), d_addECS(addECS)
 {
   d_fd=SSocket(d_remote.sin4.sin_family, SOCK_DGRAM, 0);
@@ -1489,11 +1489,31 @@ static void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQues
   }
 }
 
+static void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::unordered_set<std::string>& allowed)
+{
+  if (!dq.ids.qTag) {
+    return;
+  }
+
+  for (const auto& [key, value] : *dq.ids.qTag) {
+    if (!allowed.empty() && allowed.count(key) == 0) {
+      continue;
+    }
+
+    if (value.empty()) {
+      message.addTag(key);
+    }
+    else {
+      message.addTag(key + ":" + value);
+    }
+  }
+}
+
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas): d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
   {
   }
 
@@ -1515,6 +1535,10 @@ public:
     }
 #endif /* HAVE_IPCIPHER */
 
+    if (d_tagsToExport) {
+      addTagsToProtobuf(message, *dq, *d_tagsToExport);
+    }
+
     addMetaDataToProtobuf(message, *dq, d_metas);
 
     if (d_alterFunc) {
@@ -1534,6 +1558,7 @@ public:
     return "remote log to " + (d_logger ? d_logger->toString() : "");
   }
 private:
+  std::optional<std::unordered_set<std::string>> d_tagsToExport;
   std::vector<std::pair<std::string, ProtoBufMetaKey>> d_metas;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > d_alterFunc;
@@ -1630,7 +1655,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME, std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas): d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -1651,6 +1676,10 @@ public:
     }
 #endif /* HAVE_IPCIPHER */
 
+    if (d_tagsToExport) {
+      addTagsToProtobuf(message, *dr, *d_tagsToExport);
+    }
+
     addMetaDataToProtobuf(message, *dr, d_metas);
 
     if (d_alterFunc) {
@@ -1670,6 +1699,7 @@ public:
     return "remote log response to " + (d_logger ? d_logger->toString() : "");
   }
 private:
+  std::optional<std::unordered_set<std::string>> d_tagsToExport;
   std::vector<std::pair<std::string, ProtoBufMetaKey>> d_metas;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > d_alterFunc;
@@ -2474,8 +2504,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string serverID;
       std::string ipEncryptKey;
+      std::string tags;
       getOptionalValue<std::string>(vars, "serverID", serverID);
       getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      getOptionalValue<std::string>(vars, "exportTags", tags);
 
       std::vector<std::pair<std::string, ProtoBufMetaKey>> metaOptions;
       if (metas) {
@@ -2484,9 +2516,21 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
+      std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
+      if (!tags.empty()) {
+        tagsToExport = std::unordered_set<std::string>();
+        if (tags != "*") {
+          std::vector<std::string> tokens;
+          stringtok(tokens, tags, ",");
+          for (auto& token : tokens) {
+            tagsToExport->insert(std::move(token));
+          }
+        }
+      }
+
       checkAllParametersConsumed("RemoteLogAction", vars);
 
-      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey, metaOptions));
+      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey, std::move(metaOptions), std::move(tagsToExport)));
     });
 
   luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
@@ -2501,8 +2545,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string serverID;
       std::string ipEncryptKey;
+      std::string tags;
       getOptionalValue<std::string>(vars, "serverID", serverID);
       getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      getOptionalValue<std::string>(vars, "exportTags", tags);
 
       std::vector<std::pair<std::string, ProtoBufMetaKey>> metaOptions;
       if (metas) {
@@ -2511,9 +2557,21 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
+      std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
+      if (!tags.empty()) {
+        tagsToExport = std::unordered_set<std::string>();
+        if (tags != "*") {
+          std::vector<std::string> tokens;
+          stringtok(tokens, tags, ",");
+          for (auto& token : tokens) {
+            tagsToExport->insert(std::move(token));
+          }
+        }
+      }
+
       checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
-      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false, metaOptions));
+      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false, std::move(metaOptions), std::move(tagsToExport)));
     });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {

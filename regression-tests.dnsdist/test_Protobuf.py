@@ -419,9 +419,9 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
 
     addAction(AllRule(), SetTagAction('my-tag-key', 'my-tag-value'))
     addAction(AllRule(), SetTagAction('my-empty-key', ''))
-    addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}, {b64='b64-content', ['my-tag-export-name']='tag:my-tag-key'}))
+    addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1', exportTags='*'}, {b64='b64-content', ['my-tag-export-name']='tag:my-tag-key'}))
     addResponseAction(AllRule(), SetTagResponseAction('my-tag-key2', 'my-tag-value2'))
-    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}, {['my-tag-export-name']='tags'}))
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1', exportTags='my-empty-key,my-tag-key2'}, {['my-tag-export-name']='tags'}))
     """
 
     def testProtobufMeta(self):
@@ -452,6 +452,11 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
 
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # regular tags
+        self.assertEqual(len(msg.response.tags), 2)
+        self.assertIn('my-tag-key:my-tag-value', msg.response.tags)
+        self.assertIn('my-empty-key', msg.response.tags)
+        # meta tags
         self.assertEqual(len(msg.meta), 2)
         tags = {}
         for entry in msg.meta:
@@ -467,6 +472,11 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        # regular tags
+        self.assertEqual(len(msg.response.tags), 2)
+        self.assertIn('my-tag-key2:my-tag-value2', msg.response.tags)
+        self.assertIn('my-empty-key', msg.response.tags)
+        # meta tags
         self.assertEqual(len(msg.meta), 1)
         self.assertEqual(msg.meta[0].key, 'my-tag-export-name')
         self.assertEqual(len(msg.meta[0].value.stringVal), 3)
