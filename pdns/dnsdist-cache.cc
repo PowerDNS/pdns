@@ -105,7 +105,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint
   bool wasExpired = value.validity <= newValue.added;
 
   if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.receivedOverUDP, newValue.dnssecOK, newValue.subnet)) {
-    d_insertCollisions++;
+    ++d_insertCollisions;
     return;
   }
 
@@ -151,7 +151,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     }
 
     if (minTTL < d_minTTL) {
-      d_ttlTooShorts++;
+      ++d_ttlTooShorts;
       return;
     }
   }
@@ -183,7 +183,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     auto w = shard.d_map.try_write_lock();
 
     if (!w.owns_lock()) {
-      d_deferredInserts++;
+      ++d_deferredInserts;
       return;
     }
     insertLocked(shard, *w, key, newValue);
@@ -198,7 +198,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
   if (dq.ids.qtype == QType::AXFR || dq.ids.qtype == QType::IXFR) {
-    d_misses++;
+    ++d_misses;
     return false;
   }
 
@@ -222,14 +222,14 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
   {
     auto map = shard.d_map.try_read_lock();
     if (!map.owns_lock()) {
-      d_deferredLookups++;
+      ++d_deferredLookups;
       return false;
     }
 
     std::unordered_map<uint32_t,CacheValue>::const_iterator it = map->find(key);
     if (it == map->end()) {
       if (recordMiss) {
-        d_misses++;
+        ++d_misses;
       }
       return false;
     }
@@ -238,7 +238,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
     if (value.validity <= now) {
       if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
         if (recordMiss) {
-          d_misses++;
+          ++d_misses;
         }
         return false;
       }
@@ -253,7 +253,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
     /* check for collision */
     if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.getHeader())), dq.ids.qname, dq.ids.qtype, dq.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
-      d_lookupCollisions++;
+      ++d_lookupCollisions;
       return false;
     }
 
@@ -271,7 +271,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
     if (value.len == sizeof(dnsheader)) {
       /* DNS header only, our work here is done */
-      d_hits++;
+      ++d_hits;
       return true;
     }
 
@@ -304,7 +304,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
     }
   }
 
-  d_hits++;
+  ++d_hits;
   return true;
 }
 
@@ -319,7 +319,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
   size_t removed = 0;
 
-  d_cleanupCount++;
+  ++d_cleanupCount;
   for (auto& shard : d_shards) {
     auto map = shard.d_map.write_lock();
     if (map->size() <= maxPerShard) {

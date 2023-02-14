@@ -235,7 +235,7 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
   }
 }
 
-static void LuaThread(const std::string code)
+static void LuaThread(const std::string& code)
 {
   setThreadName("dnsdist/lua-bg");
   LuaContext l;
@@ -943,7 +943,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return ret;
   });
 
-  luaCtx.writeFunction("getPoolServers", [](string pool) {
+  luaCtx.writeFunction("getPoolServers", [](const string& pool) {
     const auto poolServers = getDownstreamCandidates(g_pools.getCopy(), pool);
     return *poolServers;
   });
@@ -1871,7 +1871,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (boost::ends_with(ent->d_name, ".conf")) {
         std::ostringstream namebuf;
-        namebuf << dirname.c_str() << "/" << ent->d_name;
+        namebuf << dirname << "/" << ent->d_name;
 
         if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
           continue;
@@ -2047,18 +2047,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_policy.setState(policy);
   });
 
-  luaCtx.writeFunction("setServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy) {
+  luaCtx.writeFunction("setServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy) {
     setLuaSideEffect();
     g_policy.setState(ServerPolicy{name, policy, true});
   });
 
-  luaCtx.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+  luaCtx.writeFunction("setServerPolicyLuaFFI", [](const string& name, ServerPolicy::ffipolicyfunc_t policy) {
     setLuaSideEffect();
     auto pol = ServerPolicy(name, policy);
     g_policy.setState(std::move(pol));
   });
 
-  luaCtx.writeFunction("setServerPolicyLuaFFIPerThread", [](string name, const std::string& policyCode) {
+  luaCtx.writeFunction("setServerPolicyLuaFFIPerThread", [](const string& name, const std::string& policyCode) {
     setLuaSideEffect();
     auto pol = ServerPolicy(name, policyCode);
     g_policy.setState(std::move(pol));
@@ -2069,35 +2069,35 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_outputBuffer = g_policy.getLocal()->getName() + "\n";
   });
 
-  luaCtx.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, string pool) {
+  luaCtx.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
     setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
     g_pools.setState(localPools);
   });
 
-  luaCtx.writeFunction("setPoolServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy, string pool) {
+  luaCtx.writeFunction("setPoolServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
     setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy, true}));
     g_pools.setState(localPools);
   });
 
-  luaCtx.writeFunction("setPoolServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy, string pool) {
+  luaCtx.writeFunction("setPoolServerPolicyLuaFFI", [](const string& name, ServerPolicy::ffipolicyfunc_t policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
     setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
     g_pools.setState(localPools);
   });
 
-  luaCtx.writeFunction("setPoolServerPolicyLuaFFIPerThread", [](string name, const std::string& policyCode, string pool) {
+  luaCtx.writeFunction("setPoolServerPolicyLuaFFIPerThread", [](const string& name, const std::string& policyCode, const std::string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
     setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policyCode}));
     g_pools.setState(localPools);
   });
 
-  luaCtx.writeFunction("showPoolServerPolicy", [](string pool) {
+  luaCtx.writeFunction("showPoolServerPolicy", [](const std::string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
     auto poolObj = getPool(localPools, pool);

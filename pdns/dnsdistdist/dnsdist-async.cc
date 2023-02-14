@@ -27,9 +27,9 @@
 namespace dnsdist
 {
 
-AsynchronousHolder::AsynchronousHolder(bool failOpen)
+AsynchronousHolder::AsynchronousHolder(bool failOpen) :
+  d_data(std::make_shared<Data>())
 {
-  d_data = std::make_shared<Data>();
   d_data->d_failOpen = failOpen;
 
   int fds[2] = {-1, -1};

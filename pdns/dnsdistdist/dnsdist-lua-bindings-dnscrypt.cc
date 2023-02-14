@@ -152,7 +152,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
     luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSStart", [](const DNSCryptCert& cert) { return ntohl(cert.getTSStart()); });
     luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSEnd", [](const DNSCryptCert& cert) { return ntohl(cert.getTSEnd()); });
 
-    luaCtx.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+    luaCtx.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string& privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
       if (client) {
         return;
@@ -172,7 +172,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
       }
     });
 
-    luaCtx.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
+    luaCtx.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string& privateKeyFile) {
       setLuaNoSideEffect();
       if (client) {
         return;

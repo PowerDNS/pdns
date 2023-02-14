@@ -455,7 +455,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
 
-      const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
+      const auto convertParamsToConfig = [&](const std::string& name, BPFFilter::MapType type) {
         BPFFilter::MapConfiguration config;
         config.d_type = type;
         if (const string key = name + "MaxItems"; opts.count(key)) {

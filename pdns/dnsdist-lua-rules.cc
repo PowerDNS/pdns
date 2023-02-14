@@ -509,11 +509,11 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new OpcodeRule(code));
     });
 
-  luaCtx.writeFunction("AndRule", [](LuaArray<std::shared_ptr<DNSRule>> a) {
+  luaCtx.writeFunction("AndRule", [](const LuaArray<std::shared_ptr<DNSRule>>& a) {
       return std::shared_ptr<DNSRule>(new AndRule(a));
     });
 
-  luaCtx.writeFunction("OrRule", [](LuaArray<std::shared_ptr<DNSRule>>a) {
+  luaCtx.writeFunction("OrRule", [](const LuaArray<std::shared_ptr<DNSRule>>& a) {
       return std::shared_ptr<DNSRule>(new OrRule(a));
     });
 
@@ -530,7 +530,7 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new DNSSECRule());
     });
 
-  luaCtx.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {
+  luaCtx.writeFunction("NotRule", [](const std::shared_ptr<DNSRule>& rule) {
       return std::shared_ptr<DNSRule>(new NotRule(rule));
     });
 
@@ -591,7 +591,7 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new RDRule());
     });
 
-  luaCtx.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
+  luaCtx.writeFunction("TagRule", [](const std::string& tag, boost::optional<std::string> value) {
       return std::shared_ptr<DNSRule>(new TagRule(tag, value));
     });
 
@@ -599,11 +599,11 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<TimedIPSetRule>(new TimedIPSetRule());
     });
 
-  luaCtx.writeFunction("PoolAvailableRule", [](std::string poolname) {
+  luaCtx.writeFunction("PoolAvailableRule", [](const std::string& poolname) {
     return std::shared_ptr<DNSRule>(new PoolAvailableRule(poolname));
   });
 
-  luaCtx.writeFunction("PoolOutstandingRule", [](std::string poolname, uint64_t limit) {
+  luaCtx.writeFunction("PoolOutstandingRule", [](const std::string& poolname, uint64_t limit) {
     return std::shared_ptr<DNSRule>(new PoolOutstandingRule(poolname, limit));
   });
 
@@ -648,7 +648,7 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new LuaFFIRule(func));
     });
 
-  luaCtx.writeFunction("LuaFFIPerThreadRule", [](std::string code) {
+  luaCtx.writeFunction("LuaFFIPerThreadRule", [](const std::string& code) {
     return std::shared_ptr<DNSRule>(new LuaFFIPerThreadRule(code));
   });
 

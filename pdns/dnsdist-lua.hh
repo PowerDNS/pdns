@@ -100,7 +100,7 @@ class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyab
 public:
   LimitTTLResponseAction() {}
 
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), std::unordered_set<QType> types = {}) : d_types(types), d_min(min), d_max(max)
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) : d_types(types), d_min(min), d_max(max)
   {
   }
 

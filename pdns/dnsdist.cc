@@ -485,7 +485,7 @@ static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& r
   std::string ruleresult;
   for (const auto& lr : respRuleActions) {
     if (lr.d_rule->matches(&dr)) {
-      lr.d_rule->d_matches++;
+      ++lr.d_rule->d_matches;
       action = (*lr.d_action)(&dr, &ruleresult);
       switch (action) {
       case DNSResponseAction::Action::Allow:
@@ -1165,7 +1165,7 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     dest.sin4.sin_family = 0;
   }
 
-  cs.queries++;
+  ++cs.queries;
   ++g_stats.queries;
 
   return true;
@@ -1323,9 +1323,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
           }
 
           ++g_stats.responses;
-          if (dq.ids.cs) {
-            ++dq.ids.cs->responses;
-          }
+          ++dq.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
 
@@ -1358,9 +1356,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
         }
 
         ++g_stats.responses;
-        if (dq.ids.cs) {
-          ++dq.ids.cs->responses;
-        }
+        ++dq.ids.cs->responses;
         return ProcessQueryResult::SendAnswer;
       }
       else if (dq.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
@@ -1371,9 +1367,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
           }
 
           ++g_stats.responses;
-          if (dq.ids.cs) {
-            ++dq.ids.cs->responses;
-          }
+          ++dq.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
       }
@@ -1397,9 +1391,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
           return ProcessQueryResult::Drop;
         }
         ++g_stats.responses;
-        if (dq.ids.cs) {
-          ++dq.ids.cs->responses;
-        }
+        ++dq.ids.cs->responses;
         // no response-only statistics counter to update.
         return ProcessQueryResult::SendAnswer;
       }
@@ -2746,11 +2738,11 @@ int main(int argc, char** argv)
     gid_t newuid=geteuid();
 
     if (!g_cmdLine.gid.empty()) {
-      newgid = strToGID(g_cmdLine.gid.c_str());
+      newgid = strToGID(g_cmdLine.gid);
     }
 
     if (!g_cmdLine.uid.empty()) {
-      newuid = strToUID(g_cmdLine.uid.c_str());
+      newuid = strToUID(g_cmdLine.uid);
     }
 
     bool retainedCapabilities = true;
