@@ -304,8 +304,9 @@ static void on_socketclose(void *data)
       conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
     }
 
-    t_conns.erase(conn->d_desc);
     dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(conn->d_remote);
+    // you can no longer touch conn, or data, after this call
+    t_conns.erase(conn->d_desc);
   }
 }
 
