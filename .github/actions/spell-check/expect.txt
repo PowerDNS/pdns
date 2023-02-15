@@ -581,6 +581,7 @@ fullycapable
 func
 Furnell
 Fusl
+fvisibility
 FYhvws
 FZq
 gaba
@@ -948,6 +949,7 @@ lowerroman
 Lrhazi
 lsock
 lte
+LTO
 lua
 luaaction
 luabackend
@@ -1002,6 +1004,7 @@ metricnames
 metricscarbon
 Meulen
 Michiel
+middleware
 Miek
 Miell
 Mieslinger
@@ -1098,6 +1101,7 @@ nextval
 nghttp
 nginx
 nic
+Nilsen
 nimber
 Nixu
 nkey
@@ -1642,6 +1646,7 @@ Stirnimann
 stmt
 Stolte
 Storbeck
+Storesund
 stou
 stoul
 strcasestr
@@ -1750,6 +1755,7 @@ Toshifumi
 tostring
 Travaille
 tribool
+TRIE
 trunc
 trustanchor
 trusteer
@@ -1937,6 +1943,7 @@ YLCOy
 Ylitalo
 yml
 YMMV
+Yogesh
 yourcompany
 yourdomain
 yourorganization
