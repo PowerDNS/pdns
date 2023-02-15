@@ -665,7 +665,7 @@ static bool handleAXFR(int fd, const MOADNSParser& mdp) {
 /* Produces an IXFR if one can be made according to the rules in RFC 1995 and
  * creates a SOA or AXFR packet when required by the RFC.
  */
-static bool handleIXFR(int fd, const ComboAddress& /* destination */, const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA) {
+static bool handleIXFR(int fd, const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA) {
   vector<std::shared_ptr<ixfrdiff_t>> toSend;
 
   /* we get a shared pointer of the zone info that we can't modify, ever.
@@ -943,7 +943,7 @@ static void tcpWorker(int tid) {
           continue;
         }
 
-        if (!handleIXFR(cfd, saddr, mdp, clientSOA)) {
+        if (!handleIXFR(cfd, mdp, clientSOA)) {
           close(cfd);
           continue;
         }
