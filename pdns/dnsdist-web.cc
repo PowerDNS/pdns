@@ -212,9 +212,9 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
-bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
+bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description, const std::string& customName) {
 #ifndef DISABLE_PROMETHEUS
-  return MetricDefinitionStorage::addMetricDefinition(name, type, description);
+  return MetricDefinitionStorage::addMetricDefinition(name, type, description, customName);
 #else
   return true;
 #endif /* DISABLE_PROMETHEUS */
@@ -480,14 +480,20 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       continue;
     }
 
-    // Prometheus suggest using '_' instead of '-'
-    std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
-
-    if (prometheusTypeName == "") {
+    const std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+    if (prometheusTypeName.empty()) {
       vinfolog("Unknown Prometheus type for %s", metricName);
       continue;
     }
-    std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+
+    // Prometheus suggest using '_' instead of '-'
+    std::string prometheusMetricName;
+    if (metricDetails.customName.empty()) {
+      prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+    }
+    else {
+      prometheusMetricName = metricDetails.customName;
+    }
 
     // for these we have the help and types encoded in the sources:
     output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
