@@ -26,7 +26,7 @@
 #include "lwres.hh"
 #include <iostream>
 #include "dnsrecords.hh"
-#include <errno.h>
+#include <cerrno>
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>
