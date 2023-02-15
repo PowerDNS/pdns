@@ -1,3 +1,4 @@
+#include <openssl/evp.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -304,23 +305,35 @@ class Pkcs11Token {
       // if we can use some library to parse the EC parameters, better use it.
       // otherwise fall back to using hardcoded primev256 and secp384r1
 #ifdef HAVE_LIBCRYPTO_ECDSA
+#if OPENSSL_VERSION_MAJOR >= 3
+      using Key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+#else
       using Key = std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)>;
       using BigNum = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>;
+#endif
 
       unsigned int bits = 0;
 
       // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
       const auto* objCStr = reinterpret_cast<const unsigned char*>(obj.c_str());
+#if OPENSSL_VERSION_MAJOR >= 3
+      auto key = Key(d2i_KeyParams(EVP_PKEY_EC, nullptr, &objCStr, static_cast<long>(obj.size())), EVP_PKEY_free);
+#else
       auto key = Key(d2i_ECParameters(nullptr, &objCStr, static_cast<long>(obj.size())), EC_KEY_free);
+#endif
       if (key == nullptr) {
         throw pdns::OpenSSL::error("PKCS11", "Cannot parse EC parameters from DER");
       }
 
+#if OPENSSL_VERSION_MAJOR >= 3
+      bits = EVP_PKEY_get_bits(key.get());
+#else
       const auto* group = EC_KEY_get0_group(key.get());
       auto order = BigNum(BN_new(), BN_clear_free);
       if (EC_GROUP_get_order(group, order.get(), nullptr) == 1) {
         bits = BN_num_bits(order.get());
       }
+#endif
 
       if (bits == 0) {
         throw PDNSException("Unsupported EC key");
