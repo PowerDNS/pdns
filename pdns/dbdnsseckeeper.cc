@@ -961,10 +961,10 @@ void DNSSECKeeper::cleanup()
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {
-      pruneCollection<SequencedTag>(*this, (*s_metacache.write_lock()), s_maxEntries);
+      pruneCollection<SequencedTag>((*s_metacache.write_lock()), s_maxEntries);
     }
     {
-      pruneCollection<SequencedTag>(*this, (*s_keycache.write_lock()), s_maxEntries);
+      pruneCollection<SequencedTag>((*s_keycache.write_lock()), s_maxEntries);
     }
     s_last_prune = time(nullptr);
   }

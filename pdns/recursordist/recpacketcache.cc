@@ -201,7 +201,7 @@ uint64_t RecursorPacketCache::bytes() const
 
 void RecursorPacketCache::doPruneTo(size_t maxCached)
 {
-  pruneCollection<SequencedTag>(*this, d_packetCache, maxCached);
+  pruneCollection<SequencedTag>(d_packetCache, maxCached);
 }
 
 uint64_t RecursorPacketCache::doDump(int fd)
