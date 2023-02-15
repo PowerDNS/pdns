@@ -1855,7 +1855,7 @@ Individual parts of these zones can still be loaded or forwarded.
 Maximum number of times an expired record's TTL is extended by 30s when serving stale.
 Extension only occurs if a record cannot be refreshed.
 A value of 0 means the ``Serve Stale`` mechanism is not used.
-To allow records becoming stale to be served for an hour, use a value of 200.
+To allow records becoming stale to be served for an hour, use a value of 120.
 See :ref:`serve-stale` for a description of the Serve Stale mechanism.
 
 .. _setting-server-down-max-fails:
