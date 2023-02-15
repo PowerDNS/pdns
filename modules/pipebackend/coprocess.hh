@@ -60,7 +60,7 @@ private:
 class UnixRemote : public CoRemote
 {
 public:
-  UnixRemote(const string& path, int timeout = 0);
+  UnixRemote(const string& path);
   void sendReceive(const string& send, string& receive) override;
   void receive(string& rcv) override;
   void send(const string& send) override;

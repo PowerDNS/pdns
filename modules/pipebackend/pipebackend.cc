@@ -66,7 +66,7 @@ void CoWrapper::launch()
     throw ArgException("pipe-command is not specified");
 
   if (isUnixSocket(d_command)) {
-    d_cp = std::make_unique<UnixRemote>(d_command, d_timeout);
+    d_cp = std::make_unique<UnixRemote>(d_command);
   }
   else {
     auto coprocess = std::make_unique<CoProcess>(d_command, d_timeout);
