@@ -18,6 +18,7 @@
 #include <openssl/ec.h>
 #endif
 
+#include "misc.hh"
 #include "pkcs11signers.hh"
 /* TODO
 
@@ -42,8 +43,8 @@ in it. you need to use softhsm tools to manage this all.
 static CK_FUNCTION_LIST** p11_modules;
 #endif
 
-#define ECDSA256_PARAMS "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"
-#define ECDSA384_PARAMS "\x06\x05\x2b\x81\x04\x00\x22"
+static constexpr const char* ECDSA256_PARAMS{"\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"};
+static constexpr const char* ECDSA384_PARAMS{"\x06\x05\x2b\x81\x04\x00\x22"};
 
 // map for signing algorithms
 static std::map<unsigned int,CK_MECHANISM_TYPE> dnssec2smech = boost::assign::map_list_of
@@ -71,7 +72,7 @@ static std::map<unsigned int,CK_MECHANISM_TYPE> dnssec2cmech = boost::assign::ma
 (13, CKM_ECDSA_KEY_PAIR_GEN)
 (14, CKM_ECDSA_KEY_PAIR_GEN);
 
-typedef enum { Attribute_Byte, Attribute_Long, Attribute_String } CkaValueType;
+using CkaValueType = enum { Attribute_Byte, Attribute_Long, Attribute_String };
 
 // Attribute handling
 class P11KitAttribute {
@@ -112,19 +113,19 @@ public:
     setLong(value);
   }
 
-  CkaValueType valueType() const {
+  [[nodiscard]] CkaValueType valueType() const {
     return ckType;
   }
 
-  const std::string &str() const {
+  [[nodiscard]] const std::string &str() const {
     return ckString;
   };
 
-  unsigned char byte() const {
+  [[nodiscard]] unsigned char byte() const {
     return ckByte;
   }
 
-  unsigned long ulong() const {
+  [[nodiscard]] unsigned long ulong() const {
     return ckLong;
   }
 
@@ -211,11 +212,11 @@ public:
 
 class Pkcs11Slot {
   private:
-    bool d_logged_in;
+    bool d_logged_in{};
     CK_FUNCTION_LIST* d_functions; // module functions
     CK_SESSION_HANDLE d_session;
     CK_SLOT_ID d_slot;
-    CK_RV d_err;
+    CK_RV d_err{};
 
     void logError(const std::string& operation) const {
       if (d_err) {
@@ -225,12 +226,12 @@ class Pkcs11Slot {
     }
 
   public:
-  Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
-    d_logged_in(false),
-    d_functions(functions),
-    d_slot(slot),
-    d_err(0)
-  {
+    Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
+      d_logged_in(false),
+      d_functions(functions),
+      d_slot(slot),
+      d_err(0)
+    {
       CK_TOKEN_INFO tokenInfo;
 
       if ((d_err = d_functions->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
@@ -299,24 +300,31 @@ class Pkcs11Token {
       }
     }
 
-    unsigned int ecparam2bits(const std::string& obj) const {
+    [[nodiscard]] unsigned int ecparam2bits(const std::string& obj) const {
       // if we can use some library to parse the EC parameters, better use it.
       // otherwise fall back to using hardcoded primev256 and secp384r1
 #ifdef HAVE_LIBCRYPTO_ECDSA
+      using Key = std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)>;
+      using BigNum = std::unique_ptr<BIGNUM, decltype(&BN_clear_free)>;
+
       unsigned int bits = 0;
-      const unsigned char *in = reinterpret_cast<const unsigned char*>(obj.c_str());
-      auto order = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_new(), BN_clear_free);
-      auto tempKey = d2i_ECParameters(nullptr, &in, obj.size());
-      if (tempKey != nullptr) {
-        auto key = std::unique_ptr<EC_KEY, void(*)(EC_KEY*)>(tempKey, EC_KEY_free);
-        tempKey = nullptr;
-        if (EC_GROUP_get_order(EC_KEY_get0_group(key.get()), order.get(), nullptr) == 1) {
-          bits = BN_num_bits(order.get());
-        }
+
+      // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+      const auto* objCStr = reinterpret_cast<const unsigned char*>(obj.c_str());
+      auto key = Key(d2i_ECParameters(nullptr, &objCStr, static_cast<long>(obj.size())), EC_KEY_free);
+      if (key == nullptr) {
+        throw pdns::OpenSSL::error("PKCS11", "Cannot parse EC parameters from DER");
       }
 
-      if (bits == 0)
+      const auto* group = EC_KEY_get0_group(key.get());
+      auto order = BigNum(BN_new(), BN_clear_free);
+      if (EC_GROUP_get_order(group, order.get(), nullptr) == 1) {
+        bits = BN_num_bits(order.get());
+      }
+
+      if (bits == 0) {
         throw PDNSException("Unsupported EC key");
+      }
 
       return bits;
 #else
