@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& /* B */, const string& /* logprefix */, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -1728,7 +1728,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         }
         if (rrset["records"].is_array()) {
           int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -2112,7 +2112,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
           // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
           int ttl = intFromJson(rrset, "ttl");
 
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
 
           for(DNSResourceRecord& rr : new_records) {
             rr.domain_id = di.id;
