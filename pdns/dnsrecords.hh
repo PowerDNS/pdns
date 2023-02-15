@@ -1055,7 +1055,6 @@ struct EDNSOpts
 
 class MOADNSParser;
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
-DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
