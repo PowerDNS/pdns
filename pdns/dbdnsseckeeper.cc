@@ -682,7 +682,7 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* 
   return false;
 }
 
-bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error, string& /* info */) {
+bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error) {
   // Not calling isSecuredZone(), as it will return false for zones with zero
   // active keys.
   DNSSECKeeper::keyset_t keyset=getKeys(zone);

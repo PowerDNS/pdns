@@ -1881,7 +1881,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   string error, info;
-  bool ret = dk.unSecureZone(zone, error, info);
+  bool ret = dk.unSecureZone(zone, error);
   if (!ret) {
     cerr << error << endl;
   }

@@ -752,7 +752,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       // "dnssec": false in json
       if (isDNSSECZone) {
         string info, error;
-        if (!dk.unSecureZone(zonename, error, info)) {
+        if (!dk.unSecureZone(zonename, error)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
         isDNSSECZone = dk.isSecuredZone(zonename, false);
