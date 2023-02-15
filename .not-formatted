@@ -244,7 +244,6 @@
 ./pdns/snmp-agent.hh
 ./pdns/sodcrypto.cc
 ./pdns/sodcrypto.hh
-./pdns/sodiumsigners.cc
 ./pdns/sortlist.cc
 ./pdns/sortlist.hh
 ./pdns/speedtest.cc
@@ -293,7 +292,6 @@
 ./pdns/test-rcpgenerator_cc.cc
 ./pdns/test-sha_hh.cc
 ./pdns/test-sholder_hh.cc
-./pdns/test-signers.cc
 ./pdns/test-statbag_cc.cc
 ./pdns/test-svc_records_cc.cc
 ./pdns/test-trusted-notification-proxy_cc.cc

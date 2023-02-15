@@ -3454,7 +3454,7 @@ try
     string zone = cmds.at(1);
     auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     DNSSECPrivateKey dpk = dk.getKeyById(DNSName(zone), id);
-    dpk.getKey()->convertToPEM(*stdout);
+    dpk.getKey()->convertToPEMFile(*stdout);
   }
   else if (cmds.at(0) == "increase-serial") {
     if (cmds.size() < 2) {
@@ -3481,7 +3481,7 @@ try
     }
 
     DNSKEYRecordContent drc;
-    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, filename, *fp, algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, algorithm, *fp, filename)};
     if (!key) {
       cerr << "Could not convert key from PEM to internal format" << endl;
       return 1;

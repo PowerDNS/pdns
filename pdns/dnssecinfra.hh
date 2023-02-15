@@ -43,17 +43,58 @@ class DNSCryptoKeyEngine
     using storvector_t = std::vector<std::pair<std::string, std::string>>;
     virtual void create(unsigned int bits)=0;
 
-    virtual void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& fp)
+    virtual void createFromPEMFile(DNSKEYRecordContent& /* drc */, std::FILE& /* inputFile */, const std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt)
     {
-      throw std::runtime_error("Can't create key from PEM file");
+      if (filename.has_value()) {
+        throw std::runtime_error("Can't create key from PEM file `" + filename->get() + "`");
+      }
+
+      throw std::runtime_error("Can't create key from PEM contents");
+    }
+
+    /**
+     * \brief Creates a key engine from a PEM string.
+     *
+     * Receives PEM contents and creates a key engine.
+     *
+     * \param[in] drc Key record contents to be populated.
+     *
+     * \param[in] contents The PEM string contents.
+     *
+     * \return A key engine populated with the contents of the PEM string.
+     */
+    void createFromPEMString(DNSKEYRecordContent& drc, const std::string& contents)
+    {
+      // NOLINTNEXTLINE(*-cast): POSIX APIs.
+      unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen(const_cast<char*>(contents.data()), contents.length(), "r"), &std::fclose};
+      createFromPEMFile(drc, *inputFile);
     }
 
     [[nodiscard]] virtual storvector_t convertToISCVector() const =0;
     [[nodiscard]] std::string convertToISC() const ;
 
-    virtual void convertToPEM(std::FILE& fp) const
+    virtual void convertToPEMFile(std::FILE& /* outputFile */) const
     {
       throw std::runtime_error(getName() + ": Conversion to PEM not supported");
+    };
+
+    /**
+     * \brief Converts the key into a PEM string.
+     *
+     * \return A string containing the key's PEM contents.
+     */
+    [[nodiscard]] auto convertToPEMString() const -> std::string
+    {
+      const size_t buflen = 4096;
+
+      std::string output{};
+      output.resize(buflen);
+      unique_ptr<std::FILE, decltype(&std::fclose)> outputFile{fmemopen(output.data(), output.length() - 1, "w"), &std::fclose};
+      convertToPEMFile(*outputFile);
+      std::fflush(outputFile.get());
+      output.resize(std::ftell(outputFile.get()));
+
+      return output;
     };
 
     [[nodiscard]] virtual std::string sign(const std::string& msg) const =0;
@@ -86,24 +127,40 @@ class DNSCryptoKeyEngine
     /**
      * \brief Creates a key engine from a PEM file.
      *
-     * Receives an open file handle with PEM contents and creates a key
-     * engine corresponding to the algorithm requested.
+     * Receives an open file handle with PEM contents and creates a key engine
+     * corresponding to the algorithm requested.
      *
      * \param[in] drc Key record contents to be populated.
-     *
-     * \param[in] filename Only used for providing filename information
-     * in error messages.
-     *
-     * \param[in] fp An open file handle to a file containing PEM
-     * contents.
      *
      * \param[in] algorithm Which algorithm to use. See
      * https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
      *
-     * \return A key engine corresponding to the requested algorithm and
-     * populated with the contents of the PEM file.
+     * \param[in] fp An open file handle to a file containing PEM contents.
+     *
+     * \param[in] filename Only used for providing filename information in error messages.
+     *
+     * \return A key engine corresponding to the requested algorithm and populated with
+     * the contents of the PEM file.
      */
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile, uint8_t algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, uint8_t algorithm, std::FILE& inputFile, const std::string& filename);
+
+    /**
+     * \brief Creates a key engine from a PEM string.
+     *
+     * Receives PEM contents and creates a key engine corresponding to the algorithm
+     * requested.
+     *
+     * \param[in] drc Key record contents to be populated.
+     *
+     * \param[in] algorithm Which algorithm to use. See
+     * https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+     *
+     * \param[in] contents The PEM contents.
+     *
+     * \return A key engine corresponding to the requested algorithm and populated with
+     * the contents of the PEM string.
+     */
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, uint8_t algorithm, const std::string& contents);
 
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);

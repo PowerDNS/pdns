@@ -215,19 +215,17 @@ public:
   /**
    * \brief Creates an RSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an RSA key
-   * engine.
+   * Receives an open file handle with PEM contents and creates an RSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in error
-   * messages.
-   *
    * \param[in] inputFile An open file handle to a file containing RSA PEM contents.
+   *
+   * \param[in] filename Only used for providing filename information in error messages.
    *
    * \return An RSA key engine populated with the contents of the PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -239,7 +237,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
 
@@ -382,26 +380,34 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 #endif
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile)
+void OpenSSLRSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, const std::optional<std::reference_wrapper<const std::string>> filename)
 {
   drc.d_algorithm = d_algorithm;
 
 #if OPENSSL_VERSION_MAJOR >= 3
   EVP_PKEY* key = nullptr;
   if (PEM_read_PrivateKey(&inputFile, &key, nullptr, nullptr) == nullptr) {
-    throw pdns::OpenSSL::error(getName(), "Could not read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw pdns::OpenSSL::error(getName(), "Could not read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw pdns::OpenSSL::error(getName(), "Could not read private key from PEM contents");
   }
 
   d_key.reset(key);
 #else
   d_key = Key(PEM_read_RSAPrivateKey(&inputFile, nullptr, nullptr, nullptr), &RSA_free);
   if (d_key == nullptr) {
-    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw runtime_error(getName() + ": Failed to read private key from PEM contents");
   }
 #endif
 }
 
-void OpenSSLRSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLRSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   if (PEM_write_PrivateKey(&outputFile, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr) == 0) {
@@ -999,21 +1005,17 @@ public:
   /**
    * \brief Creates an ECDSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an ECDSA
-   * key engine.
+   * Receives an open file handle with PEM contents and creates an ECDSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information
-   * in error messages.
+   * \param[in] inputFile An open file handle to a file containing ECDSA PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing ECDSA PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An ECDSA key engine populated with the contents of the PEM
-   * file.
+   * \return An ECDSA key engine populated with the contents of the PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -1025,7 +1027,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
   [[nodiscard]] std::string hash(const std::string& message) const override;
@@ -1154,21 +1156,29 @@ void OpenSSLECDSADNSCryptoKeyEngine::create(unsigned int bits)
 #endif
 }
 
-void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename)
 {
   drc.d_algorithm = d_algorithm;
 
 #if OPENSSL_VERSION_MAJOR >= 3
   EVP_PKEY* key = nullptr;
   if (PEM_read_PrivateKey(&inputFile, &key, nullptr, nullptr) == nullptr) {
-    throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM contents");
   }
 
   d_eckey.reset(key);
 #else
   d_eckey = Key(PEM_read_ECPrivateKey(&inputFile, nullptr, nullptr, nullptr), &EC_KEY_free);
   if (d_eckey == nullptr) {
-    throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw runtime_error(getName() + ": Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw runtime_error(getName() + ": Failed to read private key from PEM contents");
   }
 
   int ret = EC_KEY_set_group(d_eckey.get(), d_group.get());
@@ -1198,7 +1208,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc,
 #endif
 }
 
-void OpenSSLECDSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLECDSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   if (PEM_write_PrivateKey(&outputFile, d_eckey.get(), nullptr, nullptr, 0, nullptr, nullptr) == 0) {
@@ -1754,21 +1764,17 @@ public:
   /**
    * \brief Creates an EDDSA key engine from a PEM file.
    *
-   * Receives an open file handle with PEM contents and creates an EDDSA
-   * key engine.
+   * Receives an open file handle with PEM contents and creates an EDDSA key engine.
    *
    * \param[in] drc Key record contents to be populated.
    *
-   * \param[in] filename Only used for providing filename information in
-   * error messages.
+   * \param[in] inputFile An open file handle to a file containing EDDSA PEM contents.
    *
-   * \param[in] inputFile An open file handle to a file containing EDDSA PEM
-   * contents.
+   * \param[in] filename Only used for providing filename information in error messages.
    *
-   * \return An EDDSA key engine populated with the contents of the PEM
-   * file.
+   * \return An EDDSA key engine populated with the contents of the PEM file.
    */
-  void createFromPEMFile(DNSKEYRecordContent& drc, const std::string& filename, std::FILE& inputFile) override;
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt) override;
 
   /**
    * \brief Writes this key's contents to a file.
@@ -1780,7 +1786,7 @@ public:
    *
    * \exception std::runtime_error In case of OpenSSL errors.
    */
-  void convertToPEM(std::FILE& outputFile) const override;
+  void convertToPEMFile(std::FILE& outputFile) const override;
 
   [[nodiscard]] storvector_t convertToISCVector() const override;
   [[nodiscard]] std::string sign(const std::string& msg) const override;
@@ -1894,16 +1900,20 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */)
   d_edkey.reset(newKey);
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, const string& filename, std::FILE& inputFile)
+void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename)
 {
   drc.d_algorithm = d_algorithm;
   d_edkey = Key(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
   if (d_edkey == nullptr) {
-    throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM file `" + filename + "`");
+    if (filename.has_value()) {
+      throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM contents");
   }
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEM(std::FILE& outputFile) const
+void OpenSSLEDDSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
 {
   auto ret = PEM_write_PrivateKey(&outputFile, d_edkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
   if (ret == 0) {
