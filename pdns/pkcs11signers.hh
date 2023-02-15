@@ -34,10 +34,6 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
     ~PKCS11DNSCryptoKeyEngine();
 
-    bool operator<(const PKCS11DNSCryptoKeyEngine& /* rhs */) const
-    {
-      return false;
-    }
     PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig);
 
     string getName() const override { return "P11 Kit PKCS#11"; };
