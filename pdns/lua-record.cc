@@ -67,6 +67,7 @@ private:
   struct CheckState
   {
     CheckState(time_t _lastAccess): lastAccess(_lastAccess) {}
+    CheckState(time_t _lastAccess, bool _status): status(_status), lastAccess(_lastAccess) {}
     /* current status */
     std::atomic<bool> status{false};
     /* first check ? */
@@ -262,14 +263,18 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
   if (cd.opts.count("source")) {
     ComboAddress src(cd.opts.at("source"));
   }
+  bool res = false;
+  if (cd.opts.count("default") && cd.opts.at("default") == "true") {
+    res = true;
+  }
   {
     auto statuses = d_statuses.write_lock();
     // Make sure we don't insert new entry twice now we have the lock
     if (statuses->find(cd) == statuses->end()) {
-      (*statuses)[cd] = std::make_unique<CheckState>(now);
+      (*statuses)[cd] = std::make_unique<CheckState>(now, res);
     }
   }
-  return false;
+  return res;
 }
 
 bool IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
