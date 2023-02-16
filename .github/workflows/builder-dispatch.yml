@@ -60,6 +60,8 @@ jobs:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
       fail-fast: false
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -77,16 +79,33 @@ jobs:
           name: ${{ github.event.inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
           retention-days: 7
+      - name: Generate hashes for provenance
+        shell: bash
+        id: hash
+        run: |
+          echo "hashes=$(sha256sum ./built_pkgs/*/*/* | base64 -w0)" >> $GITHUB_OUTPUT
       - name: Upload packages to downloads.powerdns.com
         env:
           SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
           RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
           HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
         if:
-          "${{ env.SSHKEY != '' }}"          
+          "${{ env.SSHKEY != '' }}"
         run: |
           mkdir -m 700 -p ~/.ssh
           echo "$SSHKEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "$HOSTKEY" > ~/.ssh/known_hosts
           rsync -4rlptD built_pkgs/* "$RSYNCTARGET"
+
+  provenance:
+    needs: build
+    name: Generate build provenance
+    permissions:
+      actions: read   # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To be able to upload assets as release artifacts
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: false
