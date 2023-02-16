@@ -47,6 +47,7 @@ public:
   void setEDNSSubnet(const Netmask& nm);
 
   void addTag(const std::string& strValue);
+  void addMeta(const std::string& key, std::vector<std::string>&& values);
   void addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
 
   void serialize(std::string& data) const;
@@ -75,6 +76,7 @@ private:
 
   std::vector<PBRecord> d_additionalRRs;
   std::vector<std::string> d_additionalTags;
+  std::unordered_map<std::string, std::unordered_set<std::string>> d_metaTags;
 
   const DNSQuestion& d_dq;
   const DNSResponse* d_dr{nullptr};
@@ -92,6 +94,44 @@ private:
 
   pdns::ProtoZero::Message::MessageType d_type{pdns::ProtoZero::Message::MessageType::DNSQueryType};
   bool d_includeCNAME{false};
+};
+
+class ProtoBufMetaKey
+{
+  enum class Type : uint8_t { SNI, Pool, B64Content, DoHHeader, DoHHost, DoHPath, DoHQueryString, DoHScheme, ProxyProtocolValue, ProxyProtocolValues, Tag, Tags };
+
+  struct KeyTypeDescription
+  {
+    const std::string d_name;
+    const Type d_type;
+    const std::function<std::vector<std::string>(const DNSQuestion&, const std::string&, uint8_t)> d_func;
+    bool d_prefix{false};
+    bool d_caseSensitive{true};
+    bool d_numeric{false};
+  };
+
+  struct NameTag {};
+  struct TypeTag {};
+
+  typedef boost::multi_index_container<
+    KeyTypeDescription,
+    indexed_by <
+      hashed_unique<tag<NameTag>, member<KeyTypeDescription, const std::string, &KeyTypeDescription::d_name>>,
+      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>
+    >
+  > TypeContainer;
+
+  static const TypeContainer s_types;
+
+public:
+  ProtoBufMetaKey(const std::string& key);
+
+  const std::string& getName() const;
+  std::vector<std::string> getValues(const DNSQuestion& dq) const;
+private:
+  std::string d_subKey;
+  uint8_t d_numericSubKey{0};
+  Type d_type;
 };
 
 #endif /* DISABLE_PROTOBUF */
