@@ -107,49 +107,89 @@ jobs:
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
+      LDAPHOST: ldap://ldapserver/
     strategy:
       matrix:
         include:
           - backend: remote
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: gmysql
             image: mysql:5
+            env:
+              MYSQL_ALLOW_EMPTY_PASSWORD: 1
+            ports:
+            - 3306:3306
           - backend: gmysql
             image: mariadb:10
+            env:
+              MYSQL_ALLOW_EMPTY_PASSWORD: 1
+            ports:
+            - 3306:3306
           - backend: gpgsql
             image: postgres:9
+            env:
+              POSTGRES_USER: runner
+              POSTGRES_HOST_AUTH_METHOD: trust
+            ports:
+            - 5432:5432
           - backend: gsqlite3  # this also runs regression-tests.nobackend and pdnsutil test-algorithms
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: lmdb
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: bind
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: geoip
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: lua2
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: tinydns
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: authpy
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: godbc_sqlite3
             image: coscale/docker-sleep
+            env: {}
+            ports: []
           - backend: godbc_mssql
             image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
+            env:
+              ACCEPT_EULA: Y
+              SA_PASSWORD: 'SAsa12%%'
+            ports:
+              - 1433:1433
+          - backend: ldap
+            image: powerdns/ldap-regress:1.2.4-1
+            env:
+              LDAP_LOG_LEVEL: 0
+              CONTAINER_LOG_LEVEL: 4
+            ports:
+              - 389:389
+          - backend: geoip_mmdb
+            image: coscale/docker-sleep
+            env: {}
+            ports: []
       fail-fast: false
     services:
       database:
         image: ${{ matrix.image }}
-        env:
-          POSTGRES_USER: runner
-          POSTGRES_HOST_AUTH_METHOD: trust
-          MYSQL_ALLOW_EMPTY_PASSWORD: 1
-          ACCEPT_EULA: Y
-          SA_PASSWORD: 'SAsa12%%'
-        ports:
-          - 3306:3306
-          - 5432:5432
-          - 1433:1433
+        env: ${{ matrix.env }}
+        ports: ${{ matrix.ports }}
         # FIXME: this works around dist-upgrade stopping all docker containers. dist-upgrade is huge on these images anyway. Perhaps we do want to run our tasks in a Docker container too.
         options: >-
           --restart always
