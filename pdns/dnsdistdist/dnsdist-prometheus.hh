@@ -30,13 +30,15 @@ enum class PrometheusMetricType: uint8_t {
 
 // Keeps additional information about metrics
 struct MetricDefinition {
-  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description): description(_description), prometheusType(_prometheusType) {
+  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description, const std::string& customName_ = ""): description(_description), customName(customName_), prometheusType(_prometheusType) {
   }
 
   MetricDefinition() = default;
 
   // Metric description
   std::string description;
+  // Custom name, if any
+  std::string customName;
   // Metric type for Prometheus
   PrometheusMetricType prometheusType{PrometheusMetricType::counter};
 };
@@ -54,7 +56,7 @@ struct MetricDefinitionStorage {
     return true;
   };
 
-  static bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
+  static bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description, const std::string& customName) {
     static const std::map<std::string, PrometheusMetricType> namesToTypes = {
       {"counter", PrometheusMetricType::counter},
       {"gauge",   PrometheusMetricType::gauge},
@@ -63,7 +65,7 @@ struct MetricDefinitionStorage {
     if (realtype == namesToTypes.end()) {
       return false;
     }
-    metrics.emplace(name, MetricDefinition{realtype->second, description});
+    metrics.emplace(name, MetricDefinition{realtype->second, description, customName});
     return true;
   }
 
