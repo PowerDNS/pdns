@@ -601,57 +601,6 @@ jobs:
       - auth-regress:
           context: bind-hybrid-nsec3
 
-  test-auth-regress-ldap:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          LDAPHOST: ldap://ldapserver/
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-      - image: powerdns/ldap-regress:1.2.4-1 # OpenLDAP 2.4.47
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        name: ldapserver
-        command: '--loglevel debug'
-        environment:
-          LDAP_LOG_LEVEL: 0
-    steps:
-      - auth-regress-setup
-      - run: DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ldap-utils
-      - auth-regress:
-          context: ldap-tree
-          doroot: false
-      - auth-regress:
-          context: ldap-simple
-          doroot: false
-      - auth-regress:
-          context: ldap-strict
-          doroot: false
-
-  test-auth-regress-geoip:
-    resource_class: small
-
-    docker:
-      - image: debian:buster
-        auth:
-          username: powerdnsreadonly
-          password: $DOCKERHUB_PASSWORD
-        environment:
-          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
-          ASAN_OPTIONS: detect_leaks=0
-    steps:
-      - auth-regress-setup
-      - run: export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
-      - auth-regress:
-          context: geoip
-          doroot: false
-
   build-auth-docs:
     resource_class: small
 
@@ -951,10 +900,3 @@ workflows:
       - build-auth:
           requires:
             - checkout
-      - test-auth-regress-geoip:
-          requires:
-            - build-auth
-      - test-auth-regress-ldap:
-          requires:
-            - build-auth
-
