@@ -16,7 +16,7 @@ static string MDBError(int rc)
   return mdb_strerror(rc);
 }
 
-MDBDbi::MDBDbi(MDB_env* /* env */, MDB_txn* txn, const string_view dbname, int flags)
+MDBDbi::MDBDbi(MDB_env* env, MDB_txn* txn, const string_view dbname, int flags)
 {
   // A transaction that uses this function must finish (either commit or abort) before any other transaction in the process may use this function.
 
