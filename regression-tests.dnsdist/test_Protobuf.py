@@ -551,12 +551,8 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             self.assertEqual(len(msg.meta), 5)
             tags = {}
             for entry in msg.meta:
-                if method == "sendDOHQueryWrapper":
-                    self.assertEqual(len(entry.value.stringVal), 1)
-                    tags[entry.key] = entry.value.stringVal[0]
-                else:
-                    self.assertEqual(len(entry.value.stringVal), 0)
-                    tags[entry.key] = None
+                self.assertEqual(len(entry.value.stringVal), 1)
+                tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
             if method == "sendDOHQueryWrapper":
@@ -576,12 +572,8 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             self.assertEqual(len(msg.meta), 5)
             tags = {}
             for entry in msg.meta:
-                if method == "sendDOHQueryWrapper":
-                    self.assertEqual(len(entry.value.stringVal), 1)
-                    tags[entry.key] = entry.value.stringVal[0]
-                else:
-                    self.assertEqual(len(entry.value.stringVal), 0)
-                    tags[entry.key] = None
+                self.assertEqual(len(entry.value.stringVal), 1)
+                tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
             if method == "sendDOHQueryWrapper":

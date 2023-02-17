@@ -197,7 +197,13 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   m.commitResponse();
 
   for (const auto& [key, values] : d_metaTags) {
-    m.setMeta(key, values, {});
+    if (!values.empty()) {
+      m.setMeta(key, values, {});
+    }
+    else {
+      /* the MetaValue field is _required_ to exist, even if we have no value */
+      m.setMeta(key, {std::string()}, {});
+    }
   }
 }
 
