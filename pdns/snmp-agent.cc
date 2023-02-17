@@ -78,7 +78,7 @@ void SNMPAgent::handleSNMPQueryEvent(int fd)
   snmp_read2(&fdset);
 }
 
-void SNMPAgent::handleTrapsCB(int fd, FDMultiplexer::funcparam_t& var)
+void SNMPAgent::handleTrapsCB(int /* fd */, FDMultiplexer::funcparam_t& var)
 {
   SNMPAgent** agent = boost::any_cast<SNMPAgent*>(&var);
   if (!agent || !*agent)

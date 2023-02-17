@@ -263,7 +263,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
 thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
-LWResult::Result asendto(const char* data, size_t len, int flags,
+LWResult::Result asendto(const char* data, size_t len, int /* flags */,
                          const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, bool ecs, int* fd)
 {
 
@@ -315,7 +315,7 @@ LWResult::Result asendto(const char* data, size_t len, int flags,
   return LWResult::Result::Success;
 }
 
-LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromaddr, size_t* d_len,
+LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromaddr, size_t* d_len,
                            uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
@@ -2322,7 +2322,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   return 0;
 }
 
-static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
+static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& /* var */)
 {
   ssize_t len;
   static const size_t maxIncomingQuerySize = g_proxyProtocolACL.empty() ? 512 : (512 + g_proxyProtocolMaximumSize);

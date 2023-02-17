@@ -54,12 +54,15 @@ extern __thread void* t_mainStack;
 extern __thread size_t t_mainStackSize;
 #endif /* HAVE_FIBER_SANITIZER */
 
+#ifdef HAVE_FIBER_SANITIZER
 static inline void notifyStackSwitch(const void* startOfStack, size_t stackSize)
 {
-#ifdef HAVE_FIBER_SANITIZER
   __sanitizer_start_switch_fiber(nullptr, startOfStack, stackSize);
-#endif /* HAVE_FIBER_SANITIZER */
 }
+#else
+static inline void notifyStackSwitch(const void* /* startOfStack */, size_t /* stackSize */)
+{}
+#endif /* HAVE_FIBER_SANITIZER */
 
 static inline void notifyStackSwitchToKernel()
 {

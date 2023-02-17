@@ -859,7 +859,7 @@ public:
 private:
   /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
 #ifndef DISABLE_NPN
-  static int npnSelectCallback(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  static int npnSelectCallback(SSL* /* s */, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
   {
     if (!arg) {
       return SSL_TLSEXT_ERR_ALERT_WARNING;

@@ -189,7 +189,7 @@ public:
   {
     d_fd = -1;
   }
-  bool handleTCPReadResult(int fd, ssize_t bytes)
+  bool handleTCPReadResult(int /* fd */, ssize_t bytes)
   {
     if (bytes == 0) {
       /* EOF */

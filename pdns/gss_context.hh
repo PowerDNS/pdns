@@ -74,10 +74,10 @@ public:
     setName(name);
   };
 
+#ifdef ENABLE_GSS_TSIG
   //! Parse name into native representation
   bool setName(const std::string& name)
   {
-#ifdef ENABLE_GSS_TSIG
     gss_buffer_desc buffer;
     d_name = GSS_C_NO_NAME;
 
@@ -89,9 +89,13 @@ public:
     }
 
     return true;
-#endif
+  }
+#else
+  bool setName(const std::string& /* name */)
+  {
     return false;
-  };
+  }
+#endif
 
   ~GssName()
   {
@@ -101,24 +105,28 @@ public:
 #endif
   };
 
+#ifdef ENABLE_GSS_TSIG
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
   //! This is not necessarily same as string comparison between two non-parsed names
   bool operator==(const GssName& rhs)
   {
-#ifdef ENABLE_GSS_TSIG
     OM_uint32 maj, min;
     int result;
     maj = gss_compare_name(&min, d_name, rhs.d_name, &result);
     return (maj == GSS_S_COMPLETE && result != 0);
-#endif
+  }
+#else
+  bool operator==(const GssName& /* rhs */)
+  {
     return false;
   }
+#endif
 
+#ifdef ENABLE_GSS_TSIG
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
   //! This is not necessarily same as string comparison between two non-parsed names
   bool match(const std::string& name)
   {
-#ifdef ENABLE_GSS_TSIG
     OM_uint32 maj, min;
     int result;
     gss_name_t comp;
@@ -132,10 +140,13 @@ public:
     maj = gss_compare_name(&min, d_name, comp, &result);
     gss_release_name(&min, &comp);
     return (maj == GSS_S_COMPLETE && result != 0);
+  }
 #else
+  bool match(const std::string& /* name */)
+  {
     return false;
+  }
 #endif
-  };
 
   //! Check if GSS name was parsed successfully.
   bool valid()

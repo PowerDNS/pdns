@@ -40,7 +40,7 @@ namespace filesystem = boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
-void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& lock)
+void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {

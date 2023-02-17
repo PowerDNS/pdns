@@ -254,9 +254,9 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
 }
 
 #if OPENSSL_VERSION_MAJOR >= 3
-int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+int libssl_ticket_key_callback(SSL* /* s */, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
 #else
-int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+int libssl_ticket_key_callback(SSL* /* s */, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 #endif
 {
   if (enc != 0) {
@@ -300,7 +300,7 @@ static long libssl_server_name_callback(SSL* ssl, int* al, void* arg)
   return SSL_TLSEXT_ERR_NOACK;
 }
 
-static void libssl_info_callback(const SSL *ssl, int where, int ret)
+static void libssl_info_callback(const SSL *ssl, int where, int /* ret */)
 {
   SSL_CTX* sslCtx = SSL_get_SSL_CTX(ssl);
   if (sslCtx == nullptr) {
@@ -680,7 +680,7 @@ void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
   file.close();
 }
 
-void OpenSSLTLSTicketKeysRing::rotateTicketsKey(time_t now)
+void OpenSSLTLSTicketKeysRing::rotateTicketsKey(time_t /* now */)
 {
   auto newKey = std::make_shared<OpenSSLTLSTicketKey>();
   addKey(newKey);
