@@ -69,6 +69,9 @@ export CPPFLAGS=-I/usr/include/boost169
 export LDFLAGS=-L/usr/lib64/boost169
 %endif
 
+export AR=gcc-ar
+export RANLIB=gcc-ranlib
+
 %configure \
   --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
@@ -76,6 +79,7 @@ export LDFLAGS=-L/usr/lib64/boost169
   --disable-dependency-tracking \
   --disable-silent-rules \
   --enable-unit-tests \
+  --enable-lto=thin \
   --enable-dns-over-tls \
 %if 0%{?suse_version}
   --disable-dnscrypt \
