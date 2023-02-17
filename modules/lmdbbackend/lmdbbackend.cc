@@ -155,7 +155,7 @@ namespace serialization
 {
 
   template <class Archive>
-  void save(Archive& ar, const DNSName& g, const unsigned int /* version */)
+  void save(Archive& ar, const DNSName& g, const unsigned int version)
   {
     if (g.empty()) {
       ar& std::string();
@@ -166,7 +166,7 @@ namespace serialization
   }
 
   template <class Archive>
-  void load(Archive& ar, DNSName& g, const unsigned int /* version */)
+  void load(Archive& ar, DNSName& g, const unsigned int version)
   {
     string tmp;
     ar& tmp;
@@ -179,13 +179,13 @@ namespace serialization
   }
 
   template <class Archive>
-  void save(Archive& ar, const QType& g, const unsigned int /* version */)
+  void save(Archive& ar, const QType& g, const unsigned int version)
   {
     ar& g.getCode();
   }
 
   template <class Archive>
-  void load(Archive& ar, QType& g, const unsigned int /* version */)
+  void load(Archive& ar, QType& g, const unsigned int version)
   {
     uint16_t tmp;
     ar& tmp;
@@ -193,7 +193,7 @@ namespace serialization
   }
 
   template <class Archive>
-  void save(Archive& ar, const DomainInfo& g, const unsigned int /* version */)
+  void save(Archive& ar, const DomainInfo& g, const unsigned int version)
   {
     ar& g.zone;
     ar& g.last_check;
@@ -227,13 +227,13 @@ namespace serialization
   }
 
   template <class Archive>
-  void serialize(Archive& ar, LMDBBackend::DomainMeta& g, const unsigned int /* version */)
+  void serialize(Archive& ar, LMDBBackend::DomainMeta& g, const unsigned int version)
   {
     ar& g.domain& g.key& g.value;
   }
 
   template <class Archive>
-  void save(Archive& ar, const LMDBBackend::KeyDataDB& g, const unsigned int /* version */)
+  void save(Archive& ar, const LMDBBackend::KeyDataDB& g, const unsigned int version)
   {
     ar& g.domain& g.content& g.flags& g.active& g.published;
   }
@@ -251,7 +251,7 @@ namespace serialization
   }
 
   template <class Archive>
-  void serialize(Archive& ar, TSIGKey& g, const unsigned int /* version */)
+  void serialize(Archive& ar, TSIGKey& g, const unsigned int version)
   {
     ar& g.name;
     ar& g.algorithm; // this is the ordername
@@ -725,7 +725,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
   return true;
 }
 
-bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disabled)
+bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
 {
   d_includedisabled = include_disabled;
 
@@ -761,7 +761,7 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
   return true;
 }
 
-void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* /* p */)
+void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p)
 {
   if (d_dolog) {
     g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
@@ -1022,7 +1022,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
-void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */, bool include_disabled)
+void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled)
 {
   domains->clear();
   auto txn = d_tdomains->getROTransaction();
