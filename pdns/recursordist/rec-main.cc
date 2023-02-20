@@ -1536,7 +1536,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
       exit(1);
     }
     MemRecursorCache::s_maxServedStaleExtensions = sse;
-    NegCache::s_maxServedStaleExtensions = sse;
+    // NegCache::s_maxServedStaleExtensions = sse;
   }
 
   if (SyncRes::s_tcp_fast_open_connect) {
