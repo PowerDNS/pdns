@@ -438,6 +438,44 @@ BOOST_AUTO_TEST_CASE(test_wipe_subtree)
   BOOST_CHECK_EQUAL(cache.size(), 400U);
 }
 
+BOOST_AUTO_TEST_CASE(test_wipe_typed)
+{
+  string qname(".powerdns.com");
+  DNSName auth("powerdns.com");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  NegCache::NegCacheEntry ne;
+  ne = genNegCacheEntry(auth, auth, now, QType::A);
+  cache.add(ne);
+
+  for (int i = 0; i < 400; i++) {
+    ne = genNegCacheEntry(DNSName(std::to_string(i) + qname), auth, now, QType::A);
+    cache.add(ne);
+  }
+
+  BOOST_CHECK_EQUAL(cache.size(), 401U);
+
+  // Should only wipe the powerdns.com entry
+  cache.wipeTyped(auth, QType::A);
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
+
+  NegCache::NegCacheEntry ne2;
+  bool ret = cache.get(auth, QType(1), now, ne2);
+
+  BOOST_CHECK_EQUAL(ret, false);
+
+  cache.wipeTyped(DNSName("1.powerdns.com"), QType::A);
+  BOOST_CHECK_EQUAL(cache.size(), 399U);
+
+  NegCache::NegCacheEntry ne3;
+  ret = cache.get(auth, QType(1), now, ne3);
+
+  BOOST_CHECK_EQUAL(ret, false);
+}
+
 BOOST_AUTO_TEST_CASE(test_clear)
 {
   string qname(".powerdns.com");

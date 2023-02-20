@@ -242,7 +242,7 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   return ret;
 }
 
-size_t NegCache::wipe(const DNSName& qname, QType qtype)
+size_t NegCache::wipeTyped(const DNSName& qname, QType qtype)
 {
   size_t ret = 0;
   auto& map = getMap(qname);
