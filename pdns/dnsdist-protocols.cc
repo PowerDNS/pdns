@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <vector>
 
 #include "dnsdist-protocols.hh"
 
