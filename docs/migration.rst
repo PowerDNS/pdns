@@ -142,7 +142,7 @@ Migrating Data from one Backend to Another Backend
 --------------------------------------------------
 
 .. note::
-  This is experimental feature.
+  This is an experimental feature.
 
 Syntax: ``pdnsutil b2b-migrate OLD NEW``
 
