@@ -923,7 +923,7 @@ Improvements
    1677 <http://wiki.powerdns.com/projects/trac/changeset/1677>`__.
 -  On some platforms, it may be better to have PowerDNS itself
    distribute queries over threads (instead of leaving it up to the
-   kernel). This experimental feature can be enabled with the
+   kernel). This is an experimental feature and can be enabled with the
    'pdns-distributes-queries' setting. Code in `commit
    1678 <http://wiki.powerdns.com/projects/trac/changeset/1678>`__ and
    beyond. Speeds up Solaris measurably.

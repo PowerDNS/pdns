@@ -807,7 +807,7 @@ This file can be used to serve data authoritatively using `export-etc-hosts`_.
 - Integer
 - Default: 0
 
-Enable the recording and logging of ref:`event traces`. This is an experimental feature subject to change.
+Enable the recording and logging of ref:`event traces`. This is an experimental feature and subject to change.
 Possible values are 0: (disabled), 1 (add information to protobuf logging messages) and 2 (write to log) and 3 (both).
 
 .. _setting-export-etc-hosts:
