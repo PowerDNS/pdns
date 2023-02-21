@@ -388,7 +388,7 @@ static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const
         }
 
         const DNSName signer = getSigner(validset.second.signatures);
-        if (!validset.first.first.isPartOf(signer)) {
+        if (!validset.first.first.isPartOf(signer) || !closestEncloser.isPartOf(signer)) {
           continue;
         }
 
@@ -547,7 +547,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         const DNSName owner = getNSECOwnerName(validset.first.first, validset.second.signatures);
         const DNSName signer = getSigner(validset.second.signatures);
-        if (!validset.first.first.isPartOf(signer) || !owner.isPartOf(signer) ) {
+        if (!validset.first.first.isPartOf(signer) || !owner.isPartOf(signer) || !qname.isPartOf(signer)) {
            continue;
         }
 
@@ -698,6 +698,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
         numberOfLabelsOfParentZone = std::min(numberOfLabelsOfParentZone, static_cast<uint8_t>(signer.countLabels()));
 
+        if (!qname.isPartOf(signer)) {
+          continue;
+        }
+
         if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
           VLOG(log, qname << ": A NSEC3 RR from the child zone cannot deny the existence of a DS"<<endl);
           continue;
@@ -805,6 +809,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               continue;
             }
 
+            if (!closestEncloser.isPartOf(signer)) {
+              continue;
+            }
+
             if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
               VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
               context.d_limitHit = true;
@@ -908,6 +916,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             const DNSName signer = getSigner(validset.second.signatures);
             if (!validset.first.first.isPartOf(signer)) {
               VLOG(log, qname << ": Owner "<<validset.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+              continue;
+            }
+
+            if (!nextCloser.isPartOf(signer)) {
               continue;
             }
 

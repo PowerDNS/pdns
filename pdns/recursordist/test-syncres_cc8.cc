@@ -777,6 +777,99 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_denial_invalid_signer)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("sub.powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
+
+  addNSECRecordToLW(DNSName("sub.powerdns.com."), DNSName("z.powerdns.com."), {QType::SOA, QType::A}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  addRRSIG(keys, records, DNSName("sub.powerdns.com."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+  addNSECRecordToLW(DNSName(").powerdns.com."), DNSName("+.powerdns.com."), {}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  addRRSIG(keys, records, DNSName("powerdns.com."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::pair(DNSName("sub.powerdns.com."), QType::NSEC)] = pair;
+
+  /* this NSEC cannot prove that sub2 does not exist, because it is signed
+     by the child side of sub.powerdns.com but tries to refute the existence
+     of a name in the parent zone */
+  dState denialState = getDenial(denialMap, DNSName("sub2.powerdns.com."), QType::A, false, false, std::nullopt);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_denial_invalid_signer)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("sub.example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
+
+  /* proves that sub2.example.com does not exist */
+  addNSEC3NarrowRecordToLW(DNSName("sub2.example.org"), DNSName("example.org."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  /* but is signed by a subzone */
+  addRRSIG(keys, records, DNSName("sub.example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* Add NSEC3 for the closest encloser */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("example.org."), DNSName("example.org."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* add wildcard, without the type */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("*.example.org."), DNSName("example.org"), "whatever", {QType::AAAA}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("sub2.example.org."), QType::A, false, false);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
 {
   initSR();
