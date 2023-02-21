@@ -96,7 +96,7 @@ ALSO-NOTIFY
 -----------
 
 When notifying this domain, also notify this nameserver (can occur
-multiple times). The nameserver may have contain an optional port
+multiple times). The nameserver may contain an optional port
 number. e.g.:
 
 .. code-block:: shell
