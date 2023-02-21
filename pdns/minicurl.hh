@@ -45,7 +45,9 @@ private:
   static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
   std::string d_data;
   struct curl_slist* d_header_list = nullptr;
+  struct curl_slist* d_host_list = nullptr;
   void setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify);
   void setHeaders(const MiniCurlHeaders& headers);
   void clearHeaders();
+  void clearHostlist();
 };
