@@ -4818,6 +4818,49 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& negEntry
   return getDenial(csp, negEntry.d_name, negEntry.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, d_validationContext, LogObject(prefix));
 }
 
+void SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRecord& rec, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
+{
+  /* positive answer synthesized from a wildcard */
+  NegCache::NegCacheEntry negEntry;
+  negEntry.d_name = qname;
+  negEntry.d_qtype = QType::ENT; // this encodes 'whole record'
+  uint32_t lowestTTL = rec.d_ttl;
+  harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
+
+  if (vStateIsBogus(state)) {
+    negEntry.d_validationState = state;
+  }
+  else {
+    auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
+
+    if (recordState == vState::Secure) {
+      /* We have a positive answer synthesized from a wildcard, we need to check that we have
+         proof that the exact name doesn't exist so the wildcard can be used,
+         as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
+      */
+      cspmap_t csp = harvestCSPFromNE(negEntry);
+      dState res = getDenial(csp, qname, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
+      if (res != dState::NXDOMAIN) {
+        vState tmpState = vState::BogusInvalidDenial;
+        if (res == dState::INSECURE || res == dState::OPTOUT) {
+          /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
+             this is not enough to warrant a Bogus, but go Insecure. */
+          tmpState = vState::Insecure;
+          LOG(prefix << qname << ": Unable to validate denial in wildcard expanded positive response found for " << qname << ", returning Insecure, res=" << res << endl);
+        }
+        else {
+          LOG(prefix << qname << ": Invalid denial in wildcard expanded positive response found for " << qname << ", returning Bogus, res=" << res << endl);
+          rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
+        }
+
+        updateValidationState(qname, state, tmpState, prefix);
+        /* we already stored the record with a different validation status, let's fix it */
+        updateValidationStatusInCache(qname, qtype, lwr.d_aabit, tmpState);
+      }
+    }
+  }
+}
+
 bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // // NOLINT(readability-function-cognitive-complexity)
 {
   bool done = false;
@@ -4919,6 +4962,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (auto content = getRR<CNAMERecordContent>(rec)) {
           newtarget = DNSName(content->getTarget());
         }
+        if (needWildcardProof) {
+          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, wildcardLabelsCount);
+        }
       }
       else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
         ret.push_back(rec);
@@ -4937,6 +4983,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
+            if (needWildcardProof) {
+              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, wildcardLabelsCount);
+            }
           }
           catch (const std::exception& e) {
             // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
@@ -4961,45 +5010,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       rcode = RCode::NoError;
 
       if (needWildcardProof) {
-        /* positive answer synthesized from a wildcard */
-        NegCache::NegCacheEntry negEntry;
-        negEntry.d_name = qname;
-        negEntry.d_qtype = QType::ENT; // this encodes 'whole record'
-        uint32_t lowestTTL = rec.d_ttl;
-        harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
-
-        if (vStateIsBogus(state)) {
-          negEntry.d_validationState = state;
-        }
-        else {
-          auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
-
-          if (recordState == vState::Secure) {
-            /* We have a positive answer synthesized from a wildcard, we need to check that we have
-               proof that the exact name doesn't exist so the wildcard can be used,
-               as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
-            */
-            cspmap_t csp = harvestCSPFromNE(negEntry);
-            dState res = getDenial(csp, qname, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
-            if (res != dState::NXDOMAIN) {
-              vState tmpState = vState::BogusInvalidDenial;
-              if (res == dState::INSECURE || res == dState::OPTOUT) {
-                /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
-                   this is not enough to warrant a Bogus, but go Insecure. */
-                tmpState = vState::Insecure;
-                LOG(prefix << qname << ": Unable to validate denial in wildcard expanded positive response found for " << qname << ", returning Insecure, res=" << res << endl);
-              }
-              else {
-                LOG(prefix << qname << ": Invalid denial in wildcard expanded positive response found for " << qname << ", returning Bogus, res=" << res << endl);
-                rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
-              }
-
-              updateValidationState(qname, state, tmpState, prefix);
-              /* we already stored the record with a different validation status, let's fix it */
-              updateValidationStatusInCache(qname, qtype, lwr.d_aabit, tmpState);
-            }
-          }
-        }
+        checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, wildcardLabelsCount);
       }
 
       ret.push_back(rec);
