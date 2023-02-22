@@ -75,12 +75,6 @@ class TestRuleMetrics(DNSDistTest):
 
             self.assertEquals(self.getMetric('rule-' + name), 2)
 
-    def sendDOHQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
-
-    def sendDOTQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
-
     def testCacheMetrics(self):
         """
         Metrics: Check that metrics are correctly updated for cache misses and hits
