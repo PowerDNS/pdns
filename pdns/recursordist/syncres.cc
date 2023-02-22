@@ -5399,7 +5399,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
       LOG(prefix << qname << ": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus" << endl);
       updateValidationState(qname, state, vState::BogusMissingNegativeIndication, prefix);
     }
-    else if (state == vState::Indeterminate) {
+    else {
       /* we might not have validated any record, because we did get a NXDOMAIN without any SOA
          from an insecure zone, for example */
       updateValidationState(qname, state, tempState, prefix);
@@ -5421,7 +5421,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
       LOG(prefix << qname << ": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus" << endl);
       updateValidationState(qname, state, vState::BogusMissingNegativeIndication, prefix);
     }
-    else if (state == vState::Indeterminate) {
+    else {
       /* we might not have validated any record, because we did get a NODATA without any SOA
          from an insecure zone, for example */
       updateValidationState(qname, state, tempState, prefix);
