@@ -204,7 +204,9 @@ auth_backend_test_deps = dict(
     tinydns=[],
     authpy=[],
     godbc_sqlite3=['libsqliteodbc'],
-    godbc_mssql=['freetds-bin','tdsodbc']
+    godbc_mssql=['freetds-bin','tdsodbc'],
+    ldap=[],
+    geoip_mmdb=[]
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
@@ -529,7 +531,6 @@ backend_regress_tests = dict(
     geoip = [
         'geoip',
         'geoip-nsec3-narrow'
-        # FIXME: also run this with the mmdb we ship
     ],
     lua2 = ['lua2', 'lua2-dnssec'],
     tinydns = ['tinydns'],
@@ -581,6 +582,12 @@ backend_regress_tests = dict(
         'godbc_mssql-nsec3-optout',
         'godbc_mssql-nsec3-narrow'
     ],
+    ldap = [
+        'ldap-tree',
+        'ldap-simple',
+        'ldap-strict'
+    ],
+    geoip_mmdb = ['geoip'],
 )
 
 godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%"}
@@ -624,6 +631,10 @@ def setup_godbc_sqlite3(c):
         f.write(godbc_config)
     c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
 
+def setup_ldap_client(c):
+    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ldap-utils')
+    c.sudo('sh -c \'echo "127.0.0.1 ldapserver" | tee -a /etc/hosts\'')
+
 @task
 def test_auth_backend(c, backend):
     pdns_auth_env_vars = 'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432"'
@@ -648,6 +659,15 @@ def test_auth_backend(c, backend):
         with c.cd('regression-tests'):
             for variant in backend_regress_tests[backend]:
                 c.run(f'{pdns_auth_env_vars} GODBC_MSSQL_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL2_DSN=pdns-mssql-docker ./start-test-stop 5300 {variant}')
+        return
+
+    if backend == 'ldap':
+        setup_ldap_client(c)
+
+    if backend == 'geoip_mmdb':
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb ./start-test-stop 5300 {variant}')
         return
 
     with c.cd('regression-tests'):
