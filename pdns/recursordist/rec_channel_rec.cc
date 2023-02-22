@@ -334,11 +334,6 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   return g_aggressiveNSECCache->dumpToFile(fp, now);
 }
 
-static uint64_t* pleaseDump(int fd)
-{
-  return new uint64_t(t_packetCache ? t_packetCache->doDump(fd) : 0);
-}
-
 static uint64_t* pleaseDumpEDNSMap(int fd)
 {
   return new uint64_t(SyncRes::doEDNSDump(fd));
@@ -416,7 +411,8 @@ static RecursorControlChannel::Answer doDumpCache(int s)
   uint64_t total = 0;
   try {
     int fd = fdw;
-    total = g_recCache->doDump(fd, g_maxCacheEntries.load()) + g_negCache->doDump(fd, g_maxCacheEntries.load() / 8) + broadcastAccFunction<uint64_t>([fd] { return pleaseDump(fd); }) + dumpAggressiveNSECCache(fd);
+    total = g_recCache->doDump(fd, g_maxCacheEntries.load()) + g_negCache->doDump(fd, g_maxCacheEntries.load() / 8) +
+      (g_packetCache ? g_packetCache->doDump(fd) : 0) + dumpAggressiveNSECCache(fd);
   }
   catch (...) {
   }
@@ -1078,46 +1074,6 @@ static uint64_t doGetCacheMisses()
   return g_recCache->cacheMisses;
 }
 
-uint64_t* pleaseGetPacketCacheSize()
-{
-  return new uint64_t(t_packetCache ? t_packetCache->size() : 0);
-}
-
-static uint64_t* pleaseGetPacketCacheBytes()
-{
-  return new uint64_t(t_packetCache ? t_packetCache->bytes() : 0);
-}
-
-static uint64_t doGetPacketCacheSize()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
-}
-
-static uint64_t doGetPacketCacheBytes()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheBytes);
-}
-
-uint64_t* pleaseGetPacketCacheHits()
-{
-  return new uint64_t(t_packetCache ? t_packetCache->d_hits : 0);
-}
-
-static uint64_t doGetPacketCacheHits()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
-}
-
-static uint64_t* pleaseGetPacketCacheMisses()
-{
-  return new uint64_t(t_packetCache ? t_packetCache->d_misses : 0);
-}
-
-static uint64_t doGetPacketCacheMisses()
-{
-  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheMisses);
-}
-
 static uint64_t doGetMallocated()
 {
   // this turned out to be broken
@@ -1306,10 +1262,10 @@ static void registerAllStats1()
   addGetStat("record-cache-contended", []() { return g_recCache->stats().first; });
   addGetStat("record-cache-acquired", []() { return g_recCache->stats().second; });
 
-  addGetStat("packetcache-hits", doGetPacketCacheHits);
-  addGetStat("packetcache-misses", doGetPacketCacheMisses);
-  addGetStat("packetcache-entries", doGetPacketCacheSize);
-  addGetStat("packetcache-bytes", doGetPacketCacheBytes);
+  addGetStat("packetcache-hits", [] { return g_packetCache ? g_packetCache->getHits() : 0; });
+  addGetStat("packetcache-misses", [] { return g_packetCache ? g_packetCache->getMisses() : 0; });
+  addGetStat("packetcache-entries", [] { return g_packetCache ? g_packetCache->size() : 0; });
+  addGetStat("packetcache-bytes", [] { return g_packetCache ? g_packetCache->bytes() : 0; });;
 
   addGetStat("aggressive-nsec-cache-entries", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getEntriesCount() : 0; });
   addGetStat("aggressive-nsec-cache-nsec-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECHits() : 0; });

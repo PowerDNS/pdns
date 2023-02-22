@@ -95,18 +95,10 @@ public:
     d_maxSize = size;
   }
 
-  [[nodiscard]] uint64_t size() const
-  {
-    uint64_t count = 0;
-    for (const auto& map : d_maps) {
-      count += map.d_entriesCount;
-    }
-    return count;
-  }
+  [[nodiscard]] uint64_t size() const;
   [[nodiscard]] uint64_t bytes();
-
-  uint64_t d_hits{0};
-  uint64_t d_misses{0};
+  [[nodiscard]] uint64_t getHits();
+  [[nodiscard]] uint64_t getMisses();
 
 private:
   struct Entry
@@ -169,6 +161,8 @@ private:
     struct LockedContent
     {
       packetCache_t d_map;
+      uint64_t d_hits{0};
+      uint64_t d_misses{0};
       uint64_t d_contended_count{0};
       uint64_t d_acquired_count{0};
       void invalidate() {}
@@ -213,7 +207,7 @@ private:
   size_t d_maxSize;
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  bool checkResponseMatches(packetCache_t& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
 public:
   void preRemoval(MapCombo::LockedContent& map, const Entry& entry)
   {

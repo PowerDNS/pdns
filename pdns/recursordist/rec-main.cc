@@ -992,8 +992,8 @@ static void doStats(void)
   auto taskPushes = getTaskPushes();
   auto taskExpired = getTaskExpired();
   auto taskSize = getTaskSize();
-  uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
-  uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
+  uint64_t pcSize = g_packetCache ? g_packetCache->size() : 0;
+  uint64_t pcHits = g_packetCache ? g_packetCache->getHits() : 0;
 
   auto log = g_slog->withName("stats");
 
@@ -2139,14 +2139,6 @@ static void houseKeeping(void*)
     t_Counters.updateSnap(now, g_regressionTestMode);
 
     // Below are the tasks that run for every recursorThread, including handler and taskThread
-    if (t_packetCache) {
-      static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
-      packetCacheTask.runIfDue(now, []() {
-        size_t sz = g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors());
-        t_packetCache->setMaxSize(sz); // g_maxPacketCacheEntries might have changed by rec_control
-        t_packetCache->doPruneTo(sz);
-      });
-    }
 
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
     pruneTCPTask.runIfDue(now, [now]() {
@@ -2184,6 +2176,13 @@ static void houseKeeping(void*)
       });
     }
     else if (info.isHandler()) {
+      if (g_packetCache) {
+        static PeriodicTask packetCacheTask{"packetCacheTask", 5};
+        packetCacheTask.runIfDue(now, []() {
+          g_packetCache->setMaxSize(g_maxPacketCacheEntries); // g_maxPacketCacheEntries might have changed by rec_control
+          g_packetCache->doPruneTo(g_maxPacketCacheEntries);
+        });
+      }
       static PeriodicTask recordCachePruneTask{"RecordCachePruneTask", 5};
       recordCachePruneTask.runIfDue(now, []() {
         g_recCache->doPrune(g_maxCacheEntries);
@@ -2360,11 +2359,6 @@ static void recursorThread()
         SLOG(g_log << Logger::Debug << "Done priming cache with root hints" << endl,
              log->info(Logr::Debug, "Done priming cache with root hints"));
       }
-    }
-
-    if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
-      // Only enable packet cache for thread processing queries from the outside world
-      t_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
     }
 
 #ifdef NOD_ENABLED
@@ -3035,6 +3029,10 @@ int main(int argc, char** argv)
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
+    if (!::arg().mustDo("disable-packetcache")) {
+      // Only enable packet cache for thread processing queries from the outside world
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries /*, shards */);
+    }
 
     ret = serviceMain(argc, argv, startupLog);
   }
@@ -3126,11 +3124,6 @@ string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector
   return broadcastAccFunction<string>([=] { return pleaseUseNewTraceRegex(begin != end ? *begin : "", fileno); });
 }
 
-static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
-{
-  return new uint64_t(t_packetCache ? t_packetCache->doWipePacketCache(canon, qtype, subtree) : 0);
-}
-
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
 {
   struct WipeCacheResult res;
@@ -3138,7 +3131,9 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   try {
     res.record_count = g_recCache->doWipeCache(canon, subtree, qtype);
     // scanbuild complains here about an allocated function object that is being leaked. Needs investigation
-    res.packet_count = broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(canon, subtree, qtype); });
+    if (g_packetCache) {
+      res.packet_count = g_packetCache->doWipePacketCache(canon, qtype, subtree);
+    }
     res.negative_record_count = g_negCache->wipe(canon, subtree);
     if (g_aggressiveNSECCache) {
       g_aggressiveNSECCache->removeZoneInfo(canon, subtree);
