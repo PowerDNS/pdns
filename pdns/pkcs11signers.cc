@@ -424,7 +424,7 @@ class Pkcs11Token {
 
       size_t k;
       auto pubAttr = std::make_unique<CK_ATTRIBUTE[]>(pubAttributes.size());
-      auto privAttr = std::make_unique<CK_ATTRIBUTE[]>(pubAttributes.size());
+      auto privAttr = std::make_unique<CK_ATTRIBUTE[]>(privAttributes.size());
 
       k = 0;
       for(P11KitAttribute& attribute :  pubAttributes) {
