@@ -12,28 +12,31 @@
 
 unsigned int RecursorPacketCache::s_refresh_ttlperc{0};
 
-int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, bool subtree)
+uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, bool subtree)
 {
-  int count = 0;
-  auto& idx = d_packetCache.get<NameTag>();
-  for (auto iter = idx.lower_bound(name); iter != idx.end();) {
-    if (subtree) {
-      if (!iter->d_name.isPartOf(name)) { // this is case insensitive
-        break;
+  uint64_t count = 0;
+  for (auto& map : d_maps) {
+    auto shard = map.lock();
+    auto& idx = shard->d_map.get<NameTag>();
+    for (auto iter = idx.lower_bound(name); iter != idx.end();) {
+      if (subtree) {
+        if (!iter->d_name.isPartOf(name)) { // this is case insensitive
+          break;
+        }
       }
-    }
-    else {
-      if (iter->d_name != name) {
-        break;
+      else {
+        if (iter->d_name != name) {
+          break;
+        }
       }
-    }
-
-    if (qtype == 0xffff || iter->d_type == qtype) {
-      iter = idx.erase(iter);
-      count++;
-    }
-    else {
-      ++iter;
+      if (qtype == 0xffff || iter->d_type == qtype) {
+        iter = idx.erase(iter);
+        map.d_entriesCount--;
+        count++;
+      }
+      else {
+        ++iter;
+      }
     }
   }
   return count;
@@ -50,7 +53,7 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
   return queryMatches(iter->d_query, queryPacket, qname, optionsToSkip);
 }
 
-bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata)
+bool RecursorPacketCache::checkResponseMatches(packetCache_t& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata)
 {
   for (auto iter = range.first; iter != range.second; ++iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
@@ -80,7 +83,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       }
 
       d_hits++;
-      moveCacheItemToBack<SequencedTag>(d_packetCache, iter);
+      moveCacheItemToBack<SequencedTag>(shard, iter);
 
       if (pbdata != nullptr) {
         if (iter->d_pbdata) {
@@ -108,7 +111,8 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
                                             std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp)
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
-  const auto& idx = d_packetCache.get<HashTag>();
+  auto shard = getMap(tag, *qhash, tcp).lock();
+  const auto& idx = shard->d_map.get<HashTag>();
   auto range = idx.equal_range(std::tie(tag, *qhash, tcp));
 
   if (range.first == range.second) {
@@ -116,14 +120,15 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
     return false;
   }
 
-  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata);
+  return checkResponseMatches(shard->d_map, range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
                                             std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp)
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
-  const auto& idx = d_packetCache.get<HashTag>();
+  auto shard = getMap(tag, *qhash, tcp).lock();
+  const auto& idx = shard->d_map.get<HashTag>();
   auto range = idx.equal_range(std::tie(tag, *qhash, tcp));
 
   if (range.first == range.second) {
@@ -133,12 +138,14 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 
   qname = DNSName(queryPacket.c_str(), static_cast<int>(queryPacket.length()), sizeof(dnsheader), false, qtype, qclass);
 
-  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata);
+  return checkResponseMatches(shard->d_map, range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata);
 }
 
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp)
 {
-  auto& idx = d_packetCache.get<HashTag>();
+  auto& map = getMap(tag, qhash, tcp);
+  auto shard = map.lock();
+  auto& idx = shard->d_map.get<HashTag>();
   auto range = idx.equal_range(std::tie(tag, qhash, tcp));
   auto iter = range.first;
 
@@ -147,7 +154,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
       continue;
     }
 
-    moveCacheItemToBack<SequencedTag>(d_packetCache, iter);
+    moveCacheItemToBack<SequencedTag>(shard->d_map, iter);
     iter->d_packet = std::move(responsePacket);
     iter->d_query = std::move(query);
     iter->d_ttd = now + ttl;
@@ -166,26 +173,33 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     entry.d_pbdata = std::move(*pbdata);
   }
 
-  d_packetCache.insert(entry);
+  shard->d_map.insert(entry);
+  map.d_entriesCount++;
 
-  if (d_packetCache.size() > d_maxSize) {
-    auto& seq_idx = d_packetCache.get<SequencedTag>();
+  if (shard->d_map.size() > d_maxSize / d_maps.size()) {
+    auto& seq_idx = shard->d_map.get<SequencedTag>();
     seq_idx.erase(seq_idx.begin());
+    map.d_entriesCount--;
   }
+  assert(map.d_entriesCount == shard->d_map.size()); // XXX
 }
 
-uint64_t RecursorPacketCache::bytes() const
+uint64_t RecursorPacketCache::bytes()
 {
   uint64_t sum = 0;
-  for (const auto& entry : d_packetCache) {
-    sum += sizeof(entry) + entry.d_packet.length() + 4;
+  for (auto& shard : d_maps) {
+    auto lock = shard.lock();
+    for (const auto& entry : lock->d_map) {
+      sum += sizeof(entry) + entry.d_packet.length() + 4;
+    }
   }
   return sum;
 }
 
 void RecursorPacketCache::doPruneTo(size_t maxSize)
 {
-  pruneCollection<SequencedTag>(d_packetCache, maxSize);
+  size_t cacheSize = size();
+  pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, maxSize, cacheSize);
 }
 
 uint64_t RecursorPacketCache::doDump(int file)
@@ -200,20 +214,31 @@ uint64_t RecursorPacketCache::doDump(int file)
     return 0;
   }
 
-  fprintf(filePtr.get(), "; main packet cache dump from thread follows\n;\n");
-
-  const auto& sidx = d_packetCache.get<SequencedTag>();
   uint64_t count = 0;
   time_t now = time(nullptr);
 
+  size_t shardNum = 0;
+  size_t min = std::numeric_limits<size_t>::max();
+  size_t max = 0;
+
+  for (auto& shard : d_maps) {
+    auto lock = shard.lock();
+    const auto& sidx = lock->d_map.get<SequencedTag>();
+    const auto shardSize = lock->d_map.size();
+    fprintf(filePtr.get(), "; packetcache shard %zu; size %zu\n", shardNum, shardSize);
+    min = std::min(min, shardSize);
+    max = std::max(max, shardSize);
+    shardNum++;
   for (const auto& entry : sidx) {
-    count++;
-    try {
-      fprintf(filePtr.get(), "%s %" PRId64 " %s  ; tag %d %s\n", entry.d_name.toString().c_str(), static_cast<int64_t>(entry.d_ttd - now), DNSRecordContent::NumberToType(entry.d_type).c_str(), entry.d_tag, entry.d_tcp ? "tcp" : "udp");
-    }
-    catch (...) {
-      fprintf(filePtr.get(), "; error printing '%s'\n", entry.d_name.empty() ? "EMPTY" : entry.d_name.toString().c_str());
+      count++;
+      try {
+        fprintf(filePtr.get(), "%s %" PRId64 " %s  ; tag %d %s\n", entry.d_name.toString().c_str(), static_cast<int64_t>(entry.d_ttd - now), DNSRecordContent::NumberToType(entry.d_type).c_str(), entry.d_tag, entry.d_tcp ? "tcp" : "udp");
+      }
+      catch (...) {
+        fprintf(filePtr.get(), "; error printing '%s'\n", entry.d_name.empty() ? "EMPTY" : entry.d_name.toString().c_str());
+      }
     }
   }
+  fprintf(filePtr.get(), "; packetcache size: %" PRIu64 "/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), d_maxSize, d_maps.size(), min, max);
   return count;
 }
