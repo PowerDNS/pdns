@@ -120,7 +120,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
 @task
 def apt_fresh(c):
     c.sudo('apt-get update')
-    c.sudo('apt-get dist-upgrade')
+    c.sudo('apt-get -qq -y --allow-downgrades dist-upgrade')
 
 @task
 def install_clang(c):
