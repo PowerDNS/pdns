@@ -235,7 +235,7 @@ public:
   void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
   bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value, bool useCache=true);
-  bool unSecureZone(const DNSName& zone, std::string& error, std::string& info);
+  bool unSecureZone(const DNSName& zone, std::string& error);
   bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
 
   static void setMaxEntries(size_t maxEntries);

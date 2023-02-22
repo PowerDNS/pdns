@@ -476,7 +476,8 @@ void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui48, d_eui48+6);
     pw.xfrBlob(blob);
 }
-string EUI48RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI48RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[18];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x",
@@ -520,7 +521,8 @@ void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui64, d_eui64+8);
     pw.xfrBlob(blob);
 }
-string EUI64RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI64RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[24];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
@@ -703,7 +705,7 @@ void APLRecordContent::toPacket(DNSPacketWriter& pw) {
 }
 
 // Decode record into string
-string APLRecordContent::getZoneRepresentation(bool noDot) const {
+string APLRecordContent::getZoneRepresentation(bool /* noDot */) const {
   string s_n, s_family, output;
   ComboAddress ca;
   Netmask nm;
@@ -884,25 +886,6 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
     }
   }
   return false;
-}
-
-DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags)
-{
-  EDNS0Record stuff;
-  stuff.extRCode=0;
-  stuff.version=0;
-  stuff.extFlags=htons(extFlags);
-  DNSRecord dr;
-  static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
-  memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
-  dr.d_ttl=ntohl(dr.d_ttl);
-  dr.d_name=g_rootdnsname;
-  dr.d_type = QType::OPT;
-  dr.d_class=udpsize;
-  dr.d_place=DNSResourceRecord::ADDITIONAL;
-  dr.d_content = std::make_shared<OPTRecordContent>();
-  // if we ever do options, I think we stuff them into OPTRecordContent::data
-  return dr;
 }
 
 void reportBasicTypes()

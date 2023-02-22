@@ -668,7 +668,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* master */, DNSName* keyname)
 {
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
@@ -682,7 +682,7 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& mas
   return false;
 }
 
-bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error, string& info) {
+bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error) {
   // Not calling isSecuredZone(), as it will return false for zones with zero
   // active keys.
   DNSSECKeeper::keyset_t keyset=getKeys(zone);
@@ -961,10 +961,10 @@ void DNSSECKeeper::cleanup()
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {
-      pruneCollection<SequencedTag>(*this, (*s_metacache.write_lock()), s_maxEntries);
+      pruneCollection<SequencedTag>((*s_metacache.write_lock()), s_maxEntries);
     }
     {
-      pruneCollection<SequencedTag>(*this, (*s_keycache.write_lock()), s_maxEntries);
+      pruneCollection<SequencedTag>((*s_keycache.write_lock()), s_maxEntries);
     }
     s_last_prune = time(nullptr);
   }

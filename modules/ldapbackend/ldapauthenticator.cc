@@ -22,9 +22,9 @@
 #include "ldaputils.hh"
 
 /*****************************
- * 
+ *
  * LdapSimpleAuthenticator
- * 
+ *
  ****************************/
 
 LdapSimpleAuthenticator::LdapSimpleAuthenticator(const std::string& dn, const std::string& pw, int tmout) :
@@ -69,17 +69,17 @@ void LdapSimpleAuthenticator::fillLastError(LDAP* conn, int code)
 }
 
 /*****************************
- * 
+ *
  * LdapGssapiAuthenticator
- * 
+ *
  ****************************/
 
-static int ldapGssapiAuthenticatorSaslInteractCallback(LDAP* conn, unsigned flags, void* defaults, void* in)
+static int ldapGssapiAuthenticatorSaslInteractCallback(LDAP* /* conn */, unsigned /* flags */, void* /* defaults */, void* /* in */)
 {
   return LDAP_SUCCESS;
 }
 
-LdapGssapiAuthenticator::LdapGssapiAuthenticator(const std::string& kt, const std::string& ccache, int tmout) :
+LdapGssapiAuthenticator::LdapGssapiAuthenticator(const std::string& kt, const std::string& ccache, int /* tmout */) :
   d_logPrefix("[LDAP GSSAPI] "), d_keytabFile(kt), d_cCacheFile(ccache)
 {
   krb5_error_code code;

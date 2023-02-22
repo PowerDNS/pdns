@@ -53,7 +53,7 @@ using namespace json11;
 StatBag S;
 static int g_numRecords;
 
-static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
+static Json::object emitRecord(const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
 {
   int prio=0;
   string retval;
@@ -177,7 +177,7 @@ try
             obj["name"] = i->name.toString();
 
             while(zpt.get(rr))
-              recs.push_back(emitRecord(i->name.toString(), rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
+              recs.push_back(emitRecord(rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
             obj["records"] = recs;
             Json tmp = obj;
             cout<<tmp.dump();
@@ -213,7 +213,7 @@ try
       obj["name"] = ::arg()["zone-name"];
 
       while(zpt.get(rr))
-        records.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
+        records.push_back(emitRecord(rr.qname, rr.qtype.toString(), rr.content, rr.ttl));
       obj["records"] = records;
 
       Json tmp = obj;

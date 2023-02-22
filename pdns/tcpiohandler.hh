@@ -80,7 +80,7 @@ public:
   virtual std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) = 0;
   virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) = 0;
   virtual void rotateTicketsKey(time_t now) = 0;
-  virtual void loadTicketsKeys(const std::string& file)
+  virtual void loadTicketsKeys(const std::string& /* file */)
   {
     throw std::runtime_error("This TLS backend does not have the capability to load a tickets key from a file");
   }
@@ -116,7 +116,7 @@ public:
   virtual std::string getName() const = 0;
 
   /* set the advertised ALPN protocols, in client or server context */
-  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos)
+  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& /* protos */)
   {
     return false;
   }
@@ -233,7 +233,7 @@ class TCPIOHandler
 public:
   enum class Type : uint8_t { Client, Server };
 
-  TCPIOHandler(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx): d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getClientConnection(host, hostIsAddr, d_socket, timeout);

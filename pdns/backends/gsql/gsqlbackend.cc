@@ -1326,7 +1326,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id, DNSPacket *pkt_p)
+void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */)
 {
   try {
     reconnectIfNeeded();
@@ -1790,7 +1790,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
-bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3)
+bool GSQLBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool /* ordernameIsNSEC3 */)
 {
   int prio=0;
   string content(r.content);
@@ -1856,7 +1856,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;

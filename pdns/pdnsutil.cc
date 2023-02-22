@@ -1120,7 +1120,7 @@ static int read1char(){
     return c;
 }
 
-static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
+static int clearZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
 
@@ -1785,7 +1785,7 @@ static bool testAlgorithms()
   return DNSCryptoKeyEngine::testAll();
 }
 
-static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int cores)
+static void testSpeed(const DNSName& zone, const string& /* remote */, int cores)
 {
   DNSResourceRecord rr;
   rr.qname=DNSName("blah")+zone;
@@ -1881,7 +1881,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   string error, info;
-  bool ret = dk.unSecureZone(zone, error, info);
+  bool ret = dk.unSecureZone(zone, error);
   if (!ret) {
     cerr << error << endl;
   }
@@ -2814,7 +2814,7 @@ try
       cerr << "Syntax: pdnsutil test-speed numcores [signing-server]"<<endl;
       return 0;
     }
-    testSpeed(dk, DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
+    testSpeed(DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
   }
   else if (cmds.at(0) == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -3131,7 +3131,7 @@ try
     if (cmds.at(1) == ".")
       cmds.at(1).clear();
 
-    return clearZone(dk, DNSName(cmds.at(1)));
+    return clearZone(DNSName(cmds.at(1)));
   }
   else if (cmds.at(0) == "list-keys") {
     if(cmds.size() > 2) {

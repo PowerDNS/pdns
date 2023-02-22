@@ -431,7 +431,7 @@ void WebServer::logRequest(const HttpRequest& req, const ComboAddress& remote) c
   }
 }
 
-void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const {
+void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* remote */, const string& logprefix) const {
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
 #ifdef RECURSOR
     if (!g_slogStructured) {

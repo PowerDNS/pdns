@@ -193,7 +193,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
 
 namespace pdns {
   namespace resolver {
-    int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
+    int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t /* origQtype */, uint16_t id, Resolver::res_t* result)
     {
       result->clear();
 

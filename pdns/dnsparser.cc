@@ -61,7 +61,7 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
   d_record.insert(d_record.end(), out.begin(), out.end());
 }
 
-string UnknownRecordContent::getZoneRepresentation(bool noDot) const
+string UnknownRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   ostringstream str;
   str<<"\\# "<<(unsigned int)d_record.size()<<" ";
@@ -678,7 +678,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
 }
 
 
-void PacketReader::xfrHexBlob(string& blob, bool keepReading)
+void PacketReader::xfrHexBlob(string& blob, bool /* keepReading */)
 {
   xfrBlob(blob);
 }

@@ -26,7 +26,7 @@
 #include "lwres.hh"
 #include <iostream>
 #include "dnsrecords.hh"
-#include <errno.h>
+#include <cerrno>
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>
@@ -314,7 +314,7 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
       dnsOverTLS = false;
     }
   }
-  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx);
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
   connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);

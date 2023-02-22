@@ -51,7 +51,7 @@ public:
   SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, long long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, const std::string& value)
+  SSqlStatement* bind(const string& /* name */, const std::string& value)
   {
     prepareStatement();
     allocate();
@@ -66,7 +66,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& name)
+  SSqlStatement* bindNull(const string& /* name */)
   {
     prepareStatement();
     d_paridx++;

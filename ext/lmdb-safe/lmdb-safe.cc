@@ -19,11 +19,11 @@ static string MDBError(int rc)
 MDBDbi::MDBDbi(MDB_env* env, MDB_txn* txn, const string_view dbname, int flags)
 {
   // A transaction that uses this function must finish (either commit or abort) before any other transaction in the process may use this function.
-  
+
   int rc = mdb_dbi_open(txn, dbname.empty() ? 0 : &dbname[0], flags, &d_dbi);
   if(rc)
     throw std::runtime_error("Unable to open named database: " + MDBError(rc));
-  
+
   // Database names are keys in the unnamed database, and may be read but not written.
 }
 
@@ -95,10 +95,10 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
     weak_ptr<MDBEnv> wp;
     int flags;
   };
-  
+
   static std::map<tuple<dev_t, ino_t>, Value> s_envs;
   static std::mutex mut;
-  
+
   struct stat statbuf;
   if(stat(fname, &statbuf)) {
     if(errno != ENOENT)
@@ -132,7 +132,7 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
 
   auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
   s_envs[key] = {fresh, flags};
-  
+
   return fresh;
 }
 
@@ -145,7 +145,7 @@ MDBDbi MDBEnv::openDB(const string_view dbname, int flags)
     This function must not be called from multiple concurrent transactions in the same process. A transaction that uses this function must finish (either commit or abort) before any other transaction in the process may use this function.
   */
   std::lock_guard<std::mutex> l(d_openmut);
-  
+
   if(!(envflags & MDB_RDONLY)) {
     auto rwt = getRWTransaction();
     MDBDbi ret = rwt->openDB(dbname, flags);
@@ -155,7 +155,7 @@ MDBDbi MDBEnv::openDB(const string_view dbname, int flags)
 
   MDBDbi ret;
   {
-    auto rwt = getROTransaction(); 
+    auto rwt = getROTransaction();
     ret = rwt->openDB(dbname, flags);
   }
   return ret;
@@ -230,7 +230,7 @@ MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, i
 {
   if(env->getRWTX())
     throw std::runtime_error("Duplicate RO transaction");
-  
+
   /*
     A transaction and its cursors must only be used by a single thread, and a thread may only have a single transaction at a time. If MDB_NOTLS is in use, this does not apply to read-only transactions. */
   MDB_txn *result = nullptr;

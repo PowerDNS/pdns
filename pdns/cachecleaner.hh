@@ -30,8 +30,8 @@
 // this function can clean any cache that has an isStale() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // and optionally, on a miss, move it to the beginning
-template <typename S, typename C, typename T>
-void pruneCollection(C& container, T& collection, size_t maxCached, size_t scanFraction = 1000)
+template <typename S, typename T>
+void pruneCollection(T& collection, size_t maxCached, size_t scanFraction = 1000)
 {
   const time_t now = time(nullptr);
   size_t toTrim = 0;
@@ -47,7 +47,8 @@ void pruneCollection(C& container, T& collection, size_t maxCached, size_t scanF
   // and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
   const size_t lookAt = toTrim ? 5 * toTrim : cacheSize / scanFraction;
-  size_t tried = 0, erased = 0;
+  size_t tried = 0;
+  size_t erased = 0;
 
   for (auto iter = sidx.begin(); iter != sidx.end() && tried < lookAt; ++tried) {
     if (iter->isStale(now)) {

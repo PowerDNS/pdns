@@ -24,7 +24,7 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
-bool LdapBackend::list(const DNSName& target, int domain_id, bool include_disabled)
+bool LdapBackend::list(const DNSName& target, int domain_id, bool /* include_disabled */)
 {
   try {
     d_in_list = true;
@@ -57,7 +57,7 @@ bool LdapBackend::list(const DNSName& target, int domain_id, bool include_disabl
   return false;
 }
 
-bool LdapBackend::list_simple(const DNSName& target, int domain_id)
+bool LdapBackend::list_simple(const DNSName& target, int /* domain_id */)
 {
   string dn;
   string filter;
@@ -136,7 +136,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
   }
 }
 
-void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* dnspkt, int zoneid)
+void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -158,7 +158,7 @@ void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* dnspkt, int zoneid)
+void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
 {
   int len;
   vector<string> parts;
@@ -200,7 +200,7 @@ void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* dnspkt, int zoneid)
+void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -318,7 +318,7 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
 {
   string filter;
   SOAData sd;

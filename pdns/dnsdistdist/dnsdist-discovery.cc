@@ -367,8 +367,7 @@ static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
       sock.bind(ds->d_config.sourceAddr);
     }
 
-    time_t now = time(nullptr);
-    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx, now);
+    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx);
     handler->connect(ds->d_config.tcpFastOpen, ds->d_config.remote, timeval{ds->d_config.checkTimeout, 0});
     return true;
   }

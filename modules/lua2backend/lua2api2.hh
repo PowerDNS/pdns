@@ -176,7 +176,7 @@ public:
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
   }
 
-  bool list(const DNSName& target, int domain_id, bool include_disabled = false) override
+  bool list(const DNSName& target, int domain_id, bool /* include_disabled */ = false) override
   {
     if (f_list == nullptr) {
       g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl;
@@ -272,7 +272,7 @@ public:
     logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
   }
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */ = true) override
   {
     if (f_get_domaininfo == nullptr) {
       // use getAuth instead
@@ -298,7 +298,7 @@ public:
     return true;
   }
 
-  void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override
+  void getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */) override
   {
     if (f_get_all_domains == nullptr)
       return;

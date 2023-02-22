@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -752,7 +752,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       // "dnssec": false in json
       if (isDNSSECZone) {
         string info, error;
-        if (!dk.unSecureZone(zonename, error, info)) {
+        if (!dk.unSecureZone(zonename, error)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
         isDNSSECZone = dk.isSecuredZone(zonename, false);
@@ -1728,7 +1728,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         }
         if (rrset["records"].is_array()) {
           int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -2112,7 +2112,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
           // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
           int ttl = intFromJson(rrset, "ttl");
 
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
 
           for(DNSResourceRecord& rr : new_records) {
             rr.domain_id = di.id;
@@ -2397,7 +2397,7 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
   resp->status = 200;
 }
 
-void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::cssfunction(HttpRequest* /* req */, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
   resp->headers["Content-Type"] = "text/css";

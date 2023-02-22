@@ -218,7 +218,7 @@ void CoProcess::sendReceive(const string& snd, string& rcv)
   receive(rcv);
 }
 
-UnixRemote::UnixRemote(const string& path, int timeout)
+UnixRemote::UnixRemote(const string& path)
 {
   d_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (d_fd < 0)

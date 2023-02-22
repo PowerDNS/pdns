@@ -133,7 +133,7 @@ void Utility::usleep(unsigned long usec)
   ts.tv_sec = usec / 1000000;
   ts.tv_nsec = (usec % 1000000) * 1000;
   // POSIX.1 recommends using nanosleep instead of usleep
-  ::nanosleep(&ts, nullptr); 
+  ::nanosleep(&ts, nullptr);
 }
 
 
@@ -225,7 +225,7 @@ static int isleap(int year) {
   return (!(year%4) && ((year%100) || !(year%400)));
 }
 
-time_t Utility::timegm(struct tm *const t) 
+time_t Utility::timegm(struct tm *const t)
 {
   const static short spm[13] = /* days per month -- nonleap! */
   { 0,
@@ -251,7 +251,7 @@ time_t Utility::timegm(struct tm *const t)
   if (t->tm_min>60) { t->tm_hour += t->tm_min/60; t->tm_min%=60; }
   if (t->tm_hour>60) { t->tm_mday += t->tm_hour/60; t->tm_hour%=60; }
   if (t->tm_mon>11) { t->tm_year += t->tm_mon/12; t->tm_mon%=12; }
- 
+
   while (t->tm_mday>spm[1+t->tm_mon]) {
     if (t->tm_mon==1 && isleap(t->tm_year+1900)) {
       if (t->tm_mon==31+29) break;
@@ -289,4 +289,3 @@ time_t Utility::timegm(struct tm *const t)
   i = 60;
   return ((day + t->tm_hour) * i + t->tm_min) * i + t->tm_sec;
 }
-

@@ -1257,7 +1257,7 @@ uint64_t udp6ErrorStats(const std::string& str)
   return 0;
 }
 
-uint64_t tcpErrorStats(const std::string& str)
+uint64_t tcpErrorStats(const std::string& /* str */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/net/netstat");
@@ -1282,7 +1282,7 @@ uint64_t tcpErrorStats(const std::string& str)
   return 0;
 }
 
-uint64_t getCPUIOWait(const std::string& str)
+uint64_t getCPUIOWait(const std::string& /* str */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/stat");
@@ -1307,7 +1307,7 @@ uint64_t getCPUIOWait(const std::string& str)
   return 0;
 }
 
-uint64_t getCPUSteal(const std::string& str)
+uint64_t getCPUSteal(const std::string& /* str */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/stat");

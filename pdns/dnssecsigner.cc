@@ -114,7 +114,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
   rrc.d_type=signQType;
 
   rrc.d_labels=signQName.countLabels()-signQName.isWildcard();
-  rrc.d_originalttl=signTTL; 
+  rrc.d_originalttl=signTTL;
   rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
   rrc.d_sigexpire=startOfWeek + 14*86400;
   rrc.d_signer = signer;
@@ -157,8 +157,8 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
     if(getRRSIGsForRRSET(dk, signer, wildcardname.countLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
       // cerr<<"Error signing a record!"<<endl;
       return;
-    } 
-  
+    }
+
     DNSZoneRecord rr;
     rr.dr.d_name=signQName;
     rr.dr.d_type=QType::RRSIG;
@@ -176,7 +176,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
   toSign.clear();
 }
 
-uint64_t signatureCacheSize(const std::string& str)
+uint64_t signatureCacheSize(const std::string& /* str */)
 {
   return g_signatures.read_lock()->size();
 }
@@ -197,19 +197,19 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
     }
   }
   while(sname.chopOff());
-  
+
   return false;
 }
 
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
-  
+
   DNSName signQName, wildcardQName;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   uint32_t origTTL=0;
-  
+
   DNSResourceRecord::Place signPlace=DNSResourceRecord::ANSWER;
   sortedRecords_t toSign;
 

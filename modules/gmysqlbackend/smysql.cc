@@ -88,7 +88,7 @@ public:
     }
   }
 
-  SSqlStatement* bind(const string& name, bool value)
+  SSqlStatement* bind(const string& /* name */, bool value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -109,7 +109,7 @@ public:
   {
     return bind(name, (unsigned long)value);
   }
-  SSqlStatement* bind(const string& name, long value)
+  SSqlStatement* bind(const string& /* name */, long value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -122,7 +122,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& name, unsigned long value)
+  SSqlStatement* bind(const string& /* name */, unsigned long value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -136,7 +136,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& name, long long value)
+  SSqlStatement* bind(const string& /* name */, long long value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -149,7 +149,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& name, unsigned long long value)
+  SSqlStatement* bind(const string& /* name */, unsigned long long value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -163,7 +163,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& name, const std::string& value)
+  SSqlStatement* bind(const string& /* name */, const std::string& value)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -180,7 +180,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& name)
+  SSqlStatement* bindNull(const string& /* name */)
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {

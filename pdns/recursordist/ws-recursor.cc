@@ -1408,7 +1408,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     if (d_loglevel > WebServer::LogLevel::None) {
       client->getRemote(remote);
     }
-    auto handler = std::make_shared<TCPIOHandler>("", false, client->releaseHandle(), timeout, tlsCtx, time(nullptr));
+    auto handler = std::make_shared<TCPIOHandler>("", false, client->releaseHandle(), timeout, tlsCtx);
 
     PacketBuffer data;
     try {

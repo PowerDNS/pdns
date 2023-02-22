@@ -1034,14 +1034,14 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
 }
 
 
-#define boilerplate_conv(RNAME, CONV)                             \
-boilerplate(RNAME)                                                \
-template<class Convertor>                                         \
-void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
-{                                                                 \
-  CONV;                                                           \
+#define boilerplate_conv(RNAME, CONV)                                   \
+boilerplate(RNAME)                                                      \
+template<class Convertor>                                               \
+void RNAME##RecordContent::xfrPacket(Convertor& conv, bool /* noDot */) \
+{                                                                       \
+  CONV;                                                                 \
   if (conv.eof() == false) throw MOADNSException("When parsing " #RNAME " trailing data was not parsed: '" + conv.getRemaining() + "'"); \
-}                                                                 \
+}                                                                       \
 
 struct EDNSOpts
 {
@@ -1055,7 +1055,6 @@ struct EDNSOpts
 
 class MOADNSParser;
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
-DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();

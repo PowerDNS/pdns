@@ -42,7 +42,7 @@ PowerLDAP::SearchResult::~SearchResult()
       // not much we can do now
 }
 
-bool PowerLDAP::SearchResult::getNext(PowerLDAP::sentry_t& entry, bool dn, int timeout)
+bool PowerLDAP::SearchResult::getNext(PowerLDAP::sentry_t& entry, bool dn, int /* timeout */)
 {
   int i;
   char* attr;
@@ -214,7 +214,7 @@ void PowerLDAP::bind(LdapAuthenticator* authenticator)
     throw LDAPException("Failed to bind to LDAP server: " + authenticator->getError());
 }
 
-void PowerLDAP::bind(const string& ldapbinddn, const string& ldapsecret, int method)
+void PowerLDAP::bind(const string& ldapbinddn, const string& ldapsecret, int /* method */)
 {
   int msgid;
 

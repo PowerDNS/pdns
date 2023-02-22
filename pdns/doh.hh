@@ -139,11 +139,11 @@ struct DOHFrontend
   {
   }
 
-  void rotateTicketsKey(time_t now)
+  void rotateTicketsKey(time_t /* now */)
   {
   }
 
-  void loadTicketsKeys(const std::string& keyFile)
+  void loadTicketsKeys(const std::string& /* keyFile */)
   {
   }
 
