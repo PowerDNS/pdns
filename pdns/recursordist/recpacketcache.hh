@@ -43,8 +43,8 @@ using namespace ::boost::multi_index;
 
 //! Stores whole packets, ready for lobbing back at the client. Not threadsafe.
 /* Note: we store answers as value AND KEY, and with careful work, we make sure that
-   you can use a query as a key too. But query and answer must compare as identical! 
-   
+   you can use a query as a key too. But query and answer must compare as identical!
+
    This precludes doing anything smart with EDNS directly from the packet */
 class RecursorPacketCache : public PacketCache
 {
@@ -57,44 +57,53 @@ public:
     std::string d_response;
     bool d_tagged;
   };
-  typedef boost::optional<PBData> OptPBData;
+  using OptPBData = boost::optional<PBData>;
 
   RecursorPacketCache(size_t maxsize) :
     d_maxSize(maxsize)
   {
   }
 
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
+                         std::string* responsePacket, uint32_t* age, uint32_t* qhash)
+  {
+    DNSName qname;
+    uint16_t qtype{0};
+    uint16_t qclass{0};
+    vState valState{vState::Indeterminate};
+    return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+  }
+
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
+                         std::string* responsePacket, uint32_t* age, uint32_t* qhash)
+  {
+    vState valState{vState::Indeterminate};
+    return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+  }
+
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
 
   void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
   void doPruneTo(size_t maxSize = 250000);
-  uint64_t doDump(int fd);
+  uint64_t doDump(int file);
   int doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
 
-  void setMaxSize(size_t sz)
+  void setMaxSize(size_t size)
   {
-    d_maxSize = sz;
+    d_maxSize = size;
   }
 
-  uint64_t size() const
+  [[nodiscard]] uint64_t size() const
   {
     return d_packetCache.size();
   }
-  uint64_t bytes() const;
+  [[nodiscard]] uint64_t bytes() const;
 
   uint64_t d_hits{0};
   uint64_t d_misses{0};
 
 private:
-  struct HashTag
-  {
-  };
-  struct NameTag
-  {
-  };
   struct Entry
   {
     Entry(const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
@@ -129,20 +138,23 @@ private:
     }
   };
 
+  struct HashTag
+  {
+  };
+  struct NameTag
+  {
+  };
   struct SequencedTag
   {
   };
-  typedef multi_index_container<
-    Entry,
-    indexed_by<
-      hashed_non_unique<tag<HashTag>,
-                        composite_key<Entry,
-                                      member<Entry, uint32_t, &Entry::d_tag>,
-                                      member<Entry, uint32_t, &Entry::d_qhash>,
-                                      member<Entry, bool, &Entry::d_tcp>>>,
-      sequenced<tag<SequencedTag>>,
-      ordered_non_unique<tag<NameTag>, member<Entry, DNSName, &Entry::d_name>, CanonDNSNameCompare>>>
-    packetCache_t;
+  using packetCache_t = multi_index_container<Entry,
+                                              indexed_by<hashed_non_unique<tag<HashTag>,
+                                                                           composite_key<Entry,
+                                                                                         member<Entry, uint32_t, &Entry::d_tag>,
+                                                                                         member<Entry, uint32_t, &Entry::d_qhash>,
+                                                                                         member<Entry, bool, &Entry::d_tcp>>>,
+                                                         sequenced<tag<SequencedTag>>,
+                                                         ordered_non_unique<tag<NameTag>, member<Entry, DNSName, &Entry::d_name>, CanonDNSNameCompare>>>;
 
   packetCache_t d_packetCache;
   size_t d_maxSize;
