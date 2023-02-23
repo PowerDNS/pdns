@@ -50,7 +50,7 @@ def init_argparser():
                                  'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
-                                 'dnsdist-master'
+                                 'dnsdist-18', 'dnsdist-master'
                                  ],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
@@ -144,7 +144,7 @@ def write_release_files (release):
                    'auth-master',
                    'rec-45', 'rec-46', 'rec-47', 'rec-48',
                    'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-18',
                    'dnsdist-master']:
         write_pkg_pin_file(release)
         write_dockerfile('centos', '7', release)
@@ -162,19 +162,19 @@ def write_release_files (release):
 
     if release in ['auth-46', 'auth-47', 'auth-master',
                    'rec-45', 'rec-46', 'rec-47', 'rec-48', 'rec-master',
-                   'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+                   'dnsdist-16', 'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
     if release in ['auth-46', 'auth-47', 'auth-master',
                    'rec-46', 'rec-47', 'rec-48', 'rec-master',
-                   'dnsdist-17', 'dnsdist-master']:
+                   'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
     if release in ['auth-47', 'auth-master',
                    'rec-47', 'rec-48', 'rec-master',
-                   'dnsdist-17', 'dnsdist-master']:
+                   'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('el', '9', release)
 
 # Test Release Functions
