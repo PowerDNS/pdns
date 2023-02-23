@@ -11,7 +11,7 @@ SVCRecordParameters
 
     -- reply to SVCB queries for _dns.resolver.arpa. indicating DoT on port 853 of dot.powerdns.com. (192.0.2.1/2001:db8::1), DoH on https://doh.powerdns.com/dns-query (192.0.2.2/2001:db8::2)
     local svc = { newSVCRecordParameters(1, "dot.powerdns.com.", { mandatory={"port"}, alpn={ "dot" }, noDefaultAlpn=true, port=853, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" } }),
-                  newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={ "h2" }, port=443, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }, key42 = "/dns-query{?dns}" })
+                  newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={ "h2" }, port=443, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }, key7 = "/dns-query{?dns}" })
                 }
     addAction(AndRule{QTypeRule(64), QNameRule('_dns.resolver.arpa.')}, SpoofSVCAction(svc))
     -- reply with NODATA (NXDOMAIN would deny all types at that name and below, including SVC) for other types
