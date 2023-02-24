@@ -266,6 +266,7 @@ const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
   ProtoBufMetaKey::KeyTypeDescription{ "sni", Type::SNI, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { return {dq.sni}; }, false },
   ProtoBufMetaKey::KeyTypeDescription{ "pool", Type::Pool, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { return {dq.ids.poolName}; }, false },
   ProtoBufMetaKey::KeyTypeDescription{ "b64-content", Type::B64Content, [](const DNSQuestion& dq, const std::string&, uint8_t) -> std::vector<std::string> { const auto& data = dq.getData(); return {Base64Encode(std::string(data.begin(), data.end()))}; }, false },
+#ifdef HAVE_DNS_OVER_HTTPS
   ProtoBufMetaKey::KeyTypeDescription{ "doh-header", Type::DoHHeader, [](const DNSQuestion& dq , const std::string& name, uint8_t) -> std::vector<std::string> {
     if (!dq.ids.du) {
       return {};
@@ -301,6 +302,7 @@ const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
     }
     return {};
     }, false, false },
+#endif // HAVE_DNS_OVER_HTTPS
   ProtoBufMetaKey::KeyTypeDescription{ "proxy-protocol-value", Type::ProxyProtocolValue, [](const DNSQuestion& dq, const std::string&, uint8_t numericSubKey) -> std::vector<std::string> {
     if (!dq.proxyProtocolValues) {
       return {};
