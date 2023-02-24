@@ -1165,6 +1165,10 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     dest.sin4.sin_family = 0;
   }
 
+  if (dest.sin4.sin_family == 0) {
+    dest = cs.local;
+  }
+
   ++cs.queries;
   ++g_stats.queries;
 
@@ -1591,8 +1595,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
   ids.cs = &cs;
   ids.origRemote = remote;
   ids.hopRemote = remote;
-  ids.origDest = dest;
-  ids.hopLocal = dest;
   ids.protocol = dnsdist::Protocol::DoUDP;
 
   try {
@@ -1602,6 +1604,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
     /* dest might have been updated, if we managed to harvest the destination address */
     ids.origDest = dest;
+    ids.hopLocal = dest;
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
     if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
@@ -1634,9 +1637,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    if (ids.origDest.sin4.sin_family == 0) {
-      ids.origDest = cs.local;
-    }
     if (ids.dnsCryptQuery) {
       ids.protocol = dnsdist::Protocol::DNSCryptUDP;
     }
