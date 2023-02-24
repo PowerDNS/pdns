@@ -2384,12 +2384,30 @@ static void sigTermHandler(int)
   _exit(EXIT_SUCCESS);
 }
 #else /* COVERAGE */
+
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#endif
+
 static void sigTermHandler(int)
 {
+#if !defined(__SANITIZE_THREAD__)
+  /* TSAN is rightfully unhappy about this:
+     WARNING: ThreadSanitizer: signal-unsafe call inside of a signal
+     This is not a real problem for us, as the worst case is that
+     we crash trying to exit, but let's try to avoid the warnings
+     in our tests.
+  */
   if (g_syslog) {
     syslog(LOG_INFO, "Exiting on user request");
   }
   std::cout<<"Exiting on user request"<<std::endl;
+#endif /* __SANITIZE_THREAD__ */
 
   _exit(EXIT_SUCCESS);
 }
