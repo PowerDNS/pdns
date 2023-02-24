@@ -1165,10 +1165,6 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     dest.sin4.sin_family = 0;
   }
 
-  if (dest.sin4.sin_family == 0) {
-    dest = cs.local;
-  }
-
   ++cs.queries;
   ++g_stats.queries;
 
@@ -1603,8 +1599,18 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
     /* dest might have been updated, if we managed to harvest the destination address */
-    ids.origDest = dest;
-    ids.hopLocal = dest;
+    if (dest.sin4.sin_family != 0) {
+      ids.origDest = dest;
+      ids.hopLocal = dest;
+    }
+    else {
+      /* if we have not been able to harvest the destination address,
+         we do NOT want to update dest or hopLocal, to let the kernel
+         pick the less terrible option, but we want to update origDest
+         which is used by rules and actions to at least the correct
+         address family */
+      ids.origDest = cs.local;
+    }
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
     if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
