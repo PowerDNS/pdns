@@ -639,7 +639,8 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
     ++g_stats.frontendNXDomain;
     break;
   case RCode::ServFail:
-    ++g_stats.servfailResponses;
+    if (udiff != 0.) /* came from a real backend, not a cache hit */
+      ++g_stats.servfailResponses;
     ++g_stats.frontendServFail;
     break;
   case RCode::NoError:
