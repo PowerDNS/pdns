@@ -2024,9 +2024,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
         break;
       }
     }
-    catch (const ImmediateServFailException&) {
+    catch (const ImmediateServFailException& e) {
       if (exceptionOnTimeout) {
-        throw;
+        throw e;
       }
     }
   }
