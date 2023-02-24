@@ -39,9 +39,6 @@ jobs:
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: auth-ccache-
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      # FIXME: Workaround to avoid getting buggy version for unixodbc-dev from Microsoft repo
-      - run: "sudo apt-get remove unixodbc odbcinst odbcinst1debian2 libodbc1 unixodbc-dev"
-      - run: "sudo apt-get install unixodbc=2.3.6-0.1build1 odbcinst=2.3.6-0.1build1 odbcinst1debian2=2.3.6-0.1build1 libodbc1=2.3.6-0.1build1 unixodbc-dev=2.3.6-0.1build1"
       - run: inv install-clang
       - run: inv install-auth-build-deps
       - run: inv ci-autoconf

@@ -103,14 +103,8 @@ jobs:
                 libsystemd-dev \
                 libwslay-dev \
                 libyaml-cpp-dev \
-                ragel
-
-    # FIXME: Workaround to avoid getting buggy version for unixodbc-dev from Microsoft repo
-    - name: Remove current package version and dependencies for ODBC
-      run: sudo apt-get remove unixodbc odbcinst odbcinst1debian2 libodbc1 unixodbc-dev
-
-    - name: Install fixed version 2.3.6 of ODBC packages
-      run: sudo apt-get install unixodbc=2.3.6-0.1build1 odbcinst=2.3.6-0.1build1 odbcinst1debian2=2.3.6-0.1build1 libodbc1=2.3.6-0.1build1 unixodbc-dev=2.3.6-0.1build1
+                ragel \
+                unixodbc-dev
 
     - name: Build auth
       if: matrix.product == 'auth'
