@@ -401,18 +401,19 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 }
 
 // Does not follow the generic dump to file pattern, has a more complex lambda
-static RecursorControlChannel::Answer doDumpCache(int s)
+static RecursorControlChannel::Answer doDumpCache(int socket)
 {
-  auto fdw = getfd(s);
+  auto fdw = getfd(socket);
 
   if (fdw < 0) {
     return {1, "Error opening dump file for writing: " + stringerror() + "\n"};
   }
   uint64_t total = 0;
   try {
-    int fd = fdw;
-    total = g_recCache->doDump(fd, g_maxCacheEntries.load()) + g_negCache->doDump(fd, g_maxCacheEntries.load() / 8) +
-      (g_packetCache ? g_packetCache->doDump(fd) : 0) + dumpAggressiveNSECCache(fd);
+    total += g_recCache->doDump(fdw, g_maxCacheEntries.load());
+    total += g_negCache->doDump(fdw, g_maxCacheEntries.load() / 8);
+    total += g_packetCache ? g_packetCache->doDump(fdw) : 0;
+    total += dumpAggressiveNSECCache(fdw);
   }
   catch (...) {
   }
@@ -1265,7 +1266,9 @@ static void registerAllStats1()
   addGetStat("packetcache-hits", [] { return g_packetCache ? g_packetCache->getHits() : 0; });
   addGetStat("packetcache-misses", [] { return g_packetCache ? g_packetCache->getMisses() : 0; });
   addGetStat("packetcache-entries", [] { return g_packetCache ? g_packetCache->size() : 0; });
-  addGetStat("packetcache-bytes", [] { return g_packetCache ? g_packetCache->bytes() : 0; });;
+  addGetStat("packetcache-bytes", [] { return g_packetCache ? g_packetCache->bytes() : 0; });
+  addGetStat("packetcache-contended", []() { return g_packetCache ? g_packetCache->stats().first : 0; });
+  addGetStat("packetcache-acquired", []() { return g_packetCache ? g_packetCache->stats().second : 0; });
 
   addGetStat("aggressive-nsec-cache-entries", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getEntriesCount() : 0; });
   addGetStat("aggressive-nsec-cache-nsec-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECHits() : 0; });

@@ -53,6 +53,18 @@ uint64_t RecursorPacketCache::getMisses()
   return sum;
 }
 
+pair<uint64_t, uint64_t> RecursorPacketCache::stats()
+{
+  uint64_t contended = 0;
+  uint64_t acquired = 0;
+  for (auto& shard : d_maps) {
+    auto content = shard.lock();
+    contended += content->d_contended_count;
+    acquired += content->d_acquired_count;
+  }
+  return {contended, acquired};
+}
+
 uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, bool subtree)
 {
   uint64_t count = 0;
@@ -260,7 +272,7 @@ uint64_t RecursorPacketCache::doDump(int file)
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shardNum++;
-  for (const auto& entry : sidx) {
+    for (const auto& entry : sidx) {
       count++;
       try {
         fprintf(filePtr.get(), "%s %" PRId64 " %s  ; tag %d %s\n", entry.d_name.toString().c_str(), static_cast<int64_t>(entry.d_ttd - now), DNSRecordContent::NumberToType(entry.d_type).c_str(), entry.d_tag, entry.d_tcp ? "tcp" : "udp");
