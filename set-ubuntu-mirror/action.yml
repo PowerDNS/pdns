@@ -1,8 +1,15 @@
 name: 'choose Ubuntu mirror for PowerDNS builds in Github Actions'
+inputs:
+  apt-repository:
+    description: 'Default Ubuntu APT repository mirror'
+    required: true
+    default: 'mirror.leaseweb.net'
 runs:
   using: "composite"
   steps:
     #- run: echo not changing mirror, using default Azure mirror
     #  shell: bash
-    - run: sudo sed -i 's/azure\.archive\.ubuntu\.com/mirror.leaseweb.net/' /etc/apt/sources.list
+    - run: sudo sed -i 's/azure\.archive\.ubuntu\.com/${{ inputs.apt-repository }}/' /etc/apt/sources.list
+      shell: bash
+    - run: "echo -e 'Package: *odbc*\nPin: origin \"${{ inputs.apt-repository }}\"\nPin-Priority: 1001' | sudo tee /etc/apt/preferences"
       shell: bash
