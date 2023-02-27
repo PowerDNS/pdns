@@ -1807,9 +1807,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
   const int iterations = !d_refresh && MemRecursorCache::s_maxServedStaleExtensions > 0 ? 2 : 1;
   for (int loop = 0; loop < iterations; loop++) {
 
-    if (loop == 1) {
-      d_serveStale = true;
-    }
+    d_serveStale = loop == 1;
 
     // When we're not on the last iteration, a timeout is not fatal
     const bool exceptionOnTimeout = loop == iterations - 1;
