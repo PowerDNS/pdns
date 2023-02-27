@@ -156,7 +156,7 @@ private:
 
   struct MapCombo
   {
-    MapCombo() {}
+    MapCombo() = default;
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
     struct LockedContent
@@ -188,7 +188,7 @@ private:
 
   vector<MapCombo> d_maps;
 
-  size_t combine(unsigned int tag, uint32_t hash, bool tcp) const
+  static size_t combine(unsigned int tag, uint32_t hash, bool tcp)
   {
     size_t ret = 0;
     boost::hash_combine(ret, tag);
@@ -201,10 +201,11 @@ private:
   {
     return d_maps.at(combine(tag, hash, tcp) % d_maps.size());
   }
-  // const MapCombo& getMap(unsigned int tag, uint32_t hash, bool tcp) const
-  // {
-  //   return d_maps.at(combine(hash, hash, tcp) % d_maps.size());
-  // }
+
+  [[nodiscard]] const MapCombo& getMap(unsigned int tag, uint32_t hash, bool tcp) const
+  {
+    return d_maps.at(combine(hash, hash, tcp) % d_maps.size());
+  }
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
   bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
