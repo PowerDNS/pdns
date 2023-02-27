@@ -60,6 +60,8 @@ class TestRuleMetrics(DNSDistTest):
             ( 'refused', dns.rcode.REFUSED ),
             ( 'servfail', dns.rcode.SERVFAIL )
         ]
+        servfailBackendResponses = self.getMetric('servfail-responses')
+
         for (name, rcode) in rcodes:
             qname = 'rcode-' + name + '.metrics.tests.powerdns.com.'
             query = dns.message.make_query(qname, 'A', 'IN')
@@ -68,13 +70,21 @@ class TestRuleMetrics(DNSDistTest):
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(rcode)
 
+            ruleMetricBefore = self.getMetric('rule-' + name)
+            if name != 'refused':
+                frontendMetricBefore = self.getMetric('frontend-' + name)
+
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, expectedResponse)
 
-            self.assertEquals(self.getMetric('rule-' + name), 2)
+            self.assertEqual(self.getMetric('rule-' + name), ruleMetricBefore + 2)
+            if name != 'refused':
+                self.assertEqual(self.getMetric('frontend-' + name), frontendMetricBefore + 2)
 
+        # self-generated responses should not increase this metric
+        self.assertEqual(self.getMetric('servfail-responses'), servfailBackendResponses)
     def testCacheMetrics(self):
         """
         Metrics: Check that metrics are correctly updated for cache misses and hits
@@ -110,3 +120,34 @@ class TestRuleMetrics(DNSDistTest):
             self.assertEqual(self.getMetric('responses'), responsesBefore + 2)
             self.assertEqual(self.getMetric('cache-hits'), cacheHitsBefore + 1)
             self.assertEqual(self.getMetric('cache-misses'), cacheMissesBefore + 1)
+
+    def testServFailMetrics(self):
+        """
+        Metrics: Check that servfail metrics are correctly updated for cache misses and hits
+        """
+
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
+            qname = method + '.servfail.cache.metrics.tests.powerdns.com.'
+            query = dns.message.make_query(qname, 'A', 'IN')
+            # dnsdist set RA = RD for spoofed responses
+            query.flags &= ~dns.flags.RD
+            response = dns.message.make_response(query)
+            response.set_rcode(dns.rcode.SERVFAIL)
+
+            frontendBefore = self.getMetric('frontend-servfail')
+            servfailBefore = self.getMetric('servfail-responses')
+            ruleBefore = self.getMetric('rule-servfail')
+
+            sender = getattr(self, method)
+            # first time, cache miss
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+            # second time, hit
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)
+
+            self.assertEqual(self.getMetric('frontend-servfail'), frontendBefore + 2)
+            self.assertEqual(self.getMetric('servfail-responses'), servfailBefore + 1)
+            self.assertEqual(self.getMetric('rule-servfail'), ruleBefore)

@@ -247,10 +247,10 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     if (backendProtocol == dnsdist::Protocol::DoUDP) {
       backendProtocol = dnsdist::Protocol::DoTCP;
     }
-    ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->d_config.remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, backendProtocol);
+    ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->d_config.remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, backendProtocol, true);
   } else {
     const auto& ids = currentResponse.d_idstate;
-    ::handleResponseSent(ids, 0., state->d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol);
+    ::handleResponseSent(ids, 0., state->d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
   }
 
   currentResponse.d_buffer.clear();
