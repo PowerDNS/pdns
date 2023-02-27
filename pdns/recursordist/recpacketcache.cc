@@ -12,6 +12,14 @@
 
 unsigned int RecursorPacketCache::s_refresh_ttlperc{0};
 
+void RecursorPacketCache::setShardSizes(size_t shardSize)
+{
+  for (auto& shard : d_maps) {
+    auto lock = shard.lock();
+    lock->d_shardSize = shardSize;
+  }
+}
+
 uint64_t RecursorPacketCache::size() const
 {
   uint64_t count = 0;
@@ -231,7 +239,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   shard->d_map.insert(entry);
   map.d_entriesCount++;
 
-  if (shard->d_map.size() > d_maxSize / d_maps.size()) {
+  if (shard->d_map.size() > shard->d_shardSize) {
     auto& seq_idx = shard->d_map.get<SequencedTag>();
     seq_idx.erase(seq_idx.begin());
     map.d_entriesCount--;
@@ -263,14 +271,16 @@ uint64_t RecursorPacketCache::doDump(int file)
   size_t shardNum = 0;
   size_t min = std::numeric_limits<size_t>::max();
   size_t max = 0;
+  uint64_t maxSize = 0;
 
   for (auto& shard : d_maps) {
     auto lock = shard.lock();
     const auto& sidx = lock->d_map.get<SequencedTag>();
     const auto shardSize = lock->d_map.size();
-    fprintf(filePtr.get(), "; packetcache shard %zu; size %zu\n", shardNum, shardSize);
+    fprintf(filePtr.get(), "; packetcache shard %zu; size %zu/%zu\n", shardNum, shardSize, lock->d_shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
+    maxSize += lock->d_shardSize;
     shardNum++;
     for (const auto& entry : sidx) {
       count++;
@@ -282,6 +292,6 @@ uint64_t RecursorPacketCache::doDump(int file)
       }
     }
   }
-  fprintf(filePtr.get(), "; packetcache size: %" PRIu64 "/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), d_maxSize, d_maps.size(), min, max);
+  fprintf(filePtr.get(), "; packetcache size: %" PRIu64 "/%" PRIu64 " shards: %zu min/max shard size: %zu/%zu\n", size(), maxSize, d_maps.size(), min, max);
   return count;
 }

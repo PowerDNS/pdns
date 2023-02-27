@@ -1447,7 +1447,6 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
-  g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
 
   luaConfigDelayedThreads delayedLuaThreads;
   try {
@@ -2185,7 +2184,6 @@ static void houseKeeping(void*)
       if (g_packetCache) {
         static PeriodicTask packetCacheTask{"packetCacheTask", 5};
         packetCacheTask.runIfDue(now, []() {
-          g_packetCache->setMaxSize(g_maxPacketCacheEntries); // g_maxPacketCacheEntries might have changed by rec_control
           g_packetCache->doPruneTo(g_maxPacketCacheEntries);
         });
       }
@@ -3036,8 +3034,8 @@ int main(int argc, char** argv)
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {
-      // Only enable packet cache for thread processing queries from the outside world
-      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries /*, shards */);
+      g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("record-cache-shards")); // XXX
     }
 
     ret = serviceMain(argc, argv, startupLog);

@@ -844,6 +844,7 @@ static string setMaxPacketCacheEntries(T begin, T end)
   }
   try {
     g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
+    g_packetCache->setMaxSize(g_maxPacketCacheEntries);
     return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
   }
   catch (const std::exception& e) {

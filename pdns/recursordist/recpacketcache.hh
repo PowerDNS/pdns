@@ -57,12 +57,9 @@ public:
   using OptPBData = boost::optional<PBData>;
 
   RecursorPacketCache(size_t maxsize, size_t shards = 1024) :
-    d_maps(shards),
-    d_maxSize(maxsize)
+    d_maps(shards)
   {
-    if (d_maxSize / d_maps.size() == 0) {
-      d_maxSize = d_maps.size();
-    }
+    setMaxSize(maxsize);
   }
 
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
@@ -86,13 +83,16 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
 
   void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
-  void doPruneTo(size_t maxSize = 250000);
+  void doPruneTo(size_t maxSize);
   uint64_t doDump(int file);
   uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
 
   void setMaxSize(size_t size)
   {
-    d_maxSize = size;
+    if (size < d_maps.size()) {
+      size = d_maps.size();
+    }
+    setShardSizes(size / d_maps.size());
   }
 
   [[nodiscard]] uint64_t size() const;
@@ -162,6 +162,7 @@ private:
     struct LockedContent
     {
       packetCache_t d_map;
+      size_t d_shardSize{0};
       uint64_t d_hits{0};
       uint64_t d_misses{0};
       uint64_t d_contended_count{0};
@@ -205,10 +206,10 @@ private:
   //   return d_maps.at(combine(hash, hash, tcp) % d_maps.size());
   // }
 
-  size_t d_maxSize;
-
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
   bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+
+  void setShardSizes(size_t shardSize);
 
 public:
   void preRemoval(MapCombo::LockedContent& map, const Entry& entry)
