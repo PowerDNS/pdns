@@ -492,7 +492,7 @@ public:
       if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
         backendProtocol = dnsdist::Protocol::DoTCP;
       }
-      handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol);
+      handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol, true);
     }
 
     ++g_stats.responses;
@@ -733,7 +733,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       if (du->response.size() >= sizeof(dnsheader) && du->contentType.empty()) {
         auto dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
 
-        handleResponseSent(du->ids.qname, QType(du->ids.qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH);
+        handleResponseSent(du->ids.qname, QType(du->ids.qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
       }
       handleImmediateResponse(std::move(du), "DoH self-answered response");
       return;
@@ -1737,7 +1737,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
     double udiff = du->ids.queryRealTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, dr.ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol());
+    handleResponseSent(du->ids, udiff, dr.ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol(), true);
 
     ++g_stats.responses;
     if (du->ids.cs) {
