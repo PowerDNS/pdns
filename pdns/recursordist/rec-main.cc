@@ -987,7 +987,9 @@ static void doStats(void)
   uint64_t cacheMisses = g_recCache->cacheMisses;
   uint64_t cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
-  double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  auto pc_stats = g_packetCache ? g_packetCache->stats() : std::pair<uint64_t, uint64_t>{0, 0};
+  double rrc = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  double rpc = pc_stats.second == 0 ? 0.0 : (100.0 * pc_stats.first / pc_stats.second);
   uint64_t negCacheSize = g_negCache->size();
   auto taskPushes = getTaskPushes();
   auto taskExpired = getTaskExpired();
@@ -1007,7 +1009,8 @@ static void doStats(void)
   if (qcounter > 0 && (cacheHits + cacheMisses) > 0 && syncresqueries > 0 && outqueries > 0) {
     if (!g_slogStructured) {
       g_log << Logger::Notice << "stats: " << qcounter << " questions, " << cacheSize << " cache entries, " << negCacheSize << " negative entries, " << ratePercentage(cacheHits, cacheHits + cacheMisses) << "% cache hits" << endl;
-      g_log << Logger::Notice << "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
+      g_log << Logger::Notice << "stats: record cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << rrc << '%' << endl;
+      g_log << Logger::Notice << "stats: packet cache contended/acquired " << pc_stats.first << '/' << pc_stats.second << " = " << rpc << '%' << endl;
 
       g_log << Logger::Notice << "stats: throttle map: "
             << SyncRes::getThrottledServersSize() << ", ns speeds: "
@@ -1034,7 +1037,10 @@ static void doStats(void)
                 "record-cache-hitratio-perc", Logging::Loggable(ratePercentage(cacheHits, cacheHits + cacheMisses)),
                 "record-cache-contended", Logging::Loggable(rc_stats.first),
                 "record-cache-acquired", Logging::Loggable(rc_stats.second),
-                "record-cache-contended-perc", Logging::Loggable(r));
+                "record-cache-contended-perc", Logging::Loggable(rrc),
+                "packet-cache-contended", Logging::Loggable(pc_stats.first),
+                "packet-cache-acquired", Logging::Loggable(pc_stats.second),
+                "packet-cache-contended-perc", Logging::Loggable(rpc));
       log->info(Logr::Info, m,
                 "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
                 "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
