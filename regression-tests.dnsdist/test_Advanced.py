@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import base64
 import os
+import socket
 import time
 import unittest
 import dns
@@ -266,9 +267,9 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
       return DNSAction.Spoof, "port-was-"..port..".local-port-any.advanced.tests.powerdns.com."
     end
     addAction("local-port-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
-    _dnsDistListeningAddr = "0.0.0.0"
+    _dnsDistListeningAddr = '0.0.0.0'
 
     def testAdvancedGetLocalPortOnAnyBind(self):
         """
@@ -304,8 +305,12 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
     end
     addAction("local-address-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
     newServer{address="127.0.0.1:%s"}
+    addLocal('0.0.0.0:%d')
+    addLocal('[::]:%d')
     """
-    _dnsDistListeningAddr = "0.0.0.0"
+    _config_params = ['_testServerPort', '_dnsDistPort', '_dnsDistPort']
+    _acl = ['127.0.0.1/32', '::1/128']
+    _skipListeningOnCL = True
 
     def testAdvancedGetLocalAddressOnAnyBind(self):
         """
@@ -328,6 +333,86 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
+
+        # now a bit more tricky, UDP-only IPv4
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'address-was-127-0-0-2.local-address-any.advanced.tests.powerdns.com.')
+        response.answer.append(rrset)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1.0)
+        sock.connect(('127.0.0.2', self._dnsDistPort))
+        try:
+            query = query.to_wire()
+            sock.send(query)
+            (data, remote) = sock.recvfrom(4096)
+            self.assertEquals(remote[0], '127.0.0.2')
+        except socket.timeout:
+            data = None
+
+        self.assertTrue(data)
+        receivedResponse = dns.message.from_wire(data)
+        self.assertEqual(receivedResponse, response)
+
+    def testAdvancedCheckSourceAddrOnAnyBind(self):
+        """
+        Advanced: Check the source address on responses for an ANY bind
+        """
+        name = 'source-addr-any.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.42')
+        response.answer.append(rrset)
+
+        # a bit more tricky, UDP-only IPv4
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1.0)
+        sock.connect(('127.0.0.2', self._dnsDistPort))
+        self._toResponderQueue.put(response, True, 1.0)
+        try:
+            data = query.to_wire()
+            sock.send(data)
+            (data, remote) = sock.recvfrom(4096)
+            self.assertEquals(remote[0], '127.0.0.2')
+        except socket.timeout:
+            data = None
+
+        self.assertTrue(data)
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+
+        # a bit more tricky, UDP-only IPv6
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        sock.settimeout(1.0)
+        sock.connect(('::1', self._dnsDistPort))
+        self._toResponderQueue.put(response, True, 1.0)
+        try:
+            data = query.to_wire()
+            sock.send(data)
+            (data, remote) = sock.recvfrom(4096)
+            self.assertEquals(remote[0], '::1')
+        except socket.timeout:
+            data = None
+
+        self.assertTrue(data)
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
 
 class TestAdvancedAllowHeaderOnly(DNSDistTest):
 

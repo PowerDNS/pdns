@@ -1591,8 +1591,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
   ids.cs = &cs;
   ids.origRemote = remote;
   ids.hopRemote = remote;
-  ids.origDest = dest;
-  ids.hopLocal = dest;
   ids.protocol = dnsdist::Protocol::DoUDP;
 
   try {
@@ -1601,7 +1599,18 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
     /* dest might have been updated, if we managed to harvest the destination address */
-    ids.origDest = dest;
+    if (dest.sin4.sin_family != 0) {
+      ids.origDest = dest;
+      ids.hopLocal = dest;
+    }
+    else {
+      /* if we have not been able to harvest the destination address,
+         we do NOT want to update dest or hopLocal, to let the kernel
+         pick the less terrible option, but we want to update origDest
+         which is used by rules and actions to at least the correct
+         address family */
+      ids.origDest = cs.local;
+    }
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
     if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
@@ -1634,9 +1643,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    if (ids.origDest.sin4.sin_family == 0) {
-      ids.origDest = cs.local;
-    }
     if (ids.dnsCryptQuery) {
       ids.protocol = dnsdist::Protocol::DNSCryptUDP;
     }
