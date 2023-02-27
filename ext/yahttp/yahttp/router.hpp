@@ -2,7 +2,7 @@
 /* @file 
  * @brief Defines router class and support structures
  */
-#ifdef HAVE_CXX11
+#if __cplusplus >= 201103L
 #include <functional>
 #include <tuple>
 #define HAVE_CPP_FUNC_PTR
