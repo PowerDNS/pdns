@@ -158,6 +158,10 @@ def install_clang(c):
     c.sudo('apt-get -qq -y --no-install-recommends install clang-12 llvm-12')
 
 @task
+def install_clang_tidy_tools(c):
+    c.sudo('apt-get -qq -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
+
+@task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
     c.sudo('apt-get -qq -y --no-install-recommends install clang-12')
@@ -524,6 +528,12 @@ def ci_dnsdist_configure(c, features):
 @task
 def ci_auth_make(c):
     c.run('make -j8 -k V=1')
+
+@task
+def ci_auth_make_bear(c):
+    # Needed for clang-tidy -line-filter vs project structure shenanigans
+    with c.cd('pdns'):
+        c.run('bear --append make -j8 -k V=1 -C ..')
 
 @task
 def ci_rec_make(c):
