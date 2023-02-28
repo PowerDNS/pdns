@@ -1810,9 +1810,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     d_serveStale = loop == 1;
 
     // When we're not on the last iteration, a timeout is not fatal
-    const bool exceptionOnTimeout = loop == iterations - 1;
+    //const bool exceptionOnTimeout = loop == iterations - 1;
 
-    try {
+    // try {
       // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
       if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
         if(d_cacheonly) { // very limited OOB support
@@ -1961,6 +1961,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       if (d_cacheonly) {
         return 0;
       }
+      if (loop == 1) {
+        return res;
+      }
 
       LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype<<"', trying to find an appropriate NS record"<<endl);
 
@@ -2021,12 +2024,14 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
       if (res >= 0) {
         break;
       }
-    }
-    catch (const ImmediateServFailException& e) {
-      if (exceptionOnTimeout) {
-        throw e;
-      }
-    }
+    // }
+    // catch (const ImmediateServFailException& e) {
+    //   const string prefix = "Too much time";
+    //   bool timeout = e.reason.substr(0, prefix.size()) == prefix;
+    //   if (!timeout || exceptionOnTimeout) {
+    //     throw e;
+    //   }
+    // }
   }
   return res<0 ? RCode::ServFail : res;
 }
