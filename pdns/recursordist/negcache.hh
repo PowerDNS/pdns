@@ -96,7 +96,7 @@ public:
   void clear();
   size_t doDump(int fd, size_t maxCacheEntries);
   size_t wipe(const DNSName& name, bool subtree = false);
-  size_t wipe(const DNSName& name, QType qtype);
+  size_t wipeTyped(const DNSName& name, QType qtype);
   size_t size() const;
 
 private:
