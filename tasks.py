@@ -302,9 +302,18 @@ def ci_docs_build_pdf(c):
 
 @task
 def ci_docs_upload_master(c, docs_host, pdf, username, product, directory=""):
-    c.run(f"rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/{product}-html-docs/ {username}@{docs_host}:{directory}")
-    c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/{product}-html-docs.tar.bz2 {username}@{docs_host}:{directory}/html-docs.tar.bz2")
-    c.run(f"rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/_build/latex/{pdf} {username}@{docs_host}:{directory}")
+    rsync_cmd = " ".join([
+        "rsync",
+        "--checksum",
+        "--recursive",
+        "--verbose",
+        "--no-p",
+        "--chmod=g=rwX",
+        "--exclude '*~'",
+    ])
+    c.run(f"{rsync_cmd} --delete ./docs/_build/{product}-html-docs/ {username}@{docs_host}:{directory}")
+    c.run(f"{rsync_cmd} ./docs/_build/{product}-html-docs.tar.bz2 {username}@{docs_host}:{directory}/html-docs.tar.bz2")
+    c.run(f"{rsync_cmd} ./docs/_build/latex/{pdf} {username}@{docs_host}:{directory}")
 
 @task
 def ci_docs_add_ssh(c, ssh_key, host_key):
