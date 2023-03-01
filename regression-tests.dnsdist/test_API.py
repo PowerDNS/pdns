@@ -10,7 +10,7 @@ from dnsdisttests import DNSDistTest
 
 class APITestsBase(DNSDistTest):
     __test__ = False
-    _webTimeout = 2.0
+    _webTimeout = 4.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -51,6 +51,7 @@ class TestAPIBasics(APITestsBase):
     # paths accessible using basic auth only (list not exhaustive)
     _basicOnlyPaths = ['/', '/index.html']
     __test__ = True
+    _verboseMode = True
 
     def testBasicAuth(self):
         """
