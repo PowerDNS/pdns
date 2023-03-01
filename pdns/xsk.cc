@@ -119,11 +119,11 @@ XskSocket::XskSocket(size_t frameNum_, const std::string& ifName_, uint32_t queu
     .revents = 0});
   const auto xskMapFd = FDWrapper(bpf_obj_get(xskMapPath.c_str()));
   if (xskMapFd.getHandle() < 0) {
-    throw std::runtime_error("Error get BPF map from path");
+    throw std::runtime_error("Error getting BPF map from path '" + xskMapPath + "'");
   }
   auto ret = bpf_map_update_elem(xskMapFd.getHandle(), &queue_id, &xskfd, 0);
   if (ret) {
-    throw std::runtime_error("Error insert into xsk_map");
+    throw std::runtime_error("Error inserting into xsk_map '" + xskMapPath + "': " + std::to_string(ret));
   }
 }
 void XskSocket::fillFq(uint32_t fillSize) noexcept
