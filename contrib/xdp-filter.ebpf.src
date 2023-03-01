@@ -1,9 +1,13 @@
 #include "xdp.h"
 
+#define DISABLE_LOGGING 1
+
 BPF_TABLE_PINNED("hash", uint32_t, struct map_value, v4filter, 1024, "/sys/fs/bpf/dnsdist/addr-v4");
 BPF_TABLE_PINNED("hash", struct in6_addr, struct map_value, v6filter, 1024, "/sys/fs/bpf/dnsdist/addr-v6");
 BPF_TABLE_PINNED("hash", struct dns_qname, struct map_value, qnamefilter, 1024, "/sys/fs/bpf/dnsdist/qnames");
+#ifndef DISABLE_LOGGING
 BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
+#endif /* DISABLE_LOGGING */
 
 /*
  * bcc has added BPF_TABLE_PINNED7 to the latest commit of the master branch, but it has not yet been released.
@@ -210,12 +214,16 @@ static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
       ipv4->daddr = ipv4->saddr;
       ipv4->saddr = swap_ipv4;
 
+#ifndef DISABLE_LOGGING
       progsarray.call(ctx, 1);
+#endif /* DISABLE_LOGGING */
       return XDP_TX;
     }
 
     if (value->action == DROP) {
+#ifndef DISABLE_LOGGING
       progsarray.call(ctx, 0);
+#endif /* DISABLE_LOGGING */
       return XDP_DROP;
     }
   }
@@ -295,11 +303,15 @@ static inline enum xdp_action parseIPV6(struct xdp_md* ctx, struct cursor* c)
       struct in6_addr swap_ipv6 = ipv6->daddr;
       ipv6->daddr = ipv6->saddr;
       ipv6->saddr = swap_ipv6;
+#ifndef DISABLE_LOGGING
       progsarray.call(ctx, 1);
+#endif /* DISABLE_LOGGING */
       return XDP_TX;
     }
     if (value->action == DROP) {
+#ifndef DISABLE_LOGGING
       progsarray.call(ctx, 0);
+#endif /* DISABLE_LOGGING */
       return XDP_DROP;
     }
   }
