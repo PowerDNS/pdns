@@ -167,7 +167,7 @@ void XskSocket::send(std::vector<XskPacketPtr>& packets)
   if (packetSize == 0) {
     return;
   }
-  uint32_t idx;
+  uint32_t idx{0};
   if (xsk_ring_prod__reserve(&tx, packetSize, &idx) != packets.size()) {
     return;
   }
