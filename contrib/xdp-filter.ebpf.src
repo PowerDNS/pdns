@@ -170,13 +170,7 @@ static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
 
 #ifdef UseXsk
   case IPPROTO_TCP: {
-    struct tcphdr* tcp;
-    if (!(tcp = parse_tcphdr(c))) {
-      return XDP_PASS;
-    }
-    if (!IN_DNS_PORT_SET(tcp->dest)) {
-      return XDP_PASS;
-    }
+    return XDP_PASS;
   }
 #endif /* UseXsk */
 
@@ -262,13 +256,7 @@ static inline enum xdp_action parseIPV6(struct xdp_md* ctx, struct cursor* c)
 
 #ifdef UseXsk
   case IPPROTO_TCP: {
-    struct tcphdr* tcp;
-    if (!(tcp = parse_tcphdr(c))) {
-      return XDP_PASS;
-    }
-    if (!IN_DNS_PORT_SET(tcp->dest)) {
-      return XDP_PASS;
-    }
+    return XDP_PASS;
   }
 #endif /* UseXsk */
 
