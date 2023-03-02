@@ -752,8 +752,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
 
-    checkAllParametersConsumed("setLocal", vars);
-
     try {
       ComboAddress loc(addr, 53);
       for (auto it = g_frontends.begin(); it != g_frontends.end();) {
@@ -792,6 +790,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
+
+      checkAllParametersConsumed("setLocal", vars);
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
@@ -816,7 +816,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool enableProxyProtocol = true;
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
-    checkAllParametersConsumed("addLocal", vars);
 
     try {
       ComboAddress loc(addr, 53);
@@ -845,6 +844,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
+
+      checkAllParametersConsumed("addLocal", vars);
     }
     catch (std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
