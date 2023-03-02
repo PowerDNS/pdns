@@ -195,6 +195,14 @@ static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
     goto res;
   }
 
+  // ignore the DF flag
+  const uint16_t fragMask = htons(~(1 << 14));
+  uint16_t frag = ipv4->frag_off & fragMask;
+  if (frag != 0) {
+    // MF flag is set, or Fragment Offset is != 0
+    return XDP_PASS;
+  }
+
   if (dns) {
     value = check_qname(c);
   }
