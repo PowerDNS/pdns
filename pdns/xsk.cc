@@ -19,6 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include "config.h"
+
+#ifdef HAVE_XSK
+
 #include "gettime.hh"
 #include "xsk.hh"
 
@@ -48,7 +53,6 @@
 #include <unistd.h>
 #include <vector>
 
-#ifdef HAVE_XSK
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 extern "C"
@@ -185,10 +189,12 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
 {
   uint32_t idx;
   std::vector<XskPacketPtr> res;
+  // how many descriptors to packets have been filled
   const auto recvSize = xsk_ring_cons__peek(&rx, recvSizeMax, &idx);
   if (recvSize <= 0) {
     return res;
   }
+
   const auto baseAddr = reinterpret_cast<uint64_t>(umem.bufBase);
   uint32_t count = 0;
   for (uint32_t i = 0; i < recvSize; i++) {
@@ -202,10 +208,15 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
       res.push_back(std::move(ptr));
     }
   }
+
+  // this releases the descriptor, but not the packet (umem entries)
+  // which will only be made available again when pushed into the fill
+  // queue
   xsk_ring_cons__release(&rx, recvSize);
   if (failedCount) {
     *failedCount = count;
   }
+
   return res;
 }
 void XskSocket::pickUpReadyPacket(std::vector<XskPacketPtr>& packets)
@@ -752,7 +763,7 @@ void XskSocket::getMACFromIfName()
   auto fd = ::socket(AF_INET, SOCK_DGRAM, 0);
   strncpy(ifr.ifr_name, ifName.c_str(), ifName.length() + 1);
   if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-    throw runtime_error("Error get MAC addr");
+    throw runtime_error("Error getting MAC addr");
   }
   memcpy(source, ifr.ifr_hwaddr.sa_data, sizeof(source));
   close(fd);
