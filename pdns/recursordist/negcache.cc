@@ -119,27 +119,32 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
 
   const auto& idx = content->d_map.get<NegCacheEntry>();
   auto range = idx.equal_range(qname);
-  auto ni = range.first;
 
-  while (ni != range.second) {
+  for (auto ni = range.first; ni != range.second; ++ni) {
     // We have an entry
     if ((!typeMustMatch && ni->d_qtype == QType::ENT) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
       auto firstIndexIterator = content->d_map.project<CompositeKey>(ni);
 
-      if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
+      // this checks ttd, but also takes into account serve-stale
+      if (!ni->isEntryUsable(now.tv_sec, serveStale)) {
+        // Outdated
+        moveCacheItemToFront<SequenceTag>(content->d_map, firstIndexIterator);
+        continue;
+      }
+      // If we are serving this record stale (or *should*) and the ttd has passed increase ttd to
+      // the future and remember that we did. Also push a refresh task.
+      if ((serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
         updateStaleEntry(now.tv_sec, firstIndexIterator, qtype);
       }
-      if (now.tv_sec < ni->d_ttd && !(refresh && ni->d_servedStale > 0)) {
+      if (now.tv_sec < ni->d_ttd) {
         // Not expired
         ne = *ni;
         moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
-        return true;
+        // when refreshing, we consider served-stale entries outdated
+        return !(refresh && ni->d_servedStale > 0);
       }
-      // expired
-      moveCacheItemToFront<SequenceTag>(content->d_map, firstIndexIterator);
     }
-    ++ni;
   }
   return false;
 }
