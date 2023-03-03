@@ -84,6 +84,12 @@ public:
         return d_ttd < now;
       }
     };
+
+    bool isEntryUsable(time_t now, bool serveStale) const
+    {
+      // When serving stale, we consider expired records
+      return d_ttd > now || serveStale || d_servedStale != 0;
+    }
   };
 
   void add(const NegCacheEntry& ne);
