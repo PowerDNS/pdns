@@ -141,7 +141,8 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
         // Not expired
         ne = *ni;
         moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
-        return !refresh; // when refreshing, we consider everything outdated
+        // when refreshing, we consider served-stale entries outdated
+        return !(refresh && ni->d_servedStale > 0);
       }
     }
   }
