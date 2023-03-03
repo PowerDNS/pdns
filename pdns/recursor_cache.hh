@@ -104,7 +104,7 @@ private:
     bool isEntryUsable(time_t now, bool serveStale) const
     {
       // When serving stale, we consider expired records
-      return d_ttd <= now && !serveStale && d_servedStale == 0;
+      return d_ttd > now || serveStale || d_servedStale != 0;
     }
 
     bool shouldReplace(time_t now, bool auth, vState state, bool refresh);
