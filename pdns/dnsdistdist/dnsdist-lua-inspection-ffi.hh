@@ -29,6 +29,7 @@ extern "C" {
   uint64_t dnsdist_ffi_stat_node_get_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_bytes(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
+  uint64_t dnsdist_ffi_stat_node_get_hits(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node, const char** name, size_t* nameSize) __attribute__ ((visibility ("default")));
 
@@ -40,6 +41,7 @@ extern "C" {
   uint64_t dnsdist_ffi_stat_node_get_children_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
+  uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
 
   void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize) __attribute__ ((visibility ("default")));
 }
