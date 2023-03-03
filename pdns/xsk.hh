@@ -144,6 +144,7 @@ public:
   // look at incoming packets in rx, return them if parsing succeeeded
   std::vector<XskPacketPtr> recv(uint32_t recvSizeMax, uint32_t* failedCount);
   void addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest, bool isTCP);
+  std::string getMetrics() const;
 };
 class XskPacket
 {

@@ -256,6 +256,28 @@ void XskSocket::XskUmem::umemInit(size_t memSize, xsk_ring_cons* cq, xsk_ring_pr
   }
 }
 
+std::string XskSocket::getMetrics() const
+{
+  struct xdp_statistics stats;
+  socklen_t optlen = sizeof(stats);
+  int err = getsockopt(xskFd(), SOL_XDP, XDP_STATISTICS, &stats, &optlen);
+  if (err) {
+    return "";
+  }
+  if (optlen != sizeof(struct xdp_statistics)) {
+    return "";
+  }
+
+  ostringstream ret;
+  ret << "RX dropped: " << std::to_string(stats.rx_dropped) << std::endl;
+  ret << "RX invalid descs: " << std::to_string(stats.rx_invalid_descs) << std::endl;
+  ret << "TX invalid descs: " << std::to_string(stats.tx_invalid_descs) << std::endl;
+  ret << "RX ring full: " << std::to_string(stats.rx_ring_full) << std::endl;
+  ret << "RX fill ring empty descs: " << std::to_string(stats.rx_fill_ring_empty_descs) << std::endl;
+  ret << "RX ring empty descs: " << std::to_string(stats.tx_ring_empty_descs) << std::endl;
+  return ret.str();
+}
+
 XskSocket::XskUmem::~XskUmem()
 {
   if (umem) {

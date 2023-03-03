@@ -762,6 +762,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     g_xsk.push_back(socket); 
     return socket;
   });
+  luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) {
+    std::string result;
+    if (!xsk) {
+      return result;
+    }
+    return xsk->getMetrics();
+  });
 #endif /* HAVE_XSK */
   /* EDNSOptionView */
   luaCtx.registerFunction<size_t(EDNSOptionView::*)()const>("count", [](const EDNSOptionView& option) {
