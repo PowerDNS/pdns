@@ -154,7 +154,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     protocol = pdns::ProtoZero::Message::TransportProtocol::DNSCryptTCP;
   }
 
-  m.setRequest(d_dq.ids.uniqueId ? *d_dq.ids.uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
+  m.setRequest(d_dq.ids.d_protoBufData && d_dq.ids.d_protoBufData->uniqueId ? *d_dq.ids.d_protoBufData->uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
 
   if (d_serverIdentity) {
     m.setServerIdentity(*d_serverIdentity);
@@ -195,6 +195,19 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
 
   m.commitResponse();
+
+  if (d_dq.ids.d_protoBufData) {
+    const auto& pbData = d_dq.ids.d_protoBufData;
+    if (!pbData->d_deviceName.empty()) {
+      m.setDeviceName(pbData->d_deviceName);
+    }
+    if (!pbData->d_deviceID.empty()) {
+      m.setDeviceId(pbData->d_deviceID);
+    }
+    if (!pbData->d_requestorID.empty()) {
+      m.setRequestorId(pbData->d_requestorID);
+    }
+  }
 
   for (const auto& [key, values] : d_metaTags) {
     if (!values.empty()) {

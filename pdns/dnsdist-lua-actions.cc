@@ -1519,8 +1519,11 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    if (!dq->ids.uniqueId) {
-      dq->ids.uniqueId = getUniqueID();
+    if (!dq->ids.d_protoBufData) {
+      dq->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    }
+    if (!dq->ids.d_protoBufData->uniqueId) {
+      dq->ids.d_protoBufData->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dq);
@@ -1660,8 +1663,11 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    if (!dr->ids.uniqueId) {
-      dr->ids.uniqueId = getUniqueID();
+    if (!dr->ids.d_protoBufData) {
+      dr->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    }
+    if (!dr->ids.d_protoBufData->uniqueId) {
+      dr->ids.d_protoBufData->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
