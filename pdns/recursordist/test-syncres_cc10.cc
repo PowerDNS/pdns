@@ -1565,7 +1565,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(ret[1].d_name, DNSName("cname.powerdns.com"));
-  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(downCount, 8U);
   BOOST_CHECK_EQUAL(lookupCount, 2U);
 
   // Again, no lookup as the record is marked stale
@@ -1577,7 +1577,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(ret[1].d_name, DNSName("cname.powerdns.com"));
-  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(downCount, 8U);
   BOOST_CHECK_EQUAL(lookupCount, 2U);
 
   // Again, no lookup as the record is marked stale but as the TTL has passed a task should have been pushed
@@ -1590,7 +1590,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(ret[1].d_name, DNSName("cname.powerdns.com"));
-  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(downCount, 8U);
   BOOST_CHECK_EQUAL(lookupCount, 2U);
 
   BOOST_REQUIRE_EQUAL(getTaskSize(), 2U);
@@ -1613,7 +1613,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
   BOOST_CHECK_EQUAL(ret[0].d_name, auth);
-  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(downCount, 8U);
   BOOST_CHECK_EQUAL(lookupCount, 3U);
 
   // And again, result should come from cache
@@ -1624,7 +1624,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nxdomain)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
   BOOST_CHECK_EQUAL(ret[0].d_name, auth);
-  BOOST_CHECK_EQUAL(downCount, 4U);
+  BOOST_CHECK_EQUAL(downCount, 8U);
   BOOST_CHECK_EQUAL(lookupCount, 3U);
 }
 

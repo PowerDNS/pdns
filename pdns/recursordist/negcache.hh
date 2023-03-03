@@ -84,6 +84,12 @@ public:
         return d_ttd < now;
       }
     };
+
+    bool isEntryUsable(time_t now, bool serveStale) const
+    {
+      // When serving stale, we consider expired records
+      return d_ttd > now || serveStale || d_servedStale != 0;
+    }
   };
 
   void add(const NegCacheEntry& ne);
@@ -96,7 +102,7 @@ public:
   void clear();
   size_t doDump(int fd, size_t maxCacheEntries);
   size_t wipe(const DNSName& name, bool subtree = false);
-  size_t wipe(const DNSName& name, QType qtype);
+  size_t wipeTyped(const DNSName& name, QType qtype);
   size_t size() const;
 
 private:
