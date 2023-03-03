@@ -880,7 +880,17 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
               return;
             }
             auto response = packet->clonePacketBuffer();
+            if (response.size() > packet->capacity()) {
+              /* fallback to sending the packet via normal socket */
+              ids->xskPacketHeader.reset();
+            }
             if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
+              xskInfo->sq.push(packet);
+              return;
+            }
+            if (response.size() > packet->capacity()) {
+              /* fallback to sending the packet via normal socket */
+              sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
               xskInfo->sq.push(packet);
               return;
             }
