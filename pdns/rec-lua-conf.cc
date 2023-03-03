@@ -466,7 +466,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << filename << "': " << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Exception while loadinf  RPZ zone from file"));
+           log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file"));
     }
   });
 

@@ -366,12 +366,12 @@ static FDMultiplexer* getMultiplexer(Logr::log_t log)
       return ret;
     }
     catch (FDMultiplexerException& fe) {
-      SLOG(g_log << Logger::Error << "Non-fatal error initializing possible multiplexer (" << fe.what() << "), falling back" << endl,
-           log->error(Logr::Error, fe.what(), "Non-fatal error initializing possible multiplexer, falling back"));
+      SLOG(g_log << Logger::Warning << "Non-fatal error initializing possible multiplexer (" << fe.what() << "), falling back" << endl,
+           log->error(Logr::Warning, fe.what(), "Non-fatal error initializing possible multiplexer, falling back"));
     }
     catch (...) {
-      SLOG(g_log << Logger::Error << "Non-fatal error initializing possible multiplexer" << endl,
-           log->info(Logr::Error, "Non-fatal error initializing possible multiplexer"));
+      SLOG(g_log << Logger::Warning << "Non-fatal error initializing possible multiplexer" << endl,
+           log->info(Logr::Warning, "Non-fatal error initializing possible multiplexer"));
     }
   }
   SLOG(g_log << Logger::Error << "No working multiplexer found!" << endl,
