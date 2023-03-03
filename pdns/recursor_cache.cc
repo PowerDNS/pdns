@@ -418,7 +418,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
         firstIndexIterator = map->d_map.project<OrderedTag>(i);
 
         // When serving stale, we consider expired records
-        if (i->isEntryUsable(now, serveStale)) {
+        if (!i->isEntryUsable(now, serveStale)) {
           moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
           continue;
         }
@@ -459,7 +459,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
       firstIndexIterator = map->d_map.project<OrderedTag>(i);
 
       // When serving stale, we consider expired records
-      if (i->isEntryUsable(now, serveStale)) {
+      if (!i->isEntryUsable(now, serveStale)) {
         moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
         continue;
       }
