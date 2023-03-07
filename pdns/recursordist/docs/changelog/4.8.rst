@@ -2,6 +2,42 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.3
+  :released: 7th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12613
+    :tickets: 12595, 12610, 12611
+
+    Fix serve-stale logic to not cause intermittent high CPU load by:
+
+    - correcting the removal of a negative cache entry,
+    - correcting the serve-stale main loop with respect to exception handling and
+    - correctly handle negcache entries with serve-state status.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12609
+    :tickets: 12598
+
+    Update validation state after a missing negative indication.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12608
+    :tickets: 12495
+
+    Change a few logging urgency levels
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12607
+    :tickets: 12347
+
+    Use correct name for isEntryUsable(). Existing code used the right logic but wrong name.
+
+.. changelog::
   :version: 4.8.2
   :released: 31th of January 2023
 
