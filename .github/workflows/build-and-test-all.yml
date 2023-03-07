@@ -7,9 +7,13 @@ on:
   schedule:
     - cron: '0 22 * * 3'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build-dnsdist:
     name: build dnsdist
+    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -29,7 +33,7 @@ jobs:
       - name: get timestamp for cache
         id: get-stamp
         run: |
-          echo "::set-output name=stamp::$(/bin/date +%s)"
+          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
       - name: let GitHub cache our ccache data
         uses: actions/cache@v2
@@ -62,8 +66,9 @@ jobs:
         sanitizers: [ubsan+asan, tsan]
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
+      # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
+      ASAN_OPTIONS: detect_leaks=0:intercept_send=0
+      TSAN_OPTIONS: "halt_on_error=1:intercept_send=0:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
       # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
       SKIP_INCLUDEDIR_TESTS: yes
     steps:

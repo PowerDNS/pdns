@@ -5,9 +5,13 @@ on:
   schedule:
     - cron: '0 1 * * *'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: build.sh
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:

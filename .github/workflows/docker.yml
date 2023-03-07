@@ -5,9 +5,13 @@ on:
   schedule:
     - cron: '0 4 * * *'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: docker build
+    if: ${{ vars.SCHEDULED_DOCKER }}
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:
