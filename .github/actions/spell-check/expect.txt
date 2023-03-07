@@ -1761,6 +1761,7 @@ trustanchor
 trusteer
 trx
 trxid
+TSAN
 tsc
 tsig
 tsigalgo
@@ -1923,7 +1924,7 @@ Wzs
 Xander
 xchacha
 xdb
-XDP
+xdp
 Xek
 Xeon
 XForwarded
