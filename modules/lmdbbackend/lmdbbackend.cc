@@ -545,9 +545,31 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   compoundOrdername co;
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  string match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
-  if (!cursor.find(match, key, val)) {
-    cursor.del();
+  string match;
+  if (rrset.empty())
+    match = co(domain_id, qname.makeRelative(di.zone));
+  else
+    match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
+
+  bool somethingLeft = false;
+  bool foundNsec3Helper = false;
+  LMDBResourceRecord nsecLrr;
+  if (!cursor.lower_bound(match, key, val)) {
+    while (key.get<StringView>().rfind(match, 0) == 0) {
+      if (qt.getCode() == QType::ANY || co.getQType(key.get<StringView>()) == qt)
+        cursor.del();
+      else {
+        if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
+          serFromString(val.get<string>(), nsecLrr);
+          foundNsec3Helper = true;
+        }
+        else {
+          somethingLeft = true;
+        }
+      }
+      if (cursor.next(key, val))
+        break;
+    }
   }
 
   if (!rrset.empty()) {
@@ -560,6 +582,19 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
       adjustedRRSet.emplace_back(lrr);
     }
     txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
+  }
+  else if (!somethingLeft && foundNsec3Helper) {
+    // Clean up "NSEC3" lmdb helper entries mapping qname <-> ordername
+    // (For NSEC3 these names are different, for NSEC they are one and the same)
+    auto ordername = DNSName(nsecLrr.content.c_str(), nsecLrr.content.size(), 0, false) + di.zone;
+    if (ordername != qname) {
+      // There should be a corresponding "NSEC3 helper entry" at the other end
+      string cleanupMatch = co(domain_id, ordername.makeRelative(di.zone), QType::NSEC3);
+      txn->txn->del(txn->db->dbi, cleanupMatch);
+    }
+
+    string cleanupMatch = co(domain_id, qname.makeRelative(di.zone), QType::NSEC3);
+    txn->txn->del(txn->db->dbi, cleanupMatch);
   }
 
   if (needCommit)
@@ -744,7 +779,11 @@ bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
   compoundOrdername co;
-  d_matchkey = co(di.id);
+
+  if (!d_matchSuffix)
+    d_matchkey = co(di.id);
+  else
+    d_matchkey = co(di.id, *d_matchSuffix, NameMatchType::Suffix);
 
   MDBOutVal key, val;
   if (d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
@@ -757,8 +796,25 @@ bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
   // Make sure we start with fresh data
   d_currentrrset.clear();
   d_currentrrsetpos = 0;
+  d_matchSuffix.reset();
 
   return true;
+}
+
+bool LMDBBackend::listSubZone(const DNSName& zone, int domain_id)
+{
+  DomainInfo di;
+  {
+    if (!d_tdomains->getROTransaction().get(domain_id, di)) {
+      // cout<<"Could not find a zone with id "<<domain_id<<endl;
+      return false;
+    }
+  }
+
+  d_matchSuffix = std::make_shared<DNSName>(zone);
+  auto listRet = list(di.zone, domain_id, false);
+
+  return listRet;
 }
 
 void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p)
@@ -827,6 +883,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   // Make sure we start with fresh data
   d_currentrrset.clear();
   d_currentrrsetpos = 0;
+  d_matchSuffix.reset();
 }
 
 bool LMDBBackend::get(DNSZoneRecord& zr)
