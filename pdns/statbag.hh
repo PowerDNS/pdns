@@ -98,7 +98,7 @@ public:
     if (d_doRings)  {
       auto it = d_rings.find(name);
       if (it == d_rings.end()) {
-	throw runtime_error("Attempting to account to non-existent ring '"+std::string(name)+"'");
+	throw runtime_error("Attempting to account to nonexistent ring '"+std::string(name)+"'");
       }
 
       it->second.lock()->account(item);
@@ -109,7 +109,7 @@ public:
     if (d_doRings) {
       auto it = d_comboRings.find(name);
       if (it == d_comboRings.end()) {
-	throw runtime_error("Attempting to account to non-existent comboRing '"+std::string(name)+"'");
+	throw runtime_error("Attempting to account to nonexistent comboRing '"+std::string(name)+"'");
       }
       it->second.lock()->account(item);
     }
@@ -119,7 +119,7 @@ public:
     if (d_doRings) {
       auto it = d_dnsnameqtyperings.find(name);
       if (it == d_dnsnameqtyperings.end()) {
-	throw runtime_error("Attempting to account to non-existent dnsname+qtype ring '"+std::string(name)+"'");
+	throw runtime_error("Attempting to account to nonexistent dnsname+qtype ring '"+std::string(name)+"'");
       }
       it->second.lock()->account(std::make_tuple(dnsname, qtype));
     }

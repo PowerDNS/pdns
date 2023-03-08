@@ -157,7 +157,7 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.udpAnswer
 
-      Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
+      Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
       Only filled when the call-back function is invoked.
 
   .. attribute:: DNSQuestion.udpQueryDest

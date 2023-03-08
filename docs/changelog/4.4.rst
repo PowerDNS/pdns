@@ -324,7 +324,7 @@ Changelogs for 4.4.x
     :tags: New Features
     :pullreq: 9239
 
-    Add pdns_control command to the the list of XFR domains in queue
+    Add pdns_control command to the list of XFR domains in queue
 
 .. changelog::
   :version: 4.4.0-alpha3

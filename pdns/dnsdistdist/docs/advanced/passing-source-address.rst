@@ -94,7 +94,7 @@ For that feature to work, dnsdist will look up twice into the packet cache when 
 That feature is enabled by setting ``disableZeroScope=false`` on :func:`newServer` (default) and ``parseECS=true`` on :func:`newPacketCache` (not the default).
 
 
-Things are different for XPF and the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependant, but should be disabled otherwise.
+Things are different for XPF and the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependent, but should be disabled otherwise.
 
 +------------------+----------+---------------------+----------------+------------------------+
 | Protocol         | Standard | Require DNS parsing | Contains ports | Caching                |

@@ -45,7 +45,7 @@ PORT
                            IP_TRANSPARENT support. Default is 0 which means replayed queries will be
                            sent from a local address.
 --source-ip <VAL>          Send the replayed queries from the source IP specified in *VAL*. Default
-                           is to send send them from a local address.
+                           is to send them from a local address.
 --source-port <VAL>        Send the replayed queries from the source port specified in *VAL*.
                            Default is to send from a random port selected by the kernel.
 --speedup <FACTOR>         Replay queries with this speedup *FACTOR*. Default is 1.

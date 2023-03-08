@@ -671,7 +671,7 @@ Changelogs for 4.1.x
     :tags: Internals, Bug Fixes
     :pullreq: 5917
 
-    Use ``_exit()`` when we really really want to exit, for example
+    Use ``_exit()`` when we *really* want to exit, for example
     after a fatal error. This stops us dying while we die. A call to
     ``exit()`` will trigger destructors, which may paradoxically stop
     the process from exiting, taking down only one thread, but harming
