@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 1 * * *'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: build.sh
@@ -23,7 +26,7 @@ jobs:
           - debian-bookworm
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0  # for correct version numbers
           submodules: recursive
@@ -33,7 +36,7 @@ jobs:
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
       - name: Upload packages
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/

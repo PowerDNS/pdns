@@ -5,13 +5,16 @@ on:
   push:
   pull_request:
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: verify formatting and Makefile.am sort order
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
