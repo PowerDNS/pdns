@@ -91,6 +91,14 @@ private:
 
 struct InternalQueryState
 {
+  struct ProtoBufData
+  {
+    std::optional<boost::uuids::uuid> uniqueId{std::nullopt}; // 17
+    std::string d_deviceName;
+    std::string d_deviceID;
+    std::string d_requestorID;
+  };
+
   static void DeleterPlaceHolder(DOHUnit*)
   {
   }
@@ -114,11 +122,12 @@ struct InternalQueryState
   ComboAddress hopLocal;
   DNSName qname; // 24
   std::string poolName; // 24
-  StopWatch queryRealTime{true}; // 16
+  StopWatch queryRealTime{true}; // 24
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
-  std::unique_ptr<PacketBuffer> d_packet; // Initial packet, so we can restart the query from the response path if needed // 8
+  std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8
+  std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
@@ -137,7 +146,6 @@ struct InternalQueryState
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
   uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
   dnsdist::Protocol protocol; // 1
-  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};

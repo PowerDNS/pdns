@@ -11,6 +11,18 @@ This state can be modified from the various hooks.
 
   The DNSQuestion object has several attributes, many of them read-only:
 
+  .. attribute:: DNSQuestion.deviceID
+
+    .. versionadded:: 1.8.0
+
+    The identifier of the remote device, which will be exported via ProtoBuf if set.
+
+  .. attribute:: DNSQuestion.deviceName
+
+    .. versionadded:: 1.8.0
+
+    The name of the remote device, which will be exported via ProtoBuf if set.
+
   .. attribute:: DNSQuestion.dh
 
     The :ref:`DNSHeader` of this query.
@@ -59,6 +71,12 @@ This state can be modified from the various hooks.
 
     :ref:`ComboAddress` of the remote client.
 
+  .. attribute:: DNSQuestion.requestorID
+
+    .. versionadded:: 1.8.0
+
+    The identifier of the requestor, which will be exported via ProtoBuf if set.
+
   .. attribute:: DNSQuestion.rcode
 
     RCode (as an unsigned integer) of this question.
@@ -73,7 +91,7 @@ This state can be modified from the various hooks.
     Whether to skip cache lookup / storing the answer for this question, settable.
 
   .. attribute:: DNSQuestion.tempFailureTTL
-  
+
     On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds, settable.
 
   .. attribute:: DNSQuestion.tcp
@@ -313,7 +331,7 @@ This state can be modified from the various hooks.
       Prior to 1.7.0 calling :func:`DNSQuestion:setTag` would not overwrite an existing tag value if already set.
 
     Set a tag into the DNSQuestion object. Overwrites the value if any already exists.
-  
+
     :param string key: The tag's key
     :param string value: The tag's value
 
@@ -323,7 +341,7 @@ This state can be modified from the various hooks.
       Prior to 1.7.0 calling :func:`DNSQuestion:setTagArray` would not overwrite existing tag values if already set.
 
     Set an array of tags into the DNSQuestion object. Overwrites the values if any already exist.
-  
+
     :param table tags: A table of tags, using strings as keys and values
 
   .. method:: DNSQuestion:setTrailingData(tail) -> bool

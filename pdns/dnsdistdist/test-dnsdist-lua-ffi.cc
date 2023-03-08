@@ -345,6 +345,23 @@ BOOST_AUTO_TEST_CASE(test_Query)
       dnsdist_ffi_dnsquestion_set_http_response(&lightDQ, 0U, nullptr, 0U, nullptr);
     }
   }
+
+  const std::string deviceID{"my-device-id"};
+  const std::string deviceName{"my-device-name"};
+  const std::string requestorID{"my-requestor-ID"};
+  dnsdist_ffi_dnsquestion_set_device_id(nullptr, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_device_id(&lightDQ, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_device_id(&lightDQ, deviceID.c_str(), deviceID.size());
+  dnsdist_ffi_dnsquestion_set_device_name(nullptr, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_device_name(&lightDQ, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_device_name(&lightDQ, deviceName.c_str(), deviceName.size());
+  dnsdist_ffi_dnsquestion_set_requestor_id(nullptr, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_requestor_id(&lightDQ, nullptr, 0);
+  dnsdist_ffi_dnsquestion_set_requestor_id(&lightDQ, requestorID.c_str(), requestorID.size());
+  BOOST_REQUIRE(ids.d_protoBufData != nullptr);
+  BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceID, deviceID);
+  BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceName, deviceName);
+  BOOST_CHECK_EQUAL(ids.d_protoBufData->d_requestorID, requestorID);
 }
 
 BOOST_AUTO_TEST_CASE(test_Response)

@@ -56,6 +56,39 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
         dq.ids.tempFailureTTL = newValue;
       }
     );
+  luaCtx.registerMember<std::string (DNSQuestion::*)>("deviceID", [](const DNSQuestion& dq) -> std::string {
+    if (dq.ids.d_protoBufData) {
+      return dq.ids.d_protoBufData->d_deviceID;
+    }
+    return std::string();
+  }, [](DNSQuestion& dq, const std::string& newValue) {
+    if (!dq.ids.d_protoBufData) {
+      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    }
+    dq.ids.d_protoBufData->d_deviceID = newValue;
+  });
+  luaCtx.registerMember<std::string (DNSQuestion::*)>("deviceName", [](const DNSQuestion& dq) -> std::string {
+    if (dq.ids.d_protoBufData) {
+      return dq.ids.d_protoBufData->d_deviceName;
+    }
+    return std::string();
+  }, [](DNSQuestion& dq, const std::string& newValue) {
+    if (!dq.ids.d_protoBufData) {
+      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    }
+    dq.ids.d_protoBufData->d_deviceName = newValue;
+  });
+  luaCtx.registerMember<std::string (DNSQuestion::*)>("requestorID", [](const DNSQuestion& dq) -> std::string {
+    if (dq.ids.d_protoBufData) {
+      return dq.ids.d_protoBufData->d_requestorID;
+    }
+    return std::string();
+  }, [](DNSQuestion& dq, const std::string& newValue) {
+    if (!dq.ids.d_protoBufData) {
+      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    }
+    dq.ids.d_protoBufData->d_requestorID = newValue;
+  });
   luaCtx.registerFunction<bool(DNSQuestion::*)()const>("getDO", [](const DNSQuestion& dq) {
       return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
     });

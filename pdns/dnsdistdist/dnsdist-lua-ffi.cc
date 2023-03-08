@@ -512,6 +512,39 @@ void dnsdist_ffi_dnsquestion_set_tag_raw(dnsdist_ffi_dnsquestion_t* dq, const ch
   dq->dq->setTag(label, std::string(value, valueSize));
 }
 
+void dnsdist_ffi_dnsquestion_set_requestor_id(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
+{
+  if (!dq || !dq->dq || !value) {
+    return;
+  }
+  if (!dq->dq->ids.d_protoBufData) {
+    dq->dq->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+  }
+  dq->dq->ids.d_protoBufData->d_requestorID = std::string(value, valueSize);
+}
+
+void dnsdist_ffi_dnsquestion_set_device_id(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
+{
+  if (!dq || !dq->dq || !value) {
+    return;
+  }
+  if (!dq->dq->ids.d_protoBufData) {
+    dq->dq->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+  }
+  dq->dq->ids.d_protoBufData->d_deviceID = std::string(value, valueSize);
+}
+
+void dnsdist_ffi_dnsquestion_set_device_name(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
+{
+  if (!dq || !dq->dq || !value) {
+    return;
+  }
+  if (!dq->dq->ids.d_protoBufData) {
+    dq->dq->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+  }
+  dq->dq->ids.d_protoBufData->d_deviceName = std::string(value, valueSize);
+}
+
 size_t dnsdist_ffi_dnsquestion_get_trailing_data(dnsdist_ffi_dnsquestion_t* dq, const char** out)
 {
   dq->trailingData = dq->dq->getTrailingData();
