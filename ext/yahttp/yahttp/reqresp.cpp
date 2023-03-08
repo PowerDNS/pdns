@@ -1,5 +1,7 @@
 #include "yahttp.hpp"
 
+#include <limits>
+
 namespace YaHTTP {
 
   template class AsyncLoader<Request>;
@@ -177,6 +179,9 @@ namespace YaHTTP {
             throw ParseError("Unable to parse chunk size");
           }
           if (chunk_size == 0) { state = 3; break; } // last chunk
+          if (chunk_size > (std::numeric_limits<decltype(chunk_size)>::max() - 2)) {
+            throw ParseError("Chunk is too large");
+          }
         } else {
           int crlf=1;
           if (buffer.size() < static_cast<size_t>(chunk_size+1)) return false; // expect newline
