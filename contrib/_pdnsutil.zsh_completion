@@ -53,6 +53,7 @@
             'load-zone:Load ZONE from FILE, possibly creating zone or atomically replacing contents'
             'list-algorithms:List all DNSSEC algorithms supported, optionally also listing the crypto library used'
             'list-keys:List DNSSEC keys for ZONE. When ZONE is unset, display all keys for all active zones'
+            'list-member-zones:List all members of catalog zone CATALOG'
             'list-zone:List zone contents'
             'list-all-zones:List all active zone names'
             'list-tsig-keys:List all TSIG keys'
