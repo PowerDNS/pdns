@@ -903,8 +903,10 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
                 "ip-1-2-3-4": "1.2.3.4",
                 "ip-is-here-for-you-1-2-3-4": "1.2.3.4",
+                "40414243": "64.65.66.67",
+                "p40414243": "64.65.66.67",
                 "ip40414243": "64.65.66.67",
-                "ipp40414243": "0.0.0.0",
+                "ipp40414243": "64.65.66.67",
                 "ip4041424": "0.0.0.0",
                 "2.2.2.2": "0.0.0.0"   # filtered
             }),
@@ -914,6 +916,8 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             }),
             ".createforward6.example.org." : (dns.rdatatype.AAAA, {
                 "2001--db8" : "2001::db8",
+                "20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
+                "blabla20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
                 "4000-db8--1" : "fe80::1"   # filtered, with fallback address override
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
