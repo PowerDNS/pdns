@@ -450,7 +450,6 @@ fulltoc
 fullycapable
 Furnell
 Fusl
-fvisibility
 FYhvws
 FZq
 gaba
@@ -751,9 +750,7 @@ loweralpha
 lowerroman
 Lrhazi
 lsock
-lte
-LTO
-lua
+lto
 luaaction
 luabackend
 luac
@@ -766,8 +763,6 @@ Luuk
 LYg
 Maik
 Maikel
-MAILA
-MAILB
 Majer
 Makefiles
 malcrafted
@@ -1418,13 +1413,10 @@ Toosarani
 Toshifumi
 Travaille
 tribool
-TRIE
-trunc
 trustanchor
 trusteer
 trx
 trxid
-TSAN
 tsc
 tsig
 tsigalgo
@@ -1578,7 +1570,6 @@ Zengin
 zeromq
 zilopbg
 zjs
-Zmd
 zonecryptokey
 zonefile
 zonemd
