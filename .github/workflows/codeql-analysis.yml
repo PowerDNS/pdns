@@ -33,7 +33,7 @@ jobs:
     steps:
     - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
     - name: Checkout repository
-      uses: actions/checkout@v3.1.0
+      uses: actions/checkout@v3.3.0
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.

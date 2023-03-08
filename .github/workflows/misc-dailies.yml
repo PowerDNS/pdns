@@ -28,7 +28,7 @@ jobs:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3.3.0
       with:
         fetch-depth: 5
         submodules: recursive
@@ -47,7 +47,7 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -72,7 +72,7 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -102,7 +102,7 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 5
           submodules: recursive
