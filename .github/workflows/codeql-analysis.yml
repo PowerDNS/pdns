@@ -30,15 +30,16 @@ jobs:
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
     steps:
+    - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3.1.0
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
 
     # Python is required for building the Authoritative server
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.8'
 
@@ -72,7 +73,7 @@ jobs:
         sudo apt-get update
     - name: Install dependencies
       run: |
-        sudo apt-get -qq -y --no-install-recommends install \
+        sudo apt-get -qq -y --no-install-recommends --allow-downgrades install \
                 bison \
                 default-libmysqlclient-dev \
                 flex \
