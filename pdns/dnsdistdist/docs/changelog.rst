@@ -2,6 +2,52 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.0-rc2
+  :released: 9th of March 2023
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 12615
+
+    Add Lua bindings for PB requestorID, deviceName and deviceID
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12593
+
+    Clean up the fortify and LTO m4 by not directly editing flags
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12592
+
+    Only increment the 'servfail-responses' metric on backend responses (phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12586
+
+    Fix the harvesting of destination addresses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12589
+
+    YaHTTP: Better detection of whether C++11 features are available
+
+  .. change::
+    :tags: Bug Fixes, Protobuf
+    :pullreq: 12588
+
+    Fix compilation with DoH disabled (Adam Majer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12587
+
+    Skip signal-unsafe logging when we are about to exit, with TSAN
+
+.. changelog::
   :version: 1.8.0-rc1
   :released: 23rd of February 2023
 
