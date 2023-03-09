@@ -24,7 +24,7 @@ jobs:
           - el-8
           - centos-8-stream
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
