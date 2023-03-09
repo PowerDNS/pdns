@@ -27,7 +27,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
@@ -74,7 +74,7 @@ jobs:
       SKIP_INCLUDEDIR_TESTS: yes
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
@@ -94,7 +94,11 @@ jobs:
       - test-dnsdist-regression
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2.3.4
+      - name: Install jq and yq
+        run: "sudo snap install jq yq"
+      - name: Fail job if any of the previous jobs failed
+        run: "for i in `echo '${{ toJSON(needs) }}' | jq '.[].result' | tr -d '\"'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
