@@ -3,6 +3,7 @@ import json
 import operator
 import time
 import unittest
+import requests.exceptions
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint
@@ -242,7 +243,6 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         # check our record has appeared
         self.assertEqual(get_rrset(data, rrset['name'], 'A')['records'], rrset['records'])
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_create_zone_with_comments(self):
         name = unique_zone_name()
         rrsets = [
@@ -288,6 +288,12 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                   }],
               },
           ]
+
+        if is_auth_lmdb():
+            with self.assertRaises(requests.exceptions.HTTPError):   # No comments in LMDB
+                self.create_zone(name=name, rrsets=rrsets)
+            return
+
         name, payload, data = self.create_zone(name=name, rrsets=rrsets)
         # NS records have been created
         self.assertEqual(len(data['rrsets']), len(rrsets) + 1)
@@ -1848,7 +1854,6 @@ $ORIGIN %NAME%
         self.assertEqual(r.status_code, 204)
         self.assertNotIn('Content-Type', r.headers)
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_create(self):
         name, payload, zone = self.create_zone()
         rrset = {
@@ -1872,7 +1877,11 @@ $ORIGIN %NAME%
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success(r)
+        if is_auth_lmdb():
+            self.assert_error_json(r)  # No comments in LMDB
+            return
+        else:
+            self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
@@ -1885,7 +1894,6 @@ $ORIGIN %NAME%
         # verify that TTL is correct (regression test)
         self.assertEqual(serverset['ttl'], 3600)
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.
         name, payload, zone = self.create_zone()
