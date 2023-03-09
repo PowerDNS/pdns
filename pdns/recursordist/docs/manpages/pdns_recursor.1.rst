@@ -28,7 +28,7 @@ To stop the recursor by hand, run::
     # rec_control quit
 
 However, the recommended way of starting and stopping the recursor is to use
-the init.d script or :manpage:`systemctl(1)`.
+:manpage:`systemctl(1)` or the init.d script.
 
 Options
 -------
