@@ -1829,7 +1829,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
     for(Comment& c : new_comments) {
       c.domain_id = di.id;
-      di.backend->feedComment(c);
+      if (!di.backend->feedComment(c)) {
+        throw ApiException("Hosting backend does not support editing comments.");
+      }
     }
 
     updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
