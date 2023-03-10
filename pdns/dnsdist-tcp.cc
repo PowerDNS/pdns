@@ -1084,8 +1084,14 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 
 void IncomingTCPConnectionState::notifyIOError(InternalQueryState&& query, const struct timeval& now)
 {
-  std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
+  if (std::this_thread::get_id() != d_creatorThreadID) {
+    /* empty buffer will signal an IO error */
+    TCPResponse response(PacketBuffer(), std::move(query), nullptr, nullptr);
+    handleCrossProtocolResponse(now, std::move(response));
+    return;
+  }
 
+  std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
   --state->d_currentQueriesCount;
   state->d_hadErrors = true;
 
@@ -1114,6 +1120,11 @@ void IncomingTCPConnectionState::notifyIOError(InternalQueryState&& query, const
 
 void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TCPResponse&& response)
 {
+  if (std::this_thread::get_id() != d_creatorThreadID) {
+    handleCrossProtocolResponse(now, std::move(response));
+    return;
+  }
+
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
   queueResponse(state, now, std::move(response));
 }
