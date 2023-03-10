@@ -322,58 +322,121 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
     c.run('chmod 600 ~/.ssh/id_ed25519')
     c.run(f'echo "{host_key}" > ~/.ssh/known_hosts')
 
+
+def get_sanitizers():
+    sanitizers = os.getenv('SANITIZERS')
+    if sanitizers != '':
+        sanitizers = sanitizers.split('+')
+        sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
+        sanitizers = ' '.join(sanitizers)
+    return sanitizers
+
+
+def get_cflags():
+    return " ".join([
+        "-O1",
+        "-Werror=vla",
+        "-Werror=shadow",
+        "-Wformat=2",
+        "-Werror=format-security",
+        "-Werror=string-plus-int",
+    ])
+
+
+def get_cxxflags():
+    return " ".join([
+        get_cflags(),
+        "-Wp,-D_GLIBCXX_ASSERTIONS",
+    ])
+
+
+def get_base_configure_cmd():
+    return " ".join([
+        f'CFLAGS="{get_cflags()}"',
+        f'CXXFLAGS="{get_cxxflags()}"',
+        './configure',
+        "CC='clang-12'",
+        "CXX='clang++-12'",
+        "--enable-option-checking=fatal",
+        "--enable-systemd",
+        "--with-libsodium",
+        "--enable-fortify-source=auto",
+        "--enable-auto-var-init=pattern",
+    ])
+
+
 @task
 def ci_auth_configure(c):
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
-    unittests = ' --enable-unit-tests --enable-backend-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
-    fuzzingtargets = ' --enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
-    res = c.run('''CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
-                   CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
-                   ./configure \
-                      CC='clang-12' \
-                      CXX='clang++-12' \
-                      LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib' \
-                      --enable-option-checking=fatal \
-                      --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
-                      --enable-systemd \
-                      --enable-tools \
-                      --enable-fuzz-targets \
-                      --enable-experimental-pkcs11 \
-                      --enable-experimental-gss-tsig \
-                      --enable-remotebackend-zeromq \
-                      --with-lmdb=/usr \
-                      --with-libsodium \
-                      --with-libdecaf \
-                      --prefix=/opt/pdns-auth \
-                      --enable-ixfrdist \
-                      --enable-fortify-source=auto \
-                      --enable-auto-var-init=pattern ''' + sanitizers + unittests + fuzzingtargets, warn=True)
+    sanitizers = get_sanitizers()
+
+    unittests = os.getenv('UNIT_TESTS')
+    if unittests == 'yes':
+        unittests = '--enable-unit-tests --enable-backend-unit-tests'
+    else:
+        unittests = ''
+
+    fuzz_targets = os.getenv('FUZZING_TARGETS')
+    fuzz_targets = '--enable-fuzz-targets' if fuzz_targets == 'yes' else ''
+
+    modules = " ".join([
+        "bind",
+        "geoip",
+        "gmysql",
+        "godbc",
+        "gpgsql",
+        "gsqlite3",
+        "ldap",
+        "lmdb",
+        "lua2",
+        "pipe",
+        "remote",
+        "tinydns",
+    ])
+    configure_cmd = " ".join([
+        get_base_configure_cmd(),
+        "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+        f"--with-modules='{modules}'",
+        "--enable-tools",
+        "--enable-experimental-pkcs11",
+        "--enable-experimental-gss-tsig",
+        "--enable-remotebackend-zeromq",
+        "--with-lmdb=/usr",
+        "--with-libdecaf",
+        "--prefix=/opt/pdns-auth",
+        "--enable-ixfrdist",
+        sanitizers,
+        unittests,
+        fuzz_targets,
+    ])
+    res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
+
+
 @task
 def ci_rec_configure(c):
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
-    unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
-    res = c.run('''            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
-            ./configure \
-              CC='clang-12' \
-              CXX='clang++-12' \
-              --enable-option-checking=fatal \
-              --enable-nod \
-              --enable-systemd \
-              --prefix=/opt/pdns-recursor \
-              --with-libsodium \
-              --with-lua=luajit \
-              --with-libcap \
-              --with-net-snmp \
-              --enable-fortify-source=auto \
-              --enable-auto-var-init=pattern \
-              --enable-dns-over-tls ''' + sanitizers + unittests, warn=True)
+    sanitizers = get_sanitizers()
+
+    unittests = os.getenv('UNIT_TESTS')
+    unittests = '--enable-unit-tests' if unittests == 'yes' else ''
+
+    configure_cmd = " ".join([
+        get_base_configure_cmd(),
+        "--enable-nod",
+        "--prefix=/opt/pdns-recursor",
+        "--with-lua=luajit",
+        "--with-libcap",
+        "--with-net-snmp",
+        "--enable-dns-over-tls",
+        sanitizers,
+        unittests,
+    ])
+    res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
+
 
 @task
 def ci_dnsdist_configure(c, features):
