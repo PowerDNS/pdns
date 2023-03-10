@@ -151,6 +151,9 @@ $(document).ready(function() {
                 $("#rule-drops").text(data["rule-drop"]);
                 $("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
                 $("#latency").text((data["latency-avg10000"]/1000.0).toFixed(2));
+                $("#latency-tcp").text((data["latency-tcp-avg10000"]/1000.0).toFixed(2));
+                $("#latency-dot").text((data["latency-dot-avg10000"]/1000.0).toFixed(2));
+                $("#latency-doh").text((data["latency-doh-avg10000"]/1000.0).toFixed(2));
                 if(!gdata["cpu-sys-msec"]) 
                     gdata=data;
 
