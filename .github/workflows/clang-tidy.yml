@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  clang-tidy:
+  clang-tidy-auth:
     name: auth clang-tidy
     runs-on: ubuntu-20.04
     env:
@@ -55,4 +55,56 @@ jobs:
         run: |
           if [ -f clang-tidy-results/auth-fixes.yml ]; then
             python .github/scripts/clang-tidy.py --fixes-file clang-tidy-results/auth-fixes.yml
+          fi
+
+  clang-tidy-rec:
+    name: rec clang-tidy
+    runs-on: ubuntu-20.04
+    env:
+      UNIT_TESTS: yes
+      SANITIZERS:
+    steps:
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: get timestamp for cache
+        id: get-stamp
+        shell: bash
+        run: |
+          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
+      - name: let GitHub cache our ccache data
+        uses: actions/cache@v3
+        with:
+          path: ~/.ccache
+          key: recursor-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-ccache-
+      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv apt-fresh
+      - run: inv install-clang
+      - run: inv install-clang-tidy-tools
+      - run: inv install-rec-build-deps
+      - run: inv ci-autoconf
+        working-directory: pdns/recursordist/
+      - run: inv ci-rec-configure
+        working-directory: pdns/recursordist/
+      - run: inv ci-rec-make-bear
+        working-directory: pdns/recursordist/
+      - run: ccache -s
+      - run: mkdir clang-tidy-results
+      - run: ln -s .clang-tidy.full .clang-tidy
+      - name: Run clang-tidy
+        working-directory: pdns/recursordist/
+        run: git diff -U0 HEAD^ | python /usr/bin/clang-tidy-diff-12.py -p3 -export-fixes ../../clang-tidy-results/rec-fixes.yml
+      - name: Print clang-tidy fixes YAML
+        shell: bash
+        run: |
+          if [ -f clang-tidy-results/rec-fixes.yml ]; then
+            cat clang-tidy-results/rec-fixes.yml
+          fi
+      - name: Result annotations
+        shell: bash
+        run: |
+          if [ -f clang-tidy-results/rec-fixes.yml ]; then
+            python .github/scripts/clang-tidy.py --fixes-file clang-tidy-results/rec-fixes.yml
           fi
