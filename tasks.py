@@ -537,6 +537,11 @@ def ci_rec_make(c):
     c.run('make -j8 -k V=1')
 
 @task
+def ci_rec_make_bear(c):
+    # Assumed to be running under ./pdns/recursordist/
+    c.run('bear --append make -j8 -k V=1')
+
+@task
 def ci_dnsdist_make(c):
     c.run('make -j4 -k V=1')
 
