@@ -40,7 +40,7 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
   size_t usableServers = 0;
   for (const auto& d : servers) {
     if (d.second->isUp()) {
-      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), d.first);
+      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->getRelevantLatencyUsec()), d.first);
       usableServers++;
     }
   }

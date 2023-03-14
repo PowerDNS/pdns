@@ -1048,6 +1048,14 @@ public:
     return dnsdist::Protocol::DoUDP;
   }
 
+  double getRelevantLatencyUsec() const
+  {
+    if (isTCPOnly()) {
+      return latencyUsecTCP;
+    }
+    return latencyUsec;
+  }
+
   static int s_udpTimeout;
   static bool s_randomizeSockets;
   static bool s_randomizeIDs;

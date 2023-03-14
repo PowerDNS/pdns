@@ -904,10 +904,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           pools += p;
         }
         if (showUUIDs) {
-          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec / 1000.0) % s->outstanding.load() % pools % *s->d_config.id) << endl;
+          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->getRelevantLatencyUsec() / 1000.0) % s->outstanding.load() % pools % *s->d_config.id) << endl;
         }
         else {
-          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec / 1000.0) % s->outstanding.load() % pools) << endl;
+          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->getRelevantLatencyUsec() / 1000.0) % s->outstanding.load() % pools) << endl;
         }
         totQPS += s->queryLoad;
         totQueries += s->queries.load();
