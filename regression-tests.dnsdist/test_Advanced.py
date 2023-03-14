@@ -414,6 +414,52 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
 
+class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
+    # this one is tricky: on the loopback interface we cannot harvest the destination
+    # address, so we exercise a different code path when we bind on a different address
+    # than the default 127.0.0.1 one
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addLocal('127.0.1.19:%d')
+    """
+    _config_params = ['_testServerPort', '_dnsDistPort']
+    _acl = ['127.0.0.1/32']
+    _skipListeningOnCL = True
+
+    def testAdvancedCheckSourceAddrOnNonDefaultLoopbackBind(self):
+        """
+        Advanced: Check the source address used to reply on a non-default loopback bind
+        """
+        name = 'source-addr-non-default-loopback.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.42')
+        response.answer.append(rrset)
+
+        # a bit more tricky, UDP-only IPv4
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1.0)
+        sock.connect(('127.0.1.19', self._dnsDistPort))
+        self._toResponderQueue.put(response, True, 1.0)
+        try:
+            data = query.to_wire()
+            sock.send(data)
+            (data, remote) = sock.recvfrom(4096)
+            self.assertEquals(remote[0], '127.0.1.19')
+        except socket.timeout:
+            data = None
+
+        self.assertTrue(data)
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = self._fromResponderQueue.get(True, 1.0)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+
 class TestAdvancedAllowHeaderOnly(DNSDistTest):
 
     _config_template = """

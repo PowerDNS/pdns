@@ -174,7 +174,7 @@ static ssize_t sendfromto(int sock, const void* data, size_t len, int flags, con
   msgh.msg_name = (struct sockaddr*)&to;
   msgh.msg_namelen = to.getSocklen();
 
-  if(from.sin4.sin_family) {
+  if (from.sin4.sin_family) {
     addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
   }
   else {
@@ -1612,6 +1612,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
          which is used by rules and actions to at least the correct
          address family */
       ids.origDest = cs.local;
+      ids.hopLocal.sin4.sin_family = 0;
     }
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
