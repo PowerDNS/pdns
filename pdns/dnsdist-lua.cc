@@ -881,14 +881,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       ostringstream ret;
       boost::format fmt;
 
+      auto latFmt = boost::format("%5.1f");
       if (showUUIDs) {
-        fmt = boost::format("%1$-3d %15$-36s %2$-20.20s %|62t|%3% %|107t|%4$5s %|88t|%5$7.1f %|103t|%6$7d %|106t|%7$10d %|115t|%8$10d %|117t|%9$10d %|123t|%10$7d %|128t|%11$5.1f %|146t|%12$5.1f %|152t|%13$11d %14%");
-        //             1        2          3       4        5       6       7       8           9        10        11       12     13              14        15
-        ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "UUID") << endl;
+        fmt = boost::format("%1$-3d %15$-36s %2$-20.20s %|62t|%3% %|107t|%4$5s %|88t|%5$7.1f %|103t|%6$7d %|106t|%7$10d %|115t|%8$10d %|117t|%9$10d %|123t|%10$7d %|128t|%11$5.1f %|146t|%12$5s %|152t|%16$5s %|158t|%13$11d %14%");
+        //             1        2          3       4        5       6       7       8           9        10        11       12     13              14        15        16 (tcp latency)
+        ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "UUID" % "TCP") << endl;
       }
       else {
-        fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|70t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$10d %|78t|%8$10d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%");
-        ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
+        fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|70t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$10d %|78t|%8$10d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5s %|115t|%15$5s %|121t|%13$11d %14%");
+        ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "TCP") << endl;
       }
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
@@ -903,11 +904,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           }
           pools += p;
         }
+        const std::string latency = (s->latencyUsec == 0.0 ? "-" : boost::str(latFmt % (s->latencyUsec / 1000.0)));
+        const std::string latencytcp = (s->latencyUsecTCP == 0.0 ? "-" : boost::str(latFmt % (s->latencyUsecTCP / 1000.0)));
         if (showUUIDs) {
-          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->getRelevantLatencyUsec() / 1000.0) % s->outstanding.load() % pools % *s->d_config.id) << endl;
+          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % latency % s->outstanding.load() % pools % *s->d_config.id % latencytcp) << endl;
         }
         else {
-          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->getRelevantLatencyUsec() / 1000.0) % s->outstanding.load() % pools) << endl;
+          ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % status % s->queryLoad % s->qps.getRate() % s->d_config.order % s->d_config.d_weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % latency % s->outstanding.load() % pools % latencytcp) << endl;
         }
         totQPS += s->queryLoad;
         totQueries += s->queries.load();
@@ -916,12 +919,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       if (showUUIDs) {
         ret << (fmt % "All" % "" % "" % ""
-                % (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "")
+                % (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "" % "")
             << endl;
       }
       else {
         ret << (fmt % "All" % "" % "" % ""
-                % (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "")
+                % (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "")
             << endl;
       }
 
