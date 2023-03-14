@@ -771,7 +771,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       throw;
     }
 
-    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).toString(), remote.toStringWithPort(), du->downstream->getName());
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toLogString(), QType(ids->qtype).toString(), remote.toStringWithPort(), du->downstream->getName());
   }
   catch (const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
