@@ -546,6 +546,11 @@ def ci_dnsdist_make(c):
     c.run('make -j4 -k V=1')
 
 @task
+def ci_dnsdist_make_bear(c):
+    # Assumed to be running under ./pdns/dnsdistdist/
+    c.run('bear --append make -j4 -k V=1')
+
+@task
 def ci_auth_install_remotebackend_test_deps(c):
     with c.cd('modules/remotebackend'):
       # c.run('bundle config set path vendor/bundle')
