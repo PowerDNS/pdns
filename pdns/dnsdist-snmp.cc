@@ -303,7 +303,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDLATENCY:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->latencyUsec/1000.0);
+                                            server->getRelevantLatencyUsec() / 1000.0);
         break;
       case COLUMN_BACKENDWEIGHT:
         DNSDistSNMPAgent::setCounter64Value(request,

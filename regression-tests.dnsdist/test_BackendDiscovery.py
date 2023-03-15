@@ -356,7 +356,7 @@ class TestBackendDiscovery(DNSDistTest):
             if line.startswith('#') or line.startswith('All'):
                 continue
             tokens = line.split()
-            self.assertTrue(len(tokens) == 12 or len(tokens) == 13)
+            self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
             if tokens[1] == '127.0.0.1:10652':
                 # in this particular case, the upgraded backend
                 # does not replace the existing one and thus
@@ -365,8 +365,8 @@ class TestBackendDiscovery(DNSDistTest):
             else:
                 self.assertEquals(tokens[2], 'UP')
             pool = ''
-            if len(tokens) == 13:
-                pool = tokens[12]
+            if len(tokens) == 14:
+                pool = tokens[13]
             backends[tokens[1]] = pool
 
         expected = {
