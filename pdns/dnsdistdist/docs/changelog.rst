@@ -18,10 +18,22 @@ Changelog
     Fix a race when a cross-protocol query triggers an IO error
 
   .. change::
-    :tags: Improvements, Webserver
+    :tags: Improvements, Metrics, Webserver
     :pullreq: 12638
 
     Report per-incoming transport latencies in the web interface
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 12648
+
+    Report the TCP latency for TCP-only Do53, DoT and DoH backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12626
+
+    Count hits in the StatNode
 
 .. changelog::
   :version: 1.8.0-rc2
