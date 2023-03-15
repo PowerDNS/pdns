@@ -416,7 +416,12 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
 
       if (suffixMatchRuleMatches) {
-        root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, boost::none);
+        bool hit = c.ds.sin4.sin_family == 0;
+        if (!hit && c.ds.isIPv4() && c.ds.sin4.sin_addr.s_addr == 0 && c.ds.sin4.sin_port == 0) {
+          hit = true;
+        }
+
+        root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, hit, boost::none);
       }
     }
   }

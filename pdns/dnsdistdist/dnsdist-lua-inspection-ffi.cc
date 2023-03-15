@@ -54,6 +54,11 @@ uint64_t dnsdist_ffi_stat_node_get_bytes(const dnsdist_ffi_stat_node_t* node)
   return node->self.bytes;
 }
 
+uint64_t dnsdist_ffi_stat_node_get_hits(const dnsdist_ffi_stat_node_t* node)
+{
+  return node->self.hits;
+}
+
 unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_t* node)
 {
   return node->node.labelsCount;
@@ -99,6 +104,11 @@ uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_n
 uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node)
 {
   return node->children.bytes;
+}
+
+uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* node)
+{
+  return node->children.hits;
 }
 
 void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize)

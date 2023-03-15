@@ -114,7 +114,7 @@ static counts_t filterScore(const counts_t& counts,
   return ret;
 }
 
-typedef std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> statvisitor_t;
+using statvisitor_t = std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
 
 static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
 {
@@ -128,13 +128,20 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
     auto rl = shard->respRing.lock();
 
     for(const auto& c : *rl) {
-      if (now < c.when)
+      if (now < c.when){
         continue;
+      }
 
-      if (seconds && c.when < cutoff)
+      if (seconds && c.when < cutoff) {
         continue;
+      }
 
-      root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, boost::none);
+      bool hit = c.ds.sin4.sin_family == 0;
+      if (!hit && c.ds.isIPv4() && c.ds.sin4.sin_addr.s_addr == 0 && c.ds.sin4.sin_port == 0) {
+        hit = true;
+      }
+
+      root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, hit, boost::none);
     }
   }
 
@@ -785,6 +792,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.registerMember("noerrors", &StatNode::Stat::noerrors);
   luaCtx.registerMember("drops", &StatNode::Stat::drops);
   luaCtx.registerMember("bytes", &StatNode::Stat::bytes);
+  luaCtx.registerMember("hits", &StatNode::Stat::hits);
 
   luaCtx.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<uint64_t> seconds) {
       statNodeRespRing(visitor, seconds ? *seconds : 0U);
