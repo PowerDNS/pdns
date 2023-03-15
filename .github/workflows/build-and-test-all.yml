@@ -40,10 +40,29 @@ jobs:
           restore-keys: auth-ccache-
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang
+      - run: inv install-clang-tidy-tools
       - run: inv install-auth-build-deps
       - run: inv ci-autoconf
       - run: inv ci-auth-configure
-      - run: inv ci-auth-make
+      - run: inv ci-auth-make-bear  # This runs under pdns/
+      - run: ln -s .clang-tidy.full .clang-tidy
+      - name: Run clang-tidy
+        working-directory: pdns
+        run: git diff -U0 HEAD^..HEAD | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p2 -export-fixes clang-tidy-auth.yml
+      - name: Print clang-tidy fixes YAML
+        working-directory: pdns
+        shell: bash
+        run: |
+          if [ -f clang-tidy-auth.yml ]; then
+            cat clang-tidy-auth.yml
+          fi
+      - name: Result annotations
+        shell: bash
+        working-directory: pdns
+        run: |
+          if [ -f clang-tidy-auth.yml ]; then
+            python3 ../.github/scripts/clang-tidy.py --fixes-file clang-tidy-auth.yml
+          fi
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv ci-make-install
