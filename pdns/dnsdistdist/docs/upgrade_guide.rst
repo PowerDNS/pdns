@@ -12,6 +12,11 @@ The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS o
 
 The configuration check will now fail if the configuration file does not exist. For this reason we now create a default configuration file, based on the file previously called ``dnsdistconf.lua``, which contains commented-out examples of how to set up dnsdist.
 
+Latency metrics have been broken down:
+
+* per incoming protocol (Do53 UDP, Do53 TCP, DoT, DoH) for global latency metrics
+* between UDP (Do53) and TCP (Do53 TCP, DoT, DoH) for backend latency metrics
+
 1.7.0 to 1.7.1
 --------------
 

@@ -2,6 +2,40 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.0-rc3
+  :released: 16th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12641
+
+    Use the correct source address when harvesting failed
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12639
+
+    Fix a race when a cross-protocol query triggers an IO error
+
+  .. change::
+    :tags: Improvements, Metrics, Webserver
+    :pullreq: 12638
+
+    Report per-incoming transport latencies in the web interface
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 12648
+
+    Report the TCP latency for TCP-only Do53, DoT and DoH backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12626
+
+    Count hits in the StatNode
+
+.. changelog::
   :version: 1.8.0-rc2
   :released: 9th of March 2023
 
