@@ -607,7 +607,19 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
     ce.d_ttd = min(maxTTD, static_cast<time_t>(i.d_ttl)); // XXX this does weird things if TTLs differ in the set
+
     ce.d_orig_ttl = ce.d_ttd - now;
+
+    // d_orig_ttl should be between s_minimumTTL and s_maxcachettl, as d_ttd was sanitized wrt those
+    // bounds. But our reference point (d_now aka now) might be "too new" at this point, if we went
+    // outside to e.g. get DNSKEYS and that took a while. In that case, if the original TTL was
+    // smaller than the delay, d_orig_ttl will wrap and become very large.  Detect that case and
+    // make sure d_orig_ttl is fixed. Likewise if there was a delay but that was smaller than the
+    // original TTL, d_orig_ttl can become smaller than s_minimumTTL. Detect those cases and use a
+    // small but legal d_orig_ttl in those cases.
+    if (ce.d_orig_ttl < SyncRes::s_minimumTTL || ce.d_orig_ttl > SyncRes::s_maxcachettl) {
+      ce.d_orig_ttl = SyncRes::s_minimumTTL;
+    }
     ce.d_records.push_back(i.getContent());
   }
 
