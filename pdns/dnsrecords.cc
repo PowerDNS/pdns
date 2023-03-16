@@ -341,7 +341,7 @@ boilerplate_conv(SVCB,
                  conv.xfr16BitInt(d_priority);
                  conv.xfrName(d_target, false, true);
                  if (d_priority != 0) {
-                   conv.xfrSvcParamKeyVals(*d_params.lock());
+                   conv.xfrSvcParamKeyVals(d_params);
                  }
                  )
 
@@ -349,7 +349,7 @@ boilerplate_conv(HTTPS,
                  conv.xfr16BitInt(d_priority);
                  conv.xfrName(d_target, false, true);
                  if (d_priority != 0) {
-                   conv.xfrSvcParamKeyVals(*d_params.lock());
+                   conv.xfrSvcParamKeyVals(d_params);
                  }
                  )
 
@@ -747,29 +747,28 @@ string APLRecordContent::getZoneRepresentation(bool /* noDot */) const {
 /* APL end */
 
 /* SVCB start */
-bool SVCBBaseRecordContent::autoHint(const SvcParam::SvcParamKey &key) {
-  auto params = d_params.lock();
-  auto p = getParamIt(key, *params);
-  if (p == params->end()) {
+bool SVCBBaseRecordContent::autoHint(const SvcParam::SvcParamKey &key) const {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
     return false;
   }
   return p->getAutoHint();
 }
 
 void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses) {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
+    return;
+  }
+
   std::vector<ComboAddress> h;
   h.reserve(h.size() + addresses.size());
   h.insert(h.end(), addresses.begin(), addresses.end());
 
-  auto params = d_params.lock();
-  auto p = getParamIt(key, *params);
-  if (p == params->end()) {
-    return;
-  }
   try {
     auto newParam = SvcParam(key, std::move(h));
-    params->erase(p);
-    params->insert(newParam);
+    d_params.erase(p);
+    d_params.insert(newParam);
   } catch (...) {
     // XXX maybe we should SERVFAIL instead?
     return;
@@ -777,38 +776,45 @@ void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std
 }
 
 void SVCBBaseRecordContent::removeParam(const SvcParam::SvcParamKey &key) {
-  auto params = d_params.lock();
-  auto p = getParamIt(key, *params);
-  if (p == params->end()) {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
     return;
   }
-  params->erase(p);
+  d_params.erase(p);
 }
 
-bool SVCBBaseRecordContent::hasParams() {
-  return !d_params.lock()->empty();
+bool SVCBBaseRecordContent::hasParams() const {
+  return !d_params.empty();
 }
 
-bool SVCBBaseRecordContent::hasParam(const SvcParam::SvcParamKey &key) {
-  auto params = d_params.lock();
-  return getParamIt(key, *params) != params->end();
+bool SVCBBaseRecordContent::hasParam(const SvcParam::SvcParamKey &key) const {
+  return getParamIt(key) != d_params.end();
 }
 
-SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) {
-  auto params = d_params.lock();
-  auto p = getParamIt(key, *params);
-  if (p == params->end()) {
+SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) const {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
     throw std::out_of_range("No param with key " + SvcParam::keyToString(key));
   }
   return *p;
 }
 
-set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::SvcParamKey &key, std::set<SvcParam>& params) {
-  auto p = std::find_if(params.begin(), params.end(),
+set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::SvcParamKey &key) const {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
       [&key](const SvcParam &param) {
         return param.getKey() == key;
       });
   return p;
+}
+
+std::shared_ptr<SVCBBaseRecordContent> SVCBRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<SVCBRecordContent>(*this));
+}
+
+std::shared_ptr<SVCBBaseRecordContent> HTTPSRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<HTTPSRecordContent>(*this));
 }
 
 /* SVCB end */

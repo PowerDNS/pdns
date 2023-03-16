@@ -517,37 +517,40 @@ class SVCBBaseRecordContent : public DNSRecordContent
     const DNSName& getTarget() const {return d_target;}
     uint16_t getPriority() const {return d_priority;}
     // Returns true if a value for |key| was set to 'auto'
-    bool autoHint(const SvcParam::SvcParamKey &key);
+    bool autoHint(const SvcParam::SvcParamKey &key) const;
     // Sets the |addresses| to the existing hints for |key|
     void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
     // Removes the parameter for |key| from d_params
     void removeParam(const SvcParam::SvcParamKey &key);
     // Whether or not there are any parameter
-    bool hasParams();
+    bool hasParams() const;
     // Whether or not the param of |key| exists
-    bool hasParam(const SvcParam::SvcParamKey &key);
+    bool hasParam(const SvcParam::SvcParamKey &key) const;
     // Get the parameter with |key|, will throw out_of_range if param isn't there
-    SvcParam getParam(const SvcParam::SvcParamKey &key);
+    SvcParam getParam(const SvcParam::SvcParamKey &key) const;
+    virtual std::shared_ptr<SVCBBaseRecordContent> clone() const = 0;
 
   protected:
-    LockGuarded<set<SvcParam>> d_params;
+    std::set<SvcParam> d_params;
     DNSName d_target;
     uint16_t d_priority;
 
     // Get the iterator to parameter with |key|, return value can be d_params::end
-    static set<SvcParam>::const_iterator getParamIt(const SvcParam::SvcParamKey &key, set<SvcParam>& params);
+  std::set<SvcParam>::const_iterator getParamIt(const SvcParam::SvcParamKey &key) const;
 };
 
 class SVCBRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(SVCB)
+  std::shared_ptr<SVCBBaseRecordContent> clone() const override;
 };
 
 class HTTPSRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(HTTPS)
+  std::shared_ptr<SVCBBaseRecordContent> clone() const override;
 };
 
 class RRSIGRecordContent : public DNSRecordContent

@@ -549,6 +549,12 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
 
     if (rrc->hasParam(SvcParam::ipv4hint) && rrc->autoHint(SvcParam::ipv4hint)) {
+      auto newRRC = rrc->clone();
+      if (!newRRC) {
+        continue;
+      }
+      rrc = newRRC;
+      rec->dr.d_content = newRRC;
       if (s_SVCAutohints) {
         auto hints = getIPAddressFor(target, QType::A);
         if (hints.size() == 0) {
@@ -562,6 +568,12 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     }
 
     if (rrc->hasParam(SvcParam::ipv6hint) && rrc->autoHint(SvcParam::ipv6hint)) {
+      auto newRRC = rrc->clone();
+      if (!newRRC) {
+        continue;
+      }
+      rrc = newRRC;
+      rec->dr.d_content = newRRC;
       if (s_SVCAutohints) {
         auto hints = getIPAddressFor(target, QType::AAAA);
         if (hints.size() == 0) {
