@@ -2517,34 +2517,39 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
 static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   std::shared_ptr<PacketID> pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
-  ssize_t len;
   PacketBuffer packet;
   packet.resize(g_outgoingEDNSBufsize);
   ComboAddress fromaddr;
   socklen_t addrlen = sizeof(fromaddr);
 
-  len = recvfrom(fd, &packet.at(0), packet.size(), 0, (sockaddr*)&fromaddr, &addrlen);
+  ssize_t len = recvfrom(fd, &packet.at(0), packet.size(), 0, reinterpret_cast<sockaddr*>(&fromaddr), &addrlen);
 
-  if (len < (ssize_t)sizeof(dnsheader)) {
-    if (len < 0)
-      ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
-    else {
-      g_stats.serverParseError++;
-      if (g_logCommonErrors)
-        g_log << Logger::Error << "Unable to parse packet from remote UDP server " << fromaddr.toString() << ": packet smaller than DNS header" << endl;
-    }
+  const ssize_t signed_sizeof_sdnsheader = sizeof(dnsheader);
 
+  if (len < 0) {
+    // len < 0: error on socket
     t_udpclientsocks->returnSocket(fd);
+
     PacketBuffer empty;
-
     MT_t::waiters_t::iterator iter = MT->d_waiters.find(pid);
-    if (iter != MT->d_waiters.end())
+    if (iter != MT->d_waiters.end()) {
       doResends(iter, pid, empty);
-
-    MT->sendEvent(pid, &empty); // this denotes error (does lookup again.. at least L1 will be hot)
+    }
+    MT->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
     return;
   }
 
+  if (len < signed_sizeof_sdnsheader) {
+    // We have received a packet that cannot be a valid DNS packet, as it has no complete header
+    // Drop it, but continue to wait for other packets
+    g_stats.serverParseError++;
+    if (g_logCommonErrors) {
+      g_log << Logger::Error << "Unable to parse too short packet from remote UDP server " << fromaddr.toString() << ": packet smaller than DNS header" << endl;
+    }
+    return;
+  }
+
+  // We have at least a full header
   packet.resize(len);
   dnsheader dh;
   memcpy(&dh, &packet.at(0), sizeof(dh));
@@ -2565,24 +2570,34 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     try {
-      if (len > 12)
-        pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), len, 12, false, &pident->type); // don't copy this from above - we need to do the actual read
+      if (len > signed_sizeof_sdnsheader) {
+        pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), len, static_cast<int>(sizeof(dnsheader)), false, &pident->type); // don't copy this from above - we need to do the actual read
+      }
+      else {
+        // len == sizeof(dnsheader), only header case
+        // We will do a full scan search later to see if we can match this reply even without a domain
+        pident->domain.clear();
+        pident->type = 0;
+      }
     }
     catch (std::exception& e) {
+      // Parse error, continue waiting for other packets
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
       g_log << Logger::Warning << "Error in packet from remote nameserver " << fromaddr.toStringWithPort() << ": " << e.what() << endl;
       return;
     }
   }
 
-  MT_t::waiters_t::iterator iter = MT->d_waiters.find(pident);
-  if (iter != MT->d_waiters.end()) {
-    doResends(iter, pident, packet);
+  if (!pident->domain.empty()) {
+    MT_t::waiters_t::iterator iter = MT->d_waiters.find(pident);
+    if (iter != MT->d_waiters.end()) {
+      doResends(iter, pident, packet);
+    }
   }
 
 retryWithName:
 
-  if (!MT->sendEvent(pident, &packet)) {
+  if (pident->domain.empty() || MT->sendEvent(pident, &packet) == 0) {
     /* we did not find a match for this response, something is wrong */
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
