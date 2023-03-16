@@ -134,7 +134,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dr.d_ttl = ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
-  dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, content);
+  dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, content));
   records.push_back(dr);
 }
 
@@ -281,13 +281,13 @@ void RecursorLua4::postPrepareContext()
       }
       return std::string(option.values.at(0).content, option.values.at(0).size); });
 
-  d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
+  d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.getContent()->getZoneRepresentation(); });
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
       boost::optional<ComboAddress> ret;
 
-      if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
+      if(auto rec = getRR<ARecordContent>(dr))
         ret=rec->getCA(53);
-      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+      else if(auto aaaarec = getRR<AAAARecordContent>(dr))
         ret=aaaarec->getCA(53);
       return ret;
     });
@@ -295,7 +295,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
   d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent)); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
@@ -1026,7 +1026,7 @@ bool pdns_ffi_param_add_record(pdns_ffi_param_t* ref, const char* name, uint16_t
     dr.d_type = type;
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::Place(place);
-    dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize));
+    dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize)));
     ref->params.records.push_back(std::move(dr));
 
     return true;
@@ -1137,12 +1137,12 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
       record->name = ref->insert(std::move(name))->c_str();
     }
     if (raw) {
-      auto content = ref->insert(r.d_content->serialize(r.d_name, true));
+      auto content = ref->insert(r.getContent()->serialize(r.d_name, true));
       record->content = content->data();
       record->content_len = content->size();
     }
     else {
-      auto content = ref->insert(r.d_content->getZoneRepresentation());
+      auto content = ref->insert(r.getContent()->getZoneRepresentation());
       record->content = content->data();
       record->content_len = content->size();
     }
@@ -1166,10 +1166,10 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
   try {
     DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
     if (raw) {
-      r.d_content = DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen));
+      r.setContent(DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen)));
     }
     else {
-      r.d_content = DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen));
+      r.setContent(DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen)));
     }
 
     return true;
@@ -1195,10 +1195,10 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::Place(place);
     if (raw) {
-      dr.d_content = DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen));
+      dr.setContent(DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen)));
     }
     else {
-      dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen));
+      dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen)));
     }
     ref->handle.d_dq.currentRecords->push_back(std::move(dr));
 

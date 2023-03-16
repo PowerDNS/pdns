@@ -715,7 +715,7 @@ BOOST_AUTO_TEST_CASE(test_lowercase_outgoing)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
 
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(ret[0].d_content->getZoneRepresentation(), cname.toString());
+  BOOST_CHECK_EQUAL(ret[0].getContent()->getZoneRepresentation(), cname.toString());
 
   BOOST_REQUIRE_EQUAL(sentOutQnames.size(), 4U);
   BOOST_CHECK_EQUAL(sentOutQnames[0].toString(), target.makeLowerCase().toString());
@@ -1178,7 +1178,7 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
   /* check that we accepted the DS from the parent, and not from the child zone */
   BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::DS), MemRecursorCache::None, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
-  BOOST_CHECK_EQUAL(cached.at(0).d_content->getZoneRepresentation(), "1 8 2 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  BOOST_CHECK_EQUAL(cached.at(0).getContent()->getZoneRepresentation(), "1 8 2 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 }
 
 BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd)

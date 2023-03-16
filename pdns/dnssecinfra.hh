@@ -263,12 +263,12 @@ struct CanonicalCompare
 };
 
 struct sharedDNSSECRecordCompare {
-    bool operator() (const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b) const {
+    bool operator() (const shared_ptr<const DNSRecordContent>& a, const shared_ptr<const DNSRecordContent>& b) const {
       return a->serialize(g_rootdnsname, true, true) < b->serialize(g_rootdnsname, true, true);
     }
 };
 
-typedef std::set<std::shared_ptr<DNSRecordContent>, sharedDNSSECRecordCompare> sortedRecords_t;
+typedef std::set<std::shared_ptr<const DNSRecordContent>, sharedDNSSECRecordCompare> sortedRecords_t;
 
 string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, const sortedRecords_t& signRecords, bool processRRSIGLabels = false, bool includeRRSIG_RDATA = true);
 

@@ -564,7 +564,7 @@ void DNSFilterEngine::Policy::info(Logr::Priority prio, const std::shared_ptr<Lo
             "kind", Logging::Loggable(getKindToString(d_kind)));
 }
 
-DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const
+DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<const DNSRecordContent>& custom) const
 {
   DNSRecord dr;
   dr.d_name = qname;
@@ -572,15 +572,15 @@ DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, con
   dr.d_ttl = d_ttl;
   dr.d_class = QClass::IN;
   dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_content = custom;
+  dr.setContent(custom);
 
   if (dr.d_type == QType::CNAME) {
-    const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(custom);
+    const auto content = std::dynamic_pointer_cast<const CNAMERecordContent>(custom);
     if (content) {
       DNSName target = content->getTarget();
       if (target.isWildcard()) {
         target.chopOff();
-        dr.d_content = std::make_shared<CNAMERecordContent>(qname + target);
+        dr.setContent(std::make_shared<CNAMERecordContent>(qname + target));
       }
     }
   }
@@ -607,15 +607,15 @@ std::vector<DNSRecord> DNSFilterEngine::Policy::getCustomRecords(const DNSName& 
     dr.d_ttl = d_ttl;
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::ANSWER;
-    dr.d_content = custom;
+    dr.setContent(custom);
 
     if (dr.d_type == QType::CNAME) {
-      const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(custom);
+      const auto content = std::dynamic_pointer_cast<const CNAMERecordContent>(custom);
       if (content) {
         DNSName target = content->getTarget();
         if (target.isWildcard()) {
           target.chopOff();
-          dr.d_content = std::make_shared<CNAMERecordContent>(qname + target);
+          dr.setContent(std::make_shared<CNAMERecordContent>(qname + target));
         }
       }
     }
@@ -681,7 +681,7 @@ std::vector<DNSRecord> DNSFilterEngine::Policy::getRecords(const DNSName& qname)
     dr.d_ttl = static_cast<uint32_t>(d_ttl);
     dr.d_type = QType::CNAME;
     dr.d_class = QClass::IN;
-    dr.d_content = DNSRecordContent::mastermake(QType::CNAME, QClass::IN, getKindToString(d_kind));
+    dr.setContent(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, getKindToString(d_kind)));
     result.push_back(std::move(dr));
   }
 
@@ -692,7 +692,7 @@ void DNSFilterEngine::Zone::dumpNamedPolicy(FILE* fp, const DNSName& name, const
 {
   auto records = pol.getRecords(name);
   for (const auto& dr : records) {
-    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.d_content->getZoneRepresentation().c_str());
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.getContent()->getZoneRepresentation().c_str());
   }
 }
 
@@ -779,7 +779,7 @@ void DNSFilterEngine::Zone::dumpAddrPolicy(FILE* fp, const Netmask& nm, const DN
 
   auto records = pol.getRecords(full);
   for (const auto& dr : records) {
-    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.d_content->getZoneRepresentation().c_str());
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.getContent()->getZoneRepresentation().c_str());
   }
 }
 

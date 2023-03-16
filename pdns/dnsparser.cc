@@ -73,7 +73,7 @@ string UnknownRecordContent::getZoneRepresentation(bool /* noDot */) const
   return str.str();
 }
 
-void UnknownRecordContent::toPacket(DNSPacketWriter& pw)
+void UnknownRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfrBlob(string(d_record.begin(),d_record.end()));
 }
@@ -211,7 +211,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   rr.qname = d.d_name;
   rr.qtype = QType(d.d_type);
   rr.ttl = d.d_ttl;
-  rr.content = d.d_content->getZoneRepresentation(true);
+  rr.content = d.getContent()->getZoneRepresentation(true);
   rr.auth = false;
   rr.qclass = d.d_class;
   return rr;
@@ -279,11 +279,11 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
           !(d_qtype == QType::IXFR && dr.d_place == DNSResourceRecord::AUTHORITY && dr.d_type == QType::SOA) && // IXFR queries have a SOA in their AUTHORITY section
           (dr.d_place == DNSResourceRecord::ANSWER || dr.d_place == DNSResourceRecord::AUTHORITY || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG && dr.d_type != QType::TKEY) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG || dr.d_type == QType::TKEY) && dr.d_class != QClass::ANY))) {
 //        cerr<<"discarding RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.d_content=std::make_shared<UnknownRecordContent>(dr, pr);
+        dr.setContent(std::make_shared<UnknownRecordContent>(dr, pr));
       }
       else {
 //        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.d_content=DNSRecordContent::mastermake(dr, pr, d_header.opcode);
+        dr.setContent(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       }
 
       /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:

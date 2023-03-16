@@ -41,8 +41,9 @@
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);          \
   static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                         \
   string getZoneRepresentation(bool noDot=false) const override;                                 \
-  void toPacket(DNSPacketWriter& pw) override;                                                   \
-  uint16_t getType() const override { return QType::RNAME; }                                   \
+  void toPacket(DNSPacketWriter& pw) const override;                                             \
+  uint16_t getType() const override { return QType::RNAME; }                                     \
+  template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false) const;             \
   template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false);
 
 class NAPTRRecordContent : public DNSRecordContent
@@ -273,6 +274,11 @@ class ALIASRecordContent : public DNSRecordContent
 public:
   includeboilerplate(ALIAS)
 
+  [[nodiscard]] const DNSName& getContent() const
+  {
+    return d_content;
+  }
+private:
   DNSName d_content;
 };
 #endif
@@ -330,7 +336,7 @@ class OPTRecordContent : public DNSRecordContent
 public:
   OPTRecordContent(){}
   includeboilerplate(OPT)
-  void getData(vector<pair<uint16_t, string> > &opts);
+  void getData(vector<pair<uint16_t, string> > &opts) const;
 private:
   string d_data;
 };
@@ -361,7 +367,6 @@ public:
   DNSKEYRecordContent();
   includeboilerplate(DNSKEY)
   uint16_t getTag() const;
-  uint16_t getTag();
 
   uint16_t d_flags{0};
   uint8_t d_protocol{0};
@@ -668,7 +673,7 @@ public:
   }
 
   void fromPacket(PacketReader& pr);
-  void toPacket(DNSPacketWriter& pw);
+  void toPacket(DNSPacketWriter& pw) const;
   std::string getZoneRepresentation() const;
 
   static constexpr size_t const nbTypes = 65536;
@@ -703,7 +708,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override
   {
     return QType::NSEC;
@@ -741,7 +746,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
 
   uint8_t d_algorithm{0}, d_flags{0};
   uint16_t d_iterations{0};
@@ -788,7 +793,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
 
   uint16_t getType() const override
   {
@@ -817,7 +822,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
 
   uint16_t getType() const override
   {
@@ -842,7 +847,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
 
   uint8_t d_version{0}, d_size{0}, d_horizpre{0}, d_vertpre{0};
   uint32_t d_latitude{0}, d_longitude{0}, d_altitude{0};
@@ -903,7 +908,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override { return QType::EUI48; }
 private:
  // storage for the bytes
@@ -918,7 +923,7 @@ public:
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override { return QType::EUI64; }
 private:
  // storage for the bytes
@@ -1002,7 +1007,7 @@ std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::ma
   return std::make_shared<RNAME##RecordContent>(zonedata);                                         \
 }                                                                                                  \
                                                                                                    \
-void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                                           \
+void RNAME##RecordContent::toPacket(DNSPacketWriter& pw) const                                     \
 {                                                                                                  \
   this->xfrPacket(pw);                                                                             \
 }                                                                                                  \
@@ -1042,6 +1047,12 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
 boilerplate(RNAME)                                                      \
 template<class Convertor>                                               \
 void RNAME##RecordContent::xfrPacket(Convertor& conv, bool /* noDot */) \
+{                                                                       \
+  CONV;                                                                 \
+  if (conv.eof() == false) throw MOADNSException("When parsing " #RNAME " trailing data was not parsed: '" + conv.getRemaining() + "'"); \
+}                                                                       \
+template<class Convertor>                                               \
+void RNAME##RecordContent::xfrPacket(Convertor& conv, bool /* noDot */) const \
 {                                                                       \
   CONV;                                                                 \
   if (conv.eof() == false) throw MOADNSException("When parsing " #RNAME " trailing data was not parsed: '" + conv.getRemaining() + "'"); \

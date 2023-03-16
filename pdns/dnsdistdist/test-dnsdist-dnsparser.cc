@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_Response)
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::CNAME));
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, newTarget);
-    auto content = std::dynamic_pointer_cast<UnknownRecordContent>(mdp.d_answers.at(0).first.d_content);
+    auto content = getRR<UnknownRecordContent>(mdp.d_answers.at(0).first);
     BOOST_REQUIRE(content != nullptr);
     BOOST_CHECK_EQUAL(content->getRawContent().size(), notTheTarget.getStorage().size());
 

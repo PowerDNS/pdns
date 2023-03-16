@@ -444,7 +444,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;
         rr.dr.d_type = QType::SOA;
-        rr.dr.d_content = makeSOAContent(*sd);
+        rr.dr.setContent(makeSOAContent(*sd));
         rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
 
@@ -480,7 +480,7 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
         DNSZoneRecord rr;
         rr.dr.d_name = sd.qname;
         rr.dr.d_type = QType::SOA;
-        rr.dr.d_content = makeSOAContent(sd);
+        rr.dr.setContent(makeSOAContent(sd));
         rr.dr.d_ttl = sd.ttl;
         rr.domain_id = sd.domain_id;
 

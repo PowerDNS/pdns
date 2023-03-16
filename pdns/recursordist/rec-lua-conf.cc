@@ -283,7 +283,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
 
   size_t zoneIdx;
   std::string dumpFile;
-  std::shared_ptr<SOARecordContent> sr = nullptr;
+  std::shared_ptr<const SOARecordContent> sr = nullptr;
 
   try {
     std::string seedFile;

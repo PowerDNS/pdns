@@ -15,13 +15,13 @@ static recordsAndSignatures genRecsAndSigs(const DNSName& name, const uint16_t q
   rec.d_type = qtype;
   rec.d_ttl = 600;
   rec.d_place = DNSResourceRecord::AUTHORITY;
-  rec.d_content = DNSRecordContent::mastermake(qtype, QClass::IN, content);
+  rec.setContent(DNSRecordContent::mastermake(qtype, QClass::IN, content));
 
   ret.records.push_back(rec);
 
   if (sigs) {
     rec.d_type = QType::RRSIG;
-    rec.d_content = std::make_shared<RRSIGRecordContent>(QType(qtype).toString() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data");
+    rec.setContent(std::make_shared<RRSIGRecordContent>(QType(qtype).toString() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data"));
     ret.signatures.push_back(rec);
   }
 

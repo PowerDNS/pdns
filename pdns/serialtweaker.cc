@@ -170,7 +170,7 @@ DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DN
   soa.d_type = QType::SOA;
   soa.d_ttl = sd.ttl;
   soa.d_place = place;
-  soa.d_content = makeSOAContent(edited);
+  soa.setContent(makeSOAContent(edited));
 
   DNSZoneRecord dzr;
   dzr.domain_id = sd.domain_id;

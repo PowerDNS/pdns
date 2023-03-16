@@ -181,13 +181,13 @@ string LUARecordContent::getCode() const
 }
 #endif
 
-void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
+void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options) const
 {
   string::size_type pos=0;
   uint16_t code, len;
   while(d_data.size() >= 4 + pos) {
-    code = 256 * (unsigned char)d_data[pos] + (unsigned char)d_data[pos+1];
-    len = 256 * (unsigned char)d_data[pos+2] + (unsigned char)d_data[pos+3];
+    code = 256 * (unsigned char)d_data.at(pos) + (unsigned char)d_data.at(pos+1);
+    len = 256 * (unsigned char)d_data.at(pos+2) + (unsigned char)d_data.at(pos+3);
     pos+=4;
 
     if(pos + len > d_data.size())
@@ -471,7 +471,7 @@ std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
     }
     return ret;
 }
-void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
+void EUI48RecordContent::toPacket(DNSPacketWriter& pw) const
 {
     string blob(d_eui48, d_eui48+6);
     pw.xfrBlob(blob);
@@ -516,7 +516,7 @@ std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
     }
     return ret;
 }
-void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
+void EUI64RecordContent::toPacket(DNSPacketWriter& pw) const
 {
     string blob(d_eui64, d_eui64+8);
     pw.xfrBlob(blob);
@@ -687,7 +687,7 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
 
 
 // DNSRecord to Packet conversion
-void APLRecordContent::toPacket(DNSPacketWriter& pw) {
+void APLRecordContent::toPacket(DNSPacketWriter& pw) const {
   for (auto & ard : aplrdata) {
     pw.xfr16BitInt(ard.d_family);
     pw.xfr8BitInt(ard.d_prefix);
@@ -859,12 +859,6 @@ static uint16_t makeTag(const std::string& data)
 }
 
 uint16_t DNSKEYRecordContent::getTag() const
-{
-  DNSKEYRecordContent tmp(*this);
-  return makeTag(tmp.serialize(DNSName()));  // this can't be const for some reason
-}
-
-uint16_t DNSKEYRecordContent::getTag()
 {
   return makeTag(this->serialize(DNSName()));
 }

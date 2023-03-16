@@ -59,21 +59,21 @@ public:
   void verify(bool& validationDone, bool& validationOK);
 
   // Return the zone's apex DNSKEYs
-  const std::set<shared_ptr<DNSKEYRecordContent>>& getDNSKEYs() const
+  const std::set<shared_ptr<const DNSKEYRecordContent>>& getDNSKEYs() const
   {
     return d_dnskeys;
   }
 
   // Return the zone's apex RRSIGs
-  const std::vector<shared_ptr<RRSIGRecordContent>>& getRRSIGs() const
+  const std::vector<shared_ptr<const RRSIGRecordContent>>& getRRSIGs() const
   {
     return d_rrsigs;
   }
 
   // Return the zone's apex ZONEMDs
-  std::vector<shared_ptr<ZONEMDRecordContent>> getZONEMDs() const
+  std::vector<shared_ptr<const ZONEMDRecordContent>> getZONEMDs() const
   {
-    std::vector<shared_ptr<ZONEMDRecordContent>> ret;
+    std::vector<shared_ptr<const ZONEMDRecordContent>> ret;
     for (const auto& zonemd : d_zonemdRecords) {
       ret.emplace_back(zonemd.second.record);
     }
@@ -98,14 +98,14 @@ public:
     return d_nsec3label;
   }
 
-  const std::vector<shared_ptr<NSEC3PARAMRecordContent>>& getNSEC3Params() const
+  const std::vector<shared_ptr<const NSEC3PARAMRecordContent>>& getNSEC3Params() const
   {
     return d_nsec3params;
   }
 
 private:
-  typedef std::pair<DNSName, QType> RRSetKey_t;
-  typedef std::vector<std::shared_ptr<DNSRecordContent>> RRVector_t;
+  using RRSetKey_t = std::pair<DNSName, QType>;
+  using RRVector_t = std::vector<std::shared_ptr<const DNSRecordContent>>;
 
   struct CanonRRSetKeyCompare
   {
@@ -122,11 +122,11 @@ private:
     }
   };
 
-  typedef std::map<RRSetKey_t, RRVector_t, CanonRRSetKeyCompare> RRSetMap_t;
+  using RRSetMap_t = std::map<RRSetKey_t, RRVector_t, CanonRRSetKeyCompare>;
 
   struct ZoneMDAndDuplicateFlag
   {
-    std::shared_ptr<ZONEMDRecordContent> record;
+    const std::shared_ptr<const ZONEMDRecordContent> record;
     bool duplicate;
   };
 
@@ -136,10 +136,10 @@ private:
   RRSetMap_t d_resourceRecordSets;
   std::map<RRSetKey_t, uint32_t> d_resourceRecordSetTTLs;
 
-  std::shared_ptr<SOARecordContent> d_soaRecordContent;
-  std::set<shared_ptr<DNSKEYRecordContent>> d_dnskeys;
-  std::vector<shared_ptr<RRSIGRecordContent>> d_rrsigs;
-  std::vector<shared_ptr<NSEC3PARAMRecordContent>> d_nsec3params;
+  std::shared_ptr<const SOARecordContent> d_soaRecordContent;
+  std::set<shared_ptr<const DNSKEYRecordContent>> d_dnskeys;
+  std::vector<shared_ptr<const RRSIGRecordContent>> d_rrsigs;
+  std::vector<shared_ptr<const NSEC3PARAMRecordContent>> d_nsec3params;
   ContentSigPair d_nsecs;
   map<DNSName, ContentSigPair> d_nsec3s;
   DNSName d_nsec3label;

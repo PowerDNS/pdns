@@ -72,7 +72,7 @@ private:
   string tmp;
 };
 
-void NSECBitmap::toPacket(DNSPacketWriter& pw)
+void NSECBitmap::toPacket(DNSPacketWriter& pw) const
 {
   NSECBitmapGenerator nbg(pw);
   if (d_bitset) {
@@ -186,7 +186,7 @@ NSECRecordContent::NSECRecordContent(const string& content, const DNSName& zone)
   }
 }
 
-void NSECRecordContent::toPacket(DNSPacketWriter& pw)
+void NSECRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfrName(d_next);
   d_bitmap.toPacket(pw);
@@ -240,7 +240,7 @@ NSEC3RecordContent::NSEC3RecordContent(const string& content, const DNSName& zon
   }
 }
 
-void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
+void NSEC3RecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr8BitInt(d_algorithm);
   pw.xfr8BitInt(d_flags);
@@ -306,7 +306,7 @@ NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const DN
   rtr.xfrHexBlob(d_salt);
 }
 
-void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw)
+void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr8BitInt(d_algorithm);
         pw.xfr8BitInt(d_flags);
@@ -366,7 +366,7 @@ CSYNCRecordContent::CSYNCRecordContent(const string& content, const DNSName& zon
   }
 }
 
-void CSYNCRecordContent::toPacket(DNSPacketWriter& pw)
+void CSYNCRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr32BitInt(d_serial);
   pw.xfr16BitInt(d_flags);

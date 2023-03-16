@@ -409,7 +409,7 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
     bool oldWantsRPZ = sr.getWantsRPZ();
     sr.setWantsRPZ(false);
     vector<DNSRecord> ans;
-    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, QClass::IN, ans);
+    res = sr.beginResolve(DNSName(spoofed.getContent()->getZoneRepresentation()), qtype, QClass::IN, ans);
     for (const auto& rec : ans) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
         ret.push_back(rec);
@@ -427,7 +427,7 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
   if (rec.d_type != QType::OPT) // their TTL ain't real
     minTTL = min(minTTL, rec.d_ttl);
 
-  rec.d_content->toPacket(pw);
+  rec.getContent()->toPacket(pw);
   if (pw.size() > static_cast<size_t>(maxAnswerSize)) {
     pw.rollback();
     if (rec.d_place != DNSResourceRecord::ADDITIONAL) {
@@ -618,16 +618,16 @@ static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname,
   if (record.d_place == DNSResourceRecord::ANSWER || record.d_place == DNSResourceRecord::ADDITIONAL) {
     // Create a string that represent a triplet of (qname, qtype and RR[type, name, content])
     std::stringstream ss;
-    ss << dname.toDNSStringLC() << ":" << qtype << ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.d_content->getZoneRepresentation();
+    ss << dname.toDNSStringLC() << ":" << qtype << ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.getContent()->getZoneRepresentation();
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
       if (g_udrLog) {
         // This should also probably log to a dedicated file.
-        SLOG(g_log << Logger::Notice << "Unique response observed: qname=" << dname << " qtype=" << QType(qtype) << " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl,
+        SLOG(g_log << Logger::Notice << "Unique response observed: qname=" << dname << " qtype=" << QType(qtype) << " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.getContent()->getZoneRepresentation() << endl,
              nodlogger->info(Logr::Debug, "New response observed",
                              "qtype", Logging::Loggable(QType(qtype)),
                              "rrtype", Logging::Loggable(QType(record.d_type)),
                              "rrname", Logging::Loggable(record.d_name),
-                             "rrcontent", Logging::Loggable(record.d_content->getZoneRepresentation())););
+                             "rrcontent", Logging::Loggable(record.getContent()->getZoneRepresentation())););
       }
       ret = true;
     }
@@ -712,7 +712,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
       if (auto rec = getRR<ARecordContent>(rr)) {
         ComboAddress ipv4(rec->getCA());
         memcpy(&prefix.sin6.sin6_addr.s6_addr[12], &ipv4.sin4.sin_addr.s_addr, sizeof(ipv4.sin4.sin_addr.s_addr));
-        rr.d_content = std::make_shared<AAAARecordContent>(prefix);
+        rr.setContent(std::make_shared<AAAARecordContent>(prefix));
         rr.d_type = QType::AAAA;
       }
       seenA = true;
@@ -755,7 +755,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   DNSRecord rr;
   rr.d_name = qname;
   rr.d_type = QType::CNAME;
-  rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
+  rr.setContent(std::make_shared<CNAMERecordContent>(newquery));
   ret.push_back(rr);
 
   auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));

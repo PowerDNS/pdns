@@ -697,7 +697,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
     const auto& record = parser.d_answers.at(0).first;
     BOOST_REQUIRE(record.d_type == QType::NSEC3);
     BOOST_REQUIRE(record.d_class == QClass::IN);
-    auto content = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
+    auto content = getRR<NSEC3RecordContent>(record);
     BOOST_REQUIRE(content);
     BOOST_CHECK_EQUAL(content->numberOfTypesSet(), 0U);
     for (size_t idx = 0; idx < 65536; idx++) {

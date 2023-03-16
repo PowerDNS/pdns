@@ -36,7 +36,7 @@ static inline void addRecordToList(std::vector<DNSRecord>& records, const DNSNam
   rec.d_type = type;
   rec.d_ttl = ttl;
 
-  rec.d_content = getRecordContent(type, content);
+  rec.setContent(getRecordContent(type, content));
 
   records.push_back(rec);
 }

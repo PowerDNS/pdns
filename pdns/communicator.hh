@@ -253,7 +253,7 @@ public:
         DNSZoneRecord rr;
         while(b->get(rr))
           if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
-            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+            addresses.push_back(rr.dr.getContent()->getZoneRepresentation());   // SOL if you have a CNAME for an NS
     }
     return addresses;
   }

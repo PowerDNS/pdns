@@ -129,7 +129,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   rr.auth=true;
 
   if (publishCDNSKEY == "0") { // delete DS via CDNSKEY
-    rr.dr.d_content=s_deleteCDNSKEYContent;
+    rr.dr.setContent(s_deleteCDNSKEYContent);
     r->addRecord(std::move(rr));
     return true;
   }
@@ -140,7 +140,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
     if (!value.second.published) {
       continue;
     }
-    rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+    rr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
     r->addRecord(DNSZoneRecord(rr));
     haveOne=true;
   }
@@ -177,7 +177,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
     rr.dr.d_type=QType::DNSKEY;
     rr.dr.d_ttl=d_sd.minimum;
     rr.dr.d_name=p.qdomain;
-    rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+    rr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
     rr.auth=true;
     r->addRecord(std::move(rr));
     haveOne=true;
@@ -221,7 +221,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   rr.auth=true;
 
   if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) { // delete DS via CDS
-    rr.dr.d_content=s_deleteCDSContent;
+    rr.dr.setContent(s_deleteCDSContent);
     r->addRecord(std::move(rr));
     return true;
   }
@@ -235,7 +235,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo)));
+      rr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
       r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }
@@ -265,7 +265,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
     rr.dr.d_ttl=d_sd.minimum;
     rr.dr.d_name=p.qdomain;
     ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
-    rr.dr.d_content=std::make_shared<NSEC3PARAMRecordContent>(ns3prc);
+    rr.dr.setContent(std::make_shared<NSEC3PARAMRecordContent>(ns3prc));
     rr.auth = true;
     r->addRecord(std::move(rr));
     return true;
@@ -295,7 +295,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       }
       else
         content=mode;
-      rr.dr.d_content = DNSRecordContent::mastermake(QType::TXT, 1, "\""+content+"\"");
+      rr.dr.setContent(DNSRecordContent::mastermake(QType::TXT, 1, "\""+content+"\""));
     }
     else if (target==idserver) {
       // modes: disabled, hostname or custom
@@ -309,7 +309,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       if(!tid.empty() && tid[0]!='"') { // see #6010 however
         tid = "\"" + tid + "\"";
       }
-      rr.dr.d_content=DNSRecordContent::mastermake(QType::TXT, 1, tid);
+      rr.dr.setContent(DNSRecordContent::mastermake(QType::TXT, 1, tid));
     }
     else {
       r->setRcode(RCode::Refused);
@@ -360,7 +360,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
       ret.push_back(rr);  // put in the original
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
-      rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
+      rr.dr.setContent(std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget())));
       rr.auth = false; // don't sign CNAME
       target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr);
@@ -420,9 +420,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
           try {
             auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
-            for(const auto& r : recvec) {
+            for (const auto& r : recvec) {
               rr.dr.d_type = rec->d_type; // might be CNAME
-              rr.dr.d_content = r;
+              rr.dr.setContent(r);
               rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
               ret->push_back(rr);
             }
@@ -553,18 +553,18 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       if (!newRRC) {
         continue;
       }
-      rrc = newRRC;
-      rec->dr.d_content = newRRC;
       if (s_SVCAutohints) {
         auto hints = getIPAddressFor(target, QType::A);
         if (hints.size() == 0) {
-          rrc->removeParam(SvcParam::ipv4hint);
+          newRRC->removeParam(SvcParam::ipv4hint);
         } else {
-          rrc->setHints(SvcParam::ipv4hint, hints);
+          newRRC->setHints(SvcParam::ipv4hint, hints);
         }
       } else {
-        rrc->removeParam(SvcParam::ipv4hint);
+        newRRC->removeParam(SvcParam::ipv4hint);
       }
+      rrc = newRRC;
+      rec->dr.setContent(std::move(newRRC));
     }
 
     if (rrc->hasParam(SvcParam::ipv6hint) && rrc->autoHint(SvcParam::ipv6hint)) {
@@ -572,18 +572,17 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       if (!newRRC) {
         continue;
       }
-      rrc = newRRC;
-      rec->dr.d_content = newRRC;
       if (s_SVCAutohints) {
         auto hints = getIPAddressFor(target, QType::AAAA);
         if (hints.size() == 0) {
-          rrc->removeParam(SvcParam::ipv6hint);
+          newRRC->removeParam(SvcParam::ipv6hint);
         } else {
-          rrc->setHints(SvcParam::ipv6hint, hints);
+          newRRC->setHints(SvcParam::ipv6hint, hints);
         }
       } else {
-        rrc->removeParam(SvcParam::ipv6hint);
+        newRRC->removeParam(SvcParam::ipv6hint);
       }
+      rec->dr.setContent(std::move(newRRC));
     }
   }
 
@@ -691,7 +690,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   rr.dr.d_name = name;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
   rr.dr.d_type = QType::NSEC;
-  rr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
+  rr.dr.setContent(std::make_shared<NSECRecordContent>(std::move(nrc)));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
@@ -783,7 +782,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname;
   rr.dr.d_ttl = d_sd.getNegativeTTL();
   rr.dr.d_type=QType::NSEC3;
-  rr.dr.d_content=std::make_shared<NSEC3RecordContent>(std::move(n3rc));
+  rr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
@@ -1595,9 +1594,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           try {
             auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
             if(!recvec.empty()) {
-              for(const auto& r_it : recvec) {
+              for (const auto& r_it : recvec) {
                 rr.dr.d_type = rec->d_type; // might be CNAME
-                rr.dr.d_content = r_it;
+                rr.dr.setContent(r_it);
                 rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
                 rrset.push_back(rr);
               }
@@ -1639,7 +1638,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           g_log<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
           continue;
         }
-        haveAlias=getRR<ALIASRecordContent>(rr.dr)->d_content;
+        haveAlias=getRR<ALIASRecordContent>(rr.dr)->getContent();
         aliasScopeMask=rr.scopeMask;
       }
 

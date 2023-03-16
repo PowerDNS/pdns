@@ -868,7 +868,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
         zr.domain_id = compoundOrdername::getDomainID(key);
         zr.dr.d_type = compoundOrdername::getQType(key).getCode();
         zr.dr.d_ttl = lrr.ttl;
-        zr.dr.d_content = deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content);
+        zr.dr.setContent(deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content));
         zr.auth = lrr.auth;
       }
 
@@ -903,7 +903,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.qname = zr.dr.d_name;
   rr.ttl = zr.dr.d_ttl;
   rr.qtype = zr.dr.d_type;
-  rr.content = zr.dr.d_content->getZoneRepresentation(true);
+  rr.content = zr.dr.getContent()->getZoneRepresentation(true);
   rr.domain_id = zr.domain_id;
   rr.auth = zr.auth;
   rr.disabled = zr.disabled;
