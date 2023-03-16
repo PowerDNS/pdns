@@ -805,6 +805,16 @@ set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::
   return p;
 }
 
+std::shared_ptr<SVCBBaseRecordContent> SVCBRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<SVCBRecordContent>(*this));
+}
+
+std::shared_ptr<SVCBBaseRecordContent> HTTPSRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<HTTPSRecordContent>(*this));
+}
+
 /* SVCB end */
 
 boilerplate_conv(TKEY,

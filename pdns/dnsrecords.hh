@@ -527,6 +527,7 @@ class SVCBBaseRecordContent : public DNSRecordContent
     bool hasParam(const SvcParam::SvcParamKey &key) const;
     // Get the parameter with |key|, will throw out_of_range if param isn't there
     SvcParam getParam(const SvcParam::SvcParamKey &key) const;
+    virtual std::shared_ptr<SVCBBaseRecordContent> clone() const = 0;
 
   protected:
     uint16_t d_priority;
@@ -541,12 +542,14 @@ class SVCBRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(SVCB)
+  std::shared_ptr<SVCBBaseRecordContent> clone() const override;
 };
 
 class HTTPSRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(HTTPS)
+  std::shared_ptr<SVCBBaseRecordContent> clone() const override;
 };
 
 class RRSIGRecordContent : public DNSRecordContent
