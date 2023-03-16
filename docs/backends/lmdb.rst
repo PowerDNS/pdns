@@ -72,7 +72,7 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``lmdb-schema-version``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version that the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
+Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version than the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
 
 The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. if you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
 
@@ -83,6 +83,7 @@ PowerDNS Version  LMDB Schema version
 4.3.x             2
 4.4.x to 4.6.x    3
 4.7.x and up      4
+4.8.x and up      5
 ================  ===================
 
 .. _settings-lmdb-random-ids:
@@ -109,6 +110,14 @@ This will also improve the detection of recreated zones for :doc:`Catalog Zones 
 Size, in megabytes, of each LMDB database.
 This number can be increased later, but never decreased.
 Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
+
+.. _settings-lmdb-flag-deleted:
+``lmdb-flag-deleted``
+^^^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 4.8.0
+
+Instead of deleting items from the database, flag them as deleted in the item's [LightningStream](FIXME add link) header.
 
 LMDB Structure
 --------------
