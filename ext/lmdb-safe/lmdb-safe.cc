@@ -34,7 +34,7 @@ namespace LMDBLS {
   }
 
   size_t LScheckHeaderAndGetSize(std::string_view val, size_t datasize) {
-    LSheader* lsh = LSassertFixedHeaderSize(val);
+    const LSheader* lsh = LSassertFixedHeaderSize(val);
 
     if (lsh->d_version != 0) {
       throw std::runtime_error("LSheader has wrong version (not zero)");
