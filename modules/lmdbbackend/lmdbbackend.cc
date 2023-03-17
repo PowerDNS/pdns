@@ -205,8 +205,8 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   rc = mdb_cursor_get(cur, &key, &data, MDB_FIRST);
 
   while (rc == 0) {
-    std::string skey((char*)key.mv_data, key.mv_size);
-    std::string sdata((char*)data.mv_data, data.mv_size);
+    std::string skey(reinterpret_cast<const char*>(key.mv_data), key.mv_size);
+    std::string sdata(reinterpret_cast<const har*>(data.mv_data), data.mv_size);
 
     std::string stdata = header + sdata;
 
@@ -215,9 +215,9 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
     MDB_val tkey;
     MDB_val tdata;
 
-    tkey.mv_data = (char*)skey.c_str();
+    tkey.mv_data = const_cast<char*>(skey.c_str());
     tkey.mv_size = skey.size();
-    tdata.mv_data = (char*)stdata.c_str();
+    tdata.mv_data = const_cast<char*>(stdata.c_str());
     tdata.mv_size = stdata.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
@@ -254,7 +254,7 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 
   while (rc == 0) {
     // std::string skey((char*) key.mv_data, key.mv_size);
-    std::string sdata((char*)data.mv_data, data.mv_size);
+    std::string sdata(reinterpret_cast<const char*>(data.mv_data), data.mv_size);
 
     std::string stdata = header + sdata;
 
@@ -264,7 +264,7 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
       throw std::runtime_error("got non-uint32_t key in TypedDBI");
     }
 
-    memcpy((void*)&id, key.mv_data, sizeof(uint32_t));
+    memcpy(&id, key.mv_data, sizeof(uint32_t));
 
     id = htonl(id);
 
@@ -273,9 +273,9 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
     MDB_val tkey;
     MDB_val tdata;
 
-    tkey.mv_data = (char*)&id;
+    tkey.mv_data = reinterpret_cast<char*>(&id);
     tkey.mv_size = sizeof(uint32_t);
-    tdata.mv_data = (char*)stdata.c_str();
+    tdata.mv_data = reinterpret_cast<char*>(stdata.c_str());
     tdata.mv_size = stdata.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
@@ -457,8 +457,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     mdb_env_close(shenv);
   }
 
-  MDB_dbi fromtypeddbi[4];
-  MDB_dbi totypeddbi[4];
+  std::array<MDB_dbi,4> fromtypeddbi;
+  std::array<MDB_dbi, 4> totypeddbi;
 
   int index = 0;
 
@@ -497,8 +497,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     index++;
   }
 
-  MDB_dbi fromindexdbi[4];
-  MDB_dbi toindexdbi[4];
+  std::array<MDB_dbi,4> fromindexdbi;
+  std::array<MDB_dbi, 4> toindexdbi;
 
   index = 0;
 

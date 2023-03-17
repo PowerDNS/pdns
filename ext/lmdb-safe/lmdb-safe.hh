@@ -147,7 +147,7 @@ namespace LMDBLS {
   const size_t LS_NUMEXTRA_OFFSET = 22;
   const uint8_t LS_FLAG_DELETED = 0x01;
 
-  LSheader* LSassertFixedHeaderSize(std::string_view val);
+  const LSheader* LSassertFixedHeaderSize(std::string_view val);
   size_t LScheckHeaderAndGetSize(std::string_view val, size_t datasize=0);
   size_t LScheckHeaderAndGetSize(const MDBOutVal *val, size_t datasize=0);
   bool LSisDeleted(std::string_view val);
@@ -177,7 +177,7 @@ struct MDBOutVal
 
     size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
 
-    memcpy(&ret, (char *)d_mdbval.mv_data+offset, sizeof(T));
+    memcpy(&ret, reinterpret_cast<const char *>(d_mdbval.mv_data)+offset, sizeof(T));
 
     static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
     ret = ntohl(ret);
