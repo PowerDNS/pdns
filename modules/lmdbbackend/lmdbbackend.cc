@@ -668,7 +668,9 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
       // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<currentSchemaVersionAndShards.second<<std::endl;
 
-      // FIXME: I accidentally took out the code that checks pdns.conf lmdb-schema-version
+      if (getArgAsNum("schema-version") != SCHEMAVERSION) {
+        throw std::runtime_error("This version of the lmdbbackend only supports schema version 5. Configuration demands a lower version. Not starting up.");
+      }
 
       if (currentSchemaVersion > 0 && currentSchemaVersion < 3) {
         throw std::runtime_error("this version of the lmdbbackend can only upgrade from schema v3/v4 to v5. Upgrading from older schemas is not yet supported.");
