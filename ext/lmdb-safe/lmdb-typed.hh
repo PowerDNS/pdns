@@ -134,9 +134,6 @@ namespace {
     memcpy(lenprefix.data(), &len, sizeof(len));
     std::string scombined = lenprefix + skey + sval;
 
-    // MDBInVal combined(scombined);
-
-    // std::cerr<<"scombined="<<makeHexDump(scombined)<<std::endl;
     return scombined;
   }
 }
