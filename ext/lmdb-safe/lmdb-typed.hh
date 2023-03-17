@@ -101,7 +101,7 @@ namespace {
     }
 
     MDBOutVal ret;
-    ret.d_mdbval.mv_data = (char*) combined.d_mdbval.mv_data;
+    ret.d_mdbval.mv_data = combined.d_mdbval.mv_data;
     ret.d_mdbval.mv_size = combined.d_mdbval.mv_size - sizeof(uint32_t);
 
     return ret;
