@@ -63,7 +63,7 @@ namespace LMDBLS {
   }
 
   bool LSisDeleted(std::string_view val) {
-    LSheader* lsh = LSassertFixedHeaderSize(val);
+    const LSheader* lsh = LSassertFixedHeaderSize(val);
 
     return (lsh->d_flags & LS_FLAG_DELETED) != 0;
   }
