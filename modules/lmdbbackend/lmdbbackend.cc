@@ -69,9 +69,6 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
 
   int rc;
   MDB_env* env = nullptr;
-  MDB_dbi dbi;
-  MDB_val key, data;
-  MDB_txn* txn = nullptr;
 
   if ((rc = mdb_env_create(&env)) != 0) {
     throw std::runtime_error("mdb_env_create failed");
@@ -95,10 +92,14 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     throw std::runtime_error("mdb_env_open failed");
   }
 
+  MDB_txn* txn = nullptr;
+
   if ((rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn)) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed");
   }
+
+  MDB_dbi dbi;
 
   if ((rc = mdb_dbi_open(txn, "pdns", 0, &dbi)) != 0) {
     if (rc == MDB_NOTFOUND) {
@@ -112,6 +113,8 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     mdb_env_close(env);
     throw std::runtime_error("mdb_dbi_open failed");
   }
+
+  MDB_val key, data;
 
   key.mv_data = (char*)"schemaversion";
   key.mv_size = strlen((char*)key.mv_data);
@@ -192,11 +195,12 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   int rc;
 
   MDB_cursor* cur;
-  MDB_val key, data;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
     throw std::runtime_error("mdb_cursur_open failed");
   }
+
+  MDB_val key, data;
 
   rc = mdb_cursor_get(cur, &key, &data, MDB_FIRST);
 
@@ -239,11 +243,12 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   int rc;
 
   MDB_cursor* cur;
-  MDB_val key, data;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
     throw std::runtime_error("mdb_cursur_open failed");
   }
+
+  MDB_val key, data;
 
   rc = mdb_cursor_get(cur, &key, &data, MDB_FIRST);
 
@@ -285,7 +290,7 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   }
 }
 
-// migrated an index DBI:
+// migrating an index DBI:
 // newkey = oldkey.len(), oldkey, htonl(oldvalue)
 // newvalue = empty lsheader
 void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
@@ -296,11 +301,12 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   int rc;
 
   MDB_cursor* cur;
-  MDB_val key, data;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
     throw std::runtime_error("mdb_cursur_open failed");
   }
+
+  MDB_val key, data;
 
   rc = mdb_cursor_get(cur, &key, &data, MDB_FIRST);
 
@@ -345,9 +351,6 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 {
   int rc;
-  MDB_env* env = nullptr;
-  MDB_dbi dbi;
-  MDB_txn* txn = nullptr;
 
   auto currentSchemaVersionAndShards = getSchemaVersionAndShards(filename);
   uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
@@ -356,6 +359,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   if (currentSchemaVersion != 3 && currentSchemaVersion != 4) {
     throw std::runtime_error("upgrade to v5 requested but current schema is not v3 or v4, stopping");
   }
+
+  MDB_env* env = nullptr;
 
   if ((rc = mdb_env_create(&env)) != 0) {
     throw std::runtime_error("mdb_env_create failed");
@@ -370,6 +375,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed");
   }
+
+  MDB_txn* txn = nullptr;
 
   if ((rc = mdb_txn_begin(env, NULL, 0, &txn)) != 0) {
     mdb_env_close(env);
@@ -389,9 +396,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
     std::cerr << "migrating shard " << shardfile << std::endl;
     MDB_env* shenv = nullptr;
-    MDB_dbi shdbi;
-    MDB_dbi shdbi2;
-    MDB_txn* shtxn = nullptr;
 
     if ((rc = mdb_env_create(&shenv)) != 0) {
       throw std::runtime_error("mdb_env_create failed");
@@ -407,10 +411,14 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       throw std::runtime_error("mdb_env_open failed");
     }
 
+    MDB_txn* shtxn = nullptr;
+
     if ((rc = mdb_txn_begin(shenv, NULL, 0, &shtxn)) != 0) {
       mdb_env_close(env);
       throw std::runtime_error("mdb_txn_begin failed");
     }
+
+    MDB_dbi shdbi;
 
     if ((rc = mdb_dbi_open(shtxn, "records", 0, &shdbi)) != 0) {
       if (rc == MDB_NOTFOUND) {
@@ -423,8 +431,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       throw std::runtime_error("mdb_dbi_open shard records failed");
     }
 
-    // FIXME: pdns_v5 is wrong, it should not be suffixed, but it's easy to test LS-prefix-insertion on this small table
-    // FIXME: remember to fix endianness
+    MDB_dbi shdbi2;
+
     if ((rc = mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2)) != 0) {
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
@@ -433,7 +441,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     }
 
     try {
-      // FIXME: this function appears to be perfect for records, and specifically wrong for anything that is not records
       copyDBIAndAddLSHeader(shtxn, shdbi, shdbi2);
     }
     catch (std::exception& e) {
@@ -530,6 +537,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
     index++;
   }
+
+  MDB_dbi dbi;
 
   // finally, migrate the pdns db
   if ((rc = mdb_dbi_open(txn, "pdns", 0, &dbi)) != 0) {
