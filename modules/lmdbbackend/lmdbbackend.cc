@@ -75,17 +75,25 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     throw std::runtime_error("mdb_env_create failed");
   }
 
+  if ((rc = mdb_env_set_mapsize(env, 0)) != 0) {
+    throw std::runtime_error("mdb_env_set_mapsize failed");
+  }
+
   if ((rc = mdb_env_set_maxdbs(env, 20)) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_set_maxdbs failed");
   }
 
-  if ((rc = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600)) != 0) {
+  if ((rc = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600)) != 0) {
+    if (rc == ENOENT) {
+      // we don't have a database yet! report schema 0, with 0 shards
+      return std::make_pair(0, 0);
+    }
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed");
   }
 
-  if ((rc = mdb_txn_begin(env, NULL, 0, &txn)) != 0) {
+  if ((rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn)) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed");
   }
@@ -660,8 +668,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
       // FIXME: I accidentally took out the code that checks pdns.conf lmdb-schema-version
 
-      if (currentSchemaVersion < 3) {
+      if (currentSchemaVersion > 0 && currentSchemaVersion < 3) {
         throw std::runtime_error("this version of the lmdbbackend can only upgrade from schema v3/v4 to v5. Upgrading from older schemas is not yet supported.");
+      }
+
+      if (currentSchemaVersion == 0) {
+        // no database is present yet, we can just create them
+        currentSchemaVersion = 5;
       }
 
       if (currentSchemaVersion == 3 || currentSchemaVersion == 4) {
