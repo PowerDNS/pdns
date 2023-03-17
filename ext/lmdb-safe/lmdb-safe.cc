@@ -244,7 +244,7 @@ MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv* parent, int flags):
 
   gettime(&tp, true);
 
-  d_txtime = tp.tv_sec * 1E9 + tp.tv_nsec;
+  d_txtime = tp.tv_sec * (1000 * 1000 * 1000) + tp.tv_nsec;
 #endif
 }
 
