@@ -212,27 +212,6 @@ struct MDBOutVal
   T getNoStripHeader() const;
 #endif
 
-#ifndef DNSDIST
-  template<class T>
-  T get_struct() const
-  {
-    T ret;
-
-    size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
-
-    memcpy(&ret, reinterpret_cast<const char *>(d_mdbval.mv_data)+offset, sizeof(T));
-    return ret;
-  }
-
-  template<class T>
-  const T* get_struct_ptr() const
-  {
-    size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
-
-    return reinterpret_cast<const T*>((char *)d_mdbval.mv_data+offset);
-  }
-#endif
-
   MDB_val d_mdbval;
 };
 
