@@ -721,6 +721,7 @@ libsystemd
 libtdsodbc
 libyaml
 libzmq
+lightningstream
 Lindqvist
 linenos
 linenum
@@ -763,6 +764,8 @@ Luuk
 LYg
 Maik
 Maikel
+MAILA
+MAILB
 Majer
 Makefiles
 malcrafted
@@ -1235,6 +1238,7 @@ Shabanov
 Shafir
 shantikulkarni
 shinsterneck
+shnya
 showdetails
 showflags
 Shukla
@@ -1352,6 +1356,7 @@ supervisord
 Surfnet
 swapcontext
 swoga
+syncer
 syncres
 sysadmin
 syscalls
