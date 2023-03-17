@@ -366,6 +366,7 @@ webserver-port=%d
 webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
+disable-packetcache
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
     _xfrDone = 0
 

@@ -746,7 +746,6 @@ static void setupNODThread(Logr::log_t log)
     }
     std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
     t.detach();
-    g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   }
   if (g_udrEnabled) {
     uint32_t num_cells = ::arg().asNum("unique-response-db-size");
@@ -766,7 +765,6 @@ static void setupNODThread(Logr::log_t log)
     }
     std::thread t(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
     t.detach();
-    g_udr_pbtag = ::arg()["unique-response-pb-tag"];
   }
 }
 
@@ -791,6 +789,8 @@ static void setupNODGlobal()
   // Setup Unique DNS Response subsystem
   g_udrEnabled = ::arg().mustDo("unique-response-tracking");
   g_udrLog = ::arg().mustDo("unique-response-log");
+  g_nod_pbtag = ::arg()["new-domain-pb-tag"];
+  g_udr_pbtag = ::arg()["unique-response-pb-tag"];
 }
 #endif /* NOD_ENABLED */
 
