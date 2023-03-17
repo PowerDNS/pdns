@@ -42,7 +42,9 @@ namespace LMDBLS {
 
     size_t headersize = LS_MIN_HEADER_SIZE;
 
-    headersize += ntohs(lsh->d_numextra) * LS_BLOCK_SIZE;
+    uint16_t numextra = (val[LS_NUMEXTRA_OFFSET] << 8) + val[LS_NUMEXTRA_OFFSET+1];
+
+    headersize += numextra * LS_BLOCK_SIZE;
 
     if (val.size() < headersize) {
       throw std::runtime_error("LSheader too short for promised extra data");

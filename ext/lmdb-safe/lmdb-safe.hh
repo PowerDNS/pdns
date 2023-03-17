@@ -142,8 +142,9 @@ namespace LMDBLS {
 
   static_assert(sizeof(LSheader)==24, "LSheader size is wrong");
 
-  const size_t LS_MIN_HEADER_SIZE=sizeof(LSheader);  // FIXME: rename this so all code that relies on it breaks - it needs to use LScheckHeaderAndGetSize below
-  const size_t LS_BLOCK_SIZE=8;
+  const size_t LS_MIN_HEADER_SIZE = sizeof(LSheader);
+  const size_t LS_BLOCK_SIZE = 8;
+  const size_t LS_NUMEXTRA_OFFSET = 22;
   const uint8_t LS_FLAG_DELETED = 0x01;
 
   LSheader* LSassertFixedHeaderSize(std::string_view val);
