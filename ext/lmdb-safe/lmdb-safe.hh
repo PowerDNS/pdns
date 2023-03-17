@@ -177,6 +177,8 @@ struct MDBOutVal
     size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
 
     memcpy(&ret, (char *)d_mdbval.mv_data+offset, sizeof(T));
+
+    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
     ret = ntohl(ret);
     return ret;
   }
@@ -191,6 +193,8 @@ struct MDBOutVal
       throw std::runtime_error("MDB data has wrong length for type");
 
     memcpy(&ret, d_mdbval.mv_data, sizeof(T));
+
+    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
     ret = ntohl(ret);
     return ret;
   }
@@ -273,6 +277,7 @@ public:
                                     T>::type* = nullptr>
   MDBInVal(T i)
   {
+    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
     auto j = htonl(i);    // all actual usage in our codebase is 32 bits. If that ever changes, this will break the build and avoid runtime surprises
     memcpy(&d_memory[0], &j, sizeof(j));
 
